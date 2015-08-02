@@ -2,15 +2,25 @@
 	"test.webda.io": {
 		"global": {
 			"params": {
-				"AIM": "23352525",
-				"Secret": "Yop"
+				"accessKeyId": "YOUR_ACCESS_KEY",
+				"secretAccessKey": "YOUR_SECRET_KEY",
+				"TEST": "Global"
 			}
 		},
-		"GET /": {
+		"/users/{id}": {
+			"method": "GET",
 			"lambda": "plop",
 			"params": {
-				"additional": "Test",
-				"Secret": "Not override"
+				"TEST_ADD": "Users",
+				"TEST": "Local"
+			}
+		},
+		"/": {
+			"method": "GET",
+			"lambda": "plop",
+			"params": {
+				"accessKeyId": "LOCAL_ACCESS_KEY",
+				"secretAccessKey": "LOCAL_SECRET_KEY"
 			}
 		}
 	}

@@ -1,0 +1,25 @@
+{
+  "name": "webda",
+  "version": "0.0.1",
+  "description": "Expose API with Lambda",
+  "keywords": [
+    "aws",
+    "lamda",
+    "api gateway"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": "git://github.com/loopingz/webda.git",
+  "main": "immutable",
+  "scripts": {
+    "test": "node test",
+    "run": "node core"
+  },
+  "dependencies": {
+    "aws-sdk": ">=2.1.42",
+    "URIjs": ">=1.16.0"
+  },
+  "devDependencies": {
+    "mocha": ">=2.2.5"
+  },
+  "homepage": "https://github.com/loopingz/webda"
+}

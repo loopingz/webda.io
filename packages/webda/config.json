@@ -1,0 +1,17 @@
+{
+	"test.webda.io": {
+		"global": {
+			"params": {
+				"AIM": "23352525",
+				"Secret": "Yop"
+			}
+		},
+		"GET /": {
+			"lambda": "plop",
+			"params": {
+				"additional": "Test",
+				"Secret": "Not override"
+			}
+		}
+	}
+}

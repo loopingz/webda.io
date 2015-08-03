@@ -1,0 +1,27 @@
+{
+	"test.webda.io": {
+		"global": {
+			"params": {
+				"accessKeyId": "YOUR_ACCESS_KEY",
+				"secretAccessKey": "YOUR_SECRET_KEY",
+				"TEST": "Global"
+			}
+		},
+		"/users/{id}": {
+			"method": "GET",
+			"lambda": "plop",
+			"params": {
+				"TEST_ADD": "Users",
+				"TEST": "Local"
+			}
+		},
+		"/": {
+			"method": "GET",
+			"lambda": "plop",
+			"params": {
+				"accessKeyId": "LOCAL_ACCESS_KEY",
+				"secretAccessKey": "LOCAL_SECRET_KEY"
+			}
+		}
+	}
+}

@@ -1,5 +1,6 @@
 var assert = require("assert")
 var Router = require("../router.js");
+var Executors = require("../executor.js");
 var config = require("./config.json");
 
 describe('Router', function() {
@@ -18,6 +19,8 @@ describe('Router', function() {
       assert.equal(callable["params"]["TEST_ADD"], undefined);
       assert.equal(callable["params"]["accessKeyId"], "LOCAL_ACCESS_KEY");
       assert.equal(callable["params"]["secretAccessKey"], "LOCAL_SECRET_KEY");
+      // Debug is Executor
+      assert(callable instanceof Executors["debug"]);
     });
     it('Known vhost - known page - unknown method', function () {
       router = new Router(config);
@@ -38,6 +41,8 @@ describe('Router', function() {
       assert.equal(callable["params"]["TEST_ADD"], "Users");
       assert.equal(callable["params"]["accessKeyId"], "YOUR_ACCESS_KEY");
       assert.equal(callable["params"]["secretAccessKey"], "YOUR_SECRET_KEY");
+      // Default is LambdaExecutor
+      assert(callable instanceof Executors["lambda"]);
     });
   });
 });

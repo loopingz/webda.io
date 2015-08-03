@@ -17,7 +17,7 @@
 		},
 		"/": {
 			"method": "GET",
-			"lambda": "plop",
+			"executor": "debug",
 			"params": {
 				"accessKeyId": "LOCAL_ACCESS_KEY",
 				"secretAccessKey": "LOCAL_SECRET_KEY"

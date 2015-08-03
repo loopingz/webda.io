@@ -11,12 +11,12 @@
   "repository": "git://github.com/loopingz/webda.git",
   "main": "immutable",
   "scripts": {
-    "test": "node test",
+    "test": "mocha",
     "run": "node core"
   },
   "dependencies": {
     "aws-sdk": ">=2.1.42",
-    "URIjs": ">=1.16.0"
+    "uri-templates": ">=0.1.7"
   },
   "devDependencies": {
     "mocha": ">=2.2.5"

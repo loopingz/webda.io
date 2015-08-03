@@ -1,6 +1,6 @@
 var assert = require("assert")
 var Router = require("../router.js");
-var config = require("../config.json");
+var config = require("./config.json");
 
 describe('Router', function() {
   describe('getRoute()', function () {
@@ -12,6 +12,9 @@ describe('Router', function() {
       router = new Router(config);
       callable = router.getRoute("test.webda.io", "GET", "/");
       assert.notEqual(callable, undefined);
+      assert.equal(callable['_http']["method"], "GET");
+      assert.equal(callable['_http']["url"], "/");
+      assert.equal(callable['_http']["host"], "test.webda.io");
       assert.equal(callable["params"]["TEST_ADD"], undefined);
       assert.equal(callable["params"]["accessKeyId"], "LOCAL_ACCESS_KEY");
       assert.equal(callable["params"]["secretAccessKey"], "LOCAL_SECRET_KEY");
@@ -28,6 +31,9 @@ describe('Router', function() {
       router = new Router(config);
       callable = router.getRoute("test.webda.io", "GET", "/users/666");
       assert.notEqual(callable, undefined);
+      assert.equal(callable['_http']["method"], "GET");
+      assert.equal(callable['_http']["url"], "/users/666");
+      assert.equal(callable['_http']["host"], "test.webda.io");
       assert.equal(callable['params']['id'], 666);
       assert.equal(callable["params"]["TEST_ADD"], "Users");
       assert.equal(callable["params"]["accessKeyId"], "YOUR_ACCESS_KEY");

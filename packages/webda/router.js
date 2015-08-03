@@ -1,4 +1,5 @@
-var uriTemplates = require('uri-templates');//
+var uriTemplates = require('uri-templates');
+var Executors = require('./executor.js')
 //var module = require("module");
 var Router = function(config) {
 	var self = this;
@@ -6,6 +7,14 @@ var Router = function(config) {
 	// Prepare tbe URI parser
 	for (var vhost in this.config) {
 		for (var map in this.config[vhost]) {
+      if (this.config[vhost][map]["executor"] == undefined) {
+          this.config[vhost][map]["executor"] = "_default";
+      } else {
+        // Validate the Executor type
+        if (Executors[this.config[vhost][map]["executor"]] == undefined) {
+           throw "Executor type is unknown: '" + this.config[vhost][map]["executor"] + "'";
+        }
+      }
 			if (map.indexOf("{") == -1) {
 		        continue;
 		    } else {
@@ -16,13 +25,6 @@ var Router = function(config) {
 };
 Router.prototype = Router;
 
-Router.prototype.enrichParameters = function(params1, params2) {
-	for (var property in params2) {
-    	if (params1[property] == undefined) {
-      		params1[property] = params2[property];
-    	}
-  	}
-}
 Router.prototype.getRoute = function(vhost, method, url) {
   // Check vhost
   if (this.config[vhost] === undefined) {
@@ -35,7 +37,7 @@ Router.prototype.getRoute = function(vhost, method, url) {
       continue;
     }
     if (map == url) {
-      callable = this.config[vhost][map];
+      callable = new Executors[this.config[vhost][map]["executor"]](this.config[vhost][map]);
       break;
     }
     if (this.config[vhost][map]['uri-template-parse'] === undefined) {
@@ -43,18 +45,19 @@ Router.prototype.getRoute = function(vhost, method, url) {
     }
     parse_result = this.config[vhost][map]['uri-template-parse'].fromUri(url);
     if (parse_result != undefined) {
-      callable = this.config[vhost][map];
-      this.enrichParameters(callable["params"], parse_result);
+      callable = new Executors[this.config[vhost][map]["executor"]](this.config[vhost][map]);
+      callable.enrichParameters(parse_result);
       break;
     }
   }
   if (callable != null) {
   	vhost_config = this.config[vhost]["global"];
-  	if (callable["params"] == undefined) {
-	  	callable["params"] = vhost_config['params'];
-	} else if (vhost_config['params'] != undefined) {
-      this.enrichParameters(callable["params"], vhost_config['params']);
-	}
+  	if (vhost_config['params'] != undefined) {
+        callable.enrichParameters(vhost_config['params']);
+  	}
+    if (callable["_http"] == undefined) {
+        callable["_http"] = {"host":vhost, "method":method, "url":url};
+    }
   }
   return callable;
 };

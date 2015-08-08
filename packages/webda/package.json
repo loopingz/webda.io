@@ -16,7 +16,8 @@
   },
   "dependencies": {
     "aws-sdk": ">=2.1.42",
-    "uri-templates": ">=0.1.7"
+    "uri-templates": ">=0.1.7",
+    "mime-types": ">=2.1.4"
   },
   "devDependencies": {
     "mocha": ">=2.2.5"

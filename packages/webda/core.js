@@ -1,6 +1,4 @@
 var http = require('http');
-var AWS = require('aws-sdk'); 
-var lambda = new AWS.Lambda();
 var webda_config = require('./config.json');
 var ConfigLoader = require('./configloader.js')
 var Router = require('./router.js');
@@ -22,29 +20,5 @@ http.createServer(function (req, res) {
   } 
   callable.execute(res);
   return;
-  // Call the lambda function mapped
-  var params = {
-    FunctionName: callable['lambda'], /* required */
-    ClientContext: JSON.stringify(callable['params']),
-    InvocationType: 'RequestResponse',
-    LogType: 'None',
-    Payload: req.data// not sure here / new Buffer('...') || 'STRING_VALUE'
-  };
-  lambda.invoke(params, function(err, data) {
-    if (err) {
-      console.log(err, err.stack);
-      res.writeHead(500, {'Content-Type': 'text/plain'});
-      res.end();
-      return;
-    }
-    if (data.Payload != '{}') {
-      // Should parse JSON
-      res.writeHead(200, {'Content-Type': 'text/plain'});
-      res.write(data.Payload);
-      res.end();
-    }
-  });
-  //res.writeHead(200, {'Content-Type': 'text/plain'});
-  //res.end('Hello World\n');
 }).listen(1337, '127.0.0.1');
 console.log('Server running at http://127.0.0.1:1337/');

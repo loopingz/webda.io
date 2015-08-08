@@ -33,7 +33,11 @@ Router.prototype.getRoute = function(vhost, method, url) {
   // Check mapping
   var callable = null;
   for (var map in this.config[vhost]) {
-    if (this.config[vhost][map]['method'] != method) {
+    if  (Array.isArray(this.config[vhost][map]['method'])) {
+      if (this.config[vhost][map]['method'].indexOf(method) == -1) {
+        continue;
+      }
+    } else if (this.config[vhost][map]['method'] != method) {
       continue;
     }
     if (map == url) {

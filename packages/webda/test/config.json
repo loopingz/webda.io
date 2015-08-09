@@ -16,7 +16,7 @@
 			}
 		},
 		"/": {
-			"method": "GET",
+			"method": ["GET", "POST"],
 			"executor": "debug",
 			"params": {
 				"accessKeyId": "LOCAL_ACCESS_KEY",

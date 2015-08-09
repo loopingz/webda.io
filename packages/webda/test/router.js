@@ -22,6 +22,17 @@ describe('Router', function() {
       // Debug is Executor
       assert(callable instanceof Executors["debug"]);
     });
+    it('Known vhost - known page - multiple method', function () {
+      router = new Router(config);
+      callable = router.getRoute("test.webda.io", "POST", "/");
+      assert.notEqual(callable, undefined);
+      assert.equal(callable['_http']["method"], "POST");
+      assert.equal(callable['_http']["url"], "/");
+      assert.equal(callable['_http']["host"], "test.webda.io");
+      assert.equal(callable["params"]["TEST_ADD"], undefined);
+      assert.equal(callable["params"]["accessKeyId"], "LOCAL_ACCESS_KEY");
+      assert.equal(callable["params"]["secretAccessKey"], "LOCAL_SECRET_KEY");
+    });
     it('Known vhost - known page - unknown method', function () {
       router = new Router(config);
       assert.equal(router.getRoute("test.webda.io", "PUT", "/"), undefined);

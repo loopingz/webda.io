@@ -55,5 +55,17 @@ describe('Router', function() {
       // Default is LambdaExecutor
       assert(callable instanceof Executors["lambda"]);
     });
+    it('Known vhost - passport executor', function () {
+      router = new Router(config);
+      callable = router.getRoute("test.webda.io", "GET", "/auth/facebook");
+      assert.notEqual(callable, undefined);
+      assert.notEqual(callable._extended, true);
+      callable = router.getRoute("test.webda.io", "GET", "/auth/facebook/callback");
+      assert.notEqual(callable, undefined);
+      assert.equal(callable.callable._extended, true);
+      callable = router.getRoute("test.webda.io", "GET", "/auth/google/return");
+      assert.notEqual(callable, undefined);
+      assert.equal(callable.callable._extended, true);
+    });
   });
 });

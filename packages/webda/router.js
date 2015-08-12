@@ -1,5 +1,7 @@
 var uriTemplates = require('uri-templates');
-var Executors = require('./executor.js')
+var Executors = require('./executor.js');
+var extend = require('util')._extend;
+
 //var module = require("module");
 var Router = function(config) {
 	var self = this;
@@ -7,6 +9,9 @@ var Router = function(config) {
 	// Prepare tbe URI parser
 	for (var vhost in this.config) {
 		for (var map in this.config[vhost]) {
+      if (this.config[vhost][map]._extended) {
+        continue;
+      }
       if (this.config[vhost][map]["executor"] == undefined) {
           this.config[vhost][map]["executor"] = "_default";
       } else {
@@ -15,23 +20,36 @@ var Router = function(config) {
            throw "Executor type is unknown: '" + this.config[vhost][map]["executor"] + "'";
         }
       }
-			if (map.indexOf("{") == -1) {
-		        continue;
-		    } else {
-		        this.config[vhost][map]['uri-template-parse'] = uriTemplates(map);
-		    }
+			if (map.indexOf("{") != -1) {
+		    this.config[vhost][map]['uri-template-parse'] = uriTemplates(map);
+		  }
+      callable = new Executors[this.config[vhost][map]["executor"]](this.config[vhost][map]);
+      for (var extMap in callable.enrichRoutes(map)) {
+        if (this.config[vhost][extMap] != undefined) {
+          continue;
+        }
+        this.config[vhost][extMap] = extend({}, this.config[vhost][map]);
+
+        if (map.indexOf("{") != -1) {
+          this.config[vhost][extMap]['uri-template-parse'] = uriTemplates(extMap);
+        }
+        this.config[vhost][extMap]._extended = true;
+      }
 		}
 	}
 };
 Router.prototype = Router;
 
-Router.prototype.getRoute = function(vhost, method, url) {
+Router.prototype.getRoute = function(vhost, method, url, protocol, port, headers) {
   // Check vhost
   if (this.config[vhost] === undefined) {
   	return null;
   }
   // Check mapping
   var callable = null;
+  if (url.indexOf("?") >= 0) {
+    url = url.substring(0, url.indexOf("?"));
+  }
   for (var map in this.config[vhost]) {
     if  (Array.isArray(this.config[vhost][map]['method'])) {
       if (this.config[vhost][map]['method'].indexOf(method) == -1) {
@@ -47,8 +65,21 @@ Router.prototype.getRoute = function(vhost, method, url) {
     if (this.config[vhost][map]['uri-template-parse'] === undefined) {
       continue;
     }
+    //console.log(url);
+    //console.log(this.config[vhost][map]);
     parse_result = this.config[vhost][map]['uri-template-parse'].fromUri(url);
+    //console.log(parse_result);
     if (parse_result != undefined) {
+      var skip = false;
+      for (var val in parse_result) {
+        if (parse_result[val].indexOf("/") >= 0) {
+          skip = true;
+          break;
+        }
+      }
+      if (skip) {
+        continue;
+      }
       callable = new Executors[this.config[vhost][map]["executor"]](this.config[vhost][map]);
       callable.enrichParameters(parse_result);
       break;
@@ -60,7 +91,7 @@ Router.prototype.getRoute = function(vhost, method, url) {
         callable.enrichParameters(vhost_config['params']);
   	}
     if (callable["_http"] == undefined) {
-        callable["_http"] = {"host":vhost, "method":method, "url":url};
+        callable["_http"] = {"host":vhost, "method":method, "url":url, "protocol": protocol, "port": port, "headers": headers};
     }
   }
   return callable;

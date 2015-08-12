@@ -17,11 +17,7 @@
 		},
 		"/": {
 			"method": "GET",
-			"lambda": "plop",
-			"params": {
-				"accessKeyId": "LOCAL_ACCESS_KEY",
-				"secretAccessKey": "LOCAL_SECRET_KEY"
-			}
+			"lambda": "webda-test"
 		}
 	}
 }

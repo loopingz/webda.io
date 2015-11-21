@@ -69,14 +69,14 @@ LambdaExecutor.prototype.execute = function(req, res) {
 var fs = require('fs');
 var mime = require('mime-types');
 
-FileExecutor = function(params) {
+ResourceExecutor = function(params) {
 	Executor.call(this, params);
-	this._type = "FileExecutor";
+	this._type = "ResourceExecutor";
 };
 
-FileExecutor.prototype = Object.create(Executor.prototype);
+ResourceExecutor.prototype = Object.create(Executor.prototype);
 
-FileExecutor.prototype.execute = function(req, res) {
+ResourceExecutor.prototype.execute = function(req, res) {
 	self = this;
 	fs.readFile(this.callable.file, 'utf8', function (err,data) {
 	  if (err) {
@@ -90,6 +90,22 @@ FileExecutor.prototype.execute = function(req, res) {
 	  res.write(data);
 	  res.end();
 	});
+};
+
+FileExecutor = function(params) {
+	Executor.call(this, params);
+	this._type = "FileExecutor";
+};
+
+FileExecutor.prototype = Object.create(Executor.prototype);
+
+FileExecutor.prototype.execute = function(req, res) {
+	self = this;
+	if (this.callable.type == "lambda") {
+		// MAKE IT local compatible
+	} else {
+		require(this.callable.file)(req, res);
+	}
 };
 
 StringExecutor = function(params) {
@@ -111,9 +127,30 @@ StringExecutor.prototype.execute = function(req, res) {
 	res.end();
 };
 
+InlineExecutor = function(params) {
+	Executor.call(this, params);
+	this._type = "InlineExecutor";
+};
+
+InlineExecutor.prototype = Object.create(Executor.prototype);
+
+InlineExecutor.prototype.execute = function(req, res) {
+	console.log("Will evaluate : " + this.callable.callback);
+	eval("callback = " + this.callable.callback);
+	console.log("Inline Callback type: " + typeof(callback));
+	if (typeof(callback) == "function") {
+		callback(req, res);
+		console.log("end executing inline");
+	} else {
+		console.log("Cant execute the inline as it is not a function");
+		res.writeHead(500);
+		res.end();
+	}
+}
 var passport = require('passport');
 var TwitterStrategy = require('passport-twitter').Strategy;
 var FacebookStrategy = require('passport-facebook').Strategy;
+var GitHubStrategy = require('passport-github2').Strategy;
 
 passport.serializeUser(function(user, done) {
   done(null, JSON.stringify(user));
@@ -142,31 +179,63 @@ PassportExecutor.prototype.executeCallback = function(req, res) {
 	self = this;
 	switch (self.params.provider) {
 		case "facebook":
-			self.setup_facebook();
+			self.setup_facebook(req, res);
 			passport.authenticate('facebook', { successRedirect: self.callable.successRedirect, failureRedirect: self.callable.failureRedirect})(req, res);
+			return;
+		case "github":
+			self.setup_github(req, res);
+			passport.authenticate('github', { successRedirect: self.callable.successRedirect, failureRedirect: self.callable.failureRedirect})(req, res);
+			return;
 	}
 };
 
-PassportExecutor.prototype.setup_facebook = function() {
+PassportExecutor.prototype.get_callback = function () {
 	if (self.callable._extended) {
 		callback = "http://" + self._http.headers.host + self._http.url;
 	} else {
 		callback = "http://" + self._http.headers.host + self._http.url + "/callback";
 	}
-	if (this._strategy == undefined) {
-		this._strategy = new FacebookStrategy({
-			    clientID: self.callable.providers.facebook.clientID,
-			    clientSecret: self.callable.providers.facebook.clientSecret,
-			    callbackURL: callback
-			  },
-			  function(accessToken, refreshToken, profile, done) {
-			    console.log("return from fb: " + JSON.stringify(profile));
-			    done(null, profile);
-			  }
-			);
-		passport.use(this._strategy);
-	}
+	return callback;
+};
+
+PassportExecutor.prototype.setup_github = function(req, res) {
+	callback = self.get_callback();
+	passport.use(new GitHubStrategy({
+		    clientID: self.callable.providers.github.clientID,
+		    clientSecret: self.callable.providers.github.clientSecret,
+		    callbackURL: callback
+		},
+		function(accessToken, refreshToken, profile, done) {
+		    console.log("return from github: " + JSON.stringify(profile));
+		    if (req.session.auth == undefined) {
+			req.session.auth = {};
+		    }
+		    req.session.authenticated = "github";
+		    req.session.auth.github = profile;
+		    done(null, profile);
+		}
+	));
 }
+
+PassportExecutor.prototype.setup_facebook = function(req, res) {
+	callback = self.get_callback();
+	passport.use(new FacebookStrategy({
+		    clientID: self.callable.providers.facebook.clientID,
+		    clientSecret: self.callable.providers.facebook.clientSecret,
+		    callbackURL: callback
+		},
+		function(accessToken, refreshToken, profile, done) {
+		    console.log("return from fb: " + JSON.stringify(profile));
+		    if (req.session.auth == undefined) {
+		           req.session.auth = {};
+                    }
+                    req.session.authenticated = "facebook";
+		    req.session.facebook_profile = profile;
+		    done(null, profile);
+		}
+	));
+}
+
 PassportExecutor.prototype.execute = function(req, res) {
 	self = this;
 	req._passport = {};
@@ -181,8 +250,13 @@ PassportExecutor.prototype.execute = function(req, res) {
 			self.setup_facebook();
 			passport.authenticate('facebook', {'scope': self.callable.providers.facebook.scope})(req, res);
 			return;
+		case "github":
+			self.setup_github();
+			passport.authenticate('github', {'scope': self.callable.providers.github.scope})(req, res);
+			return;
+
 	}
 	res.end();
 };
 
-module.exports = {"_default": LambdaExecutor, "lambda": LambdaExecutor, "debug": Executor, "string": StringExecutor, "file": FileExecutor , "passport": PassportExecutor}; 
+module.exports = {"_default": LambdaExecutor, "inline": InlineExecutor, "lambda": LambdaExecutor, "debug": Executor, "string": StringExecutor, "resource": ResourceExecutor, "file": FileExecutor , "passport": PassportExecutor}; 

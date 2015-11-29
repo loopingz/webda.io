@@ -40,10 +40,25 @@ var Router = function(config) {
 };
 Router.prototype = Router;
 
+Router.prototype.initStores = function(config) {
+  console.log("init stores");
+  if (config.global == undefined || config.global.stores == undefined) {
+    return;
+  }
+  stores = require('./store');
+  for (store in config.global.stores) {
+    console.log("Adding store: " + store);
+    stores.add(store, config.global.stores[store]);
+  }
+}
+
 Router.prototype.getRoute = function(vhost, method, url, protocol, port, headers) {
   // Check vhost
   if (this.config[vhost] === undefined) {
   	return null;
+  } else {
+    // Init vhost if needed
+    this.initStores(this.config[vhost]);
   }
   // Check mapping
   var callable = null;

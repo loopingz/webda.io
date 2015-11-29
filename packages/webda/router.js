@@ -50,6 +50,10 @@ Router.prototype.initStores = function(config) {
     console.log("Adding store: " + store);
     stores.add(store, config.global.stores[store]);
   }
+  if (config.global == undefined || config.global.validators == undefined) {
+    return;
+  }
+  require(config.global.validators);
 }
 
 Router.prototype.getRoute = function(vhost, method, url, protocol, port, headers) {
@@ -58,7 +62,7 @@ Router.prototype.getRoute = function(vhost, method, url, protocol, port, headers
   	return null;
   } else {
     // Init vhost if needed
-    this.initStores(this.config[vhost]);
+    this.initHosts(this.config[vhost]);
   }
   // Check mapping
   var callable = null;

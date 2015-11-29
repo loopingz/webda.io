@@ -249,14 +249,12 @@ PassportExecutor.prototype.getStore = function(name) {
 	if (this.callable.stores != undefined && this.callable.stores[name] != undefined) {
 		storeName = this.callable.stores[name];
 	}
-	console.log("getting store: " + storeName);
 	res = require("./store").get(storeName);
-	console.log("returned store: " + res);
 	return res;
 }
 
 PassportExecutor.prototype.store = function(session) {
-	identStore = this.getStore("ident");
+	identStore = this.getStore("idents");
 	if (identStore == undefined) {
 		return;
 	}
@@ -270,7 +268,7 @@ PassportExecutor.prototype.store = function(session) {
 	// TODO Add an update method for updating only attribute
 	identStore.save(identObj, identObj.uuid);
 	if (identObj.user != undefined) {
-		userStore = self.getStore("user");
+		userStore = self.getStore("users");
 		if (userStore == undefind) {
 			return;
 		}

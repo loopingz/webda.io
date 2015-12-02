@@ -27,6 +27,7 @@ app.use(session({ secret: 'webda-private-key',resave: false,
 main_app = function (req, res) {
   var vhost = ( req.headers.host.match(/:/g) ) ? req.headers.host.slice( 0, req.headers.host.indexOf(":") ) : req.headers.host
   console.log("Searching for a vhost on " + vhost);
+  console.log("URL:" + req.url);
   callable = router.getRoute(vhost, req.method, req.url, req.protocol, req.port, req.headers);
   //req.query = req._parsedUrl.search;
   if (callable == null) {

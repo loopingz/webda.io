@@ -206,6 +206,105 @@ StoreExecutor = function(params) {
 
 StoreExecutor.prototype = Object.create(Executor.prototype);
 
+StoreExecutor.prototype.handleMap = function(object, map, updates) {
+	stores = require("./store");
+	/*
+	"map": {
+		"users": {
+			"key": "user",
+			"target": "idents",
+			"fields": "type"
+		}
+	}
+	*/
+	for (prop in map) {
+		// No mapped property or not in the object
+		if (map[prop].key == undefined || object[map[prop].key] == undefined) {
+			continue;
+		}
+		store = stores.get(prop)
+		// Cant find the store for this collection
+		if (store == undefined) {
+			continue;
+		}
+		mapped = store.get(object[map[prop].key]);
+		// Invalid mapping
+		if (mapped == undefined) {
+			continue;
+		}
+		if ( updates == "created" ) {
+			// Add to the object
+			mapper = {};
+			mapper.uuid = object.uuid;
+			// Add info to the mapped
+			if (map[prop].fields) {
+				fields = map[prop].fields.split(",");
+				for (field in fields) {
+					mapper[fields[field]] = object[fields[field]];
+				}
+			}
+			mapped[map[prop].target][mapper.uuid]=mapper;
+			// TODO Should be update
+			store.save(mapped, mapped.uuid);
+		} else if (updates == "deleted") {
+			// Remove from the collection
+			if (mapped[map[prop].target][object.uuid] == undefined) {
+				continue;
+			}
+			delete mapped[map[prop].target][object.uuid];
+			// TODO Should be update
+			store.save(mapped, mapped.uuid);
+		} else if (typeof(updates) == "object") {
+			// Update only if the key field has been updated
+			found = false;
+			for (field in updates) {
+				if (map[prop].fields) {
+					fields = map[prop].fields.split(",");
+					for (mapperfield in fields) {
+						if (fields[mapperfield] == field) {
+							found = true;
+							break;
+						}
+					}
+				}
+				// TODO Need to verify also if fields are updated
+				if (field == map[prop].key) {
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				continue;
+			}
+			// check if reference object has changed
+			if (updates[map[prop].key] != undefined && mapped.uuid != updates[map[prop].key]) {
+				if (mapped[map[prop].target][object.uuid] != undefined) {
+					delete mapped[map[prop].target][object.uuid];
+					store.save(mapped, mapped.uuid);
+				}
+				// TODO Should be update
+				mapped = store.get(updates[map[prop].key])
+				if (mapped == undefined) {
+					continue
+				}
+			}
+			// Update the mapper
+			mapper = {};
+			mapper.uuid = object.uuid;
+			if (map[prop].fields) {
+				fields = map[prop].fields.split(",");
+				for (field in fields) {
+					mapper[fields[field]] = object[fields[field]];
+				}
+			}
+			mapped[map[prop].target][mapper.uuid]=mapper;
+			// Remove old reference
+			console.log("update ...");
+			store.save(mapped, mapped.uuid);
+		}
+	}
+}
+
 StoreExecutor.prototype.execute = function(req, res) {
 	store = require("./store").get(this.callable.store);
 	if (store == undefined) {
@@ -233,14 +332,29 @@ StoreExecutor.prototype.execute = function(req, res) {
 			// List probably
 		}
 	} else if (this._http.method == "DELETE") {
+		if (this.callable.expose.restrict != undefined
+				&& this.callable.expose.restrict.delete) {
+			res.writeHead(404);
+			res.end();
+		}
 		if (this.params.uuid) {
-			object = store.delete(this.params.uuid);
+			// Update external links
+			if (this.callable.expose.map != undefined) {
+				object = store.get(this.params.uuid);
+				this.handleMap(object, this.callable.expose.map, "deleted");
+			}
+			store.delete(this.params.uuid);
 			res.writeHead(204);
 			res.end();
 			return;
 		}
 	} else if (this._http.method == "POST") {
 		object = req.body;
+		if (this.callable.expose.restrict != undefined
+				&& this.callable.expose.restrict.create) {
+			res.writeHead(404);
+			res.end();
+		}
 		if (!object.uuid) {
 			object.uuid = uuid.v4();
 		}
@@ -254,12 +368,21 @@ StoreExecutor.prototype.execute = function(req, res) {
 				delete object[prop]
 			}
 		}
-		object = store.save(object, object.uuid);
+		new_object = store.save(object, object.uuid);
+		// Update external links
+		if (this.callable.expose.map != undefined) {
+			this.handleMap(new_object, this.callable.expose.map, "created");
+		}
 		res.writeHead(200, {'Content-type': 'application/json'});
-		res.write(JSON.stringify(object));
+		res.write(JSON.stringify(new_object));
 		res.end();
 		return;
 	} else if (this._http.method == "PUT") {
+		if (this.callable.expose.restrict != undefined
+				&& this.callable.expose.restrict.update) {
+			res.writeHead(404);
+			res.end();
+		}
 		if (!store.exists(this.params.uuid)) {
 			res.write(404);
 			res.end();
@@ -270,7 +393,19 @@ StoreExecutor.prototype.execute = function(req, res) {
 				delete req.body[prop]
 			}
 		}
+		saved = store
+		// Update external links
+		if (this.callable.expose.map != undefined) {
+			object = store.get(this.params.uuid);
+			this.handleMap(object, this.callable.expose.map, req.body);
+		}
+		store = saved
 		object = store.update(req.body, this.params.uuid);
+		if (object == undefined) {
+			res.writeHead(500);
+			res.end();
+			return;
+		}
 		res.writeHead(200, {'Content-type': 'application/json'});
 		res.write(JSON.stringify(object));
 		res.end();

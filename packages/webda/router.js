@@ -54,11 +54,27 @@ Router.prototype.initHosts = function(vhost, config) {
       expose = config.global.stores[store].expose;
       console.log("typeof " + typeof(expose));
       if (typeof(expose) == "boolean") {
-          expose = {};
-          expose.url = "/" + store;
+        expose = {};
+        expose.url = "/" + store;
+      } else if (typeof(expose) == "string") {
+        url = expose;
+        expose = {};
+        expose.url = url;
+      } else if (typeof(expose) == "object" && expose.url == undefined) {
+        expose.url = "/" + store;
+      }
+      if (expose.restrict == undefined) {
+        expose.restrict = {}
+      }
+      if (expose.map != undefined) {
+        maps = {}
+        for (prop in expose.map) {
+          maps[vhost + '_' + prop]=expose.map[prop];
+        }
+        expose.map = maps;
       }
       config[expose.url] = {"method": ["POST", "GET"], "executor": "store", "store": storeName, "expose": expose};
-      config[expose.url+"/{uuid}"] = {"method": ["GET", "PUT", "DELETE"], "executor": "store", "store": storeName, "uri-template-parse": uriTemplates(expose.url + "/{uuid}")};
+      config[expose.url+"/{uuid}"] = {"method": ["GET", "PUT", "DELETE"], "executor": "store", "store": storeName, "expose": expose, "uri-template-parse": uriTemplates(expose.url + "/{uuid}")};
     }
   }
   if (config.global == undefined || config.global.validators == undefined) {

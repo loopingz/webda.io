@@ -27,7 +27,7 @@ Store.prototype.save = function(object, uid) {
 	return this._save(object, uid);
 }
 Store.prototype._save = function(object, uid) {
-	throw "AbstractStore";
+	throw "AbstractStore has no _save";
 }
 
 Store.prototype.update = function(object, uid) {
@@ -37,11 +37,11 @@ Store.prototype.update = function(object, uid) {
 			return;
 		}
 	}
-	this._update(object, uid)
+	return this._update(object, uid);
 }
 
 Store.prototype._update = function(object, uid) {
-	throw "AbstractStore"
+	throw "AbstractStore has no _update"
 }
 
 Store.prototype.delete = function(uid) {
@@ -56,7 +56,7 @@ Store.prototype.delete = function(uid) {
 }
 
 Store.prototype._delete = function(uid) {
-	throw "AbstractStore";
+	throw "AbstractStore has no _delete";
 }
 
 Store.prototype.get = function(uid) {
@@ -72,7 +72,7 @@ Store.prototype.get = function(uid) {
 }
 
 Store.prototype._get = function(uid) {
-	throw "AbstractStore";
+	throw "AbstractStore has no _get";
 }
 
 var fs = require("fs");
@@ -104,6 +104,17 @@ FileStore.prototype._delete = function(uid) {
 	if (this.exists(uid)) {
 		fs.unlink(this.file(uid));
 	}
+}
+
+FileStore.prototype._update = function(object, uid) {
+	if (!this.exists(uid)) {
+		return undefined;
+	}
+	stored = this._get(uid);
+	for (prop in object) {
+		stored[prop]=object[prop];
+	}
+	return this._save(stored, uid)
 }
 
 FileStore.prototype._get = function(uid) {

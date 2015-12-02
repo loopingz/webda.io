@@ -40,20 +40,31 @@ var Router = function(config) {
 };
 Router.prototype = Router;
 
-Router.prototype.initStores = function(config) {
+Router.prototype.initHosts = function(vhost, config) {
   console.log("init stores");
   if (config.global == undefined || config.global.stores == undefined) {
     return;
   }
   stores = require('./store');
   for (store in config.global.stores) {
-    console.log("Adding store: " + store);
-    stores.add(store, config.global.stores[store]);
+    storeName = vhost + "_" + store;
+    console.log("Adding store: " + storeName);
+    stores.add(storeName, config.global.stores[store]);
+    if (config.global.stores[store].expose != undefined) {
+      expose = config.global.stores[store].expose;
+      console.log("typeof " + typeof(expose));
+      if (typeof(expose) == "boolean") {
+          expose = {};
+          expose.url = "/" + store;
+      }
+      config[expose.url] = {"method": ["POST", "GET"], "executor": "store", "store": storeName, "expose": expose};
+      config[expose.url+"/{uuid}"] = {"method": ["GET", "PUT", "DELETE"], "executor": "store", "store": storeName, "uri-template-parse": uriTemplates(expose.url + "/{uuid}")};
+    }
   }
   if (config.global == undefined || config.global.validators == undefined) {
     return;
   }
-  require(config.global.validators);
+  //require(config.global.validators);
 }
 
 Router.prototype.getRoute = function(vhost, method, url, protocol, port, headers) {
@@ -62,7 +73,7 @@ Router.prototype.getRoute = function(vhost, method, url, protocol, port, headers
   	return null;
   } else {
     // Init vhost if needed
-    this.initHosts(this.config[vhost]);
+    this.initHosts(vhost, this.config[vhost]);
   }
   // Check mapping
   var callable = null;
@@ -70,6 +81,10 @@ Router.prototype.getRoute = function(vhost, method, url, protocol, port, headers
     url = url.substring(0, url.indexOf("?"));
   }
   for (var map in this.config[vhost]) {
+    if (map == "global") {
+      continue;
+    }
+    console.log("Going through mapping: " + map);
     if  (Array.isArray(this.config[vhost][map]['method'])) {
       if (this.config[vhost][map]['method'].indexOf(method) == -1) {
         continue;

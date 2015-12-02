@@ -21,10 +21,27 @@ Store.prototype.save = function(object, uid) {
 			return;
 		}
 	}
-	this._save(object, uid);
+	if (object.uuid == undefined || object.uuid != uid) {
+		object.uuid = uid;
+	}
+	return this._save(object, uid);
 }
 Store.prototype._save = function(object, uid) {
 	throw "AbstractStore";
+}
+
+Store.prototype.update = function(object, uid) {
+	if (this.validator && this.validator.update) {
+		if (!this.validator.update(object)) {
+			console.log("Illegal attempt to save: " + uid);
+			return;
+		}
+	}
+	this._update(object, uid)
+}
+
+Store.prototype._update = function(object, uid) {
+	throw "AbstractStore"
 }
 
 Store.prototype.delete = function(uid) {
@@ -79,7 +96,8 @@ FileStore.prototype.exists = function(uid) {
 }
 
 FileStore.prototype._save = function(object, uid) {
-	fs.writeFileSync(this.file(uid), JSON.stringify(object));	
+	fs.writeFileSync(this.file(uid), JSON.stringify(object));
+	return object;
 }
 
 FileStore.prototype._delete = function(uid) {

@@ -1,3 +1,4 @@
+var uuid = require('node-uuid');
 var Executor = function (callable) {
 	self = this;
 	self.callable = callable;
@@ -15,6 +16,18 @@ Executor.prototype.execute = function(req, res) {
   	res.end();
 };
 
+Executor.prototype.getStore = function(name) {
+	storeName = name;
+	if (this.callable.stores != undefined && this.callable.stores[name] != undefined) {
+		storeName = this.callable.stores[name];
+	}
+	if (this._http != undefined && this._http.host != undefined) {
+		storeName = this._http.host + "_" + storeName;
+	}
+	res = require("./store").get(storeName);
+	return res;
+}
+
 Executor.prototype.enrichRoutes = function(map) {
 	return {};
 };
@@ -26,15 +39,55 @@ Executor.prototype.enrichParameters = function(params) {
     	}
   	}
 };
-var AWS = require('aws-sdk'); 
 
+CustomExecutor = function(params) {
+	Executor.call(this, params);
+	this._type = "CustomExecutor";
+};
+
+CustomExecutor.prototype = Object.create(Executor.prototype);
+
+CustomExecutor.prototype.execute = function(req, res) {
+	this.params["_http"] = this._http;
+};
+
+CustomExecutor.prototype.handleResult = function(data, res) {
+	try {
+		// Should parse JSON
+      	result = JSON.parse(data);		
+      	if (result.code == undefined) {
+      		result.code = 200;
+      	}
+      	if (result.headers == undefined) {
+      		result.headers = {}
+      	}
+      	if (result.headers['Content-Type'] == undefined) {
+      		result.headers['Content-Type'] = 'application/json';
+      	}
+      	if (result.code == 200 && (result.content == undefined || result.content == "")) {
+      		result.code = 204;
+      	}
+    } catch(err) {
+      	console.log("Error '" + err + "' parsing result: " + data);
+      	res.writeHead(500);
+      	res.end();
+		return;
+	}
+	res.writeHead(result.code, result.headers);
+	if (result.content != undefined) {
+    	res.write(result.content);
+    }
+    res.end();
+}
+
+var AWS = require('aws-sdk');
 
 LambdaExecutor = function(params) {
-	Executor.call(this, params);
+	CustomExecutor.call(this, params);
 	this._type = "LambdaExecutor";
 };
 
-LambdaExecutor.prototype = Object.create(Executor.prototype);
+LambdaExecutor.prototype = Object.create(CustomExecutor.prototype);
 
 LambdaExecutor.prototype.execute = function(req, res) {
 	console.log(AWS.Config);
@@ -43,12 +96,12 @@ LambdaExecutor.prototype.execute = function(req, res) {
 	var lambda = new AWS.Lambda();
 	this.params["_http"] = this._http;
 	var params = {
-    	FunctionName: this.callable['lambda'], /* required */
-    	ClientContext: null,
-    	InvocationType: 'RequestResponse',
-    	LogType: 'None',
-    	Payload: JSON.stringify(this['params'])// not sure here / new Buffer('...') || 'STRING_VALUE'
-  	};
+		FunctionName: this.callable['lambda'], /* required */
+		ClientContext: null,
+		InvocationType: 'RequestResponse',
+		LogType: 'None',
+		Payload: JSON.stringify(this['params'])// not sure here / new Buffer('...') || 'STRING_VALUE'
+    };
   	lambda.invoke(params, function(err, data) {
     	if (err) {
       		console.log(err, err.stack);
@@ -57,10 +110,7 @@ LambdaExecutor.prototype.execute = function(req, res) {
       		return;
     	}
     	if (data.Payload != '{}') {
-      		// Should parse JSON
-      		res.writeHead(200, {'Content-Type': 'text/plain'});
-      		res.write(data.Payload);
-      		res.end();
+    		self.handleResult(data.Payload, res);
     	}
   	});
 };
@@ -91,16 +141,18 @@ ResourceExecutor.prototype.execute = function(req, res) {
 };
 
 FileExecutor = function(params) {
-	Executor.call(this, params);
+	CustomExecutor.call(this, params);
 	this._type = "FileExecutor";
 };
 
-FileExecutor.prototype = Object.create(Executor.prototype);
+FileExecutor.prototype = Object.create(CustomExecutor.prototype);
 
 FileExecutor.prototype.execute = function(req, res) {
 	req.context = this.params;
 	if (this.callable.type == "lambda") {
 		// MAKE IT local compatible
+		data = require(this.callable.file)(params, {});
+		this.handleResult(data, res);
 	} else {
 		require(this.callable.file)(req, res);
 	}
@@ -146,6 +198,88 @@ InlineExecutor.prototype.execute = function(req, res) {
 		res.end();
 	}
 }
+
+StoreExecutor = function(params) {
+	Executor.call(this, params);
+	this._type = "StoreExecutor";
+};
+
+StoreExecutor.prototype = Object.create(Executor.prototype);
+
+StoreExecutor.prototype.execute = function(req, res) {
+	store = require("./store").get(this.callable.store);
+	if (store == undefined) {
+		console.log("Unkown store: " + this.callable.store);
+		res.writeHead(500);
+		res.end();
+		return;
+	}
+	if (this._http.method == "GET") {
+		if (this.params.uuid) {
+			object = store.get(this.params.uuid);
+			res.writeHead(200, {'Content-type': 'application/json'});
+			result = {}
+			for (prop in object) {
+				// Server private property
+				if (prop[0] == "_") {
+					continue
+				}
+				result[prop] = object[prop]
+			}
+			res.write(JSON.stringify(object));
+			res.end();
+			return;
+		} else {
+			// List probably
+		}
+	} else if (this._http.method == "DELETE") {
+		if (this.params.uuid) {
+			object = store.delete(this.params.uuid);
+			res.writeHead(204);
+			res.end();
+			return;
+		}
+	} else if (this._http.method == "POST") {
+		object = req.body;
+		if (!object.uuid) {
+			object.uuid = uuid.v4();
+		}
+		if (store.exists(object.uuid)) {
+			res.write(409);
+			res.end();
+			return;
+		}
+		for (prop in object) {
+			if (prop[0] == "_") {
+				delete object[prop]
+			}
+		}
+		object = store.save(object, object.uuid);
+		res.writeHead(200, {'Content-type': 'application/json'});
+		res.write(JSON.stringify(object));
+		res.end();
+		return;
+	} else if (this._http.method == "PUT") {
+		if (!store.exists(this.params.uuid)) {
+			res.write(404);
+			res.end();
+			return;
+		}
+		for (prop in req.body) {
+			if (prop[0] == "_") {
+				delete req.body[prop]
+			}
+		}
+		object = store.update(req.body, this.params.uuid);
+		res.writeHead(200, {'Content-type': 'application/json'});
+		res.write(JSON.stringify(object));
+		res.end();
+		return;
+	}
+	res.writeHead(404);
+	res.end();
+}
+
 var passport = require('passport');
 var TwitterStrategy = require('passport-twitter').Strategy;
 var FacebookStrategy = require('passport-facebook').Strategy;
@@ -244,15 +378,6 @@ PassportExecutor.prototype.setupGithub = function(req, res) {
 	));
 }
 
-PassportExecutor.prototype.getStore = function(name) {
-	storeName = name;
-	if (this.callable.stores != undefined && this.callable.stores[name] != undefined) {
-		storeName = this.callable.stores[name];
-	}
-	res = require("./store").get(storeName);
-	return res;
-}
-
 PassportExecutor.prototype.store = function(session) {
 	identStore = this.getStore("idents");
 	if (identStore == undefined) {
@@ -269,10 +394,10 @@ PassportExecutor.prototype.store = function(session) {
 	identStore.save(identObj, identObj.uuid);
 	if (identObj.user != undefined) {
 		userStore = self.getStore("users");
-		if (userStore == undefind) {
+		if (userStore == undefined) {
 			return;
 		}
-		session.user = userStore.get(identObj.user);
+		session.currentuser = userStore.get(identObj.user);
 	}
 }
 
@@ -291,7 +416,8 @@ PassportExecutor.prototype.setupFacebook = function(req, res) {
             delete profile._json;
 		    req.session.authenticated.setMetadatas(profile);
 		    self.store(req.session);
-		    done(null, req.session.authenticated);
+		    console.log("Test" + req.session.currentuser);
+		    done(null, req.session.currentuser);
 		}
 	));
 }
@@ -317,4 +443,4 @@ PassportExecutor.prototype.execute = function(req, res) {
 	}
 	res.end();
 };
-module.exports = {"_default": LambdaExecutor, "inline": InlineExecutor, "lambda": LambdaExecutor, "debug": Executor, "string": StringExecutor, "resource": ResourceExecutor, "file": FileExecutor , "passport": PassportExecutor}; 
+module.exports = {"_default": LambdaExecutor, "custom": CustomExecutor, "inline": InlineExecutor, "lambda": LambdaExecutor, "debug": Executor, "store": StoreExecutor, "string": StringExecutor, "resource": ResourceExecutor, "file": FileExecutor , "passport": PassportExecutor}; 

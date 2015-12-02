@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "aws-sdk": ">=2.1.42",
+    "node-uuid": "*",
     "uri-templates": ">=0.1.7",
     "mime-types": ">=2.1.4",
     "express": ">=4.13.3",

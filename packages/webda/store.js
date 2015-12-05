@@ -21,6 +21,9 @@ Store.prototype.save = function(object, uid) {
 			return;
 		}
 	}
+	if (uid == undefined) {
+		uid = object.uuid;
+	}
 	if (object.uuid == undefined || object.uuid != uid) {
 		object.uuid = uid;
 	}

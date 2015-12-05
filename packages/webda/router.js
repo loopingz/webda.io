@@ -66,12 +66,13 @@ Router.prototype.initHosts = function(vhost, config) {
       if (expose.restrict == undefined) {
         expose.restrict = {}
       }
-      if (expose.map != undefined) {
+      if (expose.map != undefined && expose.map._init == undefined) {
         maps = {}
         for (prop in expose.map) {
           maps[vhost + '_' + prop]=expose.map[prop];
         }
         expose.map = maps;
+        expose.map._init = true;
       }
       config[expose.url] = {"method": ["POST", "GET"], "executor": "store", "store": storeName, "expose": expose};
       config[expose.url+"/{uuid}"] = {"method": ["GET", "PUT", "DELETE"], "executor": "store", "store": storeName, "expose": expose, "uri-template-parse": uriTemplates(expose.url + "/{uuid}")};

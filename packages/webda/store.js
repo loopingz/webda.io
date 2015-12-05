@@ -1,4 +1,5 @@
 var stores = {};
+var uuid = require('node-uuid');
 
 var Store = function (name, options) {
 	this.options = options;
@@ -24,10 +25,17 @@ Store.prototype.save = function(object, uid) {
 	if (uid == undefined) {
 		uid = object.uuid;
 	}
+	if (uid == undefined) {
+		uid = uuid.v4();
+	}
 	if (object.uuid == undefined || object.uuid != uid) {
 		object.uuid = uid;
 	}
-	return this._save(object, uid);
+	object = this._save(object, uid);
+	if (this.options.expose != undefined && this.options.expose.map != undefined) {
+		this.handleMap(object, this.options.expose.map, "created");
+	}
+	return object;
 }
 Store.prototype._save = function(object, uid) {
 	throw "AbstractStore has no _save";
@@ -40,7 +48,116 @@ Store.prototype.update = function(object, uid) {
 			return;
 		}
 	}
+	if (this.options.expose != undefined && this.options.expose.map != undefined) {
+		this.handleMap(object, this.options.expose.map, "updated");
+	}
 	return this._update(object, uid);
+}
+
+Store.prototype.handleMap = function(object, map, updates) {
+	//stores = module.exports;
+	/*
+	"map": {
+		"users": {
+			"key": "user",
+			"target": "idents",
+			"fields": "type"
+		}
+	}
+	*/
+	for (prop in map) {
+		// No mapped property or not in the object
+		if (map[prop].key == undefined || object[map[prop].key] == undefined) {
+			continue;
+		}
+		store = stores[prop]
+		// Cant find the store for this collection
+		if (store == undefined) {
+			console.log("no store for " + prop);
+			continue;
+		}
+		mapped = store.get(object[map[prop].key]);
+		// Enforce the collection if needed
+		if (mapped[map[prop].target] == undefined) {
+			mapped[map[prop].target]={};
+		}
+		// Invalid mapping
+		if (mapped == undefined) {
+			continue;
+		}
+		if ( updates == "created" ) {
+			console.log("will update on created");
+			// Add to the object
+			mapper = {};
+			mapper.uuid = object.uuid;
+			// Add info to the mapped
+			if (map[prop].fields) {
+				fields = map[prop].fields.split(",");
+				for (field in fields) {
+					mapper[fields[field]] = object[fields[field]];
+				}
+			}
+			
+			mapped[map[prop].target][mapper.uuid]=mapper;
+			// TODO Should be update
+			store.save(mapped);
+		} else if (updates == "deleted") {
+			// Remove from the collection
+			if (mapped[map[prop].target] == undefined || mapped[map[prop].target][object.uuid] == undefined) {
+				continue;
+			}
+			delete mapped[map[prop].target][object.uuid];
+			// TODO Should be update
+			store.save(mapped, mapped.uuid);
+		} else if (typeof(updates) == "object") {
+			// Update only if the key field has been updated
+			found = false;
+			for (field in updates) {
+				if (map[prop].fields) {
+					fields = map[prop].fields.split(",");
+					for (mapperfield in fields) {
+						if (fields[mapperfield] == field) {
+							found = true;
+							break;
+						}
+					}
+				}
+				// TODO Need to verify also if fields are updated
+				if (field == map[prop].key) {
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				continue;
+			}
+			// check if reference object has changed
+			if (updates[map[prop].key] != undefined && mapped.uuid != updates[map[prop].key]) {
+				if (mapped[map[prop].target][object.uuid] != undefined) {
+					delete mapped[map[prop].target][object.uuid];
+					store.save(mapped, mapped.uuid);
+				}
+				// TODO Should be update
+				mapped = store.get(updates[map[prop].key])
+				if (mapped == undefined) {
+					continue
+				}
+			}
+			// Update the mapper
+			mapper = {};
+			mapper.uuid = object.uuid;
+			if (map[prop].fields) {
+				fields = map[prop].fields.split(",");
+				for (field in fields) {
+					mapper[fields[field]] = object[fields[field]];
+				}
+			}
+			mapped[map[prop].target][mapper.uuid]=mapper;
+			// Remove old reference
+			console.log("update ...");
+			store.save(mapped, mapped.uuid);
+		}
+	}
 }
 
 Store.prototype._update = function(object, uid) {
@@ -48,12 +165,16 @@ Store.prototype._update = function(object, uid) {
 }
 
 Store.prototype.delete = function(uid) {
+	object = this._get(uid);
 	if (this.validator) {
 		// Need to get the object to verify
-		if (!this.validator.delete(this._get(uid))) {
+		if (!this.validator.delete(object)) {
 			console.log("Illegal attempt to delete: " + uid);
 			return;
 		}
+	}
+	if (this.options.expose != undefined && this.options.expose.map != undefined) {
+		this.handleMap(object, this.options.expose.map, "deleted");
 	}
 	this._delete(uid);
 }

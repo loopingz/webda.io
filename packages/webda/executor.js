@@ -18,7 +18,7 @@ Executor.prototype.execute = function(req, res) {
 
 Executor.prototype.getStore = function(name) {
 	storeName = name;
-	if (this.callable.stores != undefined && this.callable.stores[name] != undefined) {
+	if (this.callable != undefined && this.callable.stores != undefined && this.callable.stores[name] != undefined) {
 		storeName = this.callable.stores[name];
 	}
 	if (this._http != undefined && this._http.host != undefined) {
@@ -149,6 +149,7 @@ FileExecutor.prototype = Object.create(CustomExecutor.prototype);
 
 FileExecutor.prototype.execute = function(req, res) {
 	req.context = this.params;
+	req.context.getStore = this.getStore;
 	if (this.callable.type == "lambda") {
 		// MAKE IT local compatible
 		data = require(this.callable.file)(params, {});
@@ -206,105 +207,6 @@ StoreExecutor = function(params) {
 
 StoreExecutor.prototype = Object.create(Executor.prototype);
 
-StoreExecutor.prototype.handleMap = function(object, map, updates) {
-	stores = require("./store");
-	/*
-	"map": {
-		"users": {
-			"key": "user",
-			"target": "idents",
-			"fields": "type"
-		}
-	}
-	*/
-	for (prop in map) {
-		// No mapped property or not in the object
-		if (map[prop].key == undefined || object[map[prop].key] == undefined) {
-			continue;
-		}
-		store = stores.get(prop)
-		// Cant find the store for this collection
-		if (store == undefined) {
-			continue;
-		}
-		mapped = store.get(object[map[prop].key]);
-		// Invalid mapping
-		if (mapped == undefined) {
-			continue;
-		}
-		if ( updates == "created" ) {
-			// Add to the object
-			mapper = {};
-			mapper.uuid = object.uuid;
-			// Add info to the mapped
-			if (map[prop].fields) {
-				fields = map[prop].fields.split(",");
-				for (field in fields) {
-					mapper[fields[field]] = object[fields[field]];
-				}
-			}
-			mapped[map[prop].target][mapper.uuid]=mapper;
-			// TODO Should be update
-			store.save(mapped, mapped.uuid);
-		} else if (updates == "deleted") {
-			// Remove from the collection
-			if (mapped[map[prop].target][object.uuid] == undefined) {
-				continue;
-			}
-			delete mapped[map[prop].target][object.uuid];
-			// TODO Should be update
-			store.save(mapped, mapped.uuid);
-		} else if (typeof(updates) == "object") {
-			// Update only if the key field has been updated
-			found = false;
-			for (field in updates) {
-				if (map[prop].fields) {
-					fields = map[prop].fields.split(",");
-					for (mapperfield in fields) {
-						if (fields[mapperfield] == field) {
-							found = true;
-							break;
-						}
-					}
-				}
-				// TODO Need to verify also if fields are updated
-				if (field == map[prop].key) {
-					found = true;
-					break;
-				}
-			}
-			if (!found) {
-				continue;
-			}
-			// check if reference object has changed
-			if (updates[map[prop].key] != undefined && mapped.uuid != updates[map[prop].key]) {
-				if (mapped[map[prop].target][object.uuid] != undefined) {
-					delete mapped[map[prop].target][object.uuid];
-					store.save(mapped, mapped.uuid);
-				}
-				// TODO Should be update
-				mapped = store.get(updates[map[prop].key])
-				if (mapped == undefined) {
-					continue
-				}
-			}
-			// Update the mapper
-			mapper = {};
-			mapper.uuid = object.uuid;
-			if (map[prop].fields) {
-				fields = map[prop].fields.split(",");
-				for (field in fields) {
-					mapper[fields[field]] = object[fields[field]];
-				}
-			}
-			mapped[map[prop].target][mapper.uuid]=mapper;
-			// Remove old reference
-			console.log("update ...");
-			store.save(mapped, mapped.uuid);
-		}
-	}
-}
-
 StoreExecutor.prototype.execute = function(req, res) {
 	store = require("./store").get(this.callable.store);
 	if (store == undefined) {
@@ -314,6 +216,11 @@ StoreExecutor.prototype.execute = function(req, res) {
 		return;
 	}
 	if (this._http.method == "GET") {
+		if (this.callable.expose.restrict != undefined
+				&& this.callable.expose.restrict.get) {
+			res.writeHead(404);
+			res.end();
+		}
 		if (this.params.uuid) {
 			object = store.get(this.params.uuid);
 			res.writeHead(200, {'Content-type': 'application/json'});
@@ -338,11 +245,6 @@ StoreExecutor.prototype.execute = function(req, res) {
 			res.end();
 		}
 		if (this.params.uuid) {
-			// Update external links
-			if (this.callable.expose.map != undefined) {
-				object = store.get(this.params.uuid);
-				this.handleMap(object, this.callable.expose.map, "deleted");
-			}
 			store.delete(this.params.uuid);
 			res.writeHead(204);
 			res.end();
@@ -369,10 +271,6 @@ StoreExecutor.prototype.execute = function(req, res) {
 			}
 		}
 		new_object = store.save(object, object.uuid);
-		// Update external links
-		if (this.callable.expose.map != undefined) {
-			this.handleMap(new_object, this.callable.expose.map, "created");
-		}
 		res.writeHead(200, {'Content-type': 'application/json'});
 		res.write(JSON.stringify(new_object));
 		res.end();
@@ -393,13 +291,6 @@ StoreExecutor.prototype.execute = function(req, res) {
 				delete req.body[prop]
 			}
 		}
-		saved = store
-		// Update external links
-		if (this.callable.expose.map != undefined) {
-			object = store.get(this.params.uuid);
-			this.handleMap(object, this.callable.expose.map, req.body);
-		}
-		store = saved
 		object = store.update(req.body, this.params.uuid);
 		if (object == undefined) {
 			res.writeHead(500);
@@ -423,7 +314,7 @@ var GitHubStrategy = require('passport-github2').Strategy;
 var Ident = function (type, uid, accessToken, refreshToken) {
 	this.type = type;
 	this.uid = uid;
-	this.uuid = type + "_" + uid;
+	this.uuid = uid + "_" + type;
 	this.tokens = {};
 	this.tokens.refresh = refreshToken;
 	this.tokens.access = accessToken;
@@ -484,6 +375,12 @@ PassportExecutor.prototype.executeCallback = function(req, res) {
 			self.setupGithub(req, res);
 			passport.authenticate('github', { successRedirect: self.callable.successRedirect, failureRedirect: self.callable.failureRedirect})(req, res, next);
 			return;
+		case "email":
+			self.handleEmailCallback(req, res);
+			return;
+		case "phone":
+			self.handlePhoneCallback(req, res);
+			return;
 	}
 };
 
@@ -508,7 +405,7 @@ PassportExecutor.prototype.setupGithub = function(req, res) {
 		    req.session.authenticated = new Ident("github", profile.id, accessToken, refreshToken);
 		    req.session.authenticated.setMetadatas(profile._json);
 		    self.store(req.session);
-		    done(null, req.session.authenticated);
+		    done(null, profile);
 		}
 	));
 }
@@ -526,7 +423,7 @@ PassportExecutor.prototype.store = function(session) {
 	}
 	identObj.lastUsed = new Date();
 	// TODO Add an update method for updating only attribute
-	identStore.save(identObj, identObj.uuid);
+	identStore.save(identObj);
 	if (identObj.user != undefined) {
 		userStore = self.getStore("users");
 		if (userStore == undefined) {
@@ -551,10 +448,44 @@ PassportExecutor.prototype.setupFacebook = function(req, res) {
             delete profile._json;
 		    req.session.authenticated.setMetadatas(profile);
 		    self.store(req.session);
-		    console.log("Test" + req.session.currentuser);
-		    done(null, req.session.currentuser);
+		    done(null, req.session.authenticated);
 		}
 	));
+}
+
+PassportExecutor.prototype.handleEmailCallback = function(req, res) {
+
+}
+
+PassportExecutor.prototype.handlePhoneCallback = function(req, res) {
+
+}
+
+PassportExecutor.prototype.handleEmail = function(req, res) {
+	identStore = this.getStore("idents");
+	if (identStore == undefined) {
+		res.writeHead(500);
+		console.log("Email auth needs an ident store");
+		res.end();
+		return;
+	}
+	uuid = "" + "_email";
+	ident = identStore.get(uuid);
+	if (ident != undefined && ident.user != undefined) {
+		userStore = this.getStore("users");
+		user = userStore.get(ident.user);
+		// Check password
+		res.end();
+	}
+	// Read the form
+	res.writeHead(204);
+	// Should send an email
+	res.end();
+}
+
+PassportExecutor.prototype.handlePhone = function(req, res) {
+	res.writeHead(204);
+	res.end();
 }
 
 PassportExecutor.prototype.execute = function(req, res) {
@@ -574,7 +505,12 @@ PassportExecutor.prototype.execute = function(req, res) {
 			self.setupGithub();
 			passport.authenticate('github', {'scope': self.callable.providers.github.scope})(req, res);
 			return;
-
+		case "phone":
+			this.handlePhone(req, res);
+			return;
+		case "email":
+			this.handleEmail(req, res);
+			return;
 	}
 	res.end();
 };

@@ -5,6 +5,42 @@
 				"accessKeyId": "YOUR_ACCESS_KEY",
 				"secretAccessKey": "YOUR_SECRET_KEY",
 				"TEST": "Global"
+			},
+			"stores": {
+				"idents": {
+					"inject": "user",
+					"check": "user",
+					"expose": {
+						"map": {
+							"users": {
+								"key": "user",
+								"target": "idents",
+								"fields": "type"
+							}
+						},
+						"restrict": {
+							"create": true,
+							"update": true,
+							"get": true
+						}
+					},
+					"type": "FileStore",
+					"folder": "./test/data",
+					"validator": "IdentValidator"
+				},
+				"users": {
+					"check": "user",
+					"expose": {
+						"url": "/users",
+						"restrict": {
+							"authentication": true,
+							"create": true
+						}
+					},
+					"type": "FileStore",
+					"folder": "./test/data/users",
+					"validator": "UserValidator"
+				}
 			}
 		},
 		"/users/{id}": {

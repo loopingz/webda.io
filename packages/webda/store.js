@@ -42,6 +42,9 @@ Store.prototype._save = function(object, uid) {
 }
 
 Store.prototype.update = function(object, uid) {
+	if (uid == undefined) {
+		uid = object.uuid;
+	}
 	if (this.validator && this.validator.update) {
 		if (!this.validator.update(object)) {
 			console.log("Illegal attempt to save: " + uid);
@@ -49,9 +52,19 @@ Store.prototype.update = function(object, uid) {
 		}
 	}
 	if (this.options.expose != undefined && this.options.expose.map != undefined) {
-		this.handleMap(object, this.options.expose.map, "updated");
+		this.handleMap(this._get(uid), this.options.expose.map, object);
 	}
 	return this._update(object, uid);
+}
+
+Store.prototype.removeMapper = function(map, uuid) {
+	for (i = 0; i < map.length; i++) {
+		if (map[i]['uuid'] == uuid) {
+			map.splice(i, 1);
+			return true;
+		}
+	}
+	return false;
 }
 
 Store.prototype.handleMap = function(object, map, updates) {
@@ -77,16 +90,15 @@ Store.prototype.handleMap = function(object, map, updates) {
 			continue;
 		}
 		mapped = store.get(object[map[prop].key]);
-		// Enforce the collection if needed
-		if (mapped[map[prop].target] == undefined) {
-			mapped[map[prop].target]={};
-		}
 		// Invalid mapping
 		if (mapped == undefined) {
 			continue;
 		}
+		// Enforce the collection if needed
+		if (mapped[map[prop].target] == undefined) {
+			mapped[map[prop].target]=[];
+		}
 		if ( updates == "created" ) {
-			console.log("will update on created");
 			// Add to the object
 			mapper = {};
 			mapper.uuid = object.uuid;
@@ -97,18 +109,18 @@ Store.prototype.handleMap = function(object, map, updates) {
 					mapper[fields[field]] = object[fields[field]];
 				}
 			}
-			
-			mapped[map[prop].target][mapper.uuid]=mapper;
+			mapped[map[prop].target].push(mapper);
 			// TODO Should be update
 			store.save(mapped);
 		} else if (updates == "deleted") {
 			// Remove from the collection
-			if (mapped[map[prop].target] == undefined || mapped[map[prop].target][object.uuid] == undefined) {
+			if (mapped[map[prop].target] == undefined) {
 				continue;
 			}
-			delete mapped[map[prop].target][object.uuid];
-			// TODO Should be update
-			store.save(mapped, mapped.uuid);
+			if (this.removeMapper(mapped[map[prop].target], object.uuid)) {
+				// TODO Should be update
+				store.save(mapped, mapped.uuid);
+			}
 		} else if (typeof(updates) == "object") {
 			// Update only if the key field has been updated
 			found = false;
@@ -133,8 +145,7 @@ Store.prototype.handleMap = function(object, map, updates) {
 			}
 			// check if reference object has changed
 			if (updates[map[prop].key] != undefined && mapped.uuid != updates[map[prop].key]) {
-				if (mapped[map[prop].target][object.uuid] != undefined) {
-					delete mapped[map[prop].target][object.uuid];
+				if (this.removeMapper(mapped[map[prop].target], object.uuid)) {
 					store.save(mapped, mapped.uuid);
 				}
 				// TODO Should be update
@@ -142,6 +153,13 @@ Store.prototype.handleMap = function(object, map, updates) {
 				if (mapped == undefined) {
 					continue
 				}
+				// Enforce the collection if needed
+				if (mapped[map[prop].target] == undefined) {
+					mapped[map[prop].target]=[];
+				}
+			} else {
+				console.log("should remove mapper");
+				this.removeMapper(mapped[map[prop].target], object.uuid);
 			}
 			// Update the mapper
 			mapper = {};
@@ -149,12 +167,15 @@ Store.prototype.handleMap = function(object, map, updates) {
 			if (map[prop].fields) {
 				fields = map[prop].fields.split(",");
 				for (field in fields) {
-					mapper[fields[field]] = object[fields[field]];
+					if (updates[fields[field]] != undefined) {
+						mapper[fields[field]] = updates[fields[field]];
+					} else {
+						mapper[fields[field]] = object[fields[field]];
+					}
 				}
 			}
-			mapped[map[prop].target][mapper.uuid]=mapper;
+			mapped[map[prop].target].push(mapper);
 			// Remove old reference
-			console.log("update ...");
 			store.save(mapped, mapped.uuid);
 		}
 	}
@@ -226,7 +247,7 @@ FileStore.prototype._save = function(object, uid) {
 
 FileStore.prototype._delete = function(uid) {
 	if (this.exists(uid)) {
-		fs.unlink(this.file(uid));
+		fs.unlinkSync(this.file(uid));
 	}
 }
 

@@ -18,19 +18,19 @@ describe('Store', function() {
   describe('getStore()', function () {
 
     it('Ident Store', function () {
-      router = new Router(config);
-      callable = router.getRoute("test.webda.io", "GET", "/");
+      var router = new Router(config);
+      var callable = router.getRoute("test.webda.io", "GET", "/");
       assert.notEqual(callable, undefined);
-      store = stores.get("test.webda.io_idents");
-      userStore = stores.get("test.webda.io_users");
+      var store = stores.get("test.webda.io_idents");
+      var userStore = stores.get("test.webda.io_users");
       assert.notEqual(store, undefined);
       // Should remove folder
       // Create data folder in case
       cleanStore(store);
       cleanStore(userStore);
       // Check CREATE - READ
-      object = store.save({"test": "plop"});
-      getter = store.get(object.uuid);
+      var object = store.save({"test": "plop"});
+      var getter = store.get(object.uuid);
       assert.notEqual(getter, undefined);
       assert.equal(getter.uuid, object.uuid);
       assert.equal(getter.test, object.test);
@@ -46,37 +46,32 @@ describe('Store', function() {
       assert.equal(getter, undefined);
       // Check MAPPER
       // First save a user
-      user = userStore.save({'name': 'test'});
-      ident = {"type": "facebook", "user": user.uuid};
+      var user = userStore.save({'name': 'test'});
+      var ident = {"type": "facebook", "user": user.uuid};
       store.save(ident);
       // Check the ident has been added to user according to mapping
       user = userStore.get(user.uuid);
       assert.notEqual(user, undefined);
       assert.notEqual(user.idents, undefined);
       assert.equal(user.idents.length, 1);
-      ident2 = {"type": "google", "user": user.uuid};
-      // Have to reload the store namespace issue ?
-      store = stores.get("test.webda.io_idents");
+      var ident2 = {"type": "google", "user": user.uuid};
       store.save(ident2);
       user = userStore.get(user.uuid);
       assert.equal(user.idents.length, 2);
       // Update the ident2
       ident2.type = "google2";
-      store = stores.get("test.webda.io_idents");
       store.update(ident2);
       user = userStore.get(user.uuid);
       assert.equal(user.idents.length, 2);
       assert.equal(user.idents[1].type, "google2");
-      store = stores.get("test.webda.io_idents");
       // Deletion
       store.delete(ident.uuid);
       user = userStore.get(user.uuid);
       assert.equal(user.idents.length, 1);
       assert.equal(user.idents[0].type, "google2");
       // CHange of target
-      user2 = userStore.save({"name": "test2"});
+      var user2 = userStore.save({"name": "test2"});
       ident2.user = user2.uuid;
-      store = stores.get("test.webda.io_idents");
 
       store.update(ident2);
       user = userStore.get(user.uuid);
@@ -84,6 +79,13 @@ describe('Store', function() {
       user2 = userStore.get(user2.uuid);
       assert.equal(user2.idents.length, 1);
       assert.equal(user2.idents[0].type, "google2");
+      // Test delete cascade
+      userStore.delete(user.uuid);
+      user2 = userStore.get(user2.uuid);
+      assert.equal(user2.idents.length, 1);
+      assert.equal(user2.idents[0].type, "google2");
+      userStore.delete(user2.uuid);
+      assert.equal(store.get(ident2.uuid), undefined);
     });
   });
 });

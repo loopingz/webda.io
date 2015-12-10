@@ -46,13 +46,26 @@ Router.prototype.initHosts = function(vhost, config) {
     return;
   }
   stores = require('./store');
+  // Handle Mapping and Expose
   for (store in config.global.stores) {
     storeName = vhost + "_" + store;
     console.log("Adding store: " + storeName);
+    config.global.stores[store].name = storeName;
     stores.add(storeName, config.global.stores[store]);
+    if (config.global.stores[store].map != undefined) {
+        var map = config.global.stores[store].map;
+        if (map != undefined && map._init == undefined) {
+          maps = {}
+          for (prop in map) {
+            maps[vhost + '_' + prop]=map[prop];
+          }
+          map = maps;
+          map._init = true;
+        }
+        config.global.stores[store].map = map
+    }
     if (config.global.stores[store].expose != undefined) {
-      expose = config.global.stores[store].expose;
-      console.log("typeof " + typeof(expose));
+      var expose = config.global.stores[store].expose;
       if (typeof(expose) == "boolean") {
         expose = {};
         expose.url = "/" + store;
@@ -66,17 +79,34 @@ Router.prototype.initHosts = function(vhost, config) {
       if (expose.restrict == undefined) {
         expose.restrict = {}
       }
-      if (expose.map != undefined && expose.map._init == undefined) {
-        maps = {}
-        for (prop in expose.map) {
-          maps[vhost + '_' + prop]=expose.map[prop];
-        }
-        expose.map = maps;
-        expose.map._init = true;
-      }
-      config[expose.url] = {"method": ["POST", "GET"], "executor": "store", "store": storeName, "expose": expose};
-      config[expose.url+"/{uuid}"] = {"method": ["GET", "PUT", "DELETE"], "executor": "store", "store": storeName, "expose": expose, "uri-template-parse": uriTemplates(expose.url + "/{uuid}")};
+      
+      config[expose.url] = {"method": ["POST", "GET"], "executor": "store", "store": storeName, "expose": expose, "map": config.global.stores[store].map};
+      config[expose.url+"/{uuid}"] = {"method": ["GET", "PUT", "DELETE"], "executor": "store", "store": storeName, "expose": expose, "map": config.global.stores[store].map, "uri-template-parse": uriTemplates(expose.url + "/{uuid}")};
     }
+  }
+  // Handle CASCADE
+  for (var storeId in config.global.stores) {
+      var store = config.global.stores[storeId];
+      // Check if store has cascade
+      if (store.cascade == undefined) {
+        continue;
+      }
+      // For each cascade
+      for (var i in store.cascade) {
+        // Search mapping to this collection ( only one way collection handled for now )
+        for (var mapStoreId in config.global.stores) {
+          if (mapStoreId == storeId) {
+            continue;
+          }
+          var mapStore = config.global.stores[mapStoreId];
+          // Check if map is targetting the current store / cascade
+          if (mapStore.map == undefined || mapStore.map[store.name] == undefined || mapStore.map[store.name].target != store.cascade[i]) {
+            continue;
+          }
+          store.cascade[i] = {"name": store.cascade[i], "store": mapStore.name};
+          //console.log("FOUND MAPPING TO " + store.name + " mapping name " + store.cascade[i] + " : " + JSON.stringify(mapStore.map[store.cascade[i]]));
+        }
+      }
   }
   if (config.global == undefined || config.global.validators == undefined) {
     return;

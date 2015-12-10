@@ -10,14 +10,14 @@
 				"idents": {
 					"inject": "user",
 					"check": "user",
-					"expose": {
-						"map": {
+					"map": {
 							"users": {
 								"key": "user",
 								"target": "idents",
 								"fields": "type"
 							}
-						},
+					},
+					"expose": {
 						"restrict": {
 							"create": true,
 							"update": true,
@@ -30,6 +30,7 @@
 				},
 				"users": {
 					"check": "user",
+					"cascade": ["idents"],
 					"expose": {
 						"url": "/users",
 						"restrict": {

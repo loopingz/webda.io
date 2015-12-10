@@ -1,6 +1,6 @@
 var uuid = require('node-uuid');
 var Executor = function (callable) {
-	self = this;
+	var self = this;
 	self.callable = callable;
 	self.params = callable.params;
 	if (self.params == undefined) {
@@ -17,7 +17,7 @@ Executor.prototype.execute = function(req, res) {
 };
 
 Executor.prototype.getStore = function(name) {
-	storeName = name;
+	var storeName = name;
 	if (this.callable != undefined && this.callable.stores != undefined && this.callable.stores[name] != undefined) {
 		storeName = this.callable.stores[name];
 	}
@@ -54,7 +54,7 @@ CustomExecutor.prototype.execute = function(req, res) {
 CustomExecutor.prototype.handleResult = function(data, res) {
 	try {
 		// Should parse JSON
-      	result = JSON.parse(data);		
+      	var result = JSON.parse(data);		
       	if (result.code == undefined) {
       		result.code = 200;
       	}
@@ -130,7 +130,7 @@ ResourceExecutor.prototype.execute = function(req, res) {
 	  if (err) {
 	    return console.log(err);
 	  }
-	  mime_file = mime.lookup(self.callable.file);
+	  var mime_file = mime.lookup(self.callable.file);
 	  console.log("Send file('" + mime_file + "'): " + self.callable.file);
 	  if (mime_file) {
 	  	res.writeHead(200, {'Content-Type': mime_file});
@@ -152,7 +152,7 @@ FileExecutor.prototype.execute = function(req, res) {
 	req.context.getStore = this.getStore;
 	if (this.callable.type == "lambda") {
 		// MAKE IT local compatible
-		data = require(this.callable.file)(params, {});
+		var data = require(this.callable.file)(params, {});
 		this.handleResult(data, res);
 	} else {
 		require(this.callable.file)(req, res);
@@ -208,7 +208,7 @@ StoreExecutor = function(params) {
 StoreExecutor.prototype = Object.create(Executor.prototype);
 
 StoreExecutor.prototype.execute = function(req, res) {
-	store = require("./store").get(this.callable.store);
+	var store = require("./store").get(this.callable.store);
 	if (store == undefined) {
 		console.log("Unkown store: " + this.callable.store);
 		res.writeHead(500);
@@ -222,7 +222,7 @@ StoreExecutor.prototype.execute = function(req, res) {
 			res.end();
 		}
 		if (this.params.uuid) {
-			object = store.get(this.params.uuid);
+			var object = store.get(this.params.uuid);
 			res.writeHead(200, {'Content-type': 'application/json'});
 			result = {}
 			for (prop in object) {
@@ -251,7 +251,7 @@ StoreExecutor.prototype.execute = function(req, res) {
 			return;
 		}
 	} else if (this._http.method == "POST") {
-		object = req.body;
+		var object = req.body;
 		if (this.callable.expose.restrict != undefined
 				&& this.callable.expose.restrict.create) {
 			res.writeHead(404);
@@ -270,7 +270,7 @@ StoreExecutor.prototype.execute = function(req, res) {
 				delete object[prop]
 			}
 		}
-		new_object = store.save(object, object.uuid);
+		var new_object = store.save(object, object.uuid);
 		res.writeHead(200, {'Content-type': 'application/json'});
 		res.write(JSON.stringify(new_object));
 		res.end();
@@ -291,7 +291,7 @@ StoreExecutor.prototype.execute = function(req, res) {
 				delete req.body[prop]
 			}
 		}
-		object = store.update(req.body, this.params.uuid);
+		var object = store.update(req.body, this.params.uuid);
 		if (object == undefined) {
 			res.writeHead(500);
 			res.end();
@@ -355,7 +355,7 @@ PassportExecutor.prototype = Object.create(Executor.prototype);
 
 
 PassportExecutor.prototype.enrichRoutes = function(map) {
-	result = {};
+	var result = {};
 	result[map+'/callback']={};
 	result[map+'/return']={};
 	return result;
@@ -394,7 +394,7 @@ PassportExecutor.prototype.getCallback = function () {
 };
 
 PassportExecutor.prototype.setupGithub = function(req, res) {
-	callback = self.getCallback();
+	var callback = self.getCallback();
 	passport.use(new GitHubStrategy({
 		    clientID: self.callable.providers.github.clientID,
 		    clientSecret: self.callable.providers.github.clientSecret,
@@ -411,11 +411,11 @@ PassportExecutor.prototype.setupGithub = function(req, res) {
 }
 
 PassportExecutor.prototype.store = function(session) {
-	identStore = this.getStore("idents");
+	var identStore = this.getStore("idents");
 	if (identStore == undefined) {
 		return;
 	}
-	identObj = identStore.get(session.authenticated.uuid);
+	var identObj = identStore.get(session.authenticated.uuid);
 	if (identObj == undefined) {
 		identObj = session.authenticated;
 	} else {
@@ -434,7 +434,7 @@ PassportExecutor.prototype.store = function(session) {
 }
 
 PassportExecutor.prototype.setupFacebook = function(req, res) {
-	callback = self.getCallback();
+	var callback = self.getCallback();
 	passport.use(new FacebookStrategy({
 		    clientID: self.callable.providers.facebook.clientID,
 		    clientSecret: self.callable.providers.facebook.clientSecret,
@@ -462,18 +462,18 @@ PassportExecutor.prototype.handlePhoneCallback = function(req, res) {
 }
 
 PassportExecutor.prototype.handleEmail = function(req, res) {
-	identStore = this.getStore("idents");
+	var identStore = this.getStore("idents");
 	if (identStore == undefined) {
 		res.writeHead(500);
 		console.log("Email auth needs an ident store");
 		res.end();
 		return;
 	}
-	uuid = "" + "_email";
-	ident = identStore.get(uuid);
+	var uuid = "" + "_email";
+	var ident = identStore.get(uuid);
 	if (ident != undefined && ident.user != undefined) {
-		userStore = this.getStore("users");
-		user = userStore.get(ident.user);
+		var userStore = this.getStore("users");
+		var user = userStore.get(ident.user);
 		// Check password
 		res.end();
 	}

@@ -32,8 +32,9 @@ Store.prototype.save = function(object, uid) {
 		object.uuid = uid;
 	}
 	object = this._save(object, uid);
-	if (this.options.expose != undefined && this.options.expose.map != undefined) {
-		this.handleMap(object, this.options.expose.map, "created");
+	if (this.options.map != undefined) {
+		console.log("handleMap");
+		this.handleMap(object, this.options.map, "created");
 	}
 	return object;
 }
@@ -51,8 +52,8 @@ Store.prototype.update = function(object, uid) {
 			return;
 		}
 	}
-	if (this.options.expose != undefined && this.options.expose.map != undefined) {
-		this.handleMap(this._get(uid), this.options.expose.map, object);
+	if (this.options.map != undefined) {
+		this.handleMap(this._get(uid), this.options.map, object);
 	}
 	return this._update(object, uid);
 }
@@ -83,7 +84,7 @@ Store.prototype.handleMap = function(object, map, updates) {
 		if (map[prop].key == undefined || object[map[prop].key] == undefined) {
 			continue;
 		}
-		store = stores[prop]
+		var store = stores[prop];
 		// Cant find the store for this collection
 		if (store == undefined) {
 			console.log("no store for " + prop);
@@ -109,6 +110,7 @@ Store.prototype.handleMap = function(object, map, updates) {
 					mapper[fields[field]] = object[fields[field]];
 				}
 			}
+			console.log("push mapper");
 			mapped[map[prop].target].push(mapper);
 			// TODO Should be update
 			store.save(mapped);
@@ -185,7 +187,7 @@ Store.prototype._update = function(object, uid) {
 	throw "AbstractStore has no _update"
 }
 
-Store.prototype.delete = function(uid) {
+Store.prototype.delete = function(uid, no_map) {
 	object = this._get(uid);
 	if (this.validator) {
 		// Need to get the object to verify
@@ -194,8 +196,19 @@ Store.prototype.delete = function(uid) {
 			return;
 		}
 	}
-	if (this.options.expose != undefined && this.options.expose.map != undefined) {
-		this.handleMap(object, this.options.expose.map, "deleted");
+	if (this.options.map != undefined) {
+		this.handleMap(object, this.options.map, "deleted");
+	}
+	if (this.options.cascade != undefined) {
+		// Should deactiate the mapping in that case
+		for (var i in this.options.cascade) {
+			if (typeof(this.options.cascade[i]) != "object" || object[this.options.cascade[i].name] == undefined) continue;
+			var targetStore = stores[this.options.cascade[i].store];
+			if (targetStore == undefined) continue;
+			for (var item in object[this.options.cascade[i].name]) {
+				targetStore.delete(object[this.options.cascade[i].name][item].uuid);
+			}
+		}
 	}
 	this._delete(uid);
 }

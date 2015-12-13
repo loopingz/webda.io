@@ -79,6 +79,10 @@ describe('Store', function() {
       user2 = userStore.get(user2.uuid);
       assert.equal(user2.idents.length, 1);
       assert.equal(user2.idents[0].type, "google2");
+      // Test update cannot update the collection
+      userStore.update({"idents": []}, user2.uuid);
+      user2 = userStore.get(user2.uuid);
+      assert.equal(user2.idents.length, 1);
       // Test delete cascade
       userStore.delete(user.uuid);
       user2 = userStore.get(user2.uuid);

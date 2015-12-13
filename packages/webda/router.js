@@ -57,6 +57,12 @@ Router.prototype.initHosts = function(vhost, config) {
         if (map != undefined && map._init == undefined) {
           maps = {}
           for (prop in map) {
+            if (config.global.stores[prop] != undefined) {
+                if (config.global.stores[prop].reverseMap == undefined) {
+                    config.global.stores[prop].reverseMap = [];
+                }
+                config.global.stores[prop].reverseMap.push(map[prop].target);
+            }
             maps[vhost + '_' + prop]=map[prop];
           }
           map = maps;

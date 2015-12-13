@@ -52,6 +52,14 @@ Store.prototype.update = function(object, uid) {
 			return;
 		}
 	}
+	// Dont allow to update collections from map
+	if (this.options.reverseMap != undefined) {
+		for (var i in this.options.reverseMap) {
+			if (object[this.options.reverseMap[i]] != undefined) {
+				delete object[this.options.reverseMap[i]];
+			}
+		}
+	}
 	if (this.options.map != undefined) {
 		this.handleMap(this._get(uid), this.options.map, object);
 	}

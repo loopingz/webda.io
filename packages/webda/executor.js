@@ -90,6 +90,7 @@ LambdaExecutor = function(params) {
 LambdaExecutor.prototype = Object.create(CustomExecutor.prototype);
 
 LambdaExecutor.prototype.execute = function(req, res) {
+	var self = this;
 	console.log(AWS.Config);
 	AWS.config.update({region: 'us-west-2'});
 	AWS.config.update({accessKeyId: this.params['accessKeyId'], secretAccessKey: this.params['secretAccessKey']});
@@ -126,6 +127,7 @@ ResourceExecutor = function(params) {
 ResourceExecutor.prototype = Object.create(Executor.prototype);
 
 ResourceExecutor.prototype.execute = function(req, res) {
+	var self = this;
 	fs.readFile(this.callable.file, 'utf8', function (err,data) {
 	  if (err) {
 	    return console.log(err);
@@ -362,6 +364,7 @@ PassportExecutor.prototype.enrichRoutes = function(map) {
 };
 
 PassportExecutor.prototype.executeCallback = function(req, res) {
+	var self = this;
 	next = function (err) {
 		console.log("Error happened: " + err);
 		console.trace();
@@ -385,6 +388,7 @@ PassportExecutor.prototype.executeCallback = function(req, res) {
 };
 
 PassportExecutor.prototype.getCallback = function () {
+	var self = this;
 	if (self.callable._extended) {
 		callback = "http://" + self._http.headers.host + self._http.url;
 	} else {
@@ -394,6 +398,7 @@ PassportExecutor.prototype.getCallback = function () {
 };
 
 PassportExecutor.prototype.setupGithub = function(req, res) {
+	var self = this;
 	var callback = self.getCallback();
 	passport.use(new GitHubStrategy({
 		    clientID: self.callable.providers.github.clientID,
@@ -411,6 +416,7 @@ PassportExecutor.prototype.setupGithub = function(req, res) {
 }
 
 PassportExecutor.prototype.store = function(session) {
+	var self = this;
 	var identStore = this.getStore("idents");
 	if (identStore == undefined) {
 		return;
@@ -434,6 +440,7 @@ PassportExecutor.prototype.store = function(session) {
 }
 
 PassportExecutor.prototype.setupFacebook = function(req, res) {
+	var self = this;
 	var callback = self.getCallback();
 	passport.use(new FacebookStrategy({
 		    clientID: self.callable.providers.facebook.clientID,
@@ -489,6 +496,7 @@ PassportExecutor.prototype.handlePhone = function(req, res) {
 }
 
 PassportExecutor.prototype.execute = function(req, res) {
+	var self = this;
 	req._passport = {};
 	req._passport.instance = passport;
 	req._passport.session = req.session;

@@ -14,7 +14,8 @@
 							"users": {
 								"key": "user",
 								"target": "idents",
-								"fields": "type"
+								"fields": "type",
+								"cascade": true
 							}
 					},
 					"expose": {
@@ -30,7 +31,6 @@
 				},
 				"users": {
 					"check": "user",
-					"cascade": ["idents"],
 					"expose": {
 						"url": "/users",
 						"restrict": {

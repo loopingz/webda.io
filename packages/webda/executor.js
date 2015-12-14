@@ -209,6 +209,16 @@ StoreExecutor = function(params) {
 
 StoreExecutor.prototype = Object.create(Executor.prototype);
 
+StoreExecutor.prototype.checkAuthentication(req, res, object) {
+	if (this.callable.expose.authentication) {
+		if (req.session.currentuser == undefined || req.session.currentuser.uuid != object.user) {
+			res.writeHead(403);
+			res.end();
+			return false;
+		}
+	}
+	return true;
+}
 StoreExecutor.prototype.execute = function(req, res) {
 	var store = require("./store").get(this.callable.store);
 	if (store == undefined) {
@@ -222,9 +232,13 @@ StoreExecutor.prototype.execute = function(req, res) {
 				&& this.callable.expose.restrict.get) {
 			res.writeHead(404);
 			res.end();
+			return;
 		}
 		if (this.params.uuid) {
 			var object = store.get(this.params.uuid);
+			if (!this.checkAuthentication(req, res, object)) {
+				return;
+			}
 			res.writeHead(200, {'Content-type': 'application/json'});
 			result = {}
 			for (prop in object) {
@@ -245,6 +259,10 @@ StoreExecutor.prototype.execute = function(req, res) {
 				&& this.callable.expose.restrict.delete) {
 			res.writeHead(404);
 			res.end();
+			return;
+		}
+		if (!this.checkAuthentication(req, res, object)) {
+			return;
 		}
 		if (this.params.uuid) {
 			store.delete(this.params.uuid);
@@ -258,6 +276,15 @@ StoreExecutor.prototype.execute = function(req, res) {
 				&& this.callable.expose.restrict.create) {
 			res.writeHead(404);
 			res.end();
+			return;
+		}
+		if (this.callable.expose.authentication) {
+			if (req.session.currentuser == undefined) {
+				res.writeHead(401);
+				res.end();
+				return;
+			}
+			object.user = req.session.currentuser.uuid;
 		}
 		if (!object.uuid) {
 			object.uuid = uuid.v4();
@@ -282,11 +309,18 @@ StoreExecutor.prototype.execute = function(req, res) {
 				&& this.callable.expose.restrict.update) {
 			res.writeHead(404);
 			res.end();
+			return;
 		}
 		if (!store.exists(this.params.uuid)) {
 			res.write(404);
 			res.end();
 			return;
+		}
+		if (this.callable.expose.authentication) {
+			var currentObject = store.get(this.params.uuid);
+			if (!this.checkAuthentication(req, res, currentObject)) {
+				return;
+			}
 		}
 		for (prop in req.body) {
 			if (prop[0] == "_") {

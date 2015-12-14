@@ -66,7 +66,7 @@ Store.prototype.update = function(object, uid) {
 	return this._update(object, uid);
 }
 
-Store.prototype.removeMapper = function(map, uuid) {
+Store.prototype.removeMapper = function(map, uuid, mapper) {
 	for (i = 0; i < map.length; i++) {
 		if (map[i]['uuid'] == uuid) {
 			map.splice(i, 1);
@@ -118,7 +118,7 @@ Store.prototype.handleMap = function(object, map, updates) {
 					mapper[fields[field]] = object[fields[field]];
 				}
 			}
-			console.log("push mapper");
+			// Can happen with self defined uuid like ident
 			mapped[map[prop].target].push(mapper);
 			// TODO Should be update
 			store.save(mapped);

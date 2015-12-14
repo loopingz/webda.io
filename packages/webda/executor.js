@@ -209,7 +209,7 @@ StoreExecutor = function(params) {
 
 StoreExecutor.prototype = Object.create(Executor.prototype);
 
-StoreExecutor.prototype.checkAuthentication(req, res, object) {
+StoreExecutor.prototype.checkAuthentication = function(req, res, object) {
 	if (this.callable.expose.authentication) {
 		if (req.session.currentuser == undefined || req.session.currentuser.uuid != object.user) {
 			res.writeHead(403);
@@ -346,6 +346,7 @@ var passport = require('passport');
 var TwitterStrategy = require('passport-twitter').Strategy;
 var FacebookStrategy = require('passport-facebook').Strategy;
 var GitHubStrategy = require('passport-github2').Strategy;
+var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 
 var Ident = function (type, uid, accessToken, refreshToken) {
 	this.type = type;
@@ -408,6 +409,10 @@ PassportExecutor.prototype.executeCallback = function(req, res) {
 			self.setupFacebook(req, res);
 			passport.authenticate('facebook', { successRedirect: self.callable.successRedirect, failureRedirect: self.callable.failureRedirect})(req, res, next);
 			return;
+		case "google":
+			self.setupGoogle(req, res);
+			passport.authenticate('google', { successRedirect: self.callable.successRedirect, failureRedirect: self.callable.failureRedirect})(req, res, next);
+			return;
 		case "github":
 			self.setupGithub(req, res);
 			passport.authenticate('github', { successRedirect: self.callable.successRedirect, failureRedirect: self.callable.failureRedirect})(req, res, next);
@@ -444,7 +449,32 @@ PassportExecutor.prototype.setupGithub = function(req, res) {
 		    req.session.authenticated = new Ident("github", profile.id, accessToken, refreshToken);
 		    req.session.authenticated.setMetadatas(profile._json);
 		    self.store(req.session);
-		    done(null, profile);
+		    done(null, req.session.authenticated);
+		}
+	));
+}
+
+PassportExecutor.prototype.setupGoogle = function(req, res) {
+	var self = this;
+	var realm = self.callable.providers.google.realm;
+	var callback = self.getCallback();
+	if (realm == null) {
+		realm = callback;
+	}
+	passport.use(new GoogleStrategy({
+    		clientID: this.callable.providers.google.clientID,
+            clientSecret: this.callable.providers.google.clientSecret,
+  			callbackURL: callback
+		},
+		function(accessToken, refreshToken, profile, done) {
+		    console.log("return from google: " + JSON.stringify(profile));
+            req.session.authenticated = new Ident("google", profile.id, accessToken, refreshToken);
+            // Dont store useless parts
+            delete profile._raw;
+            delete profile._json;
+		    req.session.authenticated.setMetadatas(profile);
+		    self.store(req.session);
+		    done(null, req.session.authenticated);
 		}
 	));
 }
@@ -458,12 +488,20 @@ PassportExecutor.prototype.store = function(session) {
 	var identObj = identStore.get(session.authenticated.uuid);
 	if (identObj == undefined) {
 		identObj = session.authenticated;
+		if (identObj.user == undefined && session.currentuser != undefined) {
+			identObj.user = session.currentuser.uuid;
+		}
+		identStore.save(identObj);
 	} else {
-		identObj.metadatas = session.authenticated.metadatas;
+		updates = {};
+		if (identObj.user == undefined && session.currentuser != undefined) {
+			updates.user = session.currentuser.uuid;
+		}
+		updates.lastUsed = new Date();
+		updates.metadatas = session.authenticated.metadatas;
+		identObj = identStore.update(updates, identObj.uuid);
 	}
-	identObj.lastUsed = new Date();
 	// TODO Add an update method for updating only attribute
-	identStore.save(identObj);
 	if (identObj.user != undefined) {
 		userStore = self.getStore("users");
 		if (userStore == undefined) {
@@ -538,14 +576,22 @@ PassportExecutor.prototype.execute = function(req, res) {
 		self.executeCallback(req, res);
 		return;
 	}
+	var next = function(err) {
+		console.log("Error happened: " + err);
+		console.trace();
+	}
 	switch (self.params.provider) {
+		case "google":
+			self.setupGoogle();
+			passport.authenticate('google', {'scope': self.callable.providers.google.scope})(req, res, next);
+			return;
 		case "facebook":
 			self.setupFacebook();
-			passport.authenticate('facebook', {'scope': self.callable.providers.facebook.scope})(req, res);
+			passport.authenticate('facebook', {'scope': self.callable.providers.facebook.scope})(req, res, next);
 			return;
 		case "github":
 			self.setupGithub();
-			passport.authenticate('github', {'scope': self.callable.providers.github.scope})(req, res);
+			passport.authenticate('github', {'scope': self.callable.providers.github.scope})(req, res, next);
 			return;
 		case "phone":
 			this.handlePhone(req, res);

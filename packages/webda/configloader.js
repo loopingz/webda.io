@@ -8,7 +8,7 @@ var ConfigLoader = function() {
 		if (fs.existsSync(config)) {
 			result = require(config);
 		}
-		config = '/etc/webda-config.json';
+		config = '/etc/webda/config.json';
 		if (result == undefined && fs.existsSync(config)) {
 			result = require(config);
 		}

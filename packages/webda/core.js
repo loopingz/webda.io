@@ -22,10 +22,13 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({ secret: 'webda-private-key',resave: false,
     saveUninitialized: false }));
-
+app.set('trust proxy', 'loopback, 10.0.0.0/8');
 
 main_app = function (req, res) {
   var vhost = ( req.headers.host.match(/:/g) ) ? req.headers.host.slice( 0, req.headers.host.indexOf(":") ) : req.headers.host
+  if (req.hostname !== undefined) {
+    vhost = req.hostname;
+  }
   console.log("Searching for a vhost on " + vhost);
   console.log("URL:" + req.url);
   callable = router.getRoute(vhost, req.method, req.url, req.protocol, req.port, req.headers);

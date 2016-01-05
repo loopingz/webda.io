@@ -433,9 +433,9 @@ PassportExecutor.prototype.executeCallback = function(req, res) {
 PassportExecutor.prototype.getCallback = function () {
 	var self = this;
 	if (self.callable._extended) {
-		callback = "http://" + self._http.headers.host + self._http.url;
+		callback = self._http.protocol + "://" + self._http.host + self._http.url;
 	} else {
-		callback = "http://" + self._http.headers.host + self._http.url + "/callback";
+		callback = self._http.protocol + "://" + self._http.host + self._http.url + "/callback";
 	}
 	return callback;
 };

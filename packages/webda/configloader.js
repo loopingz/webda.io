@@ -2,6 +2,7 @@ var fs = require('fs');
 
 var ConfigLoader = function() {
 	var config = null;
+	var result = null;
 	// Default load from file
 	if (process.env.WEBDA_CONFIG == undefined) {
 		config = './webda-config.json';

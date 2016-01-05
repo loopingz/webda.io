@@ -129,11 +129,13 @@ Router.prototype.initHosts = function(vhost, config) {
 Router.prototype.getRoute = function(vhost, method, url, protocol, port, headers) {
   // Check vhost
   if (this.config[vhost] === undefined) {
+     if (this.config['*'] === undefined) {
   	return null;
-  } else {
-    // Init vhost if needed
-    this.initHosts(vhost, this.config[vhost]);
+     }
+     vhost = '*';
   }
+  // Init vhost if needed
+  this.initHosts(vhost, this.config[vhost]);
   // Check mapping
   var callable = null;
   if (url.indexOf("?") >= 0) {

@@ -9,7 +9,7 @@ var Executor = function (callable) {
 };
 
 Executor.prototype = Executor;
-
+Executor.prototype.constructor = Executor;
 Executor.prototype.execute = function(req, res) {
 	res.writeHead(200, {'Content-Type': 'text/plain'});
   	res.write("Callable is " + JSON.stringify(callable));
@@ -46,7 +46,7 @@ CustomExecutor = function(params) {
 };
 
 CustomExecutor.prototype = Object.create(Executor.prototype);
-
+CustomExecutor.prototype.constructor = CustomExecutor;
 CustomExecutor.prototype.execute = function(req, res) {
 	this.params["_http"] = this._http;
 };
@@ -88,7 +88,7 @@ LambdaExecutor = function(params) {
 };
 
 LambdaExecutor.prototype = Object.create(CustomExecutor.prototype);
-
+LambdaExecutor.prototype.constructor = LambdaExecutor;
 LambdaExecutor.prototype.execute = function(req, res) {
 	var self = this;
 	console.log(AWS.Config);
@@ -125,7 +125,7 @@ ResourceExecutor = function(params) {
 };
 
 ResourceExecutor.prototype = Object.create(Executor.prototype);
-
+ResourceExecutor.prototype.constructor = ResourceExecutor;
 ResourceExecutor.prototype.execute = function(req, res) {
 	var self = this;
 	fs.readFile(this.callable.file, 'utf8', function (err,data) {
@@ -148,7 +148,7 @@ FileExecutor = function(params) {
 };
 
 FileExecutor.prototype = Object.create(CustomExecutor.prototype);
-
+FileExecutor.prototype.constructor = FileExecutor;
 FileExecutor.prototype.execute = function(req, res) {
 	req.context = this.params;
 	req.context.getStore = this.getStore;
@@ -186,7 +186,7 @@ InlineExecutor = function(params) {
 };
 
 InlineExecutor.prototype = Object.create(Executor.prototype);
-
+InlineExecutor.prototype.constructor = InlineExecutor;
 InlineExecutor.prototype.execute = function(req, res) {
 	console.log("Will evaluate : " + this.callable.callback);
 	eval("callback = " + this.callable.callback);
@@ -208,10 +208,14 @@ StoreExecutor = function(params) {
 };
 
 StoreExecutor.prototype = Object.create(Executor.prototype);
-
+StoreExecutor.prototype.constructor = StoreExecutor;
 StoreExecutor.prototype.checkAuthentication = function(req, res, object) {
-	if (this.callable.expose.authentication) {
-		if (req.session.currentuser == undefined || req.session.currentuser.uuid != object.user) {
+	if (this.callable.expose.restrict.authentication) {
+		var field = "user";
+		if (typeof(this.callable.expose.restrict.authentication) == "string") {
+			field = this.callable.expose.restrict.authentication;
+		}
+		if (req.session.currentuser == undefined || req.session.currentuser.uuid != object[field]) {
 			res.writeHead(403);
 			res.end();
 			return false;
@@ -278,7 +282,7 @@ StoreExecutor.prototype.execute = function(req, res) {
 			res.end();
 			return;
 		}
-		if (this.callable.expose.authentication) {
+		if (this.callable.expose.restrict.authentication) {
 			if (req.session.currentuser == undefined) {
 				res.writeHead(401);
 				res.end();
@@ -316,7 +320,7 @@ StoreExecutor.prototype.execute = function(req, res) {
 			res.end();
 			return;
 		}
-		if (this.callable.expose.authentication) {
+		if (this.callable.expose.restrict.authentication) {
 			var currentObject = store.get(this.params.uuid);
 			if (!this.checkAuthentication(req, res, currentObject)) {
 				return;
@@ -389,7 +393,7 @@ PassportExecutor = function(params) {
 }
 
 PassportExecutor.prototype = Object.create(Executor.prototype);
-
+PassportExecutor.prototype.constructor = PassportExecutor;
 
 PassportExecutor.prototype.enrichRoutes = function(map) {
 	var result = {};

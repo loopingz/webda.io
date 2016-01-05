@@ -29,6 +29,8 @@ main_app = function (req, res) {
   if (req.hostname !== undefined) {
     vhost = req.hostname;
   }
+  // Setup the right session cookie
+  req.session.cookie.domain = vhost;
   console.log("Searching for a vhost on " + vhost);
   console.log("URL:" + req.url);
   callable = router.getRoute(vhost, req.method, req.url, req.protocol, req.port, req.headers);

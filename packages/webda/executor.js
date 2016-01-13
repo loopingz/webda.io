@@ -412,22 +412,23 @@ PassportExecutor.prototype.executeCallback = function(req, res) {
 		case "facebook":
 			self.setupFacebook(req, res);
 			passport.authenticate('facebook', { successRedirect: self.callable.successRedirect, failureRedirect: self.callable.failureRedirect})(req, res, next);
-			return;
+                        break;
 		case "google":
 			self.setupGoogle(req, res);
 			passport.authenticate('google', { successRedirect: self.callable.successRedirect, failureRedirect: self.callable.failureRedirect})(req, res, next);
-			return;
+                        break;
 		case "github":
 			self.setupGithub(req, res);
 			passport.authenticate('github', { successRedirect: self.callable.successRedirect, failureRedirect: self.callable.failureRedirect})(req, res, next);
-			return;
+                        break;
 		case "email":
 			self.handleEmailCallback(req, res);
-			return;
+			break;
 		case "phone":
 			self.handlePhoneCallback(req, res);
-			return;
+			break;
 	}
+        res.end();
 };
 
 PassportExecutor.prototype.getCallback = function () {

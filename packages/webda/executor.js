@@ -240,6 +240,11 @@ StoreExecutor.prototype.execute = function(req, res) {
 		}
 		if (this.params.uuid) {
 			var object = store.get(this.params.uuid);
+                        if (object === undefined) {
+                            res.writeHead(404);
+                            res.end();
+                            return;
+                        }
 			if (!this.checkAuthentication(req, res, object)) {
 				return;
 			}
@@ -252,7 +257,6 @@ StoreExecutor.prototype.execute = function(req, res) {
 				}
 				result[prop] = object[prop]
 			}
-			res.write(JSON.stringify(object));
 			res.end();
 			return;
 		} else {
@@ -428,7 +432,6 @@ PassportExecutor.prototype.executeCallback = function(req, res) {
 			self.handlePhoneCallback(req, res);
 			break;
 	}
-        res.end();
 };
 
 PassportExecutor.prototype.getCallback = function () {
@@ -564,12 +567,10 @@ PassportExecutor.prototype.handleEmail = function(req, res) {
 	// Read the form
 	res.writeHead(204);
 	// Should send an email
-	res.end();
 }
 
 PassportExecutor.prototype.handlePhone = function(req, res) {
 	res.writeHead(204);
-	res.end();
 }
 
 PassportExecutor.prototype.execute = function(req, res) {
@@ -589,21 +590,21 @@ PassportExecutor.prototype.execute = function(req, res) {
 		case "google":
 			self.setupGoogle();
 			passport.authenticate('google', {'scope': self.callable.providers.google.scope})(req, res, next);
-			return;
+			break;
 		case "facebook":
 			self.setupFacebook();
 			passport.authenticate('facebook', {'scope': self.callable.providers.facebook.scope})(req, res, next);
-			return;
+			break;
 		case "github":
 			self.setupGithub();
 			passport.authenticate('github', {'scope': self.callable.providers.github.scope})(req, res, next);
-			return;
+			break;
 		case "phone":
 			this.handlePhone(req, res);
-			return;
+			break;
 		case "email":
 			this.handleEmail(req, res);
-			return;
+			break;
 	}
 	res.end();
 };

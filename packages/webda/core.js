@@ -32,12 +32,22 @@ function sleep(time) {
 }
 
 main_app = function (req, res) {
+  if (req.headers['x-forwarded-server'] === undefined) {
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5000');
+  }
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5000');
   var vhost = ( req.headers.host.match(/:/g) ) ? req.headers.host.slice( 0, req.headers.host.indexOf(":") ) : req.headers.host
   if (req.hostname !== undefined) {
     vhost = req.hostname;
   }
+  if (req.headers['x-forwarded-host'] !== undefined) {
+    req.hostname = vhost = req.headers['x-forwarded-host'];
+  }
+  protocol = req.protocol;
+  if (req.headers['x-forwarded-proto'] != undefined) {
+    protocol = req.headers['x-forwarded-proto'];
+  }
+  console.log(JSON.stringify(req.headers));
   // Setup the right session cookie
   req.session.cookie.domain = vhost;
   console.log("Searching for a vhost on " + vhost);
@@ -51,7 +61,7 @@ main_app = function (req, res) {
     res.end();
     return;
   }
-  callable = router.getRoute(vhost, req.method, req.url, req.protocol, req.port, req.headers);
+  callable = router.getRoute(vhost, req.method, req.url, protocol, req.port, req.headers);
   if (callable == null) {
   	display404(res);
   	return;
@@ -65,5 +75,5 @@ main_app = function (req, res) {
 // respond to all requests
 app.use(main_app);
 
-http.createServer(app).listen(8080);
+http.createServer(app).listen(18080);
 console.log('Server running at http://127.0.0.1:8080/');

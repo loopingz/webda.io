@@ -11,4 +11,4 @@ ADD . /server/
 RUN apt-get install -y npm
 RUN cd /server && npm install
 RUN mkdir /etc/webda
-CMD cd /server && nodejs core.js
+CMD cd /server && nodejs core.js  > /data/webda.log

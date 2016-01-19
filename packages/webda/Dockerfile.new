@@ -1,14 +1,12 @@
-FROM debian:latest
+FROM node:latest
 MAINTAINER loopingz@loopingz.com
 
 RUN apt-get update \
- && apt-get install -y git \
- && apt-get install -y nodejs
+ && apt-get install -y libpixman-1-dev libcairo2-dev libpangocairo-1.0-0 libpango1.0-dev libgif-dev
 
 RUN mkdir /server/
 ADD . /server/
 
-RUN apt-get install -y npm
 RUN cd /server && npm install
 RUN mkdir /etc/webda
-CMD cd /server && nodejs core.js  > /data/webda.log
+CMD cd /server && node core.js  > /data/webda.log

@@ -8,6 +8,7 @@ var Router = function(config) {
 	self.config = config;
 	// Prepare tbe URI parser
 	for (var vhost in this.config) {
+    if (vhost == '*') continue;
 		for (var map in this.config[vhost]) {
       if (this.config[vhost][map]._extended) {
         continue;
@@ -130,9 +131,9 @@ Router.prototype.getRoute = function(vhost, method, url, protocol, port, headers
   // Check vhost
   if (this.config[vhost] === undefined) {
      if (this.config['*'] === undefined) {
-  	return null;
+  	   return null;
      }
-     vhost = '*';
+     vhost = this.config['*'];
   }
   // Init vhost if needed
   this.initHosts(vhost, this.config[vhost]);

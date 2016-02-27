@@ -290,6 +290,59 @@ FileStore.prototype._get = function(uid) {
 	return JSON.parse(fs.readFileSync(this.file(uid)));
 }
 
+FileStore = function(name, options) {
+	Store.call(this, name, options);
+	if (!fs.existsSync(options.folder)) {
+		fs.mkdirSync(options.folder);
+	}
+}
+
+var MongoClient = require('mongodb').MongoClient
+
+MongoStore = function(name, options) {
+	Store.call(this, name, options);
+	var self = this;
+	// Connection URL
+	var url = 'mongodb://localhost:27017/myproject';
+	// Use connect method to connect to the Server
+	MongoClient.connect(url, function(err, db) {
+	  assert.equal(null, err);
+	  console.log("Connected correctly to server");
+	  self._db = db;
+	  self._collection = self._db.collection('');
+	});
+}
+MongoStore.prototype = Object.create(Store.prototype);
+
+MongoStore.prototype.exists = function(uid) {
+	// existsSync is deprecated might change it
+	return fs.existsSync(this.file(uid));
+}
+
+MongoStore.prototype._save = function(object, uid) {
+	this._collection.insertOne(object, function(err, result) {
+
+	});
+	return object;
+}
+
+MongoStore.prototype._delete = function(uid) {
+	this._collection.deleteOne({ uuid: uid}, function(err, result) {
+
+	});
+	// Should make it sync ?
+}
+
+MongoStore.prototype._update = function(object, uid) {
+	this._collection.updateOne({ uuid: uid}, object, function (err, reuslt) {
+
+	});
+}
+
+MongoStore.prototype._get = function(uid) {
+	this._collection.find({ uuid: uid});
+}
+
 types = {"FileStore": FileStore};
 
 module.exports.add = function (name, options) {

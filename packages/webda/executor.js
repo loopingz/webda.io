@@ -270,12 +270,12 @@ StoreExecutor.prototype.execute = function(req, res) {
 			res.end();
 			return;
 		}
-                var object = store.get(this.params.uuid);
-                if (object === undefined) {
-                    res.writeHead(404);
-                    res.end();
-                    return;
-                }
+		var object = store.get(this.params.uuid);
+		if (object === undefined) {
+			res.writeHead(404);
+			res.end();
+			return;
+		}
 		if (!this.checkAuthentication(req, res, object)) {
 			return;
 		}

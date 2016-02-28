@@ -1,4 +1,6 @@
 var uuid = require('node-uuid');
+const crypto = require('crypto');
+
 var Executor = function (callable) {
 	var self = this;
 	self.callable = callable;
@@ -548,7 +550,46 @@ PassportExecutor.prototype.setupFacebook = function(req, res) {
 }
 
 PassportExecutor.prototype.handleEmailCallback = function(req, res) {
-
+	var identStore = this.getStore("idents");
+	if (identStore === undefined) {
+		res.writeHead(500);
+		console.log("Email auth needs an ident store");
+		res.end();
+		return;
+	}
+	var updates = {};
+	var uuid = req.body.login + "_email";
+	var ident = identStore.get(uuid);
+	if (ident != undefined && ident.user != undefined) {
+		var userStore = this.getStore("users");
+		var user = userStore.get(ident.user);
+		var hash = crypto.createHash('sha256');
+		// Check password
+		if (user._password === hash.update(req.body.password).digest('hex')) {
+			req.session.authenticated = ident;
+			if (ident.failedLogin > 0) {
+				ident.failedLogin = 0;
+			}
+			updates.lastUsed = new Date();
+			updates.failedLogin = 0;
+			ident = identStore.update(updates, ident.uuid);
+			req.session.authenticated = ident;
+			res.writeHead(204);
+		} else {
+			if (ident.failedLogin === undefined) {
+				ident.failedLogin = 0;
+			}
+			updates.failedLogin = ident.failedLogin++;
+			updates.lastFailedLogin = new Date();
+			ident = identStore.update(updates, ident.uuid);
+			res.writeHead(403);
+		}
+	} else {
+		// Read the form
+		res.writeHead(404);
+	}
+	// Should send an email
+	res.end();
 }
 
 PassportExecutor.prototype.handlePhoneCallback = function(req, res) {
@@ -557,13 +598,14 @@ PassportExecutor.prototype.handlePhoneCallback = function(req, res) {
 
 PassportExecutor.prototype.handleEmail = function(req, res) {
 	var identStore = this.getStore("idents");
-	if (identStore == undefined) {
+	if (identStore === undefined) {
 		res.writeHead(500);
 		console.log("Email auth needs an ident store");
 		res.end();
 		return;
 	}
 	var uuid = "" + "_email";
+	console.log(identStore);
 	var ident = identStore.get(uuid);
 	if (ident != undefined && ident.user != undefined) {
 		var userStore = this.getStore("users");

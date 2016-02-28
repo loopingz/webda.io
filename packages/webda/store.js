@@ -290,13 +290,6 @@ FileStore.prototype._get = function(uid) {
 	return JSON.parse(fs.readFileSync(this.file(uid)));
 }
 
-FileStore = function(name, options) {
-	Store.call(this, name, options);
-	if (!fs.existsSync(options.folder)) {
-		fs.mkdirSync(options.folder);
-	}
-}
-
 var MongoClient = require('mongodb').MongoClient
 
 MongoStore = function(name, options) {

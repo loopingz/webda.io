@@ -9,6 +9,8 @@ var passport = require('passport');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var session = require('express-session');
+var multer = require('multer'); // v1.0.5
+var upload = multer(); // for parsing multipart/form-data
 
 function display404(res) {
 	res.writeHead(404, {'Content-Type': 'text/plain'});
@@ -20,6 +22,7 @@ var app = express();
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(upload.array('file'));
 app.use(session({ secret: 'webda-private-key',resave: false,
     saveUninitialized: false }));
 app.set('trust proxy', 'loopback, 10.0.0.0/8');
@@ -75,6 +78,7 @@ main_app = function (req, res) {
       res.writeHead(500);
       console.log("Exception occured : " + JSON.stringify(err));
       res.end();
+      throw err;
     }
   }
   return;

@@ -50,8 +50,7 @@ main_app = function (req, res) {
   console.log(JSON.stringify(req.headers));
   // Setup the right session cookie
   req.session.cookie.domain = vhost;
-  console.log("Searching for a vhost on " + vhost);
-  console.log("URL:" + req.url);
+  console.log("Searching for a vhost on " + vhost + " for " + req.url);
   if (req.method == "OPTIONS") {
     var methods = 'GET,POST,PUT,DELETE,OPTIONS';
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -66,8 +65,18 @@ main_app = function (req, res) {
   	display404(res);
   	return;
   } 
-  callable.execute(req, res);
-  
+  try {
+    callable.execute(req, res);
+  } catch (err) {
+    if (typeof(err) === "number") {
+      res.writeHead(err);
+      res.end();
+    } else {
+      res.writeHead(500);
+      console.log("Exception occured : " + JSON.stringify(err));
+      res.end();
+    }
+  }
   return;
 };
 

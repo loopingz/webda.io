@@ -218,9 +218,7 @@ StoreExecutor.prototype.checkAuthentication = function(req, res, object) {
 			field = this.callable.expose.restrict.authentication;
 		}
 		if (req.session.currentuser == undefined || req.session.currentuser.uuid != object[field]) {
-			res.writeHead(403);
-			res.end();
-			return false;
+			throw 403;
 		}
 	}
 	return true;
@@ -236,16 +234,12 @@ StoreExecutor.prototype.execute = function(req, res) {
 	if (this._http.method == "GET") {
 		if (this.callable.expose.restrict != undefined
 				&& this.callable.expose.restrict.get) {
-			res.writeHead(404);
-			res.end();
-			return;
+			throw 404;
 		}
 		if (this.params.uuid) {
 			var object = store.get(this.params.uuid);
                         if (object === undefined) {
-                            res.writeHead(404);
-                            res.end();
-                            return;
+                            throw 404;
                         }
 			if (!this.checkAuthentication(req, res, object)) {
 				return;
@@ -268,38 +262,28 @@ StoreExecutor.prototype.execute = function(req, res) {
 	} else if (this._http.method == "DELETE") {
 		if (this.callable.expose.restrict != undefined
 				&& this.callable.expose.restrict.delete) {
-			res.writeHead(404);
-			res.end();
-			return;
+			throw 404;
 		}
 		var object = store.get(this.params.uuid);
 		if (object === undefined) {
-			res.writeHead(404);
-			res.end();
-			return;
+			throw 404;
 		}
 		if (!this.checkAuthentication(req, res, object)) {
 			return;
 		}
 		if (this.params.uuid) {
 			store.delete(this.params.uuid);
-			res.writeHead(204);
-			res.end();
-			return;
+			throw 204;
 		}
 	} else if (this._http.method == "POST") {
 		var object = req.body;
 		if (this.callable.expose.restrict != undefined
 				&& this.callable.expose.restrict.create) {
-			res.writeHead(404);
-			res.end();
-			return;
+			throw 404;
 		}
 		if (this.callable.expose.restrict.authentication) {
 			if (req.session.currentuser == undefined) {
-				res.writeHead(401);
-				res.end();
-				return;
+				throw 401;
 			}
 			object.user = req.session.currentuser.uuid;
 		}
@@ -307,9 +291,7 @@ StoreExecutor.prototype.execute = function(req, res) {
 			object.uuid = uuid.v4();
 		}
 		if (store.exists(object.uuid)) {
-			res.write(409);
-			res.end();
-			return;
+			throw 409;
 		}
 		for (prop in object) {
 			if (prop[0] == "_") {
@@ -324,14 +306,10 @@ StoreExecutor.prototype.execute = function(req, res) {
 	} else if (this._http.method == "PUT") {
 		if (this.callable.expose.restrict != undefined
 				&& this.callable.expose.restrict.update) {
-			res.writeHead(404);
-			res.end();
-			return;
+			throw 404;
 		}
 		if (!store.exists(this.params.uuid)) {
-			res.write(404);
-			res.end();
-			return;
+			throw 404;
 		}
 		if (this.callable.expose.restrict.authentication) {
 			var currentObject = store.get(this.params.uuid);
@@ -346,17 +324,14 @@ StoreExecutor.prototype.execute = function(req, res) {
 		}
 		var object = store.update(req.body, this.params.uuid);
 		if (object == undefined) {
-			res.writeHead(500);
-			res.end();
-			return;
+			throw 500;
 		}
 		res.writeHead(200, {'Content-type': 'application/json'});
 		res.write(JSON.stringify(object));
 		res.end();
 		return;
 	}
-	res.writeHead(404);
-	res.end();
+	throw 404;
 }
 
 var passport = require('passport');
@@ -582,11 +557,11 @@ PassportExecutor.prototype.handleEmailCallback = function(req, res) {
 			updates.failedLogin = ident.failedLogin++;
 			updates.lastFailedLogin = new Date();
 			ident = identStore.update(updates, ident.uuid);
-			res.writeHead(403);
+			throw 403;
 		}
 	} else {
 		// Read the form
-		res.writeHead(404);
+		throw 404;
 	}
 	// Should send an email
 	res.end();
@@ -657,4 +632,5 @@ PassportExecutor.prototype.execute = function(req, res) {
 	}
 	res.end();
 };
+
 module.exports = {"_default": LambdaExecutor, "custom": CustomExecutor, "inline": InlineExecutor, "lambda": LambdaExecutor, "debug": Executor, "store": StoreExecutor, "string": StringExecutor, "resource": ResourceExecutor, "file": FileExecutor , "passport": PassportExecutor}; 

@@ -633,4 +633,73 @@ PassportExecutor.prototype.execute = function(req, res) {
 	res.end();
 };
 
-module.exports = {"_default": LambdaExecutor, "custom": CustomExecutor, "inline": InlineExecutor, "lambda": LambdaExecutor, "debug": Executor, "store": StoreExecutor, "string": StringExecutor, "resource": ResourceExecutor, "file": FileExecutor , "passport": PassportExecutor}; 
+FileBinaryExecutor = function(params) {
+	Executor.call(this, params);
+	this._type = "FileBinaryExecutor";
+	console.log(params);
+	if (!fs.existsSync(params.binary.folder)) {
+		fs.mkdirSync(params.binary.folder);
+	}
+};
+
+FileBinaryExecutor.prototype = Object.create(Executor.prototype);
+FileBinaryExecutor.prototype.constructor = FileBinaryExecutor;
+
+FileBinaryExecutor.prototype.execute = function(req, res) {
+	var self = this;
+	var targetStore = this.getStore(this.params.store);
+	if (targetStore === undefined) {
+		throw 404;
+	}
+	var object = targetStore.get(this.params.uid);
+	if (object === undefined) {
+		throw 404;
+	}
+	if (object[this.params.property] !== undefined && typeof(object[this.params.property]) !== 'object') {
+		throw 403;
+	}
+	var file;
+	if (this._http.method == "POST") {
+		var hash = crypto.createHash('sha256');
+		file = req.files[0];
+		var hashValue = hash.update(file.buffer).digest('hex');
+		// TODO Dont overwrite if already there
+		fs.writeFile(this.callable.binary.folder + hashValue, req.files[0].buffer, function (err) {
+			var update = {};
+			update[self.params.property] = object[self.params.property];
+			if (update[self.params.property] === undefined) {
+				update[self.params.property] = [];
+			}
+			update[self.params.property].push({'name': file.originalname, 'mimetype': file.mimetype, 'size': file.size, 'hash': hashValue});
+			targetStore.update(update, self.params.uid);
+	    	res.writeHead(204);
+	    	res.end();
+	  	});
+	} else if (this._http.method == "GET") {
+		if (object[this.params.property] === undefined || object[this.params.property][this.params.index] === undefined) {
+			throw 404;
+		}
+		file = object[this.params.property][this.params.index];
+		res.writeHead(200, {
+        	'Content-Type': file.mimetype,
+        	'Content-Length': file.size
+	    });
+
+	    var readStream = fs.createReadStream(this.callable.binary.folder + file.hash);
+	    // We replaced all the event handlers with a simple call to readStream.pipe()
+	    readStream.pipe(res);
+	} else if (this._http.method == "DELETE") {
+		if (object[this.params.property] === undefined || object[this.params.property][this.params.index] === undefined) {
+			throw 404;
+		}
+		var update = {};
+		update[self.params.property] = object[self.params.property];
+		update[self.params.property].slice(this.params.index, 1);
+		targetStore.update(update, self.params.uid);
+		// TODO Delete binary or update its count
+	    res.writeHead(204);
+	    res.end();
+	}
+};
+
+module.exports = {"_default": LambdaExecutor, "custom": CustomExecutor, "inline": InlineExecutor, "lambda": LambdaExecutor, "debug": Executor, "store": StoreExecutor, "string": StringExecutor, "resource": ResourceExecutor, "file": FileExecutor , "passport": PassportExecutor, "filebinary": FileBinaryExecutor}; 

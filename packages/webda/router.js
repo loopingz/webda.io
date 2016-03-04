@@ -5,6 +5,7 @@ var extend = require('util')._extend;
 //var module = require("module");
 var Router = function(config) {
 	var self = this;
+  self.initiated = {};
 	self.config = config;
 	// Prepare tbe URI parser
 	for (var vhost in this.config) {
@@ -24,6 +25,7 @@ var Router = function(config) {
 			if (map.indexOf("{") != -1) {
 		    this.config[vhost][map]['uri-template-parse'] = uriTemplates(map);
 		  }
+      // Add extended route by the executor
       callable = new Executors[this.config[vhost][map]["executor"]](this.config[vhost][map]);
       for (var extMap in callable.enrichRoutes(map)) {
         if (this.config[vhost][extMap] != undefined) {
@@ -42,7 +44,9 @@ var Router = function(config) {
 Router.prototype = Router;
 
 Router.prototype.initHosts = function(vhost, config) {
-  console.log("init stores");
+  if (this.initiated[vhost]) {
+    return;
+  }
   if (config.global == undefined || config.global.stores == undefined) {
     return;
   }
@@ -121,10 +125,21 @@ Router.prototype.initHosts = function(vhost, config) {
         }
       }
   }
+  var defaultBinary = false;
+  for (var binaryStoreId in config.global.binaries) {
+    var binaryStore = config.global.binaries[binaryStoreId];
+    if (binaryStore.expose || binaryStore.expose !== undefined && binaryStore.expose.url === undefined) {
+      binaryStore.expose = {};
+      binaryStore.expose.url = '/binary';
+    }
+    var url = binaryStore.expose.url + "/{store}/{uid}/{property}/{index}";
+    config[url] = {"method": ["POST", "PUT", "DELETE", "GET"], "executor": binaryStore.type, "expose": binaryStore.expose, "binary": binaryStore, "uri-template-parse": uriTemplates(url)};
+  }
   if (config.global == undefined || config.global.validators == undefined) {
     return;
   }
   //require(config.global.validators);
+  this.initiated[vhost] = true;
 }
 
 Router.prototype.getRoute = function(vhost, method, url, protocol, port, headers) {

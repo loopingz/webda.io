@@ -693,6 +693,9 @@ FileBinaryExecutor.prototype.execute = function(req, res) {
 			throw 404;
 		}
 		var update = {};
+		if (object[self.params.property][this.params.index].hash !== this.params.hash) {
+			throw 412;
+		}
 		update[self.params.property] = object[self.params.property];
 		update[self.params.property].slice(this.params.index, 1);
 		targetStore.update(update, self.params.uid);
@@ -700,6 +703,7 @@ FileBinaryExecutor.prototype.execute = function(req, res) {
 	    res.writeHead(204);
 	    res.end();
 	}
+	// TODO Might want to handle PUT
 };
 
 module.exports = {"_default": LambdaExecutor, "custom": CustomExecutor, "inline": InlineExecutor, "lambda": LambdaExecutor, "debug": Executor, "store": StoreExecutor, "string": StringExecutor, "resource": ResourceExecutor, "file": FileExecutor , "passport": PassportExecutor, "filebinary": FileBinaryExecutor}; 

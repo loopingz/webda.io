@@ -133,7 +133,14 @@ Router.prototype.initHosts = function(vhost, config) {
       binaryStore.expose.url = '/binary';
     }
     var url = binaryStore.expose.url + "/{store}/{uid}/{property}/{index}";
-    config[url] = {"method": ["POST", "PUT", "DELETE", "GET"], "executor": binaryStore.type, "expose": binaryStore.expose, "binary": binaryStore, "uri-template-parse": uriTemplates(url)};
+    // Need index to update or get
+    config[url] = {"method": ["GET"], "executor": binaryStore.type, "expose": binaryStore.expose, "binary": binaryStore, "uri-template-parse": uriTemplates(url)};
+    url = binaryStore.expose.url + "/{store}/{uid}/{property}";
+    // No need the index to add file
+    config[url] = {"method": ["POST"], "executor": binaryStore.type, "expose": binaryStore.expose, "binary": binaryStore, "uri-template-parse": uriTemplates(url)};
+    url = binaryStore.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
+    // Need hash to avoid concurrent delete
+    config[url] = {"method": ["DELETE"], "executor": binaryStore.type, "expose": binaryStore.expose, "binary": binaryStore, "uri-template-parse": uriTemplates(url)};
   }
   if (config.global == undefined || config.global.validators == undefined) {
     return;

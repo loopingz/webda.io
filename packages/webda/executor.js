@@ -661,18 +661,36 @@ FileBinaryExecutor.prototype.execute = function(req, res) {
 	var file;
 	if (this._http.method == "POST") {
 		var hash = crypto.createHash('sha256');
-		file = req.files[0];
+		var bytes;
+		if (req.files !== undefined) {
+			file = req.files[0];
+		} else {
+			file = {};
+			file.buffer = req.body;
+			file.mimetype = req.headers.contentType;
+			file.size = len(req.body);
+			file.originalname = '';
+		}
 		var hashValue = hash.update(file.buffer).digest('hex');
 		// TODO Dont overwrite if already there
-		fs.writeFile(this.callable.binary.folder + hashValue, req.files[0].buffer, function (err) {
+		fs.writeFile(this.callable.binary.folder + hashValue, file.buffer, function (err) {
 			var update = {};
 			update[self.params.property] = object[self.params.property];
 			if (update[self.params.property] === undefined) {
 				update[self.params.property] = [];
 			}
-			update[self.params.property].push({'name': file.originalname, 'mimetype': file.mimetype, 'size': file.size, 'hash': hashValue});
+			var fileObj = {};
+			for (var i in req.body) {
+				fileObj[i] = req.body[i];
+			}
+			fileObj['name']=file.originalname;
+			fileObj['mimetype']=file.mimetype;
+			fileObj['size']=file.size;
+			fileObj['hash']=hashValue;
+			update[self.params.property].push(fileObj);
 			targetStore.update(update, self.params.uid);
-	    	res.writeHead(204);
+	    	res.writeHead(200, {'Content-type': 'application/json'});
+			res.write(JSON.stringify(targetStore.get(self.params.uid)));
 	    	res.end();
 	  	});
 	} else if (this._http.method == "GET") {

@@ -718,10 +718,53 @@ FileBinaryExecutor.prototype.execute = function(req, res) {
 		update[self.params.property].slice(this.params.index, 1);
 		targetStore.update(update, self.params.uid);
 		// TODO Delete binary or update its count
-	    res.writeHead(204);
-	    res.end();
+	    res.writeHead(200, {'Content-type': 'application/json'});
+		res.write(JSON.stringify(targetStore.get(self.params.uid)));
+		res.end();
+	} else if (this._http.method == "PUT") {
+		if (object[this.params.property] === undefined || object[this.params.property][this.params.index] === undefined) {
+			throw 404;
+		}
+		var update = {};
+		if (object[self.params.property][this.params.index].hash !== this.params.hash) {
+			throw 412;
+		}
+		// Should avoid duplication
+		var hash = crypto.createHash('sha256');
+		var bytes;
+		if (req.files !== undefined) {
+			file = req.files[0];
+		} else {
+			file = {};
+			file.buffer = req.body;
+			file.mimetype = req.headers.contentType;
+			file.size = len(req.body);
+			file.originalname = '';
+		}
+		var hashValue = hash.update(file.buffer).digest('hex');
+		// TODO Dont overwrite if already there
+		fs.writeFile(this.callable.binary.folder + hashValue, file.buffer, function (err) {
+			var update = {};
+			update[self.params.property] = object[self.params.property];
+			if (update[self.params.property] === undefined) {
+				update[self.params.property] = [];
+			}
+			var fileObj = {};
+			for (var i in req.body) {
+				fileObj[i] = req.body[i];
+			}
+			fileObj['name']=file.originalname;
+			fileObj['mimetype']=file.mimetype;
+			fileObj['size']=file.size;
+			fileObj['hash']=hashValue;
+			update[self.params.property] = object[self.params.property];
+			update[self.params.property][self.params.index]=fileObj;
+			targetStore.update(update, self.params.uid);
+	    	res.writeHead(200, {'Content-type': 'application/json'});
+			res.write(JSON.stringify(targetStore.get(self.params.uid)));
+	    	res.end();
+	  	});
 	}
-	// TODO Might want to handle PUT
 };
 
 module.exports = {"_default": LambdaExecutor, "custom": CustomExecutor, "inline": InlineExecutor, "lambda": LambdaExecutor, "debug": Executor, "store": StoreExecutor, "string": StringExecutor, "resource": ResourceExecutor, "file": FileExecutor , "passport": PassportExecutor, "filebinary": FileBinaryExecutor}; 

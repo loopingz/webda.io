@@ -69,14 +69,18 @@ main_app = function (req, res) {
   	return;
   } 
   try {
-    callable.execute(req, res);
+    callable.init(req, res);
+    callable.execute();
+    //callable.execute(req, res);
   } catch (err) {
     if (typeof(err) === "number") {
       res.writeHead(err);
       res.end();
     } else {
-      res.writeHead(500);
       console.log("Exception occured : " + JSON.stringify(err));
+      var err = new Error();
+      console.log(err.stack);
+      res.writeHead(500);
       res.end();
       throw err;
     }

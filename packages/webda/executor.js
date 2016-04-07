@@ -13,8 +13,8 @@ class Executor {
 		}
 	}
 
-	init(req, res) {
-		this.session = {};
+	init(req, res, secure_cookie) {
+		this.session = secure_cookie;
 		this._rawResponse = res;
 		this._rawRequest = req;
 	}
@@ -58,8 +58,7 @@ class Executor {
 		if (this._http != undefined && this._http.host != undefined) {
 			storeName = this._http.host + "_" + storeName;
 		}
-		res = require("./store").get(storeName);
-		return res;
+		return require("./store").get(storeName);
 	}
 
 	enrichRoutes(map) {

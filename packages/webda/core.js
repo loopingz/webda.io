@@ -1,3 +1,5 @@
+"use strict";
+
 var http = require('http');
 var webda_config = require('./config.json');
 var ConfigLoader = require('./configloader.js')
@@ -34,7 +36,7 @@ function sleep(time) {
     }
 }
 
-main_app = function (req, res) {
+var main_app = function (req, res) {
   if (req.headers['x-forwarded-server'] === undefined) {
     res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5000');
   }
@@ -46,7 +48,7 @@ main_app = function (req, res) {
   if (req.headers['x-forwarded-host'] !== undefined) {
     req.hostname = vhost = req.headers['x-forwarded-host'];
   }
-  protocol = req.protocol;
+  var protocol = req.protocol;
   if (req.headers['x-forwarded-proto'] != undefined) {
     protocol = req.headers['x-forwarded-proto'];
   }
@@ -63,22 +65,21 @@ main_app = function (req, res) {
     res.end();
     return;
   }
-  callable = router.getRoute(vhost, req.method, req.url, protocol, req.port, req.headers);
+  var callable = router.getRoute(vhost, req.method, req.url, protocol, req.port, req.headers);
   if (callable == null) {
   	display404(res);
   	return;
   } 
   try {
     callable.init(req, res);
-    callable.execute();
-    //callable.execute(req, res);
+    //callable.execute();
+    callable.execute(req, res);
   } catch (err) {
     if (typeof(err) === "number") {
       res.writeHead(err);
       res.end();
     } else {
       console.log("Exception occured : " + JSON.stringify(err));
-      var err = new Error();
       console.log(err.stack);
       res.writeHead(500);
       res.end();

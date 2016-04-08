@@ -37,10 +37,22 @@ function sleep(time) {
 }
 
 var main_app = function (req, res) {
+  // Ensure cookie session
+  /*
+  if (req.cookies.webda === undefined) {
+    req.cookies.webda = {};
+  }
+  var sessionCookie = new SecureCookie({'secret': 'webda-private-key'}, req.cookies.webda);
+  req.session = sessionCookie;
+  */
+
+  // Add correct headers for X-scripting
   if (req.headers['x-forwarded-server'] === undefined) {
     res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5000');
   }
   res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+  // Handle reverse proxy
   var vhost = ( req.headers.host.match(/:/g) ) ? req.headers.host.slice( 0, req.headers.host.indexOf(":") ) : req.headers.host
   if (req.hostname !== undefined) {
     vhost = req.hostname;
@@ -52,9 +64,10 @@ var main_app = function (req, res) {
   if (req.headers['x-forwarded-proto'] != undefined) {
     protocol = req.headers['x-forwarded-proto'];
   }
-  console.log(JSON.stringify(req.headers));
+
   // Setup the right session cookie
   req.session.cookie.domain = vhost;
+
   console.log("Searching for a vhost on " + vhost + " for " + req.url);
   if (req.method == "OPTIONS") {
     var methods = 'GET,POST,PUT,DELETE,OPTIONS';
@@ -72,8 +85,7 @@ var main_app = function (req, res) {
   } 
   try {
     callable.init(req, res);
-    //callable.execute();
-    callable.execute(req, res);
+    callable.execute();
   } catch (err) {
     if (typeof(err) === "number") {
       res.writeHead(err);

@@ -13,8 +13,8 @@ class Executor {
 		}
 	}
 
-	init(req, res, secure_cookie) {
-		this.session = secure_cookie;
+	init(req, res) {
+		this.session = req.session;
 		this._rawResponse = res;
 		this._rawRequest = req;
 	}
@@ -177,15 +177,14 @@ class FileExecutor extends CustomExecutor {
 		this._type = "FileExecutor";
 	}
 
-	execute(req, res) {
-		req.context = this.params;
-		req.context.getStore = this.getStore;
+	execute() {
 		if (this.callable.type == "lambda") {
 			// MAKE IT local compatible
-			var data = require(this.callable.file)(params, {});
-			this.handleResult(data, res);
+			this.params["_http"] = this._http;
+			var data = require(this.callable.file)(this.params, {});
+			this.handleResult(data, this._rawResponse);
 		} else {
-			require(this.callable.file)(req, res);
+			require(this.callable.file)(this);
 		}
 	}
 }
@@ -234,7 +233,7 @@ class StoreExecutor extends Executor {
 		this._type = "StoreExecutor";
 	};
 
-	checkAuthentication(req, res, object) {
+	checkAuthentication(object) {
 		if (this.callable.expose.restrict.authentication) {
 			var field = "user";
 			if (typeof(this.callable.expose.restrict.authentication) == "string") {
@@ -264,7 +263,7 @@ class StoreExecutor extends Executor {
 	                        if (object === undefined) {
 	                            throw 404;
 	                        }
-				if (!this.checkAuthentication(req, res, object)) {
+				if (!this.checkAuthentication(object)) {
 					return;
 				}
 				this.writeHead(200, {'Content-type': 'application/json'});
@@ -291,7 +290,7 @@ class StoreExecutor extends Executor {
 			if (object === undefined) {
 				throw 404;
 			}
-			if (!this.checkAuthentication(req, res, object)) {
+			if (!this.checkAuthentication(object)) {
 				return;
 			}
 			if (this.params.uuid) {
@@ -336,7 +335,7 @@ class StoreExecutor extends Executor {
 			}
 			if (this.callable.expose.restrict.authentication) {
 				var currentObject = store.get(this.params.uuid);
-				if (!this.checkAuthentication(req, res, currentObject)) {
+				if (!this.checkAuthentication(currentObject)) {
 					return;
 				}
 			}
@@ -414,9 +413,9 @@ class PassportExecutor extends Executor {
 
 	executeCallback(req, res) {
 		var self = this;
-		next = function (err) {
+		var next = function (err) {
 			console.log("Error happened: " + err);
-			console.trace();
+			console.log(err.stack);
 		}
 		switch (self.params.provider) {
 			case "facebook":
@@ -441,6 +440,7 @@ class PassportExecutor extends Executor {
 	};
 
 	getCallback() {
+		var callback;
 		var self = this;
 		if (self.callable._extended) {
 			callback = self._http.protocol + "://" + self._http.host + self._http.url;
@@ -562,14 +562,13 @@ class PassportExecutor extends Executor {
 			var hash = crypto.createHash('sha256');
 			// Check password
 			if (user._password === hash.update(req.body.password).digest('hex')) {
-				this.session.authenticated = ident;
 				if (ident.failedLogin > 0) {
 					ident.failedLogin = 0;
 				}
 				updates.lastUsed = new Date();
 				updates.failedLogin = 0;
 				ident = identStore.update(updates, ident.uuid);
-				this.session.authenticated = ident;
+				req.session.authenticated = ident;
 				throw 204;
 			} else {
 				if (ident.failedLogin === undefined) {
@@ -617,8 +616,10 @@ class PassportExecutor extends Executor {
 		this.writeHead(204);
 	}
 
-	execute(req, res) {
+	execute() {
 		var self = this;
+		var req = this._rawRequest;
+		var res = this._rawResponse;
 		req._passport = {};
 		req._passport.instance = passport;
 		req._passport.session = this.session;
@@ -718,7 +719,7 @@ class FileBinaryExecutor extends Executor {
 			}
 			file = object[this.params.property][this.params.index];
 			this.writeHead(200, {
-	        	'Content-Type': file.mimetype,
+	        	'Content-Type': file.mimetype===undefined?'application/octet-steam':file.mimetype,
 	        	'Content-Length': file.size
 		    });
 

@@ -89,6 +89,9 @@ class Store {
 			}
 		}
 		*/
+		if (object === undefined) {
+			return;
+		}
 		for (var prop in map) {
 			// No mapped property or not in the object
 			if (map[prop].key == undefined || object[map[prop].key] == undefined) {

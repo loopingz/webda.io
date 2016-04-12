@@ -105,5 +105,6 @@ var main_app = function (req, res) {
 // respond to all requests
 app.use(main_app);
 
-http.createServer(app).listen(8080);
-console.log('Server running at http://127.0.0.1:8080/');
+var port = 8080;
+http.createServer(app).listen(port);
+console.log('Server running at http://127.0.0.1:' + port);

@@ -15,6 +15,7 @@ class Executor {
 
 	init(req, res) {
 		this.session = req.session;
+		this.body = req.body;
 		this._rawResponse = res;
 		this._rawRequest = req;
 	}

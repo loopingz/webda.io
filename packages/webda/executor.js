@@ -246,8 +246,8 @@ class StoreExecutor extends Executor {
 		}
 		return true;
 	}
-	execute() {
-		var store = require("./store").get(this.callable.store);
+	execute(executor) {
+		var store = this.getStore(this.callable.store);
 		if (store == undefined) {
 			console.log("Unkown store: " + this.callable.store);
 			this.writeHead(500);
@@ -461,10 +461,10 @@ class PassportExecutor extends Executor {
 			},
 			function(accessToken, refreshToken, profile, done) {
 			    console.log("return from github: " + JSON.stringify(profile));
-			    this.session.authenticated = new Ident("github", profile.id, accessToken, refreshToken);
-			    this.session.authenticated.setMetadatas(profile._json);
-			    self.store(this.session);
-			    done(null, this.session.authenticated);
+			    self.session.authenticated = new Ident("github", profile.id, accessToken, refreshToken);
+			    self.session.authenticated.setMetadatas(profile._json);
+			    self.store(self.session);
+			    done(null, self.session.authenticated);
 			}
 		));
 	}
@@ -483,13 +483,13 @@ class PassportExecutor extends Executor {
 			},
 			function(accessToken, refreshToken, profile, done) {
 			    console.log("return from google: " + JSON.stringify(profile));
-	            this.session.authenticated = new Ident("google", profile.id, accessToken, refreshToken);
+	            self.session.authenticated = new Ident("google", profile.id, accessToken, refreshToken);
 	            // Dont store useless parts
 	            delete profile._raw;
 	            delete profile._json;
-			    this.session.authenticated.setMetadatas(profile);
-			    self.store(this.session);
-			    done(null, this.session.authenticated);
+			    self.session.authenticated.setMetadatas(profile);
+			    self.store(self.session);
+			    done(null, self.session.authenticated);
 			}
 		));
 	}
@@ -536,13 +536,13 @@ class PassportExecutor extends Executor {
 			},
 			function(accessToken, refreshToken, profile, done) {
 			    console.log("return from fb: " + JSON.stringify(profile));
-	            this.session.authenticated = new Ident("facebook", profile.id, accessToken, refreshToken);
+	            self.session.authenticated = new Ident("facebook", profile.id, accessToken, refreshToken);
 	            // Dont store useless parts
 	            delete profile._raw;
 	            delete profile._json;
-			    this.session.authenticated.setMetadatas(profile);
-			    self.store(this.session);
-			    done(null, this.session.authenticated);
+			    self.session.authenticated.setMetadatas(profile);
+			    self.store(self.session);
+			    done(null, self.session.authenticated);
 			}
 		));
 	}

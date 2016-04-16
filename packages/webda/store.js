@@ -246,11 +246,11 @@ class Store {
 		throw "AbstractStore has no _get";
 	}
 
-	query(request, offset, limit) {
-		return this._query(request, offset, limit);
+	find(request, offset, limit) {
+		return this._find(request, offset, limit);
 	}
 
-	_query(request, offset, limit) {
+	_find(request, offset, limit) {
 		throw "AbstractStore has no _query";	
 	}
 }
@@ -274,7 +274,7 @@ class FileStore extends Store {
 		return fs.existsSync(this.file(uid));
 	}
 
-	_query(request, offset, limit) {
+	_find(request, offset, limit) {
 		var self = this;
 		var res = [];
 		var path = require('path');
@@ -346,6 +346,13 @@ class MongoStore extends Store {
 		return object;
 	}
 
+	_find(request, offset, limit) {
+		this._collection.insertOne(object, function(err, result) {
+
+		});
+		return object;
+	}
+
 	_delete(uid) {
 		this._collection.deleteOne({ uuid: uid}, function(err, result) {
 
@@ -364,7 +371,7 @@ class MongoStore extends Store {
 	}
 }
 
-var types = {"FileStore": FileStore};
+var types = {"FileStore": FileStore, "MongoStore": MongoStore};
 
 module.exports.add = function (name, options) {
 	if (types[options.type] == undefined) {

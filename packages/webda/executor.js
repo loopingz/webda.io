@@ -345,12 +345,12 @@ class StoreExecutor extends Executor {
 					return;
 				}
 			}
-			for (var prop in req.body) {
+			for (var prop in this.body) {
 				if (prop[0] == "_") {
-					delete req.body[prop]
+					delete this.body[prop]
 				}
 			}
-			var object = store.update(req.body, this.params.uuid);
+			var object = store.update(this.body, this.params.uuid);
 			if (object == undefined) {
 				throw 500;
 			}

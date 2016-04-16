@@ -269,7 +269,7 @@ class StoreExecutor extends Executor {
 				}
 				this.writeHead(200, {'Content-type': 'application/json'});
 				result = {}
-				for (prop in object) {
+				for (var prop in object) {
 					// Server private property
 					if (prop[0] == "_") {
 						continue
@@ -299,7 +299,7 @@ class StoreExecutor extends Executor {
 				throw 204;
 			}
 		} else if (this._http.method == "POST") {
-			var object = req.body;
+			var object = this.body;
 			if (this.callable.expose.restrict != undefined
 					&& this.callable.expose.restrict.create) {
 				throw 404;
@@ -316,7 +316,7 @@ class StoreExecutor extends Executor {
 			if (store.exists(object.uuid)) {
 				throw 409;
 			}
-			for (prop in object) {
+			for (var prop in object) {
 				if (prop[0] == "_") {
 					delete object[prop]
 				}
@@ -340,7 +340,7 @@ class StoreExecutor extends Executor {
 					return;
 				}
 			}
-			for (prop in req.body) {
+			for (var prop in req.body) {
 				if (prop[0] == "_") {
 					delete req.body[prop]
 				}
@@ -726,7 +726,7 @@ class FileBinaryExecutor extends Executor {
 
 		    var readStream = fs.createReadStream(this.callable.binary.folder + file.hash);
 		    // We replaced all the event handlers with a simple call to readStream.pipe()
-		    readStream.pipe(res);
+		    readStream.pipe(this._rawResponse);
 		} else if (this._http.method == "DELETE") {
 			if (object[this.params.property] === undefined || object[this.params.property][this.params.index] === undefined) {
 				throw 404;

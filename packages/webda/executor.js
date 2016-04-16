@@ -268,7 +268,7 @@ class StoreExecutor extends Executor {
 					return;
 				}
 				this.writeHead(200, {'Content-type': 'application/json'});
-				result = {}
+				var result = {};
 				for (var prop in object) {
 					// Server private property
 					if (prop[0] == "_") {

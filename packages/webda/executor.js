@@ -52,9 +52,14 @@ class Executor {
 	}
 	
 	getStore(name) {
+		var store = null;
 		var storeName = name;
 		if (this.callable != undefined && this.callable.stores != undefined && this.callable.stores[name] != undefined) {
 			storeName = this.callable.stores[name];
+		}
+		store = require("./store").get(storeName);
+		if (store !== undefined) {
+			return store;
 		}
 		if (this._http != undefined && this._http.host != undefined) {
 			storeName = this._http.host + "_" + storeName;
@@ -508,7 +513,7 @@ class PassportExecutor extends Executor {
 			}
 			identStore.save(identObj);
 		} else {
-			updates = {};
+			var updates = {};
 			if (identObj.user == undefined && session.currentuser != undefined) {
 				updates.user = session.currentuser.uuid;
 			}
@@ -518,7 +523,7 @@ class PassportExecutor extends Executor {
 		}
 		// TODO Add an update method for updating only attribute
 		if (identObj.user != undefined) {
-			userStore = self.getStore("users");
+			var userStore = self.getStore("users");
 			if (userStore == undefined) {
 				return;
 			}

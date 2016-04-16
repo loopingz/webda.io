@@ -245,6 +245,14 @@ class Store {
 	_get(uid) {
 		throw "AbstractStore has no _get";
 	}
+
+	query(request, offset, limit) {
+		return this._query(request, offset, limit);
+	}
+
+	_query(request, offset, limit) {
+		throw "AbstractStore has no _query";	
+	}
 }
 
 var fs = require("fs");
@@ -264,6 +272,19 @@ class FileStore extends Store {
 	exists(uid) {
 		// existsSync is deprecated might change it
 		return fs.existsSync(this.file(uid));
+	}
+
+	_query(request, offset, limit) {
+		var self = this;
+		var res = [];
+		var path = require('path');
+		var files = fs.readdirSync(self.options.folder).filter(function(file) {
+    		return !fs.statSync(path.join(self.options.folder, file)).isDirectory();
+  		});
+  		for (var file in files) {
+  			res.push(this._get(files[file]));
+  		}
+		return res;
 	}
 
 	_save(object, uid) {

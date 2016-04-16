@@ -58,7 +58,7 @@ var main_app = function (req, res) {
     vhost = req.hostname;
   }
   if (req.headers['x-forwarded-host'] !== undefined) {
-    req.hostname = vhost = req.headers['x-forwarded-host'];
+    vhost = req.headers['x-forwarded-host'];
   }
   var protocol = req.protocol;
   if (req.headers['x-forwarded-proto'] != undefined) {

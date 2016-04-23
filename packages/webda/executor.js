@@ -51,6 +51,10 @@ class Executor {
 	  	this.end();
 	}
 	
+	getService(name) {
+		return {};
+	}
+
 	getStore(name) {
 		var store = null;
 		var storeName = name;
@@ -671,8 +675,9 @@ class FileBinaryExecutor extends Executor {
 		}
 	}
 
-	execute(req, res) {
+	execute() {
 		var self = this;
+		var req = this._rawRequest;
 		var targetStore = this.getStore(this.params.store);
 		if (targetStore === undefined) {
 			throw 404;

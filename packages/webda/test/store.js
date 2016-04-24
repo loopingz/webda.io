@@ -18,6 +18,7 @@ describe('Store', function() {
   describe('getStore()', function () {
 
     it('Ident Store', function () {
+      var eventFired = 0;
       var router = new Router(config);
       var callable = router.getRoute("test.webda.io", "GET", "/");
       assert.notEqual(callable, undefined);
@@ -28,21 +29,40 @@ describe('Store', function() {
       // Create data folder in case
       cleanStore(store);
       cleanStore(userStore);
+      var events = ['storeSave','storeSaved','storeGet','storeDelete','storeDeleted','storeUpdate','storeUpdated','storeFind','storeFound'];
+      for (evt in events) {
+        store.on(events[evt], function (evt) {
+          eventFired++;
+        });
+      }
       // Check CREATE - READ
       var object = store.save({"test": "plop"});
+      assert.equal(eventFired, 2);
+      eventFired = 0;
       var getter = store.get(object.uuid);
+      assert.equal(eventFired, 1);
+      eventFired = 0;
       assert.notEqual(getter, undefined);
       assert.equal(getter.uuid, object.uuid);
       assert.equal(getter.test, object.test);
+      
       // Check UPDATE
       getter.test = "plop2"
       object = store.update(getter);
+      assert.equal(eventFired, 2);
+      eventFired = 0;
       assert.equal(getter.test, "plop2");
       getter = store.get(object.uuid);
+      assert.equal(eventFired, 1);
+      eventFired = 0;
       assert.equal(getter.test, "plop2");
       // Check DELETE
       store.delete(object.uuid);
+      assert.equal(eventFired, 2);
+      eventFired = 0;
       getter = store.get(object.uuid);
+      assert.equal(eventFired, 1);
+      eventFired = 0;
       assert.equal(getter, undefined);
       // Check MAPPER
       // First save a user
@@ -90,6 +110,7 @@ describe('Store', function() {
       assert.equal(user2.idents[0].type, "google2");
       userStore.delete(user2.uuid);
       assert.equal(store.get(ident2.uuid), undefined);
+      assert.equal(eventFired, 13);
     });
   });
 });

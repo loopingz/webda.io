@@ -2,9 +2,11 @@
 
 var stores = {};
 var uuid = require('node-uuid');
+const EventEmitter = require('events');
 
-class Store {
+class Store extends EventEmitter {
 	constructor (name, options) {
+		super();
 		this.options = options;
 		this._name = name;
 		if (options.validator != undefined) {
@@ -17,7 +19,7 @@ class Store {
 		return this.options.type + "[" + this._name + "]";
 	}
 
-	save(object, uid) {
+	save(object, uid) {		
 		if (this.validator && this.validator.save) {
 			if (!this.validator.save(object)) {
 				console.log("Illegal attempt to save: " + uid);
@@ -33,7 +35,9 @@ class Store {
 		if (object.uuid == undefined || object.uuid != uid) {
 			object.uuid = uid;
 		}
+		this.emit('storeSave', {'object': object, 'store': this});
 		object = this._save(object, uid);
+		this.emit('storeSaved', {'object': object, 'store': this});
 		if (this.options.map != undefined) {
 			console.log("handleMap");
 			this.handleMap(object, this.options.map, "created");
@@ -65,7 +69,10 @@ class Store {
 		if (this.options.map != undefined) {
 			this.handleMap(this._get(uid), this.options.map, object);
 		}
-		return this._update(object, uid);
+		this.emit('storeUpdate', {'object': object, 'store': this});
+		var result = this._update(object, uid);
+		this.emit('storeUpdated', {'object': result, 'store': this});
+		return result;
 	}
 
 	removeMapper(map, uuid, mapper) {
@@ -202,6 +209,7 @@ class Store {
 
 	delete(uid, no_map) {
 		var object = this._get(uid);
+		this.emit('storeDelete', {'object': object, 'store': this});
 		if (this.validator) {
 			// Need to get the object to verify
 			if (!this.validator.delete(object)) {
@@ -224,6 +232,7 @@ class Store {
 			}
 		}
 		this._delete(uid);
+		this.emit('storeDeleted', {'object': object, 'store': this});
 	}
 
 	_delete(uid) {
@@ -232,6 +241,7 @@ class Store {
 
 	get(uid) {
 		var object = this._get(uid);
+		this.emit('storeGet', {'object': object, 'store': this});
 		if (this.validator && object != undefined) {
 			// Need to get the object to verify
 			if (!this.validator.get(object)) {
@@ -247,7 +257,10 @@ class Store {
 	}
 
 	find(request, offset, limit) {
-		return this._find(request, offset, limit);
+		this.emit('storeFind', {'request': request, 'store': this, 'offset': offset, 'limit': limit});
+		var result = this._find(request, offset, limit);
+		this.emit('storeFound', {'request': request, 'store': this, 'offset': offset, 'limit': limit, 'results': result});
+		return result;
 	}
 
 	_find(request, offset, limit) {

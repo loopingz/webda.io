@@ -7,7 +7,11 @@ class Mailer {
 		this._webda = webda;
 		this._params = params;
 		// smtps://user%40gmail.com:pass@smtp.gmail.com
-		this._transporter = nodemailer.createTransport(params.config);
+		try {
+			this._transporter = nodemailer.createTransport(params.config);
+		} catch (ex) {
+			this._transporter = undefined;
+		}
 	}
 
 	init() {
@@ -15,6 +19,10 @@ class Mailer {
 	}
 
 	send(options, callback) {
+		if (this._transporter === undefined) {
+			console.log("Cannot send email as no transporter is defined");
+			return;
+		}
 		console.log("Send an email");
 		this._transporter.sendMail(options, callback);
 

@@ -660,6 +660,9 @@ class PassportExecutor extends Executor {
 			case "email":
 				this.handleEmail(req, res);
 				break;
+			case "logout":
+				req.session.destroy();
+				break;
 		}
 		res.end();
 	}

@@ -1,6 +1,7 @@
 "use strict";
 
 var nodemailer = require('nodemailer');
+var ses = require('nodemailer-ses-transport');
 
 class Mailer {
 	constructor(webda, params) {

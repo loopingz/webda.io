@@ -160,7 +160,6 @@ class Router {
       var params = config.global.services[service];
       delete params.require;
       config.global.services[service]._service = new serviceConstructor(this.getMapperObject(vhost), params);
-      console.log(params);
     }
 
     // Init services
@@ -184,7 +183,10 @@ class Router {
       },
       'getService': function(name) {
         //console.log("Get service for " + vhost);
-        return self.config[vhost].global.services[name];
+        if (self.config[vhost].global.services[name] === undefined) {
+          return undefined;
+        }
+        return self.config[vhost].global.services[name]._service;
       }
     };
   }

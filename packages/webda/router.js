@@ -142,11 +142,51 @@ class Router {
       // Need hash to avoid concurrent delete
       config[url] = {"method": ["DELETE", "PUT"], "executor": binaryStore.type, "expose": binaryStore.expose, "binary": binaryStore, "uri-template-parse": uriTemplates(url)};
     }
-    if (config.global == undefined || config.global.validators == undefined) {
-      return;
+    
+    // Construct services
+    for (var service in config.global.services) {
+      var include = config.global.services[service].require;
+      console.log(include);
+      if (include === undefined) {
+        continue;
+      }
+      var serviceConstructor = undefined;
+      try {
+        serviceConstructor = require(include)
+      } catch (ex) {
+        console.log(ex);
+        continue;
+      }
+      var params = config.global.services[service];
+      delete params.require;
+      config.global.services[service]._service = new serviceConstructor(this.getMapperObject(vhost), params);
+      console.log(params);
     }
-    //require(config.global.validators);
+
+    // Init services
+    for (var service in config.global.services) {
+      if (config.global.services[service]._service === undefined) {
+        continue;
+      }
+      if (config.global.services[service]._service.init !== undefined) {
+        config.global.services[service]._service.init();
+      }
+    }
     this.initiated[vhost] = true;
+  }
+
+  getMapperObject(vhost) {
+    var self = this;
+    return {
+      'getStore': function(name) {
+        //console.log("Get store for " + vhost);
+        return require("./store").get(vhost + "_" + name);
+      },
+      'getService': function(name) {
+        //console.log("Get service for " + vhost);
+        return self.config[vhost].global.services[name];
+      }
+    };
   }
 
   getRoute(vhost, method, url, protocol, port, headers) {

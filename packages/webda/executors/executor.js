@@ -81,8 +81,4 @@ class Executor extends Service {
 	}
 }
 
-
-var fs = require('fs');
-var mime = require('mime-types');
-
 module.exports = Executor

@@ -17,7 +17,7 @@ class Webda {
 		this._services = {};
 		this._services['Authentication']=require('./services/passport');
 		this._services['FileStore']=require('./stores/file');
-		this._services['FileBinary']=require('./services/binary');
+		this._services['FileBinary']=require('./services/filebinary');
 		this.config = this.loadConfiguration(config);
 	}
 
@@ -197,6 +197,12 @@ class Webda {
 	    }
 	}
 
+	initAll() {
+		for (var vhost in this.config) {
+			if (vhost === "*") continue;
+			this.initHosts(vhost, this.config[vhost]);
+		}
+	}
 	initHosts(vhost, config) {
 	    if (config._initiated) {
 	      return;

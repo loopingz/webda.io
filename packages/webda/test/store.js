@@ -1,5 +1,4 @@
 var assert = require("assert")
-var stores = require("../stores/store.js");
 var Webda = require("../webda.js");
 var config = require("./config.json");
 var fs = require("fs");

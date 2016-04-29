@@ -62,6 +62,7 @@ class Store extends Executor {
 			reverseStore.addReverseMap(map[prop].target, cascade);
 	    }
 	}
+
 	toString() {
 		return this._params.type + "[" + this._name + "]";
 	}
@@ -88,12 +89,15 @@ class Store extends Executor {
 		throw "AbstractStore has no _save";
 	}
 
-	update(object, uid) {
+	update(object, uid, reverseMap) {
 		if (uid == undefined) {
 			uid = object.uuid;
 		}
+		if (reverseMap === undefined) {
+			reverseMap = true;
+		}
 		// Dont allow to update collections from map
-		if (this._reverseMap != undefined) {
+		if (this._reverseMap != undefined && reverseMap) {
 			for (var i in this._reverseMap) {
 				if (object[this._reverseMap[i]] != undefined) {
 					delete object[this._reverseMap[i]];
@@ -216,6 +220,7 @@ class Store extends Executor {
 					this.removeMapper(mapped[map[prop].target], object.uuid);
 				}
 				// Update the mapper
+				var to_update = {};
 				mapper = {};
 				mapper.uuid = object.uuid;
 				if (map[prop].fields) {
@@ -228,9 +233,10 @@ class Store extends Executor {
 						}
 					}
 				}
-				mapped[map[prop].target].push(mapper);
+				to_update[map[prop].target]=mapped[map[prop].target];
+				to_update[map[prop].target].push(mapper);
 				// Remove old reference
-				store.save(mapped, mapped.uuid);
+				store.update(to_update, mapped.uuid, false);
 			}
 		}
 	}
@@ -239,25 +245,35 @@ class Store extends Executor {
 		throw "AbstractStore has no _update"
 	}
 
+	cascadeDelete(obj) {
+		this.delete(obj);
+	}
+
 	delete(uid, no_map) {
-		var object = this._get(uid);
-		this.emit('storeDelete', {'object': object, 'store': this});
+		var obj;
+		if (typeof(uid) === 'object') {
+			obj = uid;
+			uid = obj.uuid;
+		} else {
+			obj = this._get(uid);
+		}
+		this.emit('storeDelete', {'object': obj, 'store': this});
 		if (this._params.map != undefined) {
-			this.handleMap(object, this._params.map, "deleted");
+			this.handleMap(obj, this._params.map, "deleted");
 		}
 		if (this._cascade != undefined) {
 			// Should deactiate the mapping in that case
 			for (var i in this._cascade) {
-				if (typeof(this._cascade[i]) != "object" || object[this._cascade[i].name] == undefined) continue;
-				var targetStore = this.getStore(this._cascade[i].store);
+				if (typeof(this._cascade[i]) != "object" || obj[this._cascade[i].name] == undefined) continue;
+				var targetStore = this.getService(this._cascade[i].store);
 				if (targetStore == undefined) continue;
-				for (var item in object[this._cascade[i].name]) {
-					targetStore.delete(object[this._cascade[i].name][item].uuid);
+				for (var item in obj[this._cascade[i].name]) {
+					targetStore.cascadeDelete(obj[this._cascade[i].name][item], uid);
 				}
 			}
 		}
 		this._delete(uid);
-		this.emit('storeDeleted', {'object': object, 'store': this});
+		this.emit('storeDeleted', {'object': obj, 'store': this});
 	}
 
 	_delete(uid) {

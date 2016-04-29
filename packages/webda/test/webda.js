@@ -2,6 +2,7 @@ var assert = require("assert")
 var Webda = require("../webda.js");
 var Executor = require("../executors/executor.js");
 var config = require("./config.json");
+var webda = new Webda(config);
 
 describe('Webda', function() {
   describe('getService()', function () {

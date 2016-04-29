@@ -4,4 +4,4 @@ MAINTAINER loopingz@loopingz.com
 ADD . /server/
 
 RUN mkdir -p /etc/webda
-CMD cd /server && nodejs core.js > /data/webda.log
+CMD cd /server && node server.js > /data/webda.log

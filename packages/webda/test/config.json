@@ -6,7 +6,19 @@
 				"secretAccessKey": "YOUR_SECRET_KEY",
 				"TEST": "Global"
 			},
-			"stores": {
+			"services": {
+				"Authentication": {
+					"successRedirect": "https://shootandprove.loopingz.com/user.html",
+					"failureRedirect": "/login-error",
+					"providers": {
+						"facebook": {},
+						"email": {},
+						"phone": {},
+						"twitter": {},
+						"google": {},
+						"github": {}
+					}
+				},
 				"idents": {
 					"inject": "user",
 					"check": "user",
@@ -44,17 +56,14 @@
 				}
 			}
 		},
-		"/users/{id}": {
+		"/urltemplate/{id}": {
 			"method": "GET",
+			"executor": "debug",
 			"lambda": "plop",
 			"params": {
 				"TEST_ADD": "Users",
 				"TEST": "Local"
 			}
-		},
-		"/auth/{provider}": {
-			"method": "GET",
-			"executor": "passport"
 		},
 		"/": {
 			"method": ["GET", "POST"],

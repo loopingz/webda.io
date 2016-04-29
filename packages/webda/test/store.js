@@ -1,16 +1,19 @@
 var assert = require("assert")
-var stores = require("../store.js");
-var Router = require("../router.js");
+var stores = require("../stores/store.js");
+var Webda = require("../webda.js");
 var config = require("./config.json");
 var fs = require("fs");
 
 cleanStore = function(store) {
-  if (!fs.existsSync(store.options.folder)) {
-    fs.mkdir(store.options.folder);  
+  if (store === undefined) {
+    return;
   }
-  files = fs.readdirSync(store.options.folder);
+  if (!fs.existsSync(store._params.folder)) {
+    fs.mkdir(store._params.folder);  
+  }
+  files = fs.readdirSync(store._params.folder);
   for (file in files) {
-    fs.unlink(store.options.folder + '/' + files[file]);
+    fs.unlink(store._params.folder + '/' + files[file]);
   }
 }
 
@@ -19,11 +22,12 @@ describe('Store', function() {
 
     it('Ident Store', function () {
       var eventFired = 0;
-      var router = new Router(config);
-      var callable = router.getRoute("test.webda.io", "GET", "/");
+      var webda = new Webda(config);
+      webda.setHost("test.webda.io");
+      var callable = webda.getExecutor("test.webda.io", "GET", "/");
       assert.notEqual(callable, undefined);
-      var store = stores.get("test.webda.io_idents");
-      var userStore = stores.get("test.webda.io_users");
+      var store = webda.getService("idents");
+      var userStore = webda.getService("users");
       assert.notEqual(store, undefined);
       // Should remove folder
       // Create data folder in case

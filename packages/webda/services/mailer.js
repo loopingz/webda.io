@@ -2,11 +2,11 @@
 
 var nodemailer = require('nodemailer');
 var ses = require('nodemailer-ses-transport');
+const Service = require("./service");
 
-class Mailer {
-	constructor(webda, params) {
-		this._webda = webda;
-		this._params = params;
+class Mailer extends Service {
+	constructor(webda, name, params) {
+		super(webda, name, params)
 		// smtps://user%40gmail.com:pass@smtp.gmail.com
 		try {
 			this._transporter = nodemailer.createTransport(params.config);

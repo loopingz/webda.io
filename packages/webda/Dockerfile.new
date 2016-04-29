@@ -9,4 +9,4 @@ ADD . /server/
 
 RUN cd /server && npm install
 RUN mkdir /etc/webda
-CMD cd /server && node core.js  > /data/webda.log
+CMD cd /server && node server.js  > /data/webda.log

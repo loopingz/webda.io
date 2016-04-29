@@ -2,6 +2,36 @@
 
 var uriTemplates = require('uri-templates');
 var extend = require('util')._extend;
+var CONFIG = undefined;
+var vm = require('vm');
+var fs = require('fs');
+
+/**
+var vm = require('vm');
+var fs = require('fs');
+
+var safe_require = function(mod) {
+  var code    = fs.readFileSync(require.resolve(mod));
+  var sandbox = {
+    console : console,
+    module  : {},
+    require : function(mod) {
+      // as a simple example, we'll block any requiring of the 'net' module, but
+      // you could implement some sort of whitelisting/blacklisting for modules 
+      // that are/aren't allowed to be loaded from your module:
+      if (mod === 'net') {
+        throw Error('not allowed');
+      }
+      // if the module is okay to load, load it:
+      return require.apply(this, arguments);
+    }
+  };
+  vm.runInNewContext(code, sandbox, __filename);
+  return sandbox.module.exports;
+};
+
+var mod = safe_require('./mod1');
+**/
 
 class Webda {
 	constructor (config) {
@@ -18,7 +48,34 @@ class Webda {
 		this._services['Authentication']=require('./services/passport');
 		this._services['FileStore']=require('./stores/file');
 		this._services['FileBinary']=require('./services/filebinary');
-		this.config = this.loadConfiguration(config);
+		CONFIG = this.loadConfiguration(config);
+	}
+
+	require(executor, path) {
+		var code = fs.readFileSync(require.resolve(path));
+		this.sandbox(code);
+	}
+
+	sandbox(executor, code) {
+		var sandbox = {
+			// Should be custom console
+			console : console,
+			webda: executor,
+			executor: executor,
+			module  : {},
+			require : function(mod) {
+				// as a simple example, we'll block any requiring of the 'net' module, but
+		      	// you could implement some sort of whitelisting/blacklisting for modules 
+		      	// that are/aren't allowed to be loaded from your module:
+		      	if (mod === 'net') {
+		        	throw Error('not allowed');
+		      	}
+		      	// if the module is okay to load, load it:
+		      	return require.apply(this, arguments);
+		    }
+		};
+		vm.runInNewContext(code, sandbox);
+		return sandbox.module.exports;
 	}
 
 	loadConfiguration(config) {
@@ -54,10 +111,10 @@ class Webda {
 		if (name === undefined) {
 			name = "_default";
 		}
-		if (this.config[this._vhost] !== undefined) {
-			if (this.config[this._vhost].global !== undefined && this.config[this._vhost].global.services !== undefined
-					&& this.config[this._vhost].global.services[name]) {
-				return this.config[this._vhost].global.services[name]._service;
+		if (CONFIG[this._vhost] !== undefined) {
+			if (CONFIG[this._vhost].global !== undefined && CONFIG[this._vhost].global.services !== undefined
+					&& CONFIG[this._vhost].global.services[name]) {
+				return CONFIG[this._vhost].global.services[name]._service;
 			}
 		}
 		if (this._executors[name] !== undefined) {
@@ -72,40 +129,40 @@ class Webda {
 
 	getExecutor(vhost, method, url, protocol, port, headers) {
 		// Check vhost
-	    if (this.config[vhost] === undefined) {
-	       if (this.config['*'] === undefined) {
+	    if (CONFIG[vhost] === undefined) {
+	       if (CONFIG['*'] === undefined) {
 	    	   return null;
 	       }
-	       vhost = this.config['*'];
+	       vhost = CONFIG['*'];
 	    }
 	    this.setHost(vhost);
 	    // Init vhost if needed
-	    this.initHosts(vhost, this.config[vhost]);
+	    this.initHosts(vhost, CONFIG[vhost]);
 	    // Check mapping
 	    var callable = null;
 	    var params = [];
 	    if (url.indexOf("?") >= 0) {
 	      url = url.substring(0, url.indexOf("?"));
 	    }
-	    for (var map in this.config[vhost]) {
+	    for (var map in CONFIG[vhost]) {
 	      if (map == "global") {
 	        continue;
 	      }
-	      if  (Array.isArray(this.config[vhost][map]['method'])) {
-	        if (this.config[vhost][map]['method'].indexOf(method) == -1) {
+	      if  (Array.isArray(CONFIG[vhost][map]['method'])) {
+	        if (CONFIG[vhost][map]['method'].indexOf(method) == -1) {
 	          continue;
 	        }
-	      } else if (this.config[vhost][map]['method'] != method) {
+	      } else if (CONFIG[vhost][map]['method'] != method) {
 	        continue;
 	      }
 	      if (map == url) {
-	        callable = this.getCallable(this.config[vhost][map]["executor"], this.config[vhost][map]);
+	        callable = this.getCallable(CONFIG[vhost][map]["executor"], CONFIG[vhost][map]);
 	        break;
 	      }
-	      if (this.config[vhost][map]['uri-template-parse'] === undefined) {
+	      if (CONFIG[vhost][map]['uri-template-parse'] === undefined) {
 	        continue;
 	      }
-	      var parse_result = this.config[vhost][map]['uri-template-parse'].fromUri(url);
+	      var parse_result = CONFIG[vhost][map]['uri-template-parse'].fromUri(url);
 	      if (parse_result != undefined) {
 	        var skip = false;
 	        for (var val in parse_result) {
@@ -117,12 +174,12 @@ class Webda {
 	        if (skip) {
 	          continue;
 	        }
-	        callable = this.getCallable(this.config[vhost][map]["executor"], this.config[vhost][map], parse_result);
+	        callable = this.getCallable(CONFIG[vhost][map]["executor"], CONFIG[vhost][map], parse_result);
 	        break;
 	      }
 	    }
 	    if (callable != null) {
-	    	var vhost_config = this.config[vhost]["global"];
+	    	var vhost_config = CONFIG[vhost]["global"];
 	    	if (vhost_config['params'] != undefined) {
 	          callable.enrichParameters(vhost_config['params']);
 	    	}
@@ -182,7 +239,6 @@ class Webda {
 		    }
 	      	var params = services[service];
 	      	delete params.require;
-	      	console.log("Init service " + service);
 	      	services[service]._service = new serviceConstructor(this, service, params);
 	    }
 
@@ -198,9 +254,9 @@ class Webda {
 	}
 
 	initAll() {
-		for (var vhost in this.config) {
+		for (var vhost in CONFIG) {
 			if (vhost === "*") continue;
-			this.initHosts(vhost, this.config[vhost]);
+			this.initHosts(vhost, CONFIG[vhost]);
 		}
 	}
 	initHosts(vhost, config) {

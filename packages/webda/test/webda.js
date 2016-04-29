@@ -2,27 +2,26 @@ var assert = require("assert")
 var Webda = require("../webda.js");
 var Executor = require("../executors/executor.js");
 var config = require("./config.json");
-var webda = new Webda(config);
+var webda;
 
 describe('Webda', function() {
+  beforeEach( function() {
+    webda = new Webda(config);
+  });
   describe('getService()', function () {
     it('Illegal vhost', function () {
-        webda = new Webda(config);
         assert.equal(null, webda.getService("Authentication"));
     });
     it('normal', function () {
-        webda = new Webda(config);
         webda.setHost("test.webda.io");
         assert.notEqual(null, webda.getService("Authentication"));
     });
   })
   describe('getExecutor()', function () {
     it('Unknown vhost', function () {
-      webda = new Webda(config);
       assert.equal(webda.getExecutor("localhost", "GET", "/"), undefined);
     })
     it('Known vhost - known page', function () {
-      webda = new Webda(config);
       callable = webda.getExecutor("test.webda.io", "GET", "/");
       assert.notEqual(callable, undefined);
       assert.equal(callable['_http']["method"], "GET");
@@ -35,7 +34,6 @@ describe('Webda', function() {
       assert(callable instanceof Executor);
     });
     it('Known vhost - known page - multiple method', function () {
-      webda = new Webda(config);
       callable = webda.getExecutor("test.webda.io", "POST", "/");
       assert.notEqual(callable, undefined);
       assert.equal(callable['_http']["method"], "POST");
@@ -46,15 +44,12 @@ describe('Webda', function() {
       assert.equal(callable["params"]["secretAccessKey"], "LOCAL_SECRET_KEY");
     });
     it('Known vhost - known page - unknown method', function () {
-      webda = new Webda(config);
       assert.equal(webda.getExecutor("test.webda.io", "PUT", "/"), undefined);
     });
     it('Known vhost - unknown page', function () {
-      webda = new Webda(config);
       assert.equal(webda.getExecutor("test.webda.io", "GET", "/test"), undefined);
     });
     it('Known vhost - known template page', function () {
-      webda = new Webda(config);
       callable = webda.getExecutor("test.webda.io", "GET", "/urltemplate/666");
       assert.notEqual(callable, undefined);
       assert.equal(callable['_http']["method"], "GET");
@@ -68,8 +63,6 @@ describe('Webda', function() {
       assert(callable instanceof Executor);
     });
     it('Known vhost - passport executor', function () {
-      webda = new Webda(config);
-      webda.setHost("test.webda.io");
       callable = webda.getExecutor("test.webda.io", "GET", "/auth/facebook");
       assert.notEqual(callable, undefined);
       assert.notEqual(callable._extended, true);

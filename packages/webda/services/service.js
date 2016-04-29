@@ -9,6 +9,10 @@ class Service extends EventEmitter {
 		this._name = name;
 		this._params = params;
 	}
+
+	setup() {
+		
+	}
 }
 
 module.exports = Service;

@@ -24,7 +24,7 @@ cleanBinary = function(store) {
   for (var i in ids) {
     var hash = ids[i];
     if (!fs.existsSync(store._params.folder + hash)) {
-      return;
+      continue;
     }
     files = fs.readdirSync(store._params.folder + hash);
     for (file in files) {
@@ -33,23 +33,26 @@ cleanBinary = function(store) {
     fs.rmdirSync(store._params.folder + hash + '/');
   }
 }
+var webda;
+var userStore;
+var binary;
 
 describe('Binary', function() {
+  beforeEach( function() {
+      webda = new Webda(config);
+      webda.setHost("test.webda.io");
+      webda.initAll();
+      userStore = webda.getService("users");
+      binary = webda.getService("binary");
+      assert.notEqual(userStore, undefined);
+      assert.notEqual(binary, undefined);
+      cleanStore(userStore);
+      cleanBinary(binary);
+  })
   describe('store()', function () {
 
     it('normal', function () {
       var eventFired = 0;
-      var webda = new Webda(config);
-      webda.setHost("test.webda.io");
-      webda.initAll();
-      var userStore = webda.getService("users");
-      var binary = webda.getService("binary");
-      assert.notEqual(userStore, undefined);
-      assert.notEqual(binary, undefined);
-      // Should remove folder
-      // Create data folder in case
-      cleanStore(userStore);
-      cleanBinary(binary);
       var events = ['binaryGet','binaryUpdate','binaryCreate','binaryDelete'];
       for (evt in events) {
         binary.on(events[evt], function (evt) {
@@ -84,20 +87,7 @@ describe('Binary', function() {
       });      
     });
     it('not-mapped', function () {
-      var eventFired = 0;
-      var webda = new Webda(config);
-      webda.setHost("test.webda.io");
-      webda.initAll();
-      var userStore = webda.getService("users");
-      var binary = webda.getService("binary");
       var exception = false;
-      assert.notEqual(userStore, undefined);
-      assert.notEqual(binary, undefined);
-      // Should remove folder
-      // Create data folder in case
-      cleanStore(userStore);
-      cleanBinary(binary);
-      // Check CREATE - READ
       var user1 = userStore.save({"test": "plop"});
       return binary.store(userStore, user1, 'images2', {'path': './test/Dockerfile'}, {}).catch( function(err) {
         exception = true;
@@ -106,20 +96,6 @@ describe('Binary', function() {
       });
     });
     it('update', function () {
-      var eventFired = 0;
-      var webda = new Webda(config);
-      webda.setHost("test.webda.io");
-      webda.initAll();
-      var userStore = webda.getService("users");
-      var binary = webda.getService("binary");
-      var exception = false;
-      assert.notEqual(userStore, undefined);
-      assert.notEqual(binary, undefined);
-      // Should remove folder
-      // Create data folder in case
-      cleanStore(userStore);
-      cleanBinary(binary);
-      // Check CREATE - READ
       var user1 = userStore.save({"test": "plop"});
       return binary.store(userStore, user1, 'images', {'path': './test/Dockerfile'}, {}).then(function () {
         var user = userStore.get(user1.uuid);
@@ -137,8 +113,15 @@ describe('Binary', function() {
         assert.equal(user.images[0].name, 'Dockerfile.txt');
         assert.equal(binary.getUsageCount(hash), 0);
         assert.equal(binary.getUsageCount(user.images[0].hash), 1);
-        console.log(user);
       }); 
+    });  
+  });
+  describe('challenge()', function () {
+    it('_isValidChallenge', function () {
+      assert.equal(binary._validChallenge("54b249c8a7c2cdc6945c5c426fbe2b4b41e5045059c43ddc5e134b17e8157980"), true);
+      assert.equal(binary._validChallenge("54b249c8a7c2cdc6945c5c426fbe2b4b41e5045059c43ddc5e134b17e815798G"), false);
+      assert.equal(binary._validChallenge("54b249c8a7c2cdc6945c5c426fbe2b4b41e5045059c43ddc5e134b17e815798"), false);
+      assert.equal(binary._validChallenge("54b249c8a7c2cdc6945c5c426fbe2b4b41e5045059c43ddc5e134b17e815798."), false);
     });
   });
 });

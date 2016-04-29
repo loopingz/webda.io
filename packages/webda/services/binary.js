@@ -4,6 +4,7 @@ const Store = require("../stores/store.js");
 const fs = require("fs");
 const path = require("path");
 const mime = require('mime-types');
+const crypto = require("crypto");
 
 class Binary extends Executor {
 
@@ -29,6 +30,16 @@ class Binary extends Executor {
 	    }
 	}
 
+	_getHashes(buffer) {
+		var result = {};
+		var hash = crypto.createHash('sha256');
+		var challenge = crypto.createHash('sha256');
+		challenge.update('WEBDA');
+		result.hash = hash.update(buffer).digest('hex');
+		result.challenge = challenge.update(buffer).digest('hex');
+		return result;
+	}
+
 	_prepareInput(file) {
 		if (file.path !== undefined) {
 			file.buffer = fs.readFileSync(file.path);
@@ -49,7 +60,7 @@ class Binary extends Executor {
 		throw Error("Unknown mapping");		
 	}
 
-	storeSuccess(targetStore, object, property, file, metadatas, callback) {
+	storeSuccess(targetStore, object, property, file, metadatas) {
 		var update = {};
 		update[property] = object[property];
 		if (update[property] === undefined) {
@@ -62,17 +73,15 @@ class Binary extends Executor {
 		fileObj['name']=file.originalname;
 		fileObj['mimetype']=file.mimetype;
 		fileObj['size']=file.size;
-		fileObj['hash']=file.hashValue;
+		fileObj['hash']=file.hash;
+		fileObj['challenge']=file.challenge;
 		update[property].push(fileObj);
 		// Dont handle reverseMap
 		targetStore.update(update, object.uuid, false);
-		if (callback !== undefined) {
-			callback();
-		}
 		this.emit('binaryCreate', {'object': fileObj, 'service': this});
 	}
 
-	store(targetStore, object, property, file, metadatas, callback) {
+	store(targetStore, object, property, file, metadatas) {
 		throw Error("AbstractBinary has no store method");
 	}
 
@@ -80,7 +89,7 @@ class Binary extends Executor {
 		throw Error("AbstractBinary has no store method");
 	}
 
-	update(targetStore, object, property, index, file, metadatas, callback) {
+	update(targetStore, object, property, index, file, metadatas) {
 		throw Error("AbstractBinary has no update method");
 	}
 
@@ -88,7 +97,16 @@ class Binary extends Executor {
 		throw Error("AbstractBinary has no update method");
 	}
 
-	updateSuccess(targetStore, object, property, index, file, metadatas, callback) {
+	_validChallenge(challenge) {
+		var re = /[0-9A-Fa-f]{64}/g;
+		return re.test(challenge);
+	}
+
+	challenge(hash, challenge) {
+		return false;
+	}
+
+	updateSuccess(targetStore, object, property, index, file, metadatas) {
 		var update = {};
 		update[property] = object[property];
 		if (update[property] === undefined) {
@@ -101,7 +119,8 @@ class Binary extends Executor {
 		fileObj['name']=file.originalname;
 		fileObj['mimetype']=file.mimetype;
 		fileObj['size']=file.size;
-		fileObj['hash']=file.hashValue;
+		fileObj['hash']=file.hash;
+		fileObj['challenge']=file.challenge;
 		update[property] = object[property];
 		var object_uid = object.uuid;
 		var info = update[property][index];
@@ -128,31 +147,6 @@ class Binary extends Executor {
 		this.emit('binaryDelete', {'object': info, 'service': this});
 	}
 
-	initRoutes(config, expose) {
-		if (typeof(expose) == "boolean") {
-	        expose = {};
-	        expose.url = "/" + this._name;
-	    } else if (typeof(expose) == "string") {
-			url = expose;
-			expose = {};
-			expose.url = url;
-		} else if (typeof(expose) == "object" && expose.url == undefined) {
-			expose.url = "/" + this._name;
-		}
-		if (expose.restrict == undefined) {
-			expose.restrict = {}
-		}
-      	var url = expose.url + "/{store}/{uid}/{property}/{index}";
-      	// Need index to update or get
-      	config[url] = {"method": ["GET"], "executor": this._name, "expose": expose};
-      	url = expose.url + "/{store}/{uid}/{property}";
-      	// No need the index to add file
-      	config[url] = {"method": ["POST"], "executor": this._name, "expose": expose};
-      	url = expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
-      	// Need hash to avoid concurrent delete
-      	config[url] = {"method": ["DELETE", "PUT"], "executor": this._name, "expose": expose};
-	}
-
 	_getFile(req) {
 		var file;
 		if (req.files !== undefined) {
@@ -167,6 +161,40 @@ class Binary extends Executor {
 		return file;
 	}
 
+	initRoutes(config, expose) {
+		if (typeof(expose) == "boolean") {
+	        expose = {};
+	        expose.url = "/" + this._name;
+	    } else if (typeof(expose) == "string") {
+			url = expose;
+			expose = {};
+			expose.url = url;
+		} else if (typeof(expose) == "object" && expose.url == undefined) {
+			expose.url = "/" + this._name;
+		}
+		if (expose.restrict == undefined) {
+			expose.restrict = {}
+		}
+      	// Need index to update or get
+      	var url = expose.url + "/{store}/{uid}/{property}/{index}";
+      	config[url] = {"method": ["GET"], "executor": this._name, "expose": expose};
+      	
+      	// No need the index to add file
+      	url = expose.url + "/{store}/{uid}/{property}";
+      	config[url] = {"method": ["POST"], "executor": this._name, "expose": expose};
+
+      	// Add file with challenge
+      	url += "?c={challenge}&h={hash}";
+      	config[url] = {"method": ["POST"], "executor": this._name, "expose": expose};
+
+		// Need hash to avoid concurrent delete
+      	url = expose.url + "/{store}/{uid}/{property}/{index}/{hash}";      	
+      	config[url] = {"method": ["DELETE", "PUT"], "executor": this._name, "expose": expose};
+
+      	// Challenged upload
+      	url += "?c={challenge}&h={hash}";      	
+      	config[url] = {"method": ["PUT"], "executor": this._name, "expose": expose};
+	}
 	// Executor side
 	execute() {
 		var self = this;
@@ -197,16 +225,15 @@ class Binary extends Executor {
 		}
 		
 		if (this._http.method == "POST") {
-			
 			this.store(targetStore, object, self.params.property, this._getFile(req), req.body).then(function() {
 				this.writeHead(200, {'Content-type': 'application/json'});
 				this.write(JSON.stringify(targetStore.get(object.uuid)));
 	    		this.end();
-	    	}).catch( function (err) {
+	    	}.bind(this)).catch( function (err) {
 	    		this.writeHead(500);
 	    		console.log(err);
 	    		this.end();
-	    	});
+	    	}.bind(this));
 		} else if (this._http.method == "GET") {
 			if (object[this.params.property] === undefined || object[this.params.property][this.params.index] === undefined) {
 				throw 404;
@@ -231,11 +258,11 @@ class Binary extends Executor {
 			this.delete(targetStore, object, self.params.property, index).then (function () {
 				this.write(JSON.stringify(targetStore.get(self.params.uid)));
 				this.end();
-			}).catch( function (err) {
+			}.bind(this)).catch( function (err) {
 	    		this.writeHead(500);
 	    		console.log(err);
 	    		this.end();
-	    	});
+	    	}.bind(this));
 		} else if (this._http.method == "PUT") {
 			if (object[this.params.property] === undefined || object[this.params.property][this.params.index] === undefined) {
 				throw 404;
@@ -248,11 +275,11 @@ class Binary extends Executor {
 				this.writeHead(200, {'Content-type': 'application/json'});
 				this.write(JSON.stringify(targetStore.get(object.uuid)));
 	    		this.end();
-	    	}).catch( function (err) {
+	    	}.bind(this)).catch( function (err) {
 	    		this.writeHead(500);
 	    		console.log(err);
 	    		this.end();
-	    	});
+	    	}.bind(this));
 		}
 	}
 }

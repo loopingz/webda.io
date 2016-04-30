@@ -6,16 +6,27 @@ var MongoClient = require('mongodb').MongoClient
 class MongoStore extends Store {
 	constructor(webda, name, options) {
 		super(webda, name, options);
-		var self = this;
-		// Connection URL
-		var url = 'mongodb://localhost:27017/myproject';
-		// Use connect method to connect to the Server
-		MongoClient.connect(url, function(err, db) {
-		  assert.equal(null, err);
-		  console.log("Connected correctly to server");
-		  self._db = db;
-		  self._collection = self._db.collection('');
-		});
+		this._connectPromise = undefined;
+		if (options.collection === undefined || options.mongo === undefined) {
+			throw Error("collection and url must be setup");
+		}
+	}
+
+	_connect() {
+		if (this._connectPromise === undefined) {
+			this._connectPromise = new Promise( function(resolve, reject) {
+				console.log("Connect to: " + this._params.mongo);
+				MongoClient.connect(this._params.mongo, function(err, db) {
+				  if (err) {
+				  	return reject(err);
+				  }
+				  this._db = db;
+				  this._collection = this._db.collection(this._params.collection);
+				  return resolve();
+				}.bind(this));
+			}.bind(this));
+		}
+		return this._connectPromise;
 	}
 
 	exists(uid) {
@@ -24,10 +35,11 @@ class MongoStore extends Store {
 	}
 
 	_save(object, uid) {
-		this._collection.insertOne(object, function(err, result) {
+		return new Promise( function (resolve, reject) {
+			this._collection.insertOne(object, function(err, result) {
 
+			});
 		});
-		return object;
 	}
 
 	_find(request, offset, limit) {

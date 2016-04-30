@@ -3,104 +3,168 @@ var Webda = require("../webda.js");
 var config = require("./config.json");
 var fs = require("fs");
 
-describe('Store', function() {
-  describe('getStore()', function () {
-
-    it('Ident Store', function () {
-      var eventFired = 0;
-      var webda = new Webda(config);
-      webda.setHost("test.webda.io");
-      var callable = webda.getExecutor("test.webda.io", "GET", "/");
-      assert.notEqual(callable, undefined);
-      var store = webda.getService("idents");
-      var userStore = webda.getService("users");
-      assert.notEqual(store, undefined);
-      // Should remove folder
-      // Create data folder in case
-      store.__clean();
-      userStore.__clean();
-      var events = ['storeSave','storeSaved','storeGet','storeDelete','storeDeleted','storeUpdate','storeUpdated','storeFind','storeFound'];
-      for (evt in events) {
-        store.on(events[evt], function (evt) {
-          eventFired++;
-        });
-      }
-      // Check CREATE - READ
-      var object = store.save({"test": "plop"});
-      assert.equal(eventFired, 2);
-      eventFired = 0;
-      var getter = store.get(object.uuid);
-      assert.equal(eventFired, 1);
-      eventFired = 0;
-      assert.notEqual(getter, undefined);
-      assert.equal(getter.uuid, object.uuid);
-      assert.equal(getter.test, object.test);
-      
-      // Check UPDATE
-      getter.test = "plop2"
-      object = store.update(getter);
-      assert.equal(eventFired, 2);
-      eventFired = 0;
-      assert.equal(getter.test, "plop2");
-      getter = store.get(object.uuid);
-      assert.equal(eventFired, 1);
-      eventFired = 0;
-      assert.equal(getter.test, "plop2");
-      // Check DELETE
-      store.delete(object.uuid);
-      assert.equal(eventFired, 2);
-      eventFired = 0;
-      getter = store.get(object.uuid);
-      assert.equal(eventFired, 1);
-      eventFired = 0;
-      assert.equal(getter, undefined);
-      // Check MAPPER
-      // First save a user
-      var user = userStore.save({'name': 'test'});
-      var ident = {"type": "facebook", "user": user.uuid};
-      store.save(ident);
-      // Check the ident has been added to user according to mapping
-      user = userStore.get(user.uuid);
-      assert.notEqual(user, undefined);
-      assert.notEqual(user.idents, undefined);
-      assert.equal(user.idents.length, 1);
-      var ident2 = {"type": "google", "user": user.uuid};
-      store.save(ident2);
-      user = userStore.get(user.uuid);
-      assert.equal(user.idents.length, 2);
-      // Update the ident2
-      ident2.type = "google2";
-      store.update(ident2);
-      user = userStore.get(user.uuid);
-      assert.equal(user.idents.length, 2);
-      assert.equal(user.idents[1].type, "google2");
-      // Deletion
-      store.delete(ident.uuid);
-      user = userStore.get(user.uuid);
-      assert.equal(user.idents.length, 1);
-      assert.equal(user.idents[0].type, "google2");
-      // CHange of target
-      var user2 = userStore.save({"name": "test2"});
-      ident2.user = user2.uuid;
-
-      store.update(ident2);
-      user = userStore.get(user.uuid);
-      assert.equal(user.idents.length, 0);
-      user2 = userStore.get(user2.uuid);
-      assert.equal(user2.idents.length, 1);
-      assert.equal(user2.idents[0].type, "google2");
-      // Test update cannot update the collection
-      userStore.update({"idents": []}, user2.uuid);
-      user2 = userStore.get(user2.uuid);
-      assert.equal(user2.idents.length, 1);
-      // Test delete cascade
-      userStore.delete(user.uuid);
-      user2 = userStore.get(user2.uuid);
-      assert.equal(user2.idents.length, 1);
-      assert.equal(user2.idents[0].type, "google2");
-      userStore.delete(user2.uuid);
-      assert.equal(store.get(ident2.uuid), undefined);
-      assert.equal(eventFired, 13);
+mapper = function (identStore, userStore) {
+  var eventFired = 0;
+  var events = ['storeSave','storeSaved','storeGet','storeDelete','storeDeleted','storeUpdate','storeUpdated','storeFind','storeFound'];
+  for (evt in events) {
+    identStore.on(events[evt], function (evt) {
+      eventFired++;
     });
+  }
+  var user1;
+  var user2;
+  var ident1;
+  var ident2;
+  return userStore.save({'name': 'test'}).then( function (user) {
+    // Save a user and add an ident
+    user1 = user.uuid;
+    return identStore.save({"type": "facebook", "user": user.uuid});
+  }).then( function(ident) {
+    ident1 = ident;
+    return userStore.get(user1);
+  }).then( function(user) {
+    // Verify the ident is on the user
+    assert.notEqual(user, undefined);
+    assert.notEqual(user.idents, undefined);
+    assert.equal(user.idents.length, 1);
+    return identStore.save({"type": "google", "user": user.uuid});
+  }).then( function(ident) {
+    // Add a second ident and check it is on the user aswell
+    ident2 = ident;
+    return userStore.get(user1);
+  }).then( function(user) {
+    assert.equal(user.idents.length, 2);
+    ident2.type = 'google2';
+    // Update ident2 to check mapper update
+    return identStore.update(ident2);
+  }).then( function() {
+    return userStore.get(user1);
+  }).then( function(user) {
+    assert.equal(user.idents.length, 2);
+    assert.equal(user.idents[1].type, "google2");
+    return identStore.delete(ident1.uuid);
+  }).then( function() {
+    return userStore.get(user1);
+  }).then( function(user) {
+    assert.equal(user.idents.length, 1);
+    assert.equal(user.idents[0].type, "google2");
+    // Add a second user to play
+    return userStore.save({"name": "test2"});
+  }).then ( function(user) {
+    ident2.user = user2 = user.uuid;
+    // Move ident2 from user1 to user2
+    return identStore.update(ident2);
+  }).then( function() {
+    // Check user1 has no more ident
+    return userStore.get(user1);
+  }).then( function(user) {
+    assert.equal(user.idents.length, 0);
+    // Check user2 has one ident
+    return userStore.get(user2);
+  }).then( function(user) {
+    assert.equal(user.idents.length, 1);
+    assert.equal(user.idents[0].type, "google2");
+    // Verify you cannot update a collection from update
+    return userStore.update({"idents": []}, user2);
+  }).then( function() {
+    return userStore.get(user2);
+  }).then( function(user) {
+    assert.equal(user.idents.length, 1);
+    assert.equal(user.idents[0].type, "google2");
+    // Verify delete cascade with empty collection
+    return userStore.delete(user1);
+  }).then( function() {
+    return userStore.get(user2);
+  }).then( function(user) {
+    assert.equal(user.idents.length, 1);
+    assert.equal(user.idents[0].type, "google2");
+    // Verify delete cascade
+    return userStore.delete(user2);
+  }).then( function() {
+    return identStore.get(ident2.uuid);
+  }).then( function(ident) {
+    assert.equal(ident, undefined);
+    assert.equal(eventFired, 13);
   });
+}
+
+crud = function (identStore,userStore) {
+  var eventFired = 0;
+  var events = ['storeSave','storeSaved','storeGet','storeDelete','storeDeleted','storeUpdate','storeUpdated','storeFind','storeFound'];
+  for (evt in events) {
+    identStore.on(events[evt], function (evt) {
+      eventFired++;
+    });
+  }
+  // Check CREATE - READ
+  return identStore.save({"test": "plop"}).then (function (object) {
+    ident1 = object;
+    assert.equal(eventFired, 2);
+    eventFired = 0;
+    return identStore.get(ident1.uuid);
+  }).then (function (getter) {
+    assert.equal(eventFired, 1);
+    eventFired = 0;
+    assert.notEqual(getter, undefined);
+    assert.equal(getter.uuid, ident1.uuid);
+    assert.equal(getter.test, ident1.test);
+    
+    // Check UPDATE
+    getter.test = "plop2"
+    return identStore.update(getter);
+  }).then (function (object) {
+    assert.equal(eventFired, 2);
+    eventFired = 0;
+    assert.equal(object.test, "plop2");
+    return identStore.get(object.uuid);
+  }).then (function (getter) {
+    assert.equal(eventFired, 1);
+    eventFired = 0;
+    assert.equal(getter.test, "plop2");
+    // Check DELETE
+    return identStore.delete(ident1.uuid);
+  }).then (function () {
+    assert.equal(eventFired, 2);
+    eventFired = 0;
+    return identStore.get(ident1.uuid);
+  }).then (function (getter) {
+    assert.equal(eventFired, 1);
+    eventFired = 0;
+    assert.equal(getter, undefined);
+  });
+};
+describe('Store', function() {
+    var stores = [{"type": "FileStore","users": "users", "idents": "idents"}]; //,{"type": "MongoStore","users": "mongousers", "idents": "mongoidents"}];
+    var webda;
+    var identStore;
+    var userStore;
+    beforeEach(function () {
+      webda = new Webda(config);
+      webda.setHost("test.webda.io");
+      webda.initAll();
+    });
+    describe('FileStore', function() {
+      beforeEach(function () {
+        identStore = webda.getService("idents");
+        userStore = webda.getService("users");
+        assert.notEqual(identStore, undefined);
+        assert.notEqual(userStore, undefined);
+        identStore.__clean();
+        userStore.__clean();
+      });
+      it('Basic CRUD', function() { return crud(identStore, userStore); });
+      it('Mapper', function() { return mapper(identStore, userStore); });
+    });
+    describe.skip('MongoStore', function() {
+      beforeEach(function () {
+        identStore = webda.getService("mongoidents");
+        userStore = webda.getService("mongousers");
+        assert.notEqual(identStore, undefined);
+        assert.notEqual(userStore, undefined);
+        identStore.__clean();
+        userStore.__clean();
+      });
+      it('Basic CRUD', function() { return crud(identStore, userStore); });
+      it('Mapper', function() { return mapper(identStore, userStore); });
+    });
 });

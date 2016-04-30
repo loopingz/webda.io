@@ -16,7 +16,7 @@ class FileStore extends Store {
 
 	exists(uid) {
 		// existsSync is deprecated might change it
-		return fs.existsSync(this.file(uid));
+		return Promise.resolve(fs.existsSync(this.file(uid)));
 	}
 
 	_find(request, offset, limit) {
@@ -29,36 +29,44 @@ class FileStore extends Store {
   		for (var file in files) {
   			res.push(this._get(files[file]));
   		}
-		return res;
+		return Promise.resolve(res);
 	}
 
 	_save(object, uid) {
 		fs.writeFileSync(this.file(uid), JSON.stringify(object));
-		return object;
+		return Promise.resolve(object);
 	}
 
 	_delete(uid) {
-		if (this.exists(uid)) {
-			fs.unlinkSync(this.file(uid));
-		}
+		return this.exists(uid).then (function (res) {
+			if (res) {
+				fs.unlinkSync(this.file(uid));
+			}
+			return Promise.resolve();
+		}.bind(this));
 	}
 
 	_update(object, uid) {
-		if (!this.exists(uid)) {
-			return undefined;
-		}
-		var stored = this._get(uid);
-		for (var prop in object) {
-			stored[prop]=object[prop];
-		}
-		return this._save(stored, uid)
+		return this.exists(uid).then( function (found) {
+			if (!found) {
+				return Promise.reject(Error('NotFound'));
+			}
+			return this._get(uid);
+		}.bind(this)).then( function(stored) {
+			for (var prop in object) {
+				stored[prop]=object[prop];
+			}
+			return this._save(stored, uid);
+		}.bind(this));
 	}
 
 	_get(uid) {
-		if (!this.exists(uid)) {
-			return undefined;
-		}
-		return JSON.parse(fs.readFileSync(this.file(uid)));
+		return this.exists(uid).then (function (res) {
+			if (res) {
+				return Promise.resolve(JSON.parse(fs.readFileSync(this.file(uid))));		
+			}
+			return Promise.resolve(undefined);
+		}.bind(this));
 	}
 
 	___cleanData() {

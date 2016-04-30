@@ -68,49 +68,67 @@ class Store extends Executor {
 	}
 
 	save(object, uid) {
-		if (uid == undefined) {
-			uid = object.uuid;
-		}
-		if (uid == undefined) {
-			uid = uuid.v4();
-		}
-		if (object.uuid == undefined || object.uuid != uid) {
-			object.uuid = uid;
-		}
-		this.emit('storeSave', {'object': object, 'store': this});
-		object = this._save(object, uid);
-		this.emit('storeSaved', {'object': object, 'store': this});
-		if (this._params.map != undefined) {
-			this.handleMap(object, this._params.map, "created");
-		}
-		return object;
+		return new Promise( function(resolve, reject) {
+			if (uid == undefined) {
+				uid = object.uuid;
+			}
+			if (uid == undefined) {
+				uid = uuid.v4();
+			}
+			if (object.uuid == undefined || object.uuid != uid) {
+				object.uuid = uid;
+			}
+			this.emit('storeSave', {'object': object, 'store': this});
+			resolve(this._save(object, uid));
+		}.bind(this)).then( function(object) {
+			this.emit('storeSaved', {'object': object, 'store': this});
+			if (this._params.map != undefined) {
+				return this.handleMap(object, this._params.map, "created").then( function() {
+					return Promise.resolve(object);
+				}, function (err) {
+					return Promise.reject(err)
+				});
+			} else {
+				return Promise.resolve(object);
+			}
+		}.bind(this));
 	}
+
 	_save(object, uid) {
 		throw "AbstractStore has no _save";
 	}
 
 	update(object, uid, reverseMap) {
-		if (uid == undefined) {
-			uid = object.uuid;
-		}
-		if (reverseMap === undefined) {
-			reverseMap = true;
-		}
-		// Dont allow to update collections from map
-		if (this._reverseMap != undefined && reverseMap) {
-			for (var i in this._reverseMap) {
-				if (object[this._reverseMap[i]] != undefined) {
-					delete object[this._reverseMap[i]];
+		return new Promise( function(resolve, reject) {
+			if (uid == undefined) {
+				uid = object.uuid;
+			}
+			if (reverseMap === undefined) {
+				reverseMap = true;
+			}
+			// Dont allow to update collections from map
+			if (this._reverseMap != undefined && reverseMap) {
+				for (var i in this._reverseMap) {
+					if (object[this._reverseMap[i]] != undefined) {
+						delete object[this._reverseMap[i]];
+					}
 				}
 			}
-		}
-		if (this._params.map != undefined) {
-			this.handleMap(this._get(uid), this._params.map, object);
-		}
-		this.emit('storeUpdate', {'object': object, 'store': this});
-		var result = this._update(object, uid);
-		this.emit('storeUpdated', {'object': result, 'store': this});
-		return result;
+			if (this._params.map != undefined) {
+				resolve(this._get(uid).then(function(loaded) {
+					return this.handleMap(loaded, this._params.map, object);
+				}.bind(this)).then(function() {
+					this.emit('storeUpdate', {'object': object, 'store': this});
+					return this._update(object, uid);
+				}.bind(this)));
+			} else {
+				this.emit('storeUpdate', {'object': object, 'store': this});
+				resolve(this._update(object, uid));
+			}
+		}.bind(this)).then (function (result) {
+			this.emit('storeUpdated', {'object': result, 'store': this});
+			return Promise.resolve(result);
+		}.bind(this));
 	}
 
 	removeMapper(map, uuid, mapper) {
@@ -123,23 +141,122 @@ class Store extends Executor {
 		return false;
 	}
 
-	handleMap(object, map, updates) {
-		//stores = module.exports;
-		/*
-		"map": {
-			"users": {
-				"key": "user",
-				"target": "idents",
-				"fields": "type"
+	_handleUpdatedMap(object, map, mapped, store, updates) {
+		// Update only if the key field has been updated
+		var found = false;
+		for (var field in updates) {
+			if (map.fields) {
+				var fields = map.fields.split(",");
+				for (var mapperfield in fields) {
+					if (fields[mapperfield] == field) {
+						found = true;
+						break;
+					}
+				}
+			}
+			// TODO Need to verify also if fields are updated
+			if (field == map.key) {
+				found = true;
+				break;
 			}
 		}
-		*/
+		if (!found) {
+			// None of the mapped keys has been modified -> return
+			return Promise.resolve();
+		}
+
+		// check if reference object has changed
+		if (updates[map.key] != undefined && mapped.uuid != updates[map.key]) {
+			// Transfering
+			if (this.removeMapper(mapped[map.target], object.uuid)) {
+				return this._handleUpdatedMapTransferOut(object, map, mapped, store, updates);
+			} else {
+				return this._handleUpdatedMapTransferIn(object, map, store, updates);
+			}
+		} else {
+			this.removeMapper(mapped[map.target], object.uuid);
+			return this._handleUpdatedMapMapper(object, map, mapped, store, updates);
+		}
+	}
+
+	_handleUpdatedMapTransferOut(object, map, mapped, store, updates) {
+		return store.save(mapped, mapped.uuid).then( function() {
+			return this._handleUpdatedMapTransferIn(object, map, store, updates);
+		}.bind(this));
+	}
+
+	_handleUpdatedMapTransferIn(object, map, store, updates) {
+		// TODO Should be update
+		return store.get(updates[map.key]).then(function(mapped) {
+			if (mapped == undefined) {
+				return Promise.resolve();
+			}
+			// Enforce the collection if needed
+			if (mapped[map.target] == undefined) {
+				mapped[map.target]=[];
+			}
+			return this._handleUpdatedMapMapper(object, map, mapped, store, updates);
+		}.bind(this));
+	}
+
+	_handleUpdatedMapMapper(object, map, mapped, store, updates) {
+		// Update the mapper
+		var to_update = {};
+		var mapper = {};
+		mapper.uuid = object.uuid;
+		if (map.fields) {
+			var fields = map.fields.split(",");
+			for (var field in fields) {
+				if (updates[fields[field]] != undefined) {
+					mapper[fields[field]] = updates[fields[field]];
+				} else {
+					mapper[fields[field]] = object[fields[field]];
+				}
+			}
+		}
+		to_update[map.target]=mapped[map.target];
+		to_update[map.target].push(mapper);
+		// Remove old reference
+		return store.update(to_update, mapped.uuid, false);
+	}
+
+	_handleDeletedMap(object, map, mapped, store) {
+		// Remove from the collection
+		if (mapped[map.target] == undefined) {
+			return Promise.resolve();
+		}
+		if (this.removeMapper(mapped[map.target], object.uuid)) {
+			// TODO Should be update
+			return store.save(mapped, mapped.uuid);
+		}
+		return Promise.resolve();
+	}
+
+	_handleCreatedMap(object, map, mapped, store) {
+		// Add to the object
+		var mapper = {};
+		mapper.uuid = object.uuid;
+		// Add info to the mapped
+		if (map.fields) {
+			var fields = map.fields.split(",");
+			for (var field in fields) {
+				mapper[fields[field]] = object[fields[field]];
+			}
+		}
+		// Can happen with self defined uuid like ident
+		mapped[map.target].push(mapper);
+		// TODO Should be update
+		return store.save(mapped);
+	}
+
+	handleMap(object, map, updates) {
+		var promises = [];
 		if (object === undefined) {
-			return;
+			return Promise.resolve();
 		}
 		for (var prop in map) {
 			// No mapped property or not in the object
-			if (map[prop].key == undefined || object[map[prop].key] == undefined) {
+			if (map[prop].key === undefined || object[map[prop].key] === undefined) {
 				continue;
 			}
 			var store = this.getService(prop);
@@ -147,97 +264,31 @@ class Store extends Executor {
 			if (store == undefined) {
 				continue;
 			}
-			var mapped = store.get(object[map[prop].key]);
-			// Invalid mapping
-			if (mapped == undefined) {
-				continue;
-			}
-			// Enforce the collection if needed
-			if (mapped[map[prop].target] == undefined) {
-				mapped[map[prop].target]=[];
-			}
-			if ( updates == "created" ) {
-				// Add to the object
-				var mapper = {};
-				mapper.uuid = object.uuid;
-				// Add info to the mapped
-				if (map[prop].fields) {
-					var fields = map[prop].fields.split(",");
-					for (var field in fields) {
-						mapper[fields[field]] = object[fields[field]];
-					}
+			promises.push(store.get(object[map[prop].key]).then( function(mapped) {
+				if (mapped == undefined) {
+					return Promise.resolve();
 				}
-				// Can happen with self defined uuid like ident
-				mapped[map[prop].target].push(mapper);
-				// TODO Should be update
-				store.save(mapped);
-			} else if (updates == "deleted") {
-				// Remove from the collection
+				// Enforce the collection if needed
 				if (mapped[map[prop].target] == undefined) {
-					continue;
+					mapped[map[prop].target]=[];
 				}
-				if (this.removeMapper(mapped[map[prop].target], object.uuid)) {
-					// TODO Should be update
-					store.save(mapped, mapped.uuid);
-				}
-			} else if (typeof(updates) == "object") {
-				// Update only if the key field has been updated
-				var found = false;
-				for (field in updates) {
-					if (map[prop].fields) {
-						fields = map[prop].fields.split(",");
-						for (var mapperfield in fields) {
-							if (fields[mapperfield] == field) {
-								found = true;
-								break;
-							}
-						}
-					}
-					// TODO Need to verify also if fields are updated
-					if (field == map[prop].key) {
-						found = true;
-						break;
-					}
-				}
-				if (!found) {
-					continue;
-				}
-				// check if reference object has changed
-				if (updates[map[prop].key] != undefined && mapped.uuid != updates[map[prop].key]) {
-					if (this.removeMapper(mapped[map[prop].target], object.uuid)) {
-						store.save(mapped, mapped.uuid);
-					}
-					// TODO Should be update
-					mapped = store.get(updates[map[prop].key])
-					if (mapped == undefined) {
-						continue
-					}
-					// Enforce the collection if needed
-					if (mapped[map[prop].target] == undefined) {
-						mapped[map[prop].target]=[];
-					}
+				if (updates === "created") {
+					return this._handleCreatedMap(object, map[prop], mapped, store);
+				} else if (updates == "deleted") {
+					return this._handleDeletedMap(object, map[prop], mapped, store);
+				} else if (typeof(updates) == "object") {
+					return this._handleUpdatedMap(object, map[prop], mapped, store, updates);
 				} else {
-					this.removeMapper(mapped[map[prop].target], object.uuid);
+					return Promise.reject(Error("Unknown handleMap type " + updates));
 				}
-				// Update the mapper
-				var to_update = {};
-				mapper = {};
-				mapper.uuid = object.uuid;
-				if (map[prop].fields) {
-					fields = map[prop].fields.split(",");
-					for (field in fields) {
-						if (updates[fields[field]] != undefined) {
-							mapper[fields[field]] = updates[fields[field]];
-						} else {
-							mapper[fields[field]] = object[fields[field]];
-						}
-					}
-				}
-				to_update[map[prop].target]=mapped[map[prop].target];
-				to_update[map[prop].target].push(mapper);
-				// Remove old reference
-				store.update(to_update, mapped.uuid, false);
-			}
+			}.bind(this)));
+		}
+		if (promises.length == 1) {
+			return promises[0];
+		} else if (promises.length > 1) {
+			return Promise.all(promises)
+		} else {
+			return Promise.resolve();
 		}
 	}
 
@@ -246,34 +297,49 @@ class Store extends Executor {
 	}
 
 	cascadeDelete(obj) {
-		this.delete(obj);
+		return this.delete(obj);
 	}
 
 	delete(uid, no_map) {
-		var obj;
-		if (typeof(uid) === 'object') {
-			obj = uid;
-			uid = obj.uuid;
-		} else {
-			obj = this._get(uid);
-		}
-		this.emit('storeDelete', {'object': obj, 'store': this});
-		if (this._params.map != undefined) {
-			this.handleMap(obj, this._params.map, "deleted");
-		}
-		if (this._cascade != undefined) {
-			// Should deactiate the mapping in that case
-			for (var i in this._cascade) {
-				if (typeof(this._cascade[i]) != "object" || obj[this._cascade[i].name] == undefined) continue;
-				var targetStore = this.getService(this._cascade[i].store);
-				if (targetStore == undefined) continue;
-				for (var item in obj[this._cascade[i].name]) {
-					targetStore.cascadeDelete(obj[this._cascade[i].name][item], uid);
-				}
+		var to_delete;
+		return new Promise( function(resolve, reject) {
+			if (typeof(uid) === 'object') {
+				to_delete = uid;
+				uid = to_delete.uuid;
+				resolve(to_delete);
+			} else {
+				resolve(this._get(uid));
+			}	
+		}.bind(this)).then(function (obj) {
+			to_delete = obj;
+			this.emit('storeDelete', {'object': obj, 'store': this});
+			if (this._params.map != undefined) {
+				return this.handleMap(obj, this._params.map, "deleted");
+			} else {
+				return Promise.resolve();
 			}
-		}
-		this._delete(uid);
-		this.emit('storeDeleted', {'object': obj, 'store': this});
+		}.bind(this)).then(function () {
+			if (this._cascade != undefined) {
+				var promises = [];
+				// Should deactiate the mapping in that case
+				for (var i in this._cascade) {
+					if (typeof(this._cascade[i]) != "object" || to_delete[this._cascade[i].name] == undefined) continue;
+					var targetStore = this.getService(this._cascade[i].store);
+					if (targetStore == undefined) continue;
+					for (var item in to_delete[this._cascade[i].name]) {
+						promises.push(targetStore.cascadeDelete(to_delete[this._cascade[i].name][item], uid));
+					}
+				}
+				return Promise.all(promises);
+			} else {
+				Promise.resolve();
+			}
+		}.bind(this)).then(function () {
+			return this._delete(uid);
+		}.bind(this)).then (function () {
+			this.emit('storeDeleted', {'object': to_delete, 'store': this});
+			return Promise.resolve();
+		}.bind(this));
 	}
 
 	_delete(uid) {
@@ -281,9 +347,10 @@ class Store extends Executor {
 	}
 
 	get(uid) {
-		var object = this._get(uid);
-		this.emit('storeGet', {'object': object, 'store': this});
-		return object;
+		return this._get(uid).then ( function (object) {
+			this.emit('storeGet', {'object': object, 'store': this});
+			return Promise.resolve(object);
+		}.bind(this));
 	}
 
 	_get(uid) {
@@ -291,10 +358,13 @@ class Store extends Executor {
 	}
 
 	find(request, offset, limit) {
-		this.emit('storeFind', {'request': request, 'store': this, 'offset': offset, 'limit': limit});
-		var result = this._find(request, offset, limit);
-		this.emit('storeFound', {'request': request, 'store': this, 'offset': offset, 'limit': limit, 'results': result});
-		return result;
+		return new Promise( function(resolve, reject) {
+			this.emit('storeFind', {'request': request, 'store': this, 'offset': offset, 'limit': limit});
+			resolve(this._find(request, offset, limit));
+		}.bind(this)).then (function (result) {
+			this.emit('storeFound', {'request': request, 'store': this, 'offset': offset, 'limit': limit, 'results': result});
+			return Promise.resolve(result);
+		});
 	}
 
 	_find(request, offset, limit) {
@@ -342,7 +412,7 @@ class Store extends Executor {
 				for (var prop in object) {
 					// Server private property
 					if (prop[0] == "_") {
-						continue
+						continue;
 					}
 					result[prop] = object[prop]
 				}

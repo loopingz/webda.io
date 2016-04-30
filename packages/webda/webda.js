@@ -3,6 +3,8 @@
 var uriTemplates = require('uri-templates');
 var extend = require('util')._extend;
 var CONFIG = undefined;
+var EXECUTORS = {};
+var SERVICES = {};
 var vm = require('vm');
 var fs = require('fs');
 
@@ -47,6 +49,7 @@ class Webda {
 		this._services = {};
 		this._services['Authentication']=require('./services/passport');
 		this._services['FileStore']=require('./stores/file');
+		this._services['MongoStore']=require('./stores/mongodb');
 		this._services['FileBinary']=require('./services/filebinary');
 		this._services['S3Binary']=require('./services/s3binary');
 		CONFIG = this.loadConfiguration(config);

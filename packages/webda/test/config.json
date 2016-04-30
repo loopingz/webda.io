@@ -4,7 +4,8 @@
 			"params": {
 				"accessKeyId": "AKIAIYZRIPRQAOOXIGRA",
 				"secretAccessKey": "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",
-				"TEST": "Global"
+				"TEST": "Global",
+				"mongo": "mongodb://localhost:27017/webda-test"
 			},
 			"services": {
 				"Authentication": {
@@ -18,6 +19,38 @@
 						"google": {},
 						"github": {}
 					}
+				},
+				"mongoidents": {
+					"inject": "user",
+					"check": "user",
+					"map": {
+							"mongoidents": {
+								"key": "user",
+								"target": "idents",
+								"fields": "type",
+								"cascade": true
+							}
+					},
+					"expose": {
+						"restrict": {
+							"create": true,
+							"update": true,
+							"get": true
+						}
+					},
+					"type": "MongoStore",
+					"collection": "idents"
+				},
+				"mongousers": {
+					"expose": {
+						"url": "/users",
+						"restrict": {
+							"authentication": true,
+							"create": true
+						}
+					},
+					"type": "MongoStore",
+					"collection": "users"
 				},
 				"idents": {
 					"inject": "user",
@@ -38,7 +71,7 @@
 						}
 					},
 					"type": "FileStore",
-					"folder": "./test/data",
+					"folder": "./test/data/idents",
 					"validator": "IdentValidator"
 				},
 				"users": {

@@ -209,8 +209,7 @@ class PassportExecutor extends Executor {
 			// Read the form
 			throw 404;
 		}
-		// Should send an email
-		end();
+		this.end();
 	}
 
 	handlePhoneCallback(req, res) {
@@ -224,17 +223,37 @@ class PassportExecutor extends Executor {
 			throw 500;
 			return;
 		}
-		var uuid = "" + "_email";
+		var updates = {};
+		var uuid = req.body.login + "_email";
 		var ident = identStore.get(uuid);
 		if (ident != undefined && ident.user != undefined) {
 			var userStore = this.getStore("users");
 			var user = userStore.get(ident.user);
+			var hash = crypto.createHash('sha256');
 			// Check password
-			res.end();
+			if (user._password === hash.update(req.body.password).digest('hex')) {
+				if (ident.failedLogin > 0) {
+					ident.failedLogin = 0;
+				}
+				updates.lastUsed = new Date();
+				updates.failedLogin = 0;
+				ident = identStore.update(updates, ident.uuid);
+				req.session.authenticated = ident;
+				throw 204;
+			} else {
+				if (ident.failedLogin === undefined) {
+					ident.failedLogin = 0;
+				}
+				updates.failedLogin = ident.failedLogin++;
+				updates.lastFailedLogin = new Date();
+				ident = identStore.update(updates, ident.uuid);
+				throw 403;
+			}
+		} else {
+			// Read the form
+			throw 404;
 		}
-		// Read the form
-		throw 204;
-		// Should send an email
+		this.end();
 	}
 
 	handlePhone(req, res) {
@@ -248,6 +267,7 @@ class PassportExecutor extends Executor {
 		req._passport = {};
 		req._passport.instance = passport;
 		req._passport.session = this.session;
+		// TODO Handle URL instead of _extended
 		if (self.callable._extended ) {
 			self.executeCallback(req, res);
 			return;

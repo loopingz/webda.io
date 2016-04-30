@@ -2,8 +2,8 @@
 	"test.webda.io": {
 		"global": {
 			"params": {
-				"accessKeyId": "YOUR_ACCESS_KEY",
-				"secretAccessKey": "YOUR_SECRET_KEY",
+				"accessKeyId": "AKIAIYZRIPRQAOOXIGRA",
+				"secretAccessKey": "GfkrOv6uMCnyhUUsldOUwN1iMQzN/+oIIeZHPJN7",
 				"TEST": "Global"
 			},
 			"services": {
@@ -60,6 +60,13 @@
 					"map": {
 						"users": ["images"]
 					}
+				},
+				"s3": {
+					"type": "S3Binary",
+					"bucket": "webda-test",
+					"map": {
+						"users": ["s3images"]
+					}
 				}
 			}
 		},
@@ -68,8 +75,7 @@
 			"executor": "debug",
 			"lambda": "plop",
 			"params": {
-				"TEST_ADD": "Users",
-				"TEST": "Local"
+				"TEST_ADD": "Users"
 			}
 		},
 		"/": {
@@ -79,6 +85,12 @@
 				"accessKeyId": "LOCAL_ACCESS_KEY",
 				"secretAccessKey": "LOCAL_SECRET_KEY"
 			}
+		},
+		"/webda": {
+			"method": ["GET","POST","DELETE","PUT"],
+			"executor": "lambda",
+			"lambda": "arn:aws:lambda:us-west-2:277712386420:function:webda-test",
+            "params": {}
 		}
 	}
 }

@@ -426,6 +426,7 @@ class Store extends Executor {
 		}
 		throw 404;
 	}
+
 }
 
 module.exports = Store

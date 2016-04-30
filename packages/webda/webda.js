@@ -48,6 +48,7 @@ class Webda {
 		this._services['Authentication']=require('./services/passport');
 		this._services['FileStore']=require('./stores/file');
 		this._services['FileBinary']=require('./services/filebinary');
+		this._services['S3Binary']=require('./services/s3binary');
 		CONFIG = this.loadConfiguration(config);
 	}
 
@@ -237,7 +238,8 @@ class Webda {
 		    if (serviceConstructor === undefined) {
 		    	continue;
 		    }
-	      	var params = services[service];
+	      	var params = extend({}, config.global.params);
+	      	params = extend(params, services[service]);
 	      	delete params.require;
 	      	services[service]._service = new serviceConstructor(this, service, params);
 	    }

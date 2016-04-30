@@ -57,8 +57,7 @@ describe('Webda', function() {
       assert.equal(callable['_http']["host"], "test.webda.io");
       assert.equal(callable['params']['id'], 666);
       assert.equal(callable["params"]["TEST_ADD"], "Users");
-      assert.equal(callable["params"]["accessKeyId"], "YOUR_ACCESS_KEY");
-      assert.equal(callable["params"]["secretAccessKey"], "YOUR_SECRET_KEY");
+      assert.equal(callable["params"]["TEST"], "Global");
       // Default is Executor
       assert(callable instanceof Executor);
     });

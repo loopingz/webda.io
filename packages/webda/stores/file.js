@@ -60,6 +60,17 @@ class FileStore extends Store {
 		}
 		return JSON.parse(fs.readFileSync(this.file(uid)));
 	}
+
+	___cleanData() {
+		if (!fs.existsSync(this._params.folder)) {
+			fs.mkdir(this._params.folder);  
+		}
+		var files = fs.readdirSync(this._params.folder);
+		for (var file in files) {
+			fs.unlink(this._params.folder + '/' + files[file]);
+		}
+		return Promise.resolve();
+	}
 }
 
 module.exports = FileStore

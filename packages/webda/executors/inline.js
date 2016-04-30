@@ -8,15 +8,7 @@ class InlineExecutor extends Executor {
 	}
 
 	execute() {
-		var callback;
-		// Eval the Inline method
-		eval("callback = " + this.callable.callback);
-		if (typeof(callback) == "function") {
-			callback(this);
-		} else {
-			console.log("Cant execute the inline as it is not a function");
-			throw 500;
-		}
+		this._webda.sandbox(this, this.callable.callback);
 	}
 }
 

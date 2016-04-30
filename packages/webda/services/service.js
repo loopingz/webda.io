@@ -11,7 +11,18 @@ class Service extends EventEmitter {
 	}
 
 	setup() {
-		
+
+	}
+
+	__clean() {
+		if (typeof(global.it) !== 'function') {
+			throw Error("Only for test purpose")
+		}
+		return this.___cleanData();
+	}
+
+	___cleanData() {
+		return Promise.resolve();
 	}
 }
 

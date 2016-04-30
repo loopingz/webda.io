@@ -3,19 +3,6 @@ var Webda = require("../webda.js");
 var config = require("./config.json");
 var fs = require("fs");
 
-cleanStore = function(store) {
-  if (store === undefined) {
-    return;
-  }
-  if (!fs.existsSync(store._params.folder)) {
-    fs.mkdir(store._params.folder);  
-  }
-  files = fs.readdirSync(store._params.folder);
-  for (file in files) {
-    fs.unlink(store._params.folder + '/' + files[file]);
-  }
-}
-
 describe('Store', function() {
   describe('getStore()', function () {
 
@@ -30,8 +17,8 @@ describe('Store', function() {
       assert.notEqual(store, undefined);
       // Should remove folder
       // Create data folder in case
-      cleanStore(store);
-      cleanStore(userStore);
+      store.__clean();
+      userStore.__clean();
       var events = ['storeSave','storeSaved','storeGet','storeDelete','storeDeleted','storeUpdate','storeUpdated','storeFind','storeFound'];
       for (evt in events) {
         store.on(events[evt], function (evt) {

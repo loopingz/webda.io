@@ -32,11 +32,17 @@ describe('Binary', function() {
       // Check CREATE - READ
       var hash;
       var count = 1;
-      var user;
-      var user1 = userStore.save({"test": "plop"});
-      var user2 = userStore.save({"test": "plop"});
-      return binary.store(userStore, user1, 'images', {'path': './test/Dockerfile'}, {}).then(function () {
-        user = userStore.get(user1.uuid);
+      var user1;
+      var user2;
+      userStore.save({"test": "plop"}).then( function(user) {
+        user1 = user;
+        return userStore.save({"test": "plop"});
+      }).then( function(user) {
+        user2 = user;
+        return binary.store(userStore, user1, 'images', {'path': './test/Dockerfile'}, {});
+      }).then(function () {
+        return userStore.get(user1.uuid);
+      }).then(function(user) {
         assert.notEqual(user.images, undefined);
         assert.equal(user.images.length, 1);
         hash = user.images[0].hash;
@@ -45,7 +51,8 @@ describe('Binary', function() {
         assert.equal(value, 1);
         return binary.store(userStore, user2, 'images', {'path': './test/Dockerfile'}, {});
       }).then(function() {
-        user = userStore.get(user2.uuid);
+        return userStore.get(user2.uuid);
+      }).then(function(user) {
         assert.notEqual(user.images, undefined);
         assert.equal(user.images.length, 1);
         hash = user.images[0].hash;
@@ -54,12 +61,14 @@ describe('Binary', function() {
         assert.equal(value, 2);
         return binary.delete(userStore, user, 'images', 0);
       }).then(function() {
-        user = userStore.get(user2.uuid);
+        return userStore.get(user2.uuid);
+      }).then(function(user) {
+        assert.equal(user.images.length, 0);
         return binary.getUsageCount(hash);
       }).then(function(value) {
         assert.equal(value, 1);
-        assert.equal(user.images.length, 0);
-        userStore.delete(user1.uuid);
+        return userStore.delete(user1.uuid);
+      }).then(function() {
         return binary.getUsageCount(hash);
       }).then(function (value) {
         assert.equal(value, 0);
@@ -75,10 +84,13 @@ describe('Binary', function() {
       });
     });
     it('update', function () {
-      var user1 = userStore.save({"test": "plop"});
-      var user;
-      return binary.store(userStore, user1, 'images', {'path': './test/Dockerfile'}, {}).then(function () {
-        user = userStore.get(user1.uuid);
+      var user1;
+      userStore.save({"test": "plop"}).then (function (user) {
+        user1 = user;
+        return binary.store(userStore, user1, 'images', {'path': './test/Dockerfile'}, {});
+      }).then(function () {
+        return userStore.get(user1.uuid);
+      }).then(function (user) {
         assert.notEqual(user.images, undefined);
         assert.equal(user.images.length, 1);
         hash = user.images[0].hash;
@@ -87,7 +99,8 @@ describe('Binary', function() {
         assert.equal(value, 1);
         return binary.update(userStore, user, 'images', 0, {'path': './test/Dockerfile.txt'}, {});
       }).then(function() {
-        user = userStore.get(user1.uuid);
+        return userStore.get(user1.uuid);
+      }).then(function (user) {
         assert.notEqual(user.images, undefined);
         assert.equal(user.images.length, 1);
         assert.notEqual(hash, user.images[0].hash);

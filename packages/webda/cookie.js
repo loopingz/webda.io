@@ -46,7 +46,7 @@ class SecureCookie {
 		}
 	}
 
-	save() {
+	toJSON() {
 		var data = {};
 		for (var prop in this) {
 			if (prop[0] === "_") {
@@ -54,7 +54,11 @@ class SecureCookie {
 			}
 			data[prop] = this[prop];
 		}
-		return encrypt(this._algo, this._secret, JSON.stringify(data));
+		return data;
+	}
+
+	save() {		
+		return encrypt(this._algo, this._secret, JSON.stringify(this));
 	}
 
 	needSave() {

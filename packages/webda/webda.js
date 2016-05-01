@@ -80,7 +80,7 @@ class Webda {
 		    }
 		};
 		vm.runInNewContext(code, sandbox);
-		return sandbox.module.exports;
+		return sandbox.module.exports(executor);
 	}
 
 	loadConfiguration(config) {
@@ -134,10 +134,12 @@ class Webda {
 
 	getExecutor(vhost, method, url, protocol, port, headers) {
 		// Check vhost
+		var wildcard = false;
 	    if (CONFIG[vhost] === undefined) {
 	       if (CONFIG['*'] === undefined) {
 	    	   return null;
 	       }
+	       wildcard = true;
 	       vhost = CONFIG['*'];
 	    }
 	    this.setHost(vhost);
@@ -189,7 +191,7 @@ class Webda {
 	          callable.enrichParameters(vhost_config['params']);
 	    	}
 	      if (callable["_http"] == undefined) {
-	          callable["_http"] = {"host":vhost, "method":method, "url":url, "protocol": protocol, "port": port, "headers": headers};
+	          callable["_http"] = {"host":vhost, "method":method, "url":url, "protocol": protocol, "port": port, "headers": headers, "wildcard": wildcard};
 	      }
 	    }
 	    return callable;
@@ -213,6 +215,14 @@ class Webda {
 		  		config[map]['uri-template-parse'] = uriTemplates(map);
 	  		}
 	  	}
+	}
+
+	flushHeaders(executor) {
+		console.log("Abstract implementation of Webda");
+	}
+
+	flush(executor) {
+		console.log("Abstract implementation of Webda");
 	}
 
 	initServices(config) {

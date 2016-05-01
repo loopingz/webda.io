@@ -216,71 +216,76 @@ class Binary extends Executor {
 		if (targetStore === undefined) {
 			throw 404;
 		}
-		var object = targetStore.get(this.params.uid);
-		if (object === undefined) {
-			throw 404;
-		}
-		if (object[this.params.property] !== undefined && typeof(object[this.params.property]) !== 'object') {
-			throw 403;
-		}
+		return targetStore.get(this.params.uid).then (function (object) {
+			if (object === undefined) {
+				throw 404;
+			}
+			if (object[this.params.property] !== undefined && typeof(object[this.params.property]) !== 'object') {
+				throw 403;
+			}
 		
-		if (this._http.method == "POST") {
-			this.store(targetStore, object, self.params.property, this._getFile(req), req.body).then(function() {
-				this.writeHead(200, {'Content-type': 'application/json'});
-				this.write(JSON.stringify(targetStore.get(object.uuid)));
-	    		this.end();
-	    	}.bind(this)).catch( function (err) {
-	    		this.writeHead(500);
-	    		console.log(err);
-	    		this.end();
-	    	}.bind(this));
-		} else if (this._http.method == "GET") {
-			if (object[this.params.property] === undefined || object[this.params.property][this.params.index] === undefined) {
-				throw 404;
+			if (this._http.method == "POST") {
+				return this.store(targetStore, object, self.params.property, this._getFile(req), req.body).then(function() {
+					this.writeHead(200, {'Content-type': 'application/json'});
+					this.write(JSON.stringify(targetStore.get(object.uuid)));
+		    		this.end();
+		    	}.bind(this)).catch( function (err) {
+		    		this.writeHead(500);
+		    		console.log(err);
+		    		this.end();
+		    	}.bind(this));
+			} else if (this._http.method == "GET") {
+				if (object[this.params.property] === undefined || object[this.params.property][this.params.index] === undefined) {
+					throw 404;
+				}
+				var file = object[this.params.property][this.params.index];
+				this.writeHead(200, {
+		        	'Content-Type': file.mimetype===undefined?'application/octet-steam':file.mimetype,
+		        	'Content-Length': file.size
+			    });
+				return new Promise(function (resolve, reject) {
+				    var readStream = this.get(file);
+				    // We replaced all the event handlers with a simple call to readStream.pipe()
+				    this._stream.on('unpipe', (src) => {
+						return resolve();
+					});
+				    readStream.pipe(this._stream);
+				}.bind(this));
+			} else if (this._http.method == "DELETE") {
+				if (object[this.params.property] === undefined || object[this.params.property][this.params.index] === undefined) {
+					throw 404;
+				}
+				var update = {};
+				if (object[self.params.property][this.params.index].hash !== this.params.hash) {
+					throw 412;
+				}
+				return this.delete(targetStore, object, self.params.property, index).then (function () {
+					this.write(JSON.stringify(targetStore.get(self.params.uid)));
+					this.end();
+				}.bind(this)).catch( function (err) {
+		    		this.writeHead(500);
+		    		console.log(err);
+		    		this.end();
+		    	}.bind(this));
+			} else if (this._http.method == "PUT") {
+				if (object[this.params.property] === undefined || object[this.params.property][this.params.index] === undefined) {
+					throw 404;
+				}
+				var update = {};
+				if (object[self.params.property][this.params.index].hash !== this.params.hash) {
+					throw 412;
+				}
+				return this.update(targetStore, object, self.params.property, this.params.index, this._getFile(req), req.body).then(function() {
+					this.writeHead(200, {'Content-type': 'application/json'});
+					this.write(JSON.stringify(targetStore.get(object.uuid)));
+		    		this.end();
+		    	}.bind(this)).catch( function (err) {
+		    		this.writeHead(500);
+		    		console.log(err);
+		    		this.end();
+		    	}.bind(this));
 			}
-			var file = object[this.params.property][this.params.index];
-			this.writeHead(200, {
-	        	'Content-Type': file.mimetype===undefined?'application/octet-steam':file.mimetype,
-	        	'Content-Length': file.size
-		    });
-
-		    var readStream = this.get(file);
-		    // We replaced all the event handlers with a simple call to readStream.pipe()
-		    readStream.pipe(this._rawResponse);
-		} else if (this._http.method == "DELETE") {
-			if (object[this.params.property] === undefined || object[this.params.property][this.params.index] === undefined) {
-				throw 404;
-			}
-			var update = {};
-			if (object[self.params.property][this.params.index].hash !== this.params.hash) {
-				throw 412;
-			}
-			this.delete(targetStore, object, self.params.property, index).then (function () {
-				this.write(JSON.stringify(targetStore.get(self.params.uid)));
-				this.end();
-			}.bind(this)).catch( function (err) {
-	    		this.writeHead(500);
-	    		console.log(err);
-	    		this.end();
-	    	}.bind(this));
-		} else if (this._http.method == "PUT") {
-			if (object[this.params.property] === undefined || object[this.params.property][this.params.index] === undefined) {
-				throw 404;
-			}
-			var update = {};
-			if (object[self.params.property][this.params.index].hash !== this.params.hash) {
-				throw 412;
-			}
-			this.update(targetStore, object, self.params.property, this.params.index, this._getFile(req), req.body).then(function() {
-				this.writeHead(200, {'Content-type': 'application/json'});
-				this.write(JSON.stringify(targetStore.get(object.uuid)));
-	    		this.end();
-	    	}.bind(this)).catch( function (err) {
-	    		this.writeHead(500);
-	    		console.log(err);
-	    		this.end();
-	    	}.bind(this));
-		}
+		}.bind(this));
 	}
 }
 

@@ -29,7 +29,7 @@ class FileStore extends Store {
   		for (var file in files) {
   			res.push(this._get(files[file]));
   		}
-		return Promise.resolve(res);
+		return Promise.all(res);
 	}
 
 	_save(object, uid) {

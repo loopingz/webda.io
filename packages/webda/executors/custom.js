@@ -6,9 +6,12 @@ class CustomExecutor extends Executor {
 		super(webda, name, params);
 		this._type = "CustomExecutor";
 	}
-	execute(req, res) {
+
+	execute(executor) {
 		this.params["_http"] = this._http;
+		return Promise.resolve();
 	}
+
 	handleResult(data) {
 		try {
 			// Should parse JSON

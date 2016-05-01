@@ -8,7 +8,7 @@ class InlineExecutor extends Executor {
 	}
 
 	execute() {
-		this._webda.sandbox(this, this.callable.callback);
+		return this._webda.sandbox(this, "module.exports = " + this.callable.callback);
 	}
 }
 

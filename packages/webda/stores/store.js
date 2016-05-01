@@ -374,11 +374,11 @@ class Store extends Executor {
 	find(request, offset, limit) {
 		return new Promise( function(resolve, reject) {
 			this.emit('storeFind', {'request': request, 'store': this, 'offset': offset, 'limit': limit});
-			resolve(this._find(request, offset, limit));
+			return resolve(this._find(request, offset, limit));
 		}.bind(this)).then (function (result) {
 			this.emit('storeFound', {'request': request, 'store': this, 'offset': offset, 'limit': limit, 'results': result});
 			return Promise.resolve(result);
-		});
+		}.bind(this));
 	}
 
 	_find(request, offset, limit) {

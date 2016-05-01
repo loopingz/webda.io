@@ -2,10 +2,7 @@
 	"test.webda.io": {
 		"global": {
 			"params": {
-				"accessKeyId": "AKIAIYZRIPRQAOOXIGRA",
-				"secretAccessKey": "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",
 				"TEST": "Global",
-				"mongo": "mongodb://localhost:27017/webda-test",
 				"region": "us-east-1"
 			},
 			"services": {
@@ -127,7 +124,7 @@
 						"users": ["images"]
 					}
 				},
-				"s3": {
+				"s3binary": {
 					"type": "S3Binary",
 					"bucket": "webda-test",
 					"map": {

@@ -32,7 +32,7 @@ class FakeRequest {
 
 describe('Lambda', function() {
   before (function() {
-    skip = process.env.AWS === undefined;
+    skip = process.env["WEBDA_AWS_KEY"] === undefined;
     if (skip) {
       console.log("Not running as no AWS env found");
     }
@@ -46,7 +46,7 @@ describe('Lambda', function() {
 
     var methods = ["GET", "PUT", "POST", "DELETE"];
     for (var i in methods) {
-      if (process.env.AWS === undefined) {
+      if (skip) {
         it.skip(methods[i], undefined);
       } else {
         it(methods[i], function (method) {

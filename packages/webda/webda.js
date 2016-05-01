@@ -245,7 +245,11 @@ class Webda {
 	      	var params = extend({}, config.global.params);
 	      	params = extend(params, services[service]);
 	      	delete params.require;
-	      	services[service]._service = new serviceConstructor(this, service, params);
+	      	try {
+	      		services[service]._service = new serviceConstructor(this, service, params);
+	      	} catch (err) {
+	      		
+	      	}
 	    }
 
 	    // Init services

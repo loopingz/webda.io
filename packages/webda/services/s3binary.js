@@ -9,6 +9,12 @@ const _extend = require('util')._extend;
 class S3Binary extends Binary {
 	constructor(webda, name, params) {
 		super(webda, name, params);
+		if (params.accessKeyId === undefined) {
+			this._params.accessKeyId = params.accessKeyId = process.env["WEBDA_AWS_KEY"];
+		}
+		if (params.secretAccessKey === undefined) {
+			this._params.secretAccessKey = params.secretAccessKey = process.env["WEBDA_AWS_SECRET"];
+		}
 		if (params.bucket === undefined || params.accessKeyId === undefined || params.secretAccessKey === undefined) {
 			throw Error("Need to define a bucket,accessKeyId,secretAccessKey at least");
 		}
@@ -131,8 +137,11 @@ class S3Binary extends Binary {
 			for (var i in data.Contents) {
 				params.Delete.Objects.push({Key: data.Contents[i].Key});
 			}
+			if (params.Delete.Objects.length === 0) {
+				return Promise.resolve();
+			}
 			return this._s3.deleteObjects(params).promise();
-		}.bind(this)).catch(function (err) {console.log(err);});
+		}.bind(this));
 	}
 }
 

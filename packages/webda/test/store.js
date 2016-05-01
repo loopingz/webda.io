@@ -1,7 +1,6 @@
 var assert = require("assert")
 var Webda = require("../webda.js");
 var config = require("./config.json");
-var fs = require("fs");
 
 mapper = function (identStore, userStore) {
   var eventFired = 0;
@@ -142,17 +141,29 @@ crud = function (identStore,userStore) {
     assert.equal(getter, undefined);
   });
 };
+
+var skipDynamo = true;
+var skipMongo = true;
 describe('Store', function() {
-    var stores = [{"type": "FileStore","users": "users", "idents": "idents"}]; //,{"type": "MongoStore","users": "mongousers", "idents": "mongoidents"}];
     var webda;
     var identStore;
     var userStore;
+    before (function () {
+      skipMongo = process.env["WEBDA_MONGO_URL"] === undefined;
+      skipDynamo = process.env["WEBDA_AWS_KEY"] === undefined;
+      if (skipDynamo) {
+        console.log("Not running DynamoStore test as no AWS env found");
+      }
+      if (skipMongo) {
+        console.log("Not running MongoStore test as no MONGO env found");
+      }
+    });
     beforeEach(function () {
       webda = new Webda(config);
       webda.setHost("test.webda.io");
       webda.initAll();
     });
-    describe.skip('FileStore', function() {
+    describe('FileStore', function() {
       beforeEach(function () {
         identStore = webda.getService("idents");
         userStore = webda.getService("users");
@@ -164,22 +175,31 @@ describe('Store', function() {
       it('Basic CRUD', function() { return crud(identStore, userStore); });
       it('Mapper', function() { return mapper(identStore, userStore); });
     });
-    describe.skip('MongoStore', function() {
+    describe('MongoStore', function() {
       beforeEach(function () {
+        if (skipMongo) {
+          return;
+        }
         identStore = webda.getService("mongoidents");
         userStore = webda.getService("mongousers");
         assert.notEqual(identStore, undefined);
         assert.notEqual(userStore, undefined);
         return identStore.__clean().then (function() {
           return userStore.__clean();
+        }).catch (function(err) {
+          console.log(err);
+          return Promise.reject(err);
         });
       });
-      it('Basic CRUD', function() { return crud(identStore, userStore); });
-      it('Mapper', function() { return mapper(identStore, userStore); });
+      it('Basic CRUD', function() { if (skipMongo) { this.skip(); return; } return crud(identStore, userStore); });
+      it('Mapper', function() { if (skipMongo) { this.skip(); return; } return mapper(identStore, userStore); });
     });
     describe('DynamoStore', function() {
       var uuids = {};
       beforeEach(function () {
+        if (skipDynamo) {
+          return;
+        }
         identStore = webda.getService("dynamoidents");
         userStore = webda.getService("dynamousers");
         assert.notEqual(identStore, undefined);
@@ -189,7 +209,7 @@ describe('Store', function() {
           return userStore.__clean();
         });
       });
-      it.skip('Basic CRUD', function() { return crud(identStore, userStore); });
-      it('Mapper', function() { return mapper(identStore, userStore); });
+      it('Basic CRUD', function() { if (skipDynamo) { this.skip(); return; } return crud(identStore, userStore); });
+      it('Mapper', function() { if (skipDynamo) { this.skip(); return; } return mapper(identStore, userStore); });
     });
 });

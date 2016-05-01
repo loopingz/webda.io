@@ -7,6 +7,9 @@ class MongoStore extends Store {
 	constructor(webda, name, options) {
 		super(webda, name, options);
 		this._connectPromise = undefined;
+		if (options.mongo === undefined || options.mongo === '') {
+			this._params.mongo = options.mongo = process.env["WEBDA_MONGO_URL"];
+		}
 		if (options.collection === undefined || options.mongo === undefined) {
 			throw Error("collection and url must be setup");
 		}
@@ -15,7 +18,6 @@ class MongoStore extends Store {
 	_connect() {
 		if (this._connectPromise === undefined) {
 			this._connectPromise = new Promise( function(resolve, reject) {
-				console.log("Connect to: " + this._params.mongo);
 				MongoClient.connect(this._params.mongo, function(err, db) {
 				  if (err) {
 				  	return reject(err);

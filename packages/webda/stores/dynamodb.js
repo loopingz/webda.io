@@ -6,6 +6,12 @@ const AWS = require('aws-sdk');
 class DynamoStore extends Store {
 	constructor(webda, name, params) {
 		super(webda, name, params);
+		if (params.accessKeyId === undefined || params.accessKeyId === '') {
+			this._params.accessKeyId = params.accessKeyId = process.env["WEBDA_AWS_KEY"];
+		}
+		if (params.secretAccessKey === undefined || params.secretAccessKey === '') {
+			this._params.secretAccessKey = params.secretAccessKey = process.env["WEBDA_AWS_SECRET"];
+		}
 		this._connectPromise = undefined;
 		if (params.table === undefined || params.accessKeyId === undefined || params.secretAccessKey === undefined) {
 			throw Error("Need to define a table,accessKeyId,secretAccessKey at least");

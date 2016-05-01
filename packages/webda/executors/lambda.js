@@ -4,6 +4,12 @@ const CustomExecutor = require("./custom.js");
 class LambdaExecutor extends CustomExecutor {
 	constructor(webda, name, params) {
 		super(webda, name, params);
+		if (params.accessKeyId === undefined || params.accessKeyId === '') {
+			this._params.accessKeyId = params.accessKeyId = process.env["WEBDA_AWS_KEY"];
+		}
+		if (params.secretAccessKey === undefined || params.secretAccessKey === '') {
+			this._params.secretAccessKey = params.secretAccessKey = process.env["WEBDA_AWS_SECRET"];
+		}
 	};
 
 	execute() {

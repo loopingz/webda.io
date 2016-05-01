@@ -24,7 +24,7 @@
 					"inject": "user",
 					"check": "user",
 					"map": {
-							"mongoidents": {
+							"mongousers": {
 								"key": "user",
 								"target": "idents",
 								"fields": "type",

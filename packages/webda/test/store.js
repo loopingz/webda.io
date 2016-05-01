@@ -16,7 +16,11 @@ mapper = function (identStore, userStore) {
   var ident1;
   var ident2;
   return userStore.save({'name': 'test'}).then( function (user) {
+    user1 = user.uuid;
+    return userStore.get(user1);
+  }).then( function(user) {
     // Save a user and add an ident
+    assert.notEqual(user, undefined);
     user1 = user.uuid;
     return identStore.save({"type": "facebook", "user": user.uuid});
   }).then( function(ident) {
@@ -26,7 +30,7 @@ mapper = function (identStore, userStore) {
     // Verify the ident is on the user
     assert.notEqual(user, undefined);
     assert.notEqual(user.idents, undefined);
-    assert.equal(user.idents.length, 1);
+    assert.equal(user.idents.length, 1);    
     return identStore.save({"type": "google", "user": user.uuid});
   }).then( function(ident) {
     // Add a second ident and check it is on the user aswell
@@ -100,6 +104,7 @@ crud = function (identStore,userStore) {
   return identStore.save({"test": "plop"}).then (function (object) {
     ident1 = object;
     assert.equal(eventFired, 2);
+    assert.notEqual(object, undefined);
     eventFired = 0;
     return identStore.get(ident1.uuid);
   }).then (function (getter) {
@@ -155,14 +160,15 @@ describe('Store', function() {
       it('Basic CRUD', function() { return crud(identStore, userStore); });
       it('Mapper', function() { return mapper(identStore, userStore); });
     });
-    describe.skip('MongoStore', function() {
+    describe('MongoStore', function() {
       beforeEach(function () {
         identStore = webda.getService("mongoidents");
         userStore = webda.getService("mongousers");
         assert.notEqual(identStore, undefined);
         assert.notEqual(userStore, undefined);
-        identStore.__clean();
-        userStore.__clean();
+        return identStore.__clean().then (function() {
+          return userStore.__clean();
+        });
       });
       it('Basic CRUD', function() { return crud(identStore, userStore); });
       it('Mapper', function() { return mapper(identStore, userStore); });

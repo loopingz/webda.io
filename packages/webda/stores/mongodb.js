@@ -30,40 +30,67 @@ class MongoStore extends Store {
 	}
 
 	exists(uid) {
-		// existsSync is deprecated might change it
-		return fs.existsSync(this.file(uid));
+		// Should use find + limit 1
+		return this._get(uid).then (function (result) {
+			Promise.resolve(result !== undefined);
+		});
 	}
 
 	_save(object, uid) {
-		return new Promise( function (resolve, reject) {
-			this._collection.insertOne(object, function(err, result) {
-
-			});
+		object._id = object.uuid;
+		return this._connect().then( function() {
+			return this._collection.insertOne(object);
+		}.bind(this)).then (function () {
+			return Promise.resolve(object);
 		});
 	}
 
 	_find(request, offset, limit) {
-		this._collection.insertOne(object, function(err, result) {
-
-		});
-		return object;
+		return this._connect().then( function() {
+			return new Promise( function (resolve, reject) {
+				this._collection.find({ _id: uid}, function(err, result) {
+					if (err) {
+						reject(err);
+					}
+					resolve(result);
+				});
+			}.bind(this));
+		}.bind(this));
 	}
 
 	_delete(uid) {
-		this._collection.deleteOne({ uuid: uid}, function(err, result) {
-
-		});
-		// Should make it sync ?
+		return this._connect().then( function() {
+			return this._collection.deleteOne({ _id: uid});
+		}.bind(this));
 	}
 
 	_update(object, uid) {
-		this._collection.updateOne({ uuid: uid}, object, function (err, reuslt) {
-
+		return this._connect().then( function() {
+			return this._collection.updateOne({ _id: uid}, {'$set': object});
+		}.bind(this)).then (function (result) {
+			return Promise.resolve(object);
 		});
 	}
 
 	_get(uid) {
-		this._collection.find({ uuid: uid});
+		return this._connect().then( function() {
+			return this._collection.findOne({ _id: uid});
+		}.bind(this)).then (function(result) {
+			return Promise.resolve(result===null?undefined:result);
+		}.bind(this));
+	}
+
+	___cleanData() {
+		return this._connect().then( function() {
+			return new Promise( function (resolve, reject) {
+				this._collection.remove(function(err, result) {
+					if (err) {
+						reject(err);
+					}
+					resolve(result);
+				});
+			}.bind(this));
+		}.bind(this));
 	}
 }
 

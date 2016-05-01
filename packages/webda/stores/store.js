@@ -83,6 +83,8 @@ class Store extends Executor {
 		}.bind(this)).then( function(object) {
 			this.emit('storeSaved', {'object': object, 'store': this});
 			if (this._params.map != undefined) {
+				//console.log('storesaved...');
+				//return this.get(object.user);
 				return this.handleMap(object, this._params.map, "created").then( function() {
 					return Promise.resolve(object);
 				}, function (err) {
@@ -113,6 +115,9 @@ class Store extends Executor {
 						delete object[this._reverseMap[i]];
 					}
 				}
+			}
+			if (Object.keys(object).length === 0) {
+				resolve({});
 			}
 			if (this._params.map != undefined) {
 				resolve(this._get(uid).then(function(loaded) {
@@ -180,7 +185,9 @@ class Store extends Executor {
 	}
 
 	_handleUpdatedMapTransferOut(object, map, mapped, store, updates) {
-		return store.save(mapped, mapped.uuid).then( function() {
+		var update = {};
+		update[map.target] = mapped[map.target];
+		return store.update(update, mapped.uuid, false).then( function() {
 			return this._handleUpdatedMapTransferIn(object, map, store, updates);
 		}.bind(this));
 	}
@@ -227,12 +234,16 @@ class Store extends Executor {
 		}
 		if (this.removeMapper(mapped[map.target], object.uuid)) {
 			// TODO Should be update
-			return store.save(mapped, mapped.uuid);
+			var update = {};
+			update[map.target] = mapped[map.target];
+			return store.update(update, mapped.uuid, false);
 		}
 		return Promise.resolve();
 	}
 
 	_handleCreatedMap(object, map, mapped, store) {
+		var update = {};
+		update[map.target] = mapped[map.target];
 		// Add to the object
 		var mapper = {};
 		mapper.uuid = object.uuid;
@@ -244,9 +255,8 @@ class Store extends Executor {
 			}
 		}
 		// Can happen with self defined uuid like ident
-		mapped[map.target].push(mapper);
-		// TODO Should be update
-		return store.save(mapped);
+		update[map.target].push(mapper);
+		return store.update(update, mapped.uuid, false);
 	}
 
 	handleMap(object, map, updates) {
@@ -319,7 +329,7 @@ class Store extends Executor {
 				return Promise.resolve();
 			}
 		}.bind(this)).then(function () {
-			if (this._cascade != undefined) {
+			if (this._cascade != undefined && to_delete !== undefined) {
 				var promises = [];
 				// Should deactiate the mapping in that case
 				for (var i in this._cascade) {

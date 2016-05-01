@@ -417,17 +417,18 @@ class Store extends Executor {
 				if (!this.checkAuthentication(object)) {
 					return;
 				}
-				this.writeHead(200, {'Content-type': 'application/json'});
-				var result = {};
-				for (var prop in object) {
-					// Server private property
-					if (prop[0] == "_") {
-						continue;
+				this.writeHead(200, {'Content-type': 'application/json'}).then( function() {
+					var result = {};
+					for (var prop in object) {
+						// Server private property
+						if (prop[0] == "_") {
+							continue;
+						}
+						result[prop] = object[prop]
 					}
-					result[prop] = object[prop]
-				}
-	            this.write(JSON.stringify(result));
-				this.end();
+		            this.write(JSON.stringify(result));
+					this.end();
+				});
 				return;
 			} else {
 				// List probably
@@ -445,8 +446,9 @@ class Store extends Executor {
 				return;
 			}
 			if (this.params.uuid) {
-				store.delete(this.params.uuid);
-				throw 204;
+				store.delete(this.params.uuid).then( function() {
+					throw 204;	
+				});
 			}
 		} else if (this._http.method == "POST") {
 			var object = this.body;
@@ -471,10 +473,11 @@ class Store extends Executor {
 					delete object[prop]
 				}
 			}
-			var new_object = store.save(object, object.uuid);
-			this.writeHead(200, {'Content-type': 'application/json'});
-			this.write(JSON.stringify(new_object));
-			this.end();
+			store.save(object, object.uuid).then (function (new_object) {
+				this.writeHead(200, {'Content-type': 'application/json'});
+				this.write(JSON.stringify(new_object));
+				this.end();
+			});
 			return;
 		} else if (this._http.method == "PUT") {
 			if (this.callable.expose.restrict != undefined
@@ -495,16 +498,18 @@ class Store extends Executor {
 					delete this.body[prop]
 				}
 			}
-			var object = store.update(this.body, this.params.uuid);
-			if (object == undefined) {
-				throw 500;
-			}
-			this.writeHead(200, {'Content-type': 'application/json'});
-			this.write(JSON.stringify(object));
-			this.end();
+			store.update(this.body, this.params.uuid).then (function (object) {
+				if (object == undefined) {
+					throw 500;
+				}
+				this.writeHead(200, {'Content-type': 'application/json'});
+				this.write(JSON.stringify(object));
+				this.end();	
+			});			
 			return;
+		} else {
+			throw 404;
 		}
-		throw 404;
 	}
 
 }

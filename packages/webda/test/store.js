@@ -101,7 +101,7 @@ crud = function (identStore,userStore) {
     });
   }
   // Check CREATE - READ
-  return identStore.save({"test": "plop"}).then (function (object) {
+  return identStore.save({"test": "plop", 'details': {'plop': 'plop1', 'yop': 'pouf'}}).then (function (object) {
     ident1 = object;
     assert.equal(eventFired, 2);
     assert.notEqual(object, undefined);
@@ -116,14 +116,18 @@ crud = function (identStore,userStore) {
     
     // Check UPDATE
     getter.test = "plop2"
+    getter.details.plop = "plop2";
     return identStore.update(getter);
   }).then (function (object) {
     assert.equal(eventFired, 2);
     eventFired = 0;
+    return identStore.get(ident1.uuid);
+  }).then (function (object) {
     assert.equal(object.test, "plop2");
+    assert.equal(object.details.plop, "plop2");
     return identStore.get(object.uuid);
   }).then (function (getter) {
-    assert.equal(eventFired, 1);
+    assert.equal(eventFired, 2);
     eventFired = 0;
     assert.equal(getter.test, "plop2");
     // Check DELETE
@@ -148,7 +152,7 @@ describe('Store', function() {
       webda.setHost("test.webda.io");
       webda.initAll();
     });
-    describe('FileStore', function() {
+    describe.skip('FileStore', function() {
       beforeEach(function () {
         identStore = webda.getService("idents");
         userStore = webda.getService("users");
@@ -160,7 +164,7 @@ describe('Store', function() {
       it('Basic CRUD', function() { return crud(identStore, userStore); });
       it('Mapper', function() { return mapper(identStore, userStore); });
     });
-    describe('MongoStore', function() {
+    describe.skip('MongoStore', function() {
       beforeEach(function () {
         identStore = webda.getService("mongoidents");
         userStore = webda.getService("mongousers");
@@ -171,6 +175,21 @@ describe('Store', function() {
         });
       });
       it('Basic CRUD', function() { return crud(identStore, userStore); });
+      it('Mapper', function() { return mapper(identStore, userStore); });
+    });
+    describe('DynamoStore', function() {
+      var uuids = {};
+      beforeEach(function () {
+        identStore = webda.getService("dynamoidents");
+        userStore = webda.getService("dynamousers");
+        assert.notEqual(identStore, undefined);
+        assert.notEqual(userStore, undefined);
+
+        return identStore.__clean().then (function() {
+          return userStore.__clean();
+        });
+      });
+      it.skip('Basic CRUD', function() { return crud(identStore, userStore); });
       it('Mapper', function() { return mapper(identStore, userStore); });
     });
 });

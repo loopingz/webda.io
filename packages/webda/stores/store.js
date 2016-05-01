@@ -67,13 +67,17 @@ class Store extends Executor {
 		return this._params.type + "[" + this._name + "]";
 	}
 
+	generateUid() {
+		return uuid.v4();
+	}
+
 	save(object, uid) {
 		return new Promise( function(resolve, reject) {
 			if (uid == undefined) {
 				uid = object.uuid;
 			}
 			if (uid == undefined) {
-				uid = uuid.v4();
+				uid = this.generateUid();
 			}
 			if (object.uuid == undefined || object.uuid != uid) {
 				object.uuid = uid;
@@ -463,7 +467,7 @@ class Store extends Executor {
 				object.user = this.session.currentuser.uuid;
 			}
 			if (!object.uuid) {
-				object.uuid = uuid.v4();
+				object.uuid = this.generateUid();
 			}
 			if (store.exists(object.uuid)) {
 				throw 409;

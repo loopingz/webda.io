@@ -50,6 +50,7 @@ class Webda {
 		this._services['Authentication']=require('./services/passport');
 		this._services['FileStore']=require('./stores/file');
 		this._services['MongoStore']=require('./stores/mongodb');
+		this._services['DynamoStore']=require('./stores/dynamodb');
 		this._services['FileBinary']=require('./services/filebinary');
 		this._services['S3Binary']=require('./services/s3binary');
 		CONFIG = this.loadConfiguration(config);

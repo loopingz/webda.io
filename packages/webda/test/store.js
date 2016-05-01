@@ -1,5 +1,5 @@
 var assert = require("assert")
-var Webda = require("../webda.js");
+var Webda = require("../core/webda.js");
 var config = require("./config.json");
 
 mapper = function (identStore, userStore) {

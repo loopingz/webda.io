@@ -94,7 +94,14 @@ class DynamoStore extends Store {
 	}
 
 	___cleanData() {
-		return Promise.resolve();
+		var params = {'TableName': this._params.table};
+		return this._client.scan(params).promise().then (function (result) {
+			var promises = [];
+			for (var i in result.Items) {
+				promises.push(this._delete(result.Items[i].uuid));
+			}
+			return Promise.all(promises);
+		}.bind(this));
 	}
 }
 

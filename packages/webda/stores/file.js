@@ -38,35 +38,35 @@ class FileStore extends Store {
 	}
 
 	_delete(uid) {
-		return this.exists(uid).then (function (res) {
+		return this.exists(uid).then ( (res) => {
 			if (res) {
 				fs.unlinkSync(this.file(uid));
 			}
 			return Promise.resolve();
-		}.bind(this));
+		});
 	}
 
 	_update(object, uid) {
-		return this.exists(uid).then( function (found) {
+		return this.exists(uid).then( (found) => {
 			if (!found) {
 				return Promise.reject(Error('NotFound'));
 			}
 			return this._get(uid);
-		}.bind(this)).then( function(stored) {
+		}).then( (stored) => {
 			for (var prop in object) {
 				stored[prop]=object[prop];
 			}
 			return this._save(stored, uid);
-		}.bind(this));
+		});
 	}
 
 	_get(uid) {
-		return this.exists(uid).then (function (res) {
+		return this.exists(uid).then ((res) => {
 			if (res) {
 				return Promise.resolve(JSON.parse(fs.readFileSync(this.file(uid))));		
 			}
 			return Promise.resolve(undefined);
-		}.bind(this));
+		});
 	}
 
 	___cleanData() {

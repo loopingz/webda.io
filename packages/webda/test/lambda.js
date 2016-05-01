@@ -7,29 +7,6 @@ var webda;
 var resp;
 var skip = false;
 
-class FakeResponse {
-  constructor () {
-
-  }
-  writeHead(number, options) {
-    this.httpCode = number;
-    this.httpHeader = options;
-  }
-  write(data) {
-    this.data = data;
-  }
-  end() {
-
-  }
-}
-
-class FakeRequest {
-  constructor () {
-    this.session = {};
-    this.body = {};
-  }
-}
-
 describe('Lambda', function() {
   before (function() {
     skip = process.env["WEBDA_AWS_KEY"] === undefined;
@@ -39,7 +16,6 @@ describe('Lambda', function() {
   })
   beforeEach( function() {
     webda = new Webda(config);
-    resp = new FakeResponse();
     webda.setHost("test.webda.io");
   });
   describe('launch()', function () {
@@ -52,9 +28,18 @@ describe('Lambda', function() {
           this.skip();
           return;
         }
+        var resp = {};
+        webda.flushHeaders = (executor) => {
+          resp.httpCode = executor._returnCode;
+          resp.httpHeader = executor._headers;
+        }
+        webda.flush = (executor) => {
+          resp.data = executor._body;
+        }
         var callable = webda.getExecutor("test.webda.io", methods[i], "/webda");
-        callable.context(new FakeRequest(), resp);
+        callable.context({}, {});
         return callable.execute().then( function() {
+          assert.notEqual(resp, undefined);
           assert.equal(resp.httpCode, 200);
           assert.equal(resp.httpHeader['Content-Type'], 'text/plain');
           assert.equal(resp.data, methods[i] + ' called');

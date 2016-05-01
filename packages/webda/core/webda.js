@@ -92,20 +92,23 @@ class Webda {
 		var result = null;
 		// Default load from file
 		if (process.env.WEBDA_CONFIG == undefined) {
+			config = '../webda.config.js';
+			if (fs.existsSync(config)) {
+				console.log("load config.js");
+				return require(config);
+			}
 			config = '../webda-config.json';
 			if (fs.existsSync(config)) {
-				result = require(config);
+				console.log("load config.json");
+				return require(config);
 			}
 			config = '/etc/webda/config.json';
 			if (result == undefined && fs.existsSync(config)) {
-				result = require(config);
+				return require(config);
 			}
 		} else {
-			result = require(process.env.WEBDA_CONFIG);
+			return require(process.env.WEBDA_CONFIG);
 		}
-		return result;
-		// Load from URL
-		console.log("Configuration can't be found");
 	}
 
 	setHost(host) {
@@ -243,7 +246,11 @@ class Webda {
 	        	serviceConstructor = this._services[type];
 	      	} else {
 		      	try {
-		        	serviceConstructor = require(include)
+		      		if (typeof(include) === "string") {
+		        		serviceConstructor = require(include)
+		        	} else {
+		        		serviceConstructor = include;
+		        	}
 		      	} catch (ex) {
 		        	console.log(ex);
 		        	continue;

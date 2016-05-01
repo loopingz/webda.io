@@ -30,12 +30,12 @@ class SecureCookie {
 			_extend(this, data);
 		}
 		// Should use Proxy if available
-		Object.observe(this, function (changes) {
+		Object.observe(this, (changes) => {
 			if (changes[0].name == "_changed") {
 				return;
 			}
 			this._changed = true;
-		}.bind(this));
+		});
 	}
 
 	_decrypt(data) {

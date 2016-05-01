@@ -13,8 +13,7 @@ class LambdaExecutor extends CustomExecutor {
 	};
 
 	execute() {
-		return new Promise( function(resolve, reject) {
-			var self = this;
+		return new Promise( (resolve, reject) => {
 			var AWS = require('aws-sdk');
 			AWS.config.update({region: 'us-west-2'});
 			AWS.config.update({accessKeyId: this.params['accessKeyId'], secretAccessKey: this.params['secretAccessKey']});
@@ -27,19 +26,19 @@ class LambdaExecutor extends CustomExecutor {
 				LogType: 'None',
 				Payload: JSON.stringify(this['params'])// not sure here / new Buffer('...') || 'STRING_VALUE'
 		    };
-		  	lambda.invoke(params, function(err, data) {
+		  	lambda.invoke(params, (err, data) => {
 		    	if (err) {
 		      		console.log(err, err.stack);
-		      		self.writeHead(500, {'Content-Type': 'text/plain'});
-		      		self.end();
+		      		this.writeHead(500, {'Content-Type': 'text/plain'});
+		      		this.end();
 		      		return reject(err);
 		    	}
 		    	if (data.Payload != '{}') {
-		    		self.handleResult(data.Payload);
+		    		this.handleResult(data.Payload);
 		    	}
 		    	return resolve();
 		  	});
-		}.bind(this));
+		});
 	}
 }
 

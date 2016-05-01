@@ -25,8 +25,7 @@ class Mailer extends Service {
 			return;
 		}
 		console.log("Send an email");
-		this._transporter.sendMail(options, callback);
-
+		return this._transporter.sendMail(options, callback);
 	}
 }
 

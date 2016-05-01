@@ -126,13 +126,13 @@ class S3Binary extends Binary {
 	}
 
 	update(targetStore, object, property, index, file, metadatas) {
-		return this._cleanUsage(object[property][index].hash, object.uuid).then( function () {
+		return this._cleanUsage(object[property][index].hash, object.uuid).then( () => {
 			return this.store(targetStore, object, property, file, metadatas, index);
-		}.bind(this));
+		});
 	}
 
 	___cleanData() {
-		return this._s3.listObjects({Bucket: this._params.bucket}).promise().then( function(data) {
+		return this._s3.listObjects({Bucket: this._params.bucket}).promise().then( (data) => {
 			var params = {Bucket: this._params.bucket, Delete: { Objects: []}};
 			for (var i in data.Contents) {
 				params.Delete.Objects.push({Key: data.Contents[i].Key});
@@ -141,7 +141,7 @@ class S3Binary extends Binary {
 				return Promise.resolve();
 			}
 			return this._s3.deleteObjects(params).promise();
-		}.bind(this));
+		});
 	}
 }
 

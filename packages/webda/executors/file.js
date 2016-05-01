@@ -8,8 +8,12 @@ class FileExecutor extends CustomExecutor {
 	}
 
 	execute() {
-		var include = "." + this.callable.file;
-		return require(include)(this);
+		if (typeof(this.callable.file) === "string") {
+			var include = "." + this.callable.file;
+			return require(include)(this);
+		} else {
+			return this.callable.file(this);
+		}
 	}
 }
 

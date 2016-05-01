@@ -30,14 +30,14 @@ class FileBinary extends Binary {
 	}
 
 	getUsageCount(hash) {
-		return new Promise( function(resolve, reject) {
+		return new Promise( (resolve, reject) => {
 			var path = this._getPath(hash);
 			if (!fs.existsSync(path)) {
 				resolve(0);
 			}
 			var files = fs.readdirSync(path);
 			resolve(files.length - 2);
-		}.bind(this));
+		});
 	}
 
 	_cleanHash(hash) {
@@ -58,12 +58,12 @@ class FileBinary extends Binary {
 	}
 
 	delete(targetStore, object, property, index) {
-		return new Promise( function(resolve, reject) {
+		return new Promise( (resolve, reject) => {
 			var hash = object[property][index].hash;
 			this.deleteSuccess(targetStore, object, property, index);
 			this._cleanUsage(hash, object.uuid);
 			resolve();
-		}.bind(this));
+		});
 	}
 
 	challenge(hash, challenge) {
@@ -90,7 +90,7 @@ class FileBinary extends Binary {
 	}
 
 	store(targetStore, object, property, file, metadatas) {
-		return new Promise( function(resolve, reject) {
+		return new Promise( (resolve, reject) => {
 			this._checkMap(targetStore._name, property);
 			this._prepareInput(file);
 			file = _extend(file, this._getHashes(file.buffer));
@@ -102,11 +102,11 @@ class FileBinary extends Binary {
 			this._store(file, targetStore, object)
 			this.storeSuccess(targetStore, object, property, file, metadatas);
 			return resolve();
-		}.bind(this));
+		});
 	}
 
 	update(targetStore, object, property, index, file, metadatas) {
-		return new Promise( function(resolve, reject) {
+		return new Promise( (resolve, reject) => {
 			this._checkMap(targetStore._name, property);
 			this._prepareInput(file);
 			file = _extend(file, this._getHashes(file.buffer));
@@ -118,7 +118,7 @@ class FileBinary extends Binary {
 			this._store(file, targetStore, object)
 			this.updateSuccess(targetStore, object, property, index, file, metadatas);
 			return resolve();
-		}.bind(this));
+		});
 	}
 
 	___cleanData() {

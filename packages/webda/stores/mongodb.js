@@ -17,82 +17,82 @@ class MongoStore extends Store {
 
 	_connect() {
 		if (this._connectPromise === undefined) {
-			this._connectPromise = new Promise( function(resolve, reject) {
-				MongoClient.connect(this._params.mongo, function(err, db) {
+			this._connectPromise = new Promise( (resolve, reject) => {
+				MongoClient.connect(this._params.mongo, (err, db) => {
 				  if (err) {
 				  	return reject(err);
 				  }
 				  this._db = db;
 				  this._collection = this._db.collection(this._params.collection);
 				  return resolve();
-				}.bind(this));
-			}.bind(this));
+				});
+			});
 		}
 		return this._connectPromise;
 	}
 
 	exists(uid) {
 		// Should use find + limit 1
-		return this._get(uid).then (function (result) {
+		return this._get(uid).then ((result) => {
 			Promise.resolve(result !== undefined);
 		});
 	}
 
 	_save(object, uid) {
 		object._id = object.uuid;
-		return this._connect().then( function() {
+		return this._connect().then( () => {
 			return this._collection.insertOne(object);
-		}.bind(this)).then (function () {
+		}).then ( () => {
 			return Promise.resolve(object);
 		});
 	}
 
 	_find(request, offset, limit) {
-		return this._connect().then( function() {
-			return new Promise( function (resolve, reject) {
-				this._collection.find({ _id: uid}, function(err, result) {
+		return this._connect().then( () => {
+			return new Promise( (resolve, reject) => {
+				this._collection.find({ _id: uid}, (err, result) => {
 					if (err) {
 						reject(err);
 					}
 					resolve(result);
 				});
-			}.bind(this));
-		}.bind(this));
+			});
+		});
 	}
 
 	_delete(uid) {
-		return this._connect().then( function() {
+		return this._connect().then( () => {
 			return this._collection.deleteOne({ _id: uid});
-		}.bind(this));
+		});
 	}
 
 	_update(object, uid) {
-		return this._connect().then( function() {
+		return this._connect().then( () => {
 			return this._collection.updateOne({ _id: uid}, {'$set': object});
-		}.bind(this)).then (function (result) {
+		}).then ( (result) => {
 			return Promise.resolve(object);
 		});
 	}
 
 	_get(uid) {
-		return this._connect().then( function() {
+		return this._connect().then( () => {
 			return this._collection.findOne({ _id: uid});
-		}.bind(this)).then (function(result) {
+		}).then ((result) => {
 			return Promise.resolve(result===null?undefined:result);
-		}.bind(this));
+		});
 	}
 
 	___cleanData() {
-		return this._connect().then( function() {
-			return new Promise( function (resolve, reject) {
-				this._collection.remove(function(err, result) {
+		return this._connect().then( () => {
+			return new Promise( (resolve, reject) => {
+				this._collection.remove((err, result) => {
 					if (err) {
 						reject(err);
 					}
 					resolve(result);
 				});
-			}.bind(this));
-		}.bind(this));
+			});
+		});
 	}
 }
 

@@ -42,21 +42,21 @@ class DynamoStore extends Store {
 	}
 
 	_find(request, offset, limit) {
-		return this._connect().then( function() {
-			return new Promise( function (resolve, reject) {
+		return this._connect().then( () => {
+			return new Promise( (resolve, reject) => {
 				this._collection.find({ _id: uid}, function(err, result) {
 					if (err) {
 						reject(err);
 					}
 					resolve(result);
 				});
-			}.bind(this));
-		}.bind(this));
+			});
+		});
 	}
 
 	_delete(uid) {
 		var params = {'TableName': this._params.table, 'Key': {"uuid": uid}};
-		return this._client.delete(params).promise().then (function(result) {
+		return this._client.delete(params).promise().then ((result) => {
 			return Promise.resolve(result);
 		});
 	}
@@ -81,27 +81,27 @@ class DynamoStore extends Store {
 			return Promise.resolve();
 		}
 		var params = {'TableName': this._params.table, 'Key': {"uuid": uid}, 'UpdateExpression': expr, ExpressionAttributeValues: attrValues, ExpressionAttributeNames: attrs};
-		return this._client.update(params).promise().then (function(result) {
+		return this._client.update(params).promise().then ((result) => {
 			return Promise.resolve(result);
 		});
 	}
 
 	_get(uid) {
 		var params = {'TableName': this._params.table, 'Key': {"uuid": uid}};
-		return this._client.get(params).promise().then (function(result) {
+		return this._client.get(params).promise().then ((result) => {
 			return Promise.resolve(result.Item);
 		});
 	}
 
 	___cleanData() {
 		var params = {'TableName': this._params.table};
-		return this._client.scan(params).promise().then (function (result) {
+		return this._client.scan(params).promise().then ((result) => {
 			var promises = [];
 			for (var i in result.Items) {
 				promises.push(this._delete(result.Items[i].uuid));
 			}
 			return Promise.all(promises);
-		}.bind(this));
+		});
 	}
 }
 

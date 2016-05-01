@@ -72,7 +72,7 @@ class Store extends Executor {
 	}
 
 	save(object, uid) {
-		return new Promise( function(resolve, reject) {
+		return new Promise( (resolve, reject) => {
 			if (uid == undefined) {
 				uid = object.uuid;
 			}
@@ -84,12 +84,12 @@ class Store extends Executor {
 			}
 			this.emit('storeSave', {'object': object, 'store': this});
 			resolve(this._save(object, uid));
-		}.bind(this)).then( function(object) {
+		}).then( (object) => {
 			this.emit('storeSaved', {'object': object, 'store': this});
 			if (this._params.map != undefined) {
 				//console.log('storesaved...');
 				//return this.get(object.user);
-				return this.handleMap(object, this._params.map, "created").then( function() {
+				return this.handleMap(object, this._params.map, "created").then( () => {
 					return Promise.resolve(object);
 				}, function (err) {
 					return Promise.reject(err)
@@ -97,7 +97,7 @@ class Store extends Executor {
 			} else {
 				return Promise.resolve(object);
 			}
-		}.bind(this));
+		});
 	}
 
 	_save(object, uid) {
@@ -105,7 +105,7 @@ class Store extends Executor {
 	}
 
 	update(object, uid, reverseMap) {
-		return new Promise( function(resolve, reject) {
+		return new Promise( (resolve, reject) => {
 			if (uid == undefined) {
 				uid = object.uuid;
 			}
@@ -124,20 +124,20 @@ class Store extends Executor {
 				resolve({});
 			}
 			if (this._params.map != undefined) {
-				resolve(this._get(uid).then(function(loaded) {
+				resolve(this._get(uid).then((loaded) => {
 					return this.handleMap(loaded, this._params.map, object);
-				}.bind(this)).then(function() {
+				}).then(() => {
 					this.emit('storeUpdate', {'object': object, 'store': this});
 					return this._update(object, uid);
-				}.bind(this)));
+				}));
 			} else {
 				this.emit('storeUpdate', {'object': object, 'store': this});
 				resolve(this._update(object, uid));
 			}
-		}.bind(this)).then (function (result) {
+		}).then ( (result) => {
 			this.emit('storeUpdated', {'object': result, 'store': this});
 			return Promise.resolve(result);
-		}.bind(this));
+		});
 	}
 
 	removeMapper(map, uuid, mapper) {
@@ -191,14 +191,14 @@ class Store extends Executor {
 	_handleUpdatedMapTransferOut(object, map, mapped, store, updates) {
 		var update = {};
 		update[map.target] = mapped[map.target];
-		return store.update(update, mapped.uuid, false).then( function() {
+		return store.update(update, mapped.uuid, false).then( () => {
 			return this._handleUpdatedMapTransferIn(object, map, store, updates);
-		}.bind(this));
+		});
 	}
 
 	_handleUpdatedMapTransferIn(object, map, store, updates) {
 		// TODO Should be update
-		return store.get(updates[map.key]).then(function(mapped) {
+		return store.get(updates[map.key]).then((mapped) => {
 			if (mapped == undefined) {
 				return Promise.resolve();
 			}
@@ -207,7 +207,7 @@ class Store extends Executor {
 				mapped[map.target]=[];
 			}
 			return this._handleUpdatedMapMapper(object, map, mapped, store, updates);
-		}.bind(this));
+		});
 	}
 
 	_handleUpdatedMapMapper(object, map, mapped, store, updates) {
@@ -278,7 +278,7 @@ class Store extends Executor {
 			if (store == undefined) {
 				continue;
 			}
-			promises.push(store.get(object[map[prop].key]).then( function(mapped) {
+			promises.push(store.get(object[map[prop].key]).then( (mapped) => {
 				if (mapped == undefined) {
 					return Promise.resolve();
 				}
@@ -295,7 +295,7 @@ class Store extends Executor {
 				} else {
 					return Promise.reject(Error("Unknown handleMap type " + updates));
 				}
-			}.bind(this)));
+			}));
 		}
 		if (promises.length == 1) {
 			return promises[0];
@@ -316,7 +316,7 @@ class Store extends Executor {
 
 	delete(uid, no_map) {
 		var to_delete;
-		return new Promise( function(resolve, reject) {
+		return new Promise( (resolve, reject) => {
 			if (typeof(uid) === 'object') {
 				to_delete = uid;
 				uid = to_delete.uuid;
@@ -324,7 +324,7 @@ class Store extends Executor {
 			} else {
 				resolve(this._get(uid));
 			}	
-		}.bind(this)).then(function (obj) {
+		}).then( (obj) => {
 			to_delete = obj;
 			this.emit('storeDelete', {'object': obj, 'store': this});
 			if (this._params.map != undefined) {
@@ -332,7 +332,7 @@ class Store extends Executor {
 			} else {
 				return Promise.resolve();
 			}
-		}.bind(this)).then(function () {
+		}).then( () => {
 			if (this._cascade != undefined && to_delete !== undefined) {
 				var promises = [];
 				// Should deactiate the mapping in that case
@@ -348,12 +348,12 @@ class Store extends Executor {
 			} else {
 				Promise.resolve();
 			}
-		}.bind(this)).then(function () {
+		}).then( () => {
 			return this._delete(uid);
-		}.bind(this)).then (function () {
+		}).then ( () => {
 			this.emit('storeDeleted', {'object': to_delete, 'store': this});
 			return Promise.resolve();
-		}.bind(this));
+		});
 	}
 
 	_delete(uid) {
@@ -361,10 +361,10 @@ class Store extends Executor {
 	}
 
 	get(uid) {
-		return this._get(uid).then ( function (object) {
+		return this._get(uid).then ( (object) => {
 			this.emit('storeGet', {'object': object, 'store': this});
 			return Promise.resolve(object);
-		}.bind(this));
+		});
 	}
 
 	_get(uid) {
@@ -372,13 +372,13 @@ class Store extends Executor {
 	}
 
 	find(request, offset, limit) {
-		return new Promise( function(resolve, reject) {
+		return new Promise( (resolve, reject) => {
 			this.emit('storeFind', {'request': request, 'store': this, 'offset': offset, 'limit': limit});
 			return resolve(this._find(request, offset, limit));
-		}.bind(this)).then (function (result) {
+		}).then ( (result) => {
 			this.emit('storeFound', {'request': request, 'store': this, 'offset': offset, 'limit': limit, 'results': result});
 			return Promise.resolve(result);
-		}.bind(this));
+		});
 	}
 
 	_find(request, offset, limit) {
@@ -421,7 +421,7 @@ class Store extends Executor {
 				if (!this.checkAuthentication(object)) {
 					return;
 				}
-				this.writeHead(200, {'Content-type': 'application/json'}).then( function() {
+				this.writeHead(200, {'Content-type': 'application/json'}).then( () => {
 					var result = {};
 					for (var prop in object) {
 						// Server private property
@@ -450,7 +450,7 @@ class Store extends Executor {
 				return;
 			}
 			if (this.params.uuid) {
-				store.delete(this.params.uuid).then( function() {
+				store.delete(this.params.uuid).then( () => {
 					throw 204;	
 				});
 			}
@@ -477,7 +477,7 @@ class Store extends Executor {
 					delete object[prop]
 				}
 			}
-			store.save(object, object.uuid).then (function (new_object) {
+			store.save(object, object.uuid).then ( (new_object) => {
 				this.writeHead(200, {'Content-type': 'application/json'});
 				this.write(JSON.stringify(new_object));
 				this.end();

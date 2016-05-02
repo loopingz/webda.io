@@ -48,7 +48,7 @@ class Executor extends Service {
 	}
 
 	write(output) {
-		if (typeof(output) == "object") {
+		if (typeof(output) == "object" && !(output instanceof Buffer)) {
 			this._headers['Content-type']='application/json';
 			this._body = this.toPublicJSON(output);
 			return;

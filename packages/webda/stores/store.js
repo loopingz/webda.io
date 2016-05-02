@@ -22,13 +22,13 @@ class Store extends Executor {
 	initRoutes(config, expose) {
 		if (typeof(expose) == "boolean") {
 	        expose = {};
-	        expose.url = "/" + this._name;
+	        expose.url = "/" + this._name.toLowerCase();
 	    } else if (typeof(expose) == "string") {
 			url = expose;
 			expose = {};
 			expose.url = url;
 		} else if (typeof(expose) == "object" && expose.url == undefined) {
-			expose.url = "/" + this._name;
+			expose.url = "/" + this._name.toLowerCase();
 		}
 		if (expose.restrict == undefined) {
 			expose.restrict = {}

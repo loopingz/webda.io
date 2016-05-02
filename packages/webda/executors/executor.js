@@ -49,7 +49,7 @@ class Executor extends Service {
 
 	write(output) {
 		if (typeof(output) == "object") {
-			self._headers['Content-type']='application/json';
+			this._headers['Content-type']='application/json';
 			this._body = this.toPublicJSON(output);
 			return;
 		} else if (typeof(output) == "string") {

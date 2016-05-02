@@ -88,25 +88,32 @@ class Webda {
 			return config;
 		}
 		var fs = require('fs');
-		var config = null;
-		var result = null;
-		// Default load from file
-		if (process.env.WEBDA_CONFIG == undefined) {
-			config = '../webda.config.js';
+		if (config !== undefined) {
 			if (fs.existsSync(config)) {
 				console.log("load config.js");
 				return require(config);
 			}
-			config = '../webda-config.json';
+		}
+		var result = null;
+		// Default load from file
+		if (process.env.WEBDA_CONFIG == undefined) {
+			config = './webda.config.js';
 			if (fs.existsSync(config)) {
-				console.log("load config.json");
-				return require(config);
+				console.log("load config.js");
+				return require('.' + config);
+			}
+			config = './webda-config.json';
+			if (fs.existsSync(config)) {
+				console.log("load webda-config.json");
+				return require('.' + config);
 			}
 			config = '/etc/webda/config.json';
 			if (result == undefined && fs.existsSync(config)) {
+				console.log("load " + config);
 				return require(config);
 			}
 		} else {
+			console.log("load " + process.env.WEBDA_CONFIG);
 			return require(process.env.WEBDA_CONFIG);
 		}
 	}

@@ -12,3 +12,16 @@ body {
   font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   color: #333;
 }
+
+.invalid .jsoneditor .menu {
+	background-color: #f88 !important;
+	border-color: #f00 !important;
+}
+
+.jsoneditor textarea {
+	min-height: 300px;
+}
+
+.invalid .jsoneditor {
+	border-color: #f00 !important;	
+}

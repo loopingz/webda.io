@@ -10,6 +10,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../url-method-selector/url-method-selector.html">
 
 <dom-module id="url-route">
   <template>
@@ -21,32 +22,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: block;
         text-overflow: ellipsis;
       }
-      .method {
-        float: right;
-        text-transform: uppercase;
-        font-size: 10px;
-        margin-left: 5px;
-        margin-top: 5px;
-        padding-left: 5px;
-        padding-right: 5px;
-        border-radius: 5px;
-        color: #fff;
-        font-weight: bold;
-      }
-      .method_GET {
-        background-color: #6492c0;
-      }
-      .method_DELETE {
-        background-color: #e06666;
-      }
-      .method_POST {
-        background-color: #66c184;
-      }
-      .method_PUT {
-        background-color: #8d673d;
-      }
       .service {
-        
         color: var(--disabled-text-color);
       }
       span,
@@ -55,10 +31,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
     <paper-item class$="[[_service]]">
-      <template is="dom-repeat" items="[[methods]]">
-        <div class$="method method_{{item}}">{{item}}</div>
-      </template>
-      <div>{{url._url}}</div>
+      <div style="float: right;">
+        <url-method-selector available-methods="[[methods]]" checked></url-method-selector>
+      </div>
+      <div>{{url._name}}</div>
     </paper-item>
   </template>
 

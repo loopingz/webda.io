@@ -11,7 +11,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 
-<dom-module id="left-list">
+<dom-module id="executor-selector">
   <template>
     <style>
       :host {
@@ -45,10 +45,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         top: 0px;
         overflow: hidden;
       }
+      paper-card[selected] {
+        background-color: var(--accent-color);
+      }
     </style>
-    <div>
-      <h2>Title</h2>
-      <content select="*"></content>
+    <div align="center">
+      <template is="dom-repeat" items="[[executors]]">
+        <paper-card heading="{{item}}" id="{{index}}" on-tap="select" image="http://placehold.it/200x100" class="white" style="margin-bottom:8px;">
+        </paper-card>
+      </template>
     </div>
   </template>
   <script>
@@ -56,7 +61,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       'use strict';
 
       Polymer({
-        is: 'left-list',
+        is: 'executor-selector',
+        select: function (evt) {
+          var target = evt.target;
+          while (target !== undefined && target.localName !== 'paper-card') {
+            target = target.parentNode;
+          }
+          if (target !== undefined) {
+            this.selected = this.executors[target.id];
+            if (this.old) {
+              this.old.removeAttribute("selected");
+            }
+            target.setAttribute("selected", true);
+            this.old = target;
+          }
+        },
+        properties: {
+          selected: {
+            type: String,
+            notify: true
+          },
+          executors: {
+            type: Array,
+            value: ['Inline', 'Lambda', 'File', 'String']
+          }
+        }
       });
     })();
   </script>

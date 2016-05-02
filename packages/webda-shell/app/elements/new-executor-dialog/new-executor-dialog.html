@@ -1,0 +1,116 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../executor-selector/executor-selector.html">
+<link rel="import" href="../url-method-selector/url-method-selector.html">
+<dom-module id="new-executor-dialog">
+  <template>
+    <style>
+      :host {
+        display: block;
+        width: 95%;
+        min-height: 95%;
+      }
+
+      span {
+        @apply(--paper-font-body1);
+      }
+
+      #content {
+        width: 100%;
+        height: 100%;
+      }
+
+      .buttons {
+        position: absolute;
+        bottom: 0px;
+        right: 0px;
+        left: 0px;
+        border-top: 1px solid var(--light-primary-color);
+      }
+      paper-dialog-scrollable {
+        margin-bottom: 48px;
+        min-height: 90%;
+      }
+      .paper-dialog-scrollable-0.can-scroll:not(.scrolled-to-bottom):not(:last-child)::after {
+        background: none;
+      }
+      juicy-ace-editor {
+        height: 300px;
+      }
+    </style>
+    <style include="paper-dialog-shared-styles"></style>
+      <h2>New Executor</h2>
+      <executor-selector selected="{{type}}"></executor-selector>
+      <paper-dialog-scrollable dialog-element="[[node]]">
+        <paper-input placeholder="URL" label="Resource"></paper-input>
+        <label style="color:#737373; font-size:12px;" class="paper-input">Method</label>
+        <url-method-selector toggles></url-method-selector>
+        <iron-pages attr-for-selected="data-type" selected="{{type}}">
+          <section data-type="Lambda">
+            <paper-input placeholder="arn:aws:lambda:us-west-2:277719386420:function:webda-test" label="Lambda Function ARN"></paper-input>
+          </section>
+          <section data-type="Inline" style="float: left;">
+            <div>
+              <label style="color:#737373; font-size:12px;" class="paper-input">Code</label>
+              <juicy-ace-editor mode="ace/mode/javascript" theme="ace/theme/dawn">{{code}}</juicy-ace-editor>
+            </div>
+          </section>
+          <section data-type="File">
+            <paper-fab mini on-tap="toggleEdit" icon="description" style="float: right; margin-top: 10px; margin-bottom: -10px;"></paper-fab>
+            <paper-input placeholder="./includes/myfunction" label="Filepath"></paper-input>
+            <template is="dom-if" if="{{editMode}}">
+              <div>
+                <label style="color:#737373; font-size:12px;" class="paper-input">Code</label>
+                <juicy-ace-editor mode="ace/mode/javascript" theme="ace/theme/dawn" style="height: 300px;">{{code}}</juicy-ace-editor>
+              </div>
+            </template>
+            <template is="dom-if" if="{{!editMode}}">
+              <div style="height: 300px;"></div>
+            </template>
+          </section>
+          <section data-type="String">
+            <paper-input placeholder="echo" label="Content"></paper-input>
+            <paper-input placeholder="text/plain" label="Content-Type"></paper-input>
+          </section>
+        </iron-pages>
+        <p>&nbsp;</p>
+      </paper-dialog-scrollable>
+      <div class="buttons">
+        <paper-button dialog-dismiss>Cancel</paper-button>
+        <paper-button dialog-confirm>Create</paper-button>
+      </div>
+  </template>
+  <script>
+    (function() {
+      'use strict';
+      Polymer({
+        is: 'new-executor-dialog',
+        behaviors: [Polymer.PaperDialogBehavior],
+        properties: {
+          editMode: {
+            type: Boolean,
+            value: false,
+            notify: true
+          }
+        },
+        toggleEdit: function() {
+          this.editMode = !this.editMode;
+        },
+        ready: function() {
+          this.node = this;
+          this.code = "module.exports = function(executor) { \n\texecutor.getStore('myStore').get('uuid').then( (object) => {\n\t\texecutor.write(object);\n\t}).catch ( (err) => {\n\t\texecutor.writeHead(500);\n\t\texecutor.write('Error occurs on sample method');\n\t});\n};";
+        }
+      });
+    })();
+  </script>
+</dom-module>

@@ -1,0 +1,88 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+
+<dom-module id="url-method-badge">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+      }
+      .method {
+        text-transform: uppercase;
+        font-size: 10px;
+        margin-left: 5px;
+        margin-top: 5px;
+        padding-left: 5px;
+        padding-right: 5px;
+        border-radius: 5px;
+        color: #fff;
+        font-weight: bold;
+        background-color: #eee;
+      }
+      .method[checked] {
+        background-color: #999; 
+      }
+      .method_GET[checked] {
+        background-color: #6492c0;
+      }
+      .method_DELETE[checked] {
+        background-color: #e06666;
+      }
+      .method_POST[checked] {
+        background-color: #66c184;
+      }
+      .method_PUT[checked] {
+        background-color: #8d673d;
+      }
+      span,
+      input {
+        @apply(--paper-font-body2);
+      }
+    </style>
+    <div class$="method method_{{method}}" on-tap="toggle" checked$="[[checked]]">{{method}}</div>
+  </template>
+
+  <script>
+    (function() {
+      'use strict';
+
+      Polymer({
+        is: 'url-method-badge',
+        toggle: function() {
+          if (this.toggles) {
+            this.checked = !this.checked;
+          }
+        },
+        ready: function() {
+          // access a local DOM element by ID using this.$
+          console.log('Ready with ' + this.toggles + ' ' + this.checked);
+        },
+        properties: {
+          
+          checked: {
+            type: Boolean,
+            value: false
+          },
+          toggles: {
+            type: Boolean,
+            value: false
+          },
+          method: {
+            type: String,
+            notify: true
+          }
+        }
+      });
+    })();
+  </script>
+</dom-module>

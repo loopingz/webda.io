@@ -7,7 +7,10 @@
     "page": "visionmedia/page.js#~1.6.4",
     "paper-elements": "PolymerElements/paper-elements#^1.0.1",
     "platinum-elements": "PolymerElements/platinum-elements#^1.1.0",
-    "polymer": "Polymer/polymer#^1.2.0"
+    "polymer": "Polymer/polymer#^1.2.0",
+    "juicy-jsoneditor": "~1.0.5",
+    "jsen": "~0.6.1",
+    "juicy-ace-editor": "~1.1.1"
   },
   "devDependencies": {
     "web-component-tester": "^4.0.0"

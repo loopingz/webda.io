@@ -53,23 +53,32 @@ class WebdaServer extends Webda {
 		this.display404(res);
 		return;
 	  } 
+	  console.log('setting context');
 		callable.context(req.body, req.session, res);
-		return Promise.resolve(callable.execute()).then( function() {
-			if (!callable._ended) {
-				callable.end();
-			}
-		}).catch (function (err) {
-			if (typeof(err) === "number") {
-				res.writeHead(err);
-				res.end();
-			} else {
-				console.log("Exception occured : " + JSON.stringify(err));
-				console.log(err.stack);
-				res.writeHead(500);
-				res.end();
-				throw err;
-			}	
-		});
+		try {
+			return Promise.resolve(callable.execute()).then( () => {
+				if (!callable._ended) {
+					callable.end();
+				}
+			}).catch ((err) => {
+				this.handleError(err, res);	
+			});
+		} catch (err) {
+			this.handleError(err, res);	
+		}
+	}
+
+	handleError(err, res) {
+		if (typeof(err) === "number") {
+			res.writeHead(err);
+			res.end();
+		} else {
+			console.log("Exception occured : " + JSON.stringify(err));
+			console.log(err.stack);
+			res.writeHead(500);
+			res.end();
+			throw err;
+		}
 	}
 
 	display404(res) {

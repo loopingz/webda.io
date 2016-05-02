@@ -64,11 +64,15 @@ class LambdaServer extends Webda {
 	  	var callable = this.getExecutor(vhost, method, resourcePath, protocol, port, headers);
 	  	var body = event["body-json"];
 	  	callable.context(body, session);
-		return Promise.resolve(callable.execute()).then( () => {
-			callback(null, this._result);
-		}).catch ( (err) => {
+	  	try {
+			return Promise.resolve(callable.execute()).then( () => {
+				callback(null, this._result);
+			}).catch ( (err) => {
+				callback(err, null);
+			});
+		} catch (err) {
 			callback(err, null);
-		});
+		}
 	}
 }
 

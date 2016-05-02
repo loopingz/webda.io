@@ -225,6 +225,7 @@ class Binary extends Executor {
 			}
 		
 			if (this._http.method == "POST") {
+				console.log("POST Binary");
 				return this.store(targetStore, object, self.params.property, this._getFile(req), req.body).then(() => {
 					this.writeHead(200, {'Content-type': 'application/json'});
 					this.write(JSON.stringify(targetStore.get(object.uuid)));

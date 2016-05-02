@@ -388,7 +388,7 @@ class Store extends Executor {
 	// ADD THE EXECUTOR PART
 
 	checkAuthentication(object) {
-		if (this.params.expose.restrict.authentication) {
+		if (this.params.expose !== undefined && this.params.expose.restrict !== undefined && this.params.expose.restrict.authentication) {
 			var field = "user";
 			if (typeof(this.params.expose.restrict.authentication) == "string") {
 				field = this.params.expose.restrict.authentication;
@@ -402,26 +402,20 @@ class Store extends Executor {
 
 	execute(executor) {
 		var store = this;
-		if (store == undefined) {
-			console.log("Unkown store: " + this.callable.store);
-			this.writeHead(500);
-			this.end();
-			return;
-		}
 		if (this._http.method == "GET") {
 			if (this.callable.expose.restrict != undefined
 					&& this.callable.expose.restrict.get) {
 				throw 404;
 			}
 			if (this.params.uuid) {
-				var object = store.get(this.params.uuid);
-	                        if (object === undefined) {
-	                            throw 404;
-	                        }
-				if (!this.checkAuthentication(object)) {
-					return;
-				}
-				this.writeHead(200, {'Content-type': 'application/json'}).then( () => {
+				return store.get(this.params.uuid).then( (object) => {;
+	                if (object === undefined) {
+						throw 404;
+					}
+					if (!this.checkAuthentication(object)) {
+						throw 403;
+					}
+					this.writeHead(200, {'Content-type': 'application/json'});
 					var result = {};
 					for (var prop in object) {
 						// Server private property
@@ -433,7 +427,6 @@ class Store extends Executor {
 		            this.write(JSON.stringify(result));
 					this.end();
 				});
-				return;
 			} else {
 				// List probably
 			}
@@ -450,7 +443,7 @@ class Store extends Executor {
 				return;
 			}
 			if (this.params.uuid) {
-				store.delete(this.params.uuid).then( () => {
+				return store.delete(this.params.uuid).then( () => {
 					throw 204;	
 				});
 			}
@@ -469,20 +462,21 @@ class Store extends Executor {
 			if (!object.uuid) {
 				object.uuid = this.generateUid();
 			}
-			if (store.exists(object.uuid)) {
-				throw 409;
-			}
 			for (var prop in object) {
 				if (prop[0] == "_") {
 					delete object[prop]
 				}
 			}
-			store.save(object, object.uuid).then ( (new_object) => {
+			return store.exists(object.uuid).then( (exists) => {
+				if (exists) {
+					throw 409;
+				}
+				return store.save(object, object.uuid);	
+			}).then ( (new_object) => {
 				this.writeHead(200, {'Content-type': 'application/json'});
 				this.write(JSON.stringify(new_object));
 				this.end();
 			});
-			return;
 		} else if (this._http.method == "PUT") {
 			if (this.callable.expose.restrict != undefined
 					&& this.callable.expose.restrict.update) {
@@ -491,26 +485,19 @@ class Store extends Executor {
 			if (!store.exists(this.params.uuid)) {
 				throw 404;
 			}
-			if (this.callable.expose.restrict.authentication) {
-				var currentObject = store.get(this.params.uuid);
-				if (!this.checkAuthentication(currentObject)) {
-					return;
-				}
-			}
 			for (var prop in this.body) {
 				if (prop[0] == "_") {
 					delete this.body[prop]
 				}
 			}
-			store.update(this.body, this.params.uuid).then (function (object) {
+			return store.update(this.body, this.params.uuid).then ( (object) => {
 				if (object == undefined) {
 					throw 500;
 				}
 				this.writeHead(200, {'Content-type': 'application/json'});
 				this.write(JSON.stringify(object));
 				this.end();	
-			});			
-			return;
+			});
 		} else {
 			throw 404;
 		}

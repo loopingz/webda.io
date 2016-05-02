@@ -200,9 +200,7 @@ class Webda {
 	    	if (vhost_config['params'] != undefined) {
 	          callable.enrichParameters(vhost_config['params']);
 	    	}
-	      if (callable["_http"] == undefined) {
-	          callable["_http"] = {"host":vhost, "method":method, "url":url, "protocol": protocol, "port": port, "headers": headers, "wildcard": wildcard};
-	      }
+	        callable["_http"] = {"host":vhost, "method":method, "url":url, "protocol": protocol, "port": port, "headers": headers, "wildcard": wildcard};
 	    }
 	    return callable;
 	}
@@ -303,7 +301,6 @@ class Webda {
 		}
 		this.initServices(config);
 		this.initURITemplates(config);
-	    
 	    config._initiated = true;
   }
 

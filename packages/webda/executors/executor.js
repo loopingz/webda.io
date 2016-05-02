@@ -48,7 +48,15 @@ class Executor extends Service {
 	}
 
 	write(output) {
-		this._body = output;
+		if (typeof(output) == "object") {
+			self._headers['Content-type']='application/json';
+			this._body = this.toPublicJSON(output);
+			return;
+		} else if (typeof(output) == "string") {
+			this._body += output;
+		} else {
+			this._body = output;
+		}
 	}
 
 	writeHead(httpCode, header) {
@@ -83,6 +91,9 @@ class Executor extends Service {
 		this._webda.flush(this);
 	}
 
+	toPublicJSON(object) {
+		return JSON.stringify(object, this._webda.jsonFilter);
+	}
 	execute() {
 		this.writeHead(200, {'Content-Type': 'text/plain'});
 	  	this.write("Callable is " + JSON.stringify(callable));

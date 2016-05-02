@@ -2,9 +2,6 @@
 
 var uriTemplates = require('uri-templates');
 var extend = require('util')._extend;
-var CONFIG = undefined;
-var EXECUTORS = {};
-var SERVICES = {};
 var vm = require('vm');
 var fs = require('fs');
 
@@ -53,7 +50,7 @@ class Webda {
 		this._services['DynamoStore']=require('../stores/dynamodb');
 		this._services['FileBinary']=require('../services/filebinary');
 		this._services['S3Binary']=require('../services/s3binary');
-		CONFIG = this.loadConfiguration(config);
+		this._config = this.loadConfiguration(config);
 	}
 
 	require(executor, path) {
@@ -126,10 +123,10 @@ class Webda {
 		if (name === undefined) {
 			name = "_default";
 		}
-		if (CONFIG[this._vhost] !== undefined) {
-			if (CONFIG[this._vhost].global !== undefined && CONFIG[this._vhost].global.services !== undefined
-					&& CONFIG[this._vhost].global.services[name]) {
-				return CONFIG[this._vhost].global.services[name]._service;
+		if (this._config[this._vhost] !== undefined) {
+			if (this._config[this._vhost].global !== undefined && this._config[this._vhost].global.services !== undefined
+					&& this._config[this._vhost].global.services[name]) {
+				return this._config[this._vhost].global.services[name]._service;
 			}
 		}
 		if (this._executors[name] !== undefined) {
@@ -145,41 +142,41 @@ class Webda {
 	getExecutor(vhost, method, url, protocol, port, headers) {
 		// Check vhost
 		var wildcard = false;
-	    if (CONFIG[vhost] === undefined) {
-	       if (CONFIG['*'] === undefined) {
+	    if (this._config[vhost] === undefined) {
+	       if (this._config['*'] === undefined) {
 	    	   return null;
 	       }
 	       wildcard = true;
-	       vhost = CONFIG['*'];
+	       vhost = this._config['*'];
 	    }
 	    this.setHost(vhost);
 	    // Init vhost if needed
-	    this.initHosts(vhost, CONFIG[vhost]);
+	    this.initHosts(vhost, this._config[vhost]);
 	    // Check mapping
 	    var callable = null;
 	    var params = [];
 	    if (url.indexOf("?") >= 0) {
 	      url = url.substring(0, url.indexOf("?"));
 	    }
-	    for (var map in CONFIG[vhost]) {
+	    for (var map in this._config[vhost]) {
 	      if (map == "global") {
 	        continue;
 	      }
-	      if  (Array.isArray(CONFIG[vhost][map]['method'])) {
-	        if (CONFIG[vhost][map]['method'].indexOf(method) == -1) {
+	      if  (Array.isArray(this._config[vhost][map]['method'])) {
+	        if (this._config[vhost][map]['method'].indexOf(method) == -1) {
 	          continue;
 	        }
-	      } else if (CONFIG[vhost][map]['method'] != method) {
+	      } else if (this._config[vhost][map]['method'] != method) {
 	        continue;
 	      }
 	      if (map == url) {
-	        callable = this.getCallable(CONFIG[vhost][map]["executor"], CONFIG[vhost][map]);
+	        callable = this.getCallable(this._config[vhost][map]["executor"], this._config[vhost][map]);
 	        break;
 	      }
-	      if (CONFIG[vhost][map]['uri-template-parse'] === undefined) {
+	      if (this._config[vhost][map]['uri-template-parse'] === undefined) {
 	        continue;
 	      }
-	      var parse_result = CONFIG[vhost][map]['uri-template-parse'].fromUri(url);
+	      var parse_result = this._config[vhost][map]['uri-template-parse'].fromUri(url);
 	      if (parse_result != undefined) {
 	        var skip = false;
 	        for (var val in parse_result) {
@@ -191,12 +188,12 @@ class Webda {
 	        if (skip) {
 	          continue;
 	        }
-	        callable = this.getCallable(CONFIG[vhost][map]["executor"], CONFIG[vhost][map], parse_result);
+	        callable = this.getCallable(this._config[vhost][map]["executor"], this._config[vhost][map], parse_result);
 	        break;
 	      }
 	    }
 	    if (callable != null) {
-	    	var vhost_config = CONFIG[vhost]["global"];
+	    	var vhost_config = this._config[vhost]["global"];
 	    	if (vhost_config['params'] != undefined) {
 	          callable.enrichParameters(vhost_config['params']);
 	    	}
@@ -285,10 +282,15 @@ class Webda {
 	    }
 	}
 
+	jsonFilter(key, value) {
+		if (key[0] === '_') return undefined;
+	    return value;
+	}
+
 	initAll() {
-		for (var vhost in CONFIG) {
+		for (var vhost in this._config) {
 			if (vhost === "*") continue;
-			this.initHosts(vhost, CONFIG[vhost]);
+			this.initHosts(vhost, this._config[vhost]);
 		}
 	}
 	initHosts(vhost, config) {

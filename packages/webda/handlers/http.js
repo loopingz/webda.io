@@ -19,7 +19,7 @@ class WebdaServer extends Webda {
 
 	  // Add correct headers for X-scripting
 	  if (req.headers['x-forwarded-server'] === undefined) {
-		res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5000');
+		res.setHeader('Access-Control-Allow-Origin', '*');
 	  }
 	  res.setHeader('Access-Control-Allow-Credentials', 'true');
 	  // Handle reverse proxy
@@ -53,7 +53,7 @@ class WebdaServer extends Webda {
 		this.display404(res);
 		return;
 	  } 
-	  console.log('setting context');
+
 		callable.context(req.body, req.session, res);
 		try {
 			return Promise.resolve(callable.execute()).then( () => {

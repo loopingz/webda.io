@@ -387,19 +387,6 @@ class Store extends Executor {
 
 	// ADD THE EXECUTOR PART
 
-	checkAuthentication(object) {
-		if (this.params.expose !== undefined && this.params.expose.restrict !== undefined && this.params.expose.restrict.authentication) {
-			var field = "user";
-			if (typeof(this.params.expose.restrict.authentication) == "string") {
-				field = this.params.expose.restrict.authentication;
-			}
-			if (this.session.currentuser == undefined || this.session.currentuser.uuid != object[field]) {
-				throw 403;
-			}
-		}
-		return true;
-	}
-
 	execute(executor) {
 		var store = this;
 		if (this._http.method == "GET") {
@@ -412,20 +399,7 @@ class Store extends Executor {
 	                if (object === undefined) {
 						throw 404;
 					}
-					if (!this.checkAuthentication(object)) {
-						throw 403;
-					}
-					this.writeHead(200, {'Content-type': 'application/json'});
-					var result = {};
-					for (var prop in object) {
-						// Server private property
-						if (prop[0] == "_") {
-							continue;
-						}
-						result[prop] = object[prop]
-					}
-		            this.write(JSON.stringify(result));
-					this.end();
+		            this.write(result);
 				});
 			} else {
 				// List probably
@@ -439,14 +413,7 @@ class Store extends Executor {
 			if (object === undefined) {
 				throw 404;
 			}
-			if (!this.checkAuthentication(object)) {
-				return;
-			}
-			if (this.params.uuid) {
-				return store.delete(this.params.uuid).then( () => {
-					throw 204;	
-				});
-			}
+			return store.delete(this.params.uuid);
 		} else if (this._http.method == "POST") {
 			var object = this.body;
 			if (this.callable.expose.restrict != undefined
@@ -473,9 +440,7 @@ class Store extends Executor {
 				}
 				return store.save(object, object.uuid);	
 			}).then ( (new_object) => {
-				this.writeHead(200, {'Content-type': 'application/json'});
-				this.write(JSON.stringify(new_object));
-				this.end();
+				this.write(new_object);
 			});
 		} else if (this._http.method == "PUT") {
 			if (this.callable.expose.restrict != undefined
@@ -494,9 +459,7 @@ class Store extends Executor {
 				if (object == undefined) {
 					throw 500;
 				}
-				this.writeHead(200, {'Content-type': 'application/json'});
-				this.write(JSON.stringify(object));
-				this.end();	
+				this.write(object);
 			});
 		} else {
 			throw 404;

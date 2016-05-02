@@ -225,15 +225,10 @@ class Binary extends Executor {
 			}
 		
 			if (this._http.method == "POST") {
-				console.log("POST Binary");
 				return this.store(targetStore, object, self.params.property, this._getFile(req), req.body).then(() => {
-					this.writeHead(200, {'Content-type': 'application/json'});
-					this.write(JSON.stringify(targetStore.get(object.uuid)));
-		    		this.end();
-		    	}).catch( (err) => {
-		    		this.writeHead(500);
-		    		console.log(err);
-		    		this.end();
+					return targetStore.get(object.uuid);
+				}).then ((object) => {
+					this.write(object);
 		    	});
 			} else if (this._http.method == "GET") {
 				if (object[this.params.property] === undefined || object[this.params.property][this.params.index] === undefined) {
@@ -261,13 +256,10 @@ class Binary extends Executor {
 					throw 412;
 				}
 				return this.delete(targetStore, object, self.params.property, index).then (() => {
-					this.write(JSON.stringify(targetStore.get(self.params.uid)));
-					this.end();
-				}).catch( (err) => {
-		    		this.writeHead(500);
-		    		console.log(err);
-		    		this.end();
-		    	});
+					return targetStore.get(self.params.uid);
+				}).then ((object) => {
+					this.write(object);
+				});
 			} else if (this._http.method == "PUT") {
 				if (object[this.params.property] === undefined || object[this.params.property][this.params.index] === undefined) {
 					throw 404;
@@ -277,13 +269,9 @@ class Binary extends Executor {
 					throw 412;
 				}
 				return this.update(targetStore, object, self.params.property, this.params.index, this._getFile(req), req.body).then(() => {
-					this.writeHead(200, {'Content-type': 'application/json'});
-					this.write(JSON.stringify(targetStore.get(object.uuid)));
-		    		this.end();
-		    	}).catch( (err) => {
-		    		this.writeHead(500);
-		    		console.log(err);
-		    		this.end();
+					return targetStore.get(object.uuid);
+				}).then ( (object) => {
+					this.write(object);
 		    	});
 			}
 		});

@@ -52,7 +52,7 @@ class Store extends Executor {
 		for (var prop in map) {
 			var reverseStore = this._webda.getService(prop);
 			if (reverseStore === undefined || ! reverseStore instanceof Store) {
-				console.log("Can't setup mapping as store doesn't exist");
+				console.log("Can't setup mapping as store doesn't exist: " + prop);
 				continue;
 			}
 			var cascade = undefined;
@@ -399,7 +399,7 @@ class Store extends Executor {
 	                if (object === undefined) {
 						throw 404;
 					}
-		            this.write(result);
+		            this.write(object);
 				});
 			} else {
 				// List probably

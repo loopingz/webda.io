@@ -9,7 +9,7 @@ class Mailer extends Service {
 		super(webda, name, params)
 		// smtps://user%40gmail.com:pass@smtp.gmail.com
 		try {
-			this._transporter = nodemailer.createTransport(params.config);
+			this._transporter = nodemailer.createTransport(params);
 		} catch (ex) {
 			this._transporter = undefined;
 		}

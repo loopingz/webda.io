@@ -19,8 +19,10 @@ class Binary extends Executor {
 		if (map == undefined || map._init) {
 			return;
 		}
+		this._lowerMaps = {};
 		var maps = {}
 		for (var prop in map) {
+			this._lowerMaps[prop.toLowerCase()]=prop;
 			var reverseStore = this._webda.getService(prop);
 			if (reverseStore === undefined || ! reverseStore instanceof Store) {
 				console.log("Can't setup mapping as store doesn't exist");
@@ -199,12 +201,14 @@ class Binary extends Executor {
 	execute() {
 		var self = this;
 		var req = this._rawRequest;
-		if (this._params.map[this.params.store] === undefined) {
+		var storeName = this._lowerMaps[this.params.store];
+		if (storeName === undefined) {
 			throw 404;
 		}
+		var map = this._params.map[storeName];
 		var found = false;
-		for (var i in this._params.map[this.params.store]) {
-			if (this._params.map[this.params.store][i] === this.params.property) {
+		for (var i in map) {
+			if (map[i] === this.params.property) {
 				found = true;
 				break;
 			}
@@ -212,7 +216,7 @@ class Binary extends Executor {
 		if (!found) {
 			throw 404;	
 		}
-		var targetStore = this.getStore(this.params.store);
+		var targetStore = this.getStore(storeName);
 		if (targetStore === undefined) {
 			throw 404;
 		}

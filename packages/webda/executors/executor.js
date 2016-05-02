@@ -53,7 +53,11 @@ class Executor extends Service {
 			this._body = this.toPublicJSON(output);
 			return;
 		} else if (typeof(output) == "string") {
+			if (this._body == undefined) {
+				this._body = '';
+			}
 			this._body += output;
+			return;
 		} else {
 			this._body = output;
 		}

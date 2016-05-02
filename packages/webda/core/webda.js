@@ -173,10 +173,10 @@ class Webda {
 	        callable = this.getCallable(this._config[vhost][map]["executor"], this._config[vhost][map]);
 	        break;
 	      }
-	      if (this._config[vhost][map]['uri-template-parse'] === undefined) {
+	      if (this._config[vhost][map]['_uri-template-parse'] === undefined) {
 	        continue;
 	      }
-	      var parse_result = this._config[vhost][map]['uri-template-parse'].fromUri(url);
+	      var parse_result = this._config[vhost][map]['_uri-template-parse'].fromUri(url);
 	      if (parse_result != undefined) {
 	        var skip = false;
 	        for (var val in parse_result) {
@@ -217,7 +217,7 @@ class Webda {
 		// Prepare tbe URI parser
 	  	for (var map in config) {
 		  	if (map.indexOf("{") != -1) {
-		  		config[map]['uri-template-parse'] = uriTemplates(map);
+		  		config[map]['_uri-template-parse'] = uriTemplates(map);
 	  		}
 	  	}
 	}

@@ -21,12 +21,12 @@ switch (arg) {
     webda = new server();
     return webda.serve(18080);
   case 'config':
-	var server = require('webda/handlers/config');
+	var config = require('webda/handlers/config');
     webda = new config();
     // get the admin ui could be nice
     return webda.serve(18181);
   default:
-  	var server = require('webda/handlers/config');
+  	var config = require('webda/handlers/config');
     webda = new config();
     // get the admin ui could be nice
     return webda.commandLine(args);

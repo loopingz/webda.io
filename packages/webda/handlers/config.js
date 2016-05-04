@@ -124,3 +124,5 @@ class WebdaConfigurationServer extends WebdaServer {
 			}
 	}
 }
+
+module.exports = WebdaConfigurationServer

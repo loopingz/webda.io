@@ -306,7 +306,7 @@ class AWSDeployer extends Deployer {
 		}).then ( () => {
 			var params = {'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId, 'statusCode': '200'};
 			params.responseModels = {};
-			params.responseParameters = {'Set-Cookie': false};
+			//params.responseParameters = {'Set-Cookie': false};
 			params.responseModels["application/json"]='Empty';
 			return this._awsGateway.putMethodResponse(params).promise();
 		}).then ( () => {

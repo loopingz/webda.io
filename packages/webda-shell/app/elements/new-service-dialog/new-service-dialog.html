@@ -10,9 +10,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
-<link rel="import" href="../executor-selector/executor-selector.html">
 <link rel="import" href="../url-method-selector/url-method-selector.html">
-<dom-module id="new-executor-dialog">
+<dom-module id="new-service-dialog">
   <template>
     <style>
       :host {
@@ -51,43 +50,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         color:#737373;
         font-size:12px;
       }
+      paper-card[selected] {
+        background-color: var(--accent-color);
+      }
+      paper-card {
+        padding-bottom: 3px;
+      }
     </style>
     <style include="paper-dialog-shared-styles"></style>
-      <h2>New Executor</h2>
-      <executor-selector selected="{{type}}"></executor-selector>
+      <h2>New Service</h2>
+      <paper-input label="Name" placeholder="Enter service name"></paper-input>
+      <label>Choose a service type</label>
       <paper-dialog-scrollable dialog-element="[[node]]">
-        <paper-input placeholder="URL" label="Resource"></paper-input>
-        <label style="color:#737373; font-size:12px;" class="paper-input">Method</label>
-        <url-method-selector toggles></url-method-selector>
-        <iron-pages attr-for-selected="data-type" selected="{{type}}">
-          <section data-type="Lambda">
-            <paper-input placeholder="arn:aws:lambda:us-west-2:277719386420:function:webda-test" label="Lambda Function ARN"></paper-input>
-          </section>
-          <section data-type="Inline" style="float: left;">
-            <div>
-              <label class="paper-input">Code</label>
-              <juicy-ace-editor mode="ace/mode/javascript" theme="ace/theme/dawn">{{code}}</juicy-ace-editor>
-            </div>
-          </section>
-          <section data-type="File">
-            <paper-fab mini on-tap="toggleEdit" icon="description" style="float: right; margin-top: 10px; margin-bottom: -10px;"></paper-fab>
-            <paper-input placeholder="./includes/myfunction" label="Filepath"></paper-input>
-            <template is="dom-if" if="{{editMode}}">
-              <div>
-                <label style="color:#737373; font-size:12px;" class="paper-input">Code</label>
-                <juicy-ace-editor mode="ace/mode/javascript" theme="ace/theme/dawn" style="height: 300px;">{{code}}</juicy-ace-editor>
-              </div>
-            </template>
-            <template is="dom-if" if="{{!editMode}}">
-              <div style="height: 300px;"></div>
-            </template>
-          </section>
-          <section data-type="String">
-            <paper-input placeholder="echo" label="Content"></paper-input>
-            <paper-input placeholder="text/plain" label="Content-Type"></paper-input>
-          </section>
-        </iron-pages>
-        <p>&nbsp;</p>
+        <template is="dom-repeat" items="[[services]]">
+          <paper-card heading="{{item}}" id="{{index}}" on-tap="select" image="http://placehold.it/200x100" class="white" style="margin-bottom:8px;">
+          </paper-card>
+          </template>
       </paper-dialog-scrollable>
       <div class="buttons">
         <paper-button dialog-dismiss>Cancel</paper-button>
@@ -98,9 +76,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     (function() {
       'use strict';
       Polymer({
-        is: 'new-executor-dialog',
+        is: 'new-service-dialog',
+        select: function (evt) {
+          var target = evt.target;
+          while (target !== undefined && target.localName !== 'paper-card') {
+            target = target.parentNode;
+          }
+          if (target !== undefined) {
+            this.selected = this.services[target.id];
+            if (this.old) {
+              this.old.removeAttribute("selected");
+            }
+            target.setAttribute("selected", true);
+            this.old = target;
+          }
+        },
         behaviors: [Polymer.PaperDialogBehavior],
         properties: {
+          services: {
+            type: Array,
+            value: ['Authentication','DynamoDB Storage', 'MongoDB Storage', 'FileDB Storage', 'File Storage', 'S3 Storage']
+          },
           editMode: {
             type: Boolean,
             value: false,

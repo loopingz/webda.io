@@ -74,6 +74,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <template is="dom-bind" id="app">
     <iron-ajax id="vhostAjax" auto handle-as="json" on-response="handleVhosts" url="http://localhost:18181/configs"></iron-ajax>
     <iron-ajax id="configAjax" handle-as="json" on-response="retrievedConfig" url="http://localhost:18181/configs/[[currentVhost]]"></iron-ajax>
+    <iron-ajax id="deploymentAjax" handle-as="json" on-response="retrievedDeployments" url="http://localhost:18181/deployments"></iron-ajax>
     <paper-drawer-panel id="paperDrawerPanel" drawer-width="400px">
       <!-- Drawer Scroll Header Panel -->
       <paper-scroll-header-panel drawer fixed>
@@ -99,7 +100,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </section>
           <section data-route="deployments">
             <template is="dom-repeat" items="{{deployments}}">
-              <paper-item on-click="selectDeployment" data-index="{{index}}">{{ item }}</paper-item>
+              <paper-item on-click="selectDeployment" data-index="{{index}}">{{ item.uuid }}</paper-item>
             </template>
           </section>
         </iron-pages>
@@ -127,14 +128,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{strip(currentComponent)}}"></juicy-jsoneditor>
             </template>
           </div>
-          
+          <iron-pages attr-for-selected="data-type" selected="{{currentComponent._type}}">
+            <section data-type="Deployment">
+              <paper-button style="float: right; margin-right: 20px;" raised class="primary">Deploy</paper-button>
+            </section>
+          </iron-pages>
           <paper-toolbar style="position: absolute; bottom: 0px; right: 0px; left: 0px; background-color: #eee; border-top: 1px solid #ccc; color:#000;">
-            <span class="title">[[currentVhost]]<template is="dom-if" if="[[activeDeployment]]"> / [[activeDeployment]]</template></span>
+            <span class="title">[[currentVhost]]<template is="dom-if" if="[[activeDeployment]]"> / [[activeDeployment.uuid]]</template></span>
           </paper-toolbar>
         </div>
       </paper-scroll-header-panel>
     </paper-drawer-panel>
     <new-executor-dialog modal id="newExecutorDialog"></new-executor-dialog>
+    <new-service-dialog modal id="newServiceDialog"></new-service-dialog>
+    <new-deployment-dialog modal id="newDeploymentDialog"></new-deployment-dialog>
     <paper-toast id="toast">
       <span class="toast-hide-button" role="button" tabindex="0" onclick="app.$.toast.hide()">Ok</span>
     </paper-toast>

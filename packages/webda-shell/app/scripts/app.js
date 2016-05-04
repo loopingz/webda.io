@@ -25,10 +25,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   }
 
   app.newObject = function () {
+    console.log(app.route);
     if (app.route == "api") {
       app.$.newExecutorDialog.open();
+    } else if (app.route == "services") {
+      app.$.newServiceDialog.open();
+    } else if (app.route == "deployments") {
+      app.$.newDeploymentDialog.open();
     }
   }
+  app.retrievedDeployments = function (evt) {
+    var deployments = evt.target.lastResponse;
+    if (deployments === undefined) {
+      deployments = [];
+    } else {
+      for (var i in deployments) {
+        deployments[i]._type = "Deployment";
+        deployments[i]._name = deployments[i].uuid;
+      }
+    }
+    deployments.splice(0,0,{"uuid":"Global","_type": "Configuration","_name": "Global","params":app.config.global.params});
+    app.deployments = deployments;
+  }
+
   app.retrievedConfig = function(evt) {
     app.config = evt.target.lastResponse;
     // Prepare URLs
@@ -60,14 +79,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       return a._name.localeCompare(b._name);
     });
     app.services = services;
-
-    // Prepare deployments
-    var deployments = app.config.global.deployments;
-    if (deployments === undefined) {
-      deployments = ['Development','QA','Production'];
-    }
-    deployments.splice(0,0,"Global");
-    app.deployments = deployments;
   }
   /*
   if (fakeJson !== undefined) {
@@ -115,9 +126,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   app.selectDeployment = function(evt) {
     var index = app.getAttribute('dataIndex', evt.target);
     if (index !== undefined) {
+      app.currentComponent = app.deployments[index];
       if (index == 0) {
         app.currentDeployment = undefined;
-        app.currentComponent = {'_name':'Global', 'params': app.config.global.params, 'resources': undefined};
       } else {
         app.currentDeployment = app.deployments[index];
       }
@@ -134,11 +145,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       } else {
         app.currentComponent = app.urls[index];
       }
-      if (Math.random() * 10 > 5) {
-        app.jsonValidation = 'invalid';
-      } else {
-        app.jsonValidation = '';
-      }
     }
   }
   app.selectService = function(evt) {
@@ -151,6 +157,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   app.setVhost = function (vhost) {
     app.currentVhost = vhost;
     app.$.configAjax.generateRequest();
+    app.$.deploymentAjax.generateRequest();
   }
 
   app.handleVhosts = function (evt) {

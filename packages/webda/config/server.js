@@ -73,7 +73,7 @@ class WebdaConfigurationServer extends WebdaServer {
 		return ServerConfig;
 	}
 
-	deployAws(env) {
+	deployAws(env, args) {
 		var vhost = this.config["*"];
 		if (vhost === undefined) {
 			for (var i in this.config) {
@@ -83,7 +83,7 @@ class WebdaConfigurationServer extends WebdaServer {
 		}
 		return this.getService("deployments").get(env).then ( (deployment) => {
 			const AWSDeployer = require("../deployers/aws");
-			return new AWSDeployer(this.config[vhost], deployment).deploy();
+			return new AWSDeployer(this.config[vhost], deployment).deploy(args);
 		});
 	}
 }
@@ -102,7 +102,7 @@ switch (args[0]) {
 			console.log('Need to specify an environment');
 			return;
 		}
-		new WebdaConfigurationServer().deployAws(args[1]).catch( (err) => {
+		new WebdaConfigurationServer().deployAws(args[1], args.slice(2)).catch( (err) => {
 			console.trace(err);
 		});
 		break;

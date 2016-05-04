@@ -20,7 +20,7 @@ class Deployer {
 		_extend(this.resources, deployment.resources);
 	}
 
-	deploy() {
+	deploy(args) {
 		return Promise.resolve();
 	}
 }

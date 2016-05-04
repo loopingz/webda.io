@@ -6,8 +6,7 @@ const crypto = require('crypto');
 
 class AWSDeployer extends Deployer {
 
-	deploy() {
-		console.log("Deploying to AWS");
+	deploy(args) {
 		this._restApiName = this.resources.restApi;
 		this._lambdaFunctionName = this.resources.lamdaFunctionName;
 		this._lambdaRole = this.resources.lambdaRole;
@@ -39,6 +38,12 @@ class AWSDeployer extends Deployer {
 		this._awsGateway = new AWS.APIGateway();
 		this._awsLambda = new AWS.Lambda();
 
+		if (args != undefined) {
+			if (args[0] === "export") {
+				return this.export(args.slice(1));
+			}
+		}
+		console.log("Deploying to AWS");
 		return this.generatePackage().then( () => {
 			return this.generateLambda();	
 		}).then( () => {
@@ -46,6 +51,33 @@ class AWSDeployer extends Deployer {
 		});
 	}
 
+	export(args) {
+		if (args.length == 0) {
+			console.log("Please specify the output file");
+			return;
+		}
+		var exportFile = args[args.length-1];
+		args.pop();
+		var params = {accepts: 'application/json', stageName: this.deployment.uuid};
+		if (args === undefined || args[0] === undefined) {
+			params.exportType = 'swagger';
+		} else {
+			params.exportType = args[0];
+			args = args.slice(1);
+			params.parameters = {};
+			for (var i in args) {
+				params.parameters[args[i]]=args[i];
+			}
+		}
+		console.log("Exporting " + params.exportType + " to " + exportFile);
+		return this.getRestApi().then ( (api) => {
+			params.restApiId = this.restApiId;
+			console.log(params);
+			return this._awsGateway.getExport(params).promise().then ((exportJson) => {
+				fs.writeFileSync(exportFile, exportJson.body);
+			});
+		});
+	}
 	generatePackage() {
 		console.log("Creating package");
 		this._package = fs.readFileSync('./lambda.zip');
@@ -66,7 +98,7 @@ class AWSDeployer extends Deployer {
 			Role: this._lambdaRole,
 			Runtime: 'nodejs4.3',
 			Timeout: this._lamdaTimeout,
-			'Description': 'Deployed with Webda for API: ' + this._restApiName + '/' + this._packageHash,
+			'Description': 'Deployed with Webda for API: ' + this._restApiName,
 			Publish: true
 		};
 		return this._awsLambda.createFunction(params).promise().then( (fct) => {
@@ -80,8 +112,9 @@ class AWSDeployer extends Deployer {
 	}
 
 	addLambdaPermission() {
+		console.log("Setting Lambda rights");
+		var key = 'Webda' + this._packageHash.replace("=","") + this.restApiId;
 		return this.getLambdaPolicy().then( (p) => {
-			var key = 'Webda' + this._packageHash.replace("=","") + this.restApiId;
 			var stats = JSON.parse(p.Policy).Statement;
 			for (let i in stats) {
 				if (stats[i].Sid === key) {
@@ -89,7 +122,9 @@ class AWSDeployer extends Deployer {
 					return Promise.resolve();
 				}
 			}
-			console.log("Setting Lambda rights");
+			return Promise.reject({code: 'ResourceNotFoundException'});
+		}).catch( (err) => {
+			if (err.code !== 'ResourceNotFoundException') throw err;
 			var awsId = this._lambdaFunction.FunctionArn.split(":")[4];
 			var params = {
 				Action: 'lambda:InvokeFunction',
@@ -120,7 +155,7 @@ class AWSDeployer extends Deployer {
 				Role: this._lambdaRole,
 				Runtime: 'nodejs4.3',
 				Timeout: this._lamdaTimeout,
-				Description: 'Deployed with Webda for API: ' + this._restApiName + '/' + this._packageHash
+				Description: 'Deployed with Webda for API: ' + this._restApiName
 			};
 			return this._awsLambda.updateFunctionConfiguration(params).promise();
 		});
@@ -146,39 +181,53 @@ class AWSDeployer extends Deployer {
 	generateAPIGateway() {
 		return this.generateAPIGatewayMapping().then (() => {
 			return this.generateAPIGatewayStage();
-		}).then( () => {
+		}).then( (deployment) => {
 			return this.addLambdaPermission();
+		}).then ( () => {
+			console.log("You can now access to your API to : https://" + this.restApiId + ".execute-api." + this.region + ".amazonaws.com/" + this.deployment.uuid);
+			return Promise.resolve();
 		});
 	}
 
 	generateAPIGatewayStage() {
+		console.log("Generating API Gateway Stage");
+		return this._awsGateway.createDeployment({restApiId: this.restApiId, stageName: this.deployment.uuid}).promise();
+		/*
 		return this._awsGateway.getStages({restApiId: this.restApiId}).promise().then ( (res) => {
 			var stages = res.item;
 			for (let i in stages) {
 				if (stages[i].stageName == this.deployment.uuid) {
-					return Promise.resolve(stages[i]);
+					console.log(stages[i]);
+					return this._awsGateway.getDeployment({restApiId: this.restApiId, deploymentId: stages[i].deploymentId}).promise();
 				}
 			}
-			return this._awsGateway.createDeployment({restApiId: this.restApiId, stageName: this.deployment.uuid}).promise().then( (res) => {
-				console.log(res);
-			});
+			
 		});
+		*/
 	}
 
-	generateAPIGatewayMapping() {
-		console.log("Creating API Gateway Mapping");
+	getRestApi() {
 		return this._awsGateway.getRestApis().promise().then( (result) => {
 			var resource = null;
 			for (var i in result.items) {
 				if (result.items[i].name === this._restApiName) {
 					resource = result.items[i];
+					this.restApiId = resource.id;
+					break;
 				}
 			}
-			if (resource === undefined) {
+			return Promise.resolve(resource);
+		});
+	}
+
+	generateAPIGatewayMapping() {
+		console.log("Creating API Gateway Mapping");
+		return this.getRestApi().then( (result) => {
+			if (!result) {
 				return this._awsGateway.createRestApi({'name': this._restApiName, 'description': 'Webda Auto Deployed'}).promise();
 			}
-			return Promise.resolve(resource);
-		}).then( (result) => {
+			return Promise.resolve(result);
+		}).then ( (result) => {
 			this.restApiId = result.id;
 			return this._awsGateway.getResources({'restApiId': this.restApiId, 'limit': 500}).promise();
 		}).then( (result) => {

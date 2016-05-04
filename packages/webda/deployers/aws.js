@@ -1,42 +1,181 @@
 "use strict";
 const Deployer = require("./deployer");
 const AWS = require('aws-sdk');
+const fs = require('fs');
+const crypto = require('crypto');
 
 class AWSDeployer extends Deployer {
 
 	deploy() {
-		console.log('deployAWS');
+		console.log("Deploying to AWS");
+		this._restApiName = this.resources.restApi;
+		this._lambdaFunctionName = this.resources.lamdaFunctionName;
+		this._lambdaRole = this.resources.lambdaRole;
+		this._lambdaTimeout = 3;
+		if (this._lambdaRole === undefined || this._restApiName === undefined) {
+			throw Error("Need to define LambdaRole and RestApiName at least");
+		}
+		if (!this._lambdaRole.startsWith("arn:aws")) {
+			// Try to get the Role ARN ?
+			throw Error("LambdaRole needs to be the ARN of the Role");
+		}
+		if (this._lambdaFunctionName === undefined) {
+			this._lambdaFunctionName = this.resources.restApi;
+		}
+		if (this.resources.lambdaMemory) {
+			this._lambdaMemorySize = this.resources.lambdaMemory;
+		} else {
+			// Dont handle less well for now
+			this._lambdaMemorySize = 512;
+		}
 		this._awsGateway;
 		this._awsLambda;
 		if (this.resources.region !== undefined) {
 			AWS.config.update({region: this.resources.region});
-			console.log('setting region to: ' + this.resources.region);
+			console.log('Setting region to: ' + this.resources.region);
 		}
+		this.region = AWS.config.region;
 		AWS.config.update({accessKeyId: this.resources.accessKeyId, secretAccessKey: this.resources.secretAccessKey});
 		this._awsGateway = new AWS.APIGateway();
 		this._awsLambda = new AWS.Lambda();
-		this.generatePackage();
-		this.generateLambda();
-		//this.generateAPIGatewayMapping();
+
+		return this.generatePackage().then( () => {
+			return this.generateLambda();	
+		}).then( () => {
+			return this.generateAPIGateway();	
+		});
 	}
+
 	generatePackage() {
-
+		console.log("Creating package");
+		this._package = fs.readFileSync('./lambda.zip');
+		var hash = crypto.createHash('sha256');
+		this._packageHash =  hash.update(this._package).digest('base64');
+		return Promise.resolve();
 	}
 
-	generateLambda() {
+	createLambdaFunction() {
+		console.log("Creating Lambda function");
+		var params = {
+			MemorySize: this._lambdaMemorySize,
+			Code: {
+				ZipFile: this._package
+			},
+			FunctionName: this._lambdaFunctionName,
+			Handler: 'entrypoint.handler',
+			Role: this._lambdaRole,
+			Runtime: 'nodejs4.3',
+			Timeout: this._lamdaTimeout,
+			'Description': 'Deployed with Webda for API: ' + this._restApiName + '/' + this._packageHash,
+			Publish: true
+		};
+		return this._awsLambda.createFunction(params).promise().then( (fct) => {
+			this._lambdaFunction = fct;
+			return Promise.resolve(fct);
+		});
+	}
 
+	removeLambdaPermission(sid) {
+		return this._awsLambda.removePermission({'FunctionName': this._lambdaFunctionName, 'StatementId': sid}).promise();
+	}
+
+	addLambdaPermission() {
+		return this.getLambdaPolicy().then( (p) => {
+			var key = 'Webda' + this._packageHash.replace("=","") + this.restApiId;
+			var stats = JSON.parse(p.Policy).Statement;
+			for (let i in stats) {
+				if (stats[i].Sid === key) {
+					// Do not update as the policy is already set
+					return Promise.resolve();
+				}
+			}
+			console.log("Setting Lambda rights");
+			var awsId = this._lambdaFunction.FunctionArn.split(":")[4];
+			var params = {
+				Action: 'lambda:InvokeFunction',
+				FunctionName: this._lambdaFunctionName,
+				Principal: 'apigateway.amazonaws.com',
+				StatementId: key,
+				SourceArn: 'arn:aws:execute-api:' + this.region + ':' + awsId + ':' + this.restApiId + '/*' 
+			};
+			return this._awsLambda.addPermission(params).promise();
+		});
+		
+		// http://docs.aws.amazon.com/apigateway/latest/developerguide/permissions.html
+		// "arn:aws:execute-api:us-east-1:my-aws-account-id:my-api-id/my-stage/GET/my-resource-path"
+	}
+
+	getLambdaPolicy() {
+		return this._awsLambda.getPolicy({FunctionName: this._lambdaFunctionName}).promise();
+	}
+
+	updateLambdaFunction() {
+		console.log("Updating Lambda function");
+		var params = {FunctionName: this._lambdaFunctionName, ZipFile: this._package, Publish: true};
+		return this._awsLambda.updateFunctionCode(params).promise().then( (fct) => {
+			var params = {
+				MemorySize: this._lambdaMemorySize,
+				FunctionName: this._lambdaFunctionName,
+				Handler: 'entrypoint.handler',
+				Role: this._lambdaRole,
+				Runtime: 'nodejs4.3',
+				Timeout: this._lamdaTimeout,
+				Description: 'Deployed with Webda for API: ' + this._restApiName + '/' + this._packageHash
+			};
+			return this._awsLambda.updateFunctionConfiguration(params).promise();
+		});
+	}
+	generateLambda() {
+		return this._awsLambda.listFunctions().promise().then( (fcts) => {
+			for (let i in fcts.Functions) {
+				if (fcts.Functions[i].FunctionName == this._lambdaFunctionName) {
+					this._lambdaFunction = fcts.Functions[i];
+					if (fcts.Functions[i].CodeSha256 == this._packageHash) {
+						console.log("Not updating Lambda Function as it has not changed");
+						// No need to update the lambda function
+						return Promise.resolve();
+					}
+					return this.updateLambdaFunction();
+				}
+				// Could handle paging
+				return this.createLambdaFunction();
+			}
+		});
+	}
+
+	generateAPIGateway() {
+		return this.generateAPIGatewayMapping().then (() => {
+			return this.generateAPIGatewayStage();
+		}).then( () => {
+			return this.addLambdaPermission();
+		});
+	}
+
+	generateAPIGatewayStage() {
+		return this._awsGateway.getStages({restApiId: this.restApiId}).promise().then ( (res) => {
+			var stages = res.item;
+			for (let i in stages) {
+				if (stages[i].stageName == this.deployment.uuid) {
+					return Promise.resolve(stages[i]);
+				}
+			}
+			return this._awsGateway.createDeployment({restApiId: this.restApiId, stageName: this.deployment.uuid}).promise().then( (res) => {
+				console.log(res);
+			});
+		});
 	}
 
 	generateAPIGatewayMapping() {
+		console.log("Creating API Gateway Mapping");
 		return this._awsGateway.getRestApis().promise().then( (result) => {
 			var resource = null;
 			for (var i in result.items) {
-				if (result.items[i].name === this.resources.restApi) {
+				if (result.items[i].name === this._restApiName) {
 					resource = result.items[i];
 				}
 			}
 			if (resource === undefined) {
-				return this._awsGateway.createRestApi({'name': this.resources.restApi, 'description': 'Webda Auto Deployed'}).promise();
+				return this._awsGateway.createRestApi({'name': this._restApiName, 'description': 'Webda Auto Deployed'}).promise();
 			}
 			return Promise.resolve(resource);
 		}).then( (result) => {
@@ -49,7 +188,6 @@ class AWSDeployer extends Deployer {
 			this.tree = {};
 			var toCreate = [];
 			this._progression = 0;
-			console.log(this.tree);
 			for (let i in result.items) {
 				this.tree[result.items[i].path]=Promise.resolve(result.items[i]);
 			}
@@ -65,7 +203,6 @@ class AWSDeployer extends Deployer {
 					toCreate.push(this.config[i]);
 				}
 			}
-
 			// Order to create per path
 			toCreate.sort(function(a,b) {
 				return a._url.localeCompare(b._url);
@@ -117,15 +254,22 @@ class AWSDeployer extends Deployer {
 
 	createAWSMethodResource(resource, local, method) {
 		return this._awsGateway.putMethod({"authorizationType":"NONE",'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId}).promise().then ((awsMethod) => {
-			var params = {'resourceId':resource.id,'integrationHttpMethod': method,'httpMethod':method, 'restApiId': this.restApiId, 'type': 'AWS'};
-			var webda_arn = "arn:aws:lambda:us-west-2:277712386420:function:webda-deploy";
-			params.uri = "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/" + webda_arn + "/invocations";
+			var params = {'resourceId':resource.id,'integrationHttpMethod': 'POST','httpMethod':method, 'restApiId': this.restApiId, 'type': 'AWS'};
+			params.uri = "arn:aws:apigateway:" + this.region + ":lambda:path/2015-03-31/functions/" + this._lambdaFunction.FunctionArn + "/invocations";
 			params.requestTemplates={};
 			params.requestParameters={};
-			//params.requestParameters["test"]="deployed";
 			params.requestTemplates["application/json"]=this.getRequestTemplates();
-			console.log(params);
 			return this._awsGateway.putIntegration(params).promise();
+		}).then ( () => {
+			var params = {'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId, 'statusCode': '200'};
+			params.responseModels = {};
+			params.responseModels["application/json"]='Empty';
+			return this._awsGateway.putMethodResponse(params).promise();
+		}).then ( () => {
+			var params = {'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId, 'statusCode': '200'};
+			params.responseTemplates={};
+			params.responseTemplates["application/json"]=null;
+			return this._awsGateway.putIntegrationResponse(params).promise();
 		});
 	}
 

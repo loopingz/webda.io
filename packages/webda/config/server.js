@@ -95,11 +95,8 @@ if (args === undefined || args.length < 3) {
 } else {
 	args = args.slice(2);
 }
-console.log(args);
+
 switch (args[0]) {
-	case 'insult':
-		console.log(myArgs[1], 'smells quite badly.');
-		break;
 	case 'aws-deploy':
 		if (args[1] === undefined) {
 			console.log('Need to specify an environment');

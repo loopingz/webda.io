@@ -5,6 +5,7 @@ class Deployer {
 	constructor (config, deployment) {
 		this.params = {};
 		this.resources = {};
+		this.deployment = deployment;
 		this.config = config;
 		for (var i in this.config) {
 			if (i[0] != "/") continue;

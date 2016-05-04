@@ -306,10 +306,12 @@ class AWSDeployer extends Deployer {
 		}).then ( () => {
 			var params = {'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId, 'statusCode': '200'};
 			params.responseModels = {};
+			params.responseParameters = {'Set-Cookie': false};
 			params.responseModels["application/json"]='Empty';
 			return this._awsGateway.putMethodResponse(params).promise();
 		}).then ( () => {
 			var params = {'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId, 'statusCode': '200'};
+			params.responseParameters = {'Set-Cookie': 'integration.response.body.headers.Set-Cookie'};
 			params.responseTemplates={};
 			params.responseTemplates["application/json"]="#set($inputRoot = $input.path('$'))\n$inputRoot.body";
 			return this._awsGateway.putIntegrationResponse(params).promise();

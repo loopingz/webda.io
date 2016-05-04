@@ -1,5 +1,5 @@
 "use strict";
-var Webda = require('../core/webda');
+var Webda = require('../core');
 var SecureCookie = require('../utils/cookie');
 var _extend = require("util")._extend;
 

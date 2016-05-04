@@ -1,6 +1,6 @@
 "use strict";
 var assert = require("assert")
-var Webda = require("../core/webda.js");
+var Webda = require("../core.js");
 var Executor = require("../executors/executor.js");
 var config = require("./config.json");
 var webda;

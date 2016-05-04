@@ -10,7 +10,11 @@ class Service extends EventEmitter {
 		this._params = params;
 	}
 
-	setup() {
+	install(params) {
+
+	}
+
+	uninstall(params) {
 
 	}
 

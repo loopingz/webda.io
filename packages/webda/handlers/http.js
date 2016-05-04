@@ -53,19 +53,14 @@ class WebdaServer extends Webda {
 		this.display404(res);
 		return;
 	  } 
-
 		callable.context(req.body, req.session, res);
-		try {
-			return Promise.resolve(callable.execute()).then( () => {
-				if (!callable._ended) {
-					callable.end();
-				}
-			}).catch ((err) => {
-				this.handleError(err, res);	
-			});
-		} catch (err) {
+		return Promise.resolve(callable.execute()).then( () => {
+			if (!callable._ended) {
+				callable.end();
+			}
+		}).catch ((err) => {
 			this.handleError(err, res);	
-		}
+		});
 	}
 
 	handleError(err, res) {

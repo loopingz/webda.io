@@ -87,7 +87,7 @@ class Webda {
 		var fs = require('fs');
 		if (config !== undefined) {
 			if (fs.existsSync(config)) {
-				console.log("load config.js");
+				console.log("Load config.js");
 				return require(config);
 			}
 		}
@@ -96,21 +96,21 @@ class Webda {
 		if (process.env.WEBDA_CONFIG == undefined) {
 			config = './webda.config.js';
 			if (fs.existsSync(config)) {
-				console.log("load config.js");
+				console.log("Load config.js");
 				return require('.' + config);
 			}
 			config = './webda-config.json';
 			if (fs.existsSync(config)) {
-				console.log("load webda-config.json");
+				console.log("Load webda-config.json");
 				return require('.' + config);
 			}
 			config = '/etc/webda/config.json';
 			if (result == undefined && fs.existsSync(config)) {
-				console.log("load " + config);
+				console.log("Load " + config);
 				return require(config);
 			}
 		} else {
-			console.log("load " + process.env.WEBDA_CONFIG);
+			console.log("Load " + process.env.WEBDA_CONFIG);
 			return require(process.env.WEBDA_CONFIG);
 		}
 	}
@@ -159,17 +159,17 @@ class Webda {
 	      url = url.substring(0, url.indexOf("?"));
 	    }
 	    for (var map in this._config[vhost]) {
-	      if (map == "global") {
+	      if (map === "global") {
 	        continue;
 	      }
 	      if  (Array.isArray(this._config[vhost][map]['method'])) {
-	        if (this._config[vhost][map]['method'].indexOf(method) == -1) {
+	        if (this._config[vhost][map]['method'].indexOf(method) === -1) {
 	          continue;
 	        }
-	      } else if (this._config[vhost][map]['method'] != method) {
+	      } else if (this._config[vhost][map]['method'] !== method) {
 	        continue;
 	      }
-	      if (map == url) {
+	      if (map === url) {
 	        callable = this.getCallable(this._config[vhost][map]["executor"], this._config[vhost][map]);
 	        break;
 	      }
@@ -177,7 +177,7 @@ class Webda {
 	        continue;
 	      }
 	      var parse_result = this._config[vhost][map]['_uri-template-parse'].fromUri(url);
-	      if (parse_result != undefined) {
+	      if (parse_result !== undefined) {
 	        var skip = false;
 	        for (var val in parse_result) {
 	          if (parse_result[val].indexOf("/") >= 0) {
@@ -192,9 +192,9 @@ class Webda {
 	        break;
 	      }
 	    }
-	    if (callable != null) {
+	    if (callable !== null) {
 	    	var vhost_config = this._config[vhost]["global"];
-	    	if (vhost_config['params'] != undefined) {
+	    	if (vhost_config['params'] !== undefined) {
 	          callable.enrichParameters(vhost_config['params']);
 	    	}
 	        callable["_http"] = {"host":vhost, "method":method, "url":url, "protocol": protocol, "port": port, "headers": headers, "wildcard": wildcard};

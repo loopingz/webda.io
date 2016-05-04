@@ -2,8 +2,9 @@
 const _extend = require("util")._extend;
 
 class Deployer {
-	constructor (config, deployment) {
+	constructor (vhost, config, deployment) {
 		this.params = {};
+		this.vhost = vhost;
 		this.resources = {};
 		this.deployment = deployment;
 		this.config = config;
@@ -22,6 +23,38 @@ class Deployer {
 
 	deploy(args) {
 		return Promise.resolve();
+	}
+
+	undeploy(args) {
+		return Promise.resolve();
+	}
+
+	uninstallServices() {
+		var promise = Promise.resolve();
+		for (let i in this.config.global.services) {
+			if (this.config.global.services[i]._service === undefined) {
+				continue;
+			}
+			promise = promise.then ( () => {
+				console.log('Uninstalling service ' + i);
+				return this.config.global.services[i]._service.install(this.resources);
+			});
+		}
+		return promise;
+	}
+
+	installServices() {
+		var promise = Promise.resolve();
+		for (let i in this.config.global.services) {
+			if (this.config.global.services[i]._service === undefined) {
+				continue;
+			}
+			promise = promise.then ( () => {
+				console.log('Installing service ' + i);
+				return this.config.global.services[i]._service.install(this.resources);
+			});
+		}
+		return promise;
 	}
 }
 

@@ -26,6 +26,7 @@ class Binary extends Executor {
 			var reverseStore = this._webda.getService(prop);
 			if (reverseStore === undefined || ! reverseStore instanceof Store) {
 				console.log("Can't setup mapping as store doesn't exist");
+				map[prop]["-onerror"] = "NoStore";
 				continue;
 			}
 			reverseStore.addReverseMap(map[prop], {'store': this._name, 'name': map[prop]});

@@ -33,7 +33,7 @@ class Store extends Executor {
 		if (expose.restrict == undefined) {
 			expose.restrict = {}
 		}
-		config[expose.url] = {"method": ["POST", "GET"], "executor": this._name, "expose": expose};
+		config[expose.url] = {"method": ["POST"], "executor": this._name, "expose": expose};
 		config[expose.url+"/{uuid}"] = {"method": ["GET", "PUT", "DELETE"], "executor": this._name, "expose": expose};
 	}
 
@@ -52,7 +52,8 @@ class Store extends Executor {
 		for (var prop in map) {
 			var reverseStore = this._webda.getService(prop);
 			if (reverseStore === undefined || ! reverseStore instanceof Store) {
-				console.log("Can't setup mapping as store doesn't exist: " + prop);
+				map[prop]["-onerror"] = "NoStore";
+				console.log("Can't setup mapping as store doesn't exist");
 				continue;
 			}
 			var cascade = undefined;

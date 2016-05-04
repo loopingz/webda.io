@@ -17,7 +17,7 @@ class DynamoStore extends Store {
 			throw Error("Need to define a table,accessKeyId,secretAccessKey at least");
 		}
 		if (params.region !== undefined) {
-			AWS.config.region = params.region;
+			AWS.config.update({region:params.region});
 		}
 		AWS.config.update({accessKeyId: params.accessKeyId, secretAccessKey: params.secretAccessKey});
 		this._client = new AWS.DynamoDB.DocumentClient();
@@ -91,6 +91,29 @@ class DynamoStore extends Store {
 		return this._client.get(params).promise().then ((result) => {
 			return Promise.resolve(result.Item);
 		});
+	}
+
+	install(params) {
+		/*
+		if (params.region !== undefined) {
+			AWS.config.update(({region: params.region});
+		}
+		AWS.config.update({accessKeyId: params.accessKeyId, secretAccessKey: params.secretAccessKey});
+		var client = new AWS.DynamoDB.DocumentClient();
+		console.log("Should create table ", {'TableName': this._params.table, 'Key': {"uuid": uid}});
+		*/
+	}
+
+	uninstall(params) {
+		/*
+		if (params.region !== undefined) {
+			AWS.config.update(({region: params.region});
+		}
+		AWS.config.update({accessKeyId: params.accessKeyId, secretAccessKey: params.secretAccessKey});
+		var client = new AWS.DynamoDB.DocumentClient();
+		var params = ""; 
+		console.log("Should delete table ", {'TableName': this._params.table, 'Key': {"uuid": uid}});
+		*/
 	}
 
 	___cleanData() {

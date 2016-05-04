@@ -83,7 +83,21 @@ class WebdaConfigurationServer extends WebdaServer {
 		}
 		return this.getService("deployments").get(env).then ( (deployment) => {
 			const AWSDeployer = require("../deployers/aws");
-			return new AWSDeployer(this.config[vhost], deployment).deploy(args);
+			return new AWSDeployer(vhost, this.config[vhost], deployment).deploy(args);
+		});
+	}
+
+	undeployAws(env, args) {
+		var vhost = this.config["*"];
+		if (vhost === undefined) {
+			for (var i in this.config) {
+				vhost = i;
+				break;
+			}
+		}
+		return this.getService("deployments").get(env).then ( (deployment) => {
+			const AWSDeployer = require("../deployers/aws");
+			return new AWSDeployer(vhost, this.config[vhost], deployment).undeploy(args);
 		});
 	}
 }
@@ -103,6 +117,15 @@ switch (args[0]) {
 			return;
 		}
 		new WebdaConfigurationServer().deployAws(args[1], args.slice(2)).catch( (err) => {
+			console.trace(err);
+		});
+		break;
+	case 'aws-undeploy':
+		if (args[1] === undefined) {
+			console.log('Need to specify an environment');
+			return;
+		}
+		new WebdaConfigurationServer().undeployAws(args[1], args.slice(2)).catch( (err) => {
 			console.trace(err);
 		});
 		break;

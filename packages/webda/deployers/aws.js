@@ -44,10 +44,16 @@ class AWSDeployer extends Deployer {
 			}
 		}
 		console.log("Deploying to AWS");
-		return this.generatePackage().then( () => {
+		var promise = this.generatePackage().then( () => {
 			return this.generateLambda();	
-		}).then( () => {
+		})
+		if (args.length > 0 && args[0] === "lambda") {
+			return promise;
+		}
+		promise.then( () => {
 			return this.generateAPIGateway();	
+		}).then( () => {
+			return this.installServices();
 		});
 	}
 
@@ -72,12 +78,12 @@ class AWSDeployer extends Deployer {
 		console.log("Exporting " + params.exportType + " to " + exportFile);
 		return this.getRestApi().then ( (api) => {
 			params.restApiId = this.restApiId;
-			console.log(params);
 			return this._awsGateway.getExport(params).promise().then ((exportJson) => {
 				fs.writeFileSync(exportFile, exportJson.body);
 			});
 		});
 	}
+
 	generatePackage() {
 		console.log("Creating package");
 		this._package = fs.readFileSync('./lambda.zip');
@@ -113,7 +119,7 @@ class AWSDeployer extends Deployer {
 
 	addLambdaPermission() {
 		console.log("Setting Lambda rights");
-		var key = 'Webda' + this._packageHash.replace("=","") + this.restApiId;
+		var key = 'Webda' + this.restApiId;
 		return this.getLambdaPolicy().then( (p) => {
 			var stats = JSON.parse(p.Policy).Statement;
 			for (let i in stats) {
@@ -190,20 +196,8 @@ class AWSDeployer extends Deployer {
 	}
 
 	generateAPIGatewayStage() {
-		console.log("Generating API Gateway Stage");
+		console.log("Generating API Gateway Deployment");
 		return this._awsGateway.createDeployment({restApiId: this.restApiId, stageName: this.deployment.uuid}).promise();
-		/*
-		return this._awsGateway.getStages({restApiId: this.restApiId}).promise().then ( (res) => {
-			var stages = res.item;
-			for (let i in stages) {
-				if (stages[i].stageName == this.deployment.uuid) {
-					console.log(stages[i]);
-					return this._awsGateway.getDeployment({restApiId: this.restApiId, deploymentId: stages[i].deploymentId}).promise();
-				}
-			}
-			
-		});
-		*/
 	}
 
 	getRestApi() {
@@ -317,9 +311,33 @@ class AWSDeployer extends Deployer {
 		}).then ( () => {
 			var params = {'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId, 'statusCode': '200'};
 			params.responseTemplates={};
-			params.responseTemplates["application/json"]=null;
+			params.responseTemplates["application/json"]="#set($inputRoot = $input.path('$'))\n$inputRoot.body";
 			return this._awsGateway.putIntegrationResponse(params).promise();
+		}).then ( () => {
+			return this.createAWSMethodErrorReturnCode(resource, method);
 		});
+	}
+
+	createAWSMethodErrorReturnCode(resource, method) {
+		// As we cannot specify error code directly we need to map each... yes i know running regexp a script engine to only find an error code doesnt look like a good idea....
+		var codes = [204,303,400,401,403,404,405,409,412,500];
+		var promise = Promise.resolve();
+		for (let i in codes) {
+			let code = codes[i];
+			promise = promise.then( () => {
+				var params = {'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId, 'statusCode': code.toString()};
+				params.responseModels = {};
+				params.responseModels["application/json"]='Empty';
+				return this._awsGateway.putMethodResponse(params).promise();
+			}).then ( () => {
+				var params = {'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId, 'statusCode': code.toString()};
+				params.responseTemplates={};
+				params.responseTemplates["application/json"]="\"\"";
+				params.selectionPattern=".*CODE_" + code.toString() + ".*";
+				return this._awsGateway.putIntegrationResponse(params).promise();
+			});
+		}
+		return promise;
 	}
 
 	createAWSMethodsResource(resource, local, methods) {
@@ -358,7 +376,7 @@ class AWSDeployer extends Deployer {
 	getRequestTemplates() {
 		return  `#set($allParams = $input.params())
 		{
-		"body-json" : "$input.json('$')",
+		"body-json" : $input.json('$'),
 		"params" : {
 		#foreach($type in $allParams.keySet())
 		    #set($params = $allParams.get($type))
@@ -378,6 +396,7 @@ class AWSDeployer extends Deployer {
 		#end
 		},
 		"context" : {
+			"vhost":"`+ this.vhost + `",
 		    "account-id" : "$context.identity.accountId",
 		    "api-id" : "$context.apiId",
 		    "api-key" : "$context.identity.apiKey",

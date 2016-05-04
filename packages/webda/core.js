@@ -4,6 +4,7 @@ var uriTemplates = require('uri-templates');
 var extend = require('util')._extend;
 var vm = require('vm');
 var fs = require('fs');
+const path = require('path');
 
 /**
 var vm = require('vm');
@@ -36,20 +37,20 @@ class Webda {
 	constructor (config) {
 		this._vhost = '';
 		this._executors = {};
-		this._executors['debug']=require('../executors/executor');
-		this._executors['lambda']=require('../executors/lambda');
-		this._executors['custom']=require('../executors/custom');
-		this._executors['inline']=require('../executors/inline');
-		this._executors['string']=require('../executors/string');
-		this._executors['resource']=require('../executors/resource');
-		this._executors['file']=require('../executors/file');
+		this._executors['debug']=require('./executors/executor');
+		this._executors['lambda']=require('./executors/lambda');
+		this._executors['custom']=require('./executors/custom');
+		this._executors['inline']=require('./executors/inline');
+		this._executors['string']=require('./executors/string');
+		this._executors['resource']=require('./executors/resource');
+		this._executors['file']=require('./executors/file');
 		this._services = {};
-		this._services['Authentication']=require('../services/passport');
-		this._services['FileStore']=require('../stores/file');
-		this._services['MongoStore']=require('../stores/mongodb');
-		this._services['DynamoStore']=require('../stores/dynamodb');
-		this._services['FileBinary']=require('../services/filebinary');
-		this._services['S3Binary']=require('../services/s3binary');
+		this._services['Authentication']=require('./services/passport');
+		this._services['FileStore']=require('./stores/file');
+		this._services['MongoStore']=require('./stores/mongodb');
+		this._services['DynamoStore']=require('./stores/dynamodb');
+		this._services['FileBinary']=require('./services/filebinary');
+		this._services['S3Binary']=require('./services/s3binary');
 		this._config = this.loadConfiguration(config);
 	}
 
@@ -97,12 +98,12 @@ class Webda {
 			config = './webda.config.js';
 			if (fs.existsSync(config)) {
 				console.log("Load config.js");
-				return require('.' + config);
+				return require(path.resolve(config));
 			}
 			config = './webda-config.json';
 			if (fs.existsSync(config)) {
 				console.log("Load webda-config.json");
-				return require('.' + config);
+				return require(path.resolve(config));
 			}
 			config = '/etc/webda/config.json';
 			if (result == undefined && fs.existsSync(config)) {
@@ -307,6 +308,6 @@ class Webda {
   }
 
 }
-Webda.Service = require("../services/service");
+Webda.Service = require("./services/service");
 
 module.exports = Webda;

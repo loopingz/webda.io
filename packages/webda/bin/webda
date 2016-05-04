@@ -1,7 +1,8 @@
 #!/usr/bin/env node
+"use strict";
 
 var path = require('path');
-#var uuid = require(path.join(__dirname, '..'));
+//var uuid = require(path.join(__dirname, '..'));
 
 var arg = process.argv[2];
 
@@ -12,5 +13,23 @@ if ('--help' === arg || null == arg) {
   process.exit(0);
 }
 
+var args = process.argv.slice(2);
+var webda;
+switch (arg) {
+  case 'serve':
+    var server = require('webda/handlers/http');
+    webda = new server();
+    return webda.serve(18080);
+  case 'config':
+	var server = require('webda/handlers/config');
+    webda = new config();
+    // get the admin ui could be nice
+    return webda.serve(18181);
+  default:
+  	var server = require('webda/handlers/config');
+    webda = new config();
+    // get the admin ui could be nice
+    return webda.commandLine(args);
+}
 console.log(arg);
 process.exit(0);

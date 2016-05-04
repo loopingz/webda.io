@@ -100,36 +100,27 @@ class WebdaConfigurationServer extends WebdaServer {
 			return new AWSDeployer(vhost, this.config[vhost], deployment).undeploy(args);
 		});
 	}
-}
 
-var args = process.argv;
-var cmd = '';
-if (args === undefined || args.length < 3) {
-	args = [''];
-} else {
-	args = args.slice(2);
-}
-
-switch (args[0]) {
-	case 'aws-deploy':
-		if (args[1] === undefined) {
-			console.log('Need to specify an environment');
-			return;
-		}
-		new WebdaConfigurationServer().deployAws(args[1], args.slice(2)).catch( (err) => {
-			console.trace(err);
-		});
-		break;
-	case 'aws-undeploy':
-		if (args[1] === undefined) {
-			console.log('Need to specify an environment');
-			return;
-		}
-		new WebdaConfigurationServer().undeployAws(args[1], args.slice(2)).catch( (err) => {
-			console.trace(err);
-		});
-		break;
-	default:
-		new WebdaConfigurationServer().serve(18181);
-		// Need to launch the browser
+	commandLine(args) {
+		switch (args[0]) {
+			case 'aws-deploy':
+				if (args[1] === undefined) {
+					console.log('Need to specify an environment');
+					return;
+				}
+				this.deployAws(args[1], args.slice(2)).catch( (err) => {
+					console.trace(err);
+				});
+				break;
+			case 'aws-undeploy':
+				if (args[1] === undefined) {
+					console.log('Need to specify an environment');
+					return;
+				}
+				new this.undeployAws(args[1], args.slice(2)).catch( (err) => {
+					console.trace(err);
+				});
+				break;
+			}
+	}
 }

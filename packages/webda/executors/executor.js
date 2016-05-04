@@ -21,7 +21,7 @@ class Executor extends Service {
 	context(body, session, stream) {
 		this.session = session;
 		this.body = body;
-		this._headers = [];
+		this._headers = {};
 		this._flushHeaders = false;
 		this._returnCode = 204;
 		this._body = undefined;

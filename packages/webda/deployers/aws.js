@@ -46,6 +46,7 @@ class AWSDeployer extends Deployer {
 		console.log("Deploying to AWS");
 		var promise = this.generatePackage();
 		if (args.length > 0 && args[0] === "package") {
+			console.log("Generated package dist/" + this._restApiName + ".zip (" + this._packageHash + ")")
 			return promise;
 		}
 		promise.then( () => {
@@ -142,12 +143,7 @@ class AWSDeployer extends Deployer {
 		this._package = fs.readFileSync(zipPath);
 		var hash = crypto.createHash('sha256');
 		this._packageHash =  hash.update(this._package).digest('base64');
-		var fct = function() {
-			if (finished) return;
-			else setTimeout(fct,1000);
-		};	
-		
-		return Promise.reject();
+		return Promise.resolve();
 	}
 
 	createLambdaFunction() {

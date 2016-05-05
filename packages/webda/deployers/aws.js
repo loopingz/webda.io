@@ -44,7 +44,11 @@ class AWSDeployer extends Deployer {
 			}
 		}
 		console.log("Deploying to AWS");
-		var promise = this.generatePackage().then( () => {
+		var promise = this.generatePackage();
+		if (args.length > 0 && args[0] === "package") {
+			return promise;
+		}
+		promise.then( () => {
 			return this.generateLambda();	
 		})
 		if (args.length > 0 && args[0] === "lambda") {
@@ -141,7 +145,7 @@ class AWSDeployer extends Deployer {
 		var fct = function() {
 			if (finished) return;
 			else setTimeout(fct,1000);
-		};
+		};	
 		
 		return Promise.reject();
 	}

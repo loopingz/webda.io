@@ -338,7 +338,7 @@ class PassportExecutor extends Executor {
 
 	}
 
-	handlePhone(req, res) {
+	handlePhone() {
 		this.writeHead(204);
 	}
 
@@ -346,7 +346,7 @@ class PassportExecutor extends Executor {
 		// TODO Handle URL instead of _extended
 		// 0 is safe unless a callback provider exists
 		if (this._http.url.indexOf('callback') > 0) {
-			this.executeCallback(req, res);
+			this.executeCallback(this, this);
 			return;
 		}
 		var next = function(err) {

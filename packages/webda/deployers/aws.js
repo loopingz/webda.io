@@ -91,10 +91,10 @@ class AWSDeployer extends Deployer {
 		if (!fs.existsSync("dist")) {
 			fs.mkdirSync("dist");
 		}
-		if (!fs.existsSync(zipPath)) {
+		if (fs.existsSync(zipPath)) {
 			fs.unlinkSync(zipPath)
 		}
-		var ignores = ['dist', 'bin', 'test', 'Dockerfile', 'README.md', 'package.json', 'deployments', 'deployers'];
+		var ignores = ['dist', 'bin', 'test', 'Dockerfile', 'README.md', 'package.json', 'deployments'];
 		var toPacks = [];
 		var files = fs.readdirSync('.');
 		for (let i in files) {
@@ -119,7 +119,11 @@ class AWSDeployer extends Deployer {
 				archive.file(toPacks[i]);
 			}
 		}
-		archive.file("deployers/aws_entrypoint.js", {name:"entrypoint.js"})
+		if (fs.existsSync("deployers/aws_entrypoint.js")) {
+			archive.file("deployers/aws_entrypoint.js", {name:"entrypoint.js"})	
+		} else if (fs.existsSync("node_modules/webda/deployers/aws_entrypoint.js")) {
+			archive.file("node_modules/webda/deployers/aws_entrypoint.js", {name:"entrypoint.js"})	
+		}
 		archive.finalize();
 
 

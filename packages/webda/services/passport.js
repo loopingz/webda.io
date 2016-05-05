@@ -257,7 +257,7 @@ class PassportExecutor extends Executor {
 			console.log("Email auth needs an ident store");
 			throw 500;
 		}
-		if (this.body.password === undefined || this.body.email === undefined) {
+		if (this.body.password === undefined || this.body.login === undefined) {
 			throw 400;
 		}
 		var mailConfig = this._params.providers.email;
@@ -268,12 +268,12 @@ class PassportExecutor extends Executor {
 		}
 		var userStore = this.getStore(this._params.userStore?this._params.userStore:"Users");
 		var updates = {};
-		var uuid = req.body.email + "_email";
+		var uuid = this.body.login + "_email";
 		return identStore.get(uuid).then( (ident) => {
 			if (ident != undefined && ident.user != undefined) {
 				return userStore.get(ident.user).then ( (user) => {
 					// Check password
-					if (user._password === this.hashPassword(req.body.password)) {
+					if (user._password === this.hashPassword(this.body.password)) {
 						if (ident.failedLogin > 0) {
 							ident.failedLogin = 0;
 						}
@@ -298,7 +298,7 @@ class PassportExecutor extends Executor {
 				});
 			} else {
 				var user = this.body.user;
-				var email = this.body.email;
+				var email = this.body.login;
 				var validation;
 				// Read the form
 				if (this.params.validationToken) {

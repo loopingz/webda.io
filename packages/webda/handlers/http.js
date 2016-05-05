@@ -2,6 +2,7 @@
 var Webda = require('../core');
 var SecureCookie = require('../utils/cookie');
 var _extend = require("util")._extend;
+const cookieSerialize = require("cookie").serialize;
 
 class WebdaServer extends Webda {
 
@@ -52,28 +53,25 @@ class WebdaServer extends Webda {
 	  if (callable == null) {
 		this.display404(res);
 		return;
-	  } 
+	   } 
 		callable.context(req.body, req.session, res);
 		return Promise.resolve(callable.execute()).then( () => {
 			if (!callable._ended) {
 				callable.end();
 			}
 		}).catch ((err) => {
-			this.handleError(err, res);	
+			if (typeof(err) === "number") {
+				callable._returnCode = err;
+				this.flushHeaders(callable);
+				res.end();
+			} else {
+				console.log("Exception occured : " + JSON.stringify(err));
+				console.log(err.stack);
+				res.writeHead(500);
+				res.end();
+				throw err;
+			}
 		});
-	}
-
-	handleError(err, res) {
-		if (typeof(err) === "number") {
-			res.writeHead(err);
-			res.end();
-		} else {
-			console.log("Exception occured : " + JSON.stringify(err));
-			console.log(err.stack);
-			res.writeHead(500);
-			res.end();
-			throw err;
-		}
 	}
 
 	display404(res) {
@@ -91,11 +89,11 @@ class WebdaServer extends Webda {
 		var headers = executor._headers;
 		var session = executor.session;
 		//_extend(headers, )
-		var domain = ";domain=" + executor._http.host;
+		var domain = executor._http.host;
 		if (executor._http.wildcard) {
-			domain = '';
+			domain = undefined;
 		}
-		headers['Set-Cookie']='webda=' + session.save() + domain + ";httponly;";
+		headers['Set-Cookie']=cookieSerialize('webda', session.save(),  {'path':'/', 'domain':domain});;
 		res.writeHead(executor._returnCode, headers);
 	}
 

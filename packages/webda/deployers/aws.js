@@ -34,6 +34,7 @@ class AWSDeployer extends Deployer {
 			console.log('Setting region to: ' + this.resources.region);
 		}
 		this.region = AWS.config.region;
+		let zipPath = "dist/" + this._restApiName + '.zip';
 		AWS.config.update({accessKeyId: this.resources.accessKeyId, secretAccessKey: this.resources.secretAccessKey});
 		this._awsGateway = new AWS.APIGateway();
 		this._awsLambda = new AWS.Lambda();
@@ -44,15 +45,28 @@ class AWSDeployer extends Deployer {
 			}
 		}
 		console.log("Deploying to AWS");
-		var promise = this.generatePackage();
-		if (args.length > 0 && args[0] === "package") {
-			console.log("Generated package dist/" + this._restApiName + ".zip (" + this._packageHash + ")")
+		var promise = Promise.resolve();
+		if (args[0] !== "aws-only") {
+			promise = promise.then( () => {
+				return this.generatePackage(zipPath);
+			});
+		}
+
+		promise.then ( () => {
+			this._package = fs.readFileSync(zipPath);
+			var hash = crypto.createHash('sha256');
+			this._packageHash =  hash.update(this._package).digest('base64');
+			console.log("Package dist/" + this._restApiName + ".zip (" + this._packageHash + ")");
+		});
+
+		if (args[0] === "package") {
 			return promise;
 		}
-		promise.then( () => {
+
+		promise = promise.then( () => {
 			return this.generateLambda();	
 		})
-		if (args.length > 0 && args[0] === "lambda") {
+		if (args[0] === "lambda") {
 			return promise;
 		}
 		promise.then( () => {
@@ -91,9 +105,8 @@ class AWSDeployer extends Deployer {
 		});
 	}
 
-	generatePackage() {
+	generatePackage(zipPath) {
 		console.log("Creating package");
-		let zipPath = "dist/" + this._restApiName + '.zip';
 		var archiver = require('archiver');
 		if (!fs.existsSync("dist")) {
 			fs.mkdirSync("dist");
@@ -112,38 +125,34 @@ class AWSDeployer extends Deployer {
 		}
 		var output = fs.createWriteStream(zipPath);
 		var archive = archiver('zip');
-		var finished = false;
 
-		archive.on('close', function(){
-		    finished = true;
-		});
+		var p = new Promise( (resolve, reject) => {
+			output.on('finish', () => {
+				resolve();
+			});
 
-		archive.on('error', function(err){
-		    throw err;
-		});
+			archive.on('error', function(err){
+				console.log(err);
+			    reject(err);
+			});
 
-		archive.pipe(output);
-		for (let i in toPacks) {
-			var stat = fs.statSync(toPacks[i]);
-			if (stat.isDirectory()) {
-				archive.directory(toPacks[i], toPacks[i]);
-			} else if (stat.isFile()) {
-				archive.file(toPacks[i]);
+			archive.pipe(output);
+			for (let i in toPacks) {
+				var stat = fs.statSync(toPacks[i]);
+				if (stat.isDirectory()) {
+					archive.directory(toPacks[i], toPacks[i]);
+				} else if (stat.isFile()) {
+					archive.file(toPacks[i]);
+				}
 			}
-		}
-		if (fs.existsSync("deployers/aws_entrypoint.js")) {
-			archive.file("deployers/aws_entrypoint.js", {name:"entrypoint.js"})	
-		} else if (fs.existsSync("node_modules/webda/deployers/aws_entrypoint.js")) {
-			archive.file("node_modules/webda/deployers/aws_entrypoint.js", {name:"entrypoint.js"})	
-		}
-		archive.finalize();
-
-
-		// Calculate hash now
-		this._package = fs.readFileSync(zipPath);
-		var hash = crypto.createHash('sha256');
-		this._packageHash =  hash.update(this._package).digest('base64');
-		return Promise.resolve();
+			if (fs.existsSync("deployers/aws_entrypoint.js")) {
+				archive.file("deployers/aws_entrypoint.js", {name:"entrypoint.js"})	
+			} else if (fs.existsSync("node_modules/webda/deployers/aws_entrypoint.js")) {
+				archive.file("node_modules/webda/deployers/aws_entrypoint.js", {name:"entrypoint.js"})	
+			}
+			archive.finalize();
+		});
+		return p;
 	}
 
 	createLambdaFunction() {
@@ -232,9 +241,9 @@ class AWSDeployer extends Deployer {
 					}
 					return this.updateLambdaFunction();
 				}
-				// Could handle paging
-				return this.createLambdaFunction();
 			}
+			// Could handle paging
+			return this.createLambdaFunction();
 		});
 	}
 
@@ -279,25 +288,31 @@ class AWSDeployer extends Deployer {
 			this.restApiId = result.id;
 			return this._awsGateway.getResources({'restApiId': this.restApiId, 'limit': 500}).promise();
 		}).then( (result) => {
-			this._promises = [];
 			var found = {};
 			var promise = Promise.resolve();
 			this.tree = {};
 			var toCreate = [];
 			this._progression = 0;
 			for (let i in result.items) {
-				this.tree[result.items[i].path]=Promise.resolve(result.items[i]);
+				this.tree[result.items[i].path]=result.items[i];
 			}
+			found["/"]=true;
 			// Compare with local
-			for (let i in this.config) {
-				if (i[0] !== '/') continue;
-				if (this.tree[i]) {
-					found[i] = true;
+			for (let url in this.config) {
+				if (url[0] !== '/') continue;
+				let i = url.indexOf("/",1);
+				let currentPath = url.substr(0,i);
+				while (i >= 0) {
+					found[url.substr(0,i)]=true;
+					i = url.indexOf("/", i+1);
+		  		}
+				if (this.tree[url]) {
+					found[url] = true;
 					promise = promise.then (() => {
-						return this.updateAwsResource(this.tree[i], this.config[i])
+						return this.updateAwsResource(this.tree[url], this.config[url])
 					});
 				} else {
-					toCreate.push(this.config[i]);
+					toCreate.push(this.config[url]);
 				}
 			}
 			// Order to create per path
@@ -309,47 +324,41 @@ class AWSDeployer extends Deployer {
 				promise = promise.then (() => {
 					return this.createAwsResource(toCreate[i])
 				});
-				//this._promises.push();
 			}
 			// Remove old resources
 			for (let i in this.tree) {
 				if (found[i]) continue;
 				promise = promise.then (() => {
-					return this.deleteAwsResource(this.tree[i])
+					return this.deleteAwsResource(this.tree[i]);
 				});
-				this._promises.push();
 			}
 			return promise;
 		});
 	}
 
-	updateAwsResource(remote, local) {
-		// For now i am lazy and remove all methods to recreate
-		// Need to update template anyway
-		var updateResource;
-		return remote.then ((resource) => {
-			updateResource = resource;
-			var promise = Promise.resolve();
-			for (let i in resource.resourceMethods) {
-				promise = promise.then (() => {
-					return this._awsGateway.deleteMethod({'resourceId':resource.id,'restApiId':this.restApiId,'httpMethod':i}).promise();
-				});
-			}
-			return promise;
-		}).then (() => {
+	updateAwsResource(resource, local) {
+		var promise = Promise.resolve();
+		for (let i in resource.resourceMethods) {
+			promise = promise.then (() => {
+				return this._awsGateway.deleteMethod({'resourceId':resource.id,'restApiId':this.restApiId,'httpMethod':i}).promise();
+			});
+		}
+		return promise.then (() => {
 			if (typeof(local.method) == "string") {
-				return this.createAWSMethodResource(updateResource, local, local.method);
+				return this.createAWSMethodResource(resource, local, local.method);
 			} else {
-				return this.createAWSMethodsResource(updateResource, local, local.method);
+				return this.createAWSMethodsResource(resource, local, local.method);
 			}
 		});
 	}
 
 	deleteAwsResource(remote) {
+		console.log("deleteAwsResource: ", remote);
 		return this._awsGateway.deleteResource({'resourceId':remote.id, 'restApiId': this.restApiId}).promise();
 	}
 
 	createAWSMethodResource(resource, local, method) {
+		console.log("Creating " + method + " on " + local._url);
 		return this._awsGateway.putMethod({"authorizationType":"NONE",'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId}).promise().then ((awsMethod) => {
 			var params = {'resourceId':resource.id,'integrationHttpMethod': 'POST','httpMethod':method, 'restApiId': this.restApiId, 'type': 'AWS'};
 			params.uri = "arn:aws:apigateway:" + this.region + ":lambda:path/2015-03-31/functions/" + this._lambdaFunction.FunctionArn + "/invocations";
@@ -408,13 +417,17 @@ class AWSDeployer extends Deployer {
 
 	createAwsResource(local) {
 		var i = local._url.indexOf("/",1);
-		var promise = this.tree['/'];
+		var promise = new Promise( (resolve, reject) => {
+			resolve(this.tree['/']);
+		});
+		console.log("createAwsResource: " + local._url);
 		while (i >= 0) {
 		  let currentPath = local._url.substr(0,i);
 		  promise = promise.then( (item) => {
 		    if (this.tree[currentPath] === undefined) {
 		    	let pathPart = currentPath.substr(currentPath.lastIndexOf('/')+1);
-		    	return this._awsGateway.createResource({'parentId':item.id,'pathPart':pathPart, 'restApiId': this.restApiId}).promise()
+		    	this.tree[currentPath] = this._awsGateway.createResource({'parentId':item.id,'pathPart':pathPart, 'restApiId': this.restApiId}).promise()
+		    	return this.tree[currentPath];
 		    }
 		    return Promise.resolve(this.tree[currentPath]);
 		  });
@@ -425,7 +438,11 @@ class AWSDeployer extends Deployer {
 			let params = {'parentId':parent.id,'pathPart':pathPart, 'restApiId': this.restApiId};
 			return this.tree[local._url] = this._awsGateway.createResource(params).promise();
 		}).then ((resource) => {
-			return this.createAWSMethodsResource(resource, local, local.method);
+			if (typeof(local.method) == "string") {
+				return this.createAWSMethodResource(resource, local, local.method);	
+			} else {
+				return this.createAWSMethodsResource(resource, local, local.method);
+			}
 		});
 	}
 

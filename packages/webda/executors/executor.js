@@ -64,6 +64,10 @@ class Executor extends Service {
 		}
 	}
 
+	setHeader(header,value) {
+		this._headers[header]=value;
+	}
+
 	writeHead(httpCode, header) {
 		_extend(this._headers, header);
 		if (httpCode !== undefined) {

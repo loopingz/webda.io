@@ -249,6 +249,7 @@ class PassportExecutor extends Executor {
 	getMailMan() {
 		return this.getService(this._params.providers.email.mailer?this._params.providers.email.mailer:"Mailer");
 	}
+
 	handleEmail(req, res) {
 		var identStore = this.getStore(this._params.userStore?this._params.userStore:"Idents");
 		if (identStore === undefined) {
@@ -355,13 +356,15 @@ class PassportExecutor extends Executor {
 		switch (this.params.provider) {
 			case "google":
 				this.setupGoogle();
-				return passport.authenticate('google', {'scope': self.callable.providers.google.scope})(this, this, next);
+				return passport.authenticate('google', {'scope': this._params.providers.google.scope})(this, this, next);
 			case "facebook":
-				self.setupFacebook();
-				return passport.authenticate('facebook', {'scope': self.callable.providers.facebook.scope})(this, this, next);
+				this.setupFacebook();
+				let res = passport.authenticate('facebook', {'scope': this._params.providers.facebook.scope})(this, this, next);
+				console.log(res);
+				return res
 			case "github":
-				self.setupGithub();
-				return passport.authenticate('github', {'scope': self.callable.providers.github.scope})(this, this, next);
+				this.setupGithub();
+				return passport.authenticate('github', {'scope': this._params.providers.github.scope})(this, this, next);
 			case "phone":
 				return this.handlePhone(req, res);
 			case "email":

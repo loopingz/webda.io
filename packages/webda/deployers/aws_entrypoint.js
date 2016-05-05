@@ -1,5 +1,5 @@
 "use strict";
-const LambdaServer = require('./handlers/lambda');
+const LambdaServer = require('webda/handlers/lambda');
 var lambda = new LambdaServer();
 
 exports.handler = function(event, context, callback) {        

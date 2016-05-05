@@ -54,6 +54,8 @@ class AWSDeployer extends Deployer {
 			return this.generateAPIGateway();	
 		}).then( () => {
 			return this.installServices();
+		}).catch( (err) => {
+			console.log(err);
 		});
 	}
 

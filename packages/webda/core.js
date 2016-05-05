@@ -255,6 +255,7 @@ class Webda {
 	      	} else {
 		      	try {
 		      		if (typeof(include) === "string") {
+		      			console.log("include "+include);
 		        		serviceConstructor = require(include)
 		        	} else {
 		        		serviceConstructor = include;

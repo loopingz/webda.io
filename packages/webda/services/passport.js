@@ -251,7 +251,7 @@ class PassportExecutor extends Executor {
 		return this.getService(this._params.providers.email.mailer?this._params.providers.email.mailer:"Mailer");
 	}
 
-	handleEmail(req, res) {
+	handleEmail() {
 		var identStore = this.getStore(this._params.userStore?this._params.userStore:"Idents");
 		if (identStore === undefined) {
 			console.log("Email auth needs an ident store");
@@ -367,11 +367,11 @@ class PassportExecutor extends Executor {
 				this.setupGithub();
 				return passport.authenticate('github', {'scope': this._params.providers.github.scope})(this, this, next);
 			case "phone":
-				return this.handlePhone(req, res);
+				return this.handlePhone();
 			case "email":
-				return this.handleEmail(this, this);
+				return this.handleEmail();
 			case "logout":
-				req.session.destroy();
+				this.session.destroy();
 				// Destroy cookie
 				break;
 		}

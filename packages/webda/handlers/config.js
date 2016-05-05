@@ -8,8 +8,10 @@ class ConfigurationService extends Executor {
 
 	init(config) {
 		config['/services'] = {"method": ["GET"], "executor": this._name};
-		config['/deployments'] = {"method": ["GET"], "executor": this._name};
-		config['/deployments'] = {"method": ["GET"], "executor": this._name};
+		config['/services/{vhost}'] = {"method": ["POST"], "executor": this._name};
+		config['/executors/{vhost}'] = {"method": ["POST"], "executor": this._name};
+		config['/deployments'] = {"method": ["GET", "POST"], "executor": this._name};
+		config['/deployments/{name}'] = {"method": ["GET", "DELETE", "PUT"], "executor": this._name};
 		config['/configs'] = {"method": ["POST", "GET"], "executor": this._name};
 		config['/configs/{vhost}'] = {"method": ["PUT", "GET", "DELETE"], "executor": this._name};
 	}
@@ -26,8 +28,45 @@ class ConfigurationService extends Executor {
 					this.write(result);
 				});
 			} else if (this.params.vhost !== undefined) {
-				this.write(this._webda.config[this.params.vhost]);
+				this.write(this._webda.config[this._webda._vhost]);
 				return;
+			}
+		} else if (this._http.method == "POST") {
+			if (this._http.url === "/services") {
+				console.log(this.body);
+				let name = this.body.uuid;
+				delete this.body.uuid;
+				this._webda.config[this.webda.vhost].global.services[name]=this.body;
+				this._webda.saveConfiguration();
+			} else if (this._http.url === "/executors") {
+				if (this.body.url) {
+					var body = this.body.url;
+					delete this.body.url;
+					this._webda.config[this.webda.vhost][body] = this.body;
+					this._webda.saveConfiguration();
+					throw 204;
+				}
+				throw 404;
+			} else if (this._http.url === "/deployments") {
+				return this._webda.getStore("deployments").create(this.body);
+			}
+		} else if (this._http.method == "PUT") {
+			if (this._http.url.startsWith("/services") && this.params.vhost !== undefined) {
+				this._webda.config[this.params.vhost].global.services
+				console.log(this.body);
+				this._webda.saveConfiguration();
+			} else if (this._http.url === "/executors") {
+				if (this.body.url) {
+					var body = this.body.url;
+					delete this.body.url;
+					this._webda.config[this.params.vhost][body] = this.body;
+				}
+				throw 204;
+			} else if (this._http.url.startsWith("/deployments") && this.params.vhost !== undefined) {
+				return this._webda.getStore("deployments").update(this.body);
+			} else if (this._http.url.startsWith("/configs") && this.params.vhost !== undefined) {
+				this._webda.config[this.params.vhost].global.params = this.body;
+				throw 204;
 			}
 		}
 	}
@@ -57,6 +96,10 @@ class WebdaConfigurationServer extends WebdaServer {
 		super(config);
 		this.initAll();
 		this._vhost = 'localhost';
+	}
+
+	saveConfiguration() {
+
 	}
 
 	loadConfiguration(config) {

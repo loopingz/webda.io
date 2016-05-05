@@ -38,6 +38,36 @@ class SecureCookie {
 		});
 	}
 
+	login(userId, identUsed) {
+		this.userId = userId;
+		this.identUsed = identUsed;
+	}
+
+	isLogged() {
+		return this.userId !== undefined;
+	}
+
+	destroy() {
+		for (var prop in this) {
+			if (prop[0] === "_") {
+				continue;
+			}
+			delete this[prop];
+		}
+	}
+
+	getIdentUsed() {
+		return this.identUsed;
+	}
+
+	getUserId() {
+		return this.userId;
+	}
+
+	logout() {
+		delete this.userId;
+	}
+
 	_decrypt(data) {
 		try {
 			return JSON.parse(decrypt(this._algo, this._secret, data));

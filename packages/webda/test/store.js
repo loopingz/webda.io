@@ -165,8 +165,8 @@ describe('Store', function() {
     });
     describe('FileStore', function() {
       beforeEach(function () {
-        identStore = webda.getService("idents");
-        userStore = webda.getService("users");
+        identStore = webda.getService("Idents");
+        userStore = webda.getService("Users");
         assert.notEqual(identStore, undefined);
         assert.notEqual(userStore, undefined);
         identStore.__clean();

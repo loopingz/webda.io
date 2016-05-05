@@ -6,7 +6,7 @@ const TwitterStrategy = require('passport-twitter').Strategy;
 const FacebookStrategy = require('passport-facebook').Strategy;
 const GitHubStrategy = require('passport-github2').Strategy;
 const GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
-
+const crypto = require("crypto");
 const Ident = require('../models/ident');
 
 passport.serializeUser(function(user, done) {
@@ -26,8 +26,12 @@ class PassportExecutor extends Executor {
 	init(config) {
 		var url = this._params.expose;
 		if (url === undefined) {
-			url = '/auth/{provider}';
+			url = '/auth';
+		} else {
+			url = this._params.expose;
 		}
+		// Handle the lost password here
+		url += '/{provider}';
 		this.enrichRoutes(config, url);
 	}
 
@@ -55,7 +59,6 @@ class PassportExecutor extends Executor {
 			case "github":
 				self.setupGithub(req, res);
 				passport.authenticate('github', { successRedirect: self.callable.successRedirect, failureRedirect: self.callable.failureRedirect})(req, res, next);
-	                        break;
 			case "email":
 				self.handleEmailCallback(req, res);
 				break;
@@ -125,30 +128,32 @@ class PassportExecutor extends Executor {
 		if (identStore == undefined) {
 			return;
 		}
-		var identObj = identStore.get(session.authenticated.uuid);
-		if (identObj == undefined) {
-			identObj = session.authenticated;
-			if (identObj.user == undefined && session.currentuser != undefined) {
-				identObj.user = session.currentuser.uuid;
+		return identStore.get(session.authenticated.uuid).get( (identObj) => {
+			// TODO FINISH THIS
+			if (identObj == undefined) {
+				identObj = session.authenticated;
+				if (identObj.user == undefined && session.currentuser != undefined) {
+					identObj.user = session.currentuser.uuid;
+				}
+				identStore.save(identObj);
+			} else {
+				var updates = {};
+				if (identObj.user == undefined && session.currentuser != undefined) {
+					updates.user = session.currentuser.uuid;
+				}
+				updates.lastUsed = new Date();
+				updates.metadatas = session.authenticated.metadatas;
+				identObj = identStore.update(updates, identObj.uuid);
 			}
-			identStore.save(identObj);
-		} else {
-			var updates = {};
-			if (identObj.user == undefined && session.currentuser != undefined) {
-				updates.user = session.currentuser.uuid;
+			// TODO Add an update method for updating only attribute
+			if (identObj.user != undefined) {
+				var userStore = self.getStore("users");
+				if (userStore == undefined) {
+					return;
+				}
+				session.currentuser = userStore.get(identObj.user);
 			}
-			updates.lastUsed = new Date();
-			updates.metadatas = session.authenticated.metadatas;
-			identObj = identStore.update(updates, identObj.uuid);
-		}
-		// TODO Add an update method for updating only attribute
-		if (identObj.user != undefined) {
-			var userStore = self.getStore("users");
-			if (userStore == undefined) {
-				return;
-			}
-			session.currentuser = userStore.get(identObj.user);
-		}
+		});
 	}
 
 	setupFacebook(req, res) {
@@ -180,7 +185,7 @@ class PassportExecutor extends Executor {
 			return;
 		}
 		var updates = {};
-		var uuid = req.body.login + "_email";
+		var uuid = req.body.email + "_email";
 		var ident = identStore.get(uuid);
 		if (ident != undefined && ident.user != undefined) {
 			var userStore = this.getStore("users");
@@ -216,44 +221,120 @@ class PassportExecutor extends Executor {
 
 	}
 
+	sendValidationEmail(email, register) {
+		console.log("Should send " + email + " " + register);
+	}
+
+	hashPassword(pass) {
+		var hash = crypto.createHash('sha256');
+		return hash.update(pass).digest('hex');
+	}
+
+	login(user, ident) {
+		var event = {};
+		event.userId = user;
+		if (typeof(user) == "object") {
+			event.userId = user.uuid;
+			event.user = user;
+		}
+		event.identId = ident;
+		if (typeof(ident) == "object") {
+			event.identId = ident.uuid;
+			event.ident = ident;
+		}
+		this.session.login(event.userId, event.identId);
+		this.emit("login", event);
+	}
+
+	getMailMan() {
+		return this.getService(this._params.providers.email.mailer?this._params.providers.email.mailer:"Mailer");
+	}
 	handleEmail(req, res) {
-		var identStore = this.getStore("idents");
+		var identStore = this.getStore(this._params.userStore?this._params.userStore:"Idents");
 		if (identStore === undefined) {
 			console.log("Email auth needs an ident store");
 			throw 500;
-			return;
 		}
+		if (this.body.password === undefined || this.body.email === undefined) {
+			throw 400;
+		}
+		var mailConfig = this._params.providers.email;
+		var mailerService = this.getMailMan();
+		if (mailerService === undefined) {
+			// Bad configuration ( might want to use other than 500 )
+			//throw 500;
+		}
+		var userStore = this.getStore(this._params.userStore?this._params.userStore:"Users");
 		var updates = {};
-		var uuid = req.body.login + "_email";
-		var ident = identStore.get(uuid);
-		if (ident != undefined && ident.user != undefined) {
-			var userStore = this.getStore("users");
-			var user = userStore.get(ident.user);
-			var hash = crypto.createHash('sha256');
-			// Check password
-			if (user._password === hash.update(req.body.password).digest('hex')) {
-				if (ident.failedLogin > 0) {
-					ident.failedLogin = 0;
-				}
-				updates.lastUsed = new Date();
-				updates.failedLogin = 0;
-				ident = identStore.update(updates, ident.uuid);
-				req.session.authenticated = ident;
-				throw 204;
+		var uuid = req.body.email + "_email";
+		return identStore.get(uuid).then( (ident) => {
+			if (ident != undefined && ident.user != undefined) {
+				return userStore.get(ident.user).then ( (user) => {
+					// Check password
+					if (user._password === this.hashPassword(req.body.password)) {
+						if (ident.failedLogin > 0) {
+							ident.failedLogin = 0;
+						}
+						updates.lastUsed = new Date();
+						updates.failedLogin = 0;
+
+						return identStore.update(updates, ident.uuid).then ( () => {
+							this.login(ident.user, ident);
+							throw 204;
+						});
+						
+					} else {
+						if (ident.failedLogin === undefined) {
+							ident.failedLogin = 0;
+						}
+						updates.failedLogin = ident.failedLogin++;
+						updates.lastFailedLogin = new Date();
+						return identStore.update(updates, ident.uuid).then( () => {
+							throw 403;
+						});
+					}
+				});
 			} else {
-				if (ident.failedLogin === undefined) {
-					ident.failedLogin = 0;
+				var user = this.body.user;
+				var email = this.body.email;
+				var validation;
+				// Read the form
+				if (this.params.validationToken) {
+					validation = this.body.validationToken;
+					if (validation !== this.generateEmailValidationToken()) {
+						throw 403;
+					}
+					if (this.session.isLogged()) {
+						return identStore.save({'uuid': uuid, 'email': email, 'user': this.session.getUserId()});
+					}
 				}
-				updates.failedLogin = ident.failedLogin++;
-				updates.lastFailedLogin = new Date();
-				ident = identStore.update(updates, ident.uuid);
-				throw 403;
+				if (this.body.register) {
+					// Need to check email before creation
+					if (mailConfig.postValidation || mailConfig.postValidation === undefined) {
+						// ValidationToken is undefined send a email
+						return this.sendValidationEmail(email);
+					}
+					if (user === undefined) {
+						user = {};
+					}
+					// Store with a _
+					user._password = this.hashPassword(this.body.password);
+					delete this.body.password;
+					return userStore.save(user).then ( (user) => {
+						return identStore.save({'uuid': uuid, 'email': email, 'user': user.uuid});
+					}).then ( (ident) => {
+						this.login(user, ident);
+						return Promise.resolve();
+					});
+				}
+				throw 404;
 			}
-		} else {
-			// Read the form
-			throw 404;
-		}
-		this.end();
+			this.end();
+		});
+	}
+
+	generateEmailValidationToken() {
+
 	}
 
 	handlePhone(req, res) {
@@ -261,45 +342,35 @@ class PassportExecutor extends Executor {
 	}
 
 	execute() {
-		var self = this;
-		var req = this._rawRequest;
-		var res = this._rawResponse;
-		req._passport = {};
-		req._passport.instance = passport;
-		req._passport.session = this.session;
 		// TODO Handle URL instead of _extended
-		if (self.callable._extended ) {
-			self.executeCallback(req, res);
+		// 0 is safe unless a callback provider exists
+		if (this._http.url.indexOf('callback') > 0) {
+			this.executeCallback(req, res);
 			return;
 		}
 		var next = function(err) {
 			console.log("Error happened: " + err);
 			console.trace();
 		}
-		switch (self.params.provider) {
+		switch (this.params.provider) {
 			case "google":
-				self.setupGoogle();
-				passport.authenticate('google', {'scope': self.callable.providers.google.scope})(req, res, next);
-				break;
+				this.setupGoogle();
+				return passport.authenticate('google', {'scope': self.callable.providers.google.scope})(this, this, next);
 			case "facebook":
 				self.setupFacebook();
-				passport.authenticate('facebook', {'scope': self.callable.providers.facebook.scope})(req, res, next);
-				break;
+				return passport.authenticate('facebook', {'scope': self.callable.providers.facebook.scope})(this, this, next);
 			case "github":
 				self.setupGithub();
-				passport.authenticate('github', {'scope': self.callable.providers.github.scope})(req, res, next);
-				break;
+				return passport.authenticate('github', {'scope': self.callable.providers.github.scope})(this, this, next);
 			case "phone":
-				this.handlePhone(req, res);
-				break;
+				return this.handlePhone(req, res);
 			case "email":
-				this.handleEmail(req, res);
-				break;
+				return this.handleEmail(this, this);
 			case "logout":
 				req.session.destroy();
+				// Destroy cookie
 				break;
 		}
-		res.end();
 	}
 }
 

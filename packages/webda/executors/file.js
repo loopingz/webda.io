@@ -9,7 +9,10 @@ class FileExecutor extends CustomExecutor {
 
 	execute() {
 		if (typeof(this.callable.file) === "string") {
-			var include = "." + this.callable.file;
+			var include = this.callable.file;
+			if (include.startsWith("./")) {
+				include = process.cwd() + '/' + include;
+			}
 			return require(include)(this);
 		} else {
 			return this.callable.file(this);
@@ -17,4 +20,4 @@ class FileExecutor extends CustomExecutor {
 	}
 }
 
-module.exports = FileExecutor
+module.exports = FileExecutor;

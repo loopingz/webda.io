@@ -120,6 +120,11 @@ class Webda {
 		this._vhost = host
 	}
 
+	getSession(data) {
+		const SecureCookie = require("./utils/cookie.js");
+		return new SecureCookie({secret: 'WebdaSecret'}, data);
+	}
+
 	getService(name, mapper) {
 		if (name === undefined) {
 			name = "_default";

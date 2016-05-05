@@ -9,9 +9,18 @@
 				"Authentication": {
 					"successRedirect": "https://shootandprove.loopingz.com/user.html",
 					"failureRedirect": "/login-error",
+					"userStore": "",
+					"identStore": "",
 					"providers": {
 						"facebook": {},
-						"email": {},
+						"email": {
+							"from": "",
+							"subject": "",
+							"html": "",
+							"text": "",
+							"mailer": "DefinedMailer",
+							"postValidation": true
+						},
 						"phone": {},
 						"twitter": {},
 						"google": {},
@@ -82,11 +91,11 @@
 					"type": "MongoStore",
 					"collection": "users"
 				},
-				"idents": {
+				"Idents": {
 					"inject": "user",
 					"check": "user",
 					"map": {
-							"users": {
+							"Users": {
 								"key": "user",
 								"target": "idents",
 								"fields": "type",
@@ -104,7 +113,7 @@
 					"folder": "./test/data/idents",
 					"validator": "IdentValidator"
 				},
-				"users": {
+				"Users": {
 					"check": "user",
 					"expose": {
 						"url": "/users",

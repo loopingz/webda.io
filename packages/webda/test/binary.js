@@ -121,7 +121,7 @@ describe('Binary', function() {
   });
   describe('FileBinary', function () {
     beforeEach(function () {
-      userStore = webda.getService("users");
+      userStore = webda.getService("Users");
       binary = webda.getService("binary");
       assert.notEqual(userStore, undefined);
       assert.notEqual(binary, undefined);

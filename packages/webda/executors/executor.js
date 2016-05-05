@@ -95,6 +95,10 @@ class Executor extends Service {
 			if (this._body !== undefined && this._returnCode == 204) {
 				this._returnCode = 200;
 			}
+			// Coming from express kind of component
+			if (this.statusCode !== undefined) {
+				this._returnCode = this.statusCode;
+			}
 			this._webda.flushHeaders(this);
 		}
 		this._webda.flush(this);

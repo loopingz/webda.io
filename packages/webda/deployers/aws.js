@@ -86,7 +86,45 @@ class AWSDeployer extends Deployer {
 
 	generatePackage() {
 		console.log("Creating package");
-		this._package = fs.readFileSync('./lambda.zip');
+		let zipPath = "dist/" + this._restApiName + '.zip';
+		var archiver = require('archiver');
+		if (!fs.existsSync("dist")) {
+			fs.mkdirSync("dist");
+		}
+		if (!fs.existsSync(zipPath)) {
+			fs.unlinkSync(zipPath)
+		}
+		var ignores = ['dist', 'bin', 'test', 'Dockerfile', 'README.md', 'package.json', 'deployments', 'deployers'];
+		var toPacks = [];
+		var files = fs.readdirSync('.');
+		for (let i in files) {
+			var name = files[i];
+			if (name.startsWith(".")) continue;
+			if (ignores.indexOf(name) >= 0) continue;
+			toPacks.push(name);
+		}
+		var output = fs.createWriteStream(zipPath);
+		var archive = archiver('zip');
+
+		archive.on('error', function(err){
+		    throw err;
+		});
+
+		archive.pipe(output);
+		for (let i in toPacks) {
+			var stat = fs.statSync(toPacks[i]);
+			if (stat.isDirectory()) {
+				archive.directory(toPacks[i], toPacks[i]);
+			} else if (stat.isFile()) {
+				archive.file(toPacks[i]);
+			}
+		}
+		archive.file("deployers/aws_entrypoint.js", {name:"entrypoint.js"})
+		archive.finalize();
+
+
+		// Calculate hash now
+		this._package = fs.readFileSync(zipPath);
 		var hash = crypto.createHash('sha256');
 		this._packageHash =  hash.update(this._package).digest('base64');
 		return Promise.resolve();

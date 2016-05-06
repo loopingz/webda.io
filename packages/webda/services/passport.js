@@ -39,7 +39,7 @@ class PassportExecutor extends Executor {
 		// Handle the lost password here
 		url += '/{provider}';
 		config[url] = {"method": ["GET"], "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.authenticate};
-		config[url + "/callback"] = {"method": "GET", "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.callback};
+		config[url + "/callback?code={code}"] = {"method": "GET", "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.callback};
 	}
 
 	callback(req, res) {

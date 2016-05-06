@@ -153,6 +153,26 @@ class PassportExecutor extends Executor {
 		});
 	}
 
+	handleOAuthReturn(profile, ident, done) {
+		var userPromise;
+		if (this.session.getUserId()) {
+			// Add to the current user
+			userPromise = Promise.resolve({'uuid':this.session.getUserId()});
+		} else {
+			userPromise = userStore.save(this.registerUser(profile._json));
+		}
+		return userPromise.then ( (user) => {
+			ident.user = user.uuid;
+			return identStore.save(ident).then (() => {
+				this.login(user, ident);
+				// Redirect now
+				this.writeHead(302, {'Location': this._params.successRedirect});
+				done(null, ident);
+				return Promise.resolve();
+			});
+		});
+	}
+
 	setupFacebook(req, res) {
 		var self = this;
 		var callback = self.getCallbackUrl();
@@ -161,17 +181,16 @@ class PassportExecutor extends Executor {
 			    clientSecret: this._params.providers.facebook.clientSecret,
 			    callbackURL: callback
 			},
-			function(accessToken, refreshToken, profile, done) {
-			    console.log("return from fb: " + JSON.stringify(profile));
-	            self.session.authenticated = new Ident("facebook", profile.id, accessToken, refreshToken);
-	            // Dont store useless parts
-	            delete profile._raw;
-	            delete profile._json;
-			    self.session.authenticated.setMetadatas(profile);
-			    self.store(self.session);
-			    done(null, self.session.authenticated);
+			(accessToken, refreshToken, profile, done) => {
+				self.handleOAuthReturn(profile._json, new Ident("facebook", profile.id, accessToken, refreshToken), done);
 			}
 		));
+	}
+
+	registerUser(datas) {
+		if (datas === undefined) datas = {};
+		this.emit("Authentication.Register", datas);
+		return datas;
 	}
 
 	handleEmailCallback() {
@@ -193,7 +212,7 @@ class PassportExecutor extends Executor {
 					return Promise.resolve();
 				});
 			} else {
-				return userStore.save({}).then ( (user) => {
+				return userStore.save(this.registerUser()).then ( (user) => {
 					return identStore.save({'uuid': uuid, 'email': this._params.email, 'user': user.uuid}).then( (ident) => {
 						this.login(user, ident);
 						// Redirect now
@@ -329,7 +348,7 @@ class PassportExecutor extends Executor {
 					// Store with a _
 					user._password = this.hashPassword(this.body.password);
 					delete this.body.password;
-					return userStore.save(user).then ( (user) => {
+					return userStore.save(this.registerUser(this.body)).then ( (user) => {
 						return identStore.save({'uuid': uuid, 'email': email, 'user': user.uuid});
 					}).then ( (ident) => {
 						this.login(user, ident);

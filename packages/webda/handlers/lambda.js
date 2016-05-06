@@ -9,8 +9,8 @@ class LambdaServer extends Webda {
 	flushHeaders (executor) {
 		var headers = executor._headers;
 		var session = executor.session;
-		var domain = ";domain=" + executor._http.host;
-		if (executor._http.wildcard) {
+		var domain = ";domain=" + executor._route._http.host;
+		if (executor._route._http.wildcard) {
 			domain = '';
 		}
 		headers['Set-Cookie']='webda=' + session.save() + domain + ";httponly;";

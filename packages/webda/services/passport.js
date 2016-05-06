@@ -31,15 +31,15 @@ class PassportExecutor extends Executor {
 			url = this._params.expose;
 		}
 		// Add static for email for now, if set before it should have priority
-		config[url + "/email"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}};
-		config[url + "/email/callback"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}};
+		config[url + "/email"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this.handleEmail};
+		config[url + "/email/callback"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.handleEmailCallback};
 		// Handle the lost password here
 		url += '/{provider}';
-		config[url] = {"method": ["GET"], "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}};
-		config[url + "/callback"] = {"method": "GET", "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}};
+		config[url] = {"method": ["GET"], "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.authenticate};
+		config[url + "/callback"] = {"method": "GET", "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.callback};
 	}
 
-	executeCallback(req, res) {
+	callback(req, res) {
 		var next = function (err) {
 			console.log("Error happened: " + err);
 			console.log(err.stack);
@@ -66,7 +66,7 @@ class PassportExecutor extends Executor {
 		}
 	};
 
-	getCallback() {
+	getCallbackUrl() {
 		var url = this._route._http.protocol + "://" + this._route._http.host + this._route._http.url;
 		if (url.endsWith("/callback")) {
 			return url;
@@ -76,7 +76,7 @@ class PassportExecutor extends Executor {
 
 	setupGithub(req, res) {
 		var self = this;
-		var callback = self.getCallback();
+		var callback = self.getCallbackUrl();
 		passport.use(new GitHubStrategy({
 			    clientID: this._params.providers.github.clientID,
 			    clientSecret: this._params.providers.github.clientSecret,
@@ -95,7 +95,7 @@ class PassportExecutor extends Executor {
 	setupGoogle(req, res) {
 		var self = this;
 		var realm = self.callable.providers.google.realm;
-		var callback = self.getCallback();
+		var callback = self.getCallbackUrl();
 		if (realm == null) {
 			realm = callback;
 		}
@@ -153,7 +153,7 @@ class PassportExecutor extends Executor {
 
 	setupFacebook(req, res) {
 		var self = this;
-		var callback = self.getCallback();
+		var callback = self.getCallbackUrl();
 		passport.use(new FacebookStrategy({
 			    clientID: this._params.providers.facebook.clientID,
 			    clientSecret: this._params.providers.facebook.clientSecret,
@@ -172,7 +172,7 @@ class PassportExecutor extends Executor {
 		));
 	}
 
-	handleEmailCallback(req, res) {
+	handleEmailCallback() {
 		var identStore = this.getService("idents");
 		if (identStore === undefined) {
 			console.log("Email auth needs an ident store");
@@ -337,13 +337,9 @@ class PassportExecutor extends Executor {
 		this.writeHead(204);
 	}
 
-	execute() {
+	authenticate() {
 		// TODO Handle URL instead of _extended
 		// 0 is safe unless a callback provider exists
-		if (this._route._http.url.indexOf('callback') > 0) {
-			this.executeCallback(this, this);
-			return;
-		}
 		var next = function(err) {
 			console.log("Error happened: " + err);
 			console.trace();

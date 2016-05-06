@@ -47,7 +47,7 @@ class PassportExecutor extends Executor {
 			console.log("Error happened: " + err);
 			console.log(err.stack);
 		}
-		switch (this.params.provider) {
+		switch (this._params.provider) {
 			case "facebook":
 				this.setupFacebook(req, res);
 				passport.authenticate('facebook', { successRedirect: this.callable.successRedirect, failureRedirect: this.callable.failureRedirect})(req, res, next);

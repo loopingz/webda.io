@@ -82,7 +82,9 @@ class Executor extends Service {
 	}
 
 	execute() {
-		throw Error("Abstract executor");
+		if (typeof(this._route._method) === "function") {
+			this[this._route._method.name]();
+		}
 	}
 	
 	getService(name) {

@@ -217,7 +217,7 @@ class Binary extends Executor {
 		if (!found) {
 			throw 404;	
 		}
-		var targetStore = this.getStore(storeName);
+		var targetStore = this.getService(storeName);
 		if (targetStore === undefined) {
 			throw 404;
 		}

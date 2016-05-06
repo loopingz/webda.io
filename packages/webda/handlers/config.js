@@ -70,18 +70,18 @@ class ConfigurationService extends Executor {
 			if (this._params.name) {
 
 			} else {
-				return this.getStore("deployments").find().then ( (result) => {
+				return this.getService("deployments").find().then ( (result) => {
 					this.write(result);
 				});
 			}
 		} else if (this._route._http.method == "POST") {
-			return this._webda.getStore("deployments").create(this.body);
+			return this._webda.getService("deployments").create(this.body);
 		} else if (this._http.method == "PUT") {
 			if (this._http.url.startsWith("/deployments") && this.params.vhost !== undefined) {
-				return this._webda.getStore("deployments").update(this.body);
+				return this._webda.getService("deployments").update(this.body);
 			}
 		} else if (this._http.method == "DELETE") {
-			return this._webda.getStore("deployments").delete(this.body);
+			return this._webda.getService("deployments").delete(this.body);
 		}
 	}
 }

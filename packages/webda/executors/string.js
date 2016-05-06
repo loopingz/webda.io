@@ -2,19 +2,15 @@
 const Executor = require('./executor.js');
 
 class StringExecutor extends Executor {
-	constructor(webda, name, params) {
-		super(webda, name, params);
-		this._type = "StringExecutor";
-	}
 
 	execute() {
-		if (this.callable.mime) {
-		   this.writeHead(200, {'Content-Type': this.callable.mime});
+		if (this._params.mime) {
+		   this.writeHead(200, {'Content-Type': this._params.mime});
 		}
-		if (typeof this.callable.result != "string") {
-			this.write(JSON.stringify(this.callable.result));
+		if (typeof this._params.result != "string") {
+			this.write(JSON.stringify(this._params.result));
 		} else {
-			this.write(this.callable.result);
+			this.write(this._params.result);
 		}
 		this.end();
 	}

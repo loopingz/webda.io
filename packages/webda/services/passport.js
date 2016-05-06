@@ -30,6 +30,8 @@ class PassportExecutor extends Executor {
 		} else {
 			url = this._params.expose;
 		}
+		// List authentication configured
+		config[url] = {"method": ["GET"], "executor": this._name, "_method": this.listAuthentications};
 		// Add static for email for now, if set before it should have priority
 		config[url + "/email"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this.handleEmail};
 		config[url + "/email/callback"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.handleEmailCallback};
@@ -65,6 +67,11 @@ class PassportExecutor extends Executor {
 				break;
 		}
 	};
+
+
+	listAuthentications() {
+		this.write(Object.keys(this._params.providers));
+	}
 
 	getCallbackUrl() {
 		var url = this._route._http.protocol + "://" + this._route._http.host + this._route._http.url;

@@ -8,14 +8,14 @@ class FileExecutor extends CustomExecutor {
 	}
 
 	execute() {
-		if (typeof(this.callable.file) === "string") {
-			var include = this.callable.file;
+		if (typeof(this._route.file) === "string") {
+			var include = this._route.file;
 			if (include.startsWith("./")) {
 				include = process.cwd() + '/' + include;
 			}
 			return require(include)(this);
 		} else {
-			return this.callable.file(this);
+			return this._route.file(this);
 		}
 	}
 }

@@ -84,8 +84,9 @@ describe('Passport', function() {
   			assert.equal(events, 1);
   		});
   	});
-  	it('loginWithValidation', function() {
-  		webda.getExecutor("test.webda.io", "POST", "/auth/email");
+  	it('aws compatibility', function() {
+  		executor = webda.getExecutor("test.webda.io", "GET", "/auth/github");
+      assert.equal(executor._route.aws.defaultCode, 302);
   	});
   });
 });

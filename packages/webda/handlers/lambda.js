@@ -93,15 +93,13 @@ class LambdaServer extends Webda {
 	}
 
 	handleLambdaReturn(executor, callback) {
-		console.log("handleLambdaReturn");
 		// Override when it comes for express component
 		if (executor.statusCode) {
 			this._result.code = executor.statusCode;
 		}
 		var code = 200;
-		console.log(executor._params);
-		if (executor._params !== undefined && executor._params !== undefined && executor._params.aws !== undefined && executor._params.aws.defaultCode !== undefined) {
-			code = executor._params.aws.defaultCode;
+		if (executor._route && executor._route.aws !== undefined && executor._route.aws.defaultCode !== undefined) {
+			code = executor._route.aws.defaultCode;
 			if (code == "string") {
 				code = parseInt(code);
 			}

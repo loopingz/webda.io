@@ -62,7 +62,7 @@ class PassportExecutor extends Executor {
 				this.setupGithub(this, this);
 				return new Promise((resolve, reject) => {
 					passport.authenticate('github', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
-				}
+				});
 		}
 	};
 
@@ -320,6 +320,7 @@ class PassportExecutor extends Executor {
 			} else {
 				var user = this.body.user;
 				var email = this.body.login;
+				var registeredUser;
 				var validation;
 				// Read the form
 				if (this.body.validationToken) {
@@ -341,13 +342,13 @@ class PassportExecutor extends Executor {
 						user = {};
 					}
 					// Store with a _
-					user._password = this.hashPassword(this.body.password);
+					this.body._password = this.hashPassword(this.body.password);
 					delete this.body.password;
 					return userStore.save(this.registerUser(this.body)).then ( (user) => {
-						return identStore.save({'uuid': uuid, 'email': email, 'user': user.uuid});
-					}).then ( (ident) => {
-						this.login(user, ident);
-						return this.sendValidationEmail(email);
+						return identStore.save({'uuid': uuid, 'email': email, 'user': user.uuid}).then ( (ident) => {
+							this.login(user, ident);
+							return this.sendValidationEmail(email);
+						});
 					});
 				}
 				throw 404;

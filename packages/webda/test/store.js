@@ -4,7 +4,7 @@ var config = require("./config.json");
 
 mapper = function (identStore, userStore) {
   var eventFired = 0;
-  var events = ['storeSave','storeSaved','storeGet','storeDelete','storeDeleted','storeUpdate','storeUpdated','storeFind','storeFound'];
+  var events = ['Store.Save','Store.Saved','Store.Get','Store.Delete','Store.Deleted','Store.Update','Store.Updated','Store.Find','Store.Found'];
   for (evt in events) {
     identStore.on(events[evt], function (evt) {
       eventFired++;
@@ -93,7 +93,7 @@ mapper = function (identStore, userStore) {
 
 crud = function (identStore,userStore) {
   var eventFired = 0;
-  var events = ['storeSave','storeSaved','storeGet','storeDelete','storeDeleted','storeUpdate','storeUpdated','storeFind','storeFound'];
+  var events = ['Store.Save','Store.Saved','Store.Get','Store.Delete','Store.Deleted','Store.Update','Store.Updated','Store.Find','Store.Found'];
   for (evt in events) {
     identStore.on(events[evt], function (evt) {
       eventFired++;

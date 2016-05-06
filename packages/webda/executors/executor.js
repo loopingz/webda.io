@@ -102,6 +102,10 @@ class Executor extends Service {
 		this.query = route._uriParams?route._uriParams:{};
 	}
 
+	logIn() {
+		
+	}
+
 	setContext(body, session, stream) {
 		this.session = session;
 		this.body = body;

@@ -26,8 +26,6 @@ class Mailer extends Service {
 		if (!options.from) {
 			options.from = this._params.sender;
 		}
-		console.log("Send an email");
-		console.log(options);
 		return this._transporter.sendMail(options, callback);
 	}
 }

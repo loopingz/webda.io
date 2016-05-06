@@ -29,15 +29,28 @@ class SecureCookie {
 		} else {
 			_extend(this, data);
 		}
-		// Should use Proxy if available
-		Object.observe(this, (changes) => {
-			if (changes[0].name == "_changed") {
-				return;
-			}
-			this._changed = true;
-		});
 	}
 
+	getProxy() {
+		// Should use Proxy if available
+		if (Object.observe) {
+			Object.observe(this, (changes) => {
+				if (changes[0].name == "_changed") return;
+				this._changed = true;
+			});
+			return this;
+		} else if (Proxy != undefined) {
+			// Proxy implementation
+			return new Proxy(this, {
+				set: (obj, prop, value) => {
+					obj[prop]=value;
+					if (prop !== "_changed") {
+						this._changed = true;
+					}
+				}
+			});
+		}
+	}
 	login(userId, identUsed) {
 		this.userId = userId;
 		this.identUsed = identUsed;

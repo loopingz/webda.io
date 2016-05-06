@@ -15,7 +15,7 @@ class WebdaServer extends Webda {
 	  if (req.cookies.webda === undefined) {
 		req.cookies.webda = {};
 	  }
-	  var sessionCookie = new SecureCookie({'secret': 'webda-private-key'}, req.cookies.webda);
+	  var sessionCookie = new SecureCookie({'secret': 'webda-private-key'}, req.cookies.webda).getProxy();
 	  req.session = sessionCookie;
 
 	  // Add correct headers for X-scripting

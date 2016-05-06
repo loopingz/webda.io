@@ -27,7 +27,7 @@ class LambdaServer extends Webda {
 
 	handleRequest(event, context, callback) {
 		var cookies = {};
-		var sessionCookie = new SecureCookie({'secret': 'webda-private-key'}, cookies.webda);
+		var sessionCookie = new SecureCookie({'secret': 'webda-private-key'}, cookies.webda).getProxy();
 	  	var session = sessionCookie;
 	  	var vhost;
 	  	if (event.querystring!==undefined) {

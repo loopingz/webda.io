@@ -7,6 +7,7 @@ const FacebookStrategy = require('passport-facebook').Strategy;
 const GitHubStrategy = require('passport-github2').Strategy;
 const GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 const crypto = require("crypto");
+const _extend = require("util")._extend;
 const Ident = require('../models/ident');
 
 passport.serializeUser(function(user, done) {
@@ -34,7 +35,7 @@ class PassportExecutor extends Executor {
 		config[url] = {"method": ["GET"], "executor": this._name, "_method": this.listAuthentications};
 		// Add static for email for now, if set before it should have priority
 		config[url + "/email"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this.handleEmail};
-		config[url + "/email/callback"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.handleEmailCallback};
+		config[url + "/email/callback?email={email}&validationToken={token}"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.handleEmailCallback};
 		// Handle the lost password here
 		url += '/{provider}';
 		config[url] = {"method": ["GET"], "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.authenticate};
@@ -101,8 +102,8 @@ class PassportExecutor extends Executor {
 
 	setupGoogle(req, res) {
 		var self = this;
-		var realm = self.callable.providers.google.realm;
-		var callback = self.getCallbackUrl();
+		var realm = this._params.providers.google.realm;
+		var callback = this.getCallbackUrl();
 		if (realm == null) {
 			realm = callback;
 		}
@@ -184,47 +185,58 @@ class PassportExecutor extends Executor {
 		if (identStore === undefined) {
 			console.log("Email auth needs an ident store");
 			throw 500;
-			return;
 		}
-		var updates = {};
-		var uuid = req.body.email + "_email";
-		var ident = identStore.get(uuid);
-		if (ident != undefined && ident.user != undefined) {
-			var userStore = this.getService("Users");
-			var user = userStore.get(ident.user);
-			var hash = crypto.createHash('sha256');
-			// Check password
-			if (user._password === hash.update(req.body.password).digest('hex')) {
-				if (ident.failedLogin > 0) {
-					ident.failedLogin = 0;
-				}
-				updates.lastUsed = new Date();
-				updates.failedLogin = 0;
-				ident = identStore.update(updates, ident.uuid);
-				req.session.authenticated = ident;
-				throw 204;
-			} else {
-				if (ident.failedLogin === undefined) {
-					ident.failedLogin = 0;
-				}
-				updates.failedLogin = ident.failedLogin++;
-				updates.lastFailedLogin = new Date();
-				ident = identStore.update(updates, ident.uuid);
-				throw 403;
+		if (this._params.token) {
+			let validation = this._params.token;
+			if (validation !== this.generateEmailValidationToken(this._params.email)) {
+				this.writeHead(302, {'Location': this._params.failureRedirect});
+				return Promise.resolve();
 			}
-		} else {
-			// Read the form
-			throw 404;
+			var uuid = this._params.email + "_email";
+			if (this.session.isLogged()) {
+				return identStore.save({'uuid': uuid, 'email': this._params.email, 'user': this.session.getUserId()}).then( () => {
+					this.writeHead(302, {'Location': this._params.successRedirect});
+					return Promise.resolve();
+				});
+			} else {
+				return userStore.save({}).then ( (user) => {
+					return identStore.save({'uuid': uuid, 'email': this._params.email, 'user': user.uuid}).then( (ident) => {
+						this.login(user, ident);
+						// Redirect now
+						this.writeHead(302, {'Location': this._params.successRedirect});
+						return Promise.resolve();
+					});
+				});
+			}
 		}
-		this.end();
 	}
 
 	handlePhoneCallback(req, res) {
 
 	}
 
-	sendValidationEmail(email, register) {
-		console.log("Should send " + email + " " + register);
+	sendValidationEmail(email) {
+		var config = this._params.providers.email;
+		if (!config.validationEmailSubject) {
+			config.subject = "Webda Framework registration email";
+		}
+		let text = config.validationEmailText;
+		if (!text) {
+			text = "Please validate your email by clicking the link below\n{url}";
+		}
+		let replacements = _extend({}, config);
+		replacements.url = this._route._http.root + "/auth/email?email=" + email + "&validationToken=" + this.generateEmailValidationToken(email);
+		// TODO Add a template engine
+		for (let i in replacements) {
+			if (typeof(replacements[i]) !== "string") continue;
+			text = text.replace("{"+i+"}", replacements[i]);
+		}
+		let mailOptions = {
+		    to: email, // list of receivers
+		    subject: config.subject, // Subject line
+		    text: text
+        };
+		this.getMailMan().send(mailOptions);
 	}
 
 	hashPassword(pass) {
@@ -302,9 +314,9 @@ class PassportExecutor extends Executor {
 				var email = this.body.login;
 				var validation;
 				// Read the form
-				if (this._params.validationToken) {
+				if (this.body.validationToken) {
 					validation = this.body.validationToken;
-					if (validation !== this.generateEmailValidationToken()) {
+					if (validation !== this.generateEmailValidationToken(email)) {
 						throw 403;
 					}
 					if (this.session.isLogged()) {
@@ -327,7 +339,7 @@ class PassportExecutor extends Executor {
 						return identStore.save({'uuid': uuid, 'email': email, 'user': user.uuid});
 					}).then ( (ident) => {
 						this.login(user, ident);
-						return Promise.resolve();
+						return this.sendValidationEmail(email);
 					});
 				}
 				throw 404;
@@ -336,8 +348,8 @@ class PassportExecutor extends Executor {
 		});
 	}
 
-	generateEmailValidationToken() {
-
+	generateEmailValidationToken(email) {
+		return this.hashPassword(email + "_" + this._webda.getSecret());
 	}
 
 	handlePhone() {

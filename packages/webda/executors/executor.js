@@ -83,8 +83,11 @@ class Executor extends Service {
 
 	execute() {
 		if (typeof(this._route._method) === "function") {
-			this[this._route._method.name]();
+			return new Promise( (resolve, reject) => {
+				resolve(this[this._route._method.name]());
+			});
 		}
+		return Promise.reject(Error("Not implemented"));
 	}
 	
 	getService(name) {

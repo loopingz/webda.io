@@ -53,6 +53,7 @@ class Webda {
 		this._services['DynamoStore']=require('./stores/dynamodb');
 		this._services['FileBinary']=require('./services/filebinary');
 		this._services['S3Binary']=require('./services/s3binary');
+		this._services['Mailer']=require('./services/mailer');
 		this._config = this.loadConfiguration(config);
 	}
 
@@ -142,9 +143,6 @@ class Webda {
 	}
 
 	getRouteFromUrl(config, method, url) {
-		if (url.indexOf("?") >= 0) {
-			url = url.substring(0, url.indexOf("?"));
-	    }
 		for (let routeUrl in config) {
 			if (routeUrl === "global") {
 	        	continue;
@@ -207,8 +205,13 @@ class Webda {
 	    if (route === undefined) {
 	    	return;
 	    }
-	    route._http = {"host":vhost, "method":method, "url":url, "protocol": protocol, "port": port, "headers": headers, "wildcard": wildcard};
+	    route._http = {"host":vhost, "method":method, "url":url, "protocol": protocol, "port": port, "headers": headers, "wildcard": wildcard, "root": protocol + "://" + vhost};
 	    return this.getServiceWithRoute(route);
+	}
+
+	getSecret() {
+		// For now a static config file but should have a rolling service secret
+		return this._config[this._vhost].global.secret;
 	}
 
 	getServiceWithRoute(route) {

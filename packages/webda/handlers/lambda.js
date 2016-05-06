@@ -16,7 +16,6 @@ class LambdaServer extends Webda {
 		headers['Set-Cookie']='webda=' + session.save() + domain + ";httponly;";
 		this._result = {};
 		this._result.headers = headers;
-		this._result.apiCode = "CODE_" + executor._returnCode;
 		this._result.code = executor._returnCode;
 	}
 
@@ -70,33 +69,50 @@ class LambdaServer extends Webda {
 	  	}
 
 	  	//
-	  	var callable = this.getExecutor(vhost, method, resourcePath, protocol, port, headers);
+	  	var executor = this.getExecutor(vhost, method, resourcePath, protocol, port, headers);
 	  	var body = event["body-json"];
-	  	if (callable == null) {
+	  	if (executor == null) {
 	  		callback("Bad mapping " + vhost + " - " + method + " " + resourcePath, null);
 	  	}
-	  	callable.context(body, session);
-		return Promise.resolve(callable.execute()).then( () => {
-			if (!callable._ended) {
-				callable.end();
+	  	executor.setContext(body, session);
+		return Promise.resolve(executor.execute()).then( () => {
+			if (!executor._ended) {
+				executor.end();
 			}
-			callback(null, this._result);
+			this.handleLambdaReturn(executor, callback);
 		}).catch ( (err) => {
-			console.log('plop',err);
 			if (typeof(err) === "number") {
-				console.log('flushHeaders');
-				this.flushHeaders(callable);
-				console.log('flushHeaders2');
-				this._result.apiCode = "CODE_" + err.toString();
+				this.flushHeaders(executor);
 				this._result.code = err;
-				console.log('test', this._result);
-				callback(new Error(JSON.stringify(this._result)), null);
-				return;
+			} else {
+				console.log(err);
+				this._result.code = 500;
 			}
-			this._result.apiCode = "CODE_500";
-			this._result.err = err;
-			callback(new Error(JSON.stringify(this._result)), null);
+			this.handleLambdaReturn(executor, callback);
 		});
+	}
+
+	handleLambdaReturn(executor, callback) {
+		console.log("handleLambdaReturn");
+		// Override when it comes for express component
+		if (executor.statusCode) {
+			this._result.code = executor.statusCode;
+		}
+		var code = 200;
+		console.log(executor._params);
+		if (executor._params !== undefined && executor._params !== undefined && executor._params.aws !== undefined && executor._params.aws.defaultCode !== undefined) {
+			code = executor._params.aws.defaultCode;
+			if (code == "string") {
+				code = parseInt(code);
+			}
+		}
+		console.log("expected code: ", code);
+		if (this._result.code == code) {
+			callback(null, this._result);
+		} else {
+			this._result.apiCode = "CODE_" + this._result.code.toString();
+			callback(JSON.stringify(this._result), null);
+		}
 	}
 }
 

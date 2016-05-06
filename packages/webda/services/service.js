@@ -18,6 +18,10 @@ class Service extends EventEmitter {
 
 	}
 
+	toPublicJSON(object) {
+		return JSON.stringify(object, this._webda.jsonFilter);
+	}
+
 	__clean() {
 		if (typeof(global.it) !== 'function') {
 			throw Error("Only for test purpose")

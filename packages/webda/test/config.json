@@ -145,9 +145,9 @@
 		"/urltemplate/{id}": {
 			"method": "GET",
 			"executor": "debug",
-			"lambda": "plop",
 			"params": {
-				"TEST_ADD": "Users"
+				"TEST_ADD": "Users",
+				"lambda": "plop"
 			}
 		},
 		"/": {
@@ -161,8 +161,9 @@
 		"/webda": {
 			"method": ["GET","POST","DELETE","PUT"],
 			"executor": "lambda",
-			"lambda": "arn:aws:lambda:us-west-2:277712386420:function:webda-test",
-            "params": {}
+            "params": {
+            	"arn": "arn:aws:lambda:us-west-2:277712386420:function:webda-test"
+            }
 		}
 	}
 }

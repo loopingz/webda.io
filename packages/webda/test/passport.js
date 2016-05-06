@@ -28,7 +28,7 @@ describe('Passport', function() {
   		var params = {'email':'test@webda.io', 'password': 'test'};
   		var found400 = false;
   		events = 0;
-  		executor.context(params, {});
+  		executor.setContext(params, {});
   		try {
   			executor.execute();
   		} catch (err) {
@@ -37,11 +37,11 @@ describe('Passport', function() {
   		}
   		assert.equal(found400, true);
   		params.login = params.email;
-  		executor.context(params, {});
+  		executor.setContext(params, {});
   		return executor.execute().catch ((err) => {
   			assert.equal(err, 404);
   			params.register = true;
-  			executor.context(params, webda.getSession());
+  			executor.setContext(params, webda.getSession());
   			return executor.execute();
   		}).then ( () => {
   			assert.equal(executor.session.identId, undefined);
@@ -50,7 +50,7 @@ describe('Passport', function() {
   			assert.equal(ident, undefined);
   			params.login = "test2@webda.io";
   			executor._params.providers.email.postValidation = false;
-  			executor.context(params, webda.getSession());
+  			executor.setContext(params, webda.getSession());
   			return executor.execute();
   		}).then ( () => {
   			assert.equal(events, 1);
@@ -63,20 +63,20 @@ describe('Passport', function() {
   	it('login', function() {
   		var params = {'login':'test@webda.io', 'password': 'test'};
   		events = 0;
-  		executor.context(params, webda.getSession());
+  		executor.setContext(params, webda.getSession());
   		return executor.execute().catch ( (err) => {
   			assert.equal(executor.session.getUserId(), undefined);
   			// As it has not been validate
   			assert.equal(err, 404);
   			params.login="test2@webda.io";
-  			executor.context(params, webda.getSession());
+  			executor.setContext(params, webda.getSession());
   			return executor.execute();
   		}).catch( (err) => {
   			assert.equal(err, 204);
   			assert.notEqual(executor.session.getUserId(), undefined);
   			params.login="test2@webda.io";
   			params.password="bouzouf";
-  			executor.context(params, webda.getSession());
+  			executor.setContext(params, webda.getSession());
   			return executor.execute();
   		}).catch( (err) => {
   			assert.equal(err, 403);

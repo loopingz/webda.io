@@ -36,9 +36,9 @@ describe('Lambda', function() {
         webda.flush = (executor) => {
           resp.data = executor._body;
         }
-        var callable = webda.getExecutor("test.webda.io", methods[i], "/webda");
-        callable.context({}, {});
-        return callable.execute().then( function() {
+        var executor = webda.getExecutor("test.webda.io", methods[i], "/webda");
+        executor.setContext({}, {});
+        return executor.execute().then( function() {
           assert.notEqual(resp, undefined);
           assert.equal(resp.httpCode, 200);
           assert.equal(resp.httpHeader['Content-Type'], 'text/plain');

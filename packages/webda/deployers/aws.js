@@ -367,38 +367,65 @@ class AWSDeployer extends Deployer {
 			params.requestTemplates["application/json"]=this.getRequestTemplates();
 			return this._awsGateway.putIntegration(params).promise();
 		}).then ( () => {
-			var params = {'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId, 'statusCode': '200'};
-			params.responseModels = {};
-			//params.responseParameters = {'Set-Cookie': false};
-			params.responseModels["application/json"]='Empty';
-			return this._awsGateway.putMethodResponse(params).promise();
-		}).then ( () => {
-			var params = {'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId, 'statusCode': '200'};
-			//params.responseParameters = {'Set-Cookie': 'integration.response.body.headers.Set-Cookie'};
-			params.responseTemplates={};
-			params.responseTemplates["application/json"]="#set($inputRoot = $input.path('$'))\n$inputRoot.body";
-			return this._awsGateway.putIntegrationResponse(params).promise();
-		}).then ( () => {
-			return this.createAWSMethodErrorReturnCode(resource, method);
+			return this.createAWSMethodErrorReturnCode(resource, method, local.aws);
 		});
 	}
 
-	createAWSMethodErrorReturnCode(resource, method) {
+	getHeadersMap(integration, code, headers, defaultCode) {
+		if (headers === undefined) {
+			headers = [];
+		}
+		if (headers.length === 0) {
+			headers[0] = 'Set-Cookie';
+		}
+		// Cannot handle more than one headers for non-main , due to the fact that we cannot template the statusCode....
+		// https://forums.aws.amazon.com/thread.jspa?threadID=216264
+		if (code !== defaultCode) {
+			headers = ['Set-Cookie']
+		}
+		var res = {};
+		for (let i in headers) {
+			var value = false;
+			if (integration) {
+				if (code == defaultCode) {
+					value = "integration.response.body.headers." + headers[i];
+				} else {
+					value = "integration.response.body.errorMessage";
+				}
+			}
+			res['method.response.header.' + headers[i]] = value;
+		}
+		return res;
+	}
+
+	createAWSMethodErrorReturnCode(resource, method, aws) {
+		if (aws === undefined) {
+			aws = {defaultCode: "200", headersMap: ['Set-Cookie']};
+		}
+		if (typeof(aws.defaultCode) == "number") {
+			aws.defaultCode = aws.defaultCode.toString();
+		}
+		var codes = ["200", "204", "302", "303", "400" ,"401","403","404","405","409","412","500"];
 		// As we cannot specify error code directly we need to map each... yes i know running regexp a script engine to only find an error code doesnt look like a good idea....
-		var codes = [204,303,400,401,403,404,405,409,412,500];
+		// Code headers
 		var promise = Promise.resolve();
-		for (let i in codes) {
-			let code = codes[i];
+		for (let code in codes) {
 			promise = promise.then( () => {
-				var params = {'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId, 'statusCode': code.toString()};
+				var params = {'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId, 'statusCode': codes[code]};
 				params.responseModels = {};
+				params.responseParameters = this.getHeadersMap(false, codes[code], aws.headersMap, aws.defaultCode);
 				params.responseModels["application/json"]='Empty';
 				return this._awsGateway.putMethodResponse(params).promise();
 			}).then ( () => {
-				var params = {'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId, 'statusCode': code.toString()};
+				var params = {'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId, 'statusCode': codes[code]};
 				params.responseTemplates={};
-				params.responseTemplates["application/json"]="\"\"";
-				params.selectionPattern=".*CODE_" + code.toString() + ".*";
+				params.responseParameters = this.getHeadersMap(true, codes[code], aws.headersMap, aws.defaultCode);
+				if (codes[code] === aws.defaultCode) {
+					params.responseTemplates["application/json"]="#set($inputRoot = $input.path('$'))\n$inputRoot.body";
+				} else {
+					params.responseTemplates["application/json"]="\"\"";
+					params.selectionPattern=".*CODE_" + codes[code] + ".*";
+				}
 				return this._awsGateway.putIntegrationResponse(params).promise();
 			});
 		}
@@ -420,7 +447,6 @@ class AWSDeployer extends Deployer {
 		var promise = new Promise( (resolve, reject) => {
 			resolve(this.tree['/']);
 		});
-		console.log("createAwsResource: " + local._url);
 		while (i >= 0) {
 		  let currentPath = local._url.substr(0,i);
 		  promise = promise.then( (item) => {

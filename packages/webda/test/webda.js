@@ -22,26 +22,26 @@ describe('Webda', function() {
       assert.equal(webda.getExecutor("localhost", "GET", "/"), undefined);
     })
     it('Known vhost - known page', function () {
-      callable = webda.getExecutor("test.webda.io", "GET", "/");
-      assert.notEqual(callable, undefined);
-      assert.equal(callable['_http']["method"], "GET");
-      assert.equal(callable['_http']["url"], "/");
-      assert.equal(callable['_http']["host"], "test.webda.io");
-      assert.equal(callable["params"]["TEST_ADD"], undefined);
-      assert.equal(callable["params"]["accessKeyId"], "LOCAL_ACCESS_KEY");
-      assert.equal(callable["params"]["secretAccessKey"], "LOCAL_SECRET_KEY");
+      executor = webda.getExecutor("test.webda.io", "GET", "/");
+      assert.notEqual(executor, undefined);
+      assert.equal(executor['_route']['_http']["method"], "GET");
+      assert.equal(executor['_route']['_http']["url"], "/");
+      assert.equal(executor['_route']['_http']["host"], "test.webda.io");
+      assert.equal(executor["_params"]["TEST_ADD"], undefined);
+      assert.equal(executor["_params"]["accessKeyId"], "LOCAL_ACCESS_KEY");
+      assert.equal(executor["_params"]["secretAccessKey"], "LOCAL_SECRET_KEY");
       // Debug is Executor
-      assert(callable instanceof Executor);
+      assert(executor instanceof Executor);
     });
     it('Known vhost - known page - multiple method', function () {
-      callable = webda.getExecutor("test.webda.io", "POST", "/");
-      assert.notEqual(callable, undefined);
-      assert.equal(callable['_http']["method"], "POST");
-      assert.equal(callable['_http']["url"], "/");
-      assert.equal(callable['_http']["host"], "test.webda.io");
-      assert.equal(callable["params"]["TEST_ADD"], undefined);
-      assert.equal(callable["params"]["accessKeyId"], "LOCAL_ACCESS_KEY");
-      assert.equal(callable["params"]["secretAccessKey"], "LOCAL_SECRET_KEY");
+      executor = webda.getExecutor("test.webda.io", "POST", "/");
+      assert.notEqual(executor, undefined);
+      assert.equal(executor['_route']['_http']["method"], "POST");
+      assert.equal(executor['_route']['_http']["url"], "/");
+      assert.equal(executor['_route']['_http']["host"], "test.webda.io");
+      assert.equal(executor["_params"]["TEST_ADD"], undefined);
+      assert.equal(executor["_params"]["accessKeyId"], "LOCAL_ACCESS_KEY");
+      assert.equal(executor["_params"]["secretAccessKey"], "LOCAL_SECRET_KEY");
     });
     it('Known vhost - known page - unknown method', function () {
       assert.equal(webda.getExecutor("test.webda.io", "PUT", "/"), undefined);
@@ -50,25 +50,25 @@ describe('Webda', function() {
       assert.equal(webda.getExecutor("test.webda.io", "GET", "/test"), undefined);
     });
     it('Known vhost - known template page', function () {
-      callable = webda.getExecutor("test.webda.io", "GET", "/urltemplate/666");
-      assert.notEqual(callable, undefined);
-      assert.equal(callable['_http']["method"], "GET");
-      assert.equal(callable['_http']["url"], "/urltemplate/666");
-      assert.equal(callable['_http']["host"], "test.webda.io");
-      assert.equal(callable['params']['id'], 666);
-      assert.equal(callable["params"]["TEST_ADD"], "Users");
-      assert.equal(callable["params"]["TEST"], "Global");
+      executor = webda.getExecutor("test.webda.io", "GET", "/urltemplate/666");
+      assert.notEqual(executor, undefined);
+      assert.equal(executor['_route']['_http']["method"], "GET");
+      assert.equal(executor['_route']['_http']["url"], "/urltemplate/666");
+      assert.equal(executor['_route']['_http']["host"], "test.webda.io");
+      assert.equal(executor['_params']['id'], 666);
+      assert.equal(executor["_params"]["TEST_ADD"], "Users");
+      assert.equal(executor["_params"]["TEST"], "Global");
       // Default is Executor
-      assert(callable instanceof Executor);
+      assert(executor instanceof Executor);
     });
     it('Known vhost - passport executor', function () {
-      callable = webda.getExecutor("test.webda.io", "GET", "/auth/facebook");
-      assert.notEqual(callable, undefined);
-      assert.notEqual(callable._extended, true);
-      callable = webda.getExecutor("test.webda.io", "GET", "/auth/facebook/callback");
-      assert.notEqual(callable, undefined);
-      callable = webda.getExecutor("test.webda.io", "GET", "/auth/google/return");
-      assert.notEqual(callable, undefined);
+      executor = webda.getExecutor("test.webda.io", "GET", "/auth/facebook");
+      assert.notEqual(executor, undefined);
+      assert.notEqual(executor._extended, true);
+      executor = webda.getExecutor("test.webda.io", "GET", "/auth/facebook/callback");
+      assert.notEqual(executor, undefined);
+      executor = webda.getExecutor("test.webda.io", "GET", "/auth/google/callback");
+      assert.notEqual(executor, undefined);
     });
   });
 });

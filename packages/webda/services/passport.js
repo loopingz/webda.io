@@ -30,16 +30,14 @@ class PassportExecutor extends Executor {
 		} else {
 			url = this._params.expose;
 		}
+		// Add static for email for now, if set before it should have priority
+		config[url + "/email"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}};
+		config[url + "/email/callback"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}};
 		// Handle the lost password here
 		url += '/{provider}';
-		this.enrichRoutes(config, url);
+		config[url] = {"method": ["GET"], "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}};
+		config[url + "/callback"] = {"method": "GET", "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}};
 	}
-
-	enrichRoutes(config, url) {
-		config[url] = {"method": ["POST", "GET"], "executor": this._name};
-		config[url + "/callback"] = {"method": "GET", "executor": this._name};
-	    config[url + "/return"] = {"method": "GET", "executor": this._name};
-	};
 
 	executeCallback(req, res) {
 		var self = this;
@@ -125,7 +123,7 @@ class PassportExecutor extends Executor {
 
 	store(session) {
 		var self = this;
-		var identStore = this.getStore("idents");
+		var identStore = this.getService("Idents");
 		if (identStore == undefined) {
 			return;
 		}
@@ -148,7 +146,7 @@ class PassportExecutor extends Executor {
 			}
 			// TODO Add an update method for updating only attribute
 			if (identObj.user != undefined) {
-				var userStore = self.getStore("users");
+				var userStore = self.getService("Users");
 				if (userStore == undefined) {
 					return;
 				}
@@ -179,7 +177,7 @@ class PassportExecutor extends Executor {
 	}
 
 	handleEmailCallback(req, res) {
-		var identStore = this.getStore("idents");
+		var identStore = this.getService("idents");
 		if (identStore === undefined) {
 			console.log("Email auth needs an ident store");
 			throw 500;
@@ -189,7 +187,7 @@ class PassportExecutor extends Executor {
 		var uuid = req.body.email + "_email";
 		var ident = identStore.get(uuid);
 		if (ident != undefined && ident.user != undefined) {
-			var userStore = this.getStore("users");
+			var userStore = this.getService("Users");
 			var user = userStore.get(ident.user);
 			var hash = crypto.createHash('sha256');
 			// Check password
@@ -252,7 +250,7 @@ class PassportExecutor extends Executor {
 	}
 
 	handleEmail() {
-		var identStore = this.getStore(this._params.userStore?this._params.userStore:"Idents");
+		var identStore = this.getService(this._params.userStore?this._params.userStore:"Idents");
 		if (identStore === undefined) {
 			console.log("Email auth needs an ident store");
 			throw 500;
@@ -266,7 +264,7 @@ class PassportExecutor extends Executor {
 			// Bad configuration ( might want to use other than 500 )
 			//throw 500;
 		}
-		var userStore = this.getStore(this._params.userStore?this._params.userStore:"Users");
+		var userStore = this.getService(this._params.userStore?this._params.userStore:"Users");
 		var updates = {};
 		var uuid = this.body.login + "_email";
 		return identStore.get(uuid).then( (ident) => {
@@ -301,7 +299,7 @@ class PassportExecutor extends Executor {
 				var email = this.body.login;
 				var validation;
 				// Read the form
-				if (this.params.validationToken) {
+				if (this._params.validationToken) {
 					validation = this.body.validationToken;
 					if (validation !== this.generateEmailValidationToken()) {
 						throw 403;
@@ -346,7 +344,7 @@ class PassportExecutor extends Executor {
 	execute() {
 		// TODO Handle URL instead of _extended
 		// 0 is safe unless a callback provider exists
-		if (this._http.url.indexOf('callback') > 0) {
+		if (this._route._http.url.indexOf('callback') > 0) {
 			this.executeCallback(this, this);
 			return;
 		}
@@ -354,15 +352,13 @@ class PassportExecutor extends Executor {
 			console.log("Error happened: " + err);
 			console.trace();
 		}
-		switch (this.params.provider) {
+		switch (this._params.provider) {
 			case "google":
 				this.setupGoogle();
 				return passport.authenticate('google', {'scope': this._params.providers.google.scope})(this, this, next);
 			case "facebook":
 				this.setupFacebook();
-				let res = passport.authenticate('facebook', {'scope': this._params.providers.facebook.scope})(this, this, next);
-				console.log(res);
-				return res
+				return passport.authenticate('facebook', {'scope': this._params.providers.facebook.scope})(this, this, next);
 			case "github":
 				this.setupGithub();
 				return passport.authenticate('github', {'scope': this._params.providers.github.scope})(this, this, next);

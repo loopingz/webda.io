@@ -49,20 +49,20 @@ class WebdaServer extends Webda {
 		res.end();
 		return;
 	  }
-	  var callable = this.getExecutor(vhost, req.method, req.url, protocol, req.port, req.headers);
-	  if (callable == null) {
+	  var executor = this.getExecutor(vhost, req.method, req.url, protocol, req.port, req.headers);
+	  if (executor == null) {
 		this.display404(res);
 		return;
 	   } 
-		callable.context(req.body, req.session, res);
-		return Promise.resolve(callable.execute()).then( () => {
-			if (!callable._ended) {
-				callable.end();
+		executor.setContext(req.body, req.session, res);
+		return Promise.resolve(executor.execute()).then( () => {
+			if (!executor._ended) {
+				executor.end();
 			}
 		}).catch ((err) => {
 			if (typeof(err) === "number") {
-				callable._returnCode = err;
-				this.flushHeaders(callable);
+				executor._returnCode = err;
+				this.flushHeaders(executor);
 				res.end();
 			} else {
 				console.log("Exception occured : " + JSON.stringify(err));

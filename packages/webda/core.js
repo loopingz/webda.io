@@ -1,7 +1,7 @@
 "use strict";
 
 var uriTemplates = require('uri-templates');
-var extend = require('util')._extend;
+var _extend = require('util')._extend;
 var vm = require('vm');
 var fs = require('fs');
 const path = require('path');
@@ -36,6 +36,7 @@ var mod = safe_require('./mod1');
 class Webda {
 	constructor (config) {
 		this._vhost = '';
+		// on the spot executors
 		this._executors = {};
 		this._executors['debug']=require('./executors/executor');
 		this._executors['lambda']=require('./executors/lambda');
@@ -44,6 +45,7 @@ class Webda {
 		this._executors['string']=require('./executors/string');
 		this._executors['resource']=require('./executors/resource');
 		this._executors['file']=require('./executors/file');
+		// real service
 		this._services = {};
 		this._services['Authentication']=require('./services/passport');
 		this._services['FileStore']=require('./stores/file');
@@ -116,8 +118,9 @@ class Webda {
 		}
 	}
 
-	setHost(host) {
-		this._vhost = host
+	setHost(vhost) {
+		this._vhost = vhost
+		this.initHosts(vhost, this._config[vhost]);
 	}
 
 	getSession(data) {
@@ -125,24 +128,65 @@ class Webda {
 		return new SecureCookie({secret: 'WebdaSecret'}, data);
 	}
 
-	getService(name, mapper) {
+	getService(name) {
 		if (name === undefined) {
 			name = "_default";
 		}
+		name = name.toLowerCase();
 		if (this._config[this._vhost] !== undefined) {
-			if (this._config[this._vhost].global !== undefined && this._config[this._vhost].global.services !== undefined
-					&& this._config[this._vhost].global.services[name]) {
-				return this._config[this._vhost].global.services[name]._service;
+			if (this._config[this._vhost].global !== undefined && this._config[this._vhost].global._services !== undefined
+					&& this._config[this._vhost].global._services[name]) {
+				return this._config[this._vhost].global._services[name];
 			}
-		}
-		if (this._executors[name] !== undefined) {
-			return new this._executors[name](this, name, mapper);
 		}
 	}
 
-	getStore(name) {
-		// Deprecated
-		return this.getService(name)
+	getRouteFromUrl(config, method, url) {
+		if (url.indexOf("?") >= 0) {
+			url = url.substring(0, url.indexOf("?"));
+	    }
+		for (let routeUrl in config) {
+			if (routeUrl === "global") {
+	        	continue;
+			}
+			var map = config[routeUrl];
+
+			// Check method
+			if  (Array.isArray(map['method'])) {
+				if (map['method'].indexOf(method) === -1) {
+					continue;
+				}
+			} else if (map['method'] !== method) {
+	        	continue;
+	      	}
+
+			if (routeUrl === url) {
+	        	return map;
+	      	}
+
+	      	if (map['_uri-template-parse'] === undefined) {
+	        	continue;
+	      	}
+
+	      	var parse_result = map['_uri-template-parse'].fromUri(url);
+	      	if (parse_result !== undefined) {
+	        	var skip = false;
+	        	for (var val in parse_result) {
+	          		if (parse_result[val].indexOf("/") >= 0) {
+	            		skip = true;
+	            		break;
+	          		}
+	        	}
+	        	if (skip) {
+	          		continue;
+	        	}
+	        	if (map.params == undefined) {
+	        		map.params = {};
+	        	}
+	        	_extend(map.params, parse_result);
+	        	return map;
+	      	}
+	    }
 	}
 
 	getExecutor(vhost, method, url, protocol, port, headers) {
@@ -159,64 +203,24 @@ class Webda {
 	    // Init vhost if needed
 	    this.initHosts(vhost, this._config[vhost]);
 	    // Check mapping
-	    var callable = null;
-	    var params = [];
-	    if (url.indexOf("?") >= 0) {
-	      url = url.substring(0, url.indexOf("?"));
+	    var route = this.getRouteFromUrl(this._config[vhost], method, url);
+	    if (route === undefined) {
+	    	return;
 	    }
-	    for (var map in this._config[vhost]) {
-	      if (map === "global") {
-	        continue;
-	      }
-	      if  (Array.isArray(this._config[vhost][map]['method'])) {
-	        if (this._config[vhost][map]['method'].indexOf(method) === -1) {
-	          continue;
-	        }
-	      } else if (this._config[vhost][map]['method'] !== method) {
-	        continue;
-	      }
-	      if (map === url) {
-	        callable = this.getCallable(this._config[vhost][map]["executor"], this._config[vhost][map]);
-	        break;
-	      }
-	      if (this._config[vhost][map]['_uri-template-parse'] === undefined) {
-	        continue;
-	      }
-	      var parse_result = this._config[vhost][map]['_uri-template-parse'].fromUri(url);
-	      if (parse_result !== undefined) {
-	        var skip = false;
-	        for (var val in parse_result) {
-	          if (parse_result[val].indexOf("/") >= 0) {
-	            skip = true;
-	            break;
-	          }
-	        }
-	        if (skip) {
-	          continue;
-	        }
-	        callable = this.getCallable(this._config[vhost][map]["executor"], this._config[vhost][map], parse_result);
-	        break;
-	      }
-	    }
-	    if (callable !== null) {
-	    	var vhost_config = this._config[vhost]["global"];
-	    	if (vhost_config['params'] !== undefined) {
-	          callable.enrichParameters(vhost_config['params']);
-	    	}
-	        callable["_http"] = {"host":vhost, "method":method, "url":url, "protocol": protocol, "port": port, "headers": headers, "wildcard": wildcard};
-	    }
-	    return callable;
+	    route._http = {"host":vhost, "method":method, "url":url, "protocol": protocol, "port": port, "headers": headers, "wildcard": wildcard};
+	    return this.getServiceWithRoute(route);
 	}
 
-	getCallable(name, mapper, urlparams) {
-		var callable = this.getService(name, mapper);
-	    if (callable != null) {
-	    	callable.setParameters(mapper.params);
-	    	if (urlparams) {
-	        	callable.enrichParameters(urlparams);
-	        }
+	getServiceWithRoute(route) {
+		var name = route.executor;
+		var executor = this.getService(name);
+		if (executor === undefined && this._executors[name] !== undefined) {
+			executor = new this._executors[name](this, name, this._config[route._http.host].global.params);
+		}
+		if (executor !== undefined) {
+	    	executor.setRoute(this.extendParams(route, this._config[route._http.host].global));
 	    }
-	    return callable;
+	    return executor;
 	}
 
 	initURITemplates(config) {
@@ -236,8 +240,16 @@ class Webda {
 		console.log("Abstract implementation of Webda");
 	}
 
+	extendParams(local, wider) {
+		var params = _extend({}, wider);
+		return _extend(params, local);
+	}
+
 	initServices(config) {
 		var services = config.global.services;
+		if (config.global._services === undefined) {
+			config.global._services = {};
+		}
 		if (services === undefined) {
 			return;
 		}
@@ -255,7 +267,6 @@ class Webda {
 	      	} else {
 		      	try {
 		      		if (typeof(include) === "string") {
-		      			console.log("include "+include);
 		        		serviceConstructor = require(include)
 		        	} else {
 		        		serviceConstructor = include;
@@ -268,24 +279,20 @@ class Webda {
 		    if (serviceConstructor === undefined) {
 		    	continue;
 		    }
-	      	var params = extend({}, config.global.params);
-	      	params = extend(params, services[service]);
+	      	var params = this.extendParams(services[service], config.global.params);
 	      	delete params.require;
 	      	try {
-	      		services[service]._service = new serviceConstructor(this, service, params);
+	      		config.global._services[service.toLowerCase()] = new serviceConstructor(this, service, params);
 	      	} catch (err) {
 	      		
 	      	}
 	    }
 
 	    // Init services
-	    for (var service in services) {
-	      if (services[service]._service === undefined) {
-	        continue;
-	      }
-	      if (services[service]._service.init !== undefined) {
-	        services[service]._service.init(config);
-	      }
+	    for (var service in config.global._services) {
+	      	if (config.global._services[service].init !== undefined) {
+	        	config.global._services[service].init(config);
+	      	}
 	    }
 	}
 

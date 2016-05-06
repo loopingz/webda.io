@@ -14,17 +14,21 @@ class LambdaExecutor extends CustomExecutor {
 
 	execute() {
 		return new Promise( (resolve, reject) => {
+			if (!this._params['arn']) {
+				return reject("arn of the Lambda method to inkoke is required");
+			}
 			var AWS = require('aws-sdk');
 			AWS.config.update({region: 'us-west-2'});
-			AWS.config.update({accessKeyId: this.params['accessKeyId'], secretAccessKey: this.params['secretAccessKey']});
+			AWS.config.update({accessKeyId: this._params['accessKeyId'], secretAccessKey: this._params['secretAccessKey']});
 			var lambda = new AWS.Lambda();
-			this.params["_http"] = this._http;
+			var params = {};
+			params["_http"] = this._route._http;
 			var params = {
-				FunctionName: this.callable['lambda'], /* required */
+				FunctionName: this._params['arn'], /* required */
 				ClientContext: null,
 				InvocationType: 'RequestResponse',
 				LogType: 'None',
-				Payload: JSON.stringify(this['params'])// not sure here / new Buffer('...') || 'STRING_VALUE'
+				Payload: JSON.stringify(params)// not sure here / new Buffer('...') || 'STRING_VALUE'
 		    };
 		  	lambda.invoke(params, (err, data) => {
 		    	if (err) {

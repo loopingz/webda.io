@@ -7,37 +7,14 @@ const Service = require('../services/service');
 const Writable = require('stream').Writable;
 
 class Executor extends Service {
-	constructor(webda, name, callable) {
-		super(webda, name, callable);
-		var self = this;
-		self.callable = callable;
-		self.params = callable.params;
-		self._flushHeaders = false;
-		if (self.params == undefined) {
-			self.params = {}; 
-		}
-	}
+	constructor(webda, name, params) {
+		super(webda, name, params);
+		this._defaultParams = params;
 
-	context(body, session, stream) {
-		this.session = session;
-		this.body = body;
-		this._headers = {};
-		this._flushHeaders = false;
-		this._returnCode = 204;
-		this._body = undefined;
-		this._ended = false;
-		this._stream = stream;
-		this._buffered = false;
-		if (stream === undefined) {
-			this._stream = new Writable();
-			this._stream._body = [];
-			this._stream._write = this._write;
+		if (this._defaultParams == undefined) {
+			this._defaultParams = {}; 
 		}
-		this._stream.on('pipe', (src) => {
-			this._flushHeaders = true;
-			this._buffered = true;
-		  	this._webda.flushHeaders(this);
-		});
+		this._flushHeaders = false;
 	}
 
 	_write(chunk, enc, next) {
@@ -104,41 +81,40 @@ class Executor extends Service {
 		this._webda.flush(this);
 	}
 
-	toPublicJSON(object) {
-		return JSON.stringify(object, this._webda.jsonFilter);
-	}
 	execute() {
-		this.writeHead(200, {'Content-Type': 'text/plain'});
-	  	this.write("Callable is " + JSON.stringify(callable));
-	  	this.end();
-	  	return Promise.resolve();
+		throw Error("Abstract executor");
 	}
 	
 	getService(name) {
 		return this._webda.getService(name);
 	}
 
-	getStore(name) {
-		return this.getService(name);
+	setRoute(route) {
+		this._route = route;
+		this._params = _extend({}, this._defaultParams);
+		this._params = _extend(this._params, route.params);
 	}
 
-	enrichRoutes(map) {
-		return {};
-	}
-
-	setParameters(params) {
-		this.params = params;
-		if (this.params === undefined) {
-			this.params = {};
+	setContext(body, session, stream) {
+		this.session = session;
+		this.body = body;
+		this._headers = {};
+		this._flushHeaders = false;
+		this._returnCode = 204;
+		this._body = undefined;
+		this._ended = false;
+		this._stream = stream;
+		this._buffered = false;
+		if (stream === undefined) {
+			this._stream = new Writable();
+			this._stream._body = [];
+			this._stream._write = this._write;
 		}
-	}
-
-	enrichParameters(params) {
-		for (var property in params) {
-	    	if (this.params[property] === undefined) {
-	      		this.params[property] = params[property];
-	    	}
-	  	}
+		this._stream.on('pipe', (src) => {
+			this._flushHeaders = true;
+			this._buffered = true;
+		  	this._webda.flushHeaders(this);
+		});
 	}
 }
 

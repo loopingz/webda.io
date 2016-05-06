@@ -83,10 +83,10 @@ class Store extends Executor {
 			if (object.uuid == undefined || object.uuid != uid) {
 				object.uuid = uid;
 			}
-			this.emit('storeSave', {'object': object, 'store': this});
+			this.emit('Store.Save', {'object': object, 'store': this});
 			resolve(this._save(object, uid));
 		}).then( (object) => {
-			this.emit('storeSaved', {'object': object, 'store': this});
+			this.emit('Store.Saved', {'object': object, 'store': this});
 			if (this._params.map != undefined) {
 				//console.log('storesaved...');
 				//return this.get(object.user);
@@ -128,15 +128,15 @@ class Store extends Executor {
 				resolve(this._get(uid).then((loaded) => {
 					return this.handleMap(loaded, this._params.map, object);
 				}).then(() => {
-					this.emit('storeUpdate', {'object': object, 'store': this});
+					this.emit('Store.Update', {'object': object, 'store': this});
 					return this._update(object, uid);
 				}));
 			} else {
-				this.emit('storeUpdate', {'object': object, 'store': this});
+				this.emit('Store.Update', {'object': object, 'store': this});
 				resolve(this._update(object, uid));
 			}
 		}).then ( (result) => {
-			this.emit('storeUpdated', {'object': result, 'store': this});
+			this.emit('Store.Updated', {'object': result, 'store': this});
 			return Promise.resolve(result);
 		});
 	}
@@ -327,7 +327,7 @@ class Store extends Executor {
 			}	
 		}).then( (obj) => {
 			to_delete = obj;
-			this.emit('storeDelete', {'object': obj, 'store': this});
+			this.emit('Store.Delete', {'object': obj, 'store': this});
 			if (this._params.map != undefined) {
 				return this.handleMap(obj, this._params.map, "deleted");
 			} else {
@@ -352,7 +352,7 @@ class Store extends Executor {
 		}).then( () => {
 			return this._delete(uid);
 		}).then ( () => {
-			this.emit('storeDeleted', {'object': to_delete, 'store': this});
+			this.emit('Store.Deleted', {'object': to_delete, 'store': this});
 			return Promise.resolve();
 		});
 	}
@@ -363,7 +363,7 @@ class Store extends Executor {
 
 	get(uid) {
 		return this._get(uid).then ( (object) => {
-			this.emit('storeGet', {'object': object, 'store': this});
+			this.emit('Store.Get', {'object': object, 'store': this});
 			return Promise.resolve(object);
 		});
 	}
@@ -374,10 +374,10 @@ class Store extends Executor {
 
 	find(request, offset, limit) {
 		return new Promise( (resolve, reject) => {
-			this.emit('storeFind', {'request': request, 'store': this, 'offset': offset, 'limit': limit});
+			this.emit('Store.Find', {'request': request, 'store': this, 'offset': offset, 'limit': limit});
 			return resolve(this._find(request, offset, limit));
 		}).then ( (result) => {
-			this.emit('storeFound', {'request': request, 'store': this, 'offset': offset, 'limit': limit, 'results': result});
+			this.emit('Store.Found', {'request': request, 'store': this, 'offset': offset, 'limit': limit, 'results': result});
 			return Promise.resolve(result);
 		});
 	}

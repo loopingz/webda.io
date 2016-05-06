@@ -50,16 +50,19 @@ class PassportExecutor extends Executor {
 		switch (this._params.provider) {
 			case "facebook":
 				this.setupFacebook(this, this);
-				passport.authenticate('facebook', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, next);
-				break;
+				return new Promise((resolve, reject) => {
+					passport.authenticate('facebook', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
+				});
 			case "google":
 				this.setupGoogle(this, this);
-				passport.authenticate('google', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, next);
-	            break;
+				return new Promise((resolve, reject) => {
+					passport.authenticate('google', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
+				});
 			case "github":
 				this.setupGithub(this, this);
-				passport.authenticate('github', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, next);
-				break;
+				return new Promise((resolve, reject) => {
+					passport.authenticate('github', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
+				}
 		}
 	};
 
@@ -84,12 +87,9 @@ class PassportExecutor extends Executor {
 			    clientSecret: this._params.providers.github.clientSecret,
 			    callbackURL: callback
 			},
-			function(accessToken, refreshToken, profile, done) {
+			(accessToken, refreshToken, profile, done) => {
 			    console.log("return from github: " + JSON.stringify(profile));
-			    self.session.authenticated = new Ident("github", profile.id, accessToken, refreshToken);
-			    self.session.authenticated.setMetadatas(profile._json);
-			    self.store(self.session);
-			    done(null, self.session.authenticated);
+			    self.handleOAuthReturn(profile._json, new Ident("github", profile.id, accessToken, refreshToken), done);
 			}
 		));
 	}
@@ -106,15 +106,9 @@ class PassportExecutor extends Executor {
 	            clientSecret: this._params.providers.google.clientSecret,
 	  			callbackURL: callback
 			},
-			function(accessToken, refreshToken, profile, done) {
+			(accessToken, refreshToken, profile, done) => {
 			    console.log("return from google: " + JSON.stringify(profile));
-	            self.session.authenticated = new Ident("google", profile.id, accessToken, refreshToken);
-	            // Dont store useless parts
-	            delete profile._raw;
-	            delete profile._json;
-			    self.session.authenticated.setMetadatas(profile);
-			    self.store(self.session);
-			    done(null, self.session.authenticated);
+			    self.handleOAuthReturn(profile, new Ident("google", profile.id, accessToken, refreshToken), done);
 			}
 		));
 	}
@@ -154,6 +148,8 @@ class PassportExecutor extends Executor {
 	}
 
 	handleOAuthReturn(profile, ident, done) {
+		var identStore = this.getService("idents");
+		var userStore = this.getService("users");
 		var userPromise;
 		if (this.session.getUserId()) {
 			// Add to the current user
@@ -164,11 +160,10 @@ class PassportExecutor extends Executor {
 		return userPromise.then ( (user) => {
 			ident.user = user.uuid;
 			return identStore.save(ident).then (() => {
-				this.login(user, ident);
+				this.session.login(user, ident);
 				// Redirect now
 				this.writeHead(302, {'Location': this._params.successRedirect});
-				done(null, ident);
-				return Promise.resolve();
+				return Promise.resolve(done(null, ident));
 			});
 		});
 	}
@@ -376,6 +371,7 @@ class PassportExecutor extends Executor {
 			console.log("Error happened: " + err);
 			console.trace();
 		}
+		// Don't need to create a promise as it seems to work sync
 		switch (this._params.provider) {
 			case "google":
 				this.setupGoogle();

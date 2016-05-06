@@ -40,50 +40,46 @@ class PassportExecutor extends Executor {
 	}
 
 	executeCallback(req, res) {
-		var self = this;
 		var next = function (err) {
 			console.log("Error happened: " + err);
 			console.log(err.stack);
 		}
-		switch (self.params.provider) {
+		switch (this.params.provider) {
 			case "facebook":
-				self.setupFacebook(req, res);
-				passport.authenticate('facebook', { successRedirect: self.callable.successRedirect, failureRedirect: self.callable.failureRedirect})(req, res, next);
+				this.setupFacebook(req, res);
+				passport.authenticate('facebook', { successRedirect: this.callable.successRedirect, failureRedirect: this.callable.failureRedirect})(req, res, next);
 				break;
 			case "google":
-				self.setupGoogle(req, res);
-				passport.authenticate('google', { successRedirect: self.callable.successRedirect, failureRedirect: self.callable.failureRedirect})(req, res, next);
+				this.setupGoogle(req, res);
+				passport.authenticate('google', { successRedirect: this.callable.successRedirect, failureRedirect: this.callable.failureRedirect})(req, res, next);
 	            break;
 			case "github":
-				self.setupGithub(req, res);
-				passport.authenticate('github', { successRedirect: self.callable.successRedirect, failureRedirect: self.callable.failureRedirect})(req, res, next);
+				this.setupGithub(req, res);
+				passport.authenticate('github', { successRedirect: this.callable.successRedirect, failureRedirect: this.callable.failureRedirect})(req, res, next);
 				break;
 			case "email":
-				self.handleEmailCallback(req, res);
+				this.handleEmailCallback(req, res);
 				break;
 			case "phone":
-				self.handlePhoneCallback(req, res);
+				this.handlePhoneCallback(req, res);
 				break;
 		}
 	};
 
 	getCallback() {
-		var callback;
-		var self = this;
-		if (self.callable._extended) {
-			callback = self._http.protocol + "://" + self._http.host + self._http.url;
-		} else {
-			callback = self._http.protocol + "://" + self._http.host + self._http.url + "/callback";
+		var url = this._route._http.protocol + "://" + this._route._http.host + this._route._http.url;
+		if (url.endsWith("/callback")) {
+			return url;
 		}
-		return callback;
+		return url + "/callback";
 	};
 
 	setupGithub(req, res) {
 		var self = this;
 		var callback = self.getCallback();
 		passport.use(new GitHubStrategy({
-			    clientID: self.callable.providers.github.clientID,
-			    clientSecret: self.callable.providers.github.clientSecret,
+			    clientID: this._params.providers.github.clientID,
+			    clientSecret: this._params.providers.github.clientSecret,
 			    callbackURL: callback
 			},
 			function(accessToken, refreshToken, profile, done) {
@@ -104,8 +100,8 @@ class PassportExecutor extends Executor {
 			realm = callback;
 		}
 		passport.use(new GoogleStrategy({
-	    		clientID: this.callable.providers.google.clientID,
-	            clientSecret: this.callable.providers.google.clientSecret,
+	    		clientID: this._params.providers.google.clientID,
+	            clientSecret: this._params.providers.google.clientSecret,
 	  			callbackURL: callback
 			},
 			function(accessToken, refreshToken, profile, done) {
@@ -159,8 +155,8 @@ class PassportExecutor extends Executor {
 		var self = this;
 		var callback = self.getCallback();
 		passport.use(new FacebookStrategy({
-			    clientID: self.callable.providers.facebook.clientID,
-			    clientSecret: self.callable.providers.facebook.clientSecret,
+			    clientID: this._params.providers.facebook.clientID,
+			    clientSecret: this._params.providers.facebook.clientSecret,
 			    callbackURL: callback
 			},
 			function(accessToken, refreshToken, profile, done) {

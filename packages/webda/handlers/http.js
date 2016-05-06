@@ -89,8 +89,8 @@ class WebdaServer extends Webda {
 		var headers = executor._headers;
 		var session = executor.session;
 		//_extend(headers, )
-		var domain = executor._http.host;
-		if (executor._http.wildcard) {
+		var domain = executor._route._http.host;
+		if (executor._route._http.wildcard) {
 			domain = undefined;
 		}
 		headers['Set-Cookie']=cookieSerialize('webda', session.save(),  {'path':'/', 'domain':domain});;

@@ -390,9 +390,9 @@ class Store extends Executor {
 
 	execute(executor) {
 		var store = this;
-		if (this._http.method == "GET") {
-			if (this.callable.expose.restrict != undefined
-					&& this.callable.expose.restrict.get) {
+		if (this._route._http.method == "GET") {
+			if (this._params.expose.restrict != undefined
+					&& this._params.expose.restrict.get) {
 				throw 404;
 			}
 			if (this.params.uuid) {
@@ -405,9 +405,9 @@ class Store extends Executor {
 			} else {
 				// List probably
 			}
-		} else if (this._http.method == "DELETE") {
-			if (this.callable.expose.restrict != undefined
-					&& this.callable.expose.restrict.delete) {
+		} else if (this._route._http.method == "DELETE") {
+			if (this._params.expose.restrict != undefined
+					&& this._params.expose.restrict.delete) {
 				throw 404;
 			}
 			var object = store.get(this.params.uuid);
@@ -415,13 +415,13 @@ class Store extends Executor {
 				throw 404;
 			}
 			return store.delete(this.params.uuid);
-		} else if (this._http.method == "POST") {
+		} else if (this._route._http.method == "POST") {
 			var object = this.body;
-			if (this.callable.expose.restrict != undefined
-					&& this.callable.expose.restrict.create) {
+			if (this._params.expose.restrict != undefined
+					&& this._params.expose.restrict.create) {
 				throw 404;
 			}
-			if (this.callable.expose.restrict.authentication) {
+			if (this._params.expose.restrict.authentication) {
 				if (this.session.currentuser == undefined) {
 					throw 401;
 				}
@@ -443,9 +443,9 @@ class Store extends Executor {
 			}).then ( (new_object) => {
 				this.write(new_object);
 			});
-		} else if (this._http.method == "PUT") {
-			if (this.callable.expose.restrict != undefined
-					&& this.callable.expose.restrict.update) {
+		} else if (this._route._http.method == "PUT") {
+			if (this._params.expose.restrict != undefined
+					&& this._params.expose.restrict.update) {
 				throw 404;
 			}
 			if (!store.exists(this.params.uuid)) {

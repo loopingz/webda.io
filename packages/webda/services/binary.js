@@ -202,14 +202,14 @@ class Binary extends Executor {
 	execute() {
 		var self = this;
 		var req = this._rawRequest;
-		var storeName = this._lowerMaps[this.params.store];
+		var storeName = this._lowerMaps[this._params.store];
 		if (storeName === undefined) {
 			throw 404;
 		}
 		var map = this._params.map[storeName];
 		var found = false;
 		for (var i in map) {
-			if (map[i] === this.params.property) {
+			if (map[i] === this._params.property) {
 				found = true;
 				break;
 			}
@@ -221,25 +221,25 @@ class Binary extends Executor {
 		if (targetStore === undefined) {
 			throw 404;
 		}
-		return targetStore.get(this.params.uid).then ((object) => {
+		return targetStore.get(this._params.uid).then ((object) => {
 			if (object === undefined) {
 				throw 404;
 			}
-			if (object[this.params.property] !== undefined && typeof(object[this.params.property]) !== 'object') {
+			if (object[this._params.property] !== undefined && typeof(object[this._params.property]) !== 'object') {
 				throw 403;
 			}
 		
-			if (this._http.method == "POST") {
-				return this.store(targetStore, object, self.params.property, this._getFile(req), req.body).then(() => {
+			if (this._route._http.method == "POST") {
+				return this.store(targetStore, object, self._params.property, this._getFile(req), req.body).then(() => {
 					return targetStore.get(object.uuid);
 				}).then ((object) => {
 					this.write(object);
 		    	});
-			} else if (this._http.method == "GET") {
-				if (object[this.params.property] === undefined || object[this.params.property][this.params.index] === undefined) {
+			} else if (this._route._http.method == "GET") {
+				if (object[this._params.property] === undefined || object[this._params.property][this._params.index] === undefined) {
 					throw 404;
 				}
-				var file = object[this.params.property][this.params.index];
+				var file = object[this._params.property][this._params.index];
 				this.writeHead(200, {
 		        	'Content-Type': file.mimetype===undefined?'application/octet-steam':file.mimetype,
 		        	'Content-Length': file.size
@@ -252,28 +252,28 @@ class Binary extends Executor {
 					});
 				    readStream.pipe(this._stream);
 				});
-			} else if (this._http.method == "DELETE") {
-				if (object[this.params.property] === undefined || object[this.params.property][this.params.index] === undefined) {
+			} else if (this._route._http.method == "DELETE") {
+				if (object[this._params.property] === undefined || object[this._params.property][this._params.index] === undefined) {
 					throw 404;
 				}
 				var update = {};
-				if (object[self.params.property][this.params.index].hash !== this.params.hash) {
+				if (object[self._params.property][this._params.index].hash !== this._params.hash) {
 					throw 412;
 				}
-				return this.delete(targetStore, object, self.params.property, index).then (() => {
-					return targetStore.get(self.params.uid);
+				return this.delete(targetStore, object, self._params.property, index).then (() => {
+					return targetStore.get(self._params.uid);
 				}).then ((object) => {
 					this.write(object);
 				});
-			} else if (this._http.method == "PUT") {
-				if (object[this.params.property] === undefined || object[this.params.property][this.params.index] === undefined) {
+			} else if (this._route._http.method == "PUT") {
+				if (object[this._params.property] === undefined || object[this._params.property][this._params.index] === undefined) {
 					throw 404;
 				}
 				var update = {};
-				if (object[self.params.property][this.params.index].hash !== this.params.hash) {
+				if (object[self._params.property][this._params.index].hash !== this._params.hash) {
 					throw 412;
 				}
-				return this.update(targetStore, object, self.params.property, this.params.index, this._getFile(req), req.body).then(() => {
+				return this.update(targetStore, object, self._params.property, this._params.index, this._getFile(req), req.body).then(() => {
 					return targetStore.get(object.uuid);
 				}).then ( (object) => {
 					this.write(object);

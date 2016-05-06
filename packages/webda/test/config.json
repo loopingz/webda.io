@@ -27,6 +27,9 @@
 						"github": {}
 					}
 				},
+				"DefinedMailer": {
+					"type": "Mailer"
+				},
 				"dynamoidents": {
 					"inject": "user",
 					"check": "user",

@@ -26,19 +26,14 @@ describe('Passport', function() {
   		//getExecutor(vhost, method, url, protocol, port, headers)
   		executor = webda.getExecutor("test.webda.io", "POST", "/auth/email");
   		var params = {'email':'test@webda.io', 'password': 'test'};
-  		var found400 = false;
   		events = 0;
   		executor.setContext(params, {});
-  		try {
-  			executor.execute();
-  		} catch (err) {
-  			assert.equal(err, 400);
-  			found400 = true;
-  		}
-  		assert.equal(found400, true);
-  		params.login = params.email;
-  		executor.setContext(params, {});
-  		return executor.execute().catch ((err) => {
+  		return executor.execute().catch( (err) => {
+        assert.equal(err, 400);
+  		  params.login = params.email;
+  		  executor.setContext(params, {});
+  		  return executor.execute();
+      }).catch ((err) => {
   			assert.equal(err, 404);
   			params.register = true;
   			executor.setContext(params, webda.getSession());

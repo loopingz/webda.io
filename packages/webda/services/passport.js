@@ -35,36 +35,30 @@ class PassportExecutor extends Executor {
 		config[url] = {"method": ["GET"], "executor": this._name, "_method": this.listAuthentications};
 		// Add static for email for now, if set before it should have priority
 		config[url + "/email"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this.handleEmail};
-		config[url + "/email/callback?email={email}&validationToken={token}"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.handleEmailCallback};
+		config[url + "/email/callback{?email,token"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.handleEmailCallback};
 		// Handle the lost password here
 		url += '/{provider}';
 		config[url] = {"method": ["GET"], "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.authenticate};
-		config[url + "/callback?code={code}"] = {"method": "GET", "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.callback};
+		config[url + "/callback{?code,*otherQuery}"] = {"method": "GET", "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.callback};
 	}
 
-	callback(req, res) {
+	callback() {
 		var next = function (err) {
 			console.log("Error happened: " + err);
 			console.log(err.stack);
 		}
 		switch (this._params.provider) {
 			case "facebook":
-				this.setupFacebook(req, res);
-				passport.authenticate('facebook', { successRedirect: this.callable.successRedirect, failureRedirect: this.callable.failureRedirect})(req, res, next);
+				this.setupFacebook(this, this);
+				passport.authenticate('facebook', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, next);
 				break;
 			case "google":
-				this.setupGoogle(req, res);
-				passport.authenticate('google', { successRedirect: this.callable.successRedirect, failureRedirect: this.callable.failureRedirect})(req, res, next);
+				this.setupGoogle(this, this);
+				passport.authenticate('google', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, next);
 	            break;
 			case "github":
-				this.setupGithub(req, res);
-				passport.authenticate('github', { successRedirect: this.callable.successRedirect, failureRedirect: this.callable.failureRedirect})(req, res, next);
-				break;
-			case "email":
-				this.handleEmailCallback(req, res);
-				break;
-			case "phone":
-				this.handlePhoneCallback(req, res);
+				this.setupGithub(this, this);
+				passport.authenticate('github', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, next);
 				break;
 		}
 	};

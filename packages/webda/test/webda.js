@@ -65,8 +65,10 @@ describe('Webda', function() {
       executor = webda.getExecutor("test.webda.io", "GET", "/auth/facebook");
       assert.notEqual(executor, undefined);
       assert.notEqual(executor._extended, true);
-      executor = webda.getExecutor("test.webda.io", "GET", "/auth/facebook/callback");
+      executor = webda.getExecutor("test.webda.io", "GET", "/auth/facebook/callback?code=xxx&plop=test");
       assert.notEqual(executor, undefined);
+      assert.equal(executor._params.code, "xxx");
+      assert.equal(executor._params.provider, "facebook");
       executor = webda.getExecutor("test.webda.io", "GET", "/auth/google/callback");
       assert.notEqual(executor, undefined);
     });

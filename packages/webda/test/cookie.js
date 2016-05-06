@@ -8,13 +8,13 @@ var old_cookie;
 describe('SecureCookie', function() {
   describe('needSave', function () {
   	it('No changes', function () {
-    	var cookie = new SecureCookie({secret: "TEST"}, {title: "TITLE", desc: "DESCRIPTION"});
+    	var cookie = new SecureCookie({secret: "TEST"}, {title: "TITLE", desc: "DESCRIPTION"}).getProxy();
     	assert.equal(cookie['title'], "TITLE");
     	assert.equal(cookie['desc'], "DESCRIPTION");
     	old_cookie = cookie;
     })
     it('Add a value', function () {
-    	var cookie = new SecureCookie({secret: "TEST"}, {title: "TITLE", desc: "DESCRIPTION"});
+    	var cookie = new SecureCookie({secret: "TEST"}, {title: "TITLE", desc: "DESCRIPTION"}).getProxy();
     	cookie.test = "PLOP";
     	assert.equal(cookie['title'], "TITLE");
     	assert.equal(cookie['desc'], "DESCRIPTION");
@@ -23,7 +23,7 @@ describe('SecureCookie', function() {
         old_cookie = cookie;
     })
     it('Change a value', function () {
-    	var cookie = new SecureCookie({secret: "TEST"}, {title: "TITLE", desc: "DESCRIPTION"});
+    	var cookie = new SecureCookie({secret: "TEST"}, {title: "TITLE", desc: "DESCRIPTION"}).getProxy();
     	cookie.title = "TITLE2";
     	assert.equal(cookie['title'], "TITLE2");
     	assert.equal(cookie['desc'], "DESCRIPTION");
@@ -31,7 +31,7 @@ describe('SecureCookie', function() {
         old_cookie = cookie;
     })
     it('Delete a value', function () {
-    	var cookie = new SecureCookie({secret: "TEST"}, {title: "TITLE", desc: "DESCRIPTION"});
+    	var cookie = new SecureCookie({secret: "TEST"}, {title: "TITLE", desc: "DESCRIPTION"}).getProxy();
     	cookie['title'] = undefined;
     	assert.equal(cookie['title'], undefined);
     	assert.equal(cookie['desc'], "DESCRIPTION");
@@ -46,7 +46,7 @@ describe('SecureCookie', function() {
   });
   describe('encryption', function () {
   	it('Normal enc/dec', function () {
-    	var cookie = new SecureCookie({secret: "TEST"}, {title: "TITLE", desc: "DESCRIPTION"});
+    	var cookie = new SecureCookie({secret: "TEST"}, {title: "TITLE", desc: "DESCRIPTION"}).getProxy();
     	assert.equal(cookie['title'], "TITLE");
     	assert.equal(cookie['desc'], "DESCRIPTION");
     	var enc = cookie.save();
@@ -57,7 +57,7 @@ describe('SecureCookie', function() {
     		
     })
     it('Bad secret', function () {
-    	var cookie = new SecureCookie({secret: "TEST"}, {title: "TITLE", desc: "DESCRIPTION"});
+    	var cookie = new SecureCookie({secret: "TEST"}, {title: "TITLE", desc: "DESCRIPTION"}).getProxy();
     	assert.equal(cookie['title'], "TITLE");
     	assert.equal(cookie['desc'], "DESCRIPTION");
     	var enc = cookie.save();

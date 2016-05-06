@@ -98,6 +98,8 @@ class Executor extends Service {
 		this._route = route;
 		this._params = _extend({}, this._defaultParams);
 		this._params = _extend(this._params, route.params);
+		// For HTTP query compatibilty and express
+		this.query = route._uriParams?route._uriParams:{};
 	}
 
 	setContext(body, session, stream) {

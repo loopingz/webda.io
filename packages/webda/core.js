@@ -168,8 +168,10 @@ class Webda {
 
 	      	var parse_result = map['_uri-template-parse'].fromUri(url);
 	      	if (parse_result !== undefined) {
-	        	var skip = false;
+	      		let skip = false;
+	        	// The uri-template can match
 	        	for (var val in parse_result) {
+	        		// This additional security might need to be removed
 	          		if (parse_result[val].indexOf("/") >= 0) {
 	            		skip = true;
 	            		break;
@@ -182,6 +184,7 @@ class Webda {
 	        		map.params = {};
 	        	}
 	        	_extend(map.params, parse_result);
+	        	map._uriParams = parse_result;
 	        	return map;
 	      	}
 	    }
@@ -270,12 +273,11 @@ class Webda {
 	      	} else {
 		      	try {
 		      		if (typeof(include) === "string") {
-		        		serviceConstructor = require(include)
+		        		serviceConstructor = require(include);
 		        	} else {
 		        		serviceConstructor = include;
 		        	}
 		      	} catch (ex) {
-		        	console.log(ex);
 		        	continue;
 		      	}
 		    }

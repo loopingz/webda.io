@@ -19,7 +19,7 @@
 							"html": "",
 							"text": "",
 							"mailer": "DefinedMailer",
-							"postValidation": true
+							"postValidation": false
 						},
 						"phone": {},
 						"twitter": {},

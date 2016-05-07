@@ -50,7 +50,7 @@ describe('Passport', function() {
   		}).then ( (ident) => {
   			assert.equal(ident, undefined);
   			params.login = "test2@webda.io";
-  			executor._params.providers.email.postValidation = false;
+  			executor._params.providers.email.postValidation = true;
   			executor.setContext(params, webda.getNewSession());
   			return executor.execute();
   		}).then ( () => {

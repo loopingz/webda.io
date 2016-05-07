@@ -336,7 +336,7 @@ class PassportExecutor extends Executor {
 				}
 				if (this.body.register) {
 					// Need to check email before creation
-					if (mailConfig.postValidation || mailConfig.postValidation === undefined) {
+					if (!mailConfig.postValidation || mailConfig.postValidation === undefined) {
 						// ValidationToken is undefined send a email
 						return this.sendValidationEmail(email);
 					}

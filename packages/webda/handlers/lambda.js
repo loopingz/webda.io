@@ -32,8 +32,8 @@ class LambdaServer extends Webda {
 	  	var session = sessionCookie;
 	  	var vhost;
 	  	var i;
-	  	if (event.params.querystring!==undefined) {
-	  		vhost = event.params.querystring.host;
+	  	if (event.params.header!==undefined) {
+	  		vhost = event.params.header.Host;
 	  	}
 	  	if (vhost === undefined) {
 	  		vhost = event.context.vhost;

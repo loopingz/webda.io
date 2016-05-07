@@ -48,8 +48,6 @@ class PassportExecutor extends Executor {
 	}
 
 	callback() {
-		
-		console.log("callback");
 		var self = this;
 		switch (this._params.provider) {
 			case "facebook":
@@ -66,15 +64,15 @@ class PassportExecutor extends Executor {
 				});
 			case "google":
 				this.setupGoogle(this, this);
-				var next = (err) => {
+				return new Promise((resolve, reject) => {
+					var next = (err) => {
 						console.log("Error happened: " + err);
 						console.log(err.stack);
 						this._headers = {};
 						this.end();
 						return reject();
-				}
-				return new Promise((resolve, reject) => {
-					passport.authenticate('google', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
+					}
+					passport.authenticate('google', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, next);
 				});
 			case "github":
 				this.setupGithub(this, this);
@@ -107,7 +105,10 @@ class PassportExecutor extends Executor {
 		this.write(Object.keys(this._params.providers));
 	}
 
-	getCallbackUrl() {
+	getCallbackUrl(provider) {
+		if (this._params.providers[this._params.provider].callbackURL) {
+			return this._params.providers[this._params.provider].callbackURL;
+		}
 		// Issue with specified port for now
 		var url = this._route._http.protocol + "://" + this._route._http.host + this._route._http.url;
 		if (url.endsWith("/callback")) {
@@ -118,7 +119,7 @@ class PassportExecutor extends Executor {
 
 	setupGithub(req, res) {
 		var self = this;
-		var callback = self.getCallbackUrl();
+		var callback = this.getCallbackUrl();
 		passport.use(new GitHubStrategy({
 			    clientID: this._params.providers.github.clientID,
 			    clientSecret: this._params.providers.github.clientSecret,
@@ -133,11 +134,7 @@ class PassportExecutor extends Executor {
 
 	setupGoogle(req, res) {
 		var self = this;
-		var realm = this._params.providers.google.realm;
 		var callback = this.getCallbackUrl();
-		if (realm == null) {
-			realm = callback;
-		}
 		passport.use(new GoogleStrategy({
 	    		clientID: this._params.providers.google.clientID,
 	            clientSecret: this._params.providers.google.clientSecret,

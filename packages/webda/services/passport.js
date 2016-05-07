@@ -142,7 +142,7 @@ class PassportExecutor extends Executor {
 			},
 			(accessToken, refreshToken, profile, done) => {
 			    console.log("return from google: " + JSON.stringify(profile));
-			    self.handleOAuthReturn(profile, new Ident("google", profile.id, accessToken, refreshToken), done);
+			    self.handleOAuthReturn(profile._json, new Ident("google", profile.id, accessToken, refreshToken), done);
 			}
 		));
 	}

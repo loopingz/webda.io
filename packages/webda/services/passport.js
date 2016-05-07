@@ -142,7 +142,7 @@ class PassportExecutor extends Executor {
 			// Login with OAUTH
 			if (result) {
 				this.login(result.user, result);
-				return identStore.update({'lastUsed': new Date()}, result.uuid).then( () => {
+				return identStore.update({'lastUsed': new Date(), 'profile': profile}, result.uuid).then( () => {
 					this.writeHead(302, {'Location': this._params.successRedirect});
 					this.end();
 					return Promise.resolve(done(null, result));
@@ -158,6 +158,7 @@ class PassportExecutor extends Executor {
 			return promise.then( (user) => {
 				ident.user = user.uuid;
 				ident.lastUsed = new Date();
+				ident.profile = profile;
 				return identStore.save(ident).then( () => {
 					this.login(user, ident);
 					this.writeHead(302, {'Location': this._params.successRedirect});

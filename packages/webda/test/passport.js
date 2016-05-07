@@ -23,8 +23,9 @@ describe('Passport', function() {
   	authentication.on("Login", function() {
   		events++;
   	});
-    authentication.on("Register", function() {
+    authentication.on("Register", function(datas) {
       events++;
+      datas.test = "TESTOR";
     });
   });
   describe('Email', function () {
@@ -59,6 +60,7 @@ describe('Passport', function() {
   			return userStore.get(executor.session.getUserId());
   		}).then ( (user) => {
   			assert.notEqual(user, undefined);
+        assert.equal(user.test, "TESTOR"); // Verify that the listener on Register has done something
   		});
   	});
   	it('login', function() {
@@ -119,6 +121,7 @@ describe('Passport', function() {
         events = 0;
         assert.equal(user.idents.length, 1); // Only one github login
         assert.equal(user.idents[0].uuid, "test_github"); // Only one github login
+        assert.equal(user.test, "TESTOR"); // Verify that the listener on Register has done something
         return executor.handleOAuthReturn(profile, new Ident("github", "retest"), done);
       }).then ( () => {
         assert.equal(events, 1); // Only Login

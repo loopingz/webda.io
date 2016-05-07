@@ -23,9 +23,9 @@ describe('Passport', function() {
   	authentication.on("Login", function() {
   		events++;
   	});
-    authentication.on("Register", function(datas) {
+    authentication.on("Register", function(evt) {
       events++;
-      datas.test = "TESTOR";
+      evt.user.test = "TESTOR";
     });
   });
   describe('Email', function () {

@@ -35,6 +35,7 @@ class DynamoStore extends Store {
 	}
 
 	_save(object, uid) {
+		// Cannot have empty attribute on DynamoDB need to clean this
 		var params = {'TableName': this._params.table, 'Item': object};
 		return this._client.put(params).promise().then (function(result) {
 			return Promise.resolve(object);

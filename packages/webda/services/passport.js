@@ -31,6 +31,11 @@ class PassportExecutor extends Executor {
 		} else {
 			url = this._params.expose;
 		}
+		this._identsStore = this.getService("idents");
+		this._usersStore = this.getService("idents");
+		if (this._identsStore === undefined || this._usersStore === undefined) {
+			throw Error("Unresolved dependency on idents and users services");
+		}
 		// List authentication configured
 		config[url] = {"method": ["GET"], "executor": this._name, "_method": this.listAuthentications};
 		// Add static for email for now, if set before it should have priority
@@ -45,20 +50,29 @@ class PassportExecutor extends Executor {
 	callback() {
 		
 		console.log("callback");
+		var self = this;
 		switch (this._params.provider) {
 			case "facebook":
 				this.setupFacebook(this, this);
 				return new Promise((resolve, reject) => {
-					var next = function (err) {
+					var next = (err) => {
 						console.log("Error happened: " + err);
 						console.log(err.stack);
-						reject();
+						this._headers = {};
+						this.end();
+						return reject();
 					}
-					this._resolve = resolve;
 					passport.authenticate('facebook', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, next);
 				});
 			case "google":
 				this.setupGoogle(this, this);
+				var next = (err) => {
+						console.log("Error happened: " + err);
+						console.log(err.stack);
+						this._headers = {};
+						this.end();
+						return reject();
+				}
 				return new Promise((resolve, reject) => {
 					passport.authenticate('google', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
 				});
@@ -66,10 +80,12 @@ class PassportExecutor extends Executor {
 				this.setupGithub(this, this);
 				console.log("github");
 				return new Promise((resolve, reject) => {
-					var next = function (err) {
+					var next = (err) => {
 						console.log("Error happened: " + err);
 						console.log(err.stack);
-						reject();
+						this._headers = {};
+						this.end();
+						return reject();
 					}
 					passport.authenticate('github', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, next);
 				});
@@ -158,7 +174,13 @@ class PassportExecutor extends Executor {
 			return promise.then( (user) => {
 				ident.user = user.uuid;
 				ident.lastUsed = new Date();
-				ident.profile = profile;
+				ident.profile = {};
+				for (let i in profile) {
+					 if (profile[i] === '') {
+					 	continue;
+					 }
+					 ident.profile[i] = profile[i];
+				}
 				return identStore.save(ident).then( () => {
 					this.login(user, ident);
 					this.writeHead(302, {'Location': this._params.successRedirect});
@@ -169,6 +191,7 @@ class PassportExecutor extends Executor {
 		}).catch( (err) => {
 			console.log(err);
 			done(err, null);
+			throw err;
 		});
 	}
 
@@ -187,9 +210,9 @@ class PassportExecutor extends Executor {
 	}
 
 	registerUser(datas) {
-		if (datas === undefined) datas = {};
-		this.emit("Register", datas);
-		return datas;
+		var user = {};
+		this.emit("Register", {"user": user, "datas": datas});
+		return user;
 	}
 
 	handleEmailCallback() {
@@ -297,6 +320,7 @@ class PassportExecutor extends Executor {
 		return identStore.get(uuid).then( (ident) => {
 			if (ident != undefined && ident.user != undefined) {
 				return userStore.get(ident.user).then ( (user) => {
+					console.log("check password", user._password, this.body.password);
 					// Check password
 					if (user._password === this.hashPassword(this.body.password)) {
 						if (ident.failedLogin > 0) {
@@ -311,14 +335,14 @@ class PassportExecutor extends Executor {
 						});
 						
 					} else {
+						this.writeHead(403);
 						if (ident.failedLogin === undefined) {
 							ident.failedLogin = 0;
 						}
 						updates.failedLogin = ident.failedLogin++;
 						updates.lastFailedLogin = new Date();
-						return identStore.update(updates, ident.uuid).then( () => {
-							throw 403;
-						});
+						// Swalow exeception issue to double check !
+						return identStore.update(updates, ident.uuid);
 					}
 				});
 			} else {

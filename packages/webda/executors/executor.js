@@ -21,8 +21,10 @@ class Executor extends Service {
 		if (this._body === undefined) {
 			this._body = [];
 		}
+		console.log("_write");
 	    this._body.push(chunk);
 	    next();
+	    return true;
 	}
 
 	write(output) {

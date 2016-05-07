@@ -247,8 +247,13 @@ class Binary extends Executor {
 				return new Promise((resolve, reject) => {
 				    var readStream = this.get(file);
 				    // We replaced all the event handlers with a simple call to readStream.pipe()
-				    this._stream.on('unpipe', (src) => {
+				    this._stream.on('finish', (src) => {
+				    	console.log("_stream finished");
 						return resolve();
+					});
+					this._stream.on('error', (src) => {
+						console.log(src);
+						return reject();
 					});
 				    readStream.pipe(this._stream);
 				});

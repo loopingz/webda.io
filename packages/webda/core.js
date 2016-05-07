@@ -286,6 +286,9 @@ class Webda {
 	      	} else {
 		      	try {
 		      		if (typeof(include) === "string") {
+		      			if (include.startsWith("./")) {
+							include = process.cwd() + '/' + include;
+						}
 		        		serviceConstructor = require(include);
 		        	} else {
 		        		serviceConstructor = include;

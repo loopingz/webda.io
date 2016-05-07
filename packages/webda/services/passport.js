@@ -75,12 +75,23 @@ class PassportExecutor extends Executor {
 		}
 	};
 
+	end() {
+		try {
+			super.end();
+		} catch (err) {
+			// Ignore already ended exception as Passport close on his side sometimes
+			if (err.message != "Already ended") {
+				throw err;
+			}
+		}
+	}
 
 	listAuthentications() {
 		this.write(Object.keys(this._params.providers));
 	}
 
 	getCallbackUrl() {
+		// Issue with specified port for now
 		var url = this._route._http.protocol + "://" + this._route._http.host + this._route._http.url;
 		if (url.endsWith("/callback")) {
 			return url;
@@ -123,7 +134,6 @@ class PassportExecutor extends Executor {
 	}
 
 	handleOAuthReturn(profile, ident, done) {
-		console.log("handleOAuthReturn");
 		var identStore = this.getService("idents");
 		var userStore = this.getService("users");
 		var userPromise;
@@ -133,6 +143,7 @@ class PassportExecutor extends Executor {
 				this.login(result.user, result);
 				return identStore.update({'lastUsed': new Date()}, result.uuid).then( () => {
 					this.writeHead(302, {'Location': this._params.successRedirect});
+					this.end();
 					return Promise.resolve(done(null, result));
 				});
 			}
@@ -149,6 +160,7 @@ class PassportExecutor extends Executor {
 				return identStore.save(ident).then( () => {
 					this.login(user, ident);
 					this.writeHead(302, {'Location': this._params.successRedirect});
+					this.end();
 					return Promise.resolve(done(null, ident));
 				});
 			});

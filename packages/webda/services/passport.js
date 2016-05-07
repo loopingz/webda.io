@@ -49,45 +49,20 @@ class PassportExecutor extends Executor {
 
 	callback() {
 		var self = this;
-		switch (this._params.provider) {
-			case "facebook":
-				this.setupFacebook(this, this);
-				return new Promise((resolve, reject) => {
-					var next = (err) => {
-						console.log("Error happened: " + err);
-						console.log(err.stack);
-						this._headers = {};
-						this.end();
-						return reject();
-					}
-					passport.authenticate('facebook', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, next);
-				});
-			case "google":
-				this.setupGoogle(this, this);
-				return new Promise((resolve, reject) => {
-					var next = (err) => {
-						console.log("Error happened: " + err);
-						console.log(err.stack);
-						this._headers = {};
-						this.end();
-						return reject();
-					}
-					passport.authenticate('google', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, next);
-				});
-			case "github":
-				this.setupGithub(this, this);
-				console.log("github");
-				return new Promise((resolve, reject) => {
-					var next = (err) => {
-						console.log("Error happened: " + err);
-						console.log(err.stack);
-						this._headers = {};
-						this.end();
-						return reject();
-					}
-					passport.authenticate('github', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, next);
-				});
-		}
+		//this.write("callback...");
+		return new Promise( (resolve, reject) => {
+			switch (this._params.provider) {
+				case "facebook":
+					this.setupFacebook(this, this);
+					return passport.authenticate('facebook', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
+				case "google":
+					this.setupGoogle(this, this);
+					return passport.authenticate('google', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
+				case "github":
+					this.setupGithub(this, this);
+					return passport.authenticate('github', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
+			}
+		});
 	};
 
 	end() {
@@ -154,11 +129,15 @@ class PassportExecutor extends Executor {
 		return identStore.get(ident.uuid).then( (result) => {
 			// Login with OAUTH
 			if (result) {
+				this.write("login");
 				this.login(result.user, result);
+				// Need to improve DynamoDB testing about invalid value 
 				return identStore.update({'lastUsed': new Date(), 'profile': profile}, result.uuid).then( () => {
+					this.write("redirect");
 					this.writeHead(302, {'Location': this._params.successRedirect});
 					this.end();
-					return Promise.resolve(done(null, result));
+					done(result);
+					return Promise.resolve();
 				});
 			}
 			// Registration with OAuth
@@ -169,25 +148,23 @@ class PassportExecutor extends Executor {
 				promise = userStore.save(this.registerUser(profile._json));
 			}
 			return promise.then( (user) => {
+				this.write("register new ident");
 				ident.user = user.uuid;
 				ident.lastUsed = new Date();
-				ident.profile = {};
-				for (let i in profile) {
-					 if (profile[i] === '') {
-					 	continue;
-					 }
-					 ident.profile[i] = profile[i];
-				}
+				ident.profile = profile;
 				return identStore.save(ident).then( () => {
+					this.write("redirect");
 					this.login(user, ident);
 					this.writeHead(302, {'Location': this._params.successRedirect});
 					this.end();
-					return Promise.resolve(done(null, ident));
+					done(ident)
+					return Promise.resolve();
 				});
 			});
 		}).catch( (err) => {
+			this.write("error..." + err);
 			console.log(err);
-			done(err, null);
+			done(err);
 			throw err;
 		});
 	}

@@ -35,6 +35,7 @@ class DynamoStore extends Store {
 	}
 
 	_save(object, uid) {
+		object = this._cleanObject(object);
 		// Cannot have empty attribute on DynamoDB need to clean this
 		var params = {'TableName': this._params.table, 'Item': object};
 		return this._client.put(params).promise().then (function(result) {
@@ -55,6 +56,18 @@ class DynamoStore extends Store {
 		});
 	}
 
+	_cleanObject(object) {
+		if (typeof(object) !== "object" || object instanceof Array) return object;
+		var res = {};
+		for (let i in object) {
+			 if (object[i] === '') {
+			 	continue
+			 }
+			 res[i]=this._cleanObject(object[i]);
+		}
+		return res;
+	}
+
 	_delete(uid) {
 		var params = {'TableName': this._params.table, 'Key': {"uuid": uid}};
 		return this._client.delete(params).promise().then ((result) => {
@@ -63,6 +76,7 @@ class DynamoStore extends Store {
 	}
 
 	_update(object, uid) {
+		object = this._cleanObject(object);
 		var expr = "SET ";
 		var sep = "";
 		var attrValues = {};

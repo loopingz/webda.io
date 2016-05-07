@@ -102,7 +102,7 @@ var crud = function (identStore,userStore) {
     });
   }
   // Check CREATE - READ
-  return identStore.save({"test": "plop", 'details': {'plop': 'plop1', 'yop': 'pouf'}}).then (function (object) {
+  return identStore.save({"test": "plop", 'cool': '','lastUsed': new Date(), 'arr': [], 'details': {'plop': 'plop1', 'clean':undefined, 'yop': 'pouf'}}).then (function (object) {
     ident1 = object;
     assert.equal(eventFired, 2);
     assert.notEqual(object, undefined);
@@ -112,12 +112,17 @@ var crud = function (identStore,userStore) {
     assert.equal(eventFired, 1);
     eventFired = 0;
     assert.notEqual(getter, undefined);
+    assert.notEqual(getter.lastUsed, undefined);
+    assert.notEqual(getter.lastUpdate, undefined);
     assert.equal(getter.uuid, ident1.uuid);
     assert.equal(getter.test, ident1.test);
     
     // Check UPDATE
     getter.test = "plop2"
     getter.details.plop = "plop2";
+    getter.details.blank = '';
+    getter.details.bouzouf = undefined;
+    getter.empty = [];
     return identStore.update(getter);
   }).then (function (object) {
     assert.equal(eventFired, 2);

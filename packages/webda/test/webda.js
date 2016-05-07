@@ -75,6 +75,10 @@ describe('Webda', function() {
       assert.notEqual(executor, undefined);
       assert.equal(executor._params.code, "4/5FGBh9iF5CxUkekcWQ8ZykvQnjRskeLZ9gFN3uTjLy8");
       assert.equal(executor._params.provider, "google");
+      executor = webda.getExecutor("test.webda.io", "GET", "/auth/google/callback?code=4/kS_0n1xLdgh47kNTNY064vUMNR0ZJtHUzy9jFxHRY_k#");
+      assert.equal(executor._params.code, "4/kS_0n1xLdgh47kNTNY064vUMNR0ZJtHUzy9jFxHRY_k#");
+      assert.equal(executor._params.provider, "google");
+      
     });
     it('/ inside path', function () {
       executor = webda.getExecutor("test.webda.io", "GET", "/urltemplate/666/test");

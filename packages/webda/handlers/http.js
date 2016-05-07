@@ -2,7 +2,6 @@
 var Webda = require('../core');
 var SecureCookie = require('../utils/cookie');
 var _extend = require("util")._extend;
-const cookieSerialize = require("cookie").serialize;
 
 class WebdaServer extends Webda {
 
@@ -87,13 +86,7 @@ class WebdaServer extends Webda {
 	flushHeaders (executor) {
 		var res = executor._stream;
 		var headers = executor._headers;
-		var session = executor.session;
-		//_extend(headers, )
-		var domain = executor._route._http.host;
-		if (executor._route._http.wildcard) {
-			domain = undefined;
-		}
-		headers['Set-Cookie']=cookieSerialize('webda', session.save(),  {'path':'/', 'domain':domain});;
+		headers['Set-Cookie'] = this.getCookieHeader(executor);
 		res.writeHead(executor._returnCode, headers);
 	}
 

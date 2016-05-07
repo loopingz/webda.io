@@ -402,7 +402,9 @@ class AWSDeployer extends Deployer {
 		// Cannot handle more than one headers for non-main , due to the fact that we cannot template the statusCode....
 		// https://forums.aws.amazon.com/thread.jspa?threadID=216264
 		if (code !== defaultCode) {
-			headers = ['Set-Cookie']
+			headers = ['Set-Cookie'];
+			// Cant set any header
+			return {};
 		}
 		var res = {};
 		for (let i in headers) {

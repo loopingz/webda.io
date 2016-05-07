@@ -67,7 +67,7 @@ describe('SecureCookie', function() {
     	} catch (err) {
     		exception = true;
     	}
-    	assert.equal(exception, true);
+    	assert.equal(exception, false);
     })
   })
 });

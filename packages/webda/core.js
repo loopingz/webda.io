@@ -5,6 +5,7 @@ var _extend = require('util')._extend;
 var vm = require('vm');
 var fs = require('fs');
 const path = require('path');
+const cookieSerialize = require("cookie").serialize;
 
 /**
 var vm = require('vm');
@@ -180,6 +181,7 @@ class Webda {
 	getExecutor(vhost, method, url, protocol, port, headers) {
 		// Check vhost
 		var wildcard = false;
+		var originalVhost = vhost;
 	    if (this._config[vhost] === undefined) {
 	       if (this._config['*'] === undefined) {
 	    	   return null;
@@ -195,7 +197,7 @@ class Webda {
 	    if (route === undefined) {
 	    	return;
 	    }
-	    route._http = {"host":vhost, "method":method, "url":url, "protocol": protocol, "port": port, "headers": headers, "wildcard": wildcard, "root": protocol + "://" + vhost};
+	    route._http = {"host":vhost, "vhost": originalVhost, "method":method, "url":url, "protocol": protocol, "port": port, "headers": headers, "wildcard": wildcard, "root": protocol + "://" + vhost};
 	    return this.getServiceWithRoute(route);
 	}
 
@@ -236,6 +238,36 @@ class Webda {
 	extendParams(local, wider) {
 		var params = _extend({}, wider);
 		return _extend(params, local);
+	}
+
+	getCookieHeader(executor) {
+		var session = executor.session;
+		var params = {'path':'/', 'domain':executor._route._http.host, 'httpOnly': true, secure: false, maxAge: 86400*7};
+		if (executor._route._http.protocol == "https") {
+			params.secure = true;
+		}
+		if (executor._route._http.wildcard) {
+			params.domain = executor._route._http.vhost;
+		}
+		if (executor._params.cookie !== undefined) {
+			if (executor._params.cookie.domain) {
+				params.domain = executor._params.cookie.domain;
+			} else {
+				params.domain = executor._route._http.host;
+			}
+			if (executor._params.cookie.maxAge) {
+				params.maxAge = executor._params.cookie.maxAge;
+			}
+		}
+		// Expiracy at one week - should configure it
+		var data;
+		if (session._changed) {
+			data = session.save();
+		} else {
+			data = session._raw;
+		}
+		var res = cookieSerialize('webda', data,  params);
+		return res;
 	}
 
 	initServices(config) {

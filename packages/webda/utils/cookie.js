@@ -23,9 +23,16 @@ class SecureCookie {
 		this._secret = options.secret;
 		this._options = options;
 		this._changed = false;
+		if (data === undefined || data === '') {
+			return;
+		}
 		if (typeof(data) === "string") {
 			this._raw = data;
-			_extend(this, this._decrypt(data));
+			try {
+				_extend(this, this._decrypt(data));
+			} catch (err) {
+				// Reinit the session as we cannot read the cookie
+			}
 		} else {
 			_extend(this, data);
 		}

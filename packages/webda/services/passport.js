@@ -54,6 +54,7 @@ class PassportExecutor extends Executor {
 						console.log(err.stack);
 						reject();
 					}
+					this._resolve = resolve;
 					passport.authenticate('facebook', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, next);
 				});
 			case "google":
@@ -164,6 +165,9 @@ class PassportExecutor extends Executor {
 					return Promise.resolve(done(null, ident));
 				});
 			});
+		}).catch( (err) => {
+			console.log(err);
+			done(err, null);
 		});
 	}
 

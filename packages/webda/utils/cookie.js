@@ -47,6 +47,7 @@ class SecureCookie {
 					if (prop !== "_changed") {
 						this._changed = true;
 					}
+					return true;
 				}
 			});
 		}

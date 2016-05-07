@@ -265,10 +265,12 @@ class Webda {
 		        		serviceConstructor = include;
 		        	}
 		      	} catch (ex) {
+		      		console.log(ex);
 		        	continue;
 		      	}
 		    }
 		    if (serviceConstructor === undefined) {
+		    	console.log("No constructor found for service " + service);
 		    	continue;
 		    }
 	      	var params = this.extendParams(services[service], config.global.params);
@@ -276,7 +278,7 @@ class Webda {
 	      	try {
 	      		config.global._services[service.toLowerCase()] = new serviceConstructor(this, service, params);
 	      	} catch (err) {
-	      		
+	      		console.log(err);
 	      	}
 	    }
 
@@ -294,10 +296,13 @@ class Webda {
 	}
 
 	initAll() {
+		var oldHost = this._vhost;
 		for (var vhost in this._config) {
 			if (vhost === "*") continue;
+			this.setHost(vhost);
 			this.initHosts(vhost, this._config[vhost]);
 		}
+		this._vhost = oldHost;
 	}
 	initHosts(vhost, config) {
 	    if (config._initiated) {

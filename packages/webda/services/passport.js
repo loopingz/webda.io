@@ -43,15 +43,18 @@ class PassportExecutor extends Executor {
 	}
 
 	callback() {
-		var next = function (err) {
-			console.log("Error happened: " + err);
-			console.log(err.stack);
-		}
+		
+		console.log("callback");
 		switch (this._params.provider) {
 			case "facebook":
 				this.setupFacebook(this, this);
 				return new Promise((resolve, reject) => {
-					passport.authenticate('facebook', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
+					var next = function (err) {
+						console.log("Error happened: " + err);
+						console.log(err.stack);
+						reject();
+					}
+					passport.authenticate('facebook', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, next);
 				});
 			case "google":
 				this.setupGoogle(this, this);
@@ -60,8 +63,14 @@ class PassportExecutor extends Executor {
 				});
 			case "github":
 				this.setupGithub(this, this);
+				console.log("github");
 				return new Promise((resolve, reject) => {
-					passport.authenticate('github', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
+					var next = function (err) {
+						console.log("Error happened: " + err);
+						console.log(err.stack);
+						reject();
+					}
+					passport.authenticate('github', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, next);
 				});
 		}
 	};
@@ -114,10 +123,10 @@ class PassportExecutor extends Executor {
 	}
 
 	handleOAuthReturn(profile, ident, done) {
+		console.log("handleOAuthReturn");
 		var identStore = this.getService("idents");
 		var userStore = this.getService("users");
 		var userPromise;
-		console.log(ident.uuid);
 		return identStore.get(ident.uuid).then( (result) => {
 			// Login with OAUTH
 			if (result) {

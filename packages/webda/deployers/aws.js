@@ -370,11 +370,6 @@ class AWSDeployer extends Deployer {
 
 	createAWSMethodResource(resource, local, method) {
 		console.log("Creating " + method + " on " + local._url);
-		/*
-		var params = {'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId};
-		return this._awsGateway.getMethod(params).promise().then( (res) => {
-			console.log(res);
-		});
 		var params = {"authorizationType":"NONE",'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId};
 		params.requestParameters = {};
 		for (let i in local._queryParameters) {
@@ -382,10 +377,8 @@ class AWSDeployer extends Deployer {
 				console.log("Wildcard are not supported by AWS :(");
 				continue;
 			}
-			params.requestParameters[local._queryParameters[i]]=false;
+			params.requestParameters["method.request.querystring."+local._queryParameters[i]]=false;
 		}
-		*/
-		var params = {"authorizationType":"NONE",'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId};
 		return this._awsGateway.putMethod(params).promise().then ((awsMethod) => {
 			var params = {'resourceId':resource.id,'integrationHttpMethod': 'POST','httpMethod':method, 'restApiId': this.restApiId, 'type': 'AWS'};
 			params.uri = "arn:aws:apigateway:" + this.region + ":lambda:path/2015-03-31/functions/" + this._lambdaFunction.FunctionArn + "/invocations";

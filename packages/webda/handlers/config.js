@@ -146,6 +146,10 @@ class WebdaConfigurationServer extends WebdaServer {
 
 	deploy(env, args) {
 		return this.getService("deployments").get(env).then ( (deployment) => {
+			if (deployment === undefined) {
+				console.log("Deployment " + env + " unknown");
+				return Promise.resolve();
+			}
 			let host = this.getHost();
 			return new this._deployers[deployment.type](host, this.config[host], deployment).deploy(args);
 		});
@@ -153,6 +157,10 @@ class WebdaConfigurationServer extends WebdaServer {
 
 	undeploy(env, args) {
 		return this.getService("deployments").get(env).then ( (deployment) => {
+			if (deployment === undefined) {
+				console.log("Deployment " + env + " unknown");
+				return Promise.resolve();
+			}
 			let host = this.getHost();
 			return new this._deployers[deployment.type](host, this.config[host], deployment).undeploy(args);
 		});

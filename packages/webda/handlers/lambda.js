@@ -30,8 +30,9 @@ class LambdaServer extends Webda {
 		var sessionCookie = new SecureCookie({'secret': 'webda-private-key'}, cookies.webda).getProxy();
 	  	var session = sessionCookie;
 	  	var vhost;
-	  	if (event.querystring!==undefined) {
-	  		vhost = event.querystring.host;
+	  	var i;
+	  	if (event.params.querystring!==undefined) {
+	  		vhost = event.params.querystring.host;
 	  	}
 	  	if (vhost === undefined) {
 	  		vhost = event.context.vhost;
@@ -64,10 +65,19 @@ class LambdaServer extends Webda {
 	  		port = 443;
 	  	}
 	  	// Replace variable in URL for now
-	  	for (var i in event.params.path) {
+	  	for (i in event.params.path) {
 	  		resourcePath = resourcePath.replace("{"+i+"}", event.params.path[i]);
 	  	}
-
+	  	// Rebuild query string
+	  	if (event.params.querystring) {
+	  		var sep = "?";
+	  		for (i in event.params.querystring) {
+	  			// If additional error code it will be contained so need to check for &
+	  			// May need to add urlencode
+	  			resourcePath += sep + i + "=" + event.params.querystring[i];
+	  			sep = "&";
+	  		}
+	  	}
 	  	//
 	  	var executor = this.getExecutor(vhost, method, resourcePath, protocol, port, headers);
 	  	var body = event["body-json"];

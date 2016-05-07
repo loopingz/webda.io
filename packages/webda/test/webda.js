@@ -69,8 +69,17 @@ describe('Webda', function() {
       assert.notEqual(executor, undefined);
       assert.equal(executor._params.code, "xxx");
       assert.equal(executor._params.provider, "facebook");
-      executor = webda.getExecutor("test.webda.io", "GET", "/auth/google/callback");
+    });
+    it('/ inside querystring', function () {
+      executor = webda.getExecutor("test.webda.io", "GET", "/auth/google/callback?code=4/5FGBh9iF5CxUkekcWQ8ZykvQnjRskeLZ9gFN3uTjLy8");
       assert.notEqual(executor, undefined);
+      assert.equal(executor._params.code, "4/5FGBh9iF5CxUkekcWQ8ZykvQnjRskeLZ9gFN3uTjLy8");
+      assert.equal(executor._params.provider, "google");
+    });
+    it('/ inside path', function () {
+      executor = webda.getExecutor("test.webda.io", "GET", "/urltemplate/666/test");
+      assert.notEqual(executor, undefined);
+      assert.notEqual(executor._params.id, "666/test");
     });
   });
 });

@@ -90,14 +90,16 @@ describe('Passport', function() {
   		executor = webda.getExecutor("test.webda.io", "GET", "/auth/github");
       assert.equal(executor._route.aws.defaultCode, 302);
   	});
-    it('oaut callback', function() {
+    it('Oauth callback', function() {
       var done = function() {};
       var lastUsed = null;
+      events = 0;
       let ident = new Ident("github","test");
       let profile = {'displayName': 'Georges Abitbol'};
-      executor = webda.getExecutor("test.webda.io", "GET", "/auth/github/callback?code=blablah");
-      executor.handleOAuthReturn(profile, ident, done).then ( () => {
-        assert.equal(executor._returnCode, 302);  
+      executor = webda.getExecutor("test.webda.io", "GET", "/auth/github/callback?code=blahblah");
+      return executor.handleOAuthReturn(profile, ident, done).then ( () => {
+        assert.equal(executor._returnCode, 302);
+        assert.equal(executor._params.code, "blahblah");  
         assert.equal(executor._headers.Location, "https://shootandprove.loopingz.com/user.html");
         // The ident must have been created and have a last used
         assert.notEqual(ident.lastUsed, lastUsed);
@@ -114,19 +116,18 @@ describe('Passport', function() {
         assert.notEqual(ident.lastUsed, lastUsed);
         return userStore.get(ident.user);
       }).then ( (user) => {
+        events = 0;
         assert.equal(user.idents.length, 1); // Only one github login
-        assert.equal(user.idents[0].uuid, "github_test"); // Only one github login
+        assert.equal(user.idents[0].uuid, "test_github"); // Only one github login
         return executor.handleOAuthReturn(profile, new Ident("github", "retest"), done);
       }).then ( () => {
         assert.equal(events, 1); // Only Login
-        executor._returnCode = 204;
-        executor._headers.Location = undefined;
+        assert.equal(executor._returnCode, 302);  
+        assert.equal(executor._headers.Location, "https://shootandprove.loopingz.com/user.html");
         return userStore.get(ident.user);
       }).then ( (user) => {
         assert.equal(user.idents.length, 2); // Two github login
-        assert.equal(user.idents[1].uuid, "github_retest");
-        assert.equal(executor._returnCode, 302);  
-        assert.equal(executor._headers.Location, "https://shootandprove.loopingz.com/user.html");
+        assert.equal(user.idents[1].uuid, "retest_github");
       });
     });
   });

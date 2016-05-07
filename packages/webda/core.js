@@ -143,11 +143,9 @@ class Webda {
 	}
 
 	getRouteFromUrl(config, method, url) {
-		for (let routeUrl in config) {
-			if (routeUrl === "global") {
-	        	continue;
-			}
-			var map = config[routeUrl];
+		for (let i in config._pathMap) {
+			var routeUrl = config._pathMap[i].url;
+			var map = config._pathMap[i].config;;
 
 			// Check method
 			if  (Array.isArray(map['method'])) {
@@ -168,19 +166,7 @@ class Webda {
 
 	      	var parse_result = map['_uri-template-parse'].fromUri(url);
 	      	if (parse_result !== undefined) {
-	      		let skip = false;
-	        	// The uri-template can match
-	        	for (var val in parse_result) {
-	        		// This additional security might need to be removed
-	        		// TODO Need to improve the parsing 
-	          		if (parse_result[val].indexOf("/") >= 0) {
-	            		skip = true;
-	            		break;
-	          		}
-	        	}
-	        	if (skip) {
-	          		continue;
-	        	}
+	      		
 	        	if (map.params == undefined) {
 	        		map.params = {};
 	        	}
@@ -317,12 +303,23 @@ class Webda {
 	    if (config._initiated) {
 	      return;
 	    }
-
+	    
 	    if (config.global !== undefined) {
 		    this.initServices(config);
 		}
 		this.initServices(config);
 		this.initURITemplates(config);
+
+	    // Order path desc
+	    config._pathMap = [];
+	    for (var i in config) {
+	    	if (i === "global") continue;
+	    	// Might need to trail the query string
+	    	config._pathMap.push({url: i, config: config[i]});
+	    }
+		config._pathMap.sort(function(a,b) {
+			return b.url.localeCompare(a.url);
+		});
 	    config._initiated = true;
   }
 

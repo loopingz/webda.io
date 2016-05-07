@@ -152,6 +152,14 @@
 				"lambda": "plop"
 			}
 		},
+		"/urltemplate/{id}/{other}": {
+			"method": "GET",
+			"executor": "debug",
+			"params": {
+				"TEST_ADD": "Users",
+				"lambda": "plop"
+			}
+		},
 		"/": {
 			"method": ["GET", "POST"],
 			"executor": "debug",

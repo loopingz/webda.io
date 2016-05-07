@@ -83,6 +83,9 @@ class Store extends Executor {
 			if (object.uuid == undefined || object.uuid != uid) {
 				object.uuid = uid;
 			}
+			if (this._params.lastUpdate === undefined || this._params.lastUpdate) {
+				object.lastUpdate = new Date();
+			}
 			this.emit('Store.Save', {'object': object, 'store': this});
 			resolve(this._save(object, uid));
 		}).then( (object) => {
@@ -129,6 +132,9 @@ class Store extends Executor {
 					return this.handleMap(loaded, this._params.map, object);
 				}).then(() => {
 					this.emit('Store.Update', {'object': object, 'store': this});
+					if (this._params.lastUpdate === undefined || this._params.lastUpdate) {
+						object.lastUpdate = new Date();
+					}
 					return this._update(object, uid);
 				}));
 			} else {
@@ -326,6 +332,9 @@ class Store extends Executor {
 				resolve(this._get(uid));
 			}	
 		}).then( (obj) => {
+			if (obj === undefined) {
+				throw 404;
+			}
 			to_delete = obj;
 			this.emit('Store.Delete', {'object': obj, 'store': this});
 			if (this._params.map != undefined) {
@@ -353,7 +362,7 @@ class Store extends Executor {
 			return this._delete(uid);
 		}).then ( () => {
 			this.emit('Store.Deleted', {'object': to_delete, 'store': this});
-			return Promise.resolve();
+			return Promise.resolve(true);
 		});
 	}
 
@@ -389,14 +398,13 @@ class Store extends Executor {
 	// ADD THE EXECUTOR PART
 
 	execute(executor) {
-		var store = this;
 		if (this._route._http.method == "GET") {
 			if (this._params.expose.restrict != undefined
 					&& this._params.expose.restrict.get) {
 				throw 404;
 			}
-			if (this.params.uuid) {
-				return store.get(this.params.uuid).then( (object) => {;
+			if (this._params.uuid) {
+				return this.get(this._params.uuid).then( (object) => {;
 	                if (object === undefined) {
 						throw 404;
 					}
@@ -410,22 +418,20 @@ class Store extends Executor {
 					&& this._params.expose.restrict.delete) {
 				throw 404;
 			}
-			var object = store.get(this.params.uuid);
-			if (object === undefined) {
-				throw 404;
-			}
-			return store.delete(this.params.uuid);
+			return this.delete(this._params.uuid);
 		} else if (this._route._http.method == "POST") {
 			var object = this.body;
 			if (this._params.expose.restrict != undefined
 					&& this._params.expose.restrict.create) {
 				throw 404;
 			}
+			// TODO Move this one to the route configuration
 			if (this._params.expose.restrict.authentication) {
-				if (this.session.currentuser == undefined) {
+				if (this.session.isLogged() == undefined) {
 					throw 401;
 				}
-				object.user = this.session.currentuser.uuid;
+				// TODO This should be part of a Owner security service
+				object.user = this.session.getUserId();
 			}
 			if (!object.uuid) {
 				object.uuid = this.generateUid();
@@ -435,11 +441,11 @@ class Store extends Executor {
 					delete object[prop]
 				}
 			}
-			return store.exists(object.uuid).then( (exists) => {
+			return this.exists(object.uuid).then( (exists) => {
 				if (exists) {
 					throw 409;
 				}
-				return store.save(object, object.uuid);	
+				return this.save(object, object.uuid);	
 			}).then ( (new_object) => {
 				this.write(new_object);
 			});
@@ -448,15 +454,16 @@ class Store extends Executor {
 					&& this._params.expose.restrict.update) {
 				throw 404;
 			}
-			if (!store.exists(this.params.uuid)) {
-				throw 404;
-			}
 			for (var prop in this.body) {
 				if (prop[0] == "_") {
 					delete this.body[prop]
 				}
 			}
-			return store.update(this.body, this.params.uuid).then ( (object) => {
+			this.body.uuid = this._params.uuid;
+			return this.exists(this._params.uuid).then ( (exists) => {
+				if (!exists) throw 404;
+				return this.update(this.body, this._params.uuid);
+			}).then ( (object) => {
 				if (object == undefined) {
 					throw 500;
 				}

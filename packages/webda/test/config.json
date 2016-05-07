@@ -121,8 +121,7 @@
 					"expose": {
 						"url": "/users",
 						"restrict": {
-							"authentication": true,
-							"create": true
+							"authentication": true
 						}
 					},
 					"type": "FileStore",

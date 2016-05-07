@@ -1,19 +1,21 @@
+"use strict";
 var assert = require("assert")
 var Webda = require("../core.js");
 var config = require("./config.json");
-
-mapper = function (identStore, userStore) {
+var user1;
+var user2;
+var ident1;
+var ident2;
+var executor;
+var mapper = function (identStore, userStore) {
   var eventFired = 0;
   var events = ['Store.Save','Store.Saved','Store.Get','Store.Delete','Store.Deleted','Store.Update','Store.Updated','Store.Find','Store.Found'];
-  for (evt in events) {
+  for (let evt in events) {
     identStore.on(events[evt], function (evt) {
       eventFired++;
     });
   }
-  var user1;
-  var user2;
-  var ident1;
-  var ident2;
+
   return userStore.save({'name': 'test'}).then( function (user) {
     user1 = user.uuid;
     return userStore.get(user1);
@@ -91,10 +93,10 @@ mapper = function (identStore, userStore) {
   });
 }
 
-crud = function (identStore,userStore) {
+var crud = function (identStore,userStore) {
   var eventFired = 0;
   var events = ['Store.Save','Store.Saved','Store.Get','Store.Delete','Store.Deleted','Store.Update','Store.Updated','Store.Find','Store.Found'];
-  for (evt in events) {
+  for (let evt in events) {
     identStore.on(events[evt], function (evt) {
       eventFired++;
     });
@@ -174,6 +176,49 @@ describe('Store', function() {
       });
       it('Basic CRUD', function() { return crud(identStore, userStore); });
       it('Mapper', function() { return mapper(identStore, userStore); });
+    });
+    describe('Store', function() {
+      // Check Store HTTP mapping
+      it('HTTP CRUD', function() {
+        webda.setHost("test.webda.io");
+        executor = webda.getExecutor("test.webda.io", "POST", "/users");
+        assert.notEqual(executor, undefined);
+        executor.setContext({"type": "CRUD", "uuid": "PLOP"}, webda.getSession());
+        return executor.execute().then( () => {
+          executor.body = undefined;
+          return webda.getExecutor("test.webda.io", "GET", "/users/PLOP").execute();
+        }).then( () => {
+          assert.notEqual(executor._body, undefined);
+          assert.equal(executor._body.indexOf("lastUpdate") >= 0, true);
+          executor = webda.getExecutor("test.webda.io", "POST", "/users");
+          executor.setContext({"type": "CRUD2", "uuid": "PLOP"}, webda.getSession());
+          return executor.execute();
+        }).catch( (err) => {
+          assert.equal(err, 409);
+          return webda.getExecutor("test.webda.io", "DELETE", "/users/PLOP").execute();
+        }).then( () => {
+          executor = webda.getExecutor("test.webda.io", "PUT", "/users/PLOP");
+          executor.setContext({"type": "CRUD2", "uuid": "PLOP2"}, webda.getSession());
+          return executor.execute();
+        }).then( () => {
+          return userStore.get("PLOP");
+        }).then ( (user) => {
+          assert.equal(user.uuid, "PLOP");
+          assert.equal(user.type, "CRUD2");
+          executor._body = undefined;
+          return webda.getExecutor("test.webda.io", "DELETE", "/users/PLOP").execute();
+        }).then( () => {
+          return webda.getExecutor("test.webda.io", "GET", "/users/PLOP").execute();
+        }).catch( (err) => {
+          assert.equal(err, 404);
+          return webda.getExecutor("test.webda.io", "DELETE", "/users/PLOP").execute();
+        }).catch( (err) => {
+          assert.equal(err, 404);
+          return webda.getExecutor("test.webda.io", "PUT", "/users/PLOP").execute();
+        }).catch( (err) => {
+          assert.equal(err, 404);
+        });
+      });
     });
     describe('MongoStore', function() {
       beforeEach(function () {

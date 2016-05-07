@@ -3,6 +3,7 @@
 var Webda = require('../core');
 var SecureCookie = require('../utils/cookie');
 var _extend = require("util")._extend;
+const cookieParse = require("cookie").parse;
 
 class LambdaServer extends Webda {
 
@@ -23,6 +24,10 @@ class LambdaServer extends Webda {
 
 	handleRequest(event, context, callback) {
 		var cookies = {};
+		var rawCookie = event.params.header.Cookie;
+		if (rawCookie) {
+			cookies = cookieParse(rawCookie);
+		}
 		var sessionCookie = new SecureCookie({'secret': 'webda-private-key'}, cookies.webda).getProxy();
 	  	var session = sessionCookie;
 	  	var vhost;

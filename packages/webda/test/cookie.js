@@ -11,15 +11,13 @@ describe('SecureCookie', function() {
     	var cookie = new SecureCookie({secret: "TEST"}, {title: "TITLE", desc: "DESCRIPTION"}).getProxy();
     	assert.equal(cookie['title'], "TITLE");
     	assert.equal(cookie['desc'], "DESCRIPTION");
-    	old_cookie = cookie;
+    	assert.equal(cookie.needSave(), false);
     })
     it('Add a value', function () {
     	var cookie = new SecureCookie({secret: "TEST"}, {title: "TITLE", desc: "DESCRIPTION"}).getProxy();
     	cookie.test = "PLOP";
     	assert.equal(cookie['title'], "TITLE");
     	assert.equal(cookie['desc'], "DESCRIPTION");
-        // Tricks the slow observer
-        assert.equal(old_cookie.needSave(), false);
         old_cookie = cookie;
     })
     it('Change a value', function () {
@@ -40,7 +38,7 @@ describe('SecureCookie', function() {
     })
     it('Empty cookie', function () {
     	var cookie = new SecureCookie({secret: "TEST"}, {});
-    	assert.equal(old_cookie.needSave(), true);
+    	assert.equal(cookie.needSave(), false);
         old_cookie = cookie;
     })
   });
@@ -49,6 +47,8 @@ describe('SecureCookie', function() {
     	var cookie = new SecureCookie({secret: "TEST"}, {title: "TITLE", desc: "DESCRIPTION"}).getProxy();
     	assert.equal(cookie['title'], "TITLE");
     	assert.equal(cookie['desc'], "DESCRIPTION");
+        // Force encryption
+        cookie._changed = true;
     	var enc = cookie.save();
     	var cookie2 = new SecureCookie({secret: "TEST"}, enc);
     	assert.equal(cookie.title, cookie2.title);
@@ -68,6 +68,7 @@ describe('SecureCookie', function() {
     		exception = true;
     	}
     	assert.equal(exception, false);
+        // TODO Add test for s_fid=3C43F8B5AAFA0B87-0087E6884E64AFFD; s_dslv=1462619672626; s_dslv_s=Less%20than%201%20day;
     })
   })
 });

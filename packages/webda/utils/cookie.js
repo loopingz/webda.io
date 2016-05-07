@@ -32,6 +32,8 @@ class SecureCookie {
 				_extend(this, this._decrypt(data));
 			} catch (err) {
 				// Reinit the session as we cannot read the cookie
+				console.log("CANT DECRYPT:", data);
+				this._changed = true;
 			}
 		} else {
 			_extend(this, data);
@@ -109,7 +111,10 @@ class SecureCookie {
 	}
 
 	save() {		
-		return encrypt(this._algo, this._secret, JSON.stringify(this));
+		if (this.needSave()) {
+			return encrypt(this._algo, this._secret, JSON.stringify(this));	
+		}
+		return this._raw;
 	}
 
 	needSave() {

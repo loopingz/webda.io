@@ -260,13 +260,7 @@ class Webda {
 			}
 		}
 		// Expiracy at one week - should configure it
-		var data;
-		if (session._changed) {
-			data = session.save();
-		} else {
-			data = session._raw;
-		}
-		var res = cookieSerialize('webda', data,  params);
+		var res = cookieSerialize('webda', session.save(),  params);
 		return res;
 	}
 

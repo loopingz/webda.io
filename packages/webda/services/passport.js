@@ -113,57 +113,35 @@ class PassportExecutor extends Executor {
 		));
 	}
 
-	store(session) {
-		var self = this;
-		var identStore = this.getService("Idents");
-		if (identStore == undefined) {
-			return;
-		}
-		return identStore.get(session.authenticated.uuid).get( (identObj) => {
-			// TODO FINISH THIS
-			if (identObj == undefined) {
-				identObj = session.authenticated;
-				if (identObj.user == undefined && session.currentuser != undefined) {
-					identObj.user = session.currentuser.uuid;
-				}
-				identStore.save(identObj);
-			} else {
-				var updates = {};
-				if (identObj.user == undefined && session.currentuser != undefined) {
-					updates.user = session.currentuser.uuid;
-				}
-				updates.lastUsed = new Date();
-				updates.metadatas = session.authenticated.metadatas;
-				identObj = identStore.update(updates, identObj.uuid);
-			}
-			// TODO Add an update method for updating only attribute
-			if (identObj.user != undefined) {
-				var userStore = self.getService("Users");
-				if (userStore == undefined) {
-					return;
-				}
-				session.currentuser = userStore.get(identObj.user);
-			}
-		});
-	}
-
 	handleOAuthReturn(profile, ident, done) {
 		var identStore = this.getService("idents");
 		var userStore = this.getService("users");
 		var userPromise;
-		if (this.session.getUserId()) {
-			// Add to the current user
-			userPromise = Promise.resolve({'uuid':this.session.getUserId()});
-		} else {
-			userPromise = userStore.save(this.registerUser(profile._json));
-		}
-		return userPromise.then ( (user) => {
-			ident.user = user.uuid;
-			return identStore.save(ident).then (() => {
-				this.session.login(user, ident);
-				// Redirect now
-				this.writeHead(302, {'Location': this._params.successRedirect});
-				return Promise.resolve(done(null, ident));
+		console.log(ident.uuid);
+		return identStore.get(ident.uuid).then( (result) => {
+			// Login with OAUTH
+			if (result) {
+				this.login(result.user, result);
+				return identStore.update({'lastUsed': new Date()}, result.uuid).then( () => {
+					this.writeHead(302, {'Location': this._params.successRedirect});
+					return Promise.resolve(done(null, result));
+				});
+			}
+			// Registration with OAuth
+			let promise;
+			if (this.session.getUserId()) {
+				promise = Promise.resolve({'uuid':this.session.getUserId()});
+			} else {
+				promise = userStore.save(this.registerUser(profile._json));
+			}
+			return promise.then( (user) => {
+				ident.user = user.uuid;
+				ident.lastUsed = new Date();
+				return identStore.save(ident).then( () => {
+					this.login(user, ident);
+					this.writeHead(302, {'Location': this._params.successRedirect});
+					return Promise.resolve(done(null, ident));
+				});
 			});
 		});
 	}
@@ -184,7 +162,7 @@ class PassportExecutor extends Executor {
 
 	registerUser(datas) {
 		if (datas === undefined) datas = {};
-		this.emit("Authentication.Register", datas);
+		this.emit("Register", datas);
 		return datas;
 	}
 
@@ -265,7 +243,7 @@ class PassportExecutor extends Executor {
 			event.ident = ident;
 		}
 		this.session.login(event.userId, event.identId);
-		this.emit("login", event);
+		this.emit("Login", event);
 	}
 
 	getMailMan() {

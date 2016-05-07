@@ -172,6 +172,7 @@ class Webda {
 	        	// The uri-template can match
 	        	for (var val in parse_result) {
 	        		// This additional security might need to be removed
+	        		// TODO Need to improve the parsing 
 	          		if (parse_result[val].indexOf("/") >= 0) {
 	            		skip = true;
 	            		break;

@@ -58,7 +58,7 @@ class ConfigurationService extends Executor {
 	}
 
 	getConfig() {
-		this.write(this._webda.config[this._webda._vhost]);
+		this.write(this._webda.config[this._params.vhost]);
 	}
 
 	updateConfig() {
@@ -110,6 +110,9 @@ class WebdaConfigurationServer extends WebdaServer {
 		super(config);
 		this.initAll();
 		this._vhost = 'localhost';
+		this._deployers = {};
+		this._deployers["aws"] = require("../deployers/aws");
+		this._deployers["docker"] = require("../deployers/aws");
 	}
 
 	saveConfiguration() {
@@ -130,7 +133,7 @@ class WebdaConfigurationServer extends WebdaServer {
 		return ServerConfig;
 	}
 
-	deployAws(env, args) {
+	getHost() {
 		var vhost = this.config["*"];
 		if (vhost === undefined) {
 			for (var i in this.config) {
@@ -138,43 +141,41 @@ class WebdaConfigurationServer extends WebdaServer {
 				break;
 			}
 		}
+		return vhost;
+	}
+
+	deploy(env, args) {
 		return this.getService("deployments").get(env).then ( (deployment) => {
-			const AWSDeployer = require("../deployers/aws");
-			return new AWSDeployer(vhost, this.config[vhost], deployment).deploy(args);
+			let host = this.getHost();
+			return new this._deployers[deployment.type](host, this.config[host], deployment).deploy(args);
 		});
 	}
 
-	undeployAws(env, args) {
-		var vhost = this.config["*"];
-		if (vhost === undefined) {
-			for (var i in this.config) {
-				vhost = i;
-				break;
-			}
-		}
+	undeploy(env, args) {
 		return this.getService("deployments").get(env).then ( (deployment) => {
-			const AWSDeployer = require("../deployers/aws");
-			return new AWSDeployer(vhost, this.config[vhost], deployment).undeploy(args);
+			let host = this.getHost();
+			return new this._deployers[deployment.type](host, this.config[host], deployment).undeploy(args);
 		});
 	}
 
 	commandLine(args) {
+
 		switch (args[0]) {
-			case 'aws-deploy':
+			case 'deploy':
 				if (args[1] === undefined) {
 					console.log('Need to specify an environment');
 					return;
 				}
-				this.deployAws(args[1], args.slice(2)).catch( (err) => {
+				this.deploy(args[1], args.slice(2)).catch( (err) => {
 					console.trace(err);
 				});
 				break;
-			case 'aws-undeploy':
+			case 'undeploy':
 				if (args[1] === undefined) {
 					console.log('Need to specify an environment');
 					return;
 				}
-				new this.undeployAws(args[1], args.slice(2)).catch( (err) => {
+				new this.undeploy(args[1], args.slice(2)).catch( (err) => {
 					console.trace(err);
 				});
 				break;

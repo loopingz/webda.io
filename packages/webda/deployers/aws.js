@@ -300,6 +300,14 @@ class AWSDeployer extends Deployer {
 			// Compare with local
 			for (let url in this.config) {
 				if (url[0] !== '/') continue;
+				let current = this.config[url];
+				// Need to cut the query section
+				if (url.indexOf("?") >= 0) {
+					current._fullUrl = url;
+					current._queryParameters = url.substr(url.indexOf("?")+1, url.length-url.indexOf("?")-2).split(",");
+					current._url = url.substr(0,url.indexOf("?")-1);
+					url = current._url;
+				}
 				let i = url.indexOf("/",1);
 				let currentPath = url.substr(0,i);
 				while (i >= 0) {
@@ -309,25 +317,28 @@ class AWSDeployer extends Deployer {
 				if (this.tree[url]) {
 					found[url] = true;
 					promise = promise.then (() => {
-						return this.updateAwsResource(this.tree[url], this.config[url])
+						return this.updateAwsResource(this.tree[url], current)
 					});
 				} else {
-					toCreate.push(this.config[url]);
+					toCreate.push(current);
 				}
 			}
+
 			// Order to create per path
 			toCreate.sort(function(a,b) {
 				return a._url.localeCompare(b._url);
 			});
-
+			
 			for (let i in toCreate) {
 				promise = promise.then (() => {
 					return this.createAwsResource(toCreate[i])
 				});
 			}
+
 			// Remove old resources
 			for (let i in this.tree) {
 				if (found[i]) continue;
+				continue;
 				promise = promise.then (() => {
 					return this.deleteAwsResource(this.tree[i]);
 				});
@@ -359,11 +370,28 @@ class AWSDeployer extends Deployer {
 
 	createAWSMethodResource(resource, local, method) {
 		console.log("Creating " + method + " on " + local._url);
-		return this._awsGateway.putMethod({"authorizationType":"NONE",'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId}).promise().then ((awsMethod) => {
+		/*
+		var params = {'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId};
+		return this._awsGateway.getMethod(params).promise().then( (res) => {
+			console.log(res);
+		});
+		var params = {"authorizationType":"NONE",'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId};
+		params.requestParameters = {};
+		for (let i in local._queryParameters) {
+			if (local._queryParameters[i].startsWith("*")) {
+				console.log("Wildcard are not supported by AWS :(");
+				continue;
+			}
+			params.requestParameters[local._queryParameters[i]]=false;
+		}
+		*/
+		var params = {"authorizationType":"NONE",'resourceId':resource.id,'httpMethod':method, 'restApiId': this.restApiId};
+		return this._awsGateway.putMethod(params).promise().then ((awsMethod) => {
 			var params = {'resourceId':resource.id,'integrationHttpMethod': 'POST','httpMethod':method, 'restApiId': this.restApiId, 'type': 'AWS'};
 			params.uri = "arn:aws:apigateway:" + this.region + ":lambda:path/2015-03-31/functions/" + this._lambdaFunction.FunctionArn + "/invocations";
 			params.requestTemplates={};
-			params.requestParameters={};
+			// Need to filter wildcard query params
+			params.requestParameters = {};
 			params.requestTemplates["application/json"]=this.getRequestTemplates();
 			return this._awsGateway.putIntegration(params).promise();
 		}).then ( () => {

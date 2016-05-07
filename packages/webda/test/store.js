@@ -1,5 +1,5 @@
 "use strict";
-var assert = require("assert")
+var assert = require("assert");
 var Webda = require("../core.js");
 var config = require("./config.json");
 var user1;
@@ -188,7 +188,7 @@ describe('Store', function() {
         webda.setHost("test.webda.io");
         executor = webda.getExecutor("test.webda.io", "POST", "/users");
         assert.notEqual(executor, undefined);
-        executor.setContext({"type": "CRUD", "uuid": "PLOP"}, webda.getSession());
+        executor.setContext({"type": "CRUD", "uuid": "PLOP"}, webda.getNewSession());
         return executor.execute().then( () => {
           executor.body = undefined;
           return webda.getExecutor("test.webda.io", "GET", "/users/PLOP").execute();
@@ -196,14 +196,14 @@ describe('Store', function() {
           assert.notEqual(executor._body, undefined);
           assert.equal(executor._body.indexOf("lastUpdate") >= 0, true);
           executor = webda.getExecutor("test.webda.io", "POST", "/users");
-          executor.setContext({"type": "CRUD2", "uuid": "PLOP"}, webda.getSession());
+          executor.setContext({"type": "CRUD2", "uuid": "PLOP"}, webda.getNewSession());
           return executor.execute();
         }).catch( (err) => {
           assert.equal(err, 409);
           return webda.getExecutor("test.webda.io", "DELETE", "/users/PLOP").execute();
         }).then( () => {
           executor = webda.getExecutor("test.webda.io", "PUT", "/users/PLOP");
-          executor.setContext({"type": "CRUD2", "uuid": "PLOP2"}, webda.getSession());
+          executor.setContext({"type": "CRUD2", "uuid": "PLOP2"}, webda.getNewSession());
           return executor.execute();
         }).then( () => {
           return userStore.get("PLOP");

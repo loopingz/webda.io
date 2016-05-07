@@ -125,7 +125,11 @@ class Webda {
 		this.initHosts(vhost, this._config[vhost]);
 	}
 
-	getSession(data) {
+	getSession() {
+		return this._currentExecutor.session;
+	}
+
+	getNewSession(data) {
 		const SecureCookie = require("./utils/cookie.js");
 		return new SecureCookie({secret: 'WebdaSecret'}, data);
 	}
@@ -233,6 +237,15 @@ class Webda {
 
 	flush(executor) {
 		console.log("Abstract implementation of Webda");
+	}
+
+	execute(executor) {
+		this._currentExecutor = executor;
+		return executor.execute();
+	}
+
+	handle404() {
+
 	}
 
 	extendParams(local, wider) {

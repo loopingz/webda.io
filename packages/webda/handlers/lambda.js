@@ -86,7 +86,7 @@ class LambdaServer extends Webda {
 	  		callback("Bad mapping " + vhost + " - " + method + " " + resourcePath, null);
 	  	}
 	  	executor.setContext(body, session);
-		return Promise.resolve(executor.execute()).then( () => {
+		return Promise.resolve(this.execute(executor)).then( () => {
 			if (!executor._ended) {
 				executor.end();
 			}

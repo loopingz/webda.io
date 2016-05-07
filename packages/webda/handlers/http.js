@@ -48,13 +48,13 @@ class WebdaServer extends Webda {
 		res.end();
 		return;
 	  }
-	  var executor = this.getExecutor(vhost, req.method, req.url, protocol, req.port, req.headers);
-	  if (executor == null) {
-		this.display404(res);
-		return;
-	   } 
+	  	var executor = this.getExecutor(vhost, req.method, req.url, protocol, req.port, req.headers);
+		if (executor == null) {
+			this.display404(res);
+			return;
+		} 
 		executor.setContext(req.body, req.session, res);
-		return Promise.resolve(executor.execute()).then( () => {
+		return Promise.resolve(this.execute(executor)).then( () => {
 			if (!executor._ended) {
 				executor.end();
 			}

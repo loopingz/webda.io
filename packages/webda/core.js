@@ -101,18 +101,13 @@ class Webda {
 		if (process.env.WEBDA_CONFIG == undefined) {
 			config = './webda.config.js';
 			if (fs.existsSync(config)) {
-				console.log("Load config.js");
-				return require(path.resolve(config));
+				this._configFile = path.resolve(config);
+				return require(this._configFile);
 			}
-			config = './webda-config.json';
-			if (fs.existsSync(config)) {
-				console.log("Load webda-config.json");
-				return require(path.resolve(config));
-			}
-			config = '/etc/webda/config.json';
+			config = '/etc/webda/config.js';
 			if (result == undefined && fs.existsSync(config)) {
-				console.log("Load " + config);
-				return require(config);
+				this._configFile = path.resolve(config);
+				return require(this._configFile);
 			}
 		} else {
 			console.log("Load " + process.env.WEBDA_CONFIG);

@@ -3,57 +3,107 @@ const WebdaServer = require("../handlers/http");
 const Executor = require("../executors/executor");
 const Webda = require("../core");
 const _extend = require("util")._extend;
+const fs = require("fs");
 
 class ConfigurationService extends Executor {
 
 	init(config) {
-		config['/services'] = {"method": ["GET"], "executor": this._name, "_method": this.getServices};
-		config['/services/{vhost}'] = {"method": ["POST", "PUT", "DELETE"], "executor": this._name, "_method": this.crudService};
-		config['/routes/{vhost}'] = {"method": ["POST", "PUT", "DELETE"], "executor": this._name, "_method": this.crudRoute};
+		config['/modda'] = {"method": ["GET"], "executor": this._name, "_method": this.getServices};
+		config['/services'] = {"method": ["GET", "POST"], "executor": this._name, "_method": this.crudService};
+		config['/services/{name}'] = {"method": ["PUT", "DELETE"], "executor": this._name, "_method": this.crudService};
+		config['/routes'] = {"method": ["GET", "POST", "PUT", "DELETE"], "executor": this._name, "_method": this.crudRoute};
 		config['/deployments'] = {"method": ["GET", "POST"], "executor": this._name, "_method": this.restDeployment};
-		config['/deployments/{name}'] = {"method": ["GET", "DELETE", "PUT"], "executor": this._name, "_method": this.restDeployment};
-		config['/configs'] = {"method": ["POST", "GET"], "executor": this._name, "_method": this.getConfigs};
-		config['/configs/{vhost}'] = {"method": ["GET"], "executor": this._name, "_method": this.getConfig};
-		config['/configs/{vhost}/params'] = {"method": ["PUT"], "executor": this._name, "_method": this.updateConfig};
+		config['/deployments/{name}'] = {"method": ["DELETE", "PUT"], "executor": this._name, "_method": this.restDeployment};
+		config['/vhosts'] = {"method": ["POST", "GET"], "executor": this._name, "_method": this.getVhosts};
+		config['/configs'] = {"method": ["GET"], "executor": this._name, "_method": this.getConfig};
+		config['/configs/{vhost}'] = {"method": ["PUT"], "executor": this._name, "_method": this.updateCurrentVhost};
+		this._config = this._webda.config[this._webda._currentVhost];
+		this._computeConfig = this._webda.computeConfig[this._webda._currentVhost];
 	}
 
 	getServices() {
 		this.write(this._webda.services);
 	}
 
+	toPublicJSON(o) {
+		return JSON.stringify(o);
+	}
+
 	crudService() {
+		if (this._route._http.method === "GET") {
+			var services = [];
+			for (let i in this._config.global.services) {
+				let service = this._config.global.services[i];
+				service._name = i;
+				service._type = "Service";
+				services.push(service);
+			}
+			services.sort( function (a,b) {
+				return a._name.localeCompare(b._name);
+			});
+			this.write(services);
+			return;
+		}
+		let name = this._params.name;
 		if (this._route._http.method === "DELETE") {
-			delete this._webda.config[this.webda.vhost].global.services[name];
-			this._webda.saveConfiguration();
+			delete this._config.global.services[name];
+			this._webda.saveHostConfiguration(this._config);
 			return;	
 		}
-		let name = this.body.uuid;
-		delete this.body.uuid;
-		if (this._route._http.method === "POST" && this._webda.config[this.webda.vhost].global.services[name] != null) {
+		let service = this._config.global.services[name];
+		delete this.body._name;
+		delete this.body._type;
+		if (this._route._http.method === "POST" && service != null) {
 			throw 400;
 		}
-		this._webda.config[this.webda.vhost].global.services[name]=this.body;
-		this._webda.saveConfiguration();
+		this._config.global.services[name]=this.body;
+		this._webda.saveHostConfiguration();
 	}
 
 	crudRoute() {
+		if (this._route._http.method === "GET") {
+			var routes = [];
+			for (let i in this._computeConfig) {
+				if (!i.startsWith("/")) continue;
+				let route = this._computeConfig[i];
+				route._name = i;
+				route._type = "Route";
+				route["_uri-template-parse"]=undefined;
+				// Check if it is a manual route or not
+				route._manual = this._config[i] !== undefined;
+				routes.push(route);
+			}
+			routes.sort( function (a,b) {
+				if (a["_manual"] && !b["_manual"]) {
+					return -1;
+				} else if (!a["_manual"] && b["_manual"]) {
+					return 1;
+				}
+				return a._name.localeCompare(b._name);
+		    });
+			this.write(routes);
+			return;
+		}
 		// TODO Check query string
-		if (this.body.url) {
+		if (!this.body.url) {
 			throw 400;
 		}
 		var body = this.body.url;
 		if (this._route._http.method === "DELETE") {
-			delete this._webda.config[this.webda.vhost][body]
+			console.log(this.body);
+			delete this._config[body];
+			this._webda.saveHostConfiguration(this._config);
+			return;
 		}
 		delete this.body.url;
-		if (this._route._http.method === "POST" && this._webda.config[this.webda.vhost][body] != null) {
+		if (this._route._http.method === "POST" && this._webda.config[this._params.vhost][body] != null) {
 			throw 400;
 		}
-		this._webda.config[this.webda.vhost][body] = this.body;
-		this._webda.saveConfiguration();
+		this._webda.config[this._params.vhost][body] = this.body;
+		this._webda.saveHostConfiguration();
 	}
 
-	getConfigs() {
+	getVhosts() {
 		this.write(Object.keys(this._webda.config));
 	}
 
@@ -61,19 +111,21 @@ class ConfigurationService extends Executor {
 		this.write(this._webda.config[this._params.vhost]);
 	}
 
-	updateConfig() {
-		this._webda.config[this.params.vhost].global.params = this.body;
+	updateCurrentVhost() {
+		// For later use
 	}
 
 	restDeployment() {
 		if (this._route._http.method == "GET") {
-			if (this._params.name) {
-
-			} else {
-				return this.getService("deployments").find().then ( (result) => {
-					this.write(result);
-				});
-			}
+			return this.getService("deployments").find().then ( (deployments) => {
+				for (let i in deployments) {
+					deployments[i]._name = deployments[i].uuid;
+					deployments[i]._type = "Deployment";
+				}
+				deployments.sort(function (a,b) {return a._name.localeCompare(b._name);});
+				deployments.splice(0,0,{"uuid":"Global","_type": "Configuration","_name": "Global","params":this._config.global.params});
+				this.write(deployments);
+			});
 		} else if (this._route._http.method == "POST") {
 			return this._webda.getService("deployments").create(this.body);
 		} else if (this._http.method == "PUT") {
@@ -115,21 +167,43 @@ class WebdaConfigurationServer extends WebdaServer {
 		this._deployers["docker"] = require("../deployers/aws");
 	}
 
-	saveConfiguration() {
+	exportJson(o) {
+		// Credit to : http://stackoverflow.com/questions/11616630/json-stringify-avoid-typeerror-converting-circular-structure-to-json
+		var cache = [];
+		var res = JSON.stringify(o, function(key, value) {
+		    if (typeof value === 'object' && value !== null) {
+		        if (cache.indexOf(value) !== -1) {
+		            // Circular reference found, discard key
+		            return;
+		        }
+		        // Store value in our collection
+		        cache.push(value);
+		    }
+		    return value;
+		}, 4);
+		cache = null; // Enable garbage collection
+		return res;
+	}
 
+	saveHostConfiguration(config) {
+		console.log("Should save configuration");
+		this.config[this._currentVhost]=config;
+		fs.writeFileSync(this._mockWedba._configFile, "module.exports=" + this.exportJson(this.config));
+		console.log(this.exportJson(this.config));
+		this.loadMock();
+	}
+
+	loadMock() {
+		this._mockWedba = new Webda();
+		this.config = fs.readFileSync(this._mockWedba._configFile, {encoding:'utf8'}).replace("module.exports", "");
+		this.config = JSON.parse(this.config.substr(this.config.indexOf("=") + 1));
+		this._currentVhost = this.getHost();
+		this._mockWedba.initAll();
+		this.computeConfig = this._mockWedba._config;
 	}
 
 	loadConfiguration(config) {
-		this._mockWedba = new Webda();
-		for (var i in this._mockWedba._config) {
-			if (i === "*") continue;
-			for (var j in this._mockWedba._config[i]) {
-				if (j === "global") continue;
-				this._mockWedba._config[i][j]["-manual"] = true;
-			}
-		}
-		this._mockWedba.initAll();
-		this.config = this._mockWedba._config;
+		this.loadMock();
 		return ServerConfig;
 	}
 
@@ -151,7 +225,7 @@ class WebdaConfigurationServer extends WebdaServer {
 				return Promise.resolve();
 			}
 			let host = this.getHost();
-			return new this._deployers[deployment.type](host, this.config[host], deployment).deploy(args);
+			return new this._deployers[deployment.type](host, this.computeConfig[host], deployment).deploy(args);
 		});
 	}
 
@@ -162,7 +236,7 @@ class WebdaConfigurationServer extends WebdaServer {
 				return Promise.resolve();
 			}
 			let host = this.getHost();
-			return new this._deployers[deployment.type](host, this.config[host], deployment).undeploy(args);
+			return new this._deployers[deployment.type](host, this.computeConfig[host], deployment).undeploy(args);
 		});
 	}
 

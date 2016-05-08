@@ -28,6 +28,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     return "http://localhost:18181" + url;
   }
 
+  app.saveComponent = function () {
+
+  }
+
   app.newObject = function () {
     console.log(app.route);
     if (app.route == "routes") {
@@ -38,6 +42,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       app.$.newDeploymentDialog.open();
     }
   }
+
+  app.confirmDeleteCurrentComponent = function () {
+    if (app.currentComponent === undefined || app.currentComponent._type === undefined) return;
+    this.$.confirmDeletion.open();
+  };
+
   app.deleteCurrentComponent = function () {
     if (app.currentComponent === undefined || app.currentComponent._type === undefined) return;
     if (app.currentComponent._type === "Route") {
@@ -59,8 +69,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       app.currentComponent = undefined;
       this.refresh();
     });
-    console.log(app.currentComponent);
   }
+
   app.onGetDeployments = function (evt) {
     var deployments = evt.target.lastResponse;
     if (deployments === undefined) {
@@ -124,10 +134,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     console.log(JSON.stringify(obj, jsonFilter, 4));
     return JSON.stringify(obj, jsonFilter, 4).trim();
   }
+
+  app.selectComponent = function( component ) {
+    app.currentComponent = component;
+    app.dirty = true;
+  }
+
   app.onSelectDeployment = function(evt) {
     var index = app.getAttribute('dataIndex', evt.target);
     if (index !== undefined) {
-      app.currentComponent = app.deployments[index];
+      app.selectComponent(app.deployments[index]);
       if (index == 0) {
         app.currentDeployment = undefined;
       } else {
@@ -142,16 +158,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     if (index !== undefined) {
       var route = app.routes[index];
       if (app.mapServices[route.executor] !== undefined) {
-        app.currentComponent = app.mapServices[route.executor];
+        app.selectComponent(app.mapServices[route.executor]);
       } else {
-        app.currentComponent = app.routes[index];
+        app.selectComponent(app.routes[index]);
       }
     }
   }
   app.onSelectService = function(evt) {
     var index = app.getAttribute('dataIndex', evt.target);
     if (index !== undefined) {
-      app.currentComponent = app.services[index];
+      app.selectComponent(app.services[index]);
     }
   };
 
@@ -200,6 +216,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
     app.$.newExecutorDialog.addEventListener('iron-overlay-closed', function (evt) {
       app.refresh();
+    });
+    app.$.confirmDeletion.addEventListener('iron-overlay-closed', function (evt) {
+      if (evt.detail.confirmed) {
+        app.deleteCurrentComponent();
+      }
     });
   });
 

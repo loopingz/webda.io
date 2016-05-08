@@ -25,3 +25,20 @@ body {
 .invalid .jsoneditor {
 	border-color: #f00 !important;	
 }
+
+.content {
+	padding-left: 20px;
+	padding-right: 20px;
+}
+
+.content label {
+	color: #737373;
+	font-size: 12px;
+	font-family: 'Roboto', 'Noto', sans-serif;
+	line-height: 20px;
+	font-weight: 400;
+}
+
+.content juicy-jsoneditor {
+	margin-bottom: 30px;
+}

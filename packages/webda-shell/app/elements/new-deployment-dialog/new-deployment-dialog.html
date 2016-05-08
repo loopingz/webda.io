@@ -61,9 +61,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         background-color: var(--accent-color);
       }
     </style>
+    <iron-ajax id="ajax" handle-as="json"></iron-ajax>
     <style include="paper-dialog-shared-styles"></style>
       <h2>New Deployment</h2>
-      <paper-input label="Name" placeholder="Enter deployment name"></paper-input>
+      <paper-input label="Name" value="{{configuration.uuid}}" placeholder="Enter deployment name"></paper-input>
       <div align="center">
         <template is="dom-repeat" items="[[deployers]]">
           <paper-card heading="{{item}}" id="{{index}}" on-tap="select" image="http://placehold.it/200x100" class="white" style="margin-bottom:8px;">
@@ -71,20 +72,40 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </template>
       </div>
       <label>Configuration</label>
-      <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{configuration}}"></juicy-jsoneditor>
+      <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{configuration.params}}"></juicy-jsoneditor>
       <label>Deployement resources</label>
-      <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{configuration}}"></juicy-jsoneditor>
+      <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{configuration.resources}}"></juicy-jsoneditor>
       <div class="buttons">
         <paper-button dialog-dismiss>Cancel</paper-button>
-        <paper-button dialog-confirm>Create</paper-button>
+        <paper-button id="createButton" on-tap="create">Create</paper-button>
       </div>
   </template>
   <script>
     (function() {
       'use strict';
+      var resetValue = function() {
+          return {"params":
+              {"accessKeyId": "YOUR_RUNTIME_KEY",
+                "secretAccessKey": "YOUR_RUNTIME_SECRET",
+                "region": "us-west-2"},"resources":{"restApi":"API_NAME_ON_AWS","accessKeyId":"YOUR_DEPLOYEMENT_KEY","secretAccessKey":"YOUR_DEPLOYEMENT_SECRET"}};
+        }
       Polymer({
         is: 'new-deployment-dialog',
         behaviors: [Polymer.PaperDialogBehavior],
+        create: function () {
+          this.$.ajax.method = 'POST';
+          this.$.ajax.body = this.configuration;
+          this.$.ajax.url = app.getUrl('/deployments');
+          this.$.ajax.contentType = 'application/json';
+          this.$.ajax.generateRequest().completes.then( () => {
+            this.close(); 
+            this.configuration = resetValue();
+            this.old.removeAttribute("selected");
+            this.old =  undefined;
+          }, () => {
+            // Error occurs
+          });
+        },
         select: function (evt) {
           // Should be a behavior now
           var target = evt.target;
@@ -92,12 +113,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             target = target.parentNode;
           }
           if (target !== undefined) {
-            this.selected = this.deployers[target.id];
+            this.configuration.type = this.deployers[target.id];
             if (this.old) {
               this.old.removeAttribute("selected");
             }
             target.setAttribute("selected", true);
             this.old = target;
+          } else {
+            this.configuration.type = undefined;
           }
         },
         properties: {
@@ -113,10 +136,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           configuration: {
             type: Object,
-            value: {"params":
-              {"accessKeyId": "YOUR_RUNTIME_KEY",
-                "secretAccessKey": "YOUR_RUNTIME_SECRET",
-                "region": "us-west-2"},"resources":{"restApi":"API_NAME_ON_AWS","accessKeyId":"YOUR_DEPLOYEMENT_KEY","secretAccessKey":"YOUR_DEPLOYEMENT_SECRET"}}
+            value: resetValue
           }
         },
         toggleEdit: function() {

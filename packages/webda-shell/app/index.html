@@ -123,25 +123,40 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         <!-- Main Content -->
         <div class="content">
-          <div style="padding: 10px">
+          <div>
             <div style="float: right; margin-bottom: -150px; margin-top: 20px;">{{currentComponent._type}}</div>
             <h2>{{currentComponent._name}}</h2>
-            <template is="dom-if" if="{{currentComponent}}">
-              <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{strip(currentComponent)}}"></juicy-jsoneditor>
-            </template>
           </div>
-          <iron-pages attr-for-selected="data-type" selected="{{currentComponent._type}}">
-            <section data-type="Deployment">
-              <paper-button style="float: right; margin-right: 20px;" raised class="primary">Deploy</paper-button>
-            </section>
-          </iron-pages>
+          <template is="dom-if" if="{{currentComponent}}">
+            <iron-pages attr-for-selected="data-type" selected="{{currentComponent._type}}">
+              <section data-type="Deployment">
+                  <label>Configuration</label>
+                  <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{strip(currentComponent.params)}}"></juicy-jsoneditor>
+                  <label>Deployment resources</label>
+                  <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{strip(currentComponent.resources)}}"></juicy-jsoneditor>
+                <paper-button style="float: right; margin-right: 20px;" raised class="primary">Deploy</paper-button>
+              </section>
+              <section data-type="Configuration">
+                <label>Configuration</label>
+                <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{strip(currentComponent.params)}}"></juicy-jsoneditor>
+              </section>
+              <section data-type="Service">
+                
+              </section>
+              <section data-type="Route">
+                
+              </section>
+            </iron-pages>
+          </template>
           <paper-toolbar style="position: absolute; bottom: 0px; right: 0px; left: 0px; background-color: #eee; border-top: 1px solid #ccc; color:#000;">
             <template is="dom-if" if="{{currentComponent}}">
-              <paper-button on-tap="deleteCurrentComponent"><iron-icon icon="delete" style="color: #dc6262;"></iron-icon></paper-button>
+              <paper-button on-tap="confirmDeleteCurrentComponent"><iron-icon icon="delete" style="color: #dc6262;"></iron-icon></paper-button>
             </template>
-            <span class="title" style="margin-left: 0px;">[[currentVhost]]<template is="dom-if" if="[[activeDeployment]]"> / [[activeDeployment.uuid]]</template></span>
+            <span class="title" style="margin-left: 0px;"></span>
             <span class=""></span>
-            <paper-button disabled={{dirty}}><iron-icon icon="save"></iron-icon>Save</paper-button>
+            <template is="dom-if" if="{{currentComponent}}">
+              <paper-button disabled={{!dirty}}><iron-icon icon="save"></iron-icon>Save</paper-button>
+            </template>
           </paper-toolbar>
         </div>
       </paper-scroll-header-panel>
@@ -149,6 +164,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <new-executor-dialog modal id="newExecutorDialog"></new-executor-dialog>
     <new-service-dialog modal id="newServiceDialog"></new-service-dialog>
     <new-deployment-dialog modal id="newDeploymentDialog"></new-deployment-dialog>
+    <paper-dialog modal id="confirmDeletion" no-cancel-on-esc-key="false" style="height: 200px;">
+      <div>
+      <h2>Delete Component</h2>
+      <div style="margin-top: 20px;">The deletion is permanent, do you still want to continue ?</div>
+      <div class="buttons">
+        <paper-button dialog-dismiss>Cancel</paper-button>
+        <paper-button dialog-confirm>Delete</paper-button>
+      </div>
+      </div>
+    </paper-dialog>
     <paper-toast id="toast">
       <span class="toast-hide-button" role="button" tabindex="0" onclick="app.$.toast.hide()">Ok</span>
     </paper-toast>

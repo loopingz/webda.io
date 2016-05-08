@@ -30,7 +30,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   app.newObject = function () {
     console.log(app.route);
-    if (app.route == "api") {
+    if (app.route == "routes") {
       app.$.newExecutorDialog.open();
     } else if (app.route == "services") {
       app.$.newServiceDialog.open();
@@ -189,26 +189,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     }
   };
 
-  // Listen for template bound event to know when bindings
-  // have resolved and content has been stamped to the page
-  app.addEventListener('dom-change', function() {
-    console.log('Our app is ready to rock!');
-  });
-
   // See https://github.com/Polymer/polymer/issues/1381
   window.addEventListener('WebComponentsReady', function() {
     // imports are loaded and elements have been registered
     app.$.newDeploymentDialog.addEventListener('iron-overlay-closed', function (evt) {
-      console.log("new deployment");
-      console.log(evt);
+      app.refresh();
     });
     app.$.newServiceDialog.addEventListener('iron-overlay-closed', function (evt) {
-      console.log("new service");
-      console.log(evt);
+      app.refresh();
     });
     app.$.newExecutorDialog.addEventListener('iron-overlay-closed', function (evt) {
-      console.log("new executor");
-      console.log(evt);
+      app.refresh();
     });
   });
 

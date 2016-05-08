@@ -16,8 +16,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <template>
     <style include="shared-styles">
     </style>
+    <label>Type</label>
+    <div>[[type]]</div>
     <label>Configuration</label>
-    <juicy-jsoneditor mode="tree" modes=["view","tree","text","form"] json="{{params}}"></juicy-jsoneditor>
+    <juicy-jsoneditor id="params" mode="tree" modes=["view","tree","text","form"] json="{{params}}"></juicy-jsoneditor>
   </template>
 
   <script>
@@ -26,15 +28,44 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       Polymer({
         is: 'service-panel',
+        updateParams: function() {
+          // Not optimal
+          for (let i in this.params) {
+            this.component[i] = this.params[i];
+          }
+        },
         filterComponent: function () {
           // As configuration is include in the definition need to filter _type and _name
           this.params = {};
+          this.type = undefined;
           for (let i in this.component) {
-            if (i.startsWith('_')) continue;
-            if (i == "type") continue;
-            if (i == "require") continue;
+            if (i.startsWith('_')) {
+              continue;
+            }
+            if (i == "type") {
+              this.type = this.component[i];
+              continue;
+            }
+            if (i == "require") {
+              this.type = "Custom";
+              continue;
+            }
             this.params[i] = this.component[i];
           }
+          if (this.type === undefined) {
+            this.type = this.component._name;
+          }
+        },
+        ready: function() {
+          this.$.params.addEventListener('change', (evt) => {
+            // Change is emit before the change, and not other event is emitted
+            // For now using timeout to recompute the info
+            // Not nice
+            var timeout = () => {
+              this.updateParams();
+            };
+            setTimeout(timeout, 100);
+          });
         },
         properties: {
           dirty: {

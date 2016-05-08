@@ -60,6 +60,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   app.deleteCurrentComponent = function () {
     if (app.currentComponent === undefined || app.currentComponent._type === undefined) return;
+    if (app.currentComponent._type === "Configuration") {
+      app.currentComponent.params = {};
+      return;
+    }
     this.$.ajax.method = 'DELETE';
     this.$.ajax.contentType = 'application/json';
     if (app.currentComponent._type === "Route") {

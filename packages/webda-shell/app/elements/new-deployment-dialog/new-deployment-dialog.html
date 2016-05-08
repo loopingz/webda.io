@@ -60,6 +60,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       paper-card[selected] {
         background-color: var(--accent-color);
       }
+
+      #error {
+        float: left;
+        color: #ff0000;
+        margin-right: 8px;
+        margin-top: 8px;
+      }
     </style>
     <iron-ajax id="ajax" handle-as="json"></iron-ajax>
     <style include="paper-dialog-shared-styles"></style>
@@ -76,6 +83,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <label>Deployement resources</label>
       <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{configuration.resources}}"></juicy-jsoneditor>
       <div class="buttons">
+        <span id="error">[[error]]</span>
         <paper-button dialog-dismiss>Cancel</paper-button>
         <paper-button id="createButton" on-tap="create">Create</paper-button>
       </div>
@@ -102,8 +110,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             this.configuration = resetValue();
             this.old.removeAttribute("selected");
             this.old =  undefined;
-          }, () => {
-            // Error occurs
+          }, (err) => {
+            if (err.message.endsWith("409")) {
+              this.error = 'This name is already used'
+            } else {
+              this.error = err.message;
+            }
           });
         },
         select: function (evt) {

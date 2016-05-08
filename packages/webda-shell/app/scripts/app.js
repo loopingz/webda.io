@@ -179,7 +179,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   }
 
   app.getRouteLabel = function (label) {
-    var labels = {'api': 'API', 'services': 'Services', 'deployments': 'Deployments'};
+    var labels = {'routes': 'Routes', 'services': 'Services', 'deployments': 'Deployments'};
     return labels[label];
   }
   app.displayInstalledToast = function() {

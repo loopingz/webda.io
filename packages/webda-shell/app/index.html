@@ -90,7 +90,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         <!-- Drawer Content -->
         <iron-pages attr-for-selected="data-route" selected="{{route}}">
-          <section data-route="api">
+          <section data-route="routes">
             <template is="dom-repeat" items="{{routes}}">
               <url-route on-click="onSelectRoute" data-index="{{index}}" url="{{item}}"></url-route>  
             </template>
@@ -114,7 +114,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-toolbar id="mainToolbar">
           <paper-icon-button id="paperToggle" icon="menu" paper-drawer-toggle></paper-icon-button>
           <paper-tabs attr-for-selected="data-route" selected="{{route}}" noink>
-            <paper-tab data-route="api">API</paper-tab>
+            <paper-tab data-route="routes">Routes</paper-tab>
             <paper-tab data-route="services">Services</paper-tab>
             <paper-tab data-route="deployments">Deployments</paper-tab>
           </paper-tabs>

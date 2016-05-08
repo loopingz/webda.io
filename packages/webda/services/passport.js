@@ -18,11 +18,11 @@ passport.deserializeUser(function(id, done) {
 });
 
 var Strategies = {
-	"facebook": require('passport-facebook').Strategy,
-	"google": require('passport-google-oauth').OAuth2Strategy,
-	"amazon": require('passport-amazon').Strategy,
-	"github": require('passport-github2').Strategy,
-	"twitter": require('passport-twitter').Strategy
+	"facebook": {strategy: require('passport-facebook').Strategy, promise: false},
+	"google": {strategy: require('passport-google-oauth').OAuth2Strategy, promise: false},
+	"amazon": {strategy: require('passport-amazon').Strategy, promise: false},
+	"github": {strategy: require('passport-github2').Strategy, promise: false},
+	"twitter": {strategy: require('passport-twitter').Strategy, promise: true}
 }
 
 class PassportExecutor extends Executor {
@@ -60,21 +60,11 @@ class PassportExecutor extends Executor {
 			throw 404;
 		}
 		return new Promise( (resolve, reject) => {
+			var done = function(result) { console.log(result); resolve(); }; 
 			this.setupOAuth(providerConfig);
-			passport.authenticate(this._params.provider, { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
+			passport.authenticate(this._params.provider, { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect}, done)(this, this, done);
 		});
 	};
-
-	end() {
-		try {
-			super.end();
-		} catch (err) {
-			// Ignore already ended exception as Passport close on his side sometimes
-			if (err.message != "Already ended") {
-				throw err;
-			}
-		}
-	}
 
 	listAuthentications() {
 		if (this._route._http.method === "DELETE") {
@@ -112,7 +102,6 @@ class PassportExecutor extends Executor {
 					this.writeHead(302, {'Location': this._params.successRedirect});
 					this.end();
 					done(result);
-					return Promise.resolve();
 				});
 			}
 			// Registration with OAuth
@@ -133,20 +122,17 @@ class PassportExecutor extends Executor {
 					this.writeHead(302, {'Location': this._params.successRedirect});
 					this.end();
 					done(ident)
-					return Promise.resolve();
 				});
 			});
 		}).catch( (err) => {
-			console.log(err);
 			done(err);
-			throw err;
 		});
 	}
 
 	setupOAuth(config) {
-		var callback = this.getCallbackUrl();
-		passport.use(new Strategies[this._params.provider](config,(accessToken, refreshToken, profile, done) => {
-				self.handleOAuthReturn(profile._json, new Ident("facebook", profile.id, accessToken, refreshToken), done);
+		config.callbackURL = this.getCallbackUrl();
+		passport.use(new Strategies[this._params.provider].strategy(config,(accessToken, refreshToken, profile, done) => {
+				this.handleOAuthReturn(profile._json, new Ident(this._params.provider, profile.id, accessToken, refreshToken), done);
 			}
 		));
 	}
@@ -339,14 +325,25 @@ class PassportExecutor extends Executor {
 		this.writeHead(204);
 	}
 
+	end() {
+		if (this._oauth1) {
+			this._oauth1();
+		} else {
+			super.end();
+		}
+	}
 	authenticate() {
 		var providerConfig = this._params.providers[this._params.provider];
 		if (providerConfig) {
-			return new Promise( (resolve, reject) => {
-				var done = function(obj) { console.log(obj); resolve(obj); };
-				var err = function(obj) { console.log(obj); reject(obj); };
+			if (!Strategies[this._params.provider].promise) {
 				this.setupOAuth(providerConfig);
-				passport.authenticate(this._params.provider, {'scope': providerConfig.scope})(this, this, err);
+				return passport.authenticate(this._params.provider, {'scope': providerConfig.scope})(this, this);
+			}
+			var self = this;
+			return new Promise( (resolve, reject) => {
+				this._oauth1 = function(obj) { this._oauth1=undefined; resolve(obj); };
+				this.setupOAuth(providerConfig);
+				passport.authenticate(this._params.provider, {'scope': providerConfig.scope}, this._oauth1)(this, this, this._oauth1);
 			});
 		}
 		throw 404;

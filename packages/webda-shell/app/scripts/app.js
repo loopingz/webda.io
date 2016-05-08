@@ -28,8 +28,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     return "http://localhost:18181" + url;
   }
 
-  app.saveComponent = function () {
-
+  app.saveCurrentComponent = function () {
+    if (app.currentComponent === undefined || app.currentComponent._type === undefined) return;
+    this.$.ajax.method = 'PUT';
+    this.$.ajax.contentType = 'application/json';
+    if (app.currentComponent._type === "Route") {
+      this.$.ajax.body = {'url': app.currentComponent._name};
+      this.$.ajax.url = app.getUrl('/routes');
+    } else {
+      this.$.ajax.url = app.getUrl('/' + app.currentComponent._type.toLowerCase() + 's/' + app.currentComponent._name);
+      this.$.ajax.body = app.currentComponent;
+    }
+    this.$.ajax.generateRequest();
   }
 
   app.newObject = function () {
@@ -50,21 +60,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   app.deleteCurrentComponent = function () {
     if (app.currentComponent === undefined || app.currentComponent._type === undefined) return;
+    this.$.ajax.method = 'DELETE';
+    this.$.ajax.contentType = 'application/json';
     if (app.currentComponent._type === "Route") {
-      this.$.ajax.method = 'DELETE';
       this.$.ajax.body = {'url': app.currentComponent._name};
       this.$.ajax.url = app.getUrl('/routes');
-      this.$.ajax.contentType = 'application/json';
-      this.$.ajax.generateRequest().completes.then( () => {
-        app.currentComponent = undefined;
-        this.refresh();
-      });
-      return;
+    } else {
+      this.$.ajax.url = app.getUrl('/' + app.currentComponent._type.toLowerCase() + 's/' + app.currentComponent._name);
+      this.$.ajax.body = {};
     }
-    this.$.ajax.method = 'DELETE';
-    this.$.ajax.url = app.getUrl('/' + app.currentComponent._type.toLowerCase() + 's/' + app.currentComponent._name);
-    this.$.ajax.contentType = 'application/json';
-    this.$.ajax.body = {};
     this.$.ajax.generateRequest().completes.then( () => {
       app.currentComponent = undefined;
       this.refresh();

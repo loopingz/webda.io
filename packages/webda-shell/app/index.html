@@ -130,21 +130,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <template is="dom-if" if="{{currentComponent}}">
             <iron-pages attr-for-selected="data-type" selected="{{currentComponent._type}}">
               <section data-type="Deployment">
-                  <label>Configuration</label>
-                  <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{strip(currentComponent.params)}}"></juicy-jsoneditor>
-                  <label>Deployment resources</label>
-                  <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{strip(currentComponent.resources)}}"></juicy-jsoneditor>
-                <paper-button style="float: right; margin-right: 20px;" raised class="primary">Deploy</paper-button>
+                  <deployment-panel component="{{currentComponent}}" dirty="{{dirty}}"></deployment-panel>
               </section>
               <section data-type="Configuration">
-                <label>Configuration</label>
-                <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{strip(currentComponent.params)}}"></juicy-jsoneditor>
+                <configuration-panel component="{{currentComponent}}" dirty="{{dirty}}"></configuration-panel>
               </section>
               <section data-type="Service">
-                
+                <service-panel component="{{currentComponent}}" dirty="{{dirty}}"></service-panel>
               </section>
               <section data-type="Route">
-                
+                <route-panel component="{{currentComponent}}" dirty="{{dirty}}"></route-panel>                
               </section>
             </iron-pages>
           </template>
@@ -155,7 +150,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <span class="title" style="margin-left: 0px;"></span>
             <span class=""></span>
             <template is="dom-if" if="{{currentComponent}}">
-              <paper-button disabled={{!dirty}}><iron-icon icon="save"></iron-icon>Save</paper-button>
+              <paper-button on-tap="saveCurrentComponent"><iron-icon icon="save"></iron-icon>Save</paper-button>
             </template>
           </paper-toolbar>
         </div>

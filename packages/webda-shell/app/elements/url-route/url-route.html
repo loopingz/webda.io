@@ -21,6 +21,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       paper-item {
         display: block;
         text-overflow: ellipsis;
+        overflow: hidden;
       }
       .service {
         color: var(--disabled-text-color);
@@ -51,7 +52,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           } else {
             this.methods = this.url.method;
           }
-          if (!this.url["-manual"]) {
+          if (!this.url["_manual"]) {
             this._service = "service";
           } else {
             this._service = "";

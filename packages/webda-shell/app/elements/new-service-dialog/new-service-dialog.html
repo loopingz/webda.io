@@ -60,12 +60,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <style include="paper-dialog-shared-styles"></style>
       <h2>New Service</h2>
       <paper-input label="Name" placeholder="Enter service name"></paper-input>
-      <label>Choose a service type</label>
+      <label>Choose a service type or <span on-tap="createCustom">create</span></label>
       <paper-dialog-scrollable dialog-element="[[node]]">
-        <template is="dom-repeat" items="[[services]]">
-          <paper-card heading="{{item}}" id="{{index}}" on-tap="select" image="http://placehold.it/200x100" class="white" style="margin-bottom:8px;">
+        <div>
           </paper-card>
+          <template is="dom-repeat" items="[[services]]">
+            <paper-card heading="{{item}}" id="{{index}}" on-tap="select" image="http://placehold.it/200x100" class="white" style="margin-bottom:8px;">
+            </paper-card>
           </template>
+        </div>
+          <label style="color:#737373; font-size:12px;" class="paper-input">Configuration</label>
+          <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{strip(currentComponent)}}"></juicy-jsoneditor>
       </paper-dialog-scrollable>
       <div class="buttons">
         <paper-button dialog-dismiss>Cancel</paper-button>

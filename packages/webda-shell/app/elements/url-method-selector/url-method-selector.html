@@ -25,7 +25,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <div>
     <template is="dom-repeat" items="[[availableMethods]]">
-      <url-method-badge method="[[item]]" toggles="[[toggles]]" checked="[[checked]]"></url-method-badge>  
+      <url-method-badge id="[[item]]" method="[[item]]" toggles="[[toggles]]" checked="[[checked]]"></url-method-badge>  
     </template>
     </div>
   </template>
@@ -35,7 +35,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       Polymer({
         is: 'url-method-selector',
-
+        getSelection: function() {
+          var methods = [];
+          // Not the nicest component ever
+          for (var i in this.availableMethods) {
+            if (this.$$("#"+this.availableMethods[i]).checked) {
+              methods.push(this.availableMethods[i]);
+            }
+          }
+          return methods;
+        },
         properties: {
           toggles: {
             type: Boolean
@@ -46,10 +55,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           availableMethods: {
             value: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             type: Array
-          },
-          method: {
-            type: String,
-            notify: true
           }
         }
       });

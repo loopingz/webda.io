@@ -56,11 +56,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       paper-card {
         padding-bottom: 3px;
       }
+
+      paper-card[selected] {
+        background-color: var(--accent-color);
+      }
     </style>
     <style include="paper-dialog-shared-styles"></style>
       <h2>New Deployment</h2>
       <paper-input label="Name" placeholder="Enter deployment name"></paper-input>
+      <div align="center">
+        <template is="dom-repeat" items="[[deployers]]">
+          <paper-card heading="{{item}}" id="{{index}}" on-tap="select" image="http://placehold.it/200x100" class="white" style="margin-bottom:8px;">
+          </paper-card>
+        </template>
+      </div>
       <label>Configuration</label>
+      <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{configuration}}"></juicy-jsoneditor>
+      <label>Deployement resources</label>
       <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{configuration}}"></juicy-jsoneditor>
       <div class="buttons">
         <paper-button dialog-dismiss>Cancel</paper-button>
@@ -73,11 +85,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       Polymer({
         is: 'new-deployment-dialog',
         behaviors: [Polymer.PaperDialogBehavior],
+        select: function (evt) {
+          // Should be a behavior now
+          var target = evt.target;
+          while (target !== undefined && target.localName !== 'paper-card') {
+            target = target.parentNode;
+          }
+          if (target !== undefined) {
+            this.selected = this.deployers[target.id];
+            if (this.old) {
+              this.old.removeAttribute("selected");
+            }
+            target.setAttribute("selected", true);
+            this.old = target;
+          }
+        },
         properties: {
           editMode: {
             type: Boolean,
             value: false,
             notify: true
+          },
+
+          deployers: {
+            type: Array,
+            value: ["Lambda", "Docker"]
           },
           configuration: {
             type: Object,

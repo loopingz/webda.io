@@ -16,7 +16,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="generator" content="Polymer Starter Kit">
-  <title>Polymer Starter Kit</title>
+  <title>Webda Configuration</title>
 
   <!-- Place favicon.ico in the `app/` directory -->
 
@@ -73,8 +73,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <span id="browser-sync-binding"></span>
   <template is="dom-bind" id="app">
     <iron-ajax id="vhostAjax" auto handle-as="json" on-response="handleVhosts" url="http://localhost:18181/configs"></iron-ajax>
-    <iron-ajax id="configAjax" handle-as="json" on-response="retrievedConfig" url="http://localhost:18181/configs/[[currentVhost]]"></iron-ajax>
-    <iron-ajax id="deploymentAjax" handle-as="json" on-response="retrievedDeployments" url="http://localhost:18181/deployments"></iron-ajax>
+    <iron-ajax id="deploymentsAjax" handle-as="json" last-response="{{deployments}}" url="http://localhost:18181/deployments"></iron-ajax>
+    <iron-ajax id="routesAjax" handle-as="json" last-response="{{routes}}" url="http://localhost:18181/routes"></iron-ajax>
+    <iron-ajax id="servicesAjax" handle-as="json" last-response="{{services}}" on-response="mapServices" url="http://localhost:18181/services"></iron-ajax>
+    <iron-ajax id="ajax" handle-as="json"></iron-ajax>
     <paper-drawer-panel id="paperDrawerPanel" drawer-width="400px">
       <!-- Drawer Scroll Header Panel -->
       <paper-scroll-header-panel drawer fixed>
@@ -89,18 +91,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <!-- Drawer Content -->
         <iron-pages attr-for-selected="data-route" selected="{{route}}">
           <section data-route="api">
-            <template is="dom-repeat" items="{{urls}}">
-              <url-route on-click="selectUrl" data-index="{{index}}" url="{{item}}"></url-route>  
+            <template is="dom-repeat" items="{{routes}}">
+              <url-route on-click="onSelectRoute" data-index="{{index}}" url="{{item}}"></url-route>  
             </template>
           </section>
           <section data-route="services">
             <template is="dom-repeat" items="{{services}}">
-              <paper-item on-click="selectService" data-index="{{index}}">{{ item._name }}</paper-item>
+              <paper-item on-click="onSelectService" data-index="{{index}}">{{ item._name }}</paper-item>
             </template>
           </section>
           <section data-route="deployments">
             <template is="dom-repeat" items="{{deployments}}">
-              <paper-item on-click="selectDeployment" data-index="{{index}}">{{ item.uuid }}</paper-item>
+              <paper-item on-click="onSelectDeployment" data-index="{{index}}">{{ item.uuid }}</paper-item>
             </template>
           </section>
         </iron-pages>
@@ -134,7 +136,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </section>
           </iron-pages>
           <paper-toolbar style="position: absolute; bottom: 0px; right: 0px; left: 0px; background-color: #eee; border-top: 1px solid #ccc; color:#000;">
-            <span class="title">[[currentVhost]]<template is="dom-if" if="[[activeDeployment]]"> / [[activeDeployment.uuid]]</template></span>
+            <template is="dom-if" if="{{currentComponent}}">
+              <paper-button on-tap="deleteCurrentComponent"><iron-icon icon="delete" style="color: #dc6262;"></iron-icon></paper-button>
+            </template>
+            <span class="title" style="margin-left: 0px;">[[currentVhost]]<template is="dom-if" if="[[activeDeployment]]"> / [[activeDeployment.uuid]]</template></span>
+            <span class=""></span>
+            <paper-button disabled={{dirty}}><iron-icon icon="save"></iron-icon>Save</paper-button>
           </paper-toolbar>
         </div>
       </paper-scroll-header-panel>

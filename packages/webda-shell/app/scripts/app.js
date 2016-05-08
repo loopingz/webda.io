@@ -24,6 +24,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     // app.baseUrl = '/polymer-starter-kit/';
   }
 
+  app.getUrl = function(url) {
+    return "http://localhost:18181" + url;
+  }
+
   app.newObject = function () {
     console.log(app.route);
     if (app.route == "api") {
@@ -34,7 +38,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       app.$.newDeploymentDialog.open();
     }
   }
-  app.retrievedDeployments = function (evt) {
+  app.deleteCurrentComponent = function () {
+    if (app.currentComponent === undefined || app.currentComponent._type === undefined) return;
+    if (app.currentComponent._type === "Route") {
+      this.$.ajax.method = 'DELETE';
+      this.$.ajax.body = {'url': app.currentComponent._name};
+      this.$.ajax.url = app.getUrl('/routes');
+      this.$.ajax.contentType = 'application/json';
+      this.$.ajax.generateRequest().completes.then( () => {
+        app.currentComponent = undefined;
+        this.refresh();
+      });
+      return;
+    }
+    this.$.ajax.method = 'DELETE';
+    this.$.ajax.url = app.getUrl('/' + app.currentComponent._type.toLowerCase() + 's/' + app.currentComponent._name);
+    this.$.ajax.contentType = 'application/json';
+    this.$.ajax.body = {};
+    this.$.ajax.generateRequest().completes.then( () => {
+      app.currentComponent = undefined;
+      this.refresh();
+    });
+    console.log(app.currentComponent);
+  }
+  app.onGetDeployments = function (evt) {
     var deployments = evt.target.lastResponse;
     if (deployments === undefined) {
       deployments = [];
@@ -46,39 +73,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     }
     deployments.splice(0,0,{"uuid":"Global","_type": "Configuration","_name": "Global","params":app.config.global.params});
     app.deployments = deployments;
-  }
-
-  app.retrievedConfig = function(evt) {
-    app.config = evt.target.lastResponse;
-    // Prepare URLs
-    var urls = [];
-    for (var i in app.config) {
-      if (i === 'global') continue;
-      app.config[i]._name = i;
-      app.config[i]._type = "Executor";
-      urls.push(app.config[i]);
-    }
-    urls.sort( function (a,b) {
-      if (a["-manual"] && !b["-manual"]) {
-        return -1;
-      } else if (!a["-manual"] && b["-manual"]) {
-        return 1;
-      }
-      return a._name.localeCompare(b._name);
-    });
-    app.urls = urls;
-
-    // Prepare Services
-    var services = [];
-    for (var i in app.config.global.services) {
-      app.config.global.services[i]._name = i;
-      app.config.global.services[i]._type = "Service";
-      services.push(app.config.global.services[i]);
-    }
-    services.sort( function (a,b) {
-      return a._name.localeCompare(b._name);
-    });
-    app.services = services;
   }
   /*
   if (fakeJson !== undefined) {
@@ -119,11 +113,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     return res;
   }
 
+  app.mapServices = function(evt) {
+    console.log(app.services);
+    for (var i in app.services) {
+      app.mapServices[app.services[i]._name]=app.services[i];
+    }
+  }
+
   app.jsonify = function(obj) {
     console.log(JSON.stringify(obj, jsonFilter, 4));
     return JSON.stringify(obj, jsonFilter, 4).trim();
   }
-  app.selectDeployment = function(evt) {
+  app.onSelectDeployment = function(evt) {
     var index = app.getAttribute('dataIndex', evt.target);
     if (index !== undefined) {
       app.currentComponent = app.deployments[index];
@@ -135,19 +136,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       app.activeDeployment = app.currentDeployment;
     }
   }
-  app.selectUrl = function(evt) {
+  app.onSelectRoute = function(evt) {
     var validate = jsen({ type: 'string' });
     var index = app.getAttribute('dataIndex', evt.target);
     if (index !== undefined) {
-      var url = app.urls[index];
-      if (app.config.global.services[url.executor] !== undefined) {
-        app.currentComponent = app.config.global.services[url.executor];
+      var route = app.routes[index];
+      if (app.mapServices[route.executor] !== undefined) {
+        app.currentComponent = app.mapServices[route.executor];
       } else {
-        app.currentComponent = app.urls[index];
+        app.currentComponent = app.routes[index];
       }
     }
   }
-  app.selectService = function(evt) {
+  app.onSelectService = function(evt) {
     var index = app.getAttribute('dataIndex', evt.target);
     if (index !== undefined) {
       app.currentComponent = app.services[index];
@@ -156,8 +157,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   app.setVhost = function (vhost) {
     app.currentVhost = vhost;
-    app.$.configAjax.generateRequest();
-    app.$.deploymentAjax.generateRequest();
+    app.refresh();
+  }
+  app.refresh = function () {
+    app.$.routesAjax.generateRequest();
+    app.$.deploymentsAjax.generateRequest();
+    app.$.servicesAjax.generateRequest();
   }
 
   app.handleVhosts = function (evt) {
@@ -193,7 +198,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   // See https://github.com/Polymer/polymer/issues/1381
   window.addEventListener('WebComponentsReady', function() {
     // imports are loaded and elements have been registered
-    app.$.vhostAjax.on
+    app.$.newDeploymentDialog.addEventListener('iron-overlay-closed', function (evt) {
+      console.log("new deployment");
+      console.log(evt);
+    });
+    app.$.newServiceDialog.addEventListener('iron-overlay-closed', function (evt) {
+      console.log("new service");
+      console.log(evt);
+    });
+    app.$.newExecutorDialog.addEventListener('iron-overlay-closed', function (evt) {
+      console.log("new executor");
+      console.log(evt);
+    });
   });
 
   // Scroll page to top and expand header

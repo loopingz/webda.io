@@ -4,6 +4,7 @@ const Executor = require("../executors/executor");
 const Webda = require("../core");
 const _extend = require("util")._extend;
 const fs = require("fs");
+const path = require("path");
 
 class ConfigurationService extends Executor {
 
@@ -186,7 +187,6 @@ class WebdaConfigurationServer extends WebdaServer {
 	}
 
 	saveHostConfiguration(config) {
-		console.log("Should save configuration");
 		this.config[this._currentVhost]=config;
 		fs.writeFileSync(this._mockWedba._configFile, "module.exports=" + this.exportJson(this.config));
 		console.log(this.exportJson(this.config));
@@ -195,8 +195,18 @@ class WebdaConfigurationServer extends WebdaServer {
 
 	loadMock() {
 		this._mockWedba = new Webda();
-		this.config = fs.readFileSync(this._mockWedba._configFile, {encoding:'utf8'}).replace("module.exports", "");
-		this.config = JSON.parse(this.config.substr(this.config.indexOf("=") + 1));
+		if (fs.existsSync(this._mockWedba._configFile)) {
+			this.config = fs.readFileSync(this._mockWedba._configFile, {encoding:'utf8'}).replace("module.exports", "");
+			this.config = JSON.parse(this.config.substr(this.config.indexOf("=") + 1));
+		} else {
+			console.log("No file is present, creating webda.config.js")
+			this.config = {};
+			this._mockWedba._configFile = path.resolve("./webda.config.js");
+			this._currentVhost = "changeme.webda.io";
+			this.config["*"] = this._currentVhost;
+			this.saveHostConfiguration({global:{params: {}, services: {}}});
+			return;
+		}
 		this._currentVhost = this.getHost();
 		this._mockWedba.initAll();
 		this.computeConfig = this._mockWedba._config;

@@ -2,21 +2,28 @@
 
 const Executor = require('../executors/executor.js');
 var passport = require('passport');
-const TwitterStrategy = require('passport-twitter').Strategy;
-const FacebookStrategy = require('passport-facebook').Strategy;
-const GitHubStrategy = require('passport-github2').Strategy;
-const GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 const crypto = require("crypto");
 const _extend = require("util")._extend;
 const Ident = require('../models/ident');
 
 passport.serializeUser(function(user, done) {
-  done(null, JSON.stringify(user));
+	console.log("serializeUser");
+	done(null, JSON.stringify(user));
 });
 
 passport.deserializeUser(function(id, done) {
-  done(null, JSON.parse(id));
+	// To be sure to clean safely those functions
+	console.log("deSerializeUser");
+	done(null, JSON.parse(id));
 });
+
+var Strategies = {
+	"facebook": require('passport-facebook').Strategy,
+	"google": require('passport-google-oauth').OAuth2Strategy,
+	"amazon": require('passport-amazon').Strategy,
+	"github": require('passport-github2').Strategy,
+	"twitter": require('passport-twitter').Strategy
+}
 
 class PassportExecutor extends Executor {
 	constructor(webda, name, params) {
@@ -37,7 +44,7 @@ class PassportExecutor extends Executor {
 			throw Error("Unresolved dependency on idents and users services");
 		}
 		// List authentication configured
-		config[url] = {"method": ["GET"], "executor": this._name, "_method": this.listAuthentications};
+		config[url] = {"method": ["GET", "DELETE"], "executor": this._name, "_method": this.listAuthentications};
 		// Add static for email for now, if set before it should have priority
 		config[url + "/email"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this.handleEmail};
 		config[url + "/email/callback{?email,token}"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.handleEmailCallback};
@@ -48,23 +55,13 @@ class PassportExecutor extends Executor {
 	}
 
 	callback() {
-		var self = this;
-		//this.write("callback...");
+		var providerConfig = this._params.providers[this._params.provider];
+		if (!providerConfig) {
+			throw 404;
+		}
 		return new Promise( (resolve, reject) => {
-			switch (this._params.provider) {
-				case "facebook":
-					this.setupFacebook(this, this);
-					return passport.authenticate('facebook', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
-				case "google":
-					this.setupGoogle(this, this);
-					return passport.authenticate('google', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
-				case "github":
-					this.setupGithub(this, this);
-					return passport.authenticate('github', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
-				case "twitter":
-					this.setupTwitter(this, this);
-					return passport.authenticate('twitter', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
-			}
+			this.setupOAuth(providerConfig);
+			passport.authenticate(this._params.provider, { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
 		});
 	};
 
@@ -80,6 +77,11 @@ class PassportExecutor extends Executor {
 	}
 
 	listAuthentications() {
+		if (this._route._http.method === "DELETE") {
+			this.logout();
+			this.write("GoodBye");
+			return;
+		}
 		this.write(Object.keys(this._params.providers));
 	}
 
@@ -94,50 +96,6 @@ class PassportExecutor extends Executor {
 		}
 		return url + "/callback";
 	};
-
-	setupGithub(req, res) {
-		var self = this;
-		var callback = this.getCallbackUrl();
-		passport.use(new GitHubStrategy({
-			    clientID: this._params.providers.github.clientID,
-			    clientSecret: this._params.providers.github.clientSecret,
-			    callbackURL: callback
-			},
-			(accessToken, refreshToken, profile, done) => {
-			    console.log("return from github: " + JSON.stringify(profile));
-			    self.handleOAuthReturn(profile._json, new Ident("github", profile.id, accessToken, refreshToken), done);
-			}
-		));
-	}
-
-	setupGoogle(req, res) {
-		var self = this;
-		var callback = this.getCallbackUrl();
-		passport.use(new GoogleStrategy({
-	    		clientID: this._params.providers.google.clientID,
-	            clientSecret: this._params.providers.google.clientSecret,
-	  			callbackURL: callback
-			},
-			(accessToken, refreshToken, profile, done) => {
-			    console.log("return from google: " + JSON.stringify(profile));
-			    self.handleOAuthReturn(profile._json, new Ident("google", profile.id, accessToken, refreshToken), done);
-			}
-		));
-	}
-
-	setupTwitter(req, res) {
-		var self = this;
-		var callback = this.getCallbackUrl();
-		passport.use(new TwitterStrategy({
-	    		consumerKey: this._params.providers.twitter.consumerKey,
-	            consumerSecret: this._params.providers.twitter.consumerSecret,
-	  			callbackURL: callback
-			},
-			(accessToken, refreshToken, profile, done) => {
-			    self.handleOAuthReturn(profile._json, new Ident("twitter", profile.id, accessToken, refreshToken), done);
-			}
-		));
-	}
 
 	handleOAuthReturn(profile, ident, done) {
 		var identStore = this.getService("idents");
@@ -179,22 +137,15 @@ class PassportExecutor extends Executor {
 				});
 			});
 		}).catch( (err) => {
-			this.write("error..." + err);
 			console.log(err);
 			done(err);
 			throw err;
 		});
 	}
 
-	setupFacebook(req, res) {
-		var self = this;
-		var callback = self.getCallbackUrl();
-		passport.use(new FacebookStrategy({
-			    clientID: this._params.providers.facebook.clientID,
-			    clientSecret: this._params.providers.facebook.clientSecret,
-			    callbackURL: callback
-			},
-			(accessToken, refreshToken, profile, done) => {
+	setupOAuth(config) {
+		var callback = this.getCallbackUrl();
+		passport.use(new Strategies[this._params.provider](config,(accessToken, refreshToken, profile, done) => {
 				self.handleOAuthReturn(profile._json, new Ident("facebook", profile.id, accessToken, refreshToken), done);
 			}
 		));
@@ -270,6 +221,11 @@ class PassportExecutor extends Executor {
 		return hash.update(pass).digest('hex');
 	}
 
+	logout() {
+		this.emit("Logout");
+		this.session.destroy();
+	}
+
 	login(user, ident) {
 		var event = {};
 		event.userId = user;
@@ -311,7 +267,6 @@ class PassportExecutor extends Executor {
 		return identStore.get(uuid).then( (ident) => {
 			if (ident != undefined && ident.user != undefined) {
 				return userStore.get(ident.user).then ( (user) => {
-					console.log("check password", user._password, this.body.password);
 					// Check password
 					if (user._password === this.hashPassword(this.body.password)) {
 						if (ident.failedLogin > 0) {
@@ -385,40 +340,16 @@ class PassportExecutor extends Executor {
 	}
 
 	authenticate() {
-		// TODO Handle URL instead of _extended
-		// 0 is safe unless a callback provider exists
-		var next = function(err) {
-			console.log("Error happened: " + err);
-			console.trace();
+		var providerConfig = this._params.providers[this._params.provider];
+		if (providerConfig) {
+			return new Promise( (resolve, reject) => {
+				var done = function(obj) { console.log(obj); resolve(obj); };
+				var err = function(obj) { console.log(obj); reject(obj); };
+				this.setupOAuth(providerConfig);
+				passport.authenticate(this._params.provider, {'scope': providerConfig.scope})(this, this, err);
+			});
 		}
-		// Don't need to create a promise as it seems to work sync
-		switch (this._params.provider) {
-			case "google":
-				this.setupGoogle();
-				return passport.authenticate('google', {'scope': this._params.providers.google.scope})(this, this, next);
-			case "facebook":
-				this.setupFacebook();
-				return passport.authenticate('facebook', {'scope': this._params.providers.facebook.scope})(this, this, next);
-			case "github":
-				this.setupGithub();
-				return passport.authenticate('github', {'scope': this._params.providers.github.scope})(this, this, next);
-			case "twitter":
-				return new Promise( (resolve, reject) => {
-					// OAuth1 seems to do a request before redirect
-					var done = function(obj) { console.log(obj); resolve(obj); };
-					var next = function(obj) { console.log(obj); reject(obj); };
-					this.setupTwitter();
-					return passport.authenticate('twitter', {'scope': this._params.providers.github.scope}, done)(this, this, next);
-				});
-			case "phone":
-				return this.handlePhone();
-			case "email":
-				return this.handleEmail();
-			case "logout":
-				this.session.destroy();
-				// Destroy cookie
-				break;
-		}
+		throw 404;
 	}
 }
 

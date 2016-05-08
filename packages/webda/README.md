@@ -14,7 +14,9 @@ I was bored also of always recoding the same API again and again with a few cust
 
 ## Quickstart
 
-You should checkout our demo project
+You should checkout our demo project : [link](http://github.com/loopingz/webda-demo.git)
+
+Here is also the Youtube video to run it
 
 ### Create a project
 
@@ -99,6 +101,7 @@ link to dynamo / quick pres
 ### MongoDB
 
 link to mongo / quick pres
+
 
 ## Embedded Services
 

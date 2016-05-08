@@ -81,6 +81,7 @@ class Executor extends Service {
 			this._webda.flushHeaders(this);
 		}
 		this._webda.flush(this);
+		this.emit("finish");
 	}
 
 	execute() {

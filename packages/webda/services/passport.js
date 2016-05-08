@@ -61,6 +61,9 @@ class PassportExecutor extends Executor {
 				case "github":
 					this.setupGithub(this, this);
 					return passport.authenticate('github', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
+				case "twitter":
+					this.setupTwitter(this, this);
+					return passport.authenticate('twitter', { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect})(this, this, resolve);
 			}
 		});
 	};
@@ -118,6 +121,20 @@ class PassportExecutor extends Executor {
 			(accessToken, refreshToken, profile, done) => {
 			    console.log("return from google: " + JSON.stringify(profile));
 			    self.handleOAuthReturn(profile._json, new Ident("google", profile.id, accessToken, refreshToken), done);
+			}
+		));
+	}
+
+	setupTwitter(req, res) {
+		var self = this;
+		var callback = this.getCallbackUrl();
+		passport.use(new TwitterStrategy({
+	    		consumerKey: this._params.providers.twitter.consumerKey,
+	            consumerSecret: this._params.providers.twitter.consumerSecret,
+	  			callbackURL: callback
+			},
+			(accessToken, refreshToken, profile, done) => {
+			    self.handleOAuthReturn(profile._json, new Ident("twitter", profile.id, accessToken, refreshToken), done);
 			}
 		));
 	}
@@ -385,6 +402,14 @@ class PassportExecutor extends Executor {
 			case "github":
 				this.setupGithub();
 				return passport.authenticate('github', {'scope': this._params.providers.github.scope})(this, this, next);
+			case "twitter":
+				return new Promise( (resolve, reject) => {
+					// OAuth1 seems to do a request before redirect
+					var done = function(obj) { console.log(obj); resolve(obj); };
+					var next = function(obj) { console.log(obj); reject(obj); };
+					this.setupTwitter();
+					return passport.authenticate('twitter', {'scope': this._params.providers.github.scope}, done)(this, this, next);
+				});
 			case "phone":
 				return this.handlePhone();
 			case "email":

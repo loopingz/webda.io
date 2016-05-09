@@ -1,11 +1,7 @@
 "use strict";
-const Executor = require('./executor.js');
+const Executor = require('../services/executor.js');
 
-class ResourceExecutor extends Executor {
-	constructor(webda, name, params) {
-		super(webda, name, params);
-		this._type = "ResourceExecutor";
-	}
+class ResourceRouteHelper extends Executor {
 
 	execute() {
 		return new Promise( function(resolve, reject) {
@@ -27,4 +23,4 @@ class ResourceExecutor extends Executor {
 	}
 }
 
-module.exports = ResourceExecutor
+module.exports = ResourceRouteHelper

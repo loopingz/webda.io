@@ -1,7 +1,7 @@
 "use strict";
-const Executor = require("./executor.js");
+const Executor = require("../services/executor.js");
 
-class CustomExecutor extends Executor {
+class CustomRouteHelper extends Executor {
 
 	execute(executor) {
 		return Promise.resolve();
@@ -32,4 +32,4 @@ class CustomExecutor extends Executor {
 	}
 }
 
-module.exports = CustomExecutor
+module.exports = CustomRouteHelper

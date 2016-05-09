@@ -2,7 +2,7 @@
 
 var stores = {};
 var uuid = require('node-uuid');
-const Executor = require("../executors/executor");
+const Executor = require("../services/executor");
 
 class Store extends Executor {
 	constructor (webda, name, options) {

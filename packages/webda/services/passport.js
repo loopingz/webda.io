@@ -1,6 +1,6 @@
 "use strict";
 
-const Executor = require('../executors/executor.js');
+const Executor = require('./executor.js');
 var passport = require('passport');
 const crypto = require("crypto");
 const _extend = require("util")._extend;

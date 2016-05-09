@@ -1,7 +1,7 @@
 "use strict";
-const Executor = require('./executor.js');
+const Executor = require('../services/executor.js');
 
-class StringExecutor extends Executor {
+class StringRouteHelper extends Executor {
 
 	execute() {
 		if (this._params.mime) {
@@ -16,4 +16,4 @@ class StringExecutor extends Executor {
 	}
 }
 
-module.exports = StringExecutor
+module.exports = StringRouteHelper

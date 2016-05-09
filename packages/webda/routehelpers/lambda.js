@@ -1,7 +1,7 @@
 "use strict";
-const CustomExecutor = require("./custom.js");
+const CustomRouteHelper = require("./custom.js");
 
-class LambdaExecutor extends CustomExecutor {
+class LambdaRouteHelper extends CustomRouteHelper {
 	constructor(webda, name, params) {
 		super(webda, name, params);
 		if (params.accessKeyId === undefined || params.accessKeyId === '') {
@@ -24,7 +24,7 @@ class LambdaExecutor extends CustomExecutor {
 			var params = {};
 			params["_http"] = this._route._http;
 			var params = {
-				FunctionName: this._params['arn'], /* required */
+				FunctionName: this._route.arn, /* required */
 				ClientContext: null,
 				InvocationType: 'RequestResponse',
 				LogType: 'None',
@@ -46,4 +46,4 @@ class LambdaExecutor extends CustomExecutor {
 	}
 }
 
-module.exports = LambdaExecutor
+module.exports = LambdaRouteHelper

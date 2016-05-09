@@ -37,15 +37,15 @@ var mod = safe_require('./mod1');
 class Webda {
 	constructor (config) {
 		this._vhost = '';
-		// on the spot executors
-		this._executors = {};
-		this._executors['debug']=require('./executors/executor');
-		this._executors['lambda']=require('./executors/lambda');
-		this._executors['custom']=require('./executors/custom');
-		this._executors['inline']=require('./executors/inline');
-		this._executors['string']=require('./executors/string');
-		this._executors['resource']=require('./executors/resource');
-		this._executors['file']=require('./executors/file');
+		// on the spot routehelpers
+		this._routehelpers = {};
+		this._routehelpers['debug']=require('./services/executor');
+		this._routehelpers['lambda']=require('./routehelpers/lambda');
+		this._routehelpers['custom']=require('./routehelpers/custom');
+		this._routehelpers['inline']=require('./routehelpers/inline');
+		this._routehelpers['string']=require('./routehelpers/string');
+		this._routehelpers['resource']=require('./routehelpers/resource');
+		this._routehelpers['file']=require('./routehelpers/file');
 		// real service
 		this._services = {};
 		this._services['Authentication']=require('./services/passport');
@@ -207,8 +207,9 @@ class Webda {
 	getServiceWithRoute(route) {
 		var name = route.executor;
 		var executor = this.getService(name);
-		if (executor === undefined && this._executors[name] !== undefined) {
-			executor = new this._executors[name](this, name, this._config[route._http.host].global.params);
+		// If no service is found then check for routehelpers
+		if (executor === undefined && this._routehelpers[name] !== undefined) {
+			executor = new this._routehelpers[name](this, name, this._config[route._http.host].global.params);
 		}
 		if (executor !== undefined) {
 	    	executor.setRoute(this.extendParams(route, this._config[route._http.host].global));

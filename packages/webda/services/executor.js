@@ -3,7 +3,7 @@
 const uuid = require('node-uuid');
 const crypto = require('crypto');
 const _extend = require('util')._extend;
-const Service = require('../services/service');
+const Service = require('./service');
 const Writable = require('stream').Writable;
 
 class Executor extends Service {

@@ -1,5 +1,5 @@
 "use strict";
-const Executor = require("../executors/executor.js");
+const Executor = require("./executor.js");
 const Store = require("../stores/store.js");
 const fs = require("fs");
 const path = require("path");

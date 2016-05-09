@@ -1,7 +1,7 @@
 "use strict";
-const CustomExecutor = require("./custom.js");
+const CustomRouteHelper = require("./custom.js");
 
-class FileExecutor extends CustomExecutor {
+class FileRouteHelper extends CustomRouteHelper {
 	constructor(webda, name, params) {
 		super(webda, name, params);
 		this._type = "FileExecutor";
@@ -20,4 +20,4 @@ class FileExecutor extends CustomExecutor {
 	}
 }
 
-module.exports = FileExecutor;
+module.exports = FileRouteHelper;

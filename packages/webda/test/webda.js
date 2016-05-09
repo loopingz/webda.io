@@ -1,6 +1,6 @@
 var assert = require("assert")
 var Webda = require("../core.js");
-var Executor = require("../executors/executor.js");
+var Executor = require("../services/executor.js");
 var config = require("./config.json");
 var webda;
 

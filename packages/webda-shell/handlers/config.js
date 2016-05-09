@@ -6,6 +6,7 @@ const _extend = require("util")._extend;
 const fs = require("fs");
 const path = require("path");
 
+
 class ConfigurationService extends Executor {
 
 	init(config) {
@@ -15,6 +16,7 @@ class ConfigurationService extends Executor {
 		config['/api/routes'] = {"method": ["GET", "POST", "PUT", "DELETE"], "executor": this._name, "_method": this.crudRoute};
 		config['/api/deployments'] = {"method": ["GET", "POST"], "executor": this._name, "_method": this.restDeployment};
 		config['/api/deployments/{name}'] = {"method": ["DELETE", "PUT"], "executor": this._name, "_method": this.restDeployment};
+		config['/api/deploy/{name}'] = {"method": ["GET"], "executor": this._name, "_method": this.deploy};
 		config['/api/vhosts'] = {"method": ["POST", "GET"], "executor": this._name, "_method": this.getVhosts};
 		config['/api/configs'] = {"method": ["GET"], "executor": this._name, "_method": this.getConfig};
 		config['/api/configs/{vhost}'] = {"method": ["PUT"], "executor": this._name, "_method": this.updateCurrentVhost};
@@ -86,6 +88,10 @@ class ConfigurationService extends Executor {
 
 	toPublicJSON(o) {
 		return JSON.stringify(o);
+	}
+
+	deploy() {
+		this._webda.deploy(this._params.name, [], true);
 	}
 
 	crudService() {
@@ -318,10 +324,18 @@ class WebdaConfigurationServer extends WebdaServer {
 		return vhost;
 	}
 
-	deploy(env, args) {
+	deploy(env, args, fork) {
 		return this.getService("deployments").get(env).then ( (deployment) => {
 			if (deployment === undefined) {
 				console.log("Deployment " + env + " unknown");
+				return Promise.resolve();
+			}
+			if (fork) {
+				if (this.deployChild) {
+					// Conflict already deploying
+					throw 409;
+				}
+				this.deployFork(env, args);
 				return Promise.resolve();
 			}
 			let host = this.getHost();
@@ -368,6 +382,36 @@ class WebdaConfigurationServer extends WebdaServer {
 				}
 			})
 		}).listen(port)
+	}
+
+	deployFork(env) {
+		var args = [];
+		args.push('/usr/local/lib/node_modules/webda-shell/bin/webda');
+		args.push("deploy");
+		args.push(env);
+		console.log("Forking Webda with: ", args);
+		this.deployChild = require("child_process").spawn('node', args);
+		this._deployOutput = [];
+
+		this.deployChild.stdout.on('data', (data) => {
+		   this._deployOutput.push(data);
+		  for (let i in this.conns) {
+		  	this.conns[i].sendText(data);
+		  }
+		});
+
+		this.deployChild.stderr.on('data', (data) => {
+		  for (let i in this.conns) {
+		  	this.conns[i].sendText(data);
+		  }
+		});
+
+		this.deployChild.on('close', (code) => {
+		  for (let i in this.conns) {
+		  	this.conns[i].sendText("DONE");
+		  }
+		  this.deployChild = undefined;
+		});
 	}
 
 	commandLine(args) {

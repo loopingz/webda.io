@@ -7,6 +7,7 @@ const crypto = require('crypto');
 class AWSDeployer extends Deployer {
 
 	deploy(args) {
+		this._maxStep = 4;
 		this._restApiName = this.resources.restApi;
 		this._lambdaFunctionName = this.resources.lamdaFunctionName;
 		this._lambdaRole = this.resources.lambdaRole;
@@ -106,7 +107,7 @@ class AWSDeployer extends Deployer {
 	}
 
 	generatePackage(zipPath) {
-		console.log("Creating package");
+		this.stepper("Creating package");
 		var archiver = require('archiver');
 		if (!fs.existsSync("dist")) {
 			fs.mkdirSync("dist");
@@ -114,7 +115,7 @@ class AWSDeployer extends Deployer {
 		if (fs.existsSync(zipPath)) {
 			fs.unlinkSync(zipPath)
 		}
-		var ignores = ['dist', 'bin', 'test', 'Dockerfile', 'README.md', 'package.json', 'deployments'];
+		var ignores = ['dist', 'bin', 'test', 'Dockerfile', 'README.md', 'package.json', 'deployments', 'node_modules/.bin', 'node_modules/webda-shell'];
 		var toPacks = [];
 		var files = fs.readdirSync('.');
 		for (let i in files) {
@@ -156,7 +157,7 @@ class AWSDeployer extends Deployer {
 	}
 
 	createLambdaFunction() {
-		console.log("Creating Lambda function");
+		this.stepper("Creating Lambda function");
 		var params = {
 			MemorySize: this._lambdaMemorySize,
 			Code: {
@@ -248,7 +249,9 @@ class AWSDeployer extends Deployer {
 	}
 
 	generateAPIGateway() {
+		this.stepper("Generating API Gateway");
 		return this.generateAPIGatewayMapping().then (() => {
+			this.stepper("Setting permissions and publish");
 			return this.generateAPIGatewayStage();
 		}).then( (deployment) => {
 			return this.addLambdaPermission();

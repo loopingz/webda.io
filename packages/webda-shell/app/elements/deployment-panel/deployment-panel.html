@@ -19,9 +19,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <juicy-jsoneditor mode="tree" modes=["view","tree","text","form"] json="{{component.params}}"></juicy-jsoneditor>
     <label>Deployment resources</label>
     <juicy-jsoneditor mode="tree" modes=["view","tree","text","form"] json="{{component.resources}}"></juicy-jsoneditor>
-    <!--
-      <paper-button style="float: right; margin-right: 20px;" raised class="primary">Deploy</paper-button>
-    -->
+    <paper-button on-tap="deploy" style="float: right; margin-right: 20px;" raised class="primary">Deploy</paper-button>
+    <iron-ajax id="ajax" handle-as="json"></iron-ajax>
   </template>
 
   <script>
@@ -30,6 +29,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       Polymer({
         is: 'deployment-panel',
+        deploy: function () {
+          this.$.ajax.method = 'GET';
+          this.$.ajax.url = app.getUrl('/deploy/' + this.component.uuid);
+          this.$.ajax.contentType = 'application/json';
+          this.$.ajax.generateRequest();
+        },
         properties: {
           dirty: {
             type: Boolean,

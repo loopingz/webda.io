@@ -192,8 +192,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   app.setVhost = function (vhost) {
     app.currentVhost = vhost;
-    app.refresh();
   }
+
   app.refresh = function () {
     app.$.routesAjax.generateRequest();
     app.$.deploymentsAjax.generateRequest();
@@ -226,10 +226,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   // See https://github.com/Polymer/polymer/issues/1381
   window.addEventListener('WebComponentsReady', function() {
+    // Fire all network :)
     app.$.vhostAjax.url = app.getUrl('/configs');
     app.$.deploymentsAjax.url = app.getUrl('/deployments');
     app.$.servicesAjax.url = app.getUrl('/services');
     app.$.routesAjax.url = app.getUrl('/routes');
+    app.connect();
 
     // imports are loaded and elements have been registered
     app.$.newDeploymentDialog.addEventListener('iron-overlay-closed', function (evt) {
@@ -263,7 +265,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   }
 
   app.connect = function() {
-    console.log("Connecting socket");
     app.socket = new WebSocket("ws://localhost:18182");
     app.socket.onmessage = function(evt) {
       console.log("Message received");
@@ -278,9 +279,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     }
     app.socket.onopen = function(evt) {
       app.$.logo.classList.remove('disconnect');
+      app.refresh();
     }
   }
-  app.connect();
 
   // Scroll page to top and expand header
   app.scrollPageToTop = function() {

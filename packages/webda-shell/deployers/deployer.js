@@ -3,6 +3,7 @@ const _extend = require("util")._extend;
 
 class Deployer {
 	constructor (vhost, config, deployment) {
+		this._step = 1;
 		this.params = {};
 		this.resources = {};
 		this.deployment = deployment;
@@ -18,6 +19,10 @@ class Deployer {
 		_extend(this.params, deployment.params);
 		_extend(this.resources, this.params);
 		_extend(this.resources, deployment.resources);
+	}
+
+	stepper(msg) {
+		console.log("[" + this._step++ + "/" + this._maxStep + "] " + msg);
 	}
 
 	deploy(args) {

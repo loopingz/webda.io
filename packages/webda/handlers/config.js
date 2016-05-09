@@ -1,6 +1,6 @@
 "use strict";
 const WebdaServer = require("../handlers/http");
-const Executor = require("../executors/executor");
+const Executor = require("../services/executor");
 const Webda = require("../core");
 const _extend = require("util")._extend;
 const fs = require("fs");
@@ -10,8 +10,8 @@ class ConfigurationService extends Executor {
 
 	init(config) {
 		config['/api/modda'] = {"method": ["GET"], "executor": this._name, "_method": this.getServices};
-		config['/api/services'] = {"method": ["GET", "POST"], "executor": this._name, "_method": this.crudService};
-		config['/api/services/{name}'] = {"method": ["PUT", "DELETE"], "executor": this._name, "_method": this.crudService};
+		config['/api/services'] = {"method": ["GET"], "executor": this._name, "_method": this.crudService};
+		config['/api/services/{name}'] = {"method": ["PUT", "DELETE", "POST"], "executor": this._name, "_method": this.crudService};
 		config['/api/routes'] = {"method": ["GET", "POST", "PUT", "DELETE"], "executor": this._name, "_method": this.crudRoute};
 		config['/api/deployments'] = {"method": ["GET", "POST"], "executor": this._name, "_method": this.restDeployment};
 		config['/api/deployments/{name}'] = {"method": ["DELETE", "PUT"], "executor": this._name, "_method": this.restDeployment};
@@ -146,22 +146,22 @@ class ConfigurationService extends Executor {
 			return;
 		}
 		// TODO Check query string
-		if (!this.body.url) {
-			throw 400;
-		}
-		var body = this.body.url;
 		if (this._route._http.method === "DELETE") {
-			console.log(this.body);
-			delete this._config[body];
+			if (!this.body.url) {
+				throw 400;
+			}
+			delete this._config[this.body.url];
 			this.save();
 			return;
 		}
-		delete this.body.url;
+		var url = this.body._namel;
 		this.cleanBody();
-		if (this._route._http.method === "POST" && this._webda.config[this._params.vhost][body] != null) {
+		console.log('Update ', url, ' with ', this.body);
+		return;
+		if (this._route._http.method === "POST" && this._config[url] != null) {
 			throw 409;
 		}
-		this._webda.config[this._params.vhost][body] = this.body;
+		this._config[url] = this.body;
 		this.save();
 	}
 
@@ -179,8 +179,9 @@ class ConfigurationService extends Executor {
 
 	restDeployment() {
 		if (this._route._http.method == "GET") {
-			return this.getService("deployments").find().then ( (deployments) => {
+			return this.getService("deployments").find().then ( (deployments) => { 
 				for (let i in deployments) {
+					// Clone the object for now
 					this._depoyments[deployments[i].uuid]=true;
 					deployments[i]._name = deployments[i].uuid;
 					deployments[i]._type = "Deployment";
@@ -245,6 +246,7 @@ class WebdaConfigurationServer extends WebdaServer {
 		// Credit to : http://stackoverflow.com/questions/11616630/json-stringify-avoid-typeerror-converting-circular-structure-to-json
 		var cache = [];
 		var res = JSON.stringify(o, function(key, value) {
+			if (key.startsWith("_")) return;
 		    if (typeof value === 'object' && value !== null) {
 		        if (cache.indexOf(value) !== -1) {
 		            // Circular reference found, discard key

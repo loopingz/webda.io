@@ -105,6 +105,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         create: function () {
           this.$.ajax.method = 'POST';
+          this.configuration.uuid = this.name;
           this.$.ajax.body = this.configuration;
           this.$.ajax.url = app.getUrl('/deployments');
           this.$.ajax.contentType = 'application/json';

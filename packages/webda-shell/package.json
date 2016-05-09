@@ -1,5 +1,14 @@
 {
-  "private": true,
+  "name": "webda-shell",
+  "version": "0.0.1",
+  "description": "Deploy a Webda app or configure it",
+  "keywords": [
+    "aws",
+    "lamda",
+    "api gateway"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": "git://github.com/loopingz/webda-shell.git",
   "devDependencies": {
     "browser-sync": "^2.7.7",
     "connect-history-api-fallback": "^1.1.0",
@@ -28,11 +37,18 @@
     "vulcanize": ">= 1.4.2",
     "web-component-tester": "^4.0.0"
   },
+  "bin": {
+    "webda": "./bin/webda"
+  },
+  "files": ["app", "config.js", "bin/webda", "deployers", "handlers"],
   "scripts": {
-    "test": "gulp test:local",
-    "start": "gulp serve"
+    "start": "bin/webda"
   },
   "engines": {
     "node": ">=0.10.0"
+  },
+  "dependencies": {
+    "open": "0.0.5",
+    "webda": "0.0.1"
   }
 }

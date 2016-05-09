@@ -1,0 +1,38 @@
+#!/usr/bin/env node
+"use strict";
+
+var path = require('path');
+var fs = require('fs');
+var config;
+var server;
+if (fs.existsSync('../handlers/config.js')) {
+  config = require('../handlers/config');
+  server = require('../handlers/http');
+} else {
+  config = require('webda-shell/handlers/config');
+  server = require('webda-shell/handlers/http');
+}
+var arg = process.argv[2];
+
+if ('--help' === arg || null == arg) {
+  console.log('\n  USAGE: webda [config|serve|deploy]\n\n');
+  console.log('  --help                     Display this message and exit\n');
+  process.exit(0);
+}
+
+var args = process.argv.slice(2);
+var webda;
+switch (arg) {
+  case 'serve':
+    webda = new server();
+    return webda.serve(18080);
+  case 'config':
+    webda = new config();
+    // get the admin ui could be nice
+    return webda.serve(18181);
+  default:
+    webda = new config();
+    // get the admin ui could be nice
+    return webda.commandLine(args);
+}
+process.exit(0);

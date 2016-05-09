@@ -18,6 +18,35 @@ body {
 	border-color: #f00 !important;
 }
 
+#logo img:hover {
+    border-radius: 1px;
+    border: 1px solid #73AD21;
+    animation-name: homeCycle; 
+    animation-duration:5s; 
+    animation-direction:alternate; 
+    animation-iteration-count:infinite; 
+	box-sizing: border-box;
+    -webkit-animation-name: homeCycle; 
+    -webkit-animation-duration:5s; 
+    -webkit-animation-direction:alternate; 
+    -webkit-animation-iteration-count:infinite; 
+} 
+
+@keyframes homeCycle 
+{
+    0% {border-color:#ff9900;} 
+    33% {border-color:#7ebf6a;} 
+    66% {border-color:#3f51b5;} 
+} 
+
+@-webkit-keyframes homeCycle 
+{ 
+    0% {border-color:#ff9900;} 
+    33% {border-color:#7ebf6a;} 
+    66% {border-color:#3f51b5;} 
+}
+
+
 .jsoneditor textarea {
 	min-height: 300px;
 }

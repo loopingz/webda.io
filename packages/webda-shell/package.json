@@ -49,6 +49,6 @@
   },
   "dependencies": {
     "open": "0.0.5",
-    "webda": "0.0.1"
+    "webda": ">=0.0.1"
   }
 }

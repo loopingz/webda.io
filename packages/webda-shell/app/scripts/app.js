@@ -233,16 +233,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     // imports are loaded and elements have been registered
     app.$.newDeploymentDialog.addEventListener('iron-overlay-closed', function (evt) {
+      if (!evt.detail.confirmed) return;
       app.refresh();
       app.$.toast.text = 'Deployment created';
       app.$.toast.show();
     });
     app.$.newServiceDialog.addEventListener('iron-overlay-closed', function (evt) {
+      if (!evt.detail.confirmed) return;
       app.refresh();
       app.$.toast.text = 'Service created';
       app.$.toast.show();
     });
     app.$.newRouteDialog.addEventListener('iron-overlay-closed', function (evt) {
+      if (!evt.detail.confirmed) return;
       app.refresh();
       app.$.toast.text = 'Route created';
       app.$.toast.show();

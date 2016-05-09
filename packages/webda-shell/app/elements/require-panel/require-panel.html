@@ -50,7 +50,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             this.$.ajax.contentType = 'text/plain';
             this.$.ajax.url = app.getUrl('/browse/' + this.file);
             this.$.ajax.body = this.$$("#testor").editor.getValue();
-            //console.log(this.$.editor.getValue());
             this.$.ajax.generateRequest().completes.then( () => {
               app.$.toast.text = 'Content saved';
               app.$.toast.show();

@@ -52,7 +52,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             }
             this.params[i] = this.component[i];
           }
-          if (this.type === undefined) {
+          if (this.type === undefined && this.component) {
             this.type = this.component._name;
           }
         },

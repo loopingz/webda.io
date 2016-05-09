@@ -68,7 +68,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         margin-top: 8px;
       }
     </style>
-    <iron-ajax id="ajax" handle-as="json"></iron-ajax>
     <style include="paper-dialog-shared-styles"></style>
       <h2>New Deployment</h2>
       <paper-input label="Name" value="{{name}}" placeholder="Enter deployment name"></paper-input>
@@ -87,6 +86,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-button dialog-dismiss>Cancel</paper-button>
         <paper-button disabled="[[invalidForm]]" id="createButton" on-tap="create">Create</paper-button>
       </div>
+      <iron-ajax id="ajax" handle-as="json"></iron-ajax>
   </template>
   <script>
     (function() {

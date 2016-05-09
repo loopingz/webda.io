@@ -33,13 +33,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     this.$.ajax.method = 'PUT';
     this.$.ajax.contentType = 'application/json';
     if (app.currentComponent._type === "Route") {
-      this.$.ajax.body = {'url': app.currentComponent._name};
+      this.$.ajax.body = app.currentComponent;
       this.$.ajax.url = app.getUrl('/routes');
     } else {
       this.$.ajax.url = app.getUrl('/' + app.currentComponent._type.toLowerCase() + 's/' + app.currentComponent._name);
       this.$.ajax.body = app.currentComponent;
     }
-    this.$.ajax.generateRequest();
+    this.$.ajax.generateRequest().completes.then( () => {
+      // Refresh for now but should be changed
+      app.currentComponent = undefined;
+      this.refresh();
+    }, () => {
+      app.$.toast.text = 'An error occurs';
+      app.$.toast.show();
+    });
   }
 
   app.newObject = function () {
@@ -76,6 +83,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     this.$.ajax.generateRequest().completes.then( () => {
       app.currentComponent = undefined;
       this.refresh();
+    }, () => {
+      app.$.toast.text = 'An error occurs';
+      app.$.toast.show();
     });
   }
 
@@ -144,7 +154,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   }
 
   app.selectComponent = function( component ) {
-    app.currentComponent = component;
+    // Duplicate the original component to be able to modify it
+    app.currentComponent = JSON.parse(JSON.stringify(component));
     app.dirty = true;
   }
 
@@ -223,12 +234,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     // imports are loaded and elements have been registered
     app.$.newDeploymentDialog.addEventListener('iron-overlay-closed', function (evt) {
       app.refresh();
+      app.$.toast.text = 'Deployment created';
+      app.$.toast.show();
     });
     app.$.newServiceDialog.addEventListener('iron-overlay-closed', function (evt) {
       app.refresh();
+      app.$.toast.text = 'Service created';
+      app.$.toast.show();
     });
     app.$.newRouteDialog.addEventListener('iron-overlay-closed', function (evt) {
       app.refresh();
+      app.$.toast.text = 'Route created';
+      app.$.toast.show();
     });
     app.$.confirmDeletion.addEventListener('iron-overlay-closed', function (evt) {
       if (evt.detail.confirmed) {

@@ -72,6 +72,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-button dialog-dismiss>Cancel</paper-button>
         <paper-button disabled="[[invalidForm]]" on-tap="create">Create</paper-button>
       </div>
+      <iron-ajax id="ajax" handle-as="json"></iron-ajax>
   </template>
   <script>
     (function() {

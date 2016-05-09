@@ -74,6 +74,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
     <style include="paper-dialog-shared-styles"></style>
+
       <h2>New Service</h2>
       <paper-input value="{{name}}" label="Name" placeholder="Enter service name"></paper-input>
       <label>Select a service type</label>
@@ -85,7 +86,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       
         <iron-pages attr-for-selected="data-repo" selected="{{section}}">
           <section data-repo="Custom">
-            <require-panel file="{{require}}"></require-panel>
+            <require-panel file="{{service.require}}"></require-panel>
           </section>
           <section data-repo="Webda">
           <paper-dialog-scrollable dialog-element="[[node]]">
@@ -113,8 +114,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <div class="buttons">
         <span id="error">[[error]]</span>
         <paper-button dialog-dismiss>Cancel</paper-button>
-        <paper-button disabled="[[!name]]" on-tap="createService">Create</paper-button>
+        <paper-button disabled="[[!name]]" on-tap="create">Create</paper-button>
       </div>
+      <iron-ajax id="ajax" handle-as="json"></iron-ajax>
   </template>
   <script>
     (function() {
@@ -169,8 +171,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         create: function () {
           this.$.ajax.method = 'POST';
+          this.service.params = {};
           this.$.ajax.body = this.service;
-          this.$.ajax.url = app.getUrl('/services');
+          this.$.ajax.url = app.getUrl('/services/' + this.name);
           this.$.ajax.contentType = 'application/json';
           this.$.ajax.generateRequest().completes.then( () => {
             this.close(); 

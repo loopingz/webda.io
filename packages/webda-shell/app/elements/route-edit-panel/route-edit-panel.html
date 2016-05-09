@@ -50,11 +50,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         init: function() {
           if (!this.route) return;
         },
+        
+        ready: function() {
+          this.addEventListener('change', (evt) => {
+            console.log('changed');
+          });
+        },
         properties: {
           dirty: {
             type: Boolean,
-            value: false,
-            readonly: true
+            value: false
           },
           route: {
             type: Object,

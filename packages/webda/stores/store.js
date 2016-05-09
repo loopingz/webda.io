@@ -33,8 +33,23 @@ class Store extends Executor {
 		if (expose.restrict == undefined) {
 			expose.restrict = {}
 		}
-		config[expose.url] = {"method": ["POST"], "executor": this._name, "expose": expose};
-		config[expose.url+"/{uuid}"] = {"method": ["GET", "PUT", "DELETE"], "executor": this._name, "expose": expose};
+		if (!expose.restrict.create) {
+			config[expose.url] = {"method": ["POST"], "executor": this._name, "expose": expose, "_method": this.httpCreate};
+		}
+		// Dont even create the route that are restricted so we can ease up the test on handler
+		let methods = [];
+		if (!expose.restrict.update) {
+			methods.push("PUT");
+		}
+		if (!expose.restrict.get) {
+			methods.push("GET");
+		}
+		if (!expose.restrict.delete) {
+			methods.push("DELETE");
+		}
+		if (methods.length) {
+			config[expose.url+"/{uuid}"] = {"method": methods, "executor": this._name, "expose": expose, "_method": this.httpRoute};
+		}
 	}
 
 	addReverseMap(prop, cascade) {
@@ -397,80 +412,72 @@ class Store extends Executor {
 
 	// ADD THE EXECUTOR PART
 
-	execute(executor) {
-		if (this._route._http.method == "GET") {
-			if (this._params.expose.restrict != undefined
-					&& this._params.expose.restrict.get) {
-				throw 404;
+	httpCreate() {
+		var object = this.body;
+		// TODO Move this one to the route configuration
+		if (this._params.expose.restrict.authentication) {
+			if (this.session.isLogged() == undefined) {
+				throw 401;
 			}
-			if (this._params.uuid) {
-				return this.get(this._params.uuid).then( (object) => {;
-	                if (object === undefined) {
-						throw 404;
-					}
-		            this.write(object);
-				});
-			} else {
-				// List probably
+			// TODO This should be part of a Owner security service
+			object.user = this.session.getUserId();
+		}
+		if (!object.uuid) {
+			object.uuid = this.generateUid();
+		}
+		for (var prop in object) {
+			if (prop[0] == "_") {
+				delete object[prop]
 			}
-		} else if (this._route._http.method == "DELETE") {
-			if (this._params.expose.restrict != undefined
-					&& this._params.expose.restrict.delete) {
-				throw 404;
+		}
+		return this.exists(object.uuid).then( (exists) => {
+			if (exists) {
+				throw 409;
 			}
-			return this.delete(this._params.uuid);
-		} else if (this._route._http.method == "POST") {
-			var object = this.body;
-			if (this._params.expose.restrict != undefined
-					&& this._params.expose.restrict.create) {
-				throw 404;
+			return this.save(object, object.uuid);	
+		}).then ( (new_object) => {
+			this.write(new_object);
+		});
+	}
+
+	httpUpdate() {
+		for (var prop in this.body) {
+			if (prop[0] == "_") {
+				delete this.body[prop]
 			}
-			// TODO Move this one to the route configuration
-			if (this._params.expose.restrict.authentication) {
-				if (this.session.isLogged() == undefined) {
-					throw 401;
+		}
+		this.body.uuid = this._params.uuid;
+		return this.exists(this._params.uuid).then ( (exists) => {
+			if (!exists) throw 404;
+			return this.update(this.body, this._params.uuid);
+		}).then ( (object) => {
+			if (object == undefined) {
+				throw 500;
+			}
+			this.write(object);
+		});
+	}
+
+	httpGet() {
+		if (this._params.uuid) {
+			return this.get(this._params.uuid).then( (object) => {;
+                if (object === undefined) {
+					throw 404;
 				}
-				// TODO This should be part of a Owner security service
-				object.user = this.session.getUserId();
-			}
-			if (!object.uuid) {
-				object.uuid = this.generateUid();
-			}
-			for (var prop in object) {
-				if (prop[0] == "_") {
-					delete object[prop]
-				}
-			}
-			return this.exists(object.uuid).then( (exists) => {
-				if (exists) {
-					throw 409;
-				}
-				return this.save(object, object.uuid);	
-			}).then ( (new_object) => {
-				this.write(new_object);
-			});
-		} else if (this._route._http.method == "PUT") {
-			if (this._params.expose.restrict != undefined
-					&& this._params.expose.restrict.update) {
-				throw 404;
-			}
-			for (var prop in this.body) {
-				if (prop[0] == "_") {
-					delete this.body[prop]
-				}
-			}
-			this.body.uuid = this._params.uuid;
-			return this.exists(this._params.uuid).then ( (exists) => {
-				if (!exists) throw 404;
-				return this.update(this.body, this._params.uuid);
-			}).then ( (object) => {
-				if (object == undefined) {
-					throw 500;
-				}
-				this.write(object);
+	            this.write(object);
 			});
 		} else {
-			throw 404;
+			// List probably
+		}
+	}
+
+	httpRoute() {
+		if (this._route._http.method == "GET") {
+			return this.httpGet();
+		} else if (this._route._http.method == "DELETE") {
+			return this.delete(this._params.uuid);
+		} else if (this._route._http.method == "PUT") {
+			return this.httpUpdate();
 		}
 	}
 

@@ -1,6 +1,6 @@
 # webda [![Build Status](https://travis-ci.org/loopingz/webda.svg?branch=master)](https://travis-ci.org/loopingz/webda)
 
-Composable Serverless API
+**Composable Serverless API**
 
 ## Goals
 
@@ -8,8 +8,7 @@ I have servers running for my own personal use for more than 10 years, because i
 
 Then came Lambda, really cool feature from AWS, but kind of tricky to turn it into a full webserver. That's one of the target of Webda.
 
-I was bored also of always recoding the same API again and again with a few customizations for each client. So i wanted a system that leverage up the components system but on both the frontend and backend, the frontend moved a lot lately with JSF to GWT to Angular to ... ? Polymer ! Here is my winner, of course it will change but it is a good one i think and really like the WebComponents part, everything was in place to start the composable UI.
-
+I was bored also of always recoding the same API again and again with a few customizations for each client. So i wanted a system that leverage up the components system but on both the frontend and backend, the frontend moved a lot lately with JSF to GWT to Angular to ... ? **Polymer** ! Here is my winner, of course it will change but it is a good one i think and really like the WebComponents part, everything was in place to start the composable UI.
 
 
 ## Quickstart
@@ -18,7 +17,7 @@ You should checkout our demo project : [link](http://github.com/loopingz/webda-d
 
 Here is also the Youtube video to run it
 
-### Create a project
+#### Create a project
 
 
 ```
@@ -28,14 +27,14 @@ node_module/.bin/./webda config
 
 You'll have the configuration UI available, where you can create a service, use a service, or create a custom API resource.
 
-### Create a new API
+#### Create a new API
 ...
 
 
-### Create a new service
+#### Create a new service
 
 
-### Run it
+#### Run it
 
 ```
 node_module/./bin/webda serve
@@ -90,15 +89,15 @@ Events are thrown also before and after any operation done by the store to let y
 
 To help the development, we have include 3 differents types of stores of NoSQL type
 
-### FileDB
+#### FileDB
 
 Just a simple one that store the object on the filesystem in a folder flatten
 
-### DynamoDB
+#### DynamoDB
 
 link to dynamo / quick pres
 
-### MongoDB
+#### MongoDB
 
 link to mongo / quick pres
 
@@ -107,20 +106,20 @@ link to mongo / quick pres
 
 For now, there is few services
 
-### Authentication
+#### Authentication
 
 Allow to login with Facebook, Google, GitHub and email, it is a Executor per say as it exposes some routes.
 It is based on Idents and Users concept, and use 2 stores to save those objects, by default those Store are called "Idents" and "Users"
 
-### Mailer
+#### Mailer
 
 What would be this world without a little bit of spam :) it is a pure service as it does not handle any route.
 
-### FileBinary
+#### FileBinary
 
 Expose an API for storing binary on the filesystem, and can expose it as an HTTP service, that will also handle the mapping with a field of any existing object
 
-### S3Binary
+#### S3Binary
 
 The twin brother of the FileBinary, to enable you to do the same thing but in the cloud.
 
@@ -128,23 +127,25 @@ The twin brother of the FileBinary, to enable you to do the same thing but in th
 
 Ther RouteHelpers are more a quick utils to test feature, but are not the best way to build a full application. When you define a manual API Resource, you have the choice between four kind,
 
-### File
+#### File
 
 Specify the javascript file, you want to execute and here you go
 
-### Inline
+#### Inline
 
 If you have a small piece of Javascript and don't want to bother creating a file
 
-### Lambda
+#### Lambda
 
 You can call a Lambda function directly from here, whereever you decide to host your server, on site or on the cloud
 
-### String
+#### String
 
 For demo purpose, mainly as it is only static content served
 
+## Moddas
 
+A Modda is a module defined and available publicly via Webda Marketplace, it allows you to define service that you can reuse in others projects and also use the one offer to you by the community
 
 
 ## Documentation

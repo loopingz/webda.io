@@ -9,17 +9,63 @@ const path = require("path");
 class ConfigurationService extends Executor {
 
 	init(config) {
-		config['/modda'] = {"method": ["GET"], "executor": this._name, "_method": this.getServices};
-		config['/services'] = {"method": ["GET", "POST"], "executor": this._name, "_method": this.crudService};
-		config['/services/{name}'] = {"method": ["PUT", "DELETE"], "executor": this._name, "_method": this.crudService};
-		config['/routes'] = {"method": ["GET", "POST", "PUT", "DELETE"], "executor": this._name, "_method": this.crudRoute};
-		config['/deployments'] = {"method": ["GET", "POST"], "executor": this._name, "_method": this.restDeployment};
-		config['/deployments/{name}'] = {"method": ["DELETE", "PUT"], "executor": this._name, "_method": this.restDeployment};
-		config['/vhosts'] = {"method": ["POST", "GET"], "executor": this._name, "_method": this.getVhosts};
-		config['/configs'] = {"method": ["GET"], "executor": this._name, "_method": this.getConfig};
-		config['/configs/{vhost}'] = {"method": ["PUT"], "executor": this._name, "_method": this.updateCurrentVhost};
+		config['/api/modda'] = {"method": ["GET"], "executor": this._name, "_method": this.getServices};
+		config['/api/services'] = {"method": ["GET", "POST"], "executor": this._name, "_method": this.crudService};
+		config['/api/services/{name}'] = {"method": ["PUT", "DELETE"], "executor": this._name, "_method": this.crudService};
+		config['/api/routes'] = {"method": ["GET", "POST", "PUT", "DELETE"], "executor": this._name, "_method": this.crudRoute};
+		config['/api/deployments'] = {"method": ["GET", "POST"], "executor": this._name, "_method": this.restDeployment};
+		config['/api/deployments/{name}'] = {"method": ["DELETE", "PUT"], "executor": this._name, "_method": this.restDeployment};
+		config['/api/vhosts'] = {"method": ["POST", "GET"], "executor": this._name, "_method": this.getVhosts};
+		config['/api/configs'] = {"method": ["GET"], "executor": this._name, "_method": this.getConfig};
+		config['/api/configs/{vhost}'] = {"method": ["PUT"], "executor": this._name, "_method": this.updateCurrentVhost};
+		config['/api/browse/{path}'] = {"method": ["GET", "PUT", "DELETE"], "executor": this._name, "_method": this.fileBrowser, 'allowPath': true};
+		config['/{path}'] = {"method": ["GET"], "executor": this._name, "_method": this.uiBrowser, 'allowPath': true};
 		this._config = this._webda.config[this._webda._currentVhost];
 		this._computeConfig = this._webda.computeConfig[this._webda._currentVhost];
+		this._depoyments = {};
+	}
+
+	uiBrowser() {
+		if (this._params.path == undefined || this._params.path == '') {
+			this._params.path = "index.html";
+		}
+		this._params.path = "../webda-configuration/app/" + this._params.path;
+		this.fileBrowser();
+	}
+
+	fileBrowser() {
+		if (!fs.existsSync(this._params.path)) {
+			throw 404;
+		}
+		/*
+		Start with a / also
+		if (this._params.path.indexOf("..") >= 0) {
+			// For security reason prevent the ..
+			throw 403;
+		}
+		*/
+		var stat = fs.statSync(this._params.path);
+		if (this._route._http.method === "GET") {
+			// Handle directory ?
+			if (stat.isDirectory()) {
+				return this.write(fs.readdirSync(this._params.path));
+			} else {
+				return this.write(fs.readFileSync(this._params.path));
+			}
+		} else if (this._route._http.method === "PUT") {
+			if (stat.isDirectory()) {
+				throw 400;
+			}
+			// Could handle the 
+			fs.writeFileSync(this._params.path, this.body);
+			return;
+		} else if (this._route._http.method === "DELETE") {
+			if (stat.isDirectory()) {
+				throw 400;
+			}
+			fs.unlinkSync(this._params.path);
+			return;
+		}
 	}
 
 	getServices() {
@@ -48,17 +94,28 @@ class ConfigurationService extends Executor {
 		let name = this._params.name;
 		if (this._route._http.method === "DELETE") {
 			delete this._config.global.services[name];
-			this._webda.saveHostConfiguration(this._config);
+			this.save();
 			return;	
 		}
 		let service = this._config.global.services[name];
-		delete this.body._name;
-		delete this.body._type;
+		this.cleanBody();
 		if (this._route._http.method === "POST" && service != null) {
-			throw 400;
+			throw 409;
 		}
 		this._config.global.services[name]=this.body;
-		this._webda.saveHostConfiguration();
+		this.save();
+	}
+
+	save() {
+		this._webda.saveHostConfiguration(this._config);
+	}
+
+	cleanBody() {
+		for (let i in this.body) {
+			if (i.startsWith("_")) {
+				delete this.body[i];
+			}
+		}
 	}
 
 	crudRoute() {
@@ -70,6 +127,9 @@ class ConfigurationService extends Executor {
 				route._name = i;
 				route._type = "Route";
 				route["_uri-template-parse"]=undefined;
+				if (route.params === undefined) {
+					route.params = {};
+				}
 				// Check if it is a manual route or not
 				route._manual = this._config[i] !== undefined;
 				routes.push(route);
@@ -93,15 +153,16 @@ class ConfigurationService extends Executor {
 		if (this._route._http.method === "DELETE") {
 			console.log(this.body);
 			delete this._config[body];
-			this._webda.saveHostConfiguration(this._config);
+			this.save();
 			return;
 		}
 		delete this.body.url;
+		this.cleanBody();
 		if (this._route._http.method === "POST" && this._webda.config[this._params.vhost][body] != null) {
-			throw 400;
+			throw 409;
 		}
 		this._webda.config[this._params.vhost][body] = this.body;
-		this._webda.saveHostConfiguration();
+		this.save();
 	}
 
 	getVhosts() {
@@ -120,21 +181,32 @@ class ConfigurationService extends Executor {
 		if (this._route._http.method == "GET") {
 			return this.getService("deployments").find().then ( (deployments) => {
 				for (let i in deployments) {
+					this._depoyments[deployments[i].uuid]=true;
 					deployments[i]._name = deployments[i].uuid;
 					deployments[i]._type = "Deployment";
 				}
 				deployments.sort(function (a,b) {return a._name.localeCompare(b._name);});
 				deployments.splice(0,0,{"uuid":"Global","_type": "Configuration","_name": "Global","params":this._config.global.params});
+				this._depoyments["Global"]=true;
 				this.write(deployments);
 			});
 		} else if (this._route._http.method == "POST") {
-			return this._webda.getService("deployments").create(this.body);
+			if (this._depoyments[this.body.uuid]) {
+				throw 409;
+			}
+			return this._webda.getService("deployments").save(this.body);
 		} else if (this._http.method == "PUT") {
+			this.cleanBody();
 			if (this._http.url.startsWith("/deployments") && this.params.vhost !== undefined) {
 				return this._webda.getService("deployments").update(this.body);
 			}
 		} else if (this._http.method == "DELETE") {
-			return this._webda.getService("deployments").delete(this.body);
+			if (!this._depoyments[this._params.name] || this._params.name === "Global") {
+				throw 409;
+			}
+			return this._webda.getService("deployments").delete(this._params.name).then ( () => {
+				delete this._depoyments[this._params.name];
+			});
 		}
 	}
 }
@@ -147,7 +219,8 @@ var ServerConfig = {
 				deployments: {
 					expose: {},
 					folder: './deployments',
-					type: 'FileStore'
+					type: 'FileStore',
+					lastUpdate: false
 				},
 				configuration: {
 					require: ConfigurationService
@@ -248,6 +321,14 @@ class WebdaConfigurationServer extends WebdaServer {
 			let host = this.getHost();
 			return new this._deployers[deployment.type](host, this.computeConfig[host], deployment).undeploy(args);
 		});
+	}
+
+	serve (port, openBrowser) {
+		super.serve(port);
+		if (openBrowser || openBrowser === undefined) {
+			var open = require('open');
+			open("http://localhost:" + port);
+		}
 	}
 
 	commandLine(args) {

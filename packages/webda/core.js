@@ -163,7 +163,6 @@ class Webda {
 	      	if (map['_uri-template-parse'] === undefined) {
 	        	continue;
 	      	}
-
 	      	var parse_result = map['_uri-template-parse'].fromUri(url);
 	      	if (parse_result !== undefined) {
 	      		

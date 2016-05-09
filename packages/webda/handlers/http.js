@@ -105,7 +105,6 @@ class WebdaServer extends Webda {
 	serve (port) {
 		var http = require('http');
 		var express = require('express');
-		var passport = require('passport');
 		var cookieParser = require('cookie-parser');
 		var bodyParser = require('body-parser');
 		var multer = require('multer'); // v1.0.5
@@ -113,10 +112,10 @@ class WebdaServer extends Webda {
 
 		var app = express();
 		app.use(cookieParser());
+		app.use(bodyParser.text({ type: 'text/plain' }));
 		app.use(bodyParser.json());
 		app.use(bodyParser.urlencoded({ extended: true }));
 		app.use(upload.array('file'));
-		//app.use(session({ secret: this.getSecret(), resave: false, saveUninitialized: false }));
 		app.set('trust proxy', 'loopback, 10.0.0.0/8');
 		app.use(this.handleRequest.bind(this));
 

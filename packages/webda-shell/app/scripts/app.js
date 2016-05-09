@@ -25,7 +25,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   }
 
   app.getUrl = function(url) {
-    return "http://localhost:18181" + url;
+    return "http://localhost:18181/api" + url;
   }
 
   app.saveCurrentComponent = function () {
@@ -45,7 +45,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   app.newObject = function () {
     console.log(app.route);
     if (app.route == "routes") {
-      app.$.newExecutorDialog.open();
+      app.$.newRouteDialog.open();
     } else if (app.route == "services") {
       app.$.newServiceDialog.open();
     } else if (app.route == "deployments") {
@@ -215,6 +215,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   // See https://github.com/Polymer/polymer/issues/1381
   window.addEventListener('WebComponentsReady', function() {
+    app.$.vhostAjax.url = app.getUrl('/configs');
+    app.$.deploymentsAjax.url = app.getUrl('/deployments');
+    app.$.servicesAjax.url = app.getUrl('/services');
+    app.$.routesAjax.url = app.getUrl('/routes');
+
     // imports are loaded and elements have been registered
     app.$.newDeploymentDialog.addEventListener('iron-overlay-closed', function (evt) {
       app.refresh();
@@ -222,7 +227,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     app.$.newServiceDialog.addEventListener('iron-overlay-closed', function (evt) {
       app.refresh();
     });
-    app.$.newExecutorDialog.addEventListener('iron-overlay-closed', function (evt) {
+    app.$.newRouteDialog.addEventListener('iron-overlay-closed', function (evt) {
       app.refresh();
     });
     app.$.confirmDeletion.addEventListener('iron-overlay-closed', function (evt) {

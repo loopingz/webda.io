@@ -47,6 +47,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <link rel="stylesheet" href="styles/main.css">
   <!-- endbuild-->
 
+  <!-- css for editor -->
+  <link rel="stylesheet" href="styles/jsoneditor.min.css"></link>
+
   <!-- build:js bower_components/webcomponentsjs/webcomponents-lite.min.js -->
   <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
   <script src="bower_components/jsen/dist/jsen.min.js"></script>
@@ -72,10 +75,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <body unresolved>
   <span id="browser-sync-binding"></span>
   <template is="dom-bind" id="app">
-    <iron-ajax id="vhostAjax" auto handle-as="json" on-response="handleVhosts" url="http://localhost:18181/configs"></iron-ajax>
-    <iron-ajax id="deploymentsAjax" handle-as="json" last-response="{{deployments}}" url="http://localhost:18181/deployments"></iron-ajax>
-    <iron-ajax id="routesAjax" handle-as="json" last-response="{{routes}}" url="http://localhost:18181/routes"></iron-ajax>
-    <iron-ajax id="servicesAjax" handle-as="json" last-response="{{services}}" on-response="mapServices" url="http://localhost:18181/services"></iron-ajax>
+    <iron-ajax id="vhostAjax" handle-as="json" on-response="handleVhosts" auto></iron-ajax>
+    <iron-ajax id="deploymentsAjax" handle-as="json" last-response="{{deployments}}"></iron-ajax>
+    <iron-ajax id="routesAjax" handle-as="json" last-response="{{routes}}"></iron-ajax>
+    <iron-ajax id="servicesAjax" handle-as="json" last-response="{{services}}" on-response="mapServices"></iron-ajax>
     <iron-ajax id="ajax" handle-as="json"></iron-ajax>
     <paper-drawer-panel id="paperDrawerPanel" drawer-width="400px">
       <!-- Drawer Scroll Header Panel -->
@@ -156,7 +159,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </paper-scroll-header-panel>
     </paper-drawer-panel>
-    <new-executor-dialog modal id="newExecutorDialog"></new-executor-dialog>
+    <new-route-dialog modal id="newRouteDialog"></new-route-dialog>
     <new-service-dialog modal id="newServiceDialog"></new-service-dialog>
     <new-deployment-dialog modal id="newDeploymentDialog"></new-deployment-dialog>
     <paper-dialog modal id="confirmDeletion" no-cancel-on-esc-key="false" style="height: 200px;">

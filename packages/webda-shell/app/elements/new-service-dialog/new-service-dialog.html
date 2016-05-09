@@ -28,7 +28,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         width: 100%;
         height: 100%;
       }
-
+      paper-dialog-scrollable {
+        height: 100%;
+      }
       .buttons {
         position: absolute;
         bottom: 0px;
@@ -56,25 +58,62 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       paper-card {
         padding-bottom: 3px;
       }
+      paper-tabs {
+        border-bottom: 1px solid var(--light-primary-color);
+        --paper-tabs-selection-bar-color: var(--primary-color);
+      }
+
+      paper-tab {
+        --paper-tab-ink: var(--light-primary-color);
+      }
+      #error {
+        float: left;
+        color: #ff0000;
+        margin-right: 8px;
+        margin-top: 8px;
+      }
     </style>
     <style include="paper-dialog-shared-styles"></style>
       <h2>New Service</h2>
-      <paper-input label="Name" placeholder="Enter service name"></paper-input>
-      <label>Choose a service type or <span on-tap="createCustom">create</span></label>
-      <paper-dialog-scrollable dialog-element="[[node]]">
-        <div>
-          </paper-card>
-          <template is="dom-repeat" items="[[services]]">
-            <paper-card heading="{{item}}" id="{{index}}" on-tap="select" image="http://placehold.it/200x100" class="white" style="margin-bottom:8px;">
-            </paper-card>
-          </template>
-        </div>
-          <label style="color:#737373; font-size:12px;" class="paper-input">Configuration</label>
-          <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{strip(currentComponent)}}"></juicy-jsoneditor>
-      </paper-dialog-scrollable>
+      <paper-input value="{{name}}" label="Name" placeholder="Enter service name"></paper-input>
+      <label>Select a service type</label>
+      <paper-tabs selected="{{section}}" attr-for-selected="data-repo">
+        <paper-tab data-repo="Custom">Custom</paper-tab>
+        <paper-tab data-repo="Webda">Webda</paper-tab>
+        <paper-tab data-repo="Marketplace">Marketplace</paper-tab>
+      </paper-tabs>
+      
+        <iron-pages attr-for-selected="data-repo" selected="{{section}}">
+          <section data-repo="Custom">
+            <require-panel file="{{require}}"></require-panel>
+          </section>
+          <section data-repo="Webda">
+          <paper-dialog-scrollable dialog-element="[[node]]">
+            <div>
+              <template is="dom-repeat" items="[[services]]">
+                <paper-card heading="{{item.label}}" value="{{}}" id="{{index}}" on-tap="select" image="http://placehold.it/200x100" class="white" style="margin-bottom:8px;">
+                </paper-card>
+              </template>
+              <div style="height: 40px;"></div>
+            </div>
+            </paper-dialog-scrollable>
+          </section>
+          <section data-repo="Marketplace">
+          <paper-dialog-scrollable dialog-element="[[node]]">
+            <div>
+              <template is="dom-repeat" items="[[marketplaces]]">
+                <paper-card heading="{{item.label}}" value="{{}}" id="{{index}}" on-tap="select" image="http://placehold.it/200x100" class="white" style="margin-bottom:8px;">
+                </paper-card>
+              </template>
+              <div style="height: 40px;"></div>
+            </div>
+            </paper-dialog-scrollable>
+          </section>
+      </iron-pages>
       <div class="buttons">
+        <span id="error">[[error]]</span>
         <paper-button dialog-dismiss>Cancel</paper-button>
-        <paper-button dialog-confirm>Create</paper-button>
+        <paper-button disabled="[[!name]]" on-tap="createService">Create</paper-button>
       </div>
   </template>
   <script>
@@ -89,8 +128,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
           if (target !== undefined) {
             this.selected = this.services[target.id];
+            this.service.type = this.selected.type;
+            var oldName = '';
             if (this.old) {
               this.old.removeAttribute("selected");
+              oldName = this.services[this.old.id].type;
+            }
+            if (this.name === undefined || this.name === '' || oldName === this.name) {
+              this.name = this.service.type;
             }
             target.setAttribute("selected", true);
             this.old = target;
@@ -100,7 +145,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         properties: {
           services: {
             type: Array,
-            value: ['Authentication','DynamoDB Storage', 'MongoDB Storage', 'FileDB Storage', 'File Storage', 'S3 Storage']
+            value: [{'label': 'Authentication', 'type': 'Authentication'},
+                    {'label': 'DynamoDB Storage', 'type': 'DynamoStore'},
+                    {'label': 'MongoDB Storage', 'type': 'MongoStore'},
+                    {'label': 'FileDB Storage', 'type': 'FileStore'},
+                    {'label': 'File Storage', 'type': 'FileBinary'},
+                    {'label': 'S3 Storage', 'type': 'S3Binary'}]
+          },
+          marketplaces: {
+            type: Array,
+            value: [{'label': 'Wiki', 'type': 'Webda/Wiki'},
+                    {'label': 'PDF Converter', 'type': 'Webda/Converter'}]
+          },
+          service: {
+            type: Object,
+            value: {}
           },
           editMode: {
             type: Boolean,
@@ -108,11 +167,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             notify: true
           }
         },
+        create: function () {
+          this.$.ajax.method = 'POST';
+          this.$.ajax.body = this.service;
+          this.$.ajax.url = app.getUrl('/services');
+          this.$.ajax.contentType = 'application/json';
+          this.$.ajax.generateRequest().completes.then( () => {
+            this.close(); 
+            this.service = resetValue();
+            this.old.removeAttribute("selected");
+            this.old =  undefined;
+          }, (err) => {
+            if (err.message.endsWith("409")) {
+              this.error = 'This name is already used'
+            } else {
+              this.error = err.message;
+            }
+          });
+        },
         toggleEdit: function() {
           this.editMode = !this.editMode;
         },
         ready: function() {
           this.node = this;
+          this.section = "Webda";
           this.code = "module.exports = function(executor) { \n\texecutor.getStore('myStore').get('uuid').then( (object) => {\n\t\texecutor.write(object);\n\t}).catch ( (err) => {\n\t\texecutor.writeHead(500);\n\t\texecutor.write('Error occurs on sample method');\n\t});\n};";
         }
       });

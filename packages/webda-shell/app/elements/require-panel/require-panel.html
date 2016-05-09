@@ -1,0 +1,71 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+
+<dom-module id="require-panel">
+  <template>
+    <style include="shared-styles">
+    </style>
+    <iron-ajax id="ajax" handle-as="text"></iron-ajax>
+    <paper-fab mini on-tap="toggleEdit" icon="description" style="float: right; margin-top: 10px; margin-bottom: -10px;"></paper-fab>
+    <paper-input placeholder="./includes/myfunction" value="{{file}}" label="Filepath"></paper-input>
+    <template is="dom-if" if="{{editMode}}">
+      <div>
+        <label style="color:#737373; font-size:12px;" class="paper-input">Code</label>
+        <paper-fab mini on-tap="save" icon="save" style="float: right; margin-top: 10px; margin-bottom: -10px;z-index: 10;"></paper-fab>
+        <juicy-ace-editor id="testor" mode="ace/mode/javascript" theme="ace/theme/dawn" style="height: 300px;" value="{{code}}"></juicy-ace-editor>
+      </div>
+    </template>
+  </template>
+
+  <script>
+    (function() {
+      'use strict';
+
+      Polymer({
+        is: 'require-panel',
+        toggleEdit: function() {
+          this.editMode = !this.editMode;
+          if (this.editMode && this.file !== undefined && this.file !== '') {
+            this.$.ajax.method = 'GET';
+            this.$.ajax.contentType = 'text/plain';
+            this.$.ajax.url = app.getUrl('/browse/' + this.file);
+            this.$.ajax.body = {};
+            this.$.ajax.generateRequest().completes.then( () => {
+              this.code = this.$.ajax.lastResponse;
+            });
+          }
+        },
+        save: function() {
+          this.$.ajax.method = 'PUT';
+            this.$.ajax.contentType = 'text/plain';
+            this.$.ajax.url = app.getUrl('/browse/' + this.file);
+            this.$.ajax.body = this.$$("#testor").editor.getValue();
+            //console.log(this.$.editor.getValue());
+            this.$.ajax.generateRequest().completes.then( () => {
+              app.$.toast.text = 'Content saved';
+              app.$.toast.show();
+            });
+        },
+        properties: {
+          file: {
+            type: String,
+            notify: true
+          },
+          editMode: {
+            type: Boolean
+          }
+        }
+      });
+    })();
+  </script>
+</dom-module>

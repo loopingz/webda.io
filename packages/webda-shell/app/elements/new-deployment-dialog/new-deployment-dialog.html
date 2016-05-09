@@ -71,7 +71,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <iron-ajax id="ajax" handle-as="json"></iron-ajax>
     <style include="paper-dialog-shared-styles"></style>
       <h2>New Deployment</h2>
-      <paper-input label="Name" value="{{configuration.uuid}}" placeholder="Enter deployment name"></paper-input>
+      <paper-input label="Name" value="{{name}}" placeholder="Enter deployment name"></paper-input>
       <div align="center">
         <template is="dom-repeat" items="[[deployers]]">
           <paper-card heading="{{item}}" id="{{index}}" on-tap="select" image="http://placehold.it/200x100" class="white" style="margin-bottom:8px;">
@@ -85,7 +85,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <div class="buttons">
         <span id="error">[[error]]</span>
         <paper-button dialog-dismiss>Cancel</paper-button>
-        <paper-button id="createButton" on-tap="create">Create</paper-button>
+        <paper-button disabled="[[invalidForm]]" id="createButton" on-tap="create">Create</paper-button>
       </div>
   </template>
   <script>
@@ -100,6 +100,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       Polymer({
         is: 'new-deployment-dialog',
         behaviors: [Polymer.PaperDialogBehavior],
+        validateForm: function() {
+          this.invalidForm = !(this.configuration && this.name && this.configuration.type && this.name !== '');
+        },
         create: function () {
           this.$.ajax.method = 'POST';
           this.$.ajax.body = this.configuration;
@@ -110,6 +113,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             this.configuration = resetValue();
             this.old.removeAttribute("selected");
             this.old =  undefined;
+            this.name = '';
           }, (err) => {
             if (err.message.endsWith("409")) {
               this.error = 'This name is already used'
@@ -134,6 +138,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           } else {
             this.configuration.type = undefined;
           }
+          this.validateForm();
         },
         properties: {
           editMode: {
@@ -149,6 +154,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           configuration: {
             type: Object,
             value: resetValue
+          },
+          name: {
+            type: String,
+            value: '',
+            observer: 'validateForm'
           }
         },
         toggleEdit: function() {
@@ -156,6 +166,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         ready: function() {
           this.node = this;
+          this.validateForm();
           this.code = "module.exports = function(executor) { \n\texecutor.getStore('myStore').get('uuid').then( (object) => {\n\t\texecutor.write(object);\n\t}).catch ( (err) => {\n\t\texecutor.writeHead(500);\n\t\texecutor.write('Error occurs on sample method');\n\t});\n};";
         }
       });

@@ -342,15 +342,44 @@ class WebdaConfigurationServer extends WebdaServer {
 
 	serve (port, openBrowser) {
 		super.serve(port);
+		this.websocket(port+1);
 		if (openBrowser || openBrowser === undefined) {
 			var open = require('open');
 			open("http://localhost:" + port);
 		}
 	}
 
+	websocket(port) {
+		var ws = require("nodejs-websocket")
+	 	this.conns = [];
+		// Scream server example: "hi" -> "HI!!!" 
+		var server = ws.createServer((conn) => {
+			console.log("New connection");
+			this.conns.push(conn);
+
+			conn.on("text", (str) => {
+				console.log("Received "+str)
+				conn.sendText(str.toUpperCase()+"!!!")
+			})
+			conn.on("close", (code, reason) => {
+				console.log("Connection closed");
+				if (this.conns.indexOf(conn) >= 0) {
+					this.conns.splice(this.conns.indexOf(conn), 1);
+				}
+			})
+		}).listen(port)
+	}
+
 	commandLine(args) {
 
 		switch (args[0]) {
+			case 'config':
+				var browser = true;
+				if (args[1] !== undefined) {
+					browser = false;
+				}
+				this.serve(18181, browser);
+				break;
 			case 'deploy':
 				if (args[1] === undefined) {
 					console.log('Need to specify an environment');

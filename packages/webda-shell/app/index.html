@@ -16,7 +16,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="generator" content="Polymer Starter Kit">
-  <title>Webda Configuration</title>
+  <title>Webda Configurator</title>
 
   <!-- Place favicon.ico in the `app/` directory -->
 
@@ -37,7 +37,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <!-- Add to homescreen for Safari on iOS -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Polymer Starter Kit">
+  <meta name="apple-mobile-web-app-title" content="Webda Configurator">
   <link rel="apple-touch-icon" href="images/touch/apple-touch-icon.png">
 
   <!-- Tile icon for Win8 (144x144) -->
@@ -122,7 +122,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <paper-tab data-route="deployments">Deployments</paper-tab>
           </paper-tabs>
           <span class="space"></span>
-          <div id="logo" style="margin-top: 66px;"><a href="http://webda.io" target="_blank"><img src="images/touch/icon-72x72.png" /></a></div>
+          <div id="logo" class="disconnect"><a href="http://webda.io" target="_blank"><span></span></a></div>
         </paper-toolbar>
 
         <!-- Main Content -->
@@ -173,6 +173,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </div>
       </div>
     </paper-dialog>
+    <paper-toast id="disconnected" duration="0" class="fit-bottom" text="The configuration server is disconnected, therefore no modification can be done"><span class="toast-hide-button" role="button" tabindex="0" onclick="app.$.disconnected.hide()">Ok</span></paper-toast>
     <paper-toast id="toast">
       <span class="toast-hide-button" role="button" tabindex="0" onclick="app.$.toast.hide()">Ok</span>
     </paper-toast>

@@ -257,6 +257,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
   });
 
+  // Handle websockets here
+  app.addServerEventListener = function() {
+
+  }
+
+  app.connect = function() {
+    console.log("Connecting socket");
+    app.socket = new WebSocket("ws://localhost:18182");
+    app.socket.onmessage = function(evt) {
+      console.log("Message received");
+      console.log(evt);
+    }
+    app.socket.onclose = function(evt) {
+      app.$.logo.classList.add('disconnect');
+      setTimeout(app.connect, 15000);
+    }
+    app.socket.onerror = function(evt) {
+      app.$.logo.classList.add('disconnect');
+    }
+    app.socket.onopen = function(evt) {
+      app.$.logo.classList.remove('disconnect');
+    }
+  }
+  app.connect();
+
   // Scroll page to top and expand header
   app.scrollPageToTop = function() {
     app.$.headerPanelMain.scrollToTop(true);

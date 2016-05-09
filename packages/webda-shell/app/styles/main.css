@@ -18,7 +18,7 @@ body {
 	border-color: #f00 !important;
 }
 
-#logo img:hover {
+#logo span:hover {
     border-radius: 1px;
     border: 1px solid #73AD21;
     animation-name: homeCycle; 
@@ -46,6 +46,23 @@ body {
     66% {border-color:#3f51b5;} 
 }
 
+#logo {
+	margin-top: 66px;
+}
+
+#logo.disconnect span {
+	width: 72px;
+	height: 72px;
+	display: block;
+	background-image: url(../images/touch/icon-72x72-grey.png);
+}
+
+#logo span {
+	width: 72px;
+	height: 72px;
+	display: block;
+	background-image: url(../images/touch/icon-72x72.png);
+}
 
 .jsoneditor textarea {
 	min-height: 300px;

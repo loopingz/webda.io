@@ -5,7 +5,7 @@ var path = require('path');
 var fs = require('fs');
 var config;
 var server;
-if (fs.existsSync('../handlers/config.js')) {
+if (fs.existsSync('handlers/config.js')) {
   config = require('../handlers/config');
   server = require('../handlers/http');
 } else {
@@ -26,10 +26,6 @@ switch (arg) {
   case 'serve':
     webda = new server();
     return webda.serve(18080);
-  case 'config':
-    webda = new config();
-    // get the admin ui could be nice
-    return webda.serve(18181);
   default:
     webda = new config();
     // get the admin ui could be nice

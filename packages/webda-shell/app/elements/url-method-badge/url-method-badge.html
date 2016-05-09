@@ -25,9 +25,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         padding-left: 5px;
         padding-right: 5px;
         border-radius: 5px;
+        height: 25px;
+        max-height: 25px;
+        line-height: 25px;
         color: #fff;
         font-weight: bold;
         background-color: #eee;
+        vertical-align: middle;
       }
       .method[checked] {
         background-color: #999; 
@@ -61,14 +65,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         toggle: function() {
           if (this.toggles) {
             this.checked = !this.checked;
+            this.fire('change', {method: this.method, 'checked': this.checked});
           }
         },
-        ready: function() {
-          // access a local DOM element by ID using this.$
-          console.log('Ready with ' + this.toggles + ' ' + this.checked);
-        },
         properties: {
-          
+          onToggle: {
+            type: String,
+          },
           checked: {
             type: Boolean,
             value: false

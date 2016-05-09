@@ -11,21 +11,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../url-method-selector/url-method-selector.html">
+<link rel="import" href="../route-edit-panel/route-edit-panel.html">
 
 <dom-module id="route-panel">
   <template>
     <style include="shared-styles">
     </style>
-    <label>Configuration</label>
-    <juicy-jsoneditor mode="tree" modes=["view","tree","text","form"] json="{{component.params}}"></juicy-jsoneditor>
+    <div>
+    <label>Route Helper</label>
+    <div>{{helper}}</div>
+    <route-edit-panel route="{{route}}"></route-edit-panel>
+    <template is="dom-if" if="{{hasParams}}">
+      <label>Configuration</label>
+      <juicy-jsoneditor mode="tree" modes=["view","tree","text","form"] json="{{component.params}}"></juicy-jsoneditor>
+    </template>
+    </div>
   </template>
 
   <script>
     (function() {
       'use strict';
-
+      var helpers = {'inline': 'Inline', 'lambda': 'Lambda', 'file': 'File', 'string': 'String'};
       Polymer({
         is: 'route-panel',
+        init: function() {
+          if (!this.component) return;
+          this.helper = helpers[this.component.executor];
+          // Copy the component as we dont want to edit it globally
+          this.route = JSON.parse(JSON.stringify(this.component));
+          this.hasParams = this.component.executor != "string";
+        },
         properties: {
           dirty: {
             type: Boolean,
@@ -34,7 +49,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           component: {
             type: Object,
-            notify: true
+            notify: true,
+            observer: 'init'
           }
         }
       });

@@ -20,12 +20,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     }
     :host {
       display: block;
-      margin-bottom: 20px;
     }
     </style>
-    <div>
+    <div style="height: 30px;">
     <template is="dom-repeat" items="[[availableMethods]]">
-      <url-method-badge id="[[item]]" method="[[item]]" toggles="[[toggles]]" checked="[[checked]]"></url-method-badge>  
+      <url-method-badge id="[[item]]" method="[[item]]" toggles="[[toggles]]" checked="[[checked]]" on-change="getSelection"></url-method-badge>  
     </template>
     </div>
   </template>
@@ -35,15 +34,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       Polymer({
         is: 'url-method-selector',
+        setSelection: function() {
+          if (this.methods === undefined) return;
+          var methods = this.methods;
+          if (typeof(this.methods) == "string") {
+            methods = this.methods = [this.methods];
+          }
+          for (var i in this.availableMethods) {
+            if (!this.$$("#"+this.availableMethods[i])) continue;
+            this.$$("#"+this.availableMethods[i]).checked = methods.indexOf(this.availableMethods[i]) >= 0;
+          }
+        },
         getSelection: function() {
-          var methods = [];
           // Not the nicest component ever
+          var methods = [];
           for (var i in this.availableMethods) {
             if (this.$$("#"+this.availableMethods[i]).checked) {
               methods.push(this.availableMethods[i]);
             }
           }
-          return methods;
+          this.methods = methods;
         },
         properties: {
           toggles: {
@@ -51,6 +61,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           checked: {
             type: Boolean
+          },
+          methods: {
+            type: Array,
+            observer: 'setSelection',
+            notify: true
           },
           availableMethods: {
             value: ["GET", "POST", "PUT", "DELETE"],

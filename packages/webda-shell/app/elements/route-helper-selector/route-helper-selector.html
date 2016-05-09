@@ -11,7 +11,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 
-<dom-module id="executor-selector">
+<dom-module id="route-helper-selector">
   <template>
     <style>
       :host {
@@ -51,7 +51,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <div align="center">
       <template is="dom-repeat" items="[[executors]]">
-        <paper-card heading="{{item}}" id="{{index}}" on-tap="select" image="http://placehold.it/200x100" class="white" style="margin-bottom:8px;">
+        <paper-card heading="{{item.label}}" id="{{index}}" on-tap="select" image="http://placehold.it/200x100" class="white" style="margin-bottom:8px;">
         </paper-card>
       </template>
     </div>
@@ -61,20 +61,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       'use strict';
 
       Polymer({
-        is: 'executor-selector',
+        is: 'route-helper-selector',
         select: function (evt) {
           var target = evt.target;
           while (target !== undefined && target.localName !== 'paper-card') {
             target = target.parentNode;
           }
           if (target !== undefined) {
-            this.selected = this.executors[target.id];
+            this.selected = this.executors[target.id].type;
             if (this.old) {
               this.old.removeAttribute("selected");
             }
             target.setAttribute("selected", true);
             this.old = target;
+          } else {
+            this.selected = undefined;
           }
+          this.fire('change');
         },
         properties: {
           selected: {
@@ -83,7 +86,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           executors: {
             type: Array,
-            value: ['Inline', 'Lambda', 'File', 'String']
+            value: [{'type':'inline', 'label': 'Inline'}, {'type':'lambda', 'label': 'Lambda'}, {'type':'file', 'label': 'File'}, {'type':'string', 'label': 'String'}]
           }
         }
       });

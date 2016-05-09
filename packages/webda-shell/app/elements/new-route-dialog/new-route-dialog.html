@@ -10,7 +10,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
-<link rel="import" href="../executor-selector/executor-selector.html">
+<link rel="import" href="../route-helper-selector/route-helper-selector.html">
 <link rel="import" href="../url-method-selector/url-method-selector.html">
 <dom-module id="new-route-dialog">
   <template>
@@ -61,36 +61,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
 
     <style include="paper-dialog-shared-styles"></style>
-      <iron-ajax id="createAjax" handle-as="json"></iron-ajax>
       <h2>New Route</h2>
-      <executor-selector selected="{{route.type}}"></executor-selector>
+      <route-helper-selector selected="{{route.executor}}" on-change="validateForm"></route-helper-selector>
       <paper-dialog-scrollable dialog-element="[[node]]">
-        <paper-input placeholder="URL" label="Resource" value="{{route.url}}"></paper-input>
-        <label style="color:#737373; font-size:12px;" class="paper-input">Method</label>
-        <url-method-selector id="methods" toggles></url-method-selector>
-        <iron-pages attr-for-selected="data-type" selected="{{route.type}}">
-          <section data-type="Lambda">
-            <paper-input placeholder="arn:aws:lambda:us-west-2:277719386420:function:webda-test" label="Lambda Function ARN"></paper-input>
-          </section>
-          <section data-type="Inline" style="float: left;">
-            <div>
-              <label class="paper-input">Code</label>
-              <juicy-ace-editor mode="ace/mode/javascript" theme="ace/theme/dawn">{{callback}}</juicy-ace-editor>
-            </div>
-          </section>
-          <section data-type="File">
-            <require-panel file="{{file}}"></require-panel>
-          </section>
-          <section data-type="String">
-            <paper-input placeholder="echo" value="{{content}}" label="Content"></paper-input>
-            <paper-input placeholder="text/plain" value="{{mimetype}}" label="Content-Type"></paper-input>
-          </section>
-        </iron-pages>
+        <paper-input placeholder="URL" on-change="validateForm" label="Resource" value="{{route.url}}"></paper-input>
+        <route-edit-panel route="{{route}}" on-change="validateForm"></route-edit-panel>
         <p>&nbsp;</p>
       </paper-dialog-scrollable>
       <div class="buttons">
         <paper-button dialog-dismiss>Cancel</paper-button>
-        <paper-button on-tap="create">Create</paper-button>
+        <paper-button disabled="[[invalidForm]]" on-tap="create">Create</paper-button>
       </div>
   </template>
   <script>
@@ -100,8 +80,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         is: 'new-route-dialog',
         behaviors: [Polymer.PaperDialogBehavior],
         create: function() {
-          this.route.method = this.$.methods.getSelection();
-          console.log(this.route);
+
+        },
+        validateForm: function() {
+          this.invalidForm = !(this.route && this.route.url && this.route.executor && this.route.url !== '' && this.route.method.length > 0);
         },
         properties: {
           editMode: {
@@ -116,8 +98,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         ready: function() {
           this.node = this;
-          this.$.createAjax.url = app.getUrl("/routes");
-          this.$.createAjax.generateRequest();
+          this.validateForm();
+          this.route = {method: []};
           this.code = "module.exports = function(executor) { \n\texecutor.getStore('myStore').get('uuid').then( (object) => {\n\t\texecutor.write(object);\n\t}).catch ( (err) => {\n\t\texecutor.writeHead(500);\n\t\texecutor.write('Error occurs on sample method');\n\t});\n};";
           this.callback = this.code;
         }

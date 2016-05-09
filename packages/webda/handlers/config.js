@@ -20,6 +20,10 @@ class ConfigurationService extends Executor {
 		config['/api/configs/{vhost}'] = {"method": ["PUT"], "executor": this._name, "_method": this.updateCurrentVhost};
 		config['/api/browse/{path}'] = {"method": ["GET", "PUT", "DELETE"], "executor": this._name, "_method": this.fileBrowser, 'allowPath': true};
 		config['/{path}'] = {"method": ["GET"], "executor": this._name, "_method": this.uiBrowser, 'allowPath': true};
+		this.refresh();
+	}
+
+	refresh() {
 		this._config = this._webda.config[this._webda._currentVhost];
 		this._computeConfig = this._webda.computeConfig[this._webda._currentVhost];
 		this._depoyments = {};
@@ -263,20 +267,24 @@ class WebdaConfigurationServer extends WebdaServer {
 
 	saveHostConfiguration(config) {
 		this.config[this._currentVhost]=config;
-		fs.writeFileSync(this._mockWedba._configFile, "module.exports=" + this.exportJson(this.config));
-		console.log(this.exportJson(this.config));
-		this.loadMock();
+		fs.writeFileSync(this._file, "module.exports=" + this.exportJson(this.config));
+		delete this._mockWedba;
+		this.loadMock(JSON.parse(this.exportJson(this.config)));
+		this.getService("configuration").refresh();
 	}
 
-	loadMock() {
-		this._mockWedba = new Webda();
-		if (fs.existsSync(this._mockWedba._configFile)) {
+	loadMock(config) {
+		this._mockWedba = new Webda(config);
+		if (config !== undefined) {
+			// We just saved the configuration dont want to reload it
+		} else if (fs.existsSync(this._mockWedba._configFile)) {
+			this._file = this._mockWedba._configFile;
 			this.config = fs.readFileSync(this._mockWedba._configFile, {encoding:'utf8'}).replace("module.exports", "");
 			this.config = JSON.parse(this.config.substr(this.config.indexOf("=") + 1));
 		} else {
 			console.log("No file is present, creating webda.config.js")
 			this.config = {};
-			this._mockWedba._configFile = path.resolve("./webda.config.js");
+			this._file = path.resolve("./webda.config.js");
 			this._currentVhost = "changeme.webda.io";
 			this.config["*"] = this._currentVhost;
 			this.saveHostConfiguration({global:{params: {}, services: {}}});
@@ -285,6 +293,9 @@ class WebdaConfigurationServer extends WebdaServer {
 		this._currentVhost = this.getHost();
 		this._mockWedba.initAll();
 		this.computeConfig = this._mockWedba._config;
+		for (let i in this.computeConfig["api.webda.io"]) {
+			if (i.startsWith("/moddas")) console.log(this.computeConfig["api.webda.io"][i]);
+		}
 	}
 
 	loadConfiguration(config) {

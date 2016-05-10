@@ -15,7 +15,7 @@ class FileBinary extends Binary {
 	}
 
 	get(info) {
-		path = this._getPath(info.hash, 'data');
+		var path = this._getPath(info.hash, 'data');
 		if (!fs.existsSync(path)) {
 			return "";
 		}

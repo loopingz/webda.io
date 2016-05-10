@@ -159,13 +159,13 @@ class PassportExecutor extends Executor {
 			}
 			var uuid = this._params.email + "_email";
 			if (this.session.isLogged()) {
-				return identStore.save({'uuid': uuid, 'email': this._params.email, 'user': this.session.getUserId()}).then( () => {
+				return identStore.save({'uuid': uuid, 'validation': new Date(), 'type': 'email', 'email': this._params.email, 'user': this.session.getUserId()}).then( () => {
 					this.writeHead(302, {'Location': this._params.successRedirect});
 					return Promise.resolve();
 				});
 			} else {
-				return userStore.save(this.registerUser()).then ( (user) => {
-					return identStore.save({'uuid': uuid, 'email': this._params.email, 'user': user.uuid}).then( (ident) => {
+				return userStore.save(this.registerUser(this.body, this.body)).then ( (user) => {
+					return identStore.save({'uuid': uuid, 'validation': new Date(), 'type': 'email', 'email': this._params.email, 'user': user.uuid}).then( (ident) => {
 						this.login(user, ident);
 						// Redirect now
 						this.writeHead(302, {'Location': this._params.successRedirect});

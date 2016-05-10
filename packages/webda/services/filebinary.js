@@ -15,7 +15,11 @@ class FileBinary extends Binary {
 	}
 
 	get(info) {
-		return fs.createReadStream(this._getPath(info.hash, 'data'));
+		path = this._getPath(info.hash, 'data');
+		if (!fs.existsSync(path)) {
+			return "";
+		}
+		return fs.createReadStream();
 	}
 
 	_getPath(hash, postfix) {

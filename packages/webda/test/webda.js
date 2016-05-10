@@ -84,6 +84,7 @@ describe('Webda', function() {
       executor = webda.getExecutor("test.webda.io", "GET", "/urltemplate/666/test");
       assert.notEqual(executor, undefined);
       assert.notEqual(executor._params.id, "666/test");
+      assert.equal(executor._params.other, "test");
     });
   });
 });

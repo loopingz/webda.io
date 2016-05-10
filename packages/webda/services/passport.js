@@ -289,7 +289,7 @@ class PassportExecutor extends Executor {
 						throw 403;
 					}
 					if (this.session.isLogged()) {
-						return identStore.save({'uuid': uuid, 'email': email, 'user': this.session.getUserId()});
+						return identStore.save({'uuid': uuid, 'type': 'email', 'email': email, 'user': this.session.getUserId()});
 					}
 				}
 				if (this.body.register) {
@@ -305,7 +305,7 @@ class PassportExecutor extends Executor {
 					this.body._password = this.hashPassword(this.body.password);
 					delete this.body.password;
 					return userStore.save(this.registerUser(this.body)).then ( (user) => {
-						return identStore.save({'uuid': uuid, 'email': email, 'user': user.uuid}).then ( (ident) => {
+						return identStore.save({'uuid': uuid, 'type': 'email', 'email': email, 'user': user.uuid}).then ( (ident) => {
 							this.login(user, ident);
 							return this.sendValidationEmail(email);
 						});

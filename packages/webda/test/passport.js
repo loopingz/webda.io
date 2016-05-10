@@ -77,6 +77,10 @@ describe('Passport', function() {
   			assert.equal(err, 204);
         assert.equal(events, 1); // Login
   			assert.notEqual(executor.session.getUserId(), undefined);
+        // Verify ident type
+        return identStore.get(executor.session.getIdentUsed());
+      }).then( (ident) => {
+        assert.equal(ident.type, "email");
   			params.login="test2@webda.io";
   			params.password="bouzouf";
   			executor.setContext(params, webda.getNewSession());

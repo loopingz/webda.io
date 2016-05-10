@@ -59,6 +59,7 @@ describe('Passport', function() {
   			return userStore.get(executor.session.getUserId());
   		}).then ( (user) => {
   			assert.notEqual(user, undefined);
+        assert.notEqual(user._password, undefined);
         assert.equal(user.test, "TESTOR"); // Verify that the listener on Register has done something
   		});
   	});

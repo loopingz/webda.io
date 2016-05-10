@@ -137,8 +137,10 @@ class PassportExecutor extends Executor {
 		));
 	}
 
-	registerUser(datas) {
-		var user = {};
+	registerUser(datas, user) {
+		if (!user) {
+			user = {};
+		}
 		this.emit("Register", {"user": user, "datas": datas});
 		return user;
 	}
@@ -188,7 +190,7 @@ class PassportExecutor extends Executor {
 			text = "Please validate your email by clicking the link below\n{url}";
 		}
 		let replacements = _extend({}, config);
-		replacements.url = this._route._http.root + "/auth/email?email=" + email + "&validationToken=" + this.generateEmailValidationToken(email);
+		replacements.url = this._route._http.root + "/auth/email/callback?email=" + email + "&validationToken=" + this.generateEmailValidationToken(email);
 		// TODO Add a template engine
 		for (let i in replacements) {
 			if (typeof(replacements[i]) !== "string") continue;
@@ -304,7 +306,7 @@ class PassportExecutor extends Executor {
 					// Store with a _
 					this.body._password = this.hashPassword(this.body.password);
 					delete this.body.password;
-					return userStore.save(this.registerUser(this.body)).then ( (user) => {
+					return userStore.save(this.registerUser(this.body, this.body)).then ( (user) => {
 						return identStore.save({'uuid': uuid, 'type': 'email', 'email': email, 'user': user.uuid}).then ( (ident) => {
 							this.login(user, ident);
 							return this.sendValidationEmail(email);

@@ -19,7 +19,7 @@ class FileBinary extends Binary {
 		if (!fs.existsSync(path)) {
 			return "";
 		}
-		return fs.createReadStream();
+		return fs.createReadStream(path);
 	}
 
 	_getPath(hash, postfix) {

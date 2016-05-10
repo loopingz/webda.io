@@ -1,0 +1,233 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../url-method-selector/url-method-selector.html">
+<dom-module id="deployment-progress-dialog">
+  <template>
+    <style>
+      :host {
+        display: block;
+        width: 95%;
+        min-height: 95%;
+      }
+
+      #content {
+        padding: 0px;
+      }
+
+      #content h2 {
+        margin-left: 24px;
+      }
+
+      span {
+        @apply(--paper-font-body1);
+      }
+
+      #logo img {
+          border-radius: 13px;
+          border: 3px solid #73AD21;
+      } 
+
+      .active #logo img, .active #schema {
+        animation-name: homeCycle; 
+        animation-duration:5s; 
+        animation-direction:normal; 
+        animation-iteration-count:infinite; 
+        box-sizing: border-box;
+        -webkit-animation-name: homeCycle; 
+        -webkit-animation-duration:5s; 
+        -webkit-animation-direction:normal; 
+        -webkit-animation-iteration-count:infinite; 
+      }
+
+      @keyframes homeCycle 
+      {
+          0% {border-color:#ff9900;} 
+          33% {border-color:#7ebf6a;} 
+          66% {border-color:#3f51b5;} 
+      } 
+
+      @-webkit-keyframes homeCycle 
+      { 
+          0% {border-color:#ff9900;} 
+          33% {border-color:#7ebf6a;} 
+          66% {border-color:#3f51b5;} 
+      }
+
+      #content {
+        width: 100%;
+        height: 100%;
+      }
+
+      #logo {
+        margin-top: -48px;
+        position: absolute;
+        right: 40px;
+      }
+
+      #schema {
+        height: 200px;
+        border-bottom: 3px solid #3f51b5;
+        display: flex;
+        justify-content: center;
+      }
+      #schema div {
+        width: 100px;
+        margin: 5%;
+        height: 100px;
+        float: left;
+      }
+
+      paper-button[dialog-dismiss] {
+        visibility: hidden;
+      }
+
+      .active paper-button[dialog-dismiss] {
+        visibility: visible;
+      }
+
+      #schema div.active {
+        animation-name: activeCycle; 
+        animation-duration:2s; 
+        animation-direction:alternate; 
+        animation-iteration-count:infinite; 
+        -webkit-animation-name: activeCycle; 
+        -webkit-animation-duration:2s; 
+        -webkit-animation-direction:alternate; 
+        -webkit-animation-iteration-count:infinite; 
+
+      }
+
+
+      @keyframes activeCycle 
+      {
+          0% {
+            -webkit-filter: grayscale(75%); /* Chrome, Safari, Opera */
+            filter: grayscale(75%);
+          } 
+          50% {
+            -webkit-filter: grayscale(90%); /* Chrome, Safari, Opera */
+            filter: grayscale(90%);
+          } 
+      } 
+
+      @-webkit-keyframes activeCycle 
+      { 
+          0% {
+            -webkit-filter: grayscale(75%); /* Chrome, Safari, Opera */
+            filter: grayscale(75%);
+          } 
+          50% {
+            -webkit-filter: grayscale(90%); /* Chrome, Safari, Opera */
+            filter: grayscale(90%);
+          }
+      }
+
+      #schema div.step {
+          -webkit-filter: grayscale(100%); /* Chrome, Safari, Opera */
+          filter: grayscale(100%);
+      }
+
+      #schema div.finished {
+
+      }
+
+      .buttons {
+        position: absolute;
+        bottom: 0px;
+        right: 0px;
+        left: 0px;
+        border-top: 1px solid var(--light-primary-color);
+      }
+    </style>
+    <style include="paper-dialog-shared-styles"></style>
+    <div id="content">
+      <template is="dom-if" if="[[action]]">
+        <h2>[[action]]</h2>  
+      </template>
+      <template is="dom-if" if="[[!action]]">
+        <h2>Deploying ...</h2>  
+      </template>
+        <iron-pages attr-for-selected="data-type" selected="[[stepper.type]]">
+            <section data-type="aws">
+              <div id="schema">
+                <div class="step"><img src="../../images/steps/aws_1.png" /></div>
+                <div class="step"><img src="../../images/steps/aws_2.png" /></div>
+                <div class="step"><img src="../../images/steps/aws_3.png" /></div>
+                <div class="step"><img src="../../images/steps/aws_4.png" /></div>
+              </div>
+            </section>  
+            <section data-type="docker">
+              <div class="step"></div><div class="step"></div>
+            </section>
+        </iron-pages>
+      <div id="logo"><img src="../../images/touch/icon-96x96.png" /></div>
+      <pre style="line-height: 6px;">
+      <template is="dom-repeat" items="[[stepper.output]]">
+        {{item}}
+      </template>
+      </pre>
+      <div class="buttons">
+        <paper-button dialog-dismiss>Cancel</paper-button>
+        <paper-button disabled="[[!stepper.finished]]" dialog-confirm>Ok</paper-button>
+      </div>
+      </div>
+  </template>
+  <script>
+    (function() {
+      'use strict';
+      Polymer({
+        is: 'deployment-progress-dialog',
+        behaviors: [Polymer.PaperDialogBehavior],
+        stepUpdate: function() {
+          if (this.current > this.stepper.max) {
+            this.$.content.classList.remove('active');
+            this.$$("paper-button[dialog-confirm]").disabled=false;
+          }
+          var el = this.$$("#schema .step");
+          var ela = this.$$("#schema .active");
+          if (ela) {
+            ela.classList.remove('active');
+            ela.classList.add('finished');
+          }
+          if (!el) return;
+          el.classList.add('active');
+          el.classList.remove('step');
+        },
+        ready: function () {
+          this.$.content.classList.add('active');
+          var el;
+          while (el = this.$$("#schema .active")) {
+            el.classList.remove('active');
+            el.classList.add('step');
+          }
+          while (el = this.$$("#schema .finished")) {
+            el.classList.remove('finished');
+            el.classList.add('step');
+          }
+        },
+        properties: {
+          action: {
+            type: String
+          },
+          current: {
+            observer: 'stepUpdate'
+          },
+          stepper: {
+            type: Object,
+            observer: 'ready'
+          }
+        }
+      });
+    })();
+  </script>
+</dom-module>

@@ -163,6 +163,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <new-route-dialog modal id="newRouteDialog"></new-route-dialog>
     <new-service-dialog modal id="newServiceDialog"></new-service-dialog>
     <new-deployment-dialog modal id="newDeploymentDialog"></new-deployment-dialog>
+
+    <!-- Deployment progress dialog -->
+    <deployment-progress-dialog modal action="[[deployAction]]" current="[[deployCurrent]]" stepper="[[deployStepper]]" id="deploymentProgress"></deployment-progress-dialog>
+
     <paper-dialog modal id="confirmDeletion" no-cancel-on-esc-key="false" style="height: 200px;">
       <div>
       <h2>Delete Component</h2>

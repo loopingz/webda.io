@@ -30,10 +30,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       Polymer({
         is: 'deployment-panel',
         deploy: function () {
-          this.$.ajax.method = 'GET';
-          this.$.ajax.url = app.getUrl('/deploy/' + this.component.uuid);
-          this.$.ajax.contentType = 'application/json';
-          this.$.ajax.generateRequest();
+          app.fire('deploy', this.component.uuid);
         },
         properties: {
           dirty: {

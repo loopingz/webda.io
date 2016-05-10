@@ -233,6 +233,42 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     app.$.routesAjax.url = app.getUrl('/routes');
     app.connect();
 
+    app.addEventListener('deploy', function (evt) {
+      // Reinit deployment infos
+      var deployer = {finished: false, output: [], type: 'aws'};
+      app.deployAction = "Deploying ...";
+      for (let i in app.deployments) {
+        if (evt.detail == app.deployments[i]._name) {
+          deployer.type = app.deployments[i].type;
+          break;
+        }
+      }
+      app.deployStepper = deployer;
+
+      // Launch the deployment
+      app.$.ajax.method = 'GET';
+      app.$.ajax.url = app.getUrl('/deploy/' + evt.detail);
+      app.$.ajax.contentType = 'application/json';
+      app.$.ajax.generateRequest();
+
+      app.$.deploymentProgress.open();
+
+      /**
+      Use for debug purpose
+      app.i = 0;
+      setTimeout(app.fakeOutput, 1000);
+      */      
+    });
+
+    var fake = ["[1/4] Start to deploy","[2/4] Lambda","[3/4] Gateway","[4/4] Permission", "DONE"]
+    app.fakeOutput = function () {
+      app.handleServerMessage(fake[app.i]);
+      if (app.i < fake.length) {
+        app.i++;
+        setTimeout(app.fakeOutput, 1000);
+      }
+    }
+
     // imports are loaded and elements have been registered
     app.$.newDeploymentDialog.addEventListener('iron-overlay-closed', function (evt) {
       if (!evt.detail.confirmed) return;
@@ -260,15 +296,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   });
 
   // Handle websockets here
-  app.addServerEventListener = function() {
+  app.handleServerMessage = function(data) {
+    if (data === undefined) return;
 
+    // Handle stepper
+    var re = /\[(\d+)\/(\d+)\] (.*)/
+    var groups = data.match(re);
+    if (groups) {
+      app.deployStepper.max = groups[2];
+      app.deployCurrent = groups[1];
+      app.deployAction = groups[3];
+    }
+
+    // Store output
+    app.push('deployStepper.output', data);
+    if (data == "DONE") {
+      app.deployCurrent++;
+      app.deployAction = "Deployment Finished";
+      app.deployStepper.finished = true;
+    }
   }
 
   app.connect = function() {
     app.socket = new WebSocket("ws://localhost:18182");
     app.socket.onmessage = function(evt) {
-      console.log("Message received");
-      console.log(evt);
+      app.handleServerMessage(evt.data);
     }
     app.socket.onclose = function(evt) {
       app.$.logo.classList.add('disconnect');

@@ -51,10 +51,8 @@ body {
 }
 
 #logo.disconnect span {
-	width: 72px;
-	height: 72px;
-	display: block;
-	background-image: url(../images/touch/icon-72x72-grey.png);
+	-webkit-filter: grayscale(100%); /* Chrome, Safari, Opera */
+    filter: grayscale(100%);
 }
 
 #logo span {

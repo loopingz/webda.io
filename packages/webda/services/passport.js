@@ -48,6 +48,7 @@ class PassportExecutor extends Executor {
 		// Add static for email for now, if set before it should have priority
 		config[url + "/email"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this.handleEmail};
 		config[url + "/email/callback{?email,token}"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.handleEmailCallback};
+
 		// Handle the lost password here
 		url += '/{provider}';
 		config[url] = {"method": ["GET"], "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.authenticate};
@@ -334,7 +335,18 @@ class PassportExecutor extends Executor {
 			super.end();
 		}
 	}
+
 	authenticate() {
+		// Handle Logout 
+		if (this._params.provider == "logout") {
+			this.logout();
+			if (this._params.website) {
+				this.writeHead(302, {'Location': this._params.website});
+			} else {
+				throw 204;
+			}
+			return;
+		}
 		var providerConfig = this._params.providers[this._params.provider];
 		if (providerConfig) {
 			if (!Strategies[this._params.provider].promise) {

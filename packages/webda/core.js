@@ -48,13 +48,13 @@ class Webda {
 		this._routehelpers['file']=require('./routehelpers/file');
 		// real service
 		this._services = {};
-		this._services['Authentication']=require('./services/passport');
-		this._services['FileStore']=require('./stores/file');
-		this._services['MongoStore']=require('./stores/mongodb');
-		this._services['DynamoStore']=require('./stores/dynamodb');
-		this._services['FileBinary']=require('./services/filebinary');
-		this._services['S3Binary']=require('./services/s3binary');
-		this._services['Mailer']=require('./services/mailer');
+		this._services['Webda/Authentication']=require('./services/passport');
+		this._services['Webda/FileStore']=require('./stores/file');
+		this._services['Webda/MongoStore']=require('./stores/mongodb');
+		this._services['Webda/DynamoStore']=require('./stores/dynamodb');
+		this._services['Webda/FileBinary']=require('./services/filebinary');
+		this._services['Webda/S3Binary']=require('./services/s3binary');
+		this._services['Webda/Mailer']=require('./services/mailer');
 		this._config = this.loadConfiguration(config);
 	}
 
@@ -287,6 +287,9 @@ class Webda {
 	    	if (type === undefined) {
 	    		type = service;
 	    	}
+	    	if (type.indexOf('/') < 2) {
+	    		type = "Webda/" + type;
+	    	}
 	      	var include = services[service].require;
 	      	var serviceConstructor = undefined;
 	      	if (include === undefined) {
@@ -315,14 +318,18 @@ class Webda {
 	      	try {
 	      		config.global._services[service.toLowerCase()] = new serviceConstructor(this, service, params);
 	      	} catch (err) {
-	      		console.log(err);
+	      		config.global.services[service]._createException = err;
 	      	}
 	    }
 
 	    // Init services
 	    for (var service in config.global._services) {
 	      	if (config.global._services[service].init !== undefined) {
-	        	config.global._services[service].init(config);
+	      		try {
+	        		config.global._services[service].init(config);
+	        	} catch (err) {
+	        		config.global._services[service]._initException = err;
+	        	}
 	      	}
 	    }
 	}
@@ -341,11 +348,35 @@ class Webda {
 		}
 		this._vhost = oldHost;
 	}
+
+	initModdas(config) {
+		// Moddas are the custom type of service
+		// They are either coming from npm or are direct lambda feature or local with require
+		if (config.global.moddas === undefined) return;
+
+		for (let i in config.global.moddas) {
+			let modda = config.global.moddas[i];
+			if (modda.type == "local") {
+				// Add the required type
+				this._services[i] = require(modda.require);
+			} else if (modda.type == "lambda") {
+				// This should start the lambda
+				this._services[i] = require('./routehelpers/lambda');
+				this._services[i]._arn = modda.arn;
+			} else if (modda.type == "npm") {
+				// The package should export the default
+				this._services[i] = require(modda.package);
+			}
+		}
+	}
+
 	initHosts(vhost, config) {
 	    if (config._initiated) {
 	      return;
 	    }
 	    
+	    this.initModdas(config);
+
 	    if (config.global !== undefined) {
 		    this.initServices(config);
 		}

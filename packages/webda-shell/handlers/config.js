@@ -1,10 +1,11 @@
 "use strict";
 const WebdaServer = require("./http");
-const Executor = require("webda/services/executor");
-const Webda = require("webda/core");
 const _extend = require("util")._extend;
 const fs = require("fs");
 const path = require("path");
+
+const Executor = require(__webda + "/services/executor");
+const Webda = require(__webda + "/core");
 
 
 class ConfigurationService extends Executor {

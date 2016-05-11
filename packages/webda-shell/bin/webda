@@ -1,8 +1,13 @@
 #!/usr/bin/env node
 "use strict";
-
-var path = require('path');
 var fs = require('fs');
+
+if (fs.existsSync("node_modules/webda")) {
+  global.__webda = process.cwd() + '/node_modules/webda';  
+} else {
+  global.__webda = 'webda';
+}
+
 var config;
 var server;
 if (fs.existsSync('handlers/config.js')) {
@@ -24,6 +29,32 @@ var args = process.argv.slice(2);
 var webda;
 switch (arg) {
   case 'serve':
+    webda = new server();
+    return webda.serve(18080);
+  case 'debug':
+    var excepts = ["dist", "node_modules", "deployments"];
+    // Set a watcher
+    var timeout;
+    var listener = function(event, filename) {
+      webda._http.close();
+      webda = new server();
+      webda.serve(18080);
+    }
+    var watchs = fs.readdirSync(".")
+    for (let file in watchs) {
+      let filename = watchs[file];
+      if (filename.indexOf(".") === 0) continue;
+      if (filename.endsWith(".js")) {
+        fs.watch(filename, {permanent: true}, listener);
+        console.log("watch: " + filename);
+        continue;
+      }
+      let stat = fs.statSync(filename);
+      if (stat.isDirectory()) {
+        fs.watch(filename, {permanent: true, resursive: true}, listener);
+        console.log("watchdir: " + filename);
+      }
+    }
     webda = new server();
     return webda.serve(18080);
   default:

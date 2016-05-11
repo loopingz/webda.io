@@ -1,6 +1,6 @@
 "use strict";
-var Webda = require('webda/core');
-var SecureCookie = require('webda/utils/cookie');
+var Webda = require(__webda + '/core');
+var SecureCookie = require(__webda + '/utils/cookie');
 var _extend = require("util")._extend;
 
 class WebdaServer extends Webda {
@@ -118,7 +118,7 @@ class WebdaServer extends Webda {
 		app.set('trust proxy', 'loopback, 10.0.0.0/8');
 		app.use(this.handleRequest.bind(this));
 
-		http.createServer(app).listen(port);
+		this._http = http.createServer(app).listen(port);
 		console.log('Server running at http://0.0.0.0:' + port);
 	}
 };

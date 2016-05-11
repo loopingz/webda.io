@@ -1,6 +1,6 @@
 {
   "name": "webda",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Expose API with Lambda",
   "keywords": [
     "aws",
@@ -15,6 +15,8 @@
     "run": "node core"
   },
   "dependencies": {
+    "cookie": "^0.2.3",
+    "mime-types": "^2.1.11",
     "mongodb": ">=2.1.7",
     "node-uuid": "*",
     "nodemailer": "^2.3.2",
@@ -27,7 +29,14 @@
     "passport-twitter": ">=1.0.3",
     "uri-templates": ">=0.1.7"
   },
-  "files": ["core.js","models","routehelpers","services","stores","utils"],
+  "files": [
+    "core.js",
+    "models",
+    "routehelpers",
+    "services",
+    "stores",
+    "utils"
+  ],
   "devDependencies": {
     "mocha": ">=2.2.5"
   },

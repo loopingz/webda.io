@@ -5,6 +5,12 @@
 				"TEST": "Global",
 				"region": "us-east-1"
 			},
+			"moddas": {
+				"Test/Mailer": {
+					"type": "local",
+					"require": "./test/debugmailer"
+				}
+			},
 			"services": {
 				"Authentication": {
 					"successRedirect": "https://shootandprove.loopingz.com/user.html",
@@ -28,7 +34,7 @@
 					}
 				},
 				"DefinedMailer": {
-					"type": "Mailer"
+					"type": "Test/Mailer"
 				},
 				"dynamoidents": {
 					"inject": "user",

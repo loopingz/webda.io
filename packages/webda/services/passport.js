@@ -47,8 +47,8 @@ class PassportExecutor extends Executor {
 		config[url] = {"method": ["GET", "DELETE"], "executor": this._name, "_method": this.listAuthentications};
 		// Add static for email for now, if set before it should have priority
 		config[url + "/email"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this.handleEmail};
+		config[url + "/email/register"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email", "register": true}, "_method": this.handleEmail};
 		config[url + "/email/callback{?email,token}"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.handleEmailCallback};
-
 		// Handle the lost password here
 		url += '/{provider}';
 		config[url] = {"method": ["GET"], "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.authenticate};
@@ -100,7 +100,7 @@ class PassportExecutor extends Executor {
 				// Need to improve DynamoDB testing about invalid value 
 				return identStore.update({'lastUsed': new Date(), 'profile': profile}, result.uuid).then( () => {
 					this.write("redirect");
-					this.writeHead(302, {'Location': this._params.successRedirect});
+					this.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + this._params.provider});
 					this.end();
 					done(result);
 				});
@@ -120,7 +120,7 @@ class PassportExecutor extends Executor {
 				return identStore.save(ident).then( () => {
 					this.write("redirect");
 					this.login(user, ident);
-					this.writeHead(302, {'Location': this._params.successRedirect});
+					this.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + this._params.provider});
 					this.end();
 					done(ident)
 				});
@@ -147,6 +147,7 @@ class PassportExecutor extends Executor {
 	}
 
 	handleEmailCallback() {
+		// Validate an email for an ident based on an url
 		var identStore = this.getService("idents");
 		if (identStore === undefined) {
 			console.log("Email auth needs an ident store");
@@ -159,22 +160,17 @@ class PassportExecutor extends Executor {
 				return Promise.resolve();
 			}
 			var uuid = this._params.email + "_email";
-			if (this.session.isLogged()) {
-				return identStore.save({'uuid': uuid, 'validation': new Date(), 'type': 'email', 'email': this._params.email, 'user': this.session.getUserId()}).then( () => {
-					this.writeHead(302, {'Location': this._params.successRedirect});
-					return Promise.resolve();
-				});
-			} else {
-				return userStore.save(this.registerUser(this.body, this.body)).then ( (user) => {
-					return identStore.save({'uuid': uuid, 'validation': new Date(), 'type': 'email', 'email': this._params.email, 'user': user.uuid}).then( (ident) => {
-						this.login(user, ident);
-						// Redirect now
-						this.writeHead(302, {'Location': this._params.successRedirect});
-						return Promise.resolve();
-					});
-				});
-			}
+			return identStore.get(uuid).then((ident) => {
+				if (ident === undefined) {
+					throw 404;
+				}
+				return identStore.update({validation: new Date()}, ident.uuid);	
+			}).then ( () => {
+				this.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + this._params.provider});
+				return Promise.resolve();
+			});
 		}
+		throw 404;
 	}
 
 	handlePhoneCallback(req, res) {
@@ -191,7 +187,7 @@ class PassportExecutor extends Executor {
 			text = "Please validate your email by clicking the link below\n{url}";
 		}
 		let replacements = _extend({}, config);
-		replacements.url = this._route._http.root + "/auth/email/callback?email=" + email + "&validationToken=" + this.generateEmailValidationToken(email);
+		replacements.url = this._route._http.root + "/auth/email/callback?email=" + email + "&token=" + this.generateEmailValidationToken(email);
 		// TODO Add a template engine
 		for (let i in replacements) {
 			if (typeof(replacements[i]) !== "string") continue;
@@ -255,6 +251,10 @@ class PassportExecutor extends Executor {
 		var uuid = this.body.login + "_email";
 		return identStore.get(uuid).then( (ident) => {
 			if (ident != undefined && ident.user != undefined) {
+				// Register on an known user
+				if (this._params.register) {
+					throw 409;
+				}
 				return userStore.get(ident.user).then ( (user) => {
 					// Check password
 					if (user._password === this.hashPassword(this.body.password)) {
@@ -286,20 +286,16 @@ class PassportExecutor extends Executor {
 				var registeredUser;
 				var validation;
 				// Read the form
-				if (this.body.validationToken) {
-					validation = this.body.validationToken;
-					if (validation !== this.generateEmailValidationToken(email)) {
-						throw 403;
-					}
-					if (this.session.isLogged()) {
-						return identStore.save({'uuid': uuid, 'type': 'email', 'email': email, 'user': this.session.getUserId()});
-					}
-				}
-				if (this.body.register) {
+				if (this.body.register || this._params.register) {
+					var validation = undefined;
 					// Need to check email before creation
 					if (!mailConfig.postValidation || mailConfig.postValidation === undefined) {
-						// ValidationToken is undefined send a email
-						return this.sendValidationEmail(email);
+						if (this.body.token == this.generateEmailValidationToken(email)) {
+							validation = new Date();
+						} else {
+							// token is undefined send an email
+							return this.sendValidationEmail(email);
+						}
 					}
 					if (user === undefined) {
 						user = {};
@@ -308,9 +304,16 @@ class PassportExecutor extends Executor {
 					this.body._password = this.hashPassword(this.body.password);
 					delete this.body.password;
 					return userStore.save(this.registerUser(this.body, this.body)).then ( (user) => {
-						return identStore.save({'uuid': uuid, 'type': 'email', 'email': email, 'user': user.uuid}).then ( (ident) => {
+						var newIdent = {'uuid': uuid, 'type': 'email', 'email': email, 'user': user.uuid};
+						if (validation) {
+							newIdent.validation = validation;
+						}
+						return identStore.save(newIdent).then ( (ident) => {
 							this.login(user, ident);
-							return this.sendValidationEmail(email);
+							if (!validation) {
+								return this.sendValidationEmail(email);
+							}
+							return Promise.resolve();
 						});
 					});
 				}

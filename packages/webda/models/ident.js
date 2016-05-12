@@ -1,6 +1,15 @@
 "use strict";
 
+/**
+ * First basic model for Ident
+ * Will evolve with version 0.2 and Model addition
+ *
+ * @class
+ */
 class Ident {
+	/**
+	 * @ignore
+	 */
 	constructor (type, uid, accessToken, refreshToken) {
 		this.type = type;
 		this.uid = uid;
@@ -16,14 +25,6 @@ class Ident {
 
 	setUser(user) {
 		this.user = user;
-	}
-
-	setMetadatas(meta) {
-		this.metadatas = meta;
-	}
-
-	getMetadatas() {
-		return this.metadatas;
 	}
 }
 

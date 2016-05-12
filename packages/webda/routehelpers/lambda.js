@@ -1,7 +1,18 @@
 "use strict";
-const CustomRouteHelper = require("./custom.js");
+const Executor = require("../services/executor.js");
 
-class LambdaRouteHelper extends CustomRouteHelper {
+/**
+ * Execute a Lambda function and return the result, it is usefull for remote moddas already exposed
+ *
+ * Configuration
+ * '/url': {
+ *    'type': 'lambda',
+ *    'arn': 'arn::....'	
+ * }
+ *
+ */
+class LambdaRouteHelper extends Executor {
+	/** @ignore */
 	constructor(webda, name, params) {
 		super(webda, name, params);
 		if (params.accessKeyId === undefined || params.accessKeyId === '') {
@@ -11,6 +22,36 @@ class LambdaRouteHelper extends CustomRouteHelper {
 			this._params.secretAccessKey = params.secretAccessKey = process.env["WEBDA_AWS_SECRET"];
 		}
 	};
+
+	/**
+	 * Handle the result from the Lambda function
+	 * Should be the form known by Webda
+	 *
+	 * @ignore
+	 */
+	handleResult(data) {
+		try {
+			// Should parse JSON
+	      	var result = JSON.parse(data);		
+	      	if (result.code == undefined) {
+	      		result.code = 200;
+	      	}
+	      	if (result.headers == undefined) {
+	      		result.headers = {}
+	      	}
+	      	if (result.headers['Content-Type'] == undefined) {
+	      		result.headers['Content-Type'] = 'application/json';
+	      	}
+	    } catch(err) {
+	      	console.log("Error '" + err + "' parsing result: " + data);
+	      	throw 500;
+		}
+		this.writeHead(result.code, result.headers);
+		if (result.body != undefined) {
+	    	this.write(result.body);
+	    }
+	    this.end();
+	}
 
 	execute() {
 		return new Promise( (resolve, reject) => {
@@ -24,7 +65,7 @@ class LambdaRouteHelper extends CustomRouteHelper {
 			var params = {};
 			params["_http"] = this._route._http;
 			var params = {
-				FunctionName: this._route.arn, /* required */
+				FunctionName: this._route.arn,
 				ClientContext: null,
 				InvocationType: 'RequestResponse',
 				LogType: 'None',

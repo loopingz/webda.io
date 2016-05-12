@@ -8,40 +8,21 @@ const path = require('path');
 const cookieSerialize = require("cookie").serialize;
 
 /**
-var vm = require('vm');
-var fs = require('fs');
-
-var safe_require = function(mod) {
-  var code    = fs.readFileSync(require.resolve(mod));
-  var sandbox = {
-    console : console,
-    module  : {},
-    require : function(mod) {
-      // as a simple example, we'll block any requiring of the 'net' module, but
-      // you could implement some sort of whitelisting/blacklisting for modules 
-      // that are/aren't allowed to be loaded from your module:
-      if (mod === 'net') {
-        throw Error('not allowed');
-      }
-      // if the module is okay to load, load it:
-      return require.apply(this, arguments);
-    }
-  };
-  vm.runInNewContext(code, sandbox, __filename);
-  return sandbox.module.exports;
-};
-
-var mod = safe_require('./mod1');
-**/
-
+ * This is the main class of the framework, it handles the routing, the services initialization and resolution
+ *
+ * @class Webda
+ */
 class Webda {
+	/**
+	 * @params {Object} config - The configuration Object, if undefined will load the configuration file
+	 */
 	constructor (config) {
+		/** @ignore */
 		this._vhost = '';
 		// on the spot routehelpers
 		this._routehelpers = {};
 		this._routehelpers['debug']=require('./services/executor');
 		this._routehelpers['lambda']=require('./routehelpers/lambda');
-		this._routehelpers['custom']=require('./routehelpers/custom');
 		this._routehelpers['inline']=require('./routehelpers/inline');
 		this._routehelpers['string']=require('./routehelpers/string');
 		this._routehelpers['resource']=require('./routehelpers/resource');
@@ -58,22 +39,31 @@ class Webda {
 		this._config = this.loadConfiguration(config);
 	}
 
+	/**
+	 * Execute a file in sandbox mode
+	 *
+	 * @param {Object} executor The executor to give to the file
+	 * @param {String} path The path of the file to executre
+	 */
 	require(executor, path) {
 		var code = fs.readFileSync(require.resolve(path));
-		this.sandbox(code);
+		this.sandbox(executore, code);
 	}
 
+	/**
+	 *
+	 * @param {Object} executor The executor to expose as executor
+	 * @param {String} code to execute
+	 */
 	sandbox(executor, code) {
 		var sandbox = {
 			// Should be custom console
 			console : console,
-			webda: executor,
+			webda: executor._webda,
 			executor: executor,
 			module  : {},
 			require : function(mod) {
-				// as a simple example, we'll block any requiring of the 'net' module, but
-		      	// you could implement some sort of whitelisting/blacklisting for modules 
-		      	// that are/aren't allowed to be loaded from your module:
+				// We need to add more control here
 		      	if (mod === 'net') {
 		        	throw Error('not allowed');
 		      	}
@@ -85,6 +75,13 @@ class Webda {
 		return sandbox.module.exports(executor);
 	}
 
+	/**
+	 * Load the configuration, 
+	 *
+	 * @protected
+	 * @ignore Useless for documentation
+	 * @param {Object|String} 
+	 */
 	loadConfiguration(config) {
 		if (typeof(config) === 'object') {
 			return config;
@@ -92,7 +89,7 @@ class Webda {
 		var fs = require('fs');
 		if (config !== undefined) {
 			if (fs.existsSync(config)) {
-				console.log("Load config.js");
+				console.log("Load " + config);
 				return require(config);
 			}
 		}
@@ -115,20 +112,42 @@ class Webda {
 		}
 	}
 
+	/**
+	 * Init a specific vhost and set the context to this vhost
+	 *
+	 * @protected
+	 * @ignore
+	 */
 	setHost(vhost) {
 		this._vhost = vhost
 		this.initHosts(vhost, this._config[vhost]);
 	}
 
+	/**
+	 * Get the current session object
+	 *
+	 * @returns A session object
+	 */
 	getSession() {
 		return this._currentExecutor.session;
 	}
 
+	/**
+	 * Get a new session object initiate with the data object
+	 * Can be used to create short term encrypted data, the keys of the session should be refresh frequently
+	 * 
+	 * @returns A new session
+	 */
 	getNewSession(data) {
 		const SecureCookie = require("./utils/cookie.js");
 		return new SecureCookie({secret: 'WebdaSecret'}, data);
 	}
 
+	/**
+	 * Check for a service name and return the wanted singleton or undefined if none found
+	 *
+	 * @param {String} name The service name to retrieve
+	 */
 	getService(name) {
 		if (name === undefined) {
 			name = "_default";
@@ -142,6 +161,10 @@ class Webda {
 		}
 	}
 
+	/**
+	 * Get the route from a method / url
+	 * @private
+	 */
 	getRouteFromUrl(config, method, url) {
 		for (let i in config._pathMap) {
 			var routeUrl = config._pathMap[i].url;
@@ -176,6 +199,18 @@ class Webda {
 	    }
 	}
 
+	/**
+	 * Get the executor corresponding to a request
+	 * It can be usefull in unit test so you can test the all stack
+	 *
+	 * @protected
+	 * @param {String} vhost The host for the request
+	 * @param {String} method The http method
+	 * @param {String} url The url path
+	 * @param {String} protocol http or https
+	 * @param {String} port Port can be usefull for auto redirection
+	 * @param {Object} headers The headers of the request
+	 */
 	getExecutor(vhost, method, url, protocol, port, headers) {
 		// Check vhost
 		var wildcard = false;
@@ -199,11 +234,23 @@ class Webda {
 	    return this.getServiceWithRoute(route);
 	}
 
+	/**
+	 * This should return a "turning" secret with cache and a service to modify it every x mins
+	 * WARNING The security is lower without this "turning" secret, you can still set the global.secret parameter
+	 *
+	 * Dont rely on this method, it will probably disapear to avoid secret leak 
+	 *
+	 * @deprecated
+	 * @returns {String} Current secret
+	 */
 	getSecret() {
 		// For now a static config file but should have a rolling service secret
 		return this._config[this._vhost].global.secret;
 	}
 
+	/**
+	 * @private
+	 */
 	getServiceWithRoute(route) {
 		var name = route.executor;
 		var executor = this.getService(name);
@@ -217,6 +264,9 @@ class Webda {
 	    return executor;
 	}
 
+	/**
+	 * @private
+	 */
 	initURITemplates(config) {
 		// Prepare tbe URI parser
 	  	for (var map in config) {
@@ -226,28 +276,54 @@ class Webda {
 	  	}
 	}
 
+	/**
+	 * Flush the headers to the response, no more header modification is possible after that
+	 * @abstract
+	 */
 	flushHeaders(executor) {
 		console.log("Abstract implementation of Webda");
 	}
 
+	/**
+	 * Flush the entire response to the client
+	 */
 	flush(executor) {
 		console.log("Abstract implementation of Webda");
 	}
 
+	/**
+  	 * Launch the executor and save it
+	 * @ignore
+	 * @protected
+	 */
 	execute(executor) {
 		this._currentExecutor = executor;
 		return executor.execute();
 	}
 
+	/**
+	 * Handle the 404
+	 * @ignore
+	 * @protected
+	 */
 	handle404() {
 
 	}
 
+	/**
+	 * @private
+	 */
 	extendParams(local, wider) {
 		var params = _extend({}, wider);
 		return _extend(params, local);
 	}
 
+	/**
+	 * Encode the cookie into a header form
+	 *
+	 * @ignore
+	 * @protected
+	 */
 	getCookieHeader(executor) {
 		var session = executor.session;
 		var params = {'path':'/', 'domain':executor._route._http.host, 'httpOnly': true, secure: false, maxAge: 86400*7};
@@ -272,6 +348,10 @@ class Webda {
 		return res;
 	}
 
+	/**
+	 * @ignore
+	 *
+	 */
 	initServices(config) {
 		var services = config.global.services;
 		if (config.global._services === undefined) {

@@ -6,7 +6,24 @@ const crypto = require('crypto');
 const Binary = require("./binary");
 const _extend = require('util')._extend;
 
+/**
+ * S3Binary handles the storage of binary on a S3 bucket
+ *
+ * The structure used for now is 
+ * /{hash}/data
+ * /{hash}/{targetStore}_{uuid}
+ * The challenge is stored on the metadata of the data object
+ *
+ * It takes parameters
+ *  bucket: "bucketName"
+ *  accessKeyId: ""
+ *  secretAccessKey: ""
+ *  region: ""
+ *
+ * See Binary the general interface
+ */
 class S3Binary extends Binary {
+	/** @ignore */
 	constructor(webda, name, params) {
 		super(webda, name, params);
 		if (params.accessKeyId === undefined) {

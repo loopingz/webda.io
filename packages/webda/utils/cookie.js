@@ -16,7 +16,20 @@ function decrypt(algo, pass, text){
   return dec;
 }
 
+/**
+ * Object that handle the session
+ *
+ * To get stateless server the session is encrypted inside a cookie, so you should not store large amount of data in it
+ * If you need big session then i would suggest to use a Memcache store with the user.uuid as a key
+ *
+ * It is part of the core framework implementation, you should not rely on any method of this object, as the implementation can change if needed
+ * An object session is exposed by the framework, so use this one ( for now it is a SecureCookie.getProxy() but can evolve )
+ * 
+ * The object use Object.observe if available or try Proxy in other case, so old JS VM won't run it
+ */
 class SecureCookie {
+
+	/** @ignore */
 	constructor(options, data) {
 
 		this._algo = "aes-256-ctr";

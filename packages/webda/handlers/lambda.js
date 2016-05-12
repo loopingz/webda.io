@@ -5,8 +5,20 @@ var SecureCookie = require('../utils/cookie');
 var _extend = require("util")._extend;
 const cookieParse = require("cookie").parse;
 
+/**
+ * The Lambda entrypoint for Webda
+ *
+ * This take the input coming from the API Gateway to transform it and analyse it with Webda
+ * Once execution is done, it will format the result in a way that the API Gateway will output the result
+ * You need to use the Webda deployment so the API Gateway has all the right templates in place
+ *
+ * @class
+ */
 class LambdaServer extends Webda {
 
+	/**
+	 * @ignore
+	 */
 	flushHeaders (executor) {
 		var headers = executor._headers;
 		var session = executor.session;
@@ -22,6 +34,11 @@ class LambdaServer extends Webda {
 		}
 	}
 
+	/**
+	 * Need to unit test this part, with sample of data coming from the API Gateway
+	 *
+	 * @ignore
+	 */
 	handleRequest(event, context, callback) {
 		var cookies = {};
 		var rawCookie = event.params.header.Cookie;

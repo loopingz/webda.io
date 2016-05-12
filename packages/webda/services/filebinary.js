@@ -3,7 +3,21 @@ const Binary = require('./binary');
 const fs = require("fs");
 const _extend = require('util')._extend;
 
+/**
+ * FileBinary handles the storage of binary on a hard drive
+ *
+ * The structure used for now is 
+ * /folder/{hash}/data
+ * /folder/{hash}/{targetStore}_{uuid}
+ * /folder/{hash}/challenge
+ *
+ * It takes one parameter
+ *  folder: "path"
+ *
+ * See Binary the general interface
+ */
 class FileBinary extends Binary {
+	/** @ignore */
 	constructor(webda, name, params) {
 		super(webda, name, params);
 		if (!fs.existsSync(params.folder)) {

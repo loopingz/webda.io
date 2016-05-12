@@ -2,7 +2,20 @@
 const Store = require("./store")
 var fs = require("fs");
 
+
+/**
+ * Simple file storage of object
+ *
+ * Storage structure
+ *   /folder/{uuid}
+ *
+ *
+ * Parameters:
+ *  folder: to store to
+ *
+ */
 class FileStore extends Store {
+	/** @ignore */
 	constructor(webda, name, options) {
 		super(webda, name, options);
 		if (!fs.existsSync(options.folder)) {

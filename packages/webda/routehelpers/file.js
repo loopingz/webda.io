@@ -1,7 +1,22 @@
 "use strict";
-const CustomRouteHelper = require("./custom.js");
+const Executor = require("../services/executor.js");
 
-class FileRouteHelper extends CustomRouteHelper {
+/**
+ * Execute a custom JS file, it is almost like a custom Service except that this will not be a singleton
+ * And it will be instantiate every call
+ *
+ * Configuration
+ * '/url': {
+ *    'type': 'file',
+ *    'file': './customroute.js'	
+ * }
+ *
+ */
+class FileRouteHelper extends Executor {
+
+	/**
+	 * @ignore
+	 */
 	constructor(webda, name, params) {
 		super(webda, name, params);
 		this._type = "FileExecutor";

@@ -25,12 +25,37 @@ var Strategies = {
 	"twitter": {strategy: require('passport-twitter').Strategy, promise: true}
 }
 
+/**
+ * This class is known as the Authentication module
+ * It handles OAuth for several providers for now (Facebook, Google, Amazon, GitHub and Twitter)
+ * It also handles email authentication with prevalidation or postvalidation of the email
+ *
+ * It requires two Store to work one 'idents' and one 'users'
+ *
+ * The parameters are 
+ *
+ *	 providerName: {
+ *     clientID: '...',
+ *     clientSecret: '...',
+ *     scope: ''
+ *   },
+ *   email: {
+ *	    postValidation: true|false   // If postValidation=true, account created without email verification
+ *   }
+ *   expose: 'url' // By default /auth
+ *
+ */
 class PassportExecutor extends Executor {
+	/** @ignore */
 	constructor(webda, name, params) {
 		super(webda, name, params);
 		this._type = "PassportExecutor";
 	}
 
+	/**
+	 * @ignore
+	 * Setup the default routes
+	 */
 	init(config) {
 		var url = this._params.expose;
 		if (url === undefined) {
@@ -54,6 +79,7 @@ class PassportExecutor extends Executor {
 		config[url] = {"method": ["GET"], "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.authenticate};
 		config[url + "/callback{?code,*otherQuery}"] = {"method": "GET", "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.callback};
 	}
+
 
 	callback() {
 		var providerConfig = this._params.providers[this._params.provider];

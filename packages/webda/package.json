@@ -38,7 +38,9 @@
     "utils"
   ],
   "devDependencies": {
-    "mocha": ">=2.2.5"
+    "mocha": ">=2.2.5",
+    "mr-doc": "^3.2.1",
+    "mr-doc-theme-cayman": "^1.4.1"
   },
   "homepage": "https://github.com/loopingz/webda"
 }

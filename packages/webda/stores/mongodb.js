@@ -3,7 +3,16 @@ const Store = require("./store")
 
 var MongoClient = require('mongodb').MongoClient
 
+
+/**
+ * Store Objects in MongoDB
+ *
+ * Parameters:
+ *   mongo: 'mongodb://127.0.0.1:27017' // If not found try to read WEBDA_MONGO_URL env variable
+ *
+ */
 class MongoStore extends Store {
+	/** @ignore */
 	constructor(webda, name, options) {
 		super(webda, name, options);
 		this._connectPromise = undefined;

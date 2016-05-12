@@ -4,7 +4,39 @@ var stores = {};
 var uuid = require('node-uuid');
 const Executor = require("../services/executor");
 
+/**
+ * This class handle NoSQL storage and mapping (duplication) between NoSQL object
+ * TODO Create the mapping documentation
+ *
+ * It use basic CRUD, and can expose those 4 to through HTTP
+ *
+ * It emits events :
+ *   Store.Save: Before saving the object
+ *   Store.Saved: After saving the object
+ *   Store.Update: Before updating the object
+ *   Store.Updated: After updating the object
+ *   Store.Delete: Before deleting the object
+ *   Store.Deleted: After deleting the object
+ *   Store.Get: When getting the object
+ *
+ * Mapping:
+ *
+ *
+ * Parameters
+ *
+ *  map: { ... } 
+ *  expose: { // Enable the HTTP exposure
+ *      url: '', // The url to expose to by default it is service name in lowercase ( users for example )
+ *      restrict: {
+ *	       create: true, // Don't expose the POST /users
+ *         update: true, // Don't expose the PUT /users/{uuid}
+ *         delete: true, // Don't expose the DELETE /users/{uuid}
+ *         get: true // Don't expose the GET /users/{uuid}
+ *      }	 
+ *   }
+ */
 class Store extends Executor {
+	/** @ignore */
 	constructor (webda, name, options) {
 		super(webda, name, options);
 		this._name = name;
@@ -87,7 +119,15 @@ class Store extends Executor {
 		return uuid.v4();
 	}
 
+	/**
+	 * Save an object
+	 *
+	 * @param {Object} Object to save
+	 * @param {String} Uuid to use, if not specified take the object.uuid or generate one if not found
+	 * @return {Promise} with saved object
+	 */
 	save(object, uid) {
+		/** @ignore */
 		return new Promise( (resolve, reject) => {
 			if (uid == undefined) {
 				uid = object.uuid;
@@ -123,7 +163,16 @@ class Store extends Executor {
 		throw "AbstractStore has no _save";
 	}
 
+	/**
+	 * Update an object
+	 *
+	 * @param {Object} Object to save
+	 * @param {String} Uuid to use, if not specified take the object.uuid or generate one if not found
+	 * @param {Boolean} reverseMap internal use only, for disable map resolution
+	 * @return {Promise} with saved object
+	 */
 	update(object, uid, reverseMap) {
+		/** @ignore */
 		return new Promise( (resolve, reject) => {
 			if (uid == undefined) {
 				uid = object.uuid;
@@ -336,7 +385,14 @@ class Store extends Executor {
 		return this.delete(obj);
 	}
 
-	delete(uid, no_map) {
+	/**
+	 * Delete an object
+	 *
+	 * @param {String} uuid to delete
+	 * @return {Promise} the deletion promise
+	 */
+	delete(uid) {
+		/** @ignore */
 		var to_delete;
 		return new Promise( (resolve, reject) => {
 			if (typeof(uid) === 'object') {
@@ -381,11 +437,27 @@ class Store extends Executor {
 		});
 	}
 
+	/**
+	 * Check if an object exists
+	 * @abstract
+	 * @params {String} uuid of the object
+	 */
+	exists(uid) {
+		/** @ignore */
+	}
+
 	_delete(uid) {
 		throw "AbstractStore has no _delete";
 	}
 
+	/**
+	 * Get an object
+	 *
+	 * @param {String} uuid to delete
+	 * @return {Promise} the object retrieved ( can be undefined if not found )
+	 */
 	get(uid) {
+		/** @ignore */
 		return this._get(uid).then ( (object) => {
 			this.emit('Store.Get', {'object': object, 'store': this});
 			return Promise.resolve(object);

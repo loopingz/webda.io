@@ -6,8 +6,90 @@ const path = require("path");
 const mime = require('mime-types');
 const crypto = require("crypto");
 
+/**
+ * This is an abstract service to represent a storage of files
+ * The binary allow you to expose this service as HTTP ( therefore is an executor )
+ * It needs an object to attach the binary too
+ *
+ * The Binary storage should store only once a binary and reference every object that are used by this binary, so it can be cleaned.
+ *
+ * 
+ * @see FileBinary
+ * @see S3Binary
+ *
+ * @exports
+ * @abstract
+ * @class Binary
+ */
 class Binary extends Executor {
 
+	/**
+	 * When you store a binary to be able to retrieve it you need to store the information into another object
+	 *  
+	 * If you have a User object define like this : User = {'name': 'Remi', 'uuid': 'Loopingz'}
+	 * You will call the store(userStore, 'Loopingz', 'images', filedata, {'type':'profile'})
+	 * After a successful call the object will look like User = {'name': 'Remi', 'uuid': 'Loopingz', 'images': [{'type':'profile','hash':'a12545...','size':1245,'mime':'application/octet'}]}
+	 *
+	 *
+	 * @param {Store} targetStore The store that handles the object to attach binary to
+	 * @param {String} object The object uuid to get from the store
+	 * @param {String} property The object property to add the file to
+	 * @param {Object} file The file by itself
+	 * @param {Object} metadatas to add to the binary object
+	 * @emits 'binaryCreate'
+	 */
+	store(targetStore, object, property, file, metadatas) {
+		throw Error("AbstractBinary has no store method");
+	}
+
+	/**
+	 * The store can retrieve how many time a binary has been used
+	 */
+	getUsageCount(hash) {
+		throw Error("AbstractBinary has no store method");
+	}
+
+	/**
+	 * Update a binary 
+	 *
+	 *
+	 * @param {Store} targetStore The store that handles the object to attach binary to
+	 * @param {String} object The object uuid to get from the store
+	 * @param {String} property The object property to add the file to
+	 * @param {Number} index The index of the file to change in the property
+	 * @param {Object} file The file by itself
+	 * @param {Object} metadatas to add to the binary object
+	 * @emits 'binaryUpdate'
+	 */
+	update(targetStore, object, property, index, file, metadatas) {
+		throw Error("AbstractBinary has no update method");
+	}
+
+	/**
+	 * Update a binary 
+	 *
+	 *
+	 * @param {Store} targetStore The store that handles the object to attach binary to
+	 * @param {String} object The object uuid to get from the store
+	 * @param {String} property The object property to add the file to
+	 * @param {Number} index The index of the file to change in the property
+	 * @emits 'binaryDelete'
+	 */
+	delete(targetStore, object, property, index) {
+		throw Error("AbstractBinary has no update method");
+	}
+
+	/**
+	 * Get a binary 
+	 *
+	 * @param {Object} info The reference stored in your target object
+	 * @emits 'binaryGet'
+	 */
+	get(info) {
+		this.emit('binaryGet', {'object': info, 'service': this});
+	}
+
+	/** @ignore */
 	init(config) {
 		this.initMap(this._params.map);
 		if (this._params.expose) {
@@ -84,21 +166,7 @@ class Binary extends Executor {
 		this.emit('binaryCreate', {'object': fileObj, 'service': this});
 	}
 
-	store(targetStore, object, property, file, metadatas) {
-		throw Error("AbstractBinary has no store method");
-	}
-
-	getUsageCount(hash) {
-		throw Error("AbstractBinary has no store method");
-	}
-
-	update(targetStore, object, property, index, file, metadatas) {
-		throw Error("AbstractBinary has no update method");
-	}
-
-	delete(targetStore, object, property, index) {
-		throw Error("AbstractBinary has no update method");
-	}
+	
 
 	_validChallenge(challenge) {
 		var re = /[0-9A-Fa-f]{64}/g;
@@ -133,9 +201,6 @@ class Binary extends Executor {
 		this.emit('binaryUpdate', {'object': info, 'service': this});
 	}
 
-	get(info) {
-		this.emit('binaryGet', {'object': info, 'service': this});
-	}
 
 	cascadeDelete(info, uuid) {
 
@@ -198,10 +263,10 @@ class Binary extends Executor {
       	url += "?c={challenge}&h={hash}";      	
       	config[url] = {"method": ["PUT"], "executor": this._name, "expose": expose};
 	}
+
 	// Executor side
 	execute() {
 		var self = this;
-		var req = this._rawRequest;
 		var storeName = this._lowerMaps[this._params.store];
 		if (storeName === undefined) {
 			throw 404;
@@ -230,7 +295,7 @@ class Binary extends Executor {
 			}
 		
 			if (this._route._http.method == "POST") {
-				return this.store(targetStore, object, self._params.property, this._getFile(req), req.body).then(() => {
+				return this.store(targetStore, object, self._params.property, this._getFile(this), this.body).then(() => {
 					return targetStore.get(object.uuid);
 				}).then ((object) => {
 					this.write(object);
@@ -276,7 +341,7 @@ class Binary extends Executor {
 				if (object[self._params.property][this._params.index].hash !== this._params.hash) {
 					throw 412;
 				}
-				return this.update(targetStore, object, self._params.property, this._params.index, this._getFile(req), req.body).then(() => {
+				return this.update(targetStore, object, self._params.property, this._params.index, this._getFile(this), this.body).then(() => {
 					return targetStore.get(object.uuid);
 				}).then ( (object) => {
 					this.write(object);

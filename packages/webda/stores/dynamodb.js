@@ -3,7 +3,18 @@ const Store = require("./store")
 
 const AWS = require('aws-sdk');
 
+/**
+ * DynamoStore handles the DynamoDB
+ *
+ * Parameters:
+ *   accessKeyId: '' // try WEBDA_AWS_KEY env variable if not found
+ *   secretAccessKey: '' // try WEBDA_AWS_SECRET env variable if not found
+ *   table: ''
+ *   region: ''
+ *
+ */
 class DynamoStore extends Store {
+	/** @ignore */
 	constructor(webda, name, params) {
 		super(webda, name, params);
 		if (params.accessKeyId === undefined || params.accessKeyId === '') {
@@ -109,7 +120,8 @@ class DynamoStore extends Store {
 	}
 
 	install(params) {
-		/*
+		/* Code sample for later use
+		@ignore
 		if (params.region !== undefined) {
 			AWS.config.update(({region: params.region});
 		}
@@ -120,7 +132,8 @@ class DynamoStore extends Store {
 	}
 
 	uninstall(params) {
-		/*
+		/* Code sample for later use
+		@ignore
 		if (params.region !== undefined) {
 			AWS.config.update(({region: params.region});
 		}

@@ -8,7 +8,11 @@
 			"moddas": {
 				"Test/Mailer": {
 					"type": "local",
-					"require": "./test/debugmailer"
+					"require": "./test/moddas/debugmailer"
+				},
+				"Test/VoidStore": {
+					"type": "local",
+					"require": "./test/moddas/voidstore"
 				}
 			},
 			"services": {

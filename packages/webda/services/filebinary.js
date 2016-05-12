@@ -78,9 +78,10 @@ class FileBinary extends Binary {
 	delete(targetStore, object, property, index) {
 		return new Promise( (resolve, reject) => {
 			var hash = object[property][index].hash;
-			this.deleteSuccess(targetStore, object, property, index);
+			return this.deleteSuccess(targetStore, object, property, index);
+		}).then( (updated) => {
 			this._cleanUsage(hash, object.uuid);
-			resolve();
+			return Promise.resolve(updated);
 		});
 	}
 
@@ -108,35 +109,27 @@ class FileBinary extends Binary {
 	}
 
 	store(targetStore, object, property, file, metadatas) {
-		return new Promise( (resolve, reject) => {
-			this._checkMap(targetStore._name, property);
-			this._prepareInput(file);
-			file = _extend(file, this._getHashes(file.buffer));
-			if (fs.existsSync(this._getPath(file.hash))) {
-				this._touch(this._getPath(file.hash, targetStore._name + "_" + object.uuid));
-				this.storeSuccess(targetStore, object, property, file, metadatas);
-				return resolve();
-			}
-			this._store(file, targetStore, object)
-			this.storeSuccess(targetStore, object, property, file, metadatas);
-			return resolve();
-		});
+		this._checkMap(targetStore._name, property);
+		this._prepareInput(file);
+		file = _extend(file, this._getHashes(file.buffer));
+		if (fs.existsSync(this._getPath(file.hash))) {
+			this._touch(this._getPath(file.hash, targetStore._name + "_" + object.uuid));
+			return this.storeSuccess(targetStore, object, property, file, metadatas);
+		}
+		this._store(file, targetStore, object)
+		return this.storeSuccess(targetStore, object, property, file, metadatas);
 	}
 
 	update(targetStore, object, property, index, file, metadatas) {
-		return new Promise( (resolve, reject) => {
-			this._checkMap(targetStore._name, property);
-			this._prepareInput(file);
-			file = _extend(file, this._getHashes(file.buffer));
-			if (fs.existsSync(this._getPath(file.hash))) {
-				this._touch(this._getPath(file.hash, targetStore._name + "_" + object.uuid));
-				this.updateSuccess(targetStore, object, property, index, file, metadatas);
-				return resolve();
-			}
-			this._store(file, targetStore, object)
-			this.updateSuccess(targetStore, object, property, index, file, metadatas);
-			return resolve();
-		});
+		this._checkMap(targetStore._name, property);
+		this._prepareInput(file);
+		file = _extend(file, this._getHashes(file.buffer));
+		if (fs.existsSync(this._getPath(file.hash))) {
+			this._touch(this._getPath(file.hash, targetStore._name + "_" + object.uuid));
+			return this.updateSuccess(targetStore, object, property, index, file, metadatas);
+		}
+		this._store(file, targetStore, object)
+		return this.updateSuccess(targetStore, object, property, index, file, metadatas);
 	}
 
 	___cleanData() {

@@ -360,7 +360,6 @@ class Webda {
 		if (services === undefined) {
 			return;
 		}
-
 	    // Construct services
 	    for (var service in services) {
 	    	var type = services[service].type;
@@ -385,7 +384,7 @@ class Webda {
 		        		serviceConstructor = include;
 		        	}
 		      	} catch (ex) {
-		      		console.log(ex);
+		      		console.trace(ex);
 		        	continue;
 		      	}
 		    }

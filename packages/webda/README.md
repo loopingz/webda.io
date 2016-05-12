@@ -21,8 +21,8 @@ Here is also the Youtube video to run it
 
 
 ```
-npm install webda
-node_module/.bin/./webda config
+npm install -g webda-shell
+webda config
 ```
 
 You'll have the configuration UI available, where you can create a service, use a service, or create a custom API resource.
@@ -37,17 +37,17 @@ You'll have the configuration UI available, where you can create a service, use 
 #### Run it
 
 ```
-node_module/./bin/webda serve
+webda serve
 ```
 
 ## Deploy it to the cloud
 
 First you need to create a deployment, from the configuration UI
 
-Then just type :
+Then just use the Deploy button on the UI or the webda bin :
 
 ```
-node_module/./bin/webda deploy Test
+webda deploy Test
 ```
 
 Your new API is ready to rock !
@@ -149,8 +149,8 @@ A Modda is a module defined and available publicly via Webda Marketplace, it all
 
 
 ## Documentation
-....
 
+You can find the Javascript documentation on github.io
 
 ## Requirements
 
@@ -160,7 +160,12 @@ Node.js >= 5
 
 Known Lambda limitation
 
-Handle only one header for HTTP code > 200 and it is used for Set-Cookie except for 302 which use Location, cannot output data if code > 200, might need to specify which is normal returnCode per method ... ? 
+The API Gateway limit to only one normal returnCode, so if you return any return code that is not planned, then we cannot set the cookie and update the sesssion, nor we can send cookie.
+
+You can specify the normal return code of a route by adding a configuration for AWS : 
+aws: { defaultCode: 302, headersMap: ['header1', 'header2']}
+
+Here we specify that this route will return 302 by default and will set http headers header1 and header2.
 
 ## Licence
 

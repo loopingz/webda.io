@@ -79,8 +79,11 @@ class S3Binary extends Binary {
 
 	delete(targetStore, object, property, index) {
 		var hash = object[property][index].hash;
-		this.deleteSuccess(targetStore, object, property, index);
-		return this._cleanUsage(hash, object.uuid);
+		return this.deleteSuccess(targetStore, object, property, index).then ( (update) => {
+			return this._cleanUsage(hash, object.uuid).then ( () => {
+				return Promise.resolve(update);
+			});	
+		});
 	}
 
 	cascadeDelete(info, uuid) {
@@ -132,13 +135,10 @@ class S3Binary extends Binary {
 			return s3obj.putObject().promise();
 		}).then (function () {
 			if (index === undefined) {
-				self.storeSuccess(targetStore, object, property, file, metadatas);
+				return self.storeSuccess(targetStore, object, property, file, metadatas);
 			} else {
-				self.updateSuccess(targetStore, object, property, index, file, metadatas);
+				return self.updateSuccess(targetStore, object, property, index, file, metadatas);
 			}
-			return Promise.resolve();
-		}).catch (function (err) {
-			console.log(err);
 		});
 	}
 

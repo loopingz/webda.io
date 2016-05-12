@@ -184,9 +184,10 @@ class Executor extends Service {
 	 * @ignore
 	 * Used by Webda framework to set the body, session and output stream if known
 	 */
-	setContext(body, session, stream) {
+	setContext(body, session, stream, files) {
 		this.session = session;
 		this.body = body;
+		this.files = files;
 		this._headers = {};
 		this._flushHeaders = false;
 		this._returnCode = 204;

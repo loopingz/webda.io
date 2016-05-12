@@ -101,10 +101,10 @@ class Binary extends Executor {
 		if (map == undefined || map._init) {
 			return;
 		}
-		this._lowerMaps = {};
 		var maps = {}
+		this._lowercaseMaps = {};
 		for (var prop in map) {
-			this._lowerMaps[prop.toLowerCase()]=prop;
+			this._lowercaseMaps[prop.toLowerCase()]=prop;
 			var reverseStore = this._webda.getService(prop);
 			if (reverseStore === undefined || ! reverseStore instanceof Store) {
 				console.log("Can't setup mapping as store doesn't exist");
@@ -162,8 +162,13 @@ class Binary extends Executor {
 		fileObj['challenge']=file.challenge;
 		update[property].push(fileObj);
 		// Dont handle reverseMap
-		targetStore.update(update, object.uuid, false);
-		this.emit('binaryCreate', {'object': fileObj, 'service': this});
+		console.log("storeSuccess");
+		return targetStore.update(update, object.uuid, false).then ( (updated) => {
+			console.log("youhou");
+			this.emit('binaryCreate', {'object': fileObj, 'service': this});
+			console.log("shouldReturn", updated);
+			return Promise.resolve(updated);
+		});
 	}
 
 	
@@ -196,9 +201,11 @@ class Binary extends Executor {
 		var object_uid = object.uuid;
 		var info = update[property][index];
 		update[property][index]=fileObj;
-		targetStore.update(update, object.uuid, false);
-		this.cascadeDelete(info, object_uid);
-		this.emit('binaryUpdate', {'object': info, 'service': this});
+		return targetStore.update(update, object.uuid, false).then( (updated) => {
+			this.cascadeDelete(info, object_uid);
+			this.emit('binaryUpdate', {'object': info, 'service': this});
+			return Promise.resolve(updated);
+		});
 	}
 
 
@@ -211,8 +218,10 @@ class Binary extends Executor {
 		var info = object[property][index];
 		update[property] = object[property];
 		update[property].splice(index, 1);
-		targetStore.update(update, object.uuid, false);
-		this.emit('binaryDelete', {'object': info, 'service': this});
+		return targetStore.update(update, object.uuid, false).then ( (updated) => {
+			this.emit('binaryDelete', {'object': info, 'service': this});
+			return Promise.resolve(updated)
+		});
 	}
 
 	_getFile(req) {
@@ -245,47 +254,53 @@ class Binary extends Executor {
 		}
       	// Need index to update or get
       	var url = expose.url + "/{store}/{uid}/{property}/{index}";
-      	config[url] = {"method": ["GET"], "executor": this._name, "expose": expose};
+      	config[url] = {"method": ["GET"], "executor": this._name, "expose": expose, "_method": this.httpRoute};
       	
       	// No need the index to add file
       	url = expose.url + "/{store}/{uid}/{property}";
-      	config[url] = {"method": ["POST"], "executor": this._name, "expose": expose};
+      	config[url] = {"method": ["POST"], "executor": this._name, "expose": expose, "_method": this.httpPost};
 
       	// Add file with challenge
       	url += "?c={challenge}&h={hash}";
-      	config[url] = {"method": ["POST"], "executor": this._name, "expose": expose};
+      	config[url] = {"method": ["POST"], "executor": this._name, "expose": expose, "_method": this.httpRoute};
 
 		// Need hash to avoid concurrent delete
       	url = expose.url + "/{store}/{uid}/{property}/{index}/{hash}";      	
-      	config[url] = {"method": ["DELETE", "PUT"], "executor": this._name, "expose": expose};
+      	config[url] = {"method": ["DELETE", "PUT"], "executor": this._name, "expose": expose, "_method": this.httpRoute};
 
       	// Challenged upload
       	url += "?c={challenge}&h={hash}";      	
-      	config[url] = {"method": ["PUT"], "executor": this._name, "expose": expose};
+      	config[url] = {"method": ["PUT"], "executor": this._name, "expose": expose, "_method": this.httpRoute};
 	}
 
-	// Executor side
-	execute() {
-		var self = this;
-		var storeName = this._lowerMaps[this._params.store];
-		if (storeName === undefined) {
-			throw 404;
-		}
-		var map = this._params.map[storeName];
-		var found = false;
-		for (var i in map) {
-			if (map[i] === this._params.property) {
-				found = true;
-				break;
-			}
-		}
-		if (!found) {
+	httpPost() {
+		let targetStore = this._verifyMapAndStore();
+		return targetStore.get(this._params.uid).then ((object) => {
+			console.log("storing file");
+			return this.store(targetStore, object, this._params.property, this._getFile(this), this.body).then((object) => {
+				console.log("writing answer");
+				this.write(object);
+				return Promise.resolve();
+			});
+		});
+	}
+
+	_verifyMapAndStore() {
+		// To avoid any probleme lowercase everything
+		var map = this._params.map[this._lowercaseMaps[this._params.store.toLowerCase()]];
+		if (map === undefined || map.indexOf(this._params.property) == -1) {
 			throw 404;	
 		}
-		var targetStore = this.getService(storeName);
+		var targetStore = this.getService(this._params.store);
 		if (targetStore === undefined) {
 			throw 404;
 		}
+		return targetStore;
+	}
+
+	// Executor side
+	httpRoute() {
+		let targetStore = this._verifyMapAndStore();
 		return targetStore.get(this._params.uid).then ((object) => {
 			if (object === undefined) {
 				throw 404;
@@ -293,17 +308,10 @@ class Binary extends Executor {
 			if (object[this._params.property] !== undefined && typeof(object[this._params.property]) !== 'object') {
 				throw 403;
 			}
-		
-			if (this._route._http.method == "POST") {
-				return this.store(targetStore, object, self._params.property, this._getFile(this), this.body).then(() => {
-					return targetStore.get(object.uuid);
-				}).then ((object) => {
-					this.write(object);
-		    	});
-			} else if (this._route._http.method == "GET") {
-				if (object[this._params.property] === undefined || object[this._params.property][this._params.index] === undefined) {
-					throw 404;
-				}
+			if (object[this._params.property] === undefined || object[this._params.property][this._params.index] === undefined) {
+				throw 404;
+			}
+			if (this._route._http.method == "GET") {
 				var file = object[this._params.property][this._params.index];
 				this.writeHead(200, {
 		        	'Content-Type': file.mimetype===undefined?'application/octet-steam':file.mimetype,
@@ -320,32 +328,20 @@ class Binary extends Executor {
 					});
 				    readStream.pipe(this._stream);
 				});
-			} else if (this._route._http.method == "DELETE") {
-				if (object[this._params.property] === undefined || object[this._params.property][this._params.index] === undefined) {
-					throw 404;
-				}
+			} else {
 				var update = {};
-				if (object[self._params.property][this._params.index].hash !== this._params.hash) {
+				if (object[this._params.property][this._params.index].hash !== this._params.hash) {
 					throw 412;
 				}
-				return this.delete(targetStore, object, self._params.property, index).then (() => {
-					return targetStore.get(self._params.uid);
-				}).then ((object) => {
-					this.write(object);
-				});
-			} else if (this._route._http.method == "PUT") {
-				if (object[this._params.property] === undefined || object[this._params.property][this._params.index] === undefined) {
-					throw 404;
+				if (this._route._http.method == "DELETE") {
+					return this.delete(targetStore, object, this._params.property, index).then ((object) => {
+						this.write(object);
+					});
+				} else if (this._route._http.method == "PUT") {
+					return this.update(targetStore, object, this._params.property, this._params.index, this._getFile(this), this.body).then((object) => {
+						this.write(object);
+		    		});
 				}
-				var update = {};
-				if (object[self._params.property][this._params.index].hash !== this._params.hash) {
-					throw 412;
-				}
-				return this.update(targetStore, object, self._params.property, this._params.index, this._getFile(this), this.body).then(() => {
-					return targetStore.get(object.uuid);
-				}).then ( (object) => {
-					this.write(object);
-		    	});
 			}
 		});
 	}

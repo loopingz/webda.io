@@ -141,10 +141,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       }
 
+      pre {
+        background-color: #fafafa;
+        left: 0px;
+        right: 0px;
+        top: 252px;
+        bottom: 56px;
+        padding-bottom: 0px;
+        border: 0px solid #fafafa;
+        margin: 0px;
+        position: absolute;
+        z-index: -1;
+        line-height: 10px;
+        overflow: scroll;
+      }
+
       .buttons {
         position: absolute;
         bottom: 0px;
         right: 0px;
+        height: 40px;
         left: 0px;
         border-top: 1px solid var(--light-primary-color);
       }
@@ -171,7 +187,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </section>
         </iron-pages>
       <div id="logo"><img src="../../images/touch/icon-96x96.png" /></div>
-      <pre style="line-height: 6px;">
+      <pre>
       <template is="dom-repeat" items="[[stepper.output]]">
         {{item}}
       </template>
@@ -180,7 +196,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-button dialog-dismiss>Cancel</paper-button>
         <paper-button disabled="[[!stepper.finished]]" dialog-confirm>Ok</paper-button>
       </div>
-      </div>
+    </div>
   </template>
   <script>
     (function() {
@@ -188,6 +204,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       Polymer({
         is: 'deployment-progress-dialog',
         behaviors: [Polymer.PaperDialogBehavior],
+        observers: [
+          'updateOutput(stepper.output[0])',
+        ],
+        updateOutput: function() {
+          console.log("updateOutput");
+        },
         stepUpdate: function() {
           if (this.current > this.stepper.max) {
             this.$.content.classList.remove('active');

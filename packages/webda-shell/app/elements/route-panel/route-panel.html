@@ -20,10 +20,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div>
     <label>Route Helper</label>
     <div>{{helper}}</div>
-    <route-edit-panel route="{{component}}"></route-edit-panel>
+    <div><route-edit-panel route="{{component}}"></route-edit-panel></div>
     <template is="dom-if" if="{{hasParams}}">
+    <div>
       <label>Configuration</label>
       <juicy-jsoneditor mode="tree" modes=["view","tree","text","form"] json="{{component.params}}"></juicy-jsoneditor>
+      </div>
     </template>
     </div>
   </template>
@@ -39,12 +41,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.helper = helpers[this.component.executor];
           // Copy the component as we dont want to edit it globally
           this.hasParams = this.component.executor != "string";
+          this.dirty = false;
+        },
+        ready: function() {
+          this.addEventListener("change", (evt) => {
+            this.dirty = true;
+          });
         },
         properties: {
           dirty: {
             type: Boolean,
             value: false,
-            readonly: true
+            notify: true
           },
           component: {
             type: Object,

@@ -15,6 +15,7 @@ class ConfigurationService extends Executor {
 		config['/api/services'] = {"method": ["GET"], "executor": this._name, "_method": this.crudService};
 		config['/api/services/{name}'] = {"method": ["PUT", "DELETE", "POST"], "executor": this._name, "_method": this.crudService};
 		config['/api/routes'] = {"method": ["GET", "POST", "PUT", "DELETE"], "executor": this._name, "_method": this.crudRoute};
+		config['/api/configurations/Global'] = {"method": ["PUT"], "executor": this._name, "_method": this.updateGlobal};
 		config['/api/deployments'] = {"method": ["GET", "POST"], "executor": this._name, "_method": this.restDeployment};
 		config['/api/deployments/{name}'] = {"method": ["DELETE", "PUT"], "executor": this._name, "_method": this.restDeployment};
 		config['/api/deploy/{name}'] = {"method": ["GET"], "executor": this._name, "_method": this.deploy};
@@ -40,7 +41,10 @@ class ConfigurationService extends Executor {
 	}
 
 	fileBrowser(prefix) {
-		
+
+		if (prefix === undefined) {
+			prefix = './';
+		}		
 		if (this._params.path.indexOf("..") >= 0 || this._params.path[0] == '/') {
 			// For security reason prevent the .. or /
 			throw 403;
@@ -81,6 +85,11 @@ class ConfigurationService extends Executor {
 			fs.unlinkSync(path);
 			return;
 		}
+	}
+
+	updateGlobal() {
+		this._config.global.params = this.body.params;
+		this.save();
 	}
 
 	getServices() {
@@ -173,9 +182,9 @@ class ConfigurationService extends Executor {
 			this.save();
 			return;
 		}
-		var url = this.body._namel;
+		var url = this.body._name;
+		delete this.body.url;
 		this.cleanBody();
-		return;
 		if (this._route._http.method === "POST" && this._config[url] != null) {
 			throw 409;
 		}
@@ -214,12 +223,10 @@ class ConfigurationService extends Executor {
 				throw 409;
 			}
 			return this._webda.getService("deployments").save(this.body);
-		} else if (this._http.method == "PUT") {
+		} else if (this._route._http.method == "PUT") {
 			this.cleanBody();
-			if (this._http.url.startsWith("/deployments") && this.params.vhost !== undefined) {
-				return this._webda.getService("deployments").update(this.body);
-			}
-		} else if (this._http.method == "DELETE") {
+			return this._webda.getService("deployments").update(this.body);
+		} else if (this._route._http.method == "DELETE") {
 			if (!this._depoyments[this._params.name] || this._params.name === "Global") {
 				throw 409;
 			}
@@ -395,6 +402,7 @@ class WebdaConfigurationServer extends WebdaServer {
 		this._deployOutput = [];
 
 		this.deployChild.stdout.on('data', (data) => {
+		   data = data.trim();
 		   this._deployOutput.push(data);
 		  for (let i in this.conns) {
 		  	this.conns[i].sendText(data);

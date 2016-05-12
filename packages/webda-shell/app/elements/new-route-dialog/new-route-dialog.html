@@ -69,6 +69,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <p>&nbsp;</p>
       </paper-dialog-scrollable>
       <div class="buttons">
+        <span id="error">[[error]]</span>
         <paper-button dialog-dismiss>Cancel</paper-button>
         <paper-button disabled="[[invalidForm]]" on-tap="create">Create</paper-button>
       </div>
@@ -81,7 +82,37 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         is: 'new-route-dialog',
         behaviors: [Polymer.PaperDialogBehavior],
         create: function() {
-
+          this.$.ajax.method = 'POST';
+          // Duplicate in case of multiple route executor selection
+          let route = {};
+          route.params = {};
+          route._name = this.route.url;
+          route.method = this.route.method;
+          route.executor = this.route.executor;
+          // Filter attributes depending on the choise made
+          if (this.route.executor == "string") {
+            route.params.result = this.route.params.result;
+            route.params.mime = this.route.params.mime;
+          } else if (this.route.executor == "inline") {
+            route.callback = this.route.callback;
+          } else if (this.route.executor == "lambda") {
+            route.arn = this.route.arn;
+          } else if (this.route.executor == "file") {
+            route.file = this.route.file;
+          }
+          this.$.ajax.body = route;
+          this.$.ajax.url = app.getUrl('/routes');
+          this.$.ajax.contentType = 'application/json';
+          this.$.ajax.generateRequest().completes.then( () => {
+            this._updateClosingReasonConfirmed(true);
+            this.close(); 
+          }, (err) => {
+            if (err.message.endsWith("409")) {
+              this.error = 'This name is already used'
+            } else {
+              this.error = err.message;
+            }
+          });
         },
         validateForm: function() {
           this.invalidForm = !(this.route && this.route.url && this.route.executor && this.route.url !== '' && this.route.method.length > 0);
@@ -100,7 +131,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         ready: function() {
           this.node = this;
           this.validateForm();
-          this.route = {method: []};
+          this.route = {method: [], params: {}, callback: "function(executor) {\n\texecutor.write('Hello World !');\n}"};
           this.code = "module.exports = function(executor) { \n\texecutor.getStore('myStore').get('uuid').then( (object) => {\n\t\texecutor.write(object);\n\t}).catch ( (err) => {\n\t\texecutor.writeHead(500);\n\t\texecutor.write('Error occurs on sample method');\n\t});\n};";
           this.callback = this.code;
         }

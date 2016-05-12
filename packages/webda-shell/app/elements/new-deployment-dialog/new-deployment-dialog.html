@@ -78,9 +78,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </template>
       </div>
       <label>Configuration</label>
-      <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{configuration.params}}"></juicy-jsoneditor>
+      <juicy-jsoneditor mode="tree" modes=["view","tree","text","form"] json="{{configuration.params}}"></juicy-jsoneditor>
       <label>Deployement resources</label>
-      <juicy-jsoneditor class$="[[jsonValidation]]" mode="tree" modes=["view","tree","text","form"] json="{{configuration.resources}}"></juicy-jsoneditor>
+      <juicy-jsoneditor mode="tree" modes=["view","tree","text","form"] json="{{configuration.resources}}"></juicy-jsoneditor>
       <div class="buttons">
         <span id="error">[[error]]</span>
         <paper-button dialog-dismiss>Cancel</paper-button>
@@ -110,6 +110,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.$.ajax.url = app.getUrl('/deployments');
           this.$.ajax.contentType = 'application/json';
           this.$.ajax.generateRequest().completes.then( () => {
+            this._updateClosingReasonConfirmed(true);
             this.close(); 
             this.configuration = resetValue();
             this.old.removeAttribute("selected");

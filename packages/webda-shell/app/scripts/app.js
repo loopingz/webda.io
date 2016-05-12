@@ -34,14 +34,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     this.$.ajax.contentType = 'application/json';
     if (app.currentComponent._type === "Route") {
       this.$.ajax.body = app.currentComponent;
-      this.$.ajax.url = app.getUrl('/routes');
+      this.$.ajax.url = app.getUrl('/routes');  
     } else {
       this.$.ajax.url = app.getUrl('/' + app.currentComponent._type.toLowerCase() + 's/' + app.currentComponent._name);
       this.$.ajax.body = app.currentComponent;
     }
     this.$.ajax.generateRequest().completes.then( () => {
       // Refresh for now but should be changed
-      app.currentComponent = undefined;
+      app.$.toast.text = 'Updated';
+      app.$.toast.show();
       this.refresh();
     }, () => {
       app.$.toast.text = 'An error occurs';
@@ -50,7 +51,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   }
 
   app.newObject = function () {
-    console.log(app.route);
     if (app.route == "routes") {
       app.$.newRouteDialog.open();
     } else if (app.route == "services") {
@@ -156,6 +156,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   app.selectComponent = function( component ) {
     // Duplicate the original component to be able to modify it
     app.currentComponent = JSON.parse(JSON.stringify(component));
+    // Not yet ready, need to improve the fire change on editor ( dont fire them if component is detached )
     app.dirty = true;
   }
 
@@ -253,11 +254,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       app.$.deploymentProgress.open();
 
-      /**
-      Use for debug purpose
-      app.i = 0;
-      setTimeout(app.fakeOutput, 1000);
-      */      
+      
+      //Use for debug purpose
+      //app.i = 0;
+      //setTimeout(app.fakeOutput, 1000);
+      
     });
 
     var fake = ["[1/4] Start to deploy","[2/4] Lambda","[3/4] Gateway","[4/4] Permission", "DONE"]

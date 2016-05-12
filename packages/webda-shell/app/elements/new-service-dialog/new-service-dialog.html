@@ -176,6 +176,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.$.ajax.url = app.getUrl('/services/' + this.name);
           this.$.ajax.contentType = 'application/json';
           this.$.ajax.generateRequest().completes.then( () => {
+            this._updateClosingReasonConfirmed(true);
             this.close(); 
             this.service = resetValue();
             this.old.removeAttribute("selected");

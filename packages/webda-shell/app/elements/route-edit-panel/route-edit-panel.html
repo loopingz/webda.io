@@ -15,28 +15,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <dom-module id="route-edit-panel">
   <template>
     <style>
+      section {
+        float: initial;
+      }
     </style>
     <style include="shared-styles">
     </style>
-    <div>
+    <div style="min-height: 300px;">
     <label style="color:#737373; font-size:12px;" class="paper-input">Method</label>
     <div><url-method-selector id="methods" methods="{{route.method}}" toggles></url-method-selector></div>
     <iron-pages attr-for-selected="data-type" selected="{{route.executor}}">
       <section data-type="lambda">
         <paper-input value="{{route.arn}}" placeholder="arn:aws:lambda:us-west-2:277719386420:function:webda-test" label="Lambda Function ARN"></paper-input>
       </section>
-      <section data-type="inline" style="float: left;">
-        <div>
-          <label class="paper-input">Code</label>
-          <juicy-ace-editor style="min-height: 250px;" mode="ace/mode/javascript" theme="ace/theme/dawn">{{route.callback}}</juicy-ace-editor>
-        </div>
+      <section data-type="inline">
+        <label class="paper-input">Code</label>
+        <juicy-ace-editor id="editor" style="min-height: 250px; width: 100%;" on-change="updateValues" mode="ace/mode/javascript" theme="ace/theme/dawn">{{route.callback}}</juicy-ace-editor>
       </section>
       <section data-type="file">
         <require-panel file="{{route.file}}"></require-panel>
       </section>
       <section data-type="string">
-        <paper-input placeholder="echo" value="{{route.content}}" label="Content"></paper-input>
-        <paper-input placeholder="text/plain" value="{{route.mimetype}}" label="Content-Type"></paper-input>
+        <paper-input placeholder="echo" value="{{route.params.result}}" label="Content"></paper-input>
+        <paper-input placeholder="text/plain" value="{{route.params.mime}}" label="Content-Type"></paper-input>
       </section>
     </iron-pages>
     </div>
@@ -47,14 +48,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       'use strict';
       Polymer({
         is: 'route-edit-panel',
-        init: function() {
+        updateValues: function() {
           if (!this.route) return;
-        },
-        
-        ready: function() {
-          this.addEventListener('change', (evt) => {
-            console.log('changed');
-          });
+          var juicy = this.$$("#editor");
+          if (juicy && juicy.editor) {
+            this.route.callback = juicy.editor.getValue();
+            this.fire('change');
+          }
         },
         properties: {
           dirty: {
@@ -64,7 +64,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           route: {
             type: Object,
             notify: true,
-            observer: 'init'
+            observer: 'updateValues'
           }
         }
       });

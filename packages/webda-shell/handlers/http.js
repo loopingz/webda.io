@@ -52,7 +52,7 @@ class WebdaServer extends Webda {
 			this.display404(res);
 			return;
 		} 
-		executor.setContext(req.body, req.session, res);
+		executor.setContext(req.body, req.session, res, req.files);
 		return Promise.resolve(this.execute(executor)).then( () => {
 			if (!executor._ended) {
 				executor.end();
@@ -115,6 +115,9 @@ class WebdaServer extends Webda {
 		app.use(bodyParser.json());
 		app.use(bodyParser.urlencoded({ extended: true }));
 		app.use(upload.array('file'));
+		// Will lower the limit soon, we should have a library that handle multipart file
+		app.use(bodyParser.raw({type: '*/*', limit: '50mb'}));
+
 		app.set('trust proxy', 'loopback, 10.0.0.0/8');
 		app.use(this.handleRequest.bind(this));
 

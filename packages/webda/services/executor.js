@@ -192,6 +192,7 @@ class Executor extends Service {
 		this._flushHeaders = false;
 		this._returnCode = 204;
 		this._body = undefined;
+		this.statusCode = undefined;
 		this._ended = false;
 		this._stream = stream;
 		this._buffered = false;

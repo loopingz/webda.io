@@ -65,7 +65,7 @@ class LambdaRouteHelper extends Executor {
 			var params = {};
 			params["_http"] = this._route._http;
 			var params = {
-				FunctionName: this._route.arn,
+				FunctionName: this._params.arn,
 				ClientContext: null,
 				InvocationType: 'RequestResponse',
 				LogType: 'None',

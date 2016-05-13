@@ -384,7 +384,8 @@ class Webda {
 		        		serviceConstructor = include;
 		        	}
 		      	} catch (ex) {
-		      		console.trace(ex);
+		      		console.log("Create service " + service + " failed");
+		      		console.log(ex.stack);
 		        	continue;
 		      	}
 		    }
@@ -408,6 +409,8 @@ class Webda {
 	        		config.global._services[service].init(config);
 	        	} catch (err) {
 	        		config.global._services[service]._initException = err;
+	        		console.log("Init service " + service + " failed");
+	        		console.log(err.stack);
 	        	}
 	      	}
 	    }

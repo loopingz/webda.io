@@ -41,19 +41,85 @@ class S3Binary extends Binary {
 		AWS.config.update({accessKeyId: params.accessKeyId, secretAccessKey: params.secretAccessKey});
 	}
 
-	init() {
-		super.init();
+	init(config) {
+		super.init(config);
 		this._s3 = new AWS.S3();
 	}
 
-	getRedirectUrl(info) {
-		var params = {Bucket: 'myBucket', Key: 'myKey', Body: 'MD5'};
-		return s3.getSignedUrl('putObject', params);
+	initRoutes(config, expose) {
+		super.initRoutes(config, expose);
+		// Will use getRedirectUrl so override the default route
+		var url = this._url + "/{store}/{uid}/{property}/{index}";
+      	config[url] = {"method": ["GET"], "executor": this._name, "expose": expose, "_method": this.getRedirectUrl, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}};
 	}
 
-	getRedirectUrl(info) {
-		var params = {Bucket: 'myBucket', Key: 'myKey'};
-		return s3.getSignedUrl('getObject', params);
+	putRedirectUrl() {
+		if (this.body.hash === undefined) {
+			console.log("Request not conform", this.body);
+			return Promise.reject();
+		}
+		let targetStore = this._verifyMapAndStore();
+		var base64String = new Buffer(this.body.hash, 'hex').toString('base64');
+		var params = {Bucket: this._params.bucket, Key: this._getPath(this.body.hash), 'ContentType': 'application/octet-stream', 'ContentMD5': base64String};
+		// List bucket
+		return this._s3.listObjectsV2({Bucket: this._params.bucket, Prefix: this._getPath(this.body.hash, '')}).promise().then( (data) => {
+			console.log(data.Contents);
+			let foundMap = false;
+			let foundData = false;
+			for (let i in data.Contents) {
+				if (data.Contents[i].Key.endsWith('data')) foundData = true;
+				if (data.Contents[i].Key.endsWith(this._params.uid)) foundMap = true;
+			}
+			if (foundMap) {
+				if (foundData) return Promise.resolve();
+				return this.getSignedUrl('putObject', params);
+			}
+			return targetStore.get(this._params.uid).then( (object) => {
+				return this.updateSuccess(targetStore, object, this._params.property, 'add', this.body, this.body.metadatas);
+			}).then ( (updated) => {
+				return this.putMarker(this.body.hash, this._params.uid, this._params.store);
+			}).then ( () => {
+				return this.getSignedUrl('putObject', params);
+			});
+		});
+	}
+
+	putMarker(hash, uuid, storeName) {
+		var s3obj = new AWS.S3({params: {Bucket: this._params.bucket, Key: this._getPath(hash, uuid), Metadata: {'x-amz-meta-store': storeName}}});
+		return s3obj.putObject().promise();
+	}
+
+	getSignedUrl(action, params) {
+		return new Promise( (resolve, reject) => {
+			let callback = function(err, url) {
+				console.log('res:',url);
+				if (err) {
+					reject(err);
+				}
+				return resolve(url);
+			}
+			this._s3.getSignedUrl(action, params, callback);
+		});
+	}
+
+	getRedirectUrl() {
+		let targetStore = this._verifyMapAndStore();
+		return targetStore.get(this._params.uid).then( (obj) => {
+			if (obj === undefined || obj[this._params.property] === undefined || obj[this._params.property][this._params.index] === undefined) {
+				throw 404;
+			}
+			let info = obj[this._params.property][this._params.index];
+			var params = {Bucket: this._params.bucket, Key: this._getPath(info.hash)};
+			params.Expires = 30; // A get should not take more than 30s
+			this.emit('binaryGet', {'object': info, 'service': this});
+			params.ResponseContentDisposition = "attachment; filename=" + info.name;
+			params.ResponseContentType = info.mimetype;
+			return this.getSignedUrl('getObject', params);
+		}).then( (url) => {
+			this.writeHead(302, {'Location': url});
+			this.end();
+			return Promise.resolve();
+		});
 	}
 
 	get(info) {
@@ -115,13 +181,16 @@ class S3Binary extends Binary {
 		this._checkMap(targetStore._name, property);
 		this._prepareInput(file);
 		file = _extend(file, this._getHashes(file.buffer));
-		return this._get(file.hash).then(function(data) {
+		if (index === undefined) {
+			index = "add";
+		}
+		return this._get(file.hash).then((data) => {
 			if (data === undefined) {
 				var metadatas = {};
 				metadatas['x-amz-meta-challenge']=file.challenge;
 				var s3obj = new AWS.S3({params: {Bucket: self._params.bucket, Key: self._getPath(file.hash), "Metadata": metadatas}});
-				return new Promise(function(resolve, reject) {
-					s3obj.upload({Body: zlib.deflateSync(file.buffer)}, function (err, data) {
+				return new Promise((resolve, reject) => {
+					s3obj.upload({Body: file.buffer}, function (err, data) {
 						if (err) {
 							return reject(err);
 						}
@@ -130,15 +199,10 @@ class S3Binary extends Binary {
 				});
 			}
 			return Promise.resolve();
-		}).then(function () {
-			var s3obj = new AWS.S3({params: {Bucket: self._params.bucket, Key: self._getPath(file.hash, object.uuid), Metadata: {'x-amz-meta-store': targetStore._name}}});
-			return s3obj.putObject().promise();
-		}).then (function () {
-			if (index === undefined) {
-				return self.storeSuccess(targetStore, object, property, file, metadatas);
-			} else {
-				return self.updateSuccess(targetStore, object, property, index, file, metadatas);
-			}
+		}).then(() => {
+			return this.putMarker(file.hash, object.uuid, targetStore._name);
+		}).then (() => {
+			return self.updateSuccess(targetStore, object, property, index, file, metadatas);
 		});
 	}
 
@@ -149,7 +213,7 @@ class S3Binary extends Binary {
 	}
 
 	___cleanData() {
-		return this._s3.listObjects({Bucket: this._params.bucket}).promise().then( (data) => {
+		return this._s3.listObjectsV2({Bucket: this._params.bucket}).promise().then( (data) => {
 			var params = {Bucket: this._params.bucket, Delete: { Objects: []}};
 			for (var i in data.Contents) {
 				params.Delete.Objects.push({Key: data.Contents[i].Key});

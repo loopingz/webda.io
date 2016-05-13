@@ -1,62 +1,85 @@
 #!/usr/bin/env node
 "use strict";
 var fs = require('fs');
+var child_process = require('child_process');
 
 if (fs.existsSync("node_modules/webda")) {
+  // Local module of webda exists use it
+  console.log("Using local webda");
   global.__webda = process.cwd() + '/node_modules/webda';  
+} else if (fs.existsSync("core.js") && fs.existsSync("services/executor.js")) {
+  console.log("Using local webda development version");
+  // We are in a webda development directory
+  global.__webda = process.cwd();
 } else {
+  console.log("Using embedded webda");
+  // Use the webda-shell default webda
   global.__webda = 'webda';
 }
 
 var config;
 var server;
 if (fs.existsSync('handlers/config.js')) {
-  config = require('../handlers/config');
-  server = require('../handlers/http');
+  global.__webda_shell = "..";
 } else {
-  config = require('webda-shell/handlers/config');
-  server = require('webda-shell/handlers/http');
+  global.__webda_shell = "webda-shell";  
 }
+config = require(global.__webda_shell + '/handlers/config');
+server = require(global.__webda_shell + '/handlers/http');
+
 var arg = process.argv[2];
 
 if ('--help' === arg || null == arg) {
-  console.log('\n  USAGE: webda [config|serve|deploy]\n\n');
+  console.log('\n  USAGE: webda [config|serve|deploy|debug]\n\n');
   console.log('  --help                     Display this message and exit\n');
   process.exit(0);
 }
 
 var args = process.argv.slice(2);
 var webda;
+var server_pid;
 switch (arg) {
   case 'serve':
     webda = new server();
     return webda.serve(18080);
   case 'debug':
-    var excepts = ["dist", "node_modules", "deployments"];
+    let launchServe = function() {
+      if (server_pid) {
+        console.log("Refresh server");
+        server_pid.kill();
+      } else {
+        console.log("Launch webda serve in debug mode");
+      }
+      var args = [];
+      args.push(__dirname + "/webda");
+      args.push("serve");
+      server_pid = require("child_process").spawn('node', args);
+    }
+    var excepts = ["dist", "node_modules", "deployments", "test"];
     // Set a watcher
     var timeout;
     var listener = function(event, filename) {
-      webda._http.close();
-      webda = new server();
-      webda.serve(18080);
+      launchServe();
     }
     var watchs = fs.readdirSync(".")
     for (let file in watchs) {
       let filename = watchs[file];
       if (filename.indexOf(".") === 0) continue;
+      if (excepts.indexOf(filename) >= 0) continue;
       if (filename.endsWith(".js")) {
         fs.watch(filename, {permanent: true}, listener);
-        console.log("watch: " + filename);
+        continue;
+      }
+      if (!fs.existsSync(filename)) {
         continue;
       }
       let stat = fs.statSync(filename);
       if (stat.isDirectory()) {
         fs.watch(filename, {permanent: true, resursive: true}, listener);
-        console.log("watchdir: " + filename);
       }
     }
-    webda = new server();
-    return webda.serve(18080);
+    launchServe();
+    return;
   default:
     webda = new config();
     // get the admin ui could be nice

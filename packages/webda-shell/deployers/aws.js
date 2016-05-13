@@ -150,6 +150,8 @@ class AWSDeployer extends Deployer {
 				archive.file("deployers/aws_entrypoint.js", {name:"entrypoint.js"})	
 			} else if (fs.existsSync("node_modules/webda/deployers/aws_entrypoint.js")) {
 				archive.file("node_modules/webda/deployers/aws_entrypoint.js", {name:"entrypoint.js"})	
+			} else if (fs.existsSync(global.__webda_shell + "/deployers/aws_entrypoint.js")) {
+				archive.file(global.__webda_shell + "/deployers/aws_entrypoint.js", {name:"entrypoint.js"})	
 			}
 			archive.finalize();
 		});
@@ -215,7 +217,7 @@ class AWSDeployer extends Deployer {
 	}
 
 	updateLambdaFunction() {
-		console.log("Updating Lambda function");
+		this.stepper("Updating Lambda function");
 		var params = {FunctionName: this._lambdaFunctionName, ZipFile: this._package, Publish: true};
 		return this._awsLambda.updateFunctionCode(params).promise().then( (fct) => {
 			var params = {
@@ -236,7 +238,7 @@ class AWSDeployer extends Deployer {
 				if (fcts.Functions[i].FunctionName == this._lambdaFunctionName) {
 					this._lambdaFunction = fcts.Functions[i];
 					if (fcts.Functions[i].CodeSha256 == this._packageHash) {
-						console.log("Not updating Lambda Function as it has not changed");
+						this.stepper("Not updating Lambda Function as it has not changed");
 						// No need to update the lambda function
 						return Promise.resolve();
 					}

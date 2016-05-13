@@ -30,8 +30,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         is: 'service-panel',
         updateParams: function() {
           // Not optimal
+          var newService = {};
           for (let i in this.params) {
+            newService[i] = this.params[i];
             this.component[i] = this.params[i];
+          }
+          for (let i in this.component) {
+            if (i == "require" || i == "type") {
+              continue;
+            }
+            if (i.startsWith('_')) continue;
+            if (newService[i] === undefined) {
+              delete this.component[i];
+            }
           }
         },
         filterComponent: function () {

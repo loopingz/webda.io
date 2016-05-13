@@ -402,6 +402,10 @@ class WebdaConfigurationServer extends WebdaServer {
 		this._deployOutput = [];
 
 		this.deployChild.stdout.on('data', (data) => {
+			if (!data) return;
+			if (data instanceof Buffer) {
+				data = data.toString();
+			}
 		   data = data.trim();
 		   this._deployOutput.push(data);
 		  for (let i in this.conns) {

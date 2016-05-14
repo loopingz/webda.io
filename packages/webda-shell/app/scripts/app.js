@@ -142,6 +142,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     return res;
   }
 
+  app.resetComponent = function() {
+    console.log("resetComponent");
+    app.currentComponent = undefined;
+  }
+
   app.mapServices = function(evt) {
     console.log(app.services);
     for (var i in app.services) {
@@ -152,6 +157,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   app.jsonify = function(obj) {
     console.log(JSON.stringify(obj, jsonFilter, 4));
     return JSON.stringify(obj, jsonFilter, 4).trim();
+  }
+
+  app.displayJson = function (json) {
+    app.json = json;
+    app.$.displayJsonDialog.open();
   }
 
   app.selectComponent = function( component ) {

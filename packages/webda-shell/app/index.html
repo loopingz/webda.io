@@ -118,7 +118,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <!-- Main Toolbar -->
         <paper-toolbar id="mainToolbar">
           <paper-icon-button id="paperToggle" icon="menu" paper-drawer-toggle></paper-icon-button>
-          <paper-tabs attr-for-selected="data-route" selected="{{route}}" noink>
+          <paper-tabs attr-for-selected="data-route" selected="{{route}}" noink on-iron-select="resetComponent">
             <paper-tab data-route="routes"><iron-icon icon="explore"></iron-icon>Routes</paper-tab>
             <paper-tab data-route="services"><iron-icon icon="extension"></iron-icon>Services</paper-tab>
             <paper-tab data-route="deployments"><iron-icon icon="cloud-upload"></iron-icon>Deployments</paper-tab>
@@ -134,7 +134,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <h2>{{currentComponent._name}}</h2>
           </div>
           <template is="dom-if" if="{{currentComponent}}">
-            <iron-pages attr-for-selected="data-type" selected="{{currentComponent._type}}">
+            <iron-pages attr-for-selected="data-type" selected="{{currentComponent._type}}" fallback-selection="Welcome">
               <section data-type="Deployment">
                 <deployment-panel component="{{currentComponent}}" dirty="{{dirty}}"></deployment-panel>
               </section>
@@ -146,6 +146,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               </section>
               <section data-type="Route">
                 <route-panel id="routeComponent" component="{{currentComponent}}" dirty="{{dirty}}"></route-panel>                
+              </section>
+              <section data-type="Welcome">
               </section>
             </iron-pages>
           </template>
@@ -165,6 +167,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <new-route-dialog modal id="newRouteDialog"></new-route-dialog>
     <new-service-dialog modal id="newServiceDialog" moddas="[[moddas]]"></new-service-dialog>
     <new-deployment-dialog modal id="newDeploymentDialog"></new-deployment-dialog>
+    <paper-dialog modal id="displayJsonDialog" style="width: 95%;min-height: 95%;">
+    <h2>Resolved parameters</h2>
+    <div style="margin-top: 20px; width: "><juicy-jsoneditor id="params" mode="tree" modes=["view","tree","text","form"] json="[[json]]"></juicy-jsoneditor></div>
+
+      <div class="buttons">
+        <paper-button dialog-dismiss>Ok</paper-button>
+      </div>
+    </paper-dialog>
 
     <!-- Deployment progress dialog -->
     <deployment-progress-dialog modal action="[[deployAction]]" current="[[deployCurrent]]" stepper="[[deployStepper]]" id="deploymentProgress"></deployment-progress-dialog>

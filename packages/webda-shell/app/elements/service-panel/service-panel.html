@@ -18,7 +18,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <label>Type</label>
     <div>[[type]]</div>
-    <paper-icon-button icon="list" title="heart" style="float:right; margin-top: -16px;"></paper-icon-button>
+    <paper-icon-button icon="list" title="View full parameters" on-tap="showFull" style="float:right; margin-top: -16px;"></paper-icon-button>
     <label>Configuration</label>
     <juicy-jsoneditor id="params" mode="tree" modes=["view","tree","text","form"] json="{{params}}"></juicy-jsoneditor>
     [[errors]]
@@ -30,6 +30,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       Polymer({
         is: 'service-panel',
+        showFull: function() {
+          app.displayJson(app.getRealConfiguration(this.component));
+        },
         updateParams: function() {
           // Not optimal
           var newService = {};
@@ -49,6 +52,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.validate();
         },
         validate: function() {
+          if (!this.component) return;
           var type = this.component.type;
           if (type === undefined) {
             type = this.component._name;

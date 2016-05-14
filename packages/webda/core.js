@@ -149,8 +149,8 @@ class Webda {
 	 * @param {String} name The service name to retrieve
 	 */
 	getService(name) {
-		if (name === undefined) {
-			name = "_default";
+		if (!this._config || !name) {
+			return;
 		}
 		name = name.toLowerCase();
 		if (this._config[this._vhost] !== undefined) {

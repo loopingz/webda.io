@@ -25,7 +25,7 @@ class DynamoStore extends Store {
 		}
 		this._connectPromise = undefined;
 		if (params.table === undefined || params.accessKeyId === undefined || params.secretAccessKey === undefined) {
-			throw Error("Need to define a table,accessKeyId,secretAccessKey at least");
+			this._createException = "Need to define a table,accessKeyId,secretAccessKey at least";
 		}
 		if (params.region !== undefined) {
 			AWS.config.update({region:params.region});

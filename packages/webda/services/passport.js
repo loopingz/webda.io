@@ -66,7 +66,7 @@ class PassportExecutor extends Executor {
 		this._identsStore = this.getService("idents");
 		this._usersStore = this.getService("idents");
 		if (this._identsStore === undefined || this._usersStore === undefined) {
-			throw Error("Unresolved dependency on idents and users services");
+			this._initException = "Unresolved dependency on idents and users services";
 		}
 		// List authentication configured
 		config[url] = {"method": ["GET", "DELETE"], "executor": this._name, "_method": this.listAuthentications};

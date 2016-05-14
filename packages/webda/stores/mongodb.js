@@ -19,8 +19,8 @@ class MongoStore extends Store {
 		if (options.mongo === undefined || options.mongo === '') {
 			this._params.mongo = options.mongo = process.env["WEBDA_MONGO_URL"];
 		}
-		if (options.collection === undefined || options.mongo === undefined) {
-			throw Error("collection and url must be setup");
+		if (!webda._configurationMode && options.collection === undefined || options.mongo === undefined) {
+			this._createException = "collection and url must be setup";
 		}
 	}
 

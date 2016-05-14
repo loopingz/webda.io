@@ -26,6 +26,7 @@ class S3Binary extends Binary {
 	/** @ignore */
 	constructor(webda, name, params) {
 		super(webda, name, params);
+		/** Used for test purpose */
 		if (params.accessKeyId === undefined) {
 			this._params.accessKeyId = params.accessKeyId = process.env["WEBDA_AWS_KEY"];
 		}
@@ -33,7 +34,7 @@ class S3Binary extends Binary {
 			this._params.secretAccessKey = params.secretAccessKey = process.env["WEBDA_AWS_SECRET"];
 		}
 		if (params.bucket === undefined || params.accessKeyId === undefined || params.secretAccessKey === undefined) {
-			throw Error("Need to define a bucket,accessKeyId,secretAccessKey at least");
+			this._createException = "Need to define a bucket,accessKeyId,secretAccessKey at least";
 		}
 		if (params.region !== undefined) {
 			AWS.config.region = params.region;

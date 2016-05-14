@@ -236,15 +236,30 @@ It is recommanded to add some documentation link to a markdown file, so we can a
 
 You can find the Javascript documentation on github.io
 
+## Configuration resolution
+
+To ease up the configuration of an application we came up with the follow configuration resolution schema.
+
+You have the global configuration for the application, that is override by the deployment configuration, that is override by the local element configuration, and finally override by the deployment element configuration.
+
+![image](http://webda.io/images/schemas/configuration_resolution.png)
+
 ## Configuration UI
 
 Here is some screenshots of the ui
 
-Routes
+#### Routes
 
-Services
+| ![image](http://webda.io/images/schemas/ui_route_create.png) | ![image](http://webda.io/images/schemas/ui_route_config.png) |
 
-Deployments
+#### Services
+
+| ![image](http://webda.io/images/schemas/ui_service_create.png) | ![image](http://webda.io/images/schemas/ui_service_config.png) |
+
+#### Deployments
+
+| ![image](http://webda.io/images/schemas/ui_deployment_create.png) | ![image](http://webda.io/images/schemas/ui_deployment_config.png) |
+| ![image](http://webda.io/images/schemas/ui_deployment_deploy.png) | |
 
 ## Requirements
 

@@ -18,6 +18,31 @@ body {
 	border-color: #f00 !important;
 }
 
+
+.invalid .jsoneditor {
+	border-color: #f00 !important;	
+}
+
+.unknown .jsoneditor .menu {
+	background-color: #ffd9a3 !important;
+	border-color: #ff9900 !important;
+}
+
+.unknown .jsoneditor {
+	border-color: #ff9900 !important;	
+}
+
+
+#mainToolbar iron-icon {
+	margin-right: 15px;
+	margin-left: 5px;
+}
+
+.block-selector paper-card .header {
+	width: 200px;
+	height: 100px;
+}
+
 #logo span:hover {
     border-radius: 1px;
     border: 1px solid #73AD21;
@@ -64,10 +89,6 @@ body {
 
 .jsoneditor textarea {
 	min-height: 300px;
-}
-
-.invalid .jsoneditor {
-	border-color: #f00 !important;	
 }
 
 .content {

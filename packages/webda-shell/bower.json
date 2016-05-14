@@ -10,7 +10,8 @@
     "polymer": "Polymer/polymer#^1.2.0",
     "juicy-jsoneditor": "~1.0.5",
     "jsen": "~0.6.1",
-    "juicy-ace-editor": "~1.1.1"
+    "juicy-ace-editor": "~1.1.1",
+    "ajv": "~4.0.0"
   },
   "devDependencies": {
     "web-component-tester": "^4.0.0"

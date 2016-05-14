@@ -51,7 +51,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <div align="center">
       <template is="dom-repeat" items="[[executors]]">
-        <paper-card heading="{{item.label}}" id="{{index}}" on-tap="select" image="images/placeholder.png" class="white" style="margin-bottom:8px;">
+        <paper-card heading="{{item.label}}" id="{{index}}" on-tap="select" image="[[item.logo]]" class="white" style="margin-bottom:8px;">
         </paper-card>
       </template>
     </div>
@@ -86,7 +86,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           executors: {
             type: Array,
-            value: [{'type':'inline', 'label': 'Inline'}, {'type':'lambda', 'label': 'Lambda'}, {'type':'file', 'label': 'File'}, {'type':'string', 'label': 'String'}]
+            value: [{'type':'inline', 'label': 'Inline', 'logo': 'images/placeholders/inline.png'}, {'type':'lambda', 'label': 'Lambda', 'logo': 'images/placeholders/lambda.png'}, {'type':'file', 'label': 'File', 'logo': 'images/placeholders/js.png'}, {'type':'string', 'label': 'String', 'logo': 'images/placeholders/string.png'}]
           }
         }
       });

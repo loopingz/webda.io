@@ -69,7 +69,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 /*# sourceURL=ace/css/ace-tm */</style>
 <script src="http://juicy.github.io/ace-builds/src-min-noconflict/theme-dawn.js"></script>
 <script src="http://juicy.github.io/ace-builds/src-min-noconflict/mode-javascript.js"></script>
-
+<!-- JSON Schema validator -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ajv/4.0.5/ajv.min.js"></script>
 </head>
 
 <body unresolved>
@@ -79,6 +80,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <iron-ajax id="deploymentsAjax" handle-as="json" last-response="{{deployments}}"></iron-ajax>
     <iron-ajax id="routesAjax" handle-as="json" last-response="{{routes}}"></iron-ajax>
     <iron-ajax id="servicesAjax" handle-as="json" last-response="{{services}}" on-response="mapServices"></iron-ajax>
+    <iron-ajax id="moddasAjax" handle-as="json" last-response="{{moddas}}" on-response="loadSchemas"></iron-ajax>
     <iron-ajax id="ajax" handle-as="json"></iron-ajax>
     <paper-drawer-panel id="paperDrawerPanel" drawer-width="400px">
       <!-- Drawer Scroll Header Panel -->
@@ -117,9 +119,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-toolbar id="mainToolbar">
           <paper-icon-button id="paperToggle" icon="menu" paper-drawer-toggle></paper-icon-button>
           <paper-tabs attr-for-selected="data-route" selected="{{route}}" noink>
-            <paper-tab data-route="routes">Routes</paper-tab>
-            <paper-tab data-route="services">Services</paper-tab>
-            <paper-tab data-route="deployments">Deployments</paper-tab>
+            <paper-tab data-route="routes"><iron-icon icon="explore"></iron-icon>Routes</paper-tab>
+            <paper-tab data-route="services"><iron-icon icon="extension"></iron-icon>Services</paper-tab>
+            <paper-tab data-route="deployments"><iron-icon icon="cloud-upload"></iron-icon>Deployments</paper-tab>
           </paper-tabs>
           <span class="space"></span>
           <div id="logo" class="disconnect"><a href="http://webda.io" target="_blank"><span></span></a></div>
@@ -151,7 +153,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <template is="dom-if" if="{{currentComponent}}">
               <paper-button on-tap="confirmDeleteCurrentComponent"><iron-icon icon="delete" style="color: #dc6262;"></iron-icon></paper-button>
             </template>
-            <span class="title" style="margin-left: 0px;"></span>
+            <span class="title" style="margin-left: 0px;margin-top: -20px;"><label>Current deployment</label><br />[[currentDeployment.uuid]]&nbsp;</span>
             <span class=""></span>
             <template is="dom-if" if="{{currentComponent}}">
               <paper-button on-tap="saveCurrentComponent" disabled="[[!dirty]]"><iron-icon icon="save"></iron-icon>Save</paper-button>
@@ -161,7 +163,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </paper-scroll-header-panel>
     </paper-drawer-panel>
     <new-route-dialog modal id="newRouteDialog"></new-route-dialog>
-    <new-service-dialog modal id="newServiceDialog"></new-service-dialog>
+    <new-service-dialog modal id="newServiceDialog" moddas="[[moddas]]"></new-service-dialog>
     <new-deployment-dialog modal id="newDeploymentDialog"></new-deployment-dialog>
 
     <!-- Deployment progress dialog -->

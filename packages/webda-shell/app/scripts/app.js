@@ -18,6 +18,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   // Sets app default base URL
   app.baseUrl = '/';
+  app.schemas = {};
   if (window.location.port === '') {  // if production
     // Uncomment app.baseURL below and
     // set app.baseURL to '/your-pathname/' if running from folder in production
@@ -164,12 +165,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     var index = app.getAttribute('dataIndex', evt.target);
     if (index !== undefined) {
       app.selectComponent(app.deployments[index]);
-      if (index == 0) {
-        app.currentDeployment = undefined;
-      } else {
-        app.currentDeployment = app.deployments[index];
-      }
-      app.activeDeployment = app.currentDeployment;
     }
   }
   app.onSelectRoute = function(evt) {
@@ -199,6 +194,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     app.$.routesAjax.generateRequest();
     app.$.deploymentsAjax.generateRequest();
     app.$.servicesAjax.generateRequest();
+    app.$.moddasAjax.generateRequest();
   }
 
   app.handleVhosts = function (evt) {
@@ -213,6 +209,53 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     }
     app.vhosts = vhosts;
   }
+
+
+  /**** Schemas handling ***/
+
+  app.hasSchema = function(name) {
+    return app.schemas[name] !== undefined;
+  }
+
+  app.loadSchemas = function() {
+    if (app.ajx === undefined) {
+      app.ajv = Ajv();
+    }
+
+    // Load the schemas for each moddas
+    for (let i in app.moddas) {
+      app.schemas[app.moddas[i].uuid]=true;
+      app.ajv.addSchema(app.moddas[i].configuration.schema, app.moddas[i].uuid);
+    }
+    
+  }
+
+  /**** Configuration mapper   ****/
+
+  app._extend = function(target, source) {
+    for (var i in source) {
+      target[i] = source[i];
+    }
+    return target;
+  }
+
+  app.getRealConfiguration = function(params) {
+    // First take Global params
+    var res = app._extend({}, app.deployments[0].params);
+    // Add or replace the one from the deployment
+    if (app.currentDeployment) {
+      app._extend(res, app.currentDeployment.params);
+    }
+    // Then take the local one
+    app._extend(res, params);
+    console.log(res);
+    return res;
+  }
+
+  /********/
+
+
+  /*****/
 
   app.getRouteLabel = function (label) {
     var labels = {'routes': 'Routes', 'services': 'Services', 'deployments': 'Deployments'};
@@ -232,6 +275,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     app.$.deploymentsAjax.url = app.getUrl('/deployments');
     app.$.servicesAjax.url = app.getUrl('/services');
     app.$.routesAjax.url = app.getUrl('/routes');
+    app.$.moddasAjax.url = app.getUrl('/moddas');
     app.connect();
 
     app.addEventListener('deploy', function (evt) {

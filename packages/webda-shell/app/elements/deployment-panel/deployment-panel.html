@@ -10,11 +10,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
 
 <dom-module id="deployment-panel">
   <template>
     <style include="shared-styles">
     </style>
+    <paper-toggle-button checked="{{active}}" on-change='setActive'>Active</paper-toggle-button>
     <label>Configuration</label>
     <juicy-jsoneditor mode="tree" modes=["view","tree","text","form"] json="{{component.params}}"></juicy-jsoneditor>
     <label>Deployment resources</label>
@@ -32,6 +34,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         deploy: function () {
           app.fire('deploy', this.component.uuid);
         },
+        setActive: function() {
+          if (this.active) {
+            app.currentDeployment = this.component;  
+          } else {
+            app.currentDeployment = undefined;
+          }
+        },
+        updateActive: function() {
+          this.active = (app.currentDeployment && this.component && app.currentDeployment._name == this.component._name);
+        },
         properties: {
           dirty: {
             type: Boolean,
@@ -40,7 +52,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           component: {
             type: Object,
-            notify: true
+            notify: true,
+            observer: 'updateActive'
           }
         }
       });

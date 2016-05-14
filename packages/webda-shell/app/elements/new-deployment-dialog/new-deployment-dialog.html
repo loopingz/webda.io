@@ -71,9 +71,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <style include="paper-dialog-shared-styles"></style>
       <h2>New Deployment</h2>
       <paper-input label="Name" value="{{name}}" placeholder="Enter deployment name"></paper-input>
-      <div align="center">
+      <div align="center" class="block-selector">
         <template is="dom-repeat" items="[[deployers]]">
-          <paper-card heading="{{item}}" id="{{index}}" on-tap="select" image="http://placehold.it/200x100" class="white" style="margin-bottom:8px;">
+          <paper-card heading="{{item.label}}" id="{{index}}" on-tap="select" image="{{item.logo}}" class="white" style="margin-bottom:8px;">
           </paper-card>
         </template>
       </div>
@@ -151,7 +151,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           deployers: {
             type: Array,
-            value: ["Lambda", "Docker"]
+            value: [{"label":"Lambda", "logo": "images/placeholders/aws.png"}, {"label":"Docker", "logo": "images/placeholders/docker.png"}]
           },
           configuration: {
             type: Object,

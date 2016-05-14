@@ -15,6 +15,7 @@ class ConfigurationService extends Executor {
 		config['/api/services'] = {"method": ["GET"], "executor": this._name, "_method": this.crudService};
 		config['/api/services/{name}'] = {"method": ["PUT", "DELETE", "POST"], "executor": this._name, "_method": this.crudService};
 		config['/api/routes'] = {"method": ["GET", "POST", "PUT", "DELETE"], "executor": this._name, "_method": this.crudRoute};
+		config['/api/moddas'] = {"method": ["GET"], "executor": this._name, "_method": this.getModdas};
 		config['/api/configurations/Global'] = {"method": ["PUT"], "executor": this._name, "_method": this.updateGlobal};
 		config['/api/deployments'] = {"method": ["GET", "POST"], "executor": this._name, "_method": this.restDeployment};
 		config['/api/deployments/{name}'] = {"method": ["DELETE", "PUT"], "executor": this._name, "_method": this.restDeployment};
@@ -90,6 +91,16 @@ class ConfigurationService extends Executor {
 	updateGlobal() {
 		this._config.global.params = this.body.params;
 		this.save();
+	}
+
+	getModdas() {
+		var res = [];
+		for (let i in this._webda._mockWedba._services) {
+			let modda = this._webda._mockWedba._services[i].getModda();
+			if (modda === undefined) continue;
+			res.push(modda);
+		}
+		this.write(res);
 	}
 
 	getServices() {

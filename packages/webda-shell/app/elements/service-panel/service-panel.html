@@ -18,8 +18,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <label>Type</label>
     <div>[[type]]</div>
+    <paper-icon-button icon="list" title="heart" style="float:right; margin-top: -16px;"></paper-icon-button>
     <label>Configuration</label>
     <juicy-jsoneditor id="params" mode="tree" modes=["view","tree","text","form"] json="{{params}}"></juicy-jsoneditor>
+    [[errors]]
   </template>
 
   <script>
@@ -44,6 +46,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               delete this.component[i];
             }
           }
+          this.validate();
+        },
+        validate: function() {
+          var type = this.component.type;
+          if (type === undefined) {
+            type = this.component._name;
+          }
+          if (type.indexOf('/') == -1) {
+            type = "Webda/" + type;
+          }
+          if (app.hasSchema(type)) {
+            this.toggleClass('unknown', false, this.$.params);
+            if (app.ajv.validate(type, app.getRealConfiguration(this.component))) {
+              this.errors = undefined;
+              this.toggleClass('invalid', false, this.$.params);
+            } else {
+              this.errors = 'Configuration' + app.ajv.errorsText().substr(4);
+              this.toggleClass('invalid', true, this.$.params);
+            }
+          } else {
+              this.toggleClass('unknown', true, this.$.params);
+              this.toggleClass('invalid', false, this.$.params);
+              this.errors = undefined;
+          }
         },
         filterComponent: function () {
           // As configuration is include in the definition need to filter _type and _name
@@ -66,8 +92,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           if (this.type === undefined && this.component) {
             this.type = this.component._name;
           }
+          this.validate()
         },
         ready: function() {
+          this.timeout;
           this.$.params.addEventListener('change', (evt) => {
             // Change is emit before the change, and not other event is emitted
             // For now using timeout to recompute the info
@@ -75,7 +103,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             var timeout = () => {
               this.updateParams();
             };
-            setTimeout(timeout, 100);
+            if (this.timeout) {
+              clearTimeout(this.timeout);
+            }
+            this.timeout = setTimeout(timeout, 100);
           });
         },
         properties: {

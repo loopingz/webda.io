@@ -299,7 +299,7 @@ class WebdaConfigurationServer extends WebdaServer {
 
 	saveHostConfiguration(config) {
 		this.config[this._currentVhost]=config;
-		fs.writeFileSync(this._file, "module.exports=" + this.exportJson(this.config));
+		fs.writeFileSync(this._file, this.exportJson(this.config));
 		delete this._mockWedba;
 		this.loadMock(JSON.parse(this.exportJson(this.config)));
 		this.getService("configuration").refresh();
@@ -308,14 +308,13 @@ class WebdaConfigurationServer extends WebdaServer {
 	loadMock(config) {
 		if (config !== undefined) {
 			// We just saved the configuration dont want to reload it
-		} else if (fs.existsSync("./webda.config.js")) {
-			this._file = "./webda.config.js";
-			this.config = fs.readFileSync(this._file, {encoding:'utf8'}).replace("module.exports", "");
-			this.config = JSON.parse(this.config.substr(this.config.indexOf("=") + 1));
+		} else if (fs.existsSync("./webda.config.json")) {
+			this._file = "./webda.config.json";
+			this.config = JSON.parse(fs.readFileSync(this._file, {encoding:'utf8'}));
 		} else {
-			console.log("No file is present, creating webda.config.js")
+			console.log("No file is present, creating webda.config.json");
 			this.config = {};
-			this._file = path.resolve("./webda.config.js");
+			this._file = path.resolve("./webda.config.json");
 			this._currentVhost = "changeme.webda.io";
 			this.config["*"] = this._currentVhost;
 			this.saveHostConfiguration({global:{params: {}, services: {}}});

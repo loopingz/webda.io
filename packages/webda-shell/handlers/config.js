@@ -6,6 +6,7 @@ const path = require("path");
 
 const Executor = require(__webda + "/services/executor");
 const Webda = require(__webda + "/core");
+const merge = require('merge')
 
 
 class ConfigurationService extends Executor {
@@ -271,6 +272,7 @@ class WebdaConfigurationServer extends WebdaServer {
 
 	constructor (config) {
 		super(config);
+		this.computeConfig = {};
 		this.initAll();
 		this._vhost = 'localhost';
 		this._deployers = {};
@@ -297,21 +299,27 @@ class WebdaConfigurationServer extends WebdaServer {
 		return res;
 	}
 
-	saveHostConfiguration(config) {
+	saveHostConfiguration(config, file) {
+		// Update first the configuration
 		this.config[this._currentVhost]=config;
 		fs.writeFileSync(this._file, this.exportJson(this.config));
+
+		// Need to reload the configuration to resolve it
 		delete this._mockWedba;
 		this.loadMock(JSON.parse(this.exportJson(this.config)));
 		this.getService("configuration").refresh();
 	}
 
 	loadMock(config) {
+		// Load the Webda core with the desired configuration
+
 		if (config !== undefined) {
 			// We just saved the configuration dont want to reload it
 		} else if (fs.existsSync("./webda.config.json")) {
 			this._file = "./webda.config.json";
 			this.config = JSON.parse(fs.readFileSync(this._file, {encoding:'utf8'}));
 		} else {
+			// Init a default configuration if needed
 			console.log("No file is present, creating webda.config.json");
 			this.config = {};
 			this._file = path.resolve("./webda.config.json");
@@ -342,12 +350,44 @@ class WebdaConfigurationServer extends WebdaServer {
 		return vhost;
 	}
 
+	loadDeploymentConfig(env) {
+		var name = './deployments/' + env;
+		if (fs.existsSync(name)) {
+			let deployment = JSON.parse(fs.readFileSync(name));
+			this.config = super.loadConfiguration();
+			this.resolveConfiguration(this.config[this.getHost()], deployment);
+			return JSON.parse(this.exportJson(this.config));
+		} else {
+			console.log("Unknown deployment: " + env);
+		}
+	}
+
+	/**
+	 * It will take all the parameters from the deployment global to overwrite any value in the configuration
+	 * And will do the same with services, if a service is not known from the main configuration is will be ignored
+	 *
+	 *
+	 * @param {Object} The server configuration
+	 * @param {Object} Teh deployment to resolve
+	 */
+	resolveConfiguration(config, deployment) {
+		merge.recursive(config.global.params, deployment.params);
+		merge.recursive(config.global.services, deployment.services);
+	}
+
 	deploy(env, args, fork) {
 		return this.getService("deployments").get(env).then ( (deployment) => {
+
 			if (deployment === undefined) {
 				console.log("Deployment " + env + " unknown");
 				return Promise.resolve();
 			}
+			// Reload with the resolved configuration
+			this.resolveConfiguration(this.config[this.getHost()], deployment);
+			let srcConfig = this.exportJson(this.config);
+			this.loadMock(this.config);
+
+			// If launched from the browser we are forking
 			if (fork) {
 				if (this.deployChild) {
 					// Conflict already deploying
@@ -356,8 +396,10 @@ class WebdaConfigurationServer extends WebdaServer {
 				this.deployFork(env, args);
 				return Promise.resolve();
 			}
+
+			// Normal launch from the console or forked process
 			let host = this.getHost();
-			return new this._deployers[deployment.type](host, this.computeConfig[host], deployment).deploy(args);
+			return new this._deployers[deployment.type](host, this.computeConfig[host], srcConfig, deployment).deploy(args);
 		});
 	}
 
@@ -373,6 +415,7 @@ class WebdaConfigurationServer extends WebdaServer {
 	}
 
 	serve (port, openBrowser) {
+		// This is the configuration server
 		super.serve(port);
 		this.websocket(port+1);
 		if (openBrowser || openBrowser === undefined) {
@@ -382,6 +425,7 @@ class WebdaConfigurationServer extends WebdaServer {
 	}
 
 	websocket(port) {
+		// WebSocket server - used for status on deployment only
 		var ws = require("nodejs-websocket")
 	 	this.conns = [];
 		// Scream server example: "hi" -> "HI!!!" 

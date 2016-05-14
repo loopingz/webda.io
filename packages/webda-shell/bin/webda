@@ -38,9 +38,20 @@ if ('--help' === arg || null == arg) {
 var args = process.argv.slice(2);
 var webda;
 var server_pid;
+var server_config;
+var deployment;
+if (args.length > 1) {
+  deployment = args[1]; 
+}
 switch (arg) {
   case 'serve':
-    webda = new server();
+    if (deployment) {
+      // Loading first the configuration
+      console.log("Should serve as deployment: " + deployment);
+      webda = new config();
+      server_config = webda.loadDeploymentConfig(deployment);
+    }
+    webda = new server(server_config);
     return webda.serve(18080);
   case 'debug':
     let launchServe = function() {
@@ -50,9 +61,12 @@ switch (arg) {
       } else {
         console.log("Launch webda serve in debug mode");
       }
-      var args = [];
+      args = [];
       args.push(__dirname + "/webda");
       args.push("serve");
+      if (deployment) {
+        args.push(deployment);
+      }
       server_pid = require("child_process").spawn('node', args);
     }
     var excepts = ["dist", "node_modules", "deployments", "test"];

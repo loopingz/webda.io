@@ -2,12 +2,13 @@
 const _extend = require("util")._extend;
 
 class Deployer {
-	constructor (vhost, config, deployment) {
+	constructor (vhost, config, srcConfig, deployment) {
 		this._step = 1;
 		this.params = {};
 		this.resources = {};
 		this.deployment = deployment;
 		this.config = config;
+		this.srcConfig = srcConfig;
 		for (var i in this.config) {
 			if (i[0] != "/") continue;
 			this.config[i]._url = i;

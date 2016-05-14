@@ -143,12 +143,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   }
 
   app.resetComponent = function() {
-    console.log("resetComponent");
     app.currentComponent = undefined;
   }
 
   app.mapServices = function(evt) {
-    console.log(app.services);
     for (var i in app.services) {
       app.mapServices[app.services[i]._name]=app.services[i];
     }
@@ -258,7 +256,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     }
     // Then take the local one
     app._extend(res, params);
-    console.log(res);
+    if (params._type === "Service" && app.currentDeployment && 
+                  app.currentDeployment.services && app.currentDeployment.services[params._name]) {
+      res = merge.recursive(true, res, app.currentDeployment.services[params._name]);
+    }
     return res;
   }
 

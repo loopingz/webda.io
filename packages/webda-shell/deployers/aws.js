@@ -123,7 +123,8 @@ class AWSDeployer extends Deployer {
 		if (fs.existsSync(zipPath)) {
 			fs.unlinkSync(zipPath)
 		}
-		var ignores = ['dist', 'bin', 'test', 'Dockerfile', 'README.md', 'package.json', 'deployments', 'node_modules/.bin', 'node_modules/webda-shell'];
+		var ignores = ['dist', 'bin', 'test', 'Dockerfile', 'README.md', 'package.json', 'deployments', 'app', 'webda.config.json'];
+		// Should load the ignore from a file
 		var toPacks = [];
 		var files = fs.readdirSync('.');
 		for (let i in files) {
@@ -162,6 +163,7 @@ class AWSDeployer extends Deployer {
 			} else {
 				throw Error("Cannot find the entrypoint for Lambda");
 			}
+			archive.append(this.srcConfig, {name:"webda.config.json"})	
 			archive.finalize();
 		});
 		return p;

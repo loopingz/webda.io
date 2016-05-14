@@ -86,6 +86,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <iron-ajax id="deployersAjax" handle-as="json" last-response="{{deployers}}" auto></iron-ajax>
     <iron-ajax id="ajax" handle-as="json"></iron-ajax>
     <paper-drawer-panel id="paperDrawerPanel" drawer-width="400px">
+
       <!-- Drawer Scroll Header Panel -->
       <paper-scroll-header-panel drawer fixed>
 
@@ -131,7 +132,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </paper-toolbar>
 
         <!-- Main Content -->
-        <div class="content">
+        <div class="content" style="margin-bottom: 150px;">
           <div>
             <div style="float: right; margin-bottom: -150px; margin-top: 20px;">{{currentComponent._type}}</div>
             <h2>{{currentComponent._name}}</h2>
@@ -154,7 +155,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               </section>
             </iron-pages>
           </template>
-          <paper-toolbar style="position: absolute; bottom: 0px; right: 0px; left: 0px; background-color: #eee; border-top: 1px solid #ccc; color:#000;">
+        </div>
+      </paper-scroll-header-panel>
+      <div main>
+          <paper-toolbar main style="position: absolute; bottom: 0px; right: 0px; left: 0px; background-color: #eee; border-top: 1px solid #ccc; color:#000;">
             <template is="dom-if" if="{{currentComponent}}">
               <paper-button on-tap="confirmDeleteCurrentComponent"><iron-icon icon="delete" style="color: #dc6262;"></iron-icon></paper-button>
             </template>
@@ -165,7 +169,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </template>
           </paper-toolbar>
         </div>
-      </paper-scroll-header-panel>
     </paper-drawer-panel>
     <new-route-dialog modal id="newRouteDialog"></new-route-dialog>
     <new-service-dialog modal id="newServiceDialog" moddas="[[moddas]]"></new-service-dialog>

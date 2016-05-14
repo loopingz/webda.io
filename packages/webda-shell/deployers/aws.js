@@ -8,6 +8,13 @@ class AWSDeployer extends Deployer {
 
 	deploy(args) {
 		this._maxStep = 4;
+		if (args[0] === "package") {
+			this._maxStep = 1;
+		} else if (args[0] === "lambda") {
+			this._maxStep = 2;
+		} else if (args[0] === "aws-only") {
+			this._maxStep = 3;
+		}
 		this._restApiName = this.resources.restApi;
 		this._lambdaFunctionName = this.resources.lamdaFunctionName;
 		this._lambdaRole = this.resources.lambdaRole;
@@ -39,6 +46,7 @@ class AWSDeployer extends Deployer {
 		AWS.config.update({accessKeyId: this.resources.accessKeyId, secretAccessKey: this.resources.secretAccessKey});
 		this._awsGateway = new AWS.APIGateway();
 		this._awsLambda = new AWS.Lambda();
+		this._origin = this.params.website;
 
 		if (args != undefined) {
 			if (args[0] === "export") {
@@ -146,12 +154,13 @@ class AWSDeployer extends Deployer {
 					archive.file(toPacks[i]);
 				}
 			}
-			if (fs.existsSync("deployers/aws_entrypoint.js")) {
+			var entrypoint = require.resolve(global.__webda_shell + "/deployers/aws_entrypoint.js");
+			if (fs.existsSync(entrypoint)) {
+				archive.file(entrypoint, {name:"entrypoint.js"});
+			} else if (fs.existsSync("deployers/aws_entrypoint.js")) {
 				archive.file("deployers/aws_entrypoint.js", {name:"entrypoint.js"})	
-			} else if (fs.existsSync("node_modules/webda/deployers/aws_entrypoint.js")) {
-				archive.file("node_modules/webda/deployers/aws_entrypoint.js", {name:"entrypoint.js"})	
-			} else if (fs.existsSync(global.__webda_shell + "/deployers/aws_entrypoint.js")) {
-				archive.file(global.__webda_shell + "/deployers/aws_entrypoint.js", {name:"entrypoint.js"})	
+			} else {
+				throw Error("Cannot find the entrypoint for Lambda");
 			}
 			archive.finalize();
 		});
@@ -354,6 +363,7 @@ class AWSDeployer extends Deployer {
 
 	updateAwsResource(resource, local) {
 		var promise = Promise.resolve();
+		var allowedMethods;
 		for (let i in resource.resourceMethods) {
 			promise = promise.then (() => {
 				return this._awsGateway.deleteMethod({'resourceId':resource.id,'restApiId':this.restApiId,'httpMethod':i}).promise();
@@ -361,11 +371,18 @@ class AWSDeployer extends Deployer {
 		}
 		return promise.then (() => {
 			if (typeof(local.method) == "string") {
+				allowedMethods = local.method;
 				return this.createAWSMethodResource(resource, local, local.method);
 			} else {
+				allowedMethods = local.method.join(",");
 				return this.createAWSMethodsResource(resource, local, local.method);
 			}
-		});
+		}).then( () => {
+			if (this._origin) {
+				return this.createCORSMethod(resource, allowedMethods);
+			}
+			return Promise.resolve();
+		});;
 	}
 
 	deleteAwsResource(remote) {
@@ -397,6 +414,46 @@ class AWSDeployer extends Deployer {
 		});
 	}
 
+	createCORSMethod(resource, methods) {
+		console.log("Adding OPTIONS method for CORS");
+		var responseParameters={};
+		responseParameters['method.response.header.Access-Control-Allow-Headers'] = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'";
+		// Should improve this with methods
+		if (methods) {
+			methods = methods + ",OPTIONS";
+		} else {
+			methods = "POST,PUT,GET,DELETE,OPTIONS";
+		}
+		responseParameters['method.response.header.Access-Control-Allow-Methods'] = "'" + methods + "'";
+		responseParameters['method.response.header.Access-Control-Allow-Origin'] = "'" + this._origin + "'";
+		responseParameters['method.response.header.Access-Control-Allow-Credentials'] = "'true'";
+		var params = {"authorizationType":"NONE",'resourceId':resource.id,'httpMethod':'OPTIONS', 'restApiId': this.restApiId};
+		return this._awsGateway.putMethod(params).promise().then( () => {
+			var params = {'resourceId':resource.id,'httpMethod':'OPTIONS', 'restApiId': this.restApiId, 'type': 'MOCK'};
+			params.requestTemplates={};
+			params.requestParameters = {};
+			params.requestTemplates["application/json"]='{"statusCode": 200}';
+			return this._awsGateway.putIntegration(params).promise();
+		}).then ( () => {
+			// AWS ReturnCode
+			var params = {'resourceId':resource.id,'httpMethod':'OPTIONS', 'restApiId': this.restApiId, 'statusCode': '200'};
+			params.responseModels = {};
+			params.responseModels["application/json"]='Empty';
+			var map = {};
+			for (let i in responseParameters) {
+				map[i]=false;
+			}
+			params.responseParameters=map;
+			return this._awsGateway.putMethodResponse(params).promise();
+		}).then( () => {
+			var params = {'resourceId':resource.id,'httpMethod':'OPTIONS', 'restApiId': this.restApiId, 'statusCode': '200'};
+			params.responseTemplates={};
+			params.responseParameters=responseParameters;
+			params.responseTemplates["application/json"]="";
+			return this._awsGateway.putIntegrationResponse(params).promise();
+		});
+	}
+
 	getHeadersMap(integration, code, headers, defaultCode) {
 		if (headers === undefined) {
 			headers = [];
@@ -404,14 +461,23 @@ class AWSDeployer extends Deployer {
 		if (headers.length === 0) {
 			headers[0] = 'Set-Cookie';
 		}
+		var res = {};
+		// Add CORS
+		if (integration) {
+			res['method.response.header.Access-Control-Allow-Credentials'] = "'" + true + "'";
+			res['method.response.header.Access-Control-Allow-Origin'] = "'" + this._origin + "'";
+		} else {
+			res['method.response.header.Access-Control-Allow-Credentials'] = false;
+			res['method.response.header.Access-Control-Allow-Origin'] = false;
+		}
 		// Cannot handle more than one headers for non-main , due to the fact that we cannot template the statusCode....
 		// https://forums.aws.amazon.com/thread.jspa?threadID=216264
+
 		if (code !== defaultCode) {
 			headers = ['Set-Cookie'];
 			// Cant set any header
-			return {};
+			return res;
 		}
-		var res = {};
 		for (let i in headers) {
 			var value = false;
 			if (integration) {
@@ -423,6 +489,7 @@ class AWSDeployer extends Deployer {
 			}
 			res['method.response.header.' + headers[i]] = value;
 		}
+		
 		return res;
 	}
 
@@ -464,6 +531,7 @@ class AWSDeployer extends Deployer {
 		if (!methods.length) {
 			return Promise.resolve();
 		}
+		var allowedMethods = methods.join(",");
 		// AWS dont like to have too much request at the same time :)
 		return this.createAWSMethodResource(resource, local, methods[0]).then( () => {
 			return this.createAWSMethodsResource(resource, local, methods.slice(1));
@@ -472,6 +540,8 @@ class AWSDeployer extends Deployer {
 
 	createAwsResource(local) {
 		var i = local._url.indexOf("/",1);
+		var allowedMethods;
+		var resource;
 		var promise = new Promise( (resolve, reject) => {
 			resolve(this.tree['/']);
 		});
@@ -491,12 +561,20 @@ class AWSDeployer extends Deployer {
 			let pathPart = local._url.substr(local._url.lastIndexOf('/')+1);
 			let params = {'parentId':parent.id,'pathPart':pathPart, 'restApiId': this.restApiId};
 			return this.tree[local._url] = this._awsGateway.createResource(params).promise();
-		}).then ((resource) => {
+		}).then ((res) => {
+			resource = res;
 			if (typeof(local.method) == "string") {
-				return this.createAWSMethodResource(resource, local, local.method);	
+				allowedMethods = local.method;
+				return this.createAWSMethodResource(resource, local, local.method);
 			} else {
+				allowedMethods = local.method.join(",");
 				return this.createAWSMethodsResource(resource, local, local.method);
 			}
+		}).then( () => {
+			if (this._origin) {
+				return this.createCORSMethod(resource, allowedMethods);
+			}
+			return Promise.resolve();
 		});
 	}
 

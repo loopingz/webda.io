@@ -103,6 +103,13 @@ class LambdaServer extends Webda {
 	  		callback("Bad mapping " + vhost + " - " + method + " " + resourcePath, null);
 	  	}
 	  	executor.setContext(body, session);
+	  	// Set predefined headers for CORS
+	  	if (event.params.header.Origin) {
+	  		executor.setHeader('Access-Control-Allow-Origin', event.params.header.Origin);
+	  	}
+  		executor.setHeader('Access-Control-Allow-Credentials', true);
+
+	  	
 		return Promise.resolve(this.execute(executor)).then( () => {
 			if (!executor._ended) {
 				executor.end();

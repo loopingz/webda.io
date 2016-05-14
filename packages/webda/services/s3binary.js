@@ -56,7 +56,7 @@ class S3Binary extends Binary {
 	putRedirectUrl() {
 		if (this.body.hash === undefined) {
 			console.log("Request not conform", this.body);
-			return Promise.reject();
+			throw 403;
 		}
 		let targetStore = this._verifyMapAndStore();
 		var base64String = new Buffer(this.body.hash, 'hex').toString('base64');
@@ -223,6 +223,40 @@ class S3Binary extends Binary {
 			}
 			return this._s3.deleteObjects(params).promise();
 		});
+	}
+
+	static getModda() {
+		return {
+			"uuid": "Webda/S3Binary",
+			"label": "S3 Binary",
+			"description": "Implements S3 storage, so you can upload binary from users, handles mapping with other objects. It only stores once a binary, and if you use the attached Polymer behavior it will not even uplaod file if they are on the server already",
+			"webcomponents": [],
+			"logo": "images/placeholders/s3.png",
+			"configuration": {
+				"default": {
+					"bucket": "YOUR S3 Bucket",
+					"expose": true
+				},
+				"schema": {
+					type: "object",
+					properties: {
+						"expose": {
+							type: "boolean"
+						},
+						"accessKeyId": {
+							type: "string"
+						},
+						"secretAccessKey": {
+							type: "string"
+						},
+						"bucket": {
+							type: "string"
+						}
+					},
+					required: ["accessKeyId", "secretAccessKey", "bucket"]
+				}
+			}
+		}
 	}
 }
 

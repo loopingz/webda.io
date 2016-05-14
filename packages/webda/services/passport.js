@@ -391,6 +391,50 @@ class PassportExecutor extends Executor {
 		}
 		throw 404;
 	}
+
+	static getModda() {
+		return {
+			"uuid": "Webda/Authentication",
+			"label": "Authentication",
+			"description": "Implements user registration and login using either email or OAuth, it handles for now Facebook, Google, Amazon, GitHub, Twitter\nIt needs a Idents and a Users Store to work",
+			"webcomponents": [],
+			"logo": "images/placeholders/passport.png",
+			"configuration": {
+				"default": {
+					"successRedirect": "YOUR WEBSITE LOGGED PAGE",
+					"failureRedirect": "YOUR WEBSITE FAILURE PAGE",
+					"providers": {
+						"facebook": {
+							"clientID": "",
+							"clientSecret": "",
+							"scope": ["email", "public_profile"]
+						},
+						"email": {
+							"postValidation": false
+						}
+					}
+				},
+				"schema": {
+					type: "object",
+					properties: {
+						"expose": {
+							type: "boolean"
+						},
+						"successRedirect": {
+							type: "string"
+						},
+						"failureRedirect": {
+							type: "string"
+						},
+						"providers": {
+							type: "object"
+						}
+					},
+					required: ["successRedirect", "failureRedirect", "providers"]
+				}
+			}
+		}
+	}
 }
 
 module.exports = PassportExecutor

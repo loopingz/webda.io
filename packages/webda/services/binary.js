@@ -153,9 +153,7 @@ class Binary extends Executor {
 			update[property] = [];
 		}
 		var fileObj = {};
-		for (var i in metadatas) {
-			fileObj[i] = metadatas;
-		}
+		fileObj['metadatas'] = metadatas;
 		fileObj['name']=file.originalname;
 		fileObj['mimetype']=file.mimetype;
 		fileObj['size']=file.size;
@@ -187,9 +185,7 @@ class Binary extends Executor {
 			update[property] = [];
 		}
 		var fileObj = {};
-		for (var i in metadatas) {
-			fileObj[i] = metadatas;
-		}
+		fileObj['metadatas'] = metadatas;
 		fileObj['name']=file.originalname;
 		fileObj['mimetype']=file.mimetype;
 		fileObj['size']=file.size;

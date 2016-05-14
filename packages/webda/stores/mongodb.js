@@ -103,6 +103,30 @@ class MongoStore extends Store {
 			});
 		});
 	}
+
+	static getModda() {
+		return {
+			"uuid": "Webda/MongoStore",
+			"label": "MongoStore",
+			"description": "Implements MongoDB NoSQL",
+			"webcomponents": [],
+			"logo": "images/placeholders/mongodb.png",
+			"configuration": {
+				"default": {
+					"mongourl": "mongodb://127.0.0.1:27017",
+				},
+				"schema": {
+					type: "object",
+					properties: {
+						"mongourl": {
+							type: "string"
+						}
+					},
+					required: ["mongourl"]
+				}
+			}
+		}
+	}
 }
 
 module.exports = MongoStore;

@@ -154,6 +154,36 @@ class DynamoStore extends Store {
 			return Promise.all(promises);
 		});
 	}
+
+	static getModda() {
+		return {
+			"uuid": "Webda/DynamoStore",
+			"label": "DynamoStore",
+			"description": "Implements DynamoDB NoSQL storage",
+			"webcomponents": [],
+			"logo": "images/placeholders/dynamodb.png",
+			"configuration": {
+				"default": {
+					"table": "table-name",
+				},
+				"schema": {
+					type: "object",
+					properties: {
+						"table": {
+							type: "string"
+						},
+						"accessKeyId": {
+							type: "string"
+						},
+						"secretAccessKey": {
+							type: "string"
+						}
+					},
+					required: ["table", "accessKeyId", "secretAccessKey"]
+				}
+			}
+		}
+	}
 }
 
 module.exports = DynamoStore;

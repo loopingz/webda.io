@@ -92,6 +92,30 @@ class FileStore extends Store {
 		}
 		return Promise.resolve();
 	}
+
+	static getModda() {
+		return {
+			"uuid": "Webda/FileStore",
+			"label": "File Store",
+			"description": "Implements user registration and login using either email or OAuth, it handles for now Facebook, Google, Amazon, GitHub, Twitter\nIt needs a Idents and a Users Store to work",
+			"webcomponents": [],
+			"logo": "images/placeholders/filedb.png",
+			"configuration": {
+				"default": {
+					"folder": "/tmp/types",
+				},
+				"schema": {
+					type: "object",
+					properties: {
+						"folder": {
+							type: "string"
+						}
+					},
+					required: ["folder"]
+				}
+			}
+		}
+	}
 }
 
 module.exports = FileStore

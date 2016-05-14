@@ -61,6 +61,11 @@ class Service extends EventEmitter {
 	 */
 	uninstall(params) {}
 
+	/**
+	 * Return the Modda definition if any
+	 *
+	 */
+	static getModda() {}
 
 	/**
 	 * Clean the service data, can only be used in test mode

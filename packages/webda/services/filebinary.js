@@ -225,6 +225,33 @@ class FileBinary extends Binary {
 		}
 		return Promise.resolve();
 	}
+
+	static getModda() {
+		return {
+			"uuid": "Webda/FileBinary",
+			"label": "File Storage",
+			"description": "Implements storage of files on the server filesystem",
+			"webcomponents": [],
+			"logo": "images/placeholders/filestorage.png",
+			"configuration": {
+				"default": {
+					"folder": "/tmp/binaries",
+				},
+				"schema": {
+					type: "object",
+					properties: {
+						"expose": {
+							type: "boolean"
+						},
+						"folder": {
+							type: "string"
+						}
+					},
+					required: ["folder"]
+				}
+			}
+		}
+	}
 }
 
 module.exports = FileBinary;

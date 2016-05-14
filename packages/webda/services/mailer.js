@@ -44,6 +44,32 @@ class Mailer extends Service {
 		}
 		return this._transporter.sendMail(options, callback);
 	}
+
+	static getModda() {
+		return {
+			"uuid": "Webda/Mailer",
+			"label": "Mailer",
+			"description": "Implements a mailer to use in other services, it is used by the Authentication if you activate the email",
+			"webcomponents": [],
+			"logo": "images/placeholders/email.png",
+			"configuration": {
+				"default": {
+					"config": {
+
+					}
+				},
+				"schema": {
+					type: "object",
+					properties: {
+						"config": {
+							type: "object"
+						}
+					},
+					required: ["config"]
+				}
+			}
+		}
+	}
 }
 
 module.exports = Mailer

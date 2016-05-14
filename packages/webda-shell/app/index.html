@@ -83,6 +83,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <iron-ajax id="routesAjax" handle-as="json" last-response="{{routes}}"></iron-ajax>
     <iron-ajax id="servicesAjax" handle-as="json" last-response="{{services}}" on-response="mapServices"></iron-ajax>
     <iron-ajax id="moddasAjax" handle-as="json" last-response="{{moddas}}" on-response="loadSchemas"></iron-ajax>
+    <iron-ajax id="deployersAjax" handle-as="json" last-response="{{deployers}}" auto></iron-ajax>
     <iron-ajax id="ajax" handle-as="json"></iron-ajax>
     <paper-drawer-panel id="paperDrawerPanel" drawer-width="400px">
       <!-- Drawer Scroll Header Panel -->
@@ -168,7 +169,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </paper-drawer-panel>
     <new-route-dialog modal id="newRouteDialog"></new-route-dialog>
     <new-service-dialog modal id="newServiceDialog" moddas="[[moddas]]"></new-service-dialog>
-    <new-deployment-dialog modal id="newDeploymentDialog"></new-deployment-dialog>
+    <new-deployment-dialog modal id="newDeploymentDialog" deployers="[[deployers]]"></new-deployment-dialog>
     <paper-dialog modal id="displayJsonDialog" style="width: 95%;min-height: 95%;">
     <h2>Resolved parameters</h2>
     <div style="margin-top: 20px; width: "><juicy-jsoneditor id="params" mode="tree" modes=["view","tree","text","form"] json="[[json]]"></juicy-jsoneditor></div>

@@ -287,6 +287,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     app.$.servicesAjax.url = app.getUrl('/services');
     app.$.routesAjax.url = app.getUrl('/routes');
     app.$.moddasAjax.url = app.getUrl('/moddas');
+    app.$.deployersAjax.url = app.getUrl('/deployers');
+    
     app.connect();
 
     app.addEventListener('deploy', function (evt) {

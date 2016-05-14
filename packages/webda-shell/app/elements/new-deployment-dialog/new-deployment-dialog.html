@@ -76,11 +76,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <paper-card heading="{{item.label}}" id="{{index}}" on-tap="select" image="{{item.logo}}" class="white" style="margin-bottom:8px;">
           </paper-card>
         </template>
+        <div>[[selected.description]]</div>
       </div>
-      <label>Configuration</label>
-      <juicy-jsoneditor mode="tree" modes=["view","tree","text","form"] json="{{configuration.params}}"></juicy-jsoneditor>
-      <label>Deployement resources</label>
-      <juicy-jsoneditor mode="tree" modes=["view","tree","text","form"] json="{{configuration.resources}}"></juicy-jsoneditor>
       <div class="buttons">
         <span id="error">[[error]]</span>
         <paper-button dialog-dismiss>Cancel</paper-button>
@@ -105,7 +102,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         create: function () {
           this.$.ajax.method = 'POST';
+          // Clone default config
+          this.configuration = JSON.parse(JSON.stringify(this.selected.configuration.default));
           this.configuration.uuid = this.name;
+          this.configuration.type = this.selected.uuid;
           this.$.ajax.body = this.configuration;
           this.$.ajax.url = app.getUrl('/deployments');
           this.$.ajax.contentType = 'application/json';
@@ -131,6 +131,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             target = target.parentNode;
           }
           if (target !== undefined) {
+            this.selected = this.deployers[target.id];
             this.configuration.type = this.deployers[target.id];
             if (this.old) {
               this.old.removeAttribute("selected");
@@ -150,8 +151,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
 
           deployers: {
-            type: Array,
-            value: [{"label":"AWS", "logo": "images/placeholders/aws.png"}, {"label":"Docker", "logo": "images/placeholders/docker.png"}]
+            type: Array
           },
           configuration: {
             type: Object,

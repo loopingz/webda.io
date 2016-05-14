@@ -18,6 +18,7 @@ class ConfigurationService extends Executor {
 		config['/api/routes'] = {"method": ["GET", "POST", "PUT", "DELETE"], "executor": this._name, "_method": this.crudRoute};
 		config['/api/moddas'] = {"method": ["GET"], "executor": this._name, "_method": this.getModdas};
 		config['/api/configurations/Global'] = {"method": ["PUT"], "executor": this._name, "_method": this.updateGlobal};
+		config['/api/deployers'] = {"method": ["GET"], "executor": this._name, "_method": this.getDeployers};
 		config['/api/deployments'] = {"method": ["GET", "POST"], "executor": this._name, "_method": this.restDeployment};
 		config['/api/deployments/{name}'] = {"method": ["DELETE", "PUT"], "executor": this._name, "_method": this.restDeployment};
 		config['/api/deploy/{name}'] = {"method": ["GET"], "executor": this._name, "_method": this.deploy};
@@ -94,9 +95,25 @@ class ConfigurationService extends Executor {
 		this.save();
 	}
 
+	getDeployers() {
+		var res = [];
+		for (let i in this._webda._deployers) {
+			if (!this._webda._deployers[i].getModda) {
+				continue;
+			}
+			let modda = this._webda._deployers[i].getModda();
+			if (modda === undefined) continue;
+			res.push(modda);
+		}
+		this.write(res);
+	}
+
 	getModdas() {
 		var res = [];
 		for (let i in this._webda._mockWedba._services) {
+			if (!this._webda._mockWedba._services[i].getModda) {
+				continue;
+			}
 			let modda = this._webda._mockWedba._services[i].getModda();
 			if (modda === undefined) continue;
 			res.push(modda);
@@ -272,12 +289,12 @@ class WebdaConfigurationServer extends WebdaServer {
 
 	constructor (config) {
 		super(config);
-		this.computeConfig = {};
 		this.initAll();
 		this._vhost = 'localhost';
 		this._deployers = {};
 		this._deployers["aws"] = require("../deployers/aws");
-		this._deployers["docker"] = require("../deployers/aws");
+		this._deployers["docker"] = require("../deployers/docker");
+		this._deployers["shell"] = require("../deployers/shell");
 	}
 
 	exportJson(o) {

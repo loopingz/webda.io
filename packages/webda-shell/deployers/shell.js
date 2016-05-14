@@ -2,35 +2,88 @@
 const Deployer = require("./deployer");
 const fs = require('fs');
 const crypto = require('crypto');
+const spawn = require('child_process').spawn;
 
 class ShellDeployer extends Deployer {
 	deploy(args) {
-		console.log("Creating a Dockerfile on the fly if needed");
-		console.log("Will run the docker build and push depending on the deployment configuration");
+		if (this.resources.scripts === undefined || this.resources.scripts.length === 0) {
+			return Promise.resolve();
+		}
+		this._maxStep = this.resources.scripts.length;
+		var promise = Promise.resolve();
+		for (let i in this.resources.scripts) {
+			let script = this.resources.scripts[i];
+			promise = promise.then( () => {
+				if (!script.args) {
+					script.args = [];
+				}
+				if (script.label) {
+					this.stepper(script.label);
+				} else {
+					this.stepper(script.command + ' ' + script.args.join(" "));
+				}
+				return this.execute(script.command, script.args, this.out.bind(this), this.out.bind(this));
+			});
+		}
+		return promise;
 	}
 
-	execute() {
-		exec('~/./play.sh /media/external/' + req.params.movie,
-		function (error, stdout, stderr) {
-			console.log('stdout: ' + stdout);
-			console.log('stderr: ' + stderr);
-			if (error !== null) {
-				console.log('exec error: ' + error);
-		    }
-		});
-		const spawn = require('child_process').spawn;
-		const ls = spawn('ls', ['-lh', '/usr']);
+	out(data) {
+		console.log(data.toString());
+	}
 
-		ls.stdout.on('data', (data) => {
-		  console.log(`stdout: ${data}`);
-		});
+	execute(script, args, onout, onerr) {
+		if (args === undefined) {
+			args = [];
+		}
+		return new Promise( (resolve, reject) => {
+			var ls = spawn(script, args);
 
-		ls.stderr.on('data', (data) => {
-		  console.log(`stderr: ${data}`);
-		});
+			ls.stdout.on('data', (data) => {
+				if (onout) {
+					onout(data);
+				}
+			});
 
-		ls.on('close', (code) => {
-		  console.log(`child process exited with code ${code}`);
+			ls.stderr.on('data', (data) => {
+				if (onerr) {
+					onerr(data);
+				}
+			});
+
+			ls.on('close', (code) => {
+			  if (code == 0) {
+			  	resolve(code);
+			  } else {
+			  	reject(code);
+			  }
+			});
 		});
+	}
+
+	static getModda() {
+		return {
+			"uuid": "shell",
+			"label": "Shell scripts",
+			"description": "Execute a list of scripts",
+			"webcomponents": [],
+			"logo": "images/placeholders/bash.png",
+			"configuration": {
+				"default": {
+					"params": {},
+					"resources": {
+						"scripts": [
+							{"label": "Listing", "command": "ls", "args": ["-al"]}
+						]
+					},
+					"services": {}
+				},
+				"schema": {
+					type: "object"
+				}
+			}
+		}
 	}
 }
+
+module.exports = ShellDeployer;

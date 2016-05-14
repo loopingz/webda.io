@@ -626,6 +626,28 @@ class AWSDeployer extends Deployer {
 		}`;
 	}
 
+	static getModda() {
+		return {
+			"uuid": "aws",
+			"label": "AWS",
+			"description": "Deploy on Lambda, map it with API Gateway",
+			"webcomponents": [],
+			"logo": "images/placeholders/aws.png",
+			"configuration": {
+				"default": {
+					"params": {},
+					"resources": {
+						"accessKeyId": "YOUR ACCESS KEY",
+						"secretAccessKey": "YOUR SECRET KEY"
+					},
+					"services": {}
+				},
+				"schema": {
+					type: "object"
+				}
+			}
+		}
+	}
 }
 
 module.exports = AWSDeployer;

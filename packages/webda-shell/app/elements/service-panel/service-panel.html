@@ -53,6 +53,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         validate: function() {
           if (!this.component) return;
+          if (this.component._type !== "Service") return;
           var type = this.component.type;
           if (type === undefined) {
             type = this.component._name;

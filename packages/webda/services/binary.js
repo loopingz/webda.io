@@ -257,20 +257,28 @@ class Binary extends Executor {
 		}
 		this._url = this._params.expose.url;
       	// Need index to update or get
-      	var url = this._params.expose.url + "/{store}/{uid}/{property}/{index}";
-      	config[url] = {"method": ["GET"], "executor": this._name, "_method": this.httpRoute};
-      	config[url] = {"method": ["PUT"], "executor": this._name, "_method": this.httpRoute};
-      	// No need the index to add file
-      	url = this._params.expose.url + "/{store}/{uid}/{property}";
-      	config[url] = {"method": ["POST", "PUT"], "executor": this._name, "_method": this.httpPost};
+      	var url;
 
-      	// Add file with challenge
-      	url = this._params.expose.url + "/upload/{store}/{uid}/{property}/{index}";
-      	config[url] = {"method": ["PUT"], "executor": this._name, "_method": this.httpChallenge};
+      	if (!this._params.expose.restrict.get) {
+	      	url = this._params.expose.url + "/{store}/{uid}/{property}/{index}";
+	      	config[url] = {"method": ["GET"], "executor": this._name, "_method": this.httpRoute};
+	    }
 
-		// Need hash to avoid concurrent delete
-      	url = this._params.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";      	
-      	config[url] = {"method": ["DELETE", "PUT"], "executor": this._name, "_method": this.httpRoute};
+	    if (!this._params.expose.restrict.create) {
+	      	// No need the index to add file
+	      	url = this._params.expose.url + "/{store}/{uid}/{property}";
+	      	config[url] = {"method": ["POST"], "executor": this._name, "_method": this.httpPost};
+
+	      	// Add file with challenge
+	      	url = this._params.expose.url + "/upload/{store}/{uid}/{property}/{index}";
+	      	config[url] = {"method": ["PUT"], "executor": this._name, "_method": this.httpChallenge};
+	    }
+
+	    if (!this._params.expose.restrict.delete) {
+			// Need hash to avoid concurrent delete
+	      	url = this._params.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";      	
+	      	config[url] = {"method": ["DELETE"], "executor": this._name, "_method": this.httpRoute};
+	    }
 	}
 
 	httpPost() {

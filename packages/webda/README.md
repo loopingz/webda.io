@@ -151,11 +151,25 @@ You can also create and publish on Docker choising the deployment configuration 
 
 ## Services
 
-A service is a singleton component that can have access to others services, put some listeners in place, and do it's own logic. It is not supposed to handle direct request from the external world, so therefore doesn't have access to write method for output to the client. Service implement the EventEmitter of NodeJS so you can emit message to let trap for other business services
+A service is a singleton component that can have access to others services, put some listeners in place, and do it's own logic. It is not supposed to handle direct request from the external world, so therefore doesn't have access to write method for output to the client.
+
+Service implement the **EventEmitter** of NodeJS so you can emit message to let trap for other business services
+
+```javascript
+// Add a listener
+getService("Store").on('Store.Save', (evt) => {
+	// Do something
+});
+
+// Emit a event
+this.emit('Action.Done', {object: this.target})
+```
 
 ## Executors
 
-The executors are services that handle some routes directly, they have access to the request body, the session, and can write out content to the client. Executors derive from services, that's why the framework only see the element Service. Executors is a service family thant handle the request.
+The **executors** are services that handle some routes directly, they have **access to the request body, the session, and can write out content to the client**. Executors derive from services, that's why the framework only see the element Service.
+
+Executors is a service family that handle the request.
 
 ## Stores
 

@@ -250,16 +250,15 @@ Here is some screenshots of the ui
 
 #### Routes
 
-| ![image](http://webda.io/images/schemas/ui_route_create.png) | ![image](http://webda.io/images/schemas/ui_route_config.png) |
+![image](http://webda.io/images/schemas/ui_route_create.png) ![image](http://webda.io/images/schemas/ui_route_config.png) 
 
 #### Services
 
-| ![image](http://webda.io/images/schemas/ui_service_create.png) | ![image](http://webda.io/images/schemas/ui_service_config.png) |
+![image](http://webda.io/images/schemas/ui_service_create.png) ![image](http://webda.io/images/schemas/ui_service_config.png)
 
 #### Deployments
 
-| ![image](http://webda.io/images/schemas/ui_deployment_create.png) | ![image](http://webda.io/images/schemas/ui_deployment_config.png) |
-| ![image](http://webda.io/images/schemas/ui_deployment_deploy.png) | |
+![image](http://webda.io/images/schemas/ui_deployment_create.png) ![image](http://webda.io/images/schemas/ui_deployment_config.png) ![image](http://webda.io/images/schemas/ui_deployment_deploy.png)
 
 ## Requirements
 

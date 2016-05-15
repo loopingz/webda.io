@@ -638,7 +638,9 @@ class AWSDeployer extends Deployer {
 					"params": {},
 					"resources": {
 						"accessKeyId": "YOUR ACCESS KEY",
-						"secretAccessKey": "YOUR SECRET KEY"
+						"secretAccessKey": "YOUR SECRET KEY",
+						"restApi": "API NAME",
+						"lambdaRole": "EXECUTION ROLE FOR LAMBDA"
 					},
 					"services": {}
 				},

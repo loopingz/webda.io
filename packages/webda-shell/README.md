@@ -1,381 +1,243 @@
-![](https://cloud.githubusercontent.com/assets/110953/7877439/6a69d03e-0590-11e5-9fac-c614246606de.png)
-## Polymer Starter Kit
+# webda-shell
 
-> A starting point for building web applications with Polymer 1.0
+**Composable Serverless API**
 
-### Included out of the box:
+This is the configuration interface, deployment interface for the project [Webda](http://github.com/loopingz/webda.git)
 
-* [Polymer](https://www.polymer-project.org/), [Paper](https://elements.polymer-project.org/browse?package=paper-elements), [Iron](https://elements.polymer-project.org/browse?package=iron-elements) and [Neon](https://elements.polymer-project.org/browse?package=neon-elements) elements
-* [Material Design](http://www.google.com/design/spec/material-design/introduction.html) layout
-* Routing with [Page.js](https://visionmedia.github.io/page.js/)
-* Unit testing with [Web Component Tester](https://github.com/Polymer/web-component-tester)
-* Optional offline setup through [Platinum](https://elements.polymer-project.org/browse?package=platinum-elements) Service Worker elements
-* End-to-end Build Tooling (including [Vulcanize](https://github.com/Polymer/vulcanize))
-* [Recipes](/docs/README.md/) for ES2015 support, Polymer performance, using Chrome Dev Editor, Deploying to GitHub Pages, Deploying to Firebase, and Mobile Chrome Apps
 
-### Demo
-See latest Polymer Starter Kit Demo (from master) at https://polymerelements.github.io/polymer-starter-kit/
+## Install
 
-### Tutorials
 
-Check out the Polymer Starter Kit tutorials on [polymer-project.org](https://www.polymer-project.org):
-
-* [Set up the PSK](https://www.polymer-project.org/1.0/docs/start/psk/set-up.html)
-* [Create a page](https://www.polymer-project.org/1.0/docs/start/psk/create-a-page.html)
-* [Deploy the PSK to the web](https://www.polymer-project.org/1.0/docs/start/psk/deploy.html)
-
-## Getting Started
-
-To take advantage of Polymer Starter Kit you need to:
-
-1. Get a copy of the code.
-2. Install the dependencies if you don't already have them.
-3. Modify the application to your liking.
-4. Deploy your production code.
-
-### Get the code
-
-[Download](https://github.com/polymerelements/polymer-starter-kit/releases/latest) and extract Polymer Starter Kit to where you want to work. The project comes in two flavours - Light and Full.
-
-**Beginners**: Try Polymer Starter Kit Light. This doesn't require any extra dependencies nor knowledge of modern front-end tooling. This option is good for prototyping if you haven't build a Polymer app before.
-
-**Intermediate - Advanced**: Use the full version of Polymer Starter Kit. This comes with all the build tools you'll need for testing and productionising your app so it's nice and lean. You'll need to run a few extra commands to install the tools we recommend but it's worth it to make sure your final app is super optimised.
-
-:warning: **Important**: Polymer Starter Kit, and Polymer Starter Kit Light, both contain dotfiles (files starting with a `.`). If you're copying the contents of the Starter Kit to a new location make sure you bring along these dotfiles as well! On Mac, [enable showing hidden files](http://ianlunn.co.uk/articles/quickly-showhide-hidden-files-mac-os-x-mavericks/), then try extracting/copying Polymer Starter Kit again. This time the dotfiles needed should be visible so you can copy them over without issues.
-
-Rob Dodson has a fantastic [PolyCast video](https://www.youtube.com/watch?v=xz-yixRxZN8) available that walks through using Polymer Starter Kit. An [end-to-end with Polymer](https://www.youtube.com/watch?v=1f_Tj_JnStA) and Polymer Starter Kit talk is also available.
-
-### Install dependencies
-
-#### Quick-start (for experienced users)
-
-With Node.js installed, run the following one liner from the root of your Polymer Starter Kit download:
-
-```sh
-npm install -g gulp bower && npm install && bower install
+```
+npm install -g webda-shell
 ```
 
-#### Prerequisites (for everyone)
+#### Configuration UI
 
-The full starter kit requires the following major dependencies:
+Just type 
 
-- Node.js, used to run JavaScript tools from the command line.
-- npm, the node package manager, installed with Node.js and used to install Node.js packages.
-- gulp, a Node.js-based build tool.
-- bower, a Node.js-based package manager used to install front-end packages (like Polymer).
-
-**To install dependencies:**
-
-1)  Check your Node.js version.
-
-```sh
-node --version
+```
+webda config
 ```
 
-The version should be at or above 0.12.x.
+You'll get the configuration UI for your project
 
-2)  If you don't have Node.js installed, or you have a lower version, go to [nodejs.org](https://nodejs.org) and click on the big green Install button.
 
-3)  Install `gulp` and `bower` globally.
 
-```sh
-npm install -g gulp bower
+#### Server the current project
+
+This will load the Webda framework and run your project with it on port 18080
+
+
+```
+webda serve
 ```
 
-This lets you run `gulp` and `bower` from the command line.
 
-4)  Install the starter kit's local `npm` and `bower` dependencies.
+#### Debug the current project
 
-```sh
-cd polymer-starter-kit && npm install && bower install
+```
+webda debug
 ```
 
-This installs the element sets (Paper, Iron, Platinum) and tools the starter kit requires to build and serve apps.
+It will serve the project on port 18080 and restart the server on any changes made on the folder files
 
-### Development workflow
 
-#### Serve / watch
+#### Deploy
 
-```sh
-gulp serve
+First you need to create a deployment, from the configuration UI
+
+Then just use the Deploy button on the UI or the webda bin :
+
+```
+webda deploy Test
 ```
 
-This outputs an IP address you can use to locally test and another that can be used on devices connected to your network.
 
-#### Run tests
 
-```sh
-gulp test:local
-```
+## Configuration UI
 
-This runs the unit tests defined in the `app/test` directory through [web-component-tester](https://github.com/Polymer/web-component-tester).
+Here is some screenshots of the ui, it is accessible once the webda config is running, it will launch your browser for you to use the configurator.
 
-To run tests Java 7 or higher is required. To update Java go to http://www.oracle.com/technetwork/java/javase/downloads/index.html and download ***JDK*** and install it.
+#### Routes
 
-#### Build & Vulcanize
+![image](http://webda.io/images/schemas/ui_route_create.png) ![image](http://webda.io/images/schemas/ui_route_config.png) 
 
-```sh
-gulp
-```
+#### Services
 
-Build and optimize the current project, ready for deployment. This includes vulcanization, image, script, stylesheet and HTML optimization and minification.
+![image](http://webda.io/images/schemas/ui_service_create.png) ![image](http://webda.io/images/schemas/ui_service_config.png)
 
-## Application Theming & Styling
+#### Deployments
 
-Polymer 1.0 introduces a shim for CSS custom properties. We take advantage of this in `app/styles/app-theme.html` to provide theming for your application. You can also find our presets for Material Design breakpoints in this file.
+![image](http://webda.io/images/schemas/ui_deployment_create.png) ![image](http://webda.io/images/schemas/ui_deployment_config.png) ![image](http://webda.io/images/schemas/ui_deployment_deploy.png)
 
-[Read more](https://www.polymer-project.org/1.0/docs/devguide/styling.html) about CSS custom properties.
+## Requirements
 
-### Styling
-1. ***main.css*** - to define styles that can be applied outside of Polymer's custom CSS properties implementation. Some of the use-cases include defining styles that you want to be applied for a splash screen, styles for your application 'shell' before it gets upgraded using Polymer or critical style blocks that you want parsed before your elements are.
-2. ***app-theme.html*** - to provide theming for your application. You can also find our presets for Material Design breakpoints in this file.
-3. ***shared-styles.html*** - to share styles between elements and index.html.
-4. ***element styles only*** - styles specific to element. These styles should be inside the `<style></style>` inside `template`.
+Node.js >= 5.0.0
 
-  ```HTML
-  <dom-module id="my-list">
-    <template>
-      <style>
-        :host {
-          display: block;
-          background-color: yellow;
-        }
-      </style>
-      <ul>
-        <template is="dom-repeat" items="{{items}}">
-          <li><span class="paper-font-body1">{{item}}</span></li>
-        </template>
-      </ul>
-    </template>
-  </dom-module>
-  ```
+## Licence
 
-These style files are located in the [styles folder](app/styles/).
+### GNU Lesser General Public License
 
-## Unit Testing
 
-Web apps built with Polymer Starter Kit come configured with support for [Web Component Tester](https://github.com/Polymer/web-component-tester) - Polymer's preferred tool for authoring and running unit tests. This makes testing your element based applications a pleasant experience.
+_Version 3, 29 June 2007_  
+_Copyright © 2007 Free Software Foundation, Inc. &lt;<http://fsf.org/>&gt;_
 
-[Read more](https://github.com/Polymer/web-component-tester#html-suites) about using Web Component tester.
+Everyone is permitted to copy and distribute verbatim copies
+of this license document, but changing it is not allowed.
 
-## Dependency Management
 
-Polymer uses [Bower](http://bower.io) for package management. This makes it easy to keep your elements up to date and versioned. For tooling, we use npm to manage Node.js-based dependencies.
+This version of the GNU Lesser General Public License incorporates
+the terms and conditions of version 3 of the GNU General Public
+License, supplemented by the additional permissions listed below.
 
-Components installed by Bower live in the `app/bower_components` directory. This location is specified by the `.bowerrc` file. Many projects which follow Yeoman conventions place the `bower_components` directory outside of the `app` directory and then mount it using a server. This causes problems for tools like [Vulcanize](https://github.com/polymer/vulcanize) and [web-component-shards](https://github.com/PolymerLabs/web-component-shards) which rely on relative paths. We've chosen to simplify things and have `bower_components` live inside of `app` to resolve these issues.
+#### 0. Additional Definitions
 
-## Deploy
+As used herein, “this License” refers to version 3 of the GNU Lesser
+General Public License, and the “GNU GPL” refers to version 3 of the GNU
+General Public License.
 
-### Github Pages
+“The Library” refers to a covered work governed by this License,
+other than an Application or a Combined Work as defined below.
 
-1. Uncomment this line  `// app.baseUrl = '/polymer-starter-kit/';` in app.js near the top
-2. Change `app.baseUrl = '/polymer-starter-kit/';`  to `app.baseUrl = '/your-pathname/';` (ex: if you repo is `github.com/username/bobs-awesome-site` you would change this to `bobs-awesome-site`)
-3. Run `gulp build-deploy-gh-pages` from command line
-4. To see changes wait 1-2 minutes then load Github pages for your app (ex: https://polymerelements.github.io/polymer-starter-kit/)
+An “Application” is any work that makes use of an interface provided
+by the Library, but which is not otherwise based on the Library.
+Defining a subclass of a class defined by the Library is deemed a mode
+of using an interface provided by the Library.
 
-[See more details](/docs/deploy-to-github-pages.md/)
+A “Combined Work” is a work produced by combining or linking an
+Application with the Library.  The particular version of the Library
+with which the Combined Work was made is also called the “Linked
+Version”.
 
-### Firebase
+The “Minimal Corresponding Source” for a Combined Work means the
+Corresponding Source for the Combined Work, excluding any source code
+for portions of the Combined Work that, considered in isolation, are
+based on the Application, and not on the Linked Version.
 
-[See detail recipe](/docs/deploy-to-firebase-pretty-urls.md/)
+The “Corresponding Application Code” for a Combined Work means the
+object code and/or source code for the Application, including any data
+and utility programs needed for reproducing the Combined Work from the
+Application, but excluding the System Libraries of the Combined Work.
 
-## Service Worker
+#### 1. Exception to Section 3 of the GNU GPL
 
-Polymer Starter Kit offers an optional offline experience thanks to Service Worker and the [Platinum Service Worker elements](https://github.com/PolymerElements/platinum-sw). New to Service Worker? Read the following [introduction](http://www.html5rocks.com/en/tutorials/service-worker/introduction/) to understand how it works.
+You may convey a covered work under sections 3 and 4 of this License
+without being bound by section 3 of the GNU GPL.
 
-Our optional offline setup should work well for relatively simple applications. For more complex apps, we recommend learning how Service Worker works so that you can make the most of the Platinum Service Worker element abstractions.
+#### 2. Conveying Modified Versions
 
-### Enable Service Worker support?
+If you modify a copy of the Library, and, in your modifications, a
+facility refers to a function or data to be supplied by an Application
+that uses the facility (other than as an argument passed when the
+facility is invoked), then you may convey a copy of the modified
+version:
 
-To enable Service Worker support for Polymer Starter Kit project use these 3 steps:
+* **a)** under this License, provided that you make a good faith effort to
+ensure that, in the event an Application does not supply the
+function or data, the facility still operates, and performs
+whatever part of its purpose remains meaningful, or
 
-1. Uncomment Service Worker code in index.html
-  ```HTML
-  <!-- Uncomment next block to enable Service Worker support (1/2) -->
-  <!--
-  <paper-toast id="caching-complete"
-               duration="6000"
-               text="Caching complete! This app will work offline.">
-  </paper-toast>
+* **b)** under the GNU GPL, with none of the additional permissions of
+this License applicable to that copy.
 
-  <platinum-sw-register auto-register
-                        clients-claim
-                        skip-waiting
-                        on-service-worker-installed="displayInstalledToast">
-    <platinum-sw-cache default-cache-strategy="networkFirst"
-                       cache-config-file="cache-config.json">
-    </platinum-sw-cache>
-  </platinum-sw-register>
-  -->
-  ```
-2. Uncomment Service Worker code in elements.html
+#### 3. Object Code Incorporating Material from Library Header Files
 
-  ```HTML
-  <!-- Uncomment next block to enable Service Worker Support (2/2) -->
-  <!--
-  <link rel="import" href="../bower_components/platinum-sw/platinum-sw-cache.html">
-  <link rel="import" href="../bower_components/platinum-sw/platinum-sw-register.html">
-  -->
-  ```
-3. Uncomment 'cache-config' in the `runSequence()` section of the 'default' gulp task, like below:
-[(gulpfile.js)](https://github.com/PolymerElements/polymer-starter-kit/blob/master/gulpfile.js)
+The object code form of an Application may incorporate material from
+a header file that is part of the Library.  You may convey such object
+code under terms of your choice, provided that, if the incorporated
+material is not limited to numerical parameters, data structure
+layouts and accessors, or small macros, inline functions and templates
+(ten or fewer lines in length), you do both of the following:
 
-  ```JavaScript
-  // Build Production Files, the Default Task
-  gulp.task('default', ['clean'], function (cb) {
-    runSequence(
-      ['copy', 'styles'],
-      'elements',
-      ['jshint', 'images', 'fonts', 'html'],
-      'vulcanize', 'cache-config',
-      cb);
-  });
-  ```
+* **a)** Give prominent notice with each copy of the object code that the
+Library is used in it and that the Library and its use are
+covered by this License.
+* **b)** Accompany the object code with a copy of the GNU GPL and this license
+document.
+
+#### 4. Combined Works
+
+You may convey a Combined Work under terms of your choice that,
+taken together, effectively do not restrict modification of the
+portions of the Library contained in the Combined Work and reverse
+engineering for debugging such modifications, if you also do each of
+the following:
+
+* **a)** Give prominent notice with each copy of the Combined Work that
+the Library is used in it and that the Library and its use are
+covered by this License.
+
+* **b)** Accompany the Combined Work with a copy of the GNU GPL and this license
+document.
+
+* **c)** For a Combined Work that displays copyright notices during
+execution, include the copyright notice for the Library among
+these notices, as well as a reference directing the user to the
+copies of the GNU GPL and this license document.
+
+* **d)** Do one of the following:
+    - **0)** Convey the Minimal Corresponding Source under the terms of this
+License, and the Corresponding Application Code in a form
+suitable for, and under terms that permit, the user to
+recombine or relink the Application with a modified version of
+the Linked Version to produce a modified Combined Work, in the
+manner specified by section 6 of the GNU GPL for conveying
+Corresponding Source.
+    - **1)** Use a suitable shared library mechanism for linking with the
+Library.  A suitable mechanism is one that **(a)** uses at run time
+a copy of the Library already present on the user's computer
+system, and **(b)** will operate properly with a modified version
+of the Library that is interface-compatible with the Linked
+Version.
+
+* **e)** Provide Installation Information, but only if you would otherwise
+be required to provide such information under section 6 of the
+GNU GPL, and only to the extent that such information is
+necessary to install and execute a modified version of the
+Combined Work produced by recombining or relinking the
+Application with a modified version of the Linked Version. (If
+you use option **4d0**, the Installation Information must accompany
+the Minimal Corresponding Source and Corresponding Application
+Code. If you use option **4d1**, you must provide the Installation
+Information in the manner specified by section 6 of the GNU GPL
+for conveying Corresponding Source.)
+
+#### 5. Combined Libraries
+
+You may place library facilities that are a work based on the
+Library side by side in a single library together with other library
+facilities that are not Applications and are not covered by this
+License, and convey such a combined library under terms of your
+choice, if you do both of the following:
+
+* **a)** Accompany the combined library with a copy of the same work based
+on the Library, uncombined with any other library facilities,
+conveyed under the terms of this License.
+* **b)** Give prominent notice with the combined library that part of it
+is a work based on the Library, and explaining where to find the
+accompanying uncombined form of the same work.
+
+#### 6. Revised Versions of the GNU Lesser General Public License
+
+The Free Software Foundation may publish revised and/or new versions
+of the GNU Lesser General Public License from time to time. Such new
+versions will be similar in spirit to the present version, but may
+differ in detail to address new problems or concerns.
+
+Each version is given a distinguishing version number. If the
+Library as you received it specifies that a certain numbered version
+of the GNU Lesser General Public License “or any later version”
+applies to it, you have the option of following the terms and
+conditions either of that published version or of any later version
+published by the Free Software Foundation. If the Library as you
+received it does not specify a version number of the GNU Lesser
+General Public License, you may choose any version of the GNU Lesser
+General Public License ever published by the Free Software Foundation.
+
+If the Library as you received it specifies that a proxy can decide
+whether future versions of the GNU Lesser General Public License shall
+apply, that proxy's public statement of acceptance of any version is
+permanent authorization for you to choose that version for the
+Library.
 
-#### Filing bugs in the right place
-
-If you experience an issue with Service Worker support in your application, check the origin of the issue and use the appropriate issue tracker:
-
-* [sw-toolbox](https://github.com/GoogleChrome/sw-toolbox/issues)
-* [platinum-sw](https://github.com/PolymerElements/platinum-sw/issues)
-* [platinum-push-notifications-manager](https://github.com/PolymerElements/platinum-push-messaging)
-* For all other issues, feel free to file them [here](https://github.com/polymerelements/polymer-starter-kit/issues).
-
-#### I get an error message about "Only secure origins are allowed"
-
-Service Workers are only available to "secure origins" (HTTPS sites, basically) in line with a policy to prefer secure origins for powerful new features. However http://localhost is also considered a secure origin, so if you can, developing on localhost is an easy way to avoid this error. For production, your site will need to support HTTPS.
-
-#### How do I debug Service Worker?
-
-If you need to debug the event listener wire-up use `chrome://serviceworker-internals`.
-
-#### What are those buttons on chrome://serviceworker-internals?
-
-This page shows your registered workers and provides some basic operations.
-
-* Unregister: Unregisters the worker.
-* Start: Starts the worker. This would happen automatically when you navigate to a page in the worker's scope.
-* Stop: Stops the worker.
-* Sync: Dispatches a 'sync' event to the worker. If you don't handle this event, nothing will happen.
-* Push: Dispatches a 'push' event to the worker. If you don't handle this event, nothing will happen.
-* Inspect: Opens the worker in the Inspector.
-
-#### Development flow
-
-In order to guarantee that the latest version of your Service Worker script is being used, follow these instructions:
-
-* After you made changes to your service worker script, close all but one of the tabs pointing to your web application
-* Hit shift-reload to bypass the service worker as to ensure that the remaining tab isn't under the control of a service worker
-* Hit reload to let the newer version of the Service Worker control the page.
-
-If you find anything to still be stale, you can also try navigating to `chrome:serviceworker-internals` (in Chrome), finding the relevant Service Worker entry for your application and clicking 'Unregister' before refreshing your app. This will (of course) only clear it from the local development machine. If you have already deployed to production then further work will be necessary to remove it from your user's machines.
-
-#### Disable Service Worker support after you enabled it
-
-If for any reason you need to disable Service Worker support after previously enabling it, you can remove it from your Polymer Starter Kit project using these 4 steps:
-
-1. Remove references to the platinum-sw elements from your application [index](https://github.com/PolymerElements/polymer-starter-kit/blob/master/app/index.html).
-2. Remove the two Platinum Service Worker elements (platinum-sw/..) in [app/elements/elements.html](https://github.com/PolymerElements/polymer-starter-kit/blob/master/app/elements/elements.html)
-3. Remove 'precache' from the list in the 'default' gulp task ([gulpfile.js](https://github.com/PolymerElements/polymer-starter-kit/blob/master/gulpfile.js))
-4. Navigate to `chrome://serviceworker-internals` and unregister any Service Workers registered by Polymer Starter Kit for your app just in case there's a copy of it cached.
-
-## Yeoman support
-
-[generator-polymer](https://github.com/yeoman/generator-polymer/releases) now includes support for Polymer Starter Kit out of the box.
-
-## Frequently Asked Questions
-
-### Where do I customise my application theme?
-
-Theming can be achieved using [CSS Custom properties](https://www.polymer-project.org/1.0/docs/devguide/styling.html#xscope-styling-details) via [app/styles/app-theme.html](https://github.com/PolymerElements/polymer-starter-kit/blob/master/app/styles/app-theme.html).
-You can also use `app/styles/main.css` for pure CSS stylesheets (e.g for global styles), however note that Custom properties will not work there under the shim.
-
-A [Polycast](https://www.youtube.com/watch?v=omASiF85JzI) is also available that walks through theming using Polymer 1.0.
-
-### Where do I configure routes in my application?
-
-This can be done via [`app/elements/routing.html`](https://github.com/PolymerElements/polymer-starter-kit/blob/master/app/elements/routing.html). We use Page.js for routing and new routes
-can be defined in this import. We then toggle which `<iron-pages>` page to display based on the [selected](https://github.com/PolymerElements/polymer-starter-kit/blob/master/app/index.html#L105) route.
-
-### Why are we using Page.js rather than a declarative router like `<more-routing>`?
-
-`<more-routing>` (in our opinion) is good, but lacks imperative hooks for getting full control
-over the routing in your application. This is one place where a pure JS router shines. We may
-at some point switch back to a declarative router when our hook requirements are tackled. That
-said, it should be trivial to switch to `<more-routing>` or another declarative router in your
-own local setup.
-
-### Where can I find the application layouts from your Google I/O 2015 talk?
-
-App layouts live in a separate repository called [app-layout-templates](https://github.com/PolymerElements/app-layout-templates).
-You can select a template and copy over the relevant parts you would like to reuse to Polymer Starter Kit.
-
-You will probably need to change paths to where your Iron and Paper dependencies can be found to get everything working.
-This can be done by adding them to the [`elements.html`](https://github.com/PolymerElements/polymer-starter-kit/blob/master/app/elements/elements.html) import.
-
-### Something has failed during installation. How do I fix this?
-
-Our most commonly reported issue is around system permissions for installing Node.js dependencies.
-We recommend following the [fixing npm permissions](https://github.com/sindresorhus/guides/blob/master/npm-global-without-sudo.md)
-guide to address any messages around administrator permissions being required. If you use `sudo`
-to work around these issues, this guide may also be useful for avoiding that.
-
-If you run into an exception that mentions five optional dependencies failing (or an `EEXIST` error), you
-may have run into an npm [bug](https://github.com/npm/npm/issues/6309). We recommend updating to npm 2.11.0+
-to work around this. You can do this by opening a Command Prompt/terminal and running `npm install npm@2.11.0 -g`. If you are on Windows,
-Node.js (and npm) may have been installed into `C:\Program Files\`. Updating npm by running `npm install npm@2.11.0 -g` will install npm
-into `%AppData%\npm`, but your system will still use the npm version. You can avoid this by deleting your older npm from `C:\Program Files\nodejs`
-as described [here](https://github.com/npm/npm/issues/6309#issuecomment-67549380).
-
-If you get a browser console error indicating that an element you know you have installed is missing, try deleting the bower_components folder, then run `bower cache clean` followed by `bower install` to reinstall. This can be especially helpful when upgrading from a prior version of the Polymer Starter Kit. 
-
-If the issue is to do with a failure somewhere else, you might find that due to a network issue
-a dependency failed to correctly install. We recommend running `npm cache clean` and deleting the `node_modules` directory followed by
-`npm install` to see if this corrects the problem. If not, please check the [issue tracker](https://github.com/PolymerElements/polymer-starter-kit/issues) in case
-there is a workaround or fix already posted.
-
-### I'm having trouble getting Vulcanize to fully build my project on Windows. Help?
-
-Some Windows users have run into trouble with the `elements.html` file in their `dist` folder
-not being correctly vulcanized. This can happen if your project is in a folder with a name containing a
-space. You can work around this issue by ensuring your path doesn't contain one.
-
-There is also an [in-flight](https://github.com/PolymerElements/polymer-starter-kit/issues/62#issuecomment-108974016) issue
-where some are finding they need to disable the `inlineCss` option in our configuration for Vulcanize
-to correctly build. We are still investigating this, however for the time-being use the workaround if
-you find your builds getting stuck here.
-
-
-### How do I add new JavaScript files to Starter Kit so they're picked up by the build process?
-
-At the bottom of `app/index.html`, you will find a build block that can be used to include additional
-scripts for your app. Build blocks are just normal script tags that are wrapped in a HTML
-comment that indicates where to concatenate and minify their final contents to.
-
-Below, we've added in `script2.js` and `script3.js` to this block. The line
-`<!-- build:js scripts/app.js -->` specifies that these scripts will be squashed into `scripts/app.js`
-during a build.
-
-```html
-<!-- build:js scripts/app.js -->
-<script src="scripts/app.js"></script>
-<script src="scripts/script2.js"></script>
-<script src="scripts/script3.js"></script>
-<!-- endbuild-->
-```
-
-If you are not using the build-blocks, but still wish for additional files (e.g scripts or stylesheets) to be included in the final `dist` directory, you will need to either copy these files as part of the gulpfile.js build process (see the `copy` task for how to automate this) or manually copy the files.
-
-### I'm finding the installation/tooling here overwhelming. What should I do?
-
-Don't worry! We've got your covered. Polymer Starter Kit tries to offer everything you need to build and optimize your apps for production, which is why we include the tooling we do. We realise however that our tooling setup may not be for everyone.
-
-If you find that you just want the simplest setup possible, we recommend using Polymer Starter Kit light, which is available from the [Releases](https://github.com/PolymerElements/polymer-starter-kit/releases) page. This takes next to no time to setup.
-
-## Licensing
-
-Like other Google projects, Polymer Starter Kit includes Google license headers at the top of several of our source files. Google's open-source licensing requires that this header be kept in place (sorry!), however we acknowledge that you may need to add your own licensing to files you modify. This can be done by appending your own extensions to these headers.
-
-## Contributing
-
-Polymer Starter Kit is a new project and is an ongoing effort by the Web Component community. We welcome your bug reports, PRs for improvements, docs and anything you think would improve the experience for other Polymer developers.

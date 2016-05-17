@@ -64,7 +64,6 @@ class S3Binary extends Binary {
 		var params = {Bucket: this._params.bucket, Key: this._getPath(this.body.hash), 'ContentType': 'application/octet-stream', 'ContentMD5': base64String};
 		// List bucket
 		return this._s3.listObjectsV2({Bucket: this._params.bucket, Prefix: this._getPath(this.body.hash, '')}).promise().then( (data) => {
-			console.log(data.Contents);
 			let foundMap = false;
 			let foundData = false;
 			for (let i in data.Contents) {
@@ -93,7 +92,6 @@ class S3Binary extends Binary {
 	getSignedUrl(action, params) {
 		return new Promise( (resolve, reject) => {
 			let callback = function(err, url) {
-				console.log('res:',url);
 				if (err) {
 					reject(err);
 				}

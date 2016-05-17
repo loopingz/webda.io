@@ -129,13 +129,12 @@
 						"url": "/users"
 					},
 					"type": "FileStore",
-					"folder": "./test/data/users",
-					"validator": "UserValidator"
+					"folder": "./test/data/users"
 				},
 				"Tasks": {
 					"type": "FileStore",
 					"folder": "./test/data/tasks",
-					"validator": "./schemas/task.json",
+					"validator": "./test/schemas/task.json",
 					"expose": true
 				},
 				"binary": {

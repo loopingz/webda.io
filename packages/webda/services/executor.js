@@ -41,7 +41,6 @@ class Executor extends Service {
 		if (this._body === undefined) {
 			this._body = [];
 		}
-		console.log("_write");
 	    this._body.push(chunk);
 	    next();
 	    return true;
@@ -143,7 +142,6 @@ class Executor extends Service {
 	 */
 	execute() {
 		if (typeof(this._route._method) === "function") {
-			console.log("executor execute");
 			return new Promise( (resolve, reject) => {
 				resolve(this[this._route._method.name]());
 			});

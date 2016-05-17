@@ -3,6 +3,7 @@
 var stores = {};
 var uuid = require('node-uuid');
 const Executor = require("../services/executor");
+const _extend = require("util")._extend;
 
 /**
  * This class handle NoSQL storage and mapping (duplication) between NoSQL object
@@ -155,8 +156,6 @@ class Store extends Executor {
 		}).then( (object) => {
 			this.emit('Store.Saved', {'object': object, 'store': this});
 			if (this._params.map != undefined) {
-				//console.log('storesaved...');
-				//return this.get(object.user);
 				return this.handleMap(object, this._params.map, "created").then( () => {
 					return Promise.resolve(object);
 				}, function (err) {
@@ -506,6 +505,11 @@ class Store extends Executor {
 				delete object[prop]
 			}
 		}
+		if (this._params.validator) {
+			if (!this._webda.validate(object, this._params.validator)) {
+				throw 400;
+			}
+		}
 		return this.exists(object.uuid).then( (exists) => {
 			if (exists) {
 				throw 409;
@@ -526,6 +530,12 @@ class Store extends Executor {
 		return this.get(this._params.uuid).then ( (object) => {
 			if (!object) throw 404;
 			this._policy.canUpdate(object, this.body);
+
+			if (this._params.validator) {
+				if (!this._webda.validate(_extend(object, this.body), this._params.validator)) {
+					throw 400;
+				}
+			}
 			return this.update(this.body, this._params.uuid);
 		}).then ( (object) => {
 			if (object == undefined) {
@@ -538,7 +548,6 @@ class Store extends Executor {
 	httpGet() {
 		if (this._params.uuid) {
 			return this.get(this._params.uuid).then( (object) => {
-				console.log("this._policy");
 				this._policy.canGet(object);
                 if (object === undefined) {
 					throw 404;

@@ -7,7 +7,6 @@ class OwnerPolicy extends Policy {
 	 * Return false if can't create
 	 */
 	canCreate(object) {
-		console.log("policy executor", this._webda);
 		object.user = this._webda.getSession().getUserId();
 		if (!object.user) {
 			throw 403;

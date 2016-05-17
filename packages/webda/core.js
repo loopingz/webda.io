@@ -22,6 +22,7 @@ class Webda {
 		this._vhost = '';
 		// Schema validations
 		this._ajv = Ajv();
+		this._ajvSchemas = {};
 		// on the spot routehelpers
 		this._routehelpers = {};
 		this._routehelpers['debug']=require('./services/executor');
@@ -44,6 +45,20 @@ class Webda {
 		this._policies['OwnerPolicy']=require('./policies/ownerpolicy');
 		this._policies['VoidPolicy']=require('./policies/policy');
 		this._config = this.loadConfiguration(config);
+	}
+
+	/**
+	 * Validate the object with schema
+	 *
+	 * @param object to validate
+	 * @param schema path to use
+	 */
+	validate(object, schema) {
+		if (!this._ajvSchemas[schema]) {
+			this._ajv.addSchema(require(schema), schema)
+			this._ajvSchemas[schema]=true;
+		}
+		return this._ajv.validate(schema, object);
 	}
 
 	/**

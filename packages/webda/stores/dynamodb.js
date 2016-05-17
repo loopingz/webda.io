@@ -162,6 +162,7 @@ class DynamoStore extends Store {
 			"description": "Implements DynamoDB NoSQL storage",
 			"webcomponents": [],
 			"logo": "images/placeholders/dynamodb.png",
+			"documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
 			"configuration": {
 				"default": {
 					"table": "table-name",

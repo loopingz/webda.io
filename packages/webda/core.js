@@ -4,6 +4,7 @@ var uriTemplates = require('uri-templates');
 var _extend = require('util')._extend;
 var vm = require('vm');
 var fs = require('fs');
+var Ajv = require('ajv');
 const path = require('path');
 const cookieSerialize = require("cookie").serialize;
 
@@ -19,6 +20,8 @@ class Webda {
 	constructor (config) {
 		/** @ignore */
 		this._vhost = '';
+		// Schema validations
+		this._ajv = Ajv();
 		// on the spot routehelpers
 		this._routehelpers = {};
 		this._routehelpers['debug']=require('./services/executor');
@@ -27,7 +30,7 @@ class Webda {
 		this._routehelpers['string']=require('./routehelpers/string');
 		this._routehelpers['resource']=require('./routehelpers/resource');
 		this._routehelpers['file']=require('./routehelpers/file');
-		// real service
+		// real service - modda
 		this._services = {};
 		this._services['Webda/Authentication']=require('./services/passport');
 		this._services['Webda/FileStore']=require('./stores/file');
@@ -36,6 +39,10 @@ class Webda {
 		this._services['Webda/FileBinary']=require('./services/filebinary');
 		this._services['Webda/S3Binary']=require('./services/s3binary');
 		this._services['Webda/Mailer']=require('./services/mailer');
+		// Policies
+		this._policies = {};
+		this._policies['OwnerPolicy']=require('./policies/ownerpolicy');
+		this._policies['VoidPolicy']=require('./policies/policy');
 		this._config = this.loadConfiguration(config);
 	}
 
@@ -129,7 +136,9 @@ class Webda {
 	 * @returns A session object
 	 */
 	getSession() {
-		return this._currentExecutor.session;
+		if (this._currentExecutor) {
+			return this._currentExecutor.session;	
+		}
 	}
 
 	/**
@@ -401,6 +410,8 @@ class Webda {
 	      		config.global.services[service]._createException = err;
 	      	}
 	    }
+	    // Add default policies to the services
+	    this.initPolicies(config);
 
 	    // Init services
 	    for (var service in config.global._services) {
@@ -452,6 +463,13 @@ class Webda {
 		}
 	}
 
+	initPolicies(config) {
+		for (let i in this._policies) {
+			if (config.global._services[i]) continue;
+			config.global._services[i.toLowerCase()] = new this._policies[i](this, i, {});
+		}
+	}
+
 	initHosts(vhost, config) {
 	    if (config._initiated) {
 	      return;
@@ -462,7 +480,6 @@ class Webda {
 	    if (config.global !== undefined) {
 		    this.initServices(config);
 		}
-		this.initServices(config);
 		this.initURITemplates(config);
 
 	    // Order path desc

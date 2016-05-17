@@ -64,5 +64,5 @@ The behavior implementation can be found there :
 Two different UI component exist also :
 
   * A simple fab button upload : 
-  * A paper-input with Browse button : 
+  * IA paper-input with Browse button : 
 

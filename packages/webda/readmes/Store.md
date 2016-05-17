@@ -117,6 +117,7 @@ The security policy could also be implemented by a Service that listen on Store 
   "security": "OwnerPolicy" // This is the default SecurityPolicy
   ...
 }
+```
 
 If not specified the Store will pick the Owner policy as default.
 Policies are implicit service, so you can get them with a getService("OwnerPolicy"), but don't appear by default in the configuration file. That also means you can override a Policy if you want or create your own to implement your business model

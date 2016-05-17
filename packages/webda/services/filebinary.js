@@ -232,6 +232,7 @@ class FileBinary extends Binary {
 			"label": "File Storage",
 			"description": "Implements storage of files on the server filesystem",
 			"webcomponents": [],
+			"documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
 			"logo": "images/placeholders/filestorage.png",
 			"configuration": {
 				"default": {

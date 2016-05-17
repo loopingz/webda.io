@@ -110,6 +110,7 @@ class MongoStore extends Store {
 			"label": "MongoStore",
 			"description": "Implements MongoDB NoSQL",
 			"webcomponents": [],
+			"documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
 			"logo": "images/placeholders/mongodb.png",
 			"configuration": {
 				"default": {

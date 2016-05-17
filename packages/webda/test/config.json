@@ -105,8 +105,6 @@
 					"collection": "users"
 				},
 				"Idents": {
-					"inject": "user",
-					"check": "user",
 					"map": {
 							"Users": {
 								"key": "user",
@@ -127,16 +125,18 @@
 					"validator": "IdentValidator"
 				},
 				"Users": {
-					"check": "user",
 					"expose": {
-						"url": "/users",
-						"restrict": {
-							"authentication": true
-						}
+						"url": "/users"
 					},
 					"type": "FileStore",
 					"folder": "./test/data/users",
 					"validator": "UserValidator"
+				},
+				"Tasks": {
+					"type": "FileStore",
+					"folder": "./test/data/tasks",
+					"validator": "./schemas/task.json",
+					"expose": true
 				},
 				"binary": {
 					"type": "FileBinary",

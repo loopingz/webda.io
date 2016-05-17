@@ -49,6 +49,15 @@ class Store extends Executor {
 		if (this._params.expose) {
 			this.initRoutes(config, this._params.expose);
 		}
+		let policy = this._params.policy;
+		if (!policy) {
+			policy = "OwnerPolicy";
+		}
+		this._policy = this._webda.getService(policy);
+		if (!this._policy) {
+			console.log("Bad security policy " + policy);
+			this._policy = this._webda.getService("OwnerPolicy");
+		}
 	}
 
 	initRoutes(config, expose) {
@@ -486,14 +495,9 @@ class Store extends Executor {
 
 	httpCreate() {
 		var object = this.body;
-		// TODO Move this one to the route configuration
-		if (this._params.expose.restrict.authentication) {
-			if (this.session.isLogged() == undefined) {
-				throw 401;
-			}
-			// TODO This should be part of a Owner security service
-			object.user = this.session.getUserId();
-		}
+		// Policy
+		this._policy.canCreate(object);
+
 		if (!object.uuid) {
 			object.uuid = this.generateUid();
 		}
@@ -519,8 +523,9 @@ class Store extends Executor {
 			}
 		}
 		this.body.uuid = this._params.uuid;
-		return this.exists(this._params.uuid).then ( (exists) => {
-			if (!exists) throw 404;
+		return this.get(this._params.uuid).then ( (object) => {
+			if (!object) throw 404;
+			this._policy.canUpdate(object, this.body);
 			return this.update(this.body, this._params.uuid);
 		}).then ( (object) => {
 			if (object == undefined) {
@@ -532,7 +537,9 @@ class Store extends Executor {
 
 	httpGet() {
 		if (this._params.uuid) {
-			return this.get(this._params.uuid).then( (object) => {;
+			return this.get(this._params.uuid).then( (object) => {
+				console.log("this._policy");
+				this._policy.canGet(object);
                 if (object === undefined) {
 					throw 404;
 				}
@@ -547,7 +554,10 @@ class Store extends Executor {
 		if (this._route._http.method == "GET") {
 			return this.httpGet();
 		} else if (this._route._http.method == "DELETE") {
-			return this.delete(this._params.uuid);
+			return this.get(this._params.uuid).then ( (object) => {
+				this._policy.canDelete(object);	
+				this.delete(this._params.uuid);
+			});
 		} else if (this._route._http.method == "PUT") {
 			return this.httpUpdate();
 		}

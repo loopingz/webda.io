@@ -42,7 +42,7 @@ We will use the inline RouteHelper here, except the Lambda Route helper, the oth
   	...
   	"/myurl": {
   	  "type": "inline",
-  	  "callback": "function(executor) { executor.write('I am a inline route'); }"
+  	  "callback": "function(executor) { executor.write('I am an inline route'); }"
   	}
   }
 }

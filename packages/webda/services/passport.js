@@ -399,6 +399,7 @@ class PassportExecutor extends Executor {
 			"description": "Implements user registration and login using either email or OAuth, it handles for now Facebook, Google, Amazon, GitHub, Twitter\nIt needs a Idents and a Users Store to work",
 			"webcomponents": [],
 			"logo": "images/placeholders/passport.png",
+			"documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Authentication.md",
 			"configuration": {
 				"default": {
 					"successRedirect": "YOUR WEBSITE LOGGED PAGE",

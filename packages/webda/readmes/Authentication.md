@@ -45,7 +45,8 @@ The email authentication has two modes, one that register the user without waiti
      "html": "", // HTML to send by email for email validation
      "text": "", // Text to send by email for email validation
      "mailer": "DefinedMailer", // Defined mailer to use
-     "postValidation": false // If true, create user without email validation
+     "postValidation": false, // If true, create user without email validation
+     "skipEmailValidation": true // Don't even send a validation email, must be set along with postValidation=true
   },
 }
 ...

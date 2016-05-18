@@ -336,7 +336,7 @@ class PassportExecutor extends Executor {
 						}
 						return identStore.save(newIdent).then ( (ident) => {
 							this.login(user, ident);
-							if (!validation) {
+							if (!validation && !mailConfig.skipEmailValidation) {
 								return this.sendValidationEmail(email);
 							}
 							return Promise.resolve();

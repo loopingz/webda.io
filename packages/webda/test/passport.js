@@ -103,6 +103,19 @@ describe('Passport', function() {
         return executor.execute();
       }).then ( () => {
         assert.equal(executor._returnCode, 302);
+        // Verify the skipEmailValidation parameter
+        events = 0;
+        params = {'login':'test4@webda.io', 'password': 'test', register: true};
+        executor = webda.getExecutor("test.webda.io", "POST", "/auth/email", "http");
+        executor._params.providers.email.postValidation = true;
+        executor._params.providers.email.skipEmailValidation = true;
+        executor.setContext(params, webda.getNewSession());
+        return executor.execute();
+      }).then ( () => {
+        // No new email has been sent
+        assert.equal(mailer.sent.length, 2);
+        assert.equal(events, 2); // Register + Login
+        assert.notEqual(executor.session.getUserId(), undefined);
       });
   	});
 

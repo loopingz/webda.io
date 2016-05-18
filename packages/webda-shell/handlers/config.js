@@ -324,7 +324,10 @@ class WebdaConfigurationServer extends WebdaServer {
 		// Need to reload the configuration to resolve it
 		delete this._mockWedba;
 		this.loadMock(JSON.parse(this.exportJson(this.config)));
-		this.getService("configuration").refresh();
+		let configurationService = this.getService("configuration");
+		if (configurationService) {
+			configurationService.refresh();
+		}
 	}
 
 	loadMock(config) {

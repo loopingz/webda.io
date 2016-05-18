@@ -3,12 +3,14 @@ var assert = require("assert")
 var Webda = require("../core")
 var config = require("./config.json");
 var Ident = require("../models/ident");
-var webda;
 var identStore;
 var userStore;
 var mailer;
 var events;
 var executor;
+var found = false;
+var webda = new Webda(config);
+
 
 const validationUrl = /.*\/auth\/email\/callback\?email=([^&]+)&token=([^ ]+)/
 
@@ -118,6 +120,32 @@ describe('Passport', function() {
         assert.notEqual(executor.session.getUserId(), undefined);
       });
   	});
+
+    it('/me', function() {
+      executor = webda.getExecutor("test.webda.io", "GET", "/auth/me", "http");
+      executor.setContext({}, webda.getNewSession());
+      found = false;
+      return webda.execute(executor).catch((err) => {
+        found = true;
+        // Session with empty user
+        assert.equal(err, 404);
+        let params = {'login':'test5@webda.io', 'password': 'test', register: true, 'plop': 'yep'};
+        executor = webda.getExecutor("test.webda.io", "POST", "/auth/email", "http");
+        executor.setContext(params, executor.session);
+        return webda.execute(executor);
+      }).then (() => {
+        assert.equal(found, true);
+        // Get me on known user
+        executor = webda.getExecutor("test.webda.io", "GET", "/auth/me", "http");
+        executor.setContext({}, executor.session);
+        return webda.execute(executor);
+      }).then (() => {
+        let user = JSON.parse(executor._body);
+        assert.equal(user.plop, 'yep');
+        assert.equal(user.register, undefined);
+        assert.notEqual(user, undefined);
+      });
+    });
 
   	it('login', function() {
   		var params = {'login':'test3@webda.io', 'password': 'test'};

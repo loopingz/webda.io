@@ -19,8 +19,6 @@
 				"Authentication": {
 					"successRedirect": "https://shootandprove.loopingz.com/user.html",
 					"failureRedirect": "/login-error",
-					"userStore": "",
-					"identStore": "",
 					"providers": {
 						"facebook": {},
 						"email": {

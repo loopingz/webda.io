@@ -6,17 +6,6 @@ const crypto = require("crypto");
 const _extend = require("util")._extend;
 const Ident = require('../models/ident');
 
-passport.serializeUser(function(user, done) {
-	console.log("serializeUser");
-	done(null, JSON.stringify(user));
-});
-
-passport.deserializeUser(function(id, done) {
-	// To be sure to clean safely those functions
-	console.log("deSerializeUser");
-	done(null, JSON.parse(id));
-});
-
 var Strategies = {
 	"facebook": {strategy: require('passport-facebook').Strategy, promise: false},
 	"google": {strategy: require('passport-google-oauth').OAuth2Strategy, promise: false},
@@ -63,13 +52,23 @@ class PassportExecutor extends Executor {
 		} else {
 			url = this._params.expose;
 		}
-		this._identsStore = this.getService("idents");
-		this._usersStore = this.getService("idents");
+		let identStoreName = this._params.identStore;
+		let userStoreName = this._params.userStore;
+		if (identStoreName === undefined) {
+			identStoreName = "idents";
+		}
+		if (userStoreName === undefined) {
+			userStoreName = "users";
+		}
+		this._identsStore = this.getService(identStoreName);
+		this._usersStore = this.getService(userStoreName);
 		if (this._identsStore === undefined || this._usersStore === undefined) {
 			this._initException = "Unresolved dependency on idents and users services";
 		}
 		// List authentication configured
 		config[url] = {"method": ["GET", "DELETE"], "executor": this._name, "_method": this.listAuthentications};
+		// Get the current user
+		config[url + "/me"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "_method": this.getMe};
 		// Add static for email for now, if set before it should have priority
 		config[url + "/email"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this.handleEmail};
 		config[url + "/email/register"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email", "register": true}, "_method": this.handleEmail};
@@ -87,12 +86,25 @@ class PassportExecutor extends Executor {
 			throw 404;
 		}
 		return new Promise( (resolve, reject) => {
-			var done = function(result) { console.log(result); resolve(); }; 
+			var done = function(result) { resolve(); }; 
 			this.setupOAuth(providerConfig);
 			passport.authenticate(this._params.provider, { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect}, done)(this, this, done);
 		});
 	};
 
+	getMe() {
+		if (this.session.getUserId() === undefined) {
+			throw 404;
+			return;
+		}
+		return this._usersStore.get(this.session.getUserId()).then( (user) => {
+			if (user === undefined) {
+				throw 404;
+			}
+			this.write(user);
+			return;
+		});
+	}
 	listAuthentications() {
 		if (this._route._http.method === "DELETE") {
 			this.logout();
@@ -115,8 +127,8 @@ class PassportExecutor extends Executor {
 	};
 
 	handleOAuthReturn(profile, ident, done) {
-		var identStore = this.getService("idents");
-		var userStore = this.getService("users");
+		var identStore = this._identsStore;
+		var userStore = this._usersStore;
 		var userPromise;
 		return identStore.get(ident.uuid).then( (result) => {
 			// Login with OAUTH
@@ -258,7 +270,7 @@ class PassportExecutor extends Executor {
 	}
 
 	handleEmail() {
-		var identStore = this.getService(this._params.userStore?this._params.userStore:"Idents");
+		var identStore = this._identsStore;
 		if (identStore === undefined) {
 			console.log("Email auth needs an ident store");
 			throw 500;
@@ -272,7 +284,7 @@ class PassportExecutor extends Executor {
 			// Bad configuration ( might want to use other than 500 )
 			//throw 500;
 		}
-		var userStore = this.getService(this._params.userStore?this._params.userStore:"Users");
+		var userStore = this._usersStore;
 		var updates = {};
 		var uuid = this.body.login + "_email";
 		return identStore.get(uuid).then( (ident) => {
@@ -329,6 +341,7 @@ class PassportExecutor extends Executor {
 					// Store with a _
 					this.body._password = this.hashPassword(this.body.password);
 					delete this.body.password;
+					delete this.body.register;
 					return userStore.save(this.registerUser(this.body, this.body)).then ( (user) => {
 						var newIdent = {'uuid': uuid, 'type': 'email', 'email': email, 'user': user.uuid};
 						if (validation) {

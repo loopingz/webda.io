@@ -485,6 +485,21 @@ class Webda {
 		}
 	}
 
+	comparePath(a, b) {
+		// Normal node works with localeCompare but not Lambda...
+		// Local compare { to a return: 26 on Lambda
+		let bs = b.url.split("/");
+		let as = a.url.split("/");
+		for (let i in as) {
+			if (bs[i] === undefined) return -1;
+			if (as[i] === bs[i]) continue;
+			if (as[i][0] === "{" && bs[i][0] !== "{") return 1;
+			if (as[i][0] !== "{" && bs[i][0] === "{") return -1;
+			return bs[i] < as[i]?-1:1;
+		}
+		return 1;
+	}
+
 	initHosts(vhost, config) {
 	    if (config._initiated) {
 	      return;
@@ -504,9 +519,7 @@ class Webda {
 	    	// Might need to trail the query string
 	    	config._pathMap.push({url: i, config: config[i]});
 	    }
-		config._pathMap.sort(function(a,b) {
-			return b.url.localeCompare(a.url);
-		});
+		config._pathMap.sort(this.comparePath);
 	    config._initiated = true;
   }
 

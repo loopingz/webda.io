@@ -86,5 +86,11 @@ describe('Webda', function() {
       assert.notEqual(executor._params.id, "666/test");
       assert.equal(executor._params.other, "test");
     });
+    it('/me', function () {
+      executor = webda.getExecutor("test.webda.io", "GET", "/auth/me");
+      assert.notEqual(executor, undefined);
+      assert.equal(executor._params.provider, undefined);
+
+    });
   });
 });

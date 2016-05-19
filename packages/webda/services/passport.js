@@ -68,10 +68,9 @@ class PassportExecutor extends Executor {
 		// List authentication configured
 		config[url] = {"method": ["GET", "DELETE"], "executor": this._name, "_method": this.listAuthentications};
 		// Get the current user
-		config[url + "/me"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "_method": this.getMe};
+		config[url + "/me"] = {"method": ["GET"], "executor": this._name, "_method": this.getMe};
 		// Add static for email for now, if set before it should have priority
 		config[url + "/email"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this.handleEmail};
-		config[url + "/email/register"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email", "register": true}, "_method": this.handleEmail};
 		config[url + "/email/callback{?email,token}"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.handleEmailCallback};
 		// Handle the lost password here
 		url += '/{provider}';
@@ -304,7 +303,8 @@ class PassportExecutor extends Executor {
 
 						return identStore.update(updates, ident.uuid).then ( () => {
 							this.login(ident.user, ident);
-							throw 204;
+							this.write(user);
+							return Promise.resolve();
 						});
 						
 					} else {
@@ -331,6 +331,7 @@ class PassportExecutor extends Executor {
 						if (this.body.token == this.generateEmailValidationToken(email)) {
 							validation = new Date();
 						} else {
+							this.write({});
 							// token is undefined send an email
 							return this.sendValidationEmail(email);
 						}
@@ -349,6 +350,7 @@ class PassportExecutor extends Executor {
 						}
 						return identStore.save(newIdent).then ( (ident) => {
 							this.login(user, ident);
+							this.write(user);
 							if (!validation && !mailConfig.skipEmailValidation) {
 								return this.sendValidationEmail(email);
 							}

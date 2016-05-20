@@ -98,7 +98,7 @@ class LambdaServer extends Webda {
 	  	}
 	  	//
 	  	var body = event["body-json"];
-	  	var ctx = webda.newContext(body, session);
+	  	var ctx = this.newContext(body, session);
 	  	var executor = this.getExecutor(ctx, vhost, method, resourcePath, protocol, port, headers);
 
 	  	if (executor == null) {

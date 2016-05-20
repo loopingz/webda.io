@@ -19,18 +19,18 @@ class LambdaServer extends Webda {
 	/**
 	 * @ignore
 	 */
-	flushHeaders (executor) {
-		var headers = executor._headers;
-		var session = executor.session;
-		headers['Set-Cookie']=this.getCookieHeader(executor);
+	flushHeaders (ctx) {
+		var headers = ctx._headers;
+		var session = ctx.session;
+		headers['Set-Cookie']=this.getCookieHeader(ctx);
 		this._result = {};
 		this._result.headers = headers;
-		this._result.code = executor._returnCode;
+		this._result.code = ctx.statusCode;
 	}
 
-	flush (executor) {
-		if (executor._body !== undefined) {
-			this._result.body = executor._body;
+	flush (ctx) {
+		if (ctx._body !== undefined) {
+			this._result.body = ctx._body;
 		}
 	}
 
@@ -97,49 +97,51 @@ class LambdaServer extends Webda {
 	  		}
 	  	}
 	  	//
-	  	var executor = this.getExecutor(vhost, method, resourcePath, protocol, port, headers);
 	  	var body = event["body-json"];
+	  	var ctx = webda.newContext(body, session);
+	  	var executor = this.getExecutor(ctx, vhost, method, resourcePath, protocol, port, headers);
+
 	  	if (executor == null) {
 	  		callback("Bad mapping " + vhost + " - " + method + " " + resourcePath, null);
 	  	}
-	  	executor.setContext(body, session);
+	  	
 	  	// Set predefined headers for CORS
 	  	if (event.params.header.Origin) {
-	  		executor.setHeader('Access-Control-Allow-Origin', event.params.header.Origin);
+	  		ctx.setHeader('Access-Control-Allow-Origin', event.params.header.Origin);
 	  	}
-  		executor.setHeader('Access-Control-Allow-Credentials', true);
+  		ctx.setHeader('Access-Control-Allow-Credentials', true);
 
 	  	
-		return Promise.resolve(this.execute(executor)).then( () => {
-			if (!executor._ended) {
-				executor.end();
+		return Promise.resolve(executor.execute(ctx)).then( () => {
+			if (!ctx._ended) {
+				ctx.end();
 			}
-			this.handleLambdaReturn(executor, callback);
+			this.handleLambdaReturn(ctx, callback);
 		}).catch ( (err) => {
 			if (typeof(err) === "number") {
-				this.flushHeaders(executor);
+				this.flushHeaders(ctx);
 				this._result.code = err;
 			} else {
 				console.log(err);
 				this._result.code = 500;
 			}
-			this.handleLambdaReturn(executor, callback);
+			this.handleLambdaReturn(ctx, callback);
 		});
 	}
 
-	handleLambdaReturn(executor, callback) {
+	handleLambdaReturn(ctx, callback) {
 		// Override when it comes for express component
-		if (executor.statusCode) {
-			this._result.code = executor.statusCode;
+		if (ctx.statusCode) {
+			this._result.code = ctx.statusCode;
 		}
 		var code = 200;
-		if (executor._route && executor._route.aws !== undefined && executor._route.aws.defaultCode !== undefined) {
-			code = executor._route.aws.defaultCode;
+		if (ctx._route && ctx._route.aws !== undefined && ctx._route.aws.defaultCode !== undefined) {
+			code = ctx._route.aws.defaultCode;
 			if (code == "string") {
 				code = parseInt(code);
 			}
 		}
-		console.log("expected code: ", code);
+
 		if (this._result.code == code) {
 			callback(null, this._result);
 		} else {

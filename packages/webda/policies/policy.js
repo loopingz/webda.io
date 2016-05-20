@@ -9,25 +9,25 @@ class Policy extends Service {
 	/**
 	 * Return false if can't create
 	 */
-	canCreate(object) {
+	canCreate(ctx, object) {
 		return true;
 	}
 	/**
 	 * Return false if can't update
 	 */
-	canUpdate(object) {
+	canUpdate(ctx, object) {
 		return true;
 	}
 	/**
 	 * Return false if can't get
 	 */
-	canGet(object) {
+	canGet(ctx, object) {
 		return true;
 	}
 	/**
 	 * Return false if can't delete
 	 */
-	canDelete(object) {
+	canDelete(ctx, object) {
 		return true;
 	}
 }

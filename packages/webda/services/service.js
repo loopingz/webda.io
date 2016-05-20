@@ -37,7 +37,7 @@ class Service extends EventEmitter {
 	 * @return {String} The export of the strip object ( removed all attribute with _ )
 	 */
 	toPublicJSON(object) {
-		return JSON.stringify(object, this._webda.jsonFilter);
+		return this._webda.toPublicJSON(object);
 	}
 
 	/**

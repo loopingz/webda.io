@@ -10,6 +10,7 @@ var events;
 var executor;
 var found = false;
 var webda = new Webda(config);
+var ctx;
 
 
 const validationUrl = /.*\/auth\/email\/callback\?email=([^&]+)&token=([^ ]+)/
@@ -38,60 +39,60 @@ describe('Passport', function() {
   });
   describe('Email', function () {
   	it('register', function() {
-  		//getExecutor(vhost, method, url, protocol, port, headers)
-  		executor = webda.getExecutor("test.webda.io", "POST", "/auth/email", "http");
-  		var params = {'email':'test@webda.io', 'password': 'test'};
+      var params = {'email':'test@webda.io', 'password': 'test'};
+      ctx = webda.newContext(params);
+  		executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", "http");
   		events = 0;
-  		executor.setContext(params, {});
-  		return executor.execute().catch( (err) => {
+  		return executor.execute(ctx).catch( (err) => {
         // Wrong parameters in the request
         assert.equal(err, 400);
   		  params.login = params.email;
-  		  executor.setContext(params, {});
-  		  return executor.execute();
+        ctx.body = params;
+  		  return executor.execute(ctx);
       }).catch ((err) => {
         // Unknown user without the register option
   			assert.equal(err, 404);
   			params.register = true;
-  			executor.setContext(params, webda.getNewSession());
-  			return executor.execute();
+  			ctx.body = params;
+        ctx.session = webda.getNewSession();
+  			return executor.execute(ctx);
   		}).then ( () => {
         // 
-  			assert.equal(executor.session.identId, undefined);
+  			assert.equal(ctx.session.identId, undefined);
         assert.equal(mailer.sent.length, 1);
   			return identStore.get('test@webda.io_email');
   		}).then ( (ident) => {
   			assert.equal(ident, undefined);
-  			params.login = "test2@webda.io";
   			executor._params.providers.email.postValidation = true;
-  			executor.setContext(params, webda.getNewSession());
-  			return executor.execute();
+        ctx.body.login = "test2@webda.io";
+        ctx.session = webda.getNewSession();
+  			return executor.execute(ctx);
   		}).then ( () => {
   			assert.equal(events, 2); // Register + Login
-  			assert.notEqual(executor.session.getUserId(), undefined);
+  			assert.notEqual(ctx.session.getUserId(), undefined);
         assert.equal(mailer.sent.length, 2);
-  			return userStore.get(executor.session.getUserId());
+  			return userStore.get(ctx.session.getUserId());
   		}).then ( (user) => {
   			assert.notEqual(user, undefined);
         assert.notEqual(user._password, undefined);
         assert.equal(user.test, "TESTOR"); // Verify that the listener on Register has done something
         // Now logout
-        executor = webda.getExecutor("test.webda.io", "DELETE", "/auth", "http");
-        return executor.execute();
+        executor = webda.getExecutor(ctx, "test.webda.io", "DELETE", "/auth", "http");
+        return executor.execute(ctx);
       }).then ( () => {
         // Now validate first user
         executor._params.providers.email.postValidation = false;
-        assert.equal(executor.session.getUserId(), undefined);
+        assert.equal(ctx.session.getUserId(), undefined);
         var match = mailer.sent[0].text.match(validationUrl);
         assert.notEqual(match, undefined);
         assert.equal(match[1], 'test@webda.io');
-        executor.setContext({'token': match[2], 'password': 'test', 'login': match[1], 'register': true, 'add': 'plop'}, executor.session);
-        executor = webda.getExecutor("test.webda.io", "POST", "/auth/email", "http");
-        return executor.execute();
+        ctx.body = {'token': match[2], 'password': 'test', 'login': match[1], 'register': true, 'add': 'plop'};
+        executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", "http");
+        return executor.execute(ctx);
   		}).then ( () => {
         // Should create it with the dat provided
-        assert.notEqual(executor.session.getUserId(), undefined);
-        return identStore.get(executor.session.getIdentUsed());
+        assert.notEqual(ctx.session.getUserId(), undefined);
+        return identStore.get(ctx.session.getIdentUsed());
       }).then ( (ident) => {
         // Email should be already validate
         assert.notEqual(ident.validation, undefined);
@@ -100,47 +101,47 @@ describe('Passport', function() {
         var match = mailer.sent[1].text.match(validationUrl);
         assert.notEqual(match, undefined);
         assert.equal(match[1], 'test2@webda.io');
-        executor.setContext(undefined, webda.getNewSession());
-        executor = webda.getExecutor("test.webda.io", "GET", "/auth/email/callback?email=" + match[1] + "&token=" + match[2], "http");
-        return executor.execute();
+        ctx.body = undefined;
+        ctx.session = webda.getNewSession();
+        executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/auth/email/callback?email=" + match[1] + "&token=" + match[2], "http");
+        return executor.execute(ctx);
       }).then ( () => {
-        assert.equal(executor._returnCode, 302);
+        assert.equal(ctx.statusCode, 302);
         // Verify the skipEmailValidation parameter
         events = 0;
-        params = {'login':'test4@webda.io', 'password': 'test', register: true};
-        executor = webda.getExecutor("test.webda.io", "POST", "/auth/email", "http");
+        ctx.body = {'login':'test4@webda.io', 'password': 'test', register: true};
+        ctx.session = webda.getNewSession();
+        executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", "http");
         executor._params.providers.email.postValidation = true;
         executor._params.providers.email.skipEmailValidation = true;
-        executor.setContext(params, webda.getNewSession());
-        return executor.execute();
+        return executor.execute(ctx);
       }).then ( () => {
         // No new email has been sent
         assert.equal(mailer.sent.length, 2);
         assert.equal(events, 2); // Register + Login
-        assert.notEqual(executor.session.getUserId(), undefined);
+        assert.notEqual(ctx.session.getUserId(), undefined);
       });
   	});
 
     it('/me', function() {
-      executor = webda.getExecutor("test.webda.io", "GET", "/auth/me", "http");
-      executor.setContext({}, webda.getNewSession());
+      ctx = webda.newContext({}, webda.getNewSession());
+      executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/auth/me", "http");
       found = false;
-      return webda.execute(executor).catch((err) => {
+      return executor.execute(ctx).catch((err) => {
         found = true;
         // Session with empty user
         assert.equal(err, 404);
-        let params = {'login':'test5@webda.io', 'password': 'test', register: true, 'plop': 'yep'};
-        executor = webda.getExecutor("test.webda.io", "POST", "/auth/email", "http");
-        executor.setContext(params, executor.session);
-        return webda.execute(executor);
+        ctx.body = {'login':'test5@webda.io', 'password': 'test', register: true, 'plop': 'yep'};
+        executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", "http");
+        return executor.execute(ctx);
       }).then (() => {
         assert.equal(found, true);
         // Get me on known user
-        executor = webda.getExecutor("test.webda.io", "GET", "/auth/me", "http");
-        executor.setContext({}, executor.session);
-        return webda.execute(executor);
+        ctx.body = {};
+        executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/auth/me", "http");
+        return executor.execute(ctx);
       }).then (() => {
-        let user = JSON.parse(executor._body);
+        let user = JSON.parse(ctx._body);
         assert.equal(user.plop, 'yep');
         assert.equal(user.register, undefined);
         assert.notEqual(user, undefined);
@@ -150,37 +151,40 @@ describe('Passport', function() {
   	it('login', function() {
   		var params = {'login':'test3@webda.io', 'password': 'test'};
   		events = 0;
-      executor = webda.getExecutor("test.webda.io", "POST", "/auth/email", "http");
-  		executor.setContext(params, webda.getNewSession());
-  		return executor.execute().catch ( (err) => {
-  			assert.equal(executor.session.getUserId(), undefined);
+      ctx = webda.newContext(params, webda.getNewSession());
+      executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", "http");
+  		return executor.execute(ctx).catch ( (err) => {
+  			assert.equal(ctx.session.getUserId(), undefined);
   			// As it has not been validate
   			assert.equal(err, 404);
   			params.login="test2@webda.io";
-  			executor.setContext(params, webda.getNewSession());
-  			return executor.execute();
+        ctx.body = params;
+        ctx.session = webda.getNewSession();
+  			return executor.execute(ctx);
   		}).then( () => {
         assert.equal(events, 1); // Login
-  			assert.notEqual(executor.session.getUserId(), undefined);
+  			assert.notEqual(ctx.session.getUserId(), undefined);
         // Verify ident type
-        return identStore.get(executor.session.getIdentUsed());
+        return identStore.get(ctx.session.getIdentUsed());
       }).then( (ident) => {
         assert.equal(ident.type, "email");
   			params.login="test2@webda.io";
   			params.password="bouzouf";
-  			executor.setContext(params, webda.getNewSession());
-  			return executor.execute();
+        ctx.body = params;
+        ctx.session = webda.getNewSession();
+  			return executor.execute(ctx);
   		}).catch( (err) => {
   			assert.equal(err, 403);
-  			assert.equal(executor.session.getUserId(), undefined);
+  			assert.equal(ctx.session.getUserId(), undefined);
   			assert.equal(events, 1);
   		});
   	});
   });
   describe("OAuth", function () {
   	it('AWS Compatibility', function() {
-  		executor = webda.getExecutor("test.webda.io", "GET", "/auth/github");
-      assert.equal(executor._route.aws.defaultCode, 302);
+      ctx = webda.newContext();
+  		executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/auth/github");
+      assert.equal(ctx._route.aws.defaultCode, 302);
   	});
     it('Callback', function() {
       var done = function() {};
@@ -188,11 +192,12 @@ describe('Passport', function() {
       events = 0;
       let ident = new Ident("github","test");
       let profile = {'displayName': 'Georges Abitbol'};
-      executor = webda.getExecutor("test.webda.io", "GET", "/auth/github/callback?code=blahblah");
-      return executor.handleOAuthReturn(profile, ident, done).then ( () => {
-        assert.equal(executor._returnCode, 302);
-        assert.equal(executor._params.code, "blahblah");  
-        assert.equal(executor._headers.Location, "https://shootandprove.loopingz.com/user.html?validation=github");
+      ctx = webda.newContext({}, webda.getNewSession());
+      executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/auth/github/callback?code=blahblah");
+      return executor.handleOAuthReturn(ctx, profile, ident, done).then ( () => {
+        assert.equal(ctx.statusCode, 302);
+        assert.equal(ctx._params.code, "blahblah");  
+        assert.equal(ctx._headers.Location, "https://shootandprove.loopingz.com/user.html?validation=github");
         // The ident must have been created and have a last used
         assert.notEqual(ident.lastUsed, lastUsed);
         lastUsed = ident;
@@ -201,8 +206,8 @@ describe('Passport', function() {
         // Login + Register
         assert.equal(events, 2);
         events = 0;
-        assert.equal(executor.session.isLogged(), true);
-        return executor.handleOAuthReturn(profile, ident, done);
+        assert.equal(ctx.session.isLogged(), true);
+        return executor.handleOAuthReturn(ctx, profile, ident, done);
       }).then ( () => {
         assert.equal(events, 1); // Only Login
         assert.notEqual(ident.lastUsed, lastUsed);
@@ -212,11 +217,11 @@ describe('Passport', function() {
         assert.equal(user.idents.length, 1); // Only one github login
         assert.equal(user.idents[0].uuid, "test_github"); // Only one github login
         assert.equal(user.test, "TESTOR"); // Verify that the listener on Register has done something
-        return executor.handleOAuthReturn(profile, new Ident("github", "retest"), done);
+        return executor.handleOAuthReturn(ctx, profile, new Ident("github", "retest"), done);
       }).then ( () => {
         assert.equal(events, 1); // Only Login
-        assert.equal(executor._returnCode, 302);  
-        assert.equal(executor._headers.Location, "https://shootandprove.loopingz.com/user.html?validation=github");
+        assert.equal(ctx.statusCode, 302);  
+        assert.equal(ctx._headers.Location, "https://shootandprove.loopingz.com/user.html?validation=github");
         return userStore.get(ident.user);
       }).then ( (user) => {
         assert.equal(user.idents.length, 2); // Two github login

@@ -7,6 +7,7 @@ var fs = require('fs');
 var Ajv = require('ajv');
 const path = require('path');
 const cookieSerialize = require("cookie").serialize;
+const Context = require("./utils/context");
 
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
@@ -189,10 +190,10 @@ class Webda {
 	 * Get the route from a method / url
 	 * @private
 	 */
-	getRouteFromUrl(config, method, url) {
+	getRouteFromUrl(ctx, config, method, url) {
 		for (let i in config._pathMap) {
 			var routeUrl = config._pathMap[i].url;
-			var map = config._pathMap[i].config;;
+			var map = config._pathMap[i].config;
 
 			// Check method
 			if  (Array.isArray(map['method'])) {
@@ -204,6 +205,7 @@ class Webda {
 	      	}
 
 			if (routeUrl === url) {
+				ctx._params = _extend(ctx._params, config.global.params);
 	        	return map;
 	      	}
 
@@ -212,12 +214,9 @@ class Webda {
 	      	}
 	      	var parse_result = map['_uri-template-parse'].fromUri(url);
 	      	if (parse_result !== undefined) {
-	      		
-	        	if (map.params == undefined) {
-	        		map.params = {};
-	        	}
-	        	_extend(map.params, parse_result);
-	        	map._uriParams = parse_result;
+	      		ctx._params = _extend(ctx._params, config.global.params);
+	        	ctx._params = _extend(ctx._params, parse_result);
+	        	ctx.query = parse_result;
 	        	return map;
 	      	}
 	    }
@@ -235,7 +234,7 @@ class Webda {
 	 * @param {String} port Port can be usefull for auto redirection
 	 * @param {Object} headers The headers of the request
 	 */
-	getExecutor(vhost, method, url, protocol, port, headers) {
+	getExecutor(ctx, vhost, method, url, protocol, port, headers) {
 		// Check vhost
 		var wildcard = false;
 		var originalVhost = vhost;
@@ -250,12 +249,12 @@ class Webda {
 	    // Init vhost if needed
 	    this.initHosts(vhost, this._config[vhost]);
 	    // Check mapping
-	    var route = this.getRouteFromUrl(this._config[vhost], method, url);
+	    var route = this.getRouteFromUrl(ctx, this._config[vhost], method, url);
 	    if (route === undefined) {
 	    	return;
 	    }
 	    route._http = {"host":vhost, "vhost": originalVhost, "method":method, "url":url, "protocol": protocol, "port": port, "headers": headers, "wildcard": wildcard, "root": protocol + "://" + vhost};
-	    return this.getServiceWithRoute(route);
+	    return this.getServiceWithRoute(ctx, route);
 	}
 
 	/**
@@ -275,16 +274,14 @@ class Webda {
 	/**
 	 * @private
 	 */
-	getServiceWithRoute(route) {
+	getServiceWithRoute(ctx, route) {
 		var name = route.executor;
 		var executor = this.getService(name);
 		// If no service is found then check for routehelpers
 		if (executor === undefined && this._routehelpers[name] !== undefined) {
 			executor = new this._routehelpers[name](this, name, this._config[route._http.host].global.params);
 		}
-		if (executor !== undefined) {
-	    	executor.setRoute(this.extendParams(route, this._config[route._http.host].global));
-	    }
+	    ctx.setRoute(this.extendParams(route, this._config[route._http.host].global));
 	    return executor;
 	}
 
@@ -313,16 +310,6 @@ class Webda {
 	 */
 	flush(executor) {
 		console.log("Abstract implementation of Webda");
-	}
-
-	/**
-  	 * Launch the executor and save it
-	 * @ignore
-	 * @protected
-	 */
-	execute(executor) {
-		this._currentExecutor = executor;
-		return executor.execute();
 	}
 
 	/**
@@ -498,6 +485,21 @@ class Webda {
 			return bs[i] < as[i]?-1:1;
 		}
 		return 1;
+	}
+
+	newContext(body, session, stream, files) {
+		return new Context(this, body, session, stream, files);
+	}
+
+	/**
+	 * Convert an object to JSON using the Webda json filter
+	 *
+	 * @class Service
+	 * @param {Object} object - The object to export
+	 * @return {String} The export of the strip object ( removed all attribute with _ )
+	 */
+	toPublicJSON(object) {
+		return JSON.stringify(object, this.jsonFilter);
 	}
 
 	initHosts(vhost, config) {

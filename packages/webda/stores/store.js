@@ -492,10 +492,10 @@ class Store extends Executor {
 
 	// ADD THE EXECUTOR PART
 
-	httpCreate() {
-		var object = this.body;
+	httpCreate(ctx) {
+		var object = ctx.body;
 		// Policy
-		this._policy.canCreate(object);
+		this._policy.canCreate(ctx, object);
 
 		if (!object.uuid) {
 			object.uuid = this.generateUid();
@@ -516,59 +516,60 @@ class Store extends Executor {
 			}
 			return this.save(object, object.uuid);	
 		}).then ( (new_object) => {
-			this.write(new_object);
+			ctx.write(new_object);
 		});
 	}
 
-	httpUpdate() {
-		for (var prop in this.body) {
+	httpUpdate(ctx) {
+		for (var prop in ctx.body) {
 			if (prop[0] == "_") {
-				delete this.body[prop]
+				delete ctx.body[prop]
 			}
 		}
-		this.body.uuid = this._params.uuid;
-		return this.get(this._params.uuid).then ( (object) => {
+		ctx.body.uuid = ctx._params.uuid;
+		return this.get(ctx._params.uuid).then ( (object) => {
 			if (!object) throw 404;
-			this._policy.canUpdate(object, this.body);
+			this._policy.canUpdate(ctx, object, ctx.body);
 
 			if (this._params.validator) {
-				if (!this._webda.validate(_extend(object, this.body), this._params.validator)) {
+				if (!this._webda.validate(_extend(object, ctx.body), this._params.validator)) {
 					throw 400;
 				}
 			}
-			return this.update(this.body, this._params.uuid);
+			return this.update(ctx.body, ctx._params.uuid);
 		}).then ( (object) => {
 			if (object == undefined) {
 				throw 500;
 			}
-			this.write(object);
+			ctx.write(object);
 		});
 	}
 
-	httpGet() {
-		if (this._params.uuid) {
-			return this.get(this._params.uuid).then( (object) => {
-				this._policy.canGet(object);
+	httpGet(ctx) {
+		if (ctx._params.uuid) {
+			return this.get(ctx._params.uuid).then( (object) => {
                 if (object === undefined) {
 					throw 404;
 				}
-	            this.write(object);
+				this._policy.canGet(ctx, object);
+	            ctx.write(object);
 			});
 		} else {
 			// List probably
 		}
 	}
 
-	httpRoute() {
-		if (this._route._http.method == "GET") {
-			return this.httpGet();
-		} else if (this._route._http.method == "DELETE") {
-			return this.get(this._params.uuid).then ( (object) => {
-				this._policy.canDelete(object);	
-				this.delete(this._params.uuid);
+	httpRoute(ctx) {
+		if (ctx._route._http.method == "GET") {
+			return this.httpGet(ctx);
+		} else if (ctx._route._http.method == "DELETE") {
+			return this.get(ctx._params.uuid).then ( (object) => {
+				if (!object) throw 404;
+				this._policy.canDelete(ctx, object);	
+				return this.delete(ctx._params.uuid);
 			});
-		} else if (this._route._http.method == "PUT") {
-			return this.httpUpdate();
+		} else if (ctx._route._http.method == "PUT") {
+			return this.httpUpdate(ctx);
 		}
 	}
 

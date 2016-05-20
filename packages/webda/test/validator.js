@@ -7,6 +7,7 @@ var session;
 var task;
 var failed = false;
 var webda = new Webda(config);
+var ctx;
 webda.setHost("test.webda.io");
 webda.initAll();
 
@@ -23,24 +24,24 @@ describe('Validator', function() {
         userStore.__clean();
       });
       it('Create', function() {
-      	 executor = webda.getExecutor("test.webda.io", "POST", "/tasks");
+         ctx = webda.newContext();
+      	 executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/tasks");
       	 assert.notEqual(executor, undefined);
-      	 session = webda.getNewSession();
-         session.login("fake_user", "fake_ident");
-      	 executor.setContext({"noname": "Task #1"}, session);
-      	 return webda.execute(executor).catch ((err) => {
+         ctx.session.login("fake_user", "fake_ident");
+         ctx.body = {"noname": "Task #1"};
+      	 return executor.execute(ctx).catch ((err) => {
 	      	// Expect 403 as no user is logged
           failed = true;
 	      	assert.equal(err, 400);
-	      	executor.setContext({"name": "Task #1"}, session);
-	      	return webda.execute(executor);
+	      	ctx.body = {"name": "Task #1"};
+	      	return executor.execute(ctx);
       	}).then( () => {
       		// Should be ok in that case
       		assert.equal(failed, true);
       		failed = false;
-      		executor = webda.getExecutor("test.webda.io", "POST", "/tasks");
-      		executor.setContext({"name": "Task #1"}, session);
-      		return webda.execute(executor);
+          ctx.body = {"name": "Task #1"};
+      		executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/tasks");
+      		return executor.execute(ctx);
       	});
       });
     });

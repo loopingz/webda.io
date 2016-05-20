@@ -91,74 +91,74 @@ class PassportExecutor extends Executor {
 		});
 	};
 
-	getMe() {
-		if (this.session.getUserId() === undefined) {
+	getMe(ctx) {
+		if (ctx.session.getUserId() === undefined) {
 			throw 404;
 			return;
 		}
-		return this._usersStore.get(this.session.getUserId()).then( (user) => {
+		return this._usersStore.get(ctx.session.getUserId()).then( (user) => {
 			if (user === undefined) {
 				throw 404;
 			}
-			this.write(user);
+			ctx.write(user);
 			return;
 		});
 	}
-	listAuthentications() {
-		if (this._route._http.method === "DELETE") {
-			this.logout();
-			this.write("GoodBye");
+	listAuthentications(ctx) {
+		if (ctx._route._http.method === "DELETE") {
+			this.logout(ctx);
+			ctx.write("GoodBye");
 			return;
 		}
-		this.write(Object.keys(this._params.providers));
+		ctx.write(Object.keys(this._params.providers));
 	}
 
-	getCallbackUrl(provider) {
+	getCallbackUrl(ctx, provider) {
 		if (this._params.providers[this._params.provider].callbackURL) {
 			return this._params.providers[this._params.provider].callbackURL;
 		}
 		// Issue with specified port for now
-		var url = this._route._http.protocol + "://" + this._route._http.host + this._route._http.url;
+		var url = ctx._route._http.protocol + "://" + ctx._route._http.host + ctx._route._http.url;
 		if (url.endsWith("/callback")) {
 			return url;
 		}
 		return url + "/callback";
 	};
 
-	handleOAuthReturn(profile, ident, done) {
+	handleOAuthReturn(ctx, profile, ident, done) {
 		var identStore = this._identsStore;
 		var userStore = this._usersStore;
 		var userPromise;
 		return identStore.get(ident.uuid).then( (result) => {
 			// Login with OAUTH
 			if (result) {
-				this.write("login");
-				this.login(result.user, result);
+				ctx.write("login");
+				this.login(ctx, result.user, result);
 				// Need to improve DynamoDB testing about invalid value 
 				return identStore.update({'lastUsed': new Date(), 'profile': profile}, result.uuid).then( () => {
-					this.write("redirect");
-					this.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + this._params.provider});
-					this.end();
+					ctx.write("redirect");
+					ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider});
+					ctx.end();
 					done(result);
 				});
 			}
 			// Registration with OAuth
 			let promise;
-			if (this.session.getUserId()) {
-				promise = Promise.resolve({'uuid':this.session.getUserId()});
+			if (ctx.session.getUserId()) {
+				promise = Promise.resolve({'uuid':ctx.session.getUserId()});
 			} else {
 				promise = userStore.save(this.registerUser(profile._json));
 			}
 			return promise.then( (user) => {
-				this.write("register new ident");
+				ctx.write("register new ident");
 				ident.user = user.uuid;
 				ident.lastUsed = new Date();
 				ident.profile = profile;
 				return identStore.save(ident).then( () => {
-					this.write("redirect");
-					this.login(user, ident);
-					this.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + this._params.provider});
-					this.end();
+					ctx.write("redirect");
+					this.login(ctx, user, ident);
+					ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider});
+					ctx.end();
 					done(ident)
 				});
 			});
@@ -167,10 +167,10 @@ class PassportExecutor extends Executor {
 		});
 	}
 
-	setupOAuth(config) {
-		config.callbackURL = this.getCallbackUrl();
-		passport.use(new Strategies[this._params.provider].strategy(config,(accessToken, refreshToken, profile, done) => {
-				this.handleOAuthReturn(profile._json, new Ident(this._params.provider, profile.id, accessToken, refreshToken), done);
+	setupOAuth(ctx, config) {
+		config.callbackURL = this.getCallbackUrl(ctx);
+		passport.use(new Strategies[ctx._params.provider].strategy(config,(accessToken, refreshToken, profile, done) => {
+				this.handleOAuthReturn(ctx, profile._json, new Ident(this._params.provider, profile.id, accessToken, refreshToken), done);
 			}
 		));
 	}
@@ -183,27 +183,27 @@ class PassportExecutor extends Executor {
 		return user;
 	}
 
-	handleEmailCallback() {
+	handleEmailCallback(ctx) {
 		// Validate an email for an ident based on an url
 		var identStore = this.getService("idents");
 		if (identStore === undefined) {
 			console.log("Email auth needs an ident store");
 			throw 500;
 		}
-		if (this._params.token) {
-			let validation = this._params.token;
-			if (validation !== this.generateEmailValidationToken(this._params.email)) {
-				this.writeHead(302, {'Location': this._params.failureRedirect});
+		if (ctx._params.token) {
+			let validation = ctx._params.token;
+			if (validation !== this.generateEmailValidationToken(ctx._params.email)) {
+				ctx.writeHead(302, {'Location': this._params.failureRedirect});
 				return Promise.resolve();
 			}
-			var uuid = this._params.email + "_email";
+			var uuid = ctx._params.email + "_email";
 			return identStore.get(uuid).then((ident) => {
 				if (ident === undefined) {
 					throw 404;
 				}
 				return identStore.update({validation: new Date()}, ident.uuid);	
 			}).then ( () => {
-				this.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + this._params.provider});
+				ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider});
 				return Promise.resolve();
 			});
 		}
@@ -214,7 +214,7 @@ class PassportExecutor extends Executor {
 
 	}
 
-	sendValidationEmail(email) {
+	sendValidationEmail(ctx, email) {
 		var config = this._params.providers.email;
 		if (!config.validationEmailSubject) {
 			config.subject = "Webda Framework registration email";
@@ -224,7 +224,7 @@ class PassportExecutor extends Executor {
 			text = "Please validate your email by clicking the link below\n{url}";
 		}
 		let replacements = _extend({}, config);
-		replacements.url = this._route._http.root + "/auth/email/callback?email=" + email + "&token=" + this.generateEmailValidationToken(email);
+		replacements.url = ctx._route._http.root + "/auth/email/callback?email=" + email + "&token=" + this.generateEmailValidationToken(email);
 		// TODO Add a template engine
 		for (let i in replacements) {
 			if (typeof(replacements[i]) !== "string") continue;
@@ -243,12 +243,12 @@ class PassportExecutor extends Executor {
 		return hash.update(pass).digest('hex');
 	}
 
-	logout() {
-		this.emit("Logout");
-		this.session.destroy();
+	logout(ctx) {
+		this.emit("Logout", {ctx: ctx});
+		ctx.session.destroy();
 	}
 
-	login(user, ident) {
+	login(ctx, user, ident) {
 		var event = {};
 		event.userId = user;
 		if (typeof(user) == "object") {
@@ -260,7 +260,8 @@ class PassportExecutor extends Executor {
 			event.identId = ident.uuid;
 			event.ident = ident;
 		}
-		this.session.login(event.userId, event.identId);
+		event.ctx = ctx;
+		ctx.session.login(event.userId, event.identId);
 		this.emit("Login", event);
 	}
 
@@ -268,13 +269,13 @@ class PassportExecutor extends Executor {
 		return this.getService(this._params.providers.email.mailer?this._params.providers.email.mailer:"Mailer");
 	}
 
-	handleEmail() {
+	handleEmail(ctx) {
 		var identStore = this._identsStore;
 		if (identStore === undefined) {
 			console.log("Email auth needs an ident store");
 			throw 500;
 		}
-		if (this.body.password === undefined || this.body.login === undefined) {
+		if (ctx.body.password === undefined || ctx.body.login === undefined) {
 			throw 400;
 		}
 		var mailConfig = this._params.providers.email;
@@ -285,16 +286,16 @@ class PassportExecutor extends Executor {
 		}
 		var userStore = this._usersStore;
 		var updates = {};
-		var uuid = this.body.login + "_email";
+		var uuid = ctx.body.login + "_email";
 		return identStore.get(uuid).then( (ident) => {
 			if (ident != undefined && ident.user != undefined) {
 				// Register on an known user
-				if (this._params.register) {
+				if (ctx._params.register) {
 					throw 409;
 				}
 				return userStore.get(ident.user).then ( (user) => {
 					// Check password
-					if (user._password === this.hashPassword(this.body.password)) {
+					if (user._password === this.hashPassword(ctx.body.password)) {
 						if (ident.failedLogin > 0) {
 							ident.failedLogin = 0;
 						}
@@ -302,13 +303,13 @@ class PassportExecutor extends Executor {
 						updates.failedLogin = 0;
 
 						return identStore.update(updates, ident.uuid).then ( () => {
-							this.login(ident.user, ident);
-							this.write(user);
+							this.login(ctx, ident.user, ident);
+							ctx.write(user);
 							return Promise.resolve();
 						});
 						
 					} else {
-						this.writeHead(403);
+						ctx.writeHead(403);
 						if (ident.failedLogin === undefined) {
 							ident.failedLogin = 0;
 						}
@@ -319,40 +320,40 @@ class PassportExecutor extends Executor {
 					}
 				});
 			} else {
-				var user = this.body.user;
-				var email = this.body.login;
+				var user = ctx.body.user;
+				var email = ctx.body.login;
 				var registeredUser;
 				var validation;
 				// Read the form
-				if (this.body.register || this._params.register) {
+				if (ctx.body.register || ctx._params.register) {
 					var validation = undefined;
 					// Need to check email before creation
 					if (!mailConfig.postValidation || mailConfig.postValidation === undefined) {
-						if (this.body.token == this.generateEmailValidationToken(email)) {
+						if (ctx.body.token == this.generateEmailValidationToken(email)) {
 							validation = new Date();
 						} else {
-							this.write({});
+							ctx.write({});
 							// token is undefined send an email
-							return this.sendValidationEmail(email);
+							return this.sendValidationEmail(ctx, email);
 						}
 					}
 					if (user === undefined) {
 						user = {};
 					}
 					// Store with a _
-					this.body._password = this.hashPassword(this.body.password);
-					delete this.body.password;
-					delete this.body.register;
-					return userStore.save(this.registerUser(this.body, this.body)).then ( (user) => {
+					ctx.body._password = this.hashPassword(ctx.body.password);
+					delete ctx.body.password;
+					delete ctx.body.register;
+					return userStore.save(this.registerUser(ctx.body, ctx.body)).then ( (user) => {
 						var newIdent = {'uuid': uuid, 'type': 'email', 'email': email, 'user': user.uuid};
 						if (validation) {
 							newIdent.validation = validation;
 						}
 						return identStore.save(newIdent).then ( (ident) => {
-							this.login(user, ident);
-							this.write(user);
+							this.login(ctx, user, ident);
+							ctx.write(user);
 							if (!validation && !mailConfig.skipEmailValidation) {
-								return this.sendValidationEmail(email);
+								return this.sendValidationEmail(ctx, email);
 							}
 							return Promise.resolve();
 						});
@@ -369,7 +370,7 @@ class PassportExecutor extends Executor {
 	}
 
 	handlePhone() {
-		this.writeHead(204);
+		ctx.writeHead(204);
 	}
 
 	end() {
@@ -380,28 +381,28 @@ class PassportExecutor extends Executor {
 		}
 	}
 
-	authenticate() {
+	authenticate(ctx) {
 		// Handle Logout 
-		if (this._params.provider == "logout") {
-			this.logout();
+		if (ctx._params.provider == "logout") {
+			this.logout(ctx);
 			if (this._params.website) {
-				this.writeHead(302, {'Location': this._params.website});
+				ctx.writeHead(302, {'Location': this._params.website});
 			} else {
 				throw 204;
 			}
 			return;
 		}
-		var providerConfig = this._params.providers[this._params.provider];
+		var providerConfig = this._params.providers[ctx._params.provider];
 		if (providerConfig) {
-			if (!Strategies[this._params.provider].promise) {
-				this.setupOAuth(providerConfig);
-				return passport.authenticate(this._params.provider, {'scope': providerConfig.scope})(this, this);
+			if (!Strategies[ctx._params.provider].promise) {
+				this.setupOAuth(ctx, providerConfig);
+				return passport.authenticate(this._params.provider, {'scope': providerConfig.scope})(ctx, ctx);
 			}
 			var self = this;
 			return new Promise( (resolve, reject) => {
 				this._oauth1 = function(obj) { this._oauth1=undefined; resolve(obj); };
-				this.setupOAuth(providerConfig);
-				passport.authenticate(this._params.provider, {'scope': providerConfig.scope}, this._oauth1)(this, this, this._oauth1);
+				this.setupOAuth(ctx, providerConfig);
+				passport.authenticate(this._params.provider, {'scope': providerConfig.scope}, this._oauth1)(ctx, ctx, ctx._oauth1);
 			});
 		}
 		throw 404;

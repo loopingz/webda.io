@@ -281,23 +281,23 @@ class Binary extends Executor {
 	    }
 	}
 
-	httpPost() {
-		let targetStore = this._verifyMapAndStore();
-		return targetStore.get(this._params.uid).then ((object) => {
-			return this.store(targetStore, object, this._params.property, this._getFile(this), this.body).then((object) => {
-				this.write(object);
+	httpPost(ctx) {
+		let targetStore = this._verifyMapAndStore(ctx);
+		return targetStore.get(ctx._params.uid).then ((object) => {
+			return this.store(targetStore, object, ctx._params.property, this._getFile(ctx), ctx.body).then((object) => {
+				ctx.write(object);
 				return Promise.resolve();
 			});
 		});
 	}
 
-	_verifyMapAndStore() {
+	_verifyMapAndStore(ctx) {
 		// To avoid any probleme lowercase everything
-		var map = this._params.map[this._lowercaseMaps[this._params.store.toLowerCase()]];
-		if (map === undefined || map.indexOf(this._params.property) == -1) {
+		var map = this._params.map[this._lowercaseMaps[ctx._params.store.toLowerCase()]];
+		if (map === undefined || map.indexOf(ctx._params.property) == -1) {
 			throw 404;	
 		}
-		var targetStore = this.getService(this._params.store);
+		var targetStore = this.getService(ctx._params.store);
 		if (targetStore === undefined) {
 			throw 404;
 		}
@@ -313,56 +313,56 @@ class Binary extends Executor {
 		return Promise.resolve();
 	}
 
-	httpChallenge() {
+	httpChallenge(ctx) {
 		return this.putRedirectUrl().then( (url) => {
-			var base64String = new Buffer(this.body.hash, 'hex').toString('base64');
-			this.write({url: url, done: !(url !== undefined), md5: base64String});
+			var base64String = new Buffer(ctx.body.hash, 'hex').toString('base64');
+			ctx.write({url: url, done: !(url !== undefined), md5: base64String});
 			return Promise.resolve();
 		});
 	}
 
 	// Executor side
-	httpRoute() {
-		let targetStore = this._verifyMapAndStore();
-		return targetStore.get(this._params.uid).then ((object) => {
+	httpRoute(ctx) {
+		let targetStore = this._verifyMapAndStore(ctx);
+		return targetStore.get(ctx._params.uid).then ((object) => {
 			if (object === undefined) {
 				throw 404;
 			}
-			if (object[this._params.property] !== undefined && typeof(object[this._params.property]) !== 'object') {
+			if (object[ctx._params.property] !== undefined && typeof(object[ctx._params.property]) !== 'object') {
 				throw 403;
 			}
-			if (object[this._params.property] === undefined || object[this._params.property][this._params.index] === undefined) {
+			if (object[ctx._params.property] === undefined || object[ctx._params.property][ctx._params.index] === undefined) {
 				throw 404;
 			}
-			if (this._route._http.method == "GET") {
-				var file = object[this._params.property][this._params.index];
-				this.writeHead(200, {
+			if (ctx._route._http.method == "GET") {
+				var file = object[ctx._params.property][ctx._params.index];
+				ctx.writeHead(200, {
 		        	'Content-Type': file.mimetype===undefined?'application/octet-steam':file.mimetype,
 		        	'Content-Length': file.size
 			    });
 				return new Promise((resolve, reject) => {
 				    var readStream = this.get(file);
 				    // We replaced all the event handlers with a simple call to readStream.pipe()
-				    this._stream.on('finish', (src) => {
+				    ctx._stream.on('finish', (src) => {
 						return resolve();
 					});
-					this._stream.on('error', (src) => {
+					ctx._stream.on('error', (src) => {
 						return reject();
 					});
-				    readStream.pipe(this._stream);
+				    readStream.pipe(ctx._stream);
 				});
 			} else {
 				var update = {};
-				if (object[this._params.property][this._params.index].hash !== this._params.hash) {
+				if (object[ctx._params.property][ctx._params.index].hash !== ctx._params.hash) {
 					throw 412;
 				}
-				if (this._route._http.method == "DELETE") {
-					return this.delete(targetStore, object, this._params.property, index).then ((object) => {
-						this.write(object);
+				if (ctx._route._http.method == "DELETE") {
+					return this.delete(targetStore, object, ctx._params.property, index).then ((object) => {
+						ctx.write(object);
 					});
-				} else if (this._route._http.method == "PUT") {
-					return this.update(targetStore, object, this._params.property, this._params.index, this._getFile(this), this.body).then((object) => {
-						this.write(object);
+				} else if (ctx._route._http.method == "PUT") {
+					return this.update(targetStore, object, ctx._params.property, ctx._params.index, this._getFile(ctx), ctx.body).then((object) => {
+						ctx.write(object);
 		    		});
 				}
 			}

@@ -7,6 +7,7 @@ var user2;
 var ident1;
 var ident2;
 var executor;
+var ctx;
 var mapper = function (identStore, userStore) {
   var eventFired = 0;
   var events = ['Store.Save','Store.Saved','Store.Get','Store.Delete','Store.Deleted','Store.Update','Store.Updated','Store.Find','Store.Found'];
@@ -183,45 +184,52 @@ describe('Store', function() {
       it('Mapper', function() { return mapper(identStore, userStore); });
     });
     describe('Store', function() {
+      var eventFired = 0;
       // Check Store HTTP mapping
       it('HTTP CRUD', function() {
         webda.setHost("test.webda.io");
-        executor = webda.getExecutor("test.webda.io", "POST", "/users");
+        ctx = webda.newContext({"type": "CRUD", "uuid": "PLOP"});
+        ctx.session.login("fake_user", "fake_ident");
+        executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/users");
         assert.notEqual(executor, undefined);
-        executor.setContext({"type": "CRUD", "uuid": "PLOP"}, webda.getNewSession());
-        return executor.execute().then( () => {
-          executor.body = undefined;
-          return webda.getExecutor("test.webda.io", "GET", "/users/PLOP").execute();
+        return executor.execute(ctx).then( () => {
+          ctx.body = undefined;
+          return webda.getExecutor(ctx, "test.webda.io", "GET", "/users/PLOP").execute(ctx);
         }).then( () => {
-          assert.notEqual(executor._body, undefined);
-          assert.equal(executor._body.indexOf("lastUpdate") >= 0, true);
-          executor = webda.getExecutor("test.webda.io", "POST", "/users");
-          executor.setContext({"type": "CRUD2", "uuid": "PLOP"}, webda.getNewSession());
-          return executor.execute();
+          assert.notEqual(ctx._body, undefined);
+          assert.equal(ctx._body.indexOf("lastUpdate") >= 0, true);
+          ctx.body = {"type": "CRUD2", "uuid": "PLOP"};
+          executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/users");
+          return executor.execute(ctx);
         }).catch( (err) => {
           assert.equal(err, 409);
-          return webda.getExecutor("test.webda.io", "DELETE", "/users/PLOP").execute();
-        }).then( () => {
-          executor = webda.getExecutor("test.webda.io", "PUT", "/users/PLOP");
-          executor.setContext({"type": "CRUD2", "uuid": "PLOP2"}, webda.getNewSession());
-          return executor.execute();
+          // Verify the none overide of UUID
+          ctx.body = {"type": "CRUD2", "uuid": "PLOP2"};
+          executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/users/PLOP");
+          return executor.execute(ctx);
         }).then( () => {
           return userStore.get("PLOP");
         }).then ( (user) => {
           assert.equal(user.uuid, "PLOP");
           assert.equal(user.type, "CRUD2");
-          executor._body = undefined;
-          return webda.getExecutor("test.webda.io", "DELETE", "/users/PLOP").execute();
+          ctx._body = undefined;
+          return webda.getExecutor(ctx, "test.webda.io", "DELETE", "/users/PLOP").execute(ctx);
         }).then( () => {
-          return webda.getExecutor("test.webda.io", "GET", "/users/PLOP").execute();
+          eventFired = 0;
+          return webda.getExecutor(ctx, "test.webda.io", "GET", "/users/PLOP").execute(ctx);
         }).catch( (err) => {
+          eventFired++;
           assert.equal(err, 404);
-          return webda.getExecutor("test.webda.io", "DELETE", "/users/PLOP").execute();
+          return webda.getExecutor(ctx, "test.webda.io", "DELETE", "/users/PLOP").execute(ctx);
         }).catch( (err) => {
+          eventFired++;
           assert.equal(err, 404);
-          return webda.getExecutor("test.webda.io", "PUT", "/users/PLOP").execute();
+          return webda.getExecutor(ctx, "test.webda.io", "PUT", "/users/PLOP").execute(ctx);
         }).catch( (err) => {
+          eventFired++;
           assert.equal(err, 404);
+        }).then ( () => {
+          assert.equal(eventFired, 3);
         });
       });
     });

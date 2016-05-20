@@ -32,7 +32,6 @@ class FileBinary extends Binary {
 		super.initRoutes(config, expose);
 		// Will redirect to this URL for direct upload
 		let url = this._url + "/upload/data/{hash}";
-		console.log(url);
       	config[url] = {"method": ["PUT"], "executor": this._name, "_method": this.storeBinary, "aws": {"defaultCode": 204}};
     }
 
@@ -104,9 +103,9 @@ class FileBinary extends Binary {
 	 *
 	 * @ignore
 	 */
-	storeBinary() {
-		var result = this._getHashes(this.body);
-		if (this._params.hash !== result.hash) {
+	storeBinary(ctx) {
+		var result = this._getHashes(ctx.body);
+		if (ctx._params.hash !== result.hash) {
 			throw 400;
 		}
 		if (!fs.existsSync(this._getPath(result.hash))) {
@@ -116,7 +115,7 @@ class FileBinary extends Binary {
 		let path = this._getPath(result.hash, 'data');
 		if (!fs.existsSync(path)) {
 			// Save the data
-			fs.writeFileSync(path, this.body);
+			fs.writeFileSync(path, ctx.body);
 		}
 		// Save the challenge
 		this._touch(this._getPath(result.hash, "_" + result.challenge));

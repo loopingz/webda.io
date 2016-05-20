@@ -6,8 +6,8 @@ class OwnerPolicy extends Policy {
 	/**
 	 * Return false if can't create
 	 */
-	canCreate(object) {
-		object.user = this._webda.getSession().getUserId();
+	canCreate(ctx, object) {
+		object.user = ctx.session.getUserId();
 		if (!object.user) {
 			throw 403;
 		}
@@ -16,11 +16,11 @@ class OwnerPolicy extends Policy {
 	/**
 	 * Return false if can't update
 	 */
-	canUpdate(object) {
+	canUpdate(ctx, object) {
 		if (object.user === undefined) {
 			throw 400;
 		}
-		if (this._webda.getSession().getUserId() !== object.user) {
+		if (ctx.session.getUserId() !== object.user) {
 			throw 403;
 		}
 		return true;
@@ -28,11 +28,11 @@ class OwnerPolicy extends Policy {
 	/**
 	 * Return false if can't get
 	 */
-	canGet(object) {
+	canGet(ctx, object) {
 		if (object.public) {
 			return true;
 		}
-		if (this._webda.getSession().getUserId() !== object.user) {
+		if (ctx.session.getUserId() !== object.user) {
 			throw 403;
 		}
 		if (!object.user) {
@@ -43,11 +43,11 @@ class OwnerPolicy extends Policy {
 	/**
 	 * Return false if can't delete
 	 */
-	canDelete(object) {
+	canDelete(ctx, object) {
 		if (object.user === undefined) {
 			throw 400;
 		}
-		if (this._webda.getSession().getUserId() !== object.user) {
+		if (ctx.session.getUserId() !== object.user) {
 			throw 403;
 		}
 		return true;

@@ -74,6 +74,9 @@ class DynamoStore extends Store {
 
 	_cleanObject(object) {
 		if (typeof(object) !== "object" || object instanceof Array) return object;
+		if (object instanceof Date) {
+			return JSON.stringify(object).replace(/"/g,"");
+		}
 		var res = {};
 		for (let i in object) {
 			 if (object[i] === '') {

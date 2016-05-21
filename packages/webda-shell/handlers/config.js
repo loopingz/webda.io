@@ -151,7 +151,7 @@ class ConfigurationService extends Executor {
 			return;	
 		}
 		let service = this._config.global.services[name];
-		this.cleanBody();
+		this.cleanBody(ctx);
 		if (ctx._route._http.method === "POST" && service != null) {
 			throw 409;
 		}

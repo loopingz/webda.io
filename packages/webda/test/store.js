@@ -270,10 +270,11 @@ describe('Store', function() {
       it('Basic CRUD', function() { if (skipDynamo) { this.skip(); return; } return crud(identStore, userStore); });
       it('Mapper', function() { if (skipDynamo) { this.skip(); return; } return mapper(identStore, userStore); });
       it('Date handling', function() {
+        if (skipDynamo) { this.skip(); return; }
         return userStore.save({"uuid": "testUpdate", "subobject": {"empty": "", "t": {"plop": ""}, "date": new Date()}}).then ( () => {
           return userStore.get("testUpdate");
         }).then ((user) => {
-          console.log(user);
+          assert.notEqual(user.date, {});
         });
       });
     });

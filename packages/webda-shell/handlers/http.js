@@ -47,20 +47,20 @@ class WebdaServer extends Webda {
 		res.end();
 		return;
 	  }
-	  	var executor = this.getExecutor(vhost, req.method, req.url, protocol, req.port, req.headers);
+	  	var ctx = this.newContext(req.body, req.session, res, req.files);
+	  	var executor = this.getExecutor(ctx, vhost, req.method, req.url, protocol, req.port, req.headers);
 		if (executor == null) {
 			this.display404(res);
 			return;
 		} 
-		executor.setContext(req.body, req.session, res, req.files);
-		return Promise.resolve(this.execute(executor)).then( () => {
-			if (!executor._ended) {
-				executor.end();
+		return Promise.resolve(executor.execute(ctx)).then( () => {
+			if (!ctx._ended) {
+				ctx.end();
 			}
 		}).catch ((err) => {
 			if (typeof(err) === "number") {
-				executor._returnCode = err;
-				this.flushHeaders(executor);
+				ctx.statusCode = err;
+				this.flushHeaders(ctx);
 				res.end();
 			} else {
 				console.log("Exception occured : " + JSON.stringify(err));
@@ -82,17 +82,17 @@ class WebdaServer extends Webda {
 
 	}
 
-	flushHeaders (executor) {
-		var res = executor._stream;
-		var headers = executor._headers;
-		headers['Set-Cookie'] = this.getCookieHeader(executor);
-		res.writeHead(executor._returnCode, headers);
+	flushHeaders (ctx) {
+		var res = ctx._stream;
+		var headers = ctx._headers;
+		headers['Set-Cookie'] = this.getCookieHeader(ctx);
+		res.writeHead(ctx.statusCode, headers);
 	}
 
-	flush (executor) {
-		var res = executor._stream;
-		if (executor._body !== undefined) {
-			res.write(executor._body);
+	flush (ctx) {
+		var res = ctx._stream;
+		if (ctx._body !== undefined) {
+			res.write(ctx._body);
 		}
 		res.end();
 	}

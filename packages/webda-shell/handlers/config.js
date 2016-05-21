@@ -36,49 +36,49 @@ class ConfigurationService extends Executor {
 		this._depoyments = {};
 	}
 
-	uiBrowser() {
-		if (this._params.path == undefined || this._params.path == '') {
-			this._params.path = "index.html";
+	uiBrowser(ctx) {
+		if (ctx._params.path == undefined || ctx._params.path == '') {
+			ctx._params.path = "index.html";
 		}
-		this.fileBrowser(__dirname + "/../app/");
+		this.fileBrowser(ctx, __dirname + "/../app/");
 	}
 
-	fileBrowser(prefix) {
+	fileBrowser(ctx, prefix) {
 
 		if (prefix === undefined) {
 			prefix = './';
 		}		
-		if (this._params.path.indexOf("..") >= 0 || this._params.path[0] == '/') {
+		if (ctx._params.path.indexOf("..") >= 0 || ctx._params.path[0] == '/') {
 			// For security reason prevent the .. or /
 			throw 403;
 		}
 
-		var path = prefix + this._params.path;
+		var path = prefix + ctx._params.path;
 		var stat;
 		if (fs.existsSync(path)) {
 			stat = fs.statSync(path);
 		}
 		 
-		if (this._route._http.method === "GET") {
+		if (ctx._route._http.method === "GET") {
 			if (stat == undefined) {
 				throw 404;
 			}
 			// Handle directory ?
 			if (stat.isDirectory()) {
-				return this.write(fs.readdirSync(path));
+				return ctx.write(fs.readdirSync(path));
 			} else {
-				return this.write(fs.readFileSync(path));
+				return ctx.write(fs.readFileSync(path));
 			}
-		} else if (this._route._http.method === "PUT") {
+		} else if (ctx._route._http.method === "PUT") {
 			if (stat !== undefined && stat.isDirectory()) {
 				throw 400;
 			}
 			// Try to create folders if they dont exists
 			// TODO Code it or use mkdirp
 			// Could handle the 
-			fs.writeFileSync(path, this.body);
+			fs.writeFileSync(path, ctx.body);
 			return;
-		} else if (this._route._http.method === "DELETE") {
+		} else if (ctx._route._http.method === "DELETE") {
 			if (!fs.existsSync(path)) {
 				throw 404;
 			}
@@ -90,12 +90,12 @@ class ConfigurationService extends Executor {
 		}
 	}
 
-	updateGlobal() {
-		this._config.global.params = this.body.params;
+	updateGlobal(ctx) {
+		this._config.global.params = ctx.body.params;
 		this.save();
 	}
 
-	getDeployers() {
+	getDeployers(ctx) {
 		var res = [];
 		for (let i in this._webda._deployers) {
 			if (!this._webda._deployers[i].getModda) {
@@ -105,10 +105,10 @@ class ConfigurationService extends Executor {
 			if (modda === undefined) continue;
 			res.push(modda);
 		}
-		this.write(res);
+		ctx.write(res);
 	}
 
-	getModdas() {
+	getModdas(ctx) {
 		var res = [];
 		for (let i in this._webda._mockWedba._services) {
 			if (!this._webda._mockWedba._services[i].getModda) {
@@ -118,23 +118,19 @@ class ConfigurationService extends Executor {
 			if (modda === undefined) continue;
 			res.push(modda);
 		}
-		this.write(res);
+		ctx.write(res);
 	}
 
-	getServices() {
-		this.write(this._webda.services);
+	getServices(ctx) {
+		ctx.write(this._webda.services);
 	}
 
-	toPublicJSON(o) {
-		return JSON.stringify(o);
+	deploy(ctx) {
+		this._webda.deploy(ctx._params.name, [], true);
 	}
 
-	deploy() {
-		this._webda.deploy(this._params.name, [], true);
-	}
-
-	crudService() {
-		if (this._route._http.method === "GET") {
+	crudService(ctx) {
+		if (ctx._route._http.method === "GET") {
 			var services = [];
 			for (let i in this._config.global.services) {
 				let service = this._config.global.services[i];
@@ -145,21 +141,21 @@ class ConfigurationService extends Executor {
 			services.sort( function (a,b) {
 				return a._name.localeCompare(b._name);
 			});
-			this.write(services);
+			ctx.write(services);
 			return;
 		}
-		let name = this._params.name;
-		if (this._route._http.method === "DELETE") {
+		let name = ctx._params.name;
+		if (ctx._route._http.method === "DELETE") {
 			delete this._config.global.services[name];
 			this.save();
 			return;	
 		}
 		let service = this._config.global.services[name];
 		this.cleanBody();
-		if (this._route._http.method === "POST" && service != null) {
+		if (ctx._route._http.method === "POST" && service != null) {
 			throw 409;
 		}
-		this._config.global.services[name]=this.body;
+		this._config.global.services[name]=ctx.body;
 		this.save();
 	}
 
@@ -167,16 +163,16 @@ class ConfigurationService extends Executor {
 		this._webda.saveHostConfiguration(this._config);
 	}
 
-	cleanBody() {
-		for (let i in this.body) {
+	cleanBody(ctx) {
+		for (let i in ctx.body) {
 			if (i.startsWith("_")) {
-				delete this.body[i];
+				delete ctx.body[i];
 			}
 		}
 	}
 
-	crudRoute() {
-		if (this._route._http.method === "GET") {
+	crudRoute(ctx) {
+		if (ctx._route._http.method === "GET") {
 			var routes = [];
 			for (let i in this._computeConfig) {
 				if (!i.startsWith("/")) continue;
@@ -199,42 +195,42 @@ class ConfigurationService extends Executor {
 				}
 				return a._name.localeCompare(b._name);
 		    });
-			this.write(routes);
+			ctx.write(routes);
 			return;
 		}
 		// TODO Check query string
-		if (this._route._http.method === "DELETE") {
-			if (!this.body.url) {
+		if (ctx._route._http.method === "DELETE") {
+			if (!ctx.body.url) {
 				throw 400;
 			}
-			delete this._config[this.body.url];
+			delete this._config[ctx.body.url];
 			this.save();
 			return;
 		}
-		var url = this.body._name;
-		delete this.body.url;
-		this.cleanBody();
-		if (this._route._http.method === "POST" && this._config[url] != null) {
+		var url = ctx.body._name;
+		delete ctx.body.url;
+		this.cleanBody(ctx);
+		if (ctx._route._http.method === "POST" && this._config[url] != null) {
 			throw 409;
 		}
-		this._config[url] = this.body;
+		this._config[url] = ctx.body;
 		this.save();
 	}
 
-	getVhosts() {
-		this.write(Object.keys(this._webda.config));
+	getVhosts(ctx) {
+		ctx.write(Object.keys(this._webda.config));
 	}
 
-	getConfig() {
-		this.write(this._webda.config[this._params.vhost]);
+	getConfig(ctx) {
+		ctx.write(this._webda.config[ctx._params.vhost]);
 	}
 
 	updateCurrentVhost() {
 		// For later use
 	}
 
-	restDeployment() {
-		if (this._route._http.method == "GET") {
+	restDeployment(ctx) {
+		if (ctx._route._http.method == "GET") {
 			return this.getService("deployments").find().then ( (deployments) => { 
 				for (let i in deployments) {
 					// Clone the object for now
@@ -245,22 +241,22 @@ class ConfigurationService extends Executor {
 				deployments.sort(function (a,b) {return a._name.localeCompare(b._name);});
 				deployments.splice(0,0,{"uuid":"Global","_type": "Configuration","_name": "Global","params":this._config.global.params});
 				this._depoyments["Global"]=true;
-				this.write(deployments);
+				ctx.write(deployments);
 			});
-		} else if (this._route._http.method == "POST") {
-			if (this._depoyments[this.body.uuid]) {
+		} else if (ctx._route._http.method == "POST") {
+			if (this._depoyments[ctx.body.uuid]) {
 				throw 409;
 			}
-			return this._webda.getService("deployments").save(this.body);
-		} else if (this._route._http.method == "PUT") {
-			this.cleanBody();
-			return this._webda.getService("deployments").update(this.body);
-		} else if (this._route._http.method == "DELETE") {
-			if (!this._depoyments[this._params.name] || this._params.name === "Global") {
+			return this._webda.getService("deployments").save(ctx.body);
+		} else if (ctx._route._http.method == "PUT") {
+			this.cleanBody(ctx);
+			return this._webda.getService("deployments").update(ctx.body);
+		} else if (ctx._route._http.method == "DELETE") {
+			if (!this._depoyments[ctx._params.name] || ctx._params.name === "Global") {
 				throw 409;
 			}
-			return this._webda.getService("deployments").delete(this._params.name).then ( () => {
-				delete this._depoyments[this._params.name];
+			return this._webda.getService("deployments").delete(ctx._params.name).then ( () => {
+				delete this._depoyments[ctx._params.name];
 			});
 		}
 	}
@@ -314,6 +310,10 @@ class WebdaConfigurationServer extends WebdaServer {
 		}, 4);
 		cache = null; // Enable garbage collection
 		return res;
+	}
+
+	toPublicJSON(o) {
+		return JSON.stringify(o);
 	}
 
 	saveHostConfiguration(config, file) {
@@ -456,13 +456,16 @@ class WebdaConfigurationServer extends WebdaServer {
 			conn.on("text", (str) => {
 				console.log("Received "+str)
 				conn.sendText(str.toUpperCase()+"!!!")
-			})
+			});
+			conn.on("error", (err) => {
+				console.log("Connection error", err);
+			});
 			conn.on("close", (code, reason) => {
 				console.log("Connection closed");
 				if (this.conns.indexOf(conn) >= 0) {
 					this.conns.splice(this.conns.indexOf(conn), 1);
 				}
-			})
+			});
 		}).listen(port)
 	}
 

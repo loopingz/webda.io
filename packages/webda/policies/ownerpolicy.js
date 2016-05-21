@@ -17,10 +17,8 @@ class OwnerPolicy extends Policy {
 	 * Return false if can't update
 	 */
 	canUpdate(ctx, object) {
-		if (object.user === undefined) {
-			throw 400;
-		}
-		if (ctx.session.getUserId() !== object.user) {
+		// Allow to modify itself by default
+		if (ctx.session.getUserId() !== object.user && ctx.session.getUserId() !== object.uuid) {
 			throw 403;
 		}
 		return true;
@@ -32,10 +30,10 @@ class OwnerPolicy extends Policy {
 		if (object.public) {
 			return true;
 		}
-		if (ctx.session.getUserId() !== object.user) {
+		if (ctx.session.getUserId() !== object.user && ctx.session.getUserId() !== object.uuid) {
 			throw 403;
 		}
-		if (!object.user) {
+		if (!object.user && ctx.session.getUserId() !== object.uuid) {
 			throw 403;
 		}
 		return true;
@@ -44,10 +42,7 @@ class OwnerPolicy extends Policy {
 	 * Return false if can't delete
 	 */
 	canDelete(ctx, object) {
-		if (object.user === undefined) {
-			throw 400;
-		}
-		if (ctx.session.getUserId() !== object.user) {
+		if (ctx.session.getUserId() !== object.user && ctx.session.getUserId() !== object.uuid) {
 			throw 403;
 		}
 		return true;

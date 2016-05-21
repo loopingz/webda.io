@@ -54,17 +54,22 @@ class DynamoStore extends Store {
 		});
 	}
 
-	_find(request, offset, limit) {
-		return this._connect().then( () => {
-			return new Promise( (resolve, reject) => {
-				this._collection.find({ _id: uid}, function(err, result) {
-					if (err) {
-						reject(err);
-					}
-					resolve(result);
-				});
+	_find(request) {
+		var scan = false;
+		if (request === {} || request === undefined) {
+			request = {};
+			scan = true;
+		}
+		request.TableName = this._params.table;
+		if (scan) {
+			return this._client.scan(request).promise().then( (result) => {
+				return Promise.resolve(result.Items);
 			});
-		});
+		} else {
+			return this._client.query(request).promise().then( (result) => {
+				return Promise.resolve(result.Items);
+			});
+		}
 	}
 
 	_cleanObject(object) {

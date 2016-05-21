@@ -32,7 +32,7 @@ class FileStore extends Store {
 		return Promise.resolve(fs.existsSync(this.file(uid)));
 	}
 
-	_find(request, offset, limit) {
+	_find(request) {
 		var self = this;
 		var res = [];
 		var path = require('path');

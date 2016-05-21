@@ -56,10 +56,10 @@ class MongoStore extends Store {
 		});
 	}
 
-	_find(request, offset, limit) {
+	_find(request) {
 		return this._connect().then( () => {
 			return new Promise( (resolve, reject) => {
-				this._collection.find({ _id: uid}, (err, result) => {
+				this._collection.find(request, (err, result) => {
 					if (err) {
 						reject(err);
 					}

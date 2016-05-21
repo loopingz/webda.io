@@ -13,11 +13,11 @@ const Executor = require("../services/executor.js");
  */
 class InlineRouteHelper extends Executor {
 	/** @ignore */
-	execute() {
-		if (typeof(this._route.callback) == "string") {
-			return this._webda.sandbox(this, "module.exports = " + this._route.callback);	
+	execute(ctx) {
+		if (typeof(ctx._route.callback) == "string") {
+			return this._webda.sandbox(ctx, "module.exports = " + ctx._route.callback);	
 		} else {
-			this._route.callback(this);
+			ctx._route.callback(ctx);
 		}
 		
 	}

@@ -32,6 +32,14 @@ class Executor extends Service {
 		}
 		return Promise.reject(Error("Not implemented"));
 	}
+
+	/**
+	 * Use this method to enhance the context if needed
+	 * 
+	 */
+	updateContext(ctx) {
+		ctx.setExecutor(this);
+	}
 	
 	/**
 	 * Get a service from webda

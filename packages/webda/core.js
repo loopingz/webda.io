@@ -282,6 +282,7 @@ class Webda {
 			executor = new this._routehelpers[name](this, name, this._config[route._http.host].global.params);
 		}
 	    ctx.setRoute(this.extendParams(route, this._config[route._http.host].global));
+	    executor.updateContext(ctx);
 	    return executor;
 	}
 

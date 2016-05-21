@@ -191,7 +191,6 @@ class Binary extends Executor {
 		fileObj['size']=file.size;
 		fileObj['hash']=file.hash;
 		fileObj['challenge']=file.challenge;
-		update[property] = object[property];
 		var object_uid = object.uuid;
 		var info;
 		if (index == "add") {
@@ -304,7 +303,7 @@ class Binary extends Executor {
 		return targetStore;
 	}
 
-	putRedirectUrl() {
+	putRedirectUrl(ctx) {
 		// Dont handle the redirect url
 		throw 404;
 	}
@@ -314,7 +313,7 @@ class Binary extends Executor {
 	}
 
 	httpChallenge(ctx) {
-		return this.putRedirectUrl().then( (url) => {
+		return this.putRedirectUrl(ctx).then( (url) => {
 			var base64String = new Buffer(ctx.body.hash, 'hex').toString('base64');
 			ctx.write({url: url, done: !(url !== undefined), md5: base64String});
 			return Promise.resolve();

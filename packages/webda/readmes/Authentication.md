@@ -26,7 +26,7 @@ When a user register, the Authentication service send a Register event, so you c
 
 ```javascript
 // Datas is the profile coming from the OAuth or the Register form
-this.emit("Register", {"user": user, "datas": datas});
+this.emit("Register", {"user": user, "datas": datas, "ctx": ctx});
 ```
 
 ## Email authentication

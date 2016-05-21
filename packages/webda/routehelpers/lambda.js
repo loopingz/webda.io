@@ -29,7 +29,7 @@ class LambdaRouteHelper extends Executor {
 	 *
 	 * @ignore
 	 */
-	handleResult(data) {
+	handleResult(ctx, data) {
 		try {
 			// Should parse JSON
 	      	var result = JSON.parse(data);		
@@ -46,26 +46,26 @@ class LambdaRouteHelper extends Executor {
 	      	console.log("Error '" + err + "' parsing result: " + data);
 	      	throw 500;
 		}
-		this.writeHead(result.code, result.headers);
+		ctx.writeHead(result.code, result.headers);
 		if (result.body != undefined) {
-	    	this.write(result.body);
+	    	ctx.write(result.body);
 	    }
-	    this.end();
+	    ctx.end();
 	}
 
-	execute() {
+	execute(ctx) {
 		return new Promise( (resolve, reject) => {
 			if (!this._params['arn']) {
 				return reject("arn of the Lambda method to inkoke is required");
 			}
 			var AWS = require('aws-sdk');
 			AWS.config.update({region: 'us-west-2'});
-			AWS.config.update({accessKeyId: this._params['accessKeyId'], secretAccessKey: this._params['secretAccessKey']});
+			AWS.config.update({accessKeyId: ctx._params['accessKeyId'], secretAccessKey: ctx._params['secretAccessKey']});
 			var lambda = new AWS.Lambda();
 			var params = {};
-			params["_http"] = this._route._http;
+			params["_http"] = ctx._route._http;
 			var params = {
-				FunctionName: this._params.arn,
+				FunctionName: ctx._params.arn,
 				ClientContext: null,
 				InvocationType: 'RequestResponse',
 				LogType: 'None',
@@ -74,12 +74,12 @@ class LambdaRouteHelper extends Executor {
 		  	lambda.invoke(params, (err, data) => {
 		    	if (err) {
 		      		console.log(err, err.stack);
-		      		this.writeHead(500, {'Content-Type': 'text/plain'});
-		      		this.end();
+		      		ctx.writeHead(500, {'Content-Type': 'text/plain'});
+		      		ctx.end();
 		      		return reject(err);
 		    	}
 		    	if (data.Payload != '{}') {
-		    		this.handleResult(data.Payload);
+		    		this.handleResult(ctx, data.Payload);
 		    	}
 		    	return resolve();
 		  	});

@@ -102,6 +102,16 @@ class Context {
 		this._webda.flush(this);
 	}
 
+	/**
+	 * Get a service from webda
+	 *
+	 * @see Webda
+	 * @param {String} name of the service
+	 */
+	getService(name) {
+		return this._webda.getService(name);
+	}
+
 
 	/**
 	 * @ignore
@@ -112,6 +122,13 @@ class Context {
 		this._params = _extend(this._params, route.params);
 		// For retro compatibilify
 		this._params = _extend(this._params, this.query);
+	}
+
+	/**
+	 * @param executor {object} Set the current executor for this context
+	 */
+	setExecutor(executor) {
+		this._executor = executor;
 	}
 
 	/**

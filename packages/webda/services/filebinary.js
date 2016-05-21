@@ -54,9 +54,9 @@ class FileBinary extends Binary {
 		fs.closeSync(fs.openSync(path, 'w'));
 	}
 
-	getPutUrl() {
+	getPutUrl(ctx) {
 		// Get a full URL, this method should be in a Route Object
-		return this._route._http.protocol + "://" + this._route._http.headers.host + this._url + "/upload/data/" + this.body.hash;
+		return ctx._route._http.protocol + "://" + ctx._route._http.headers.host + this._url + "/upload/data/" + ctx.body.hash;
 	}
 
 	/**
@@ -64,34 +64,34 @@ class FileBinary extends Binary {
 	 * 
 	 * @ignore
 	 */
-	putRedirectUrl() {
-		if (this.body.hash === undefined) {
-			console.log("Request not conform", this.body);
+	putRedirectUrl(ctx) {
+		if (ctx.body.hash === undefined) {
+			console.log("Request not conform", ctx.body);
 			return Promise.reject();
 		}
-		if (fs.existsSync(this._getPath(this.body.hash, this._params.store + "_" + this._params.uid))) {
-			if (!fs.existsSync(this._getPath(this.body.hash, 'data'))) {
-				return Promise.resolve(this.getPutUrl());
+		if (fs.existsSync(this._getPath(ctx.body.hash, ctx._params.store + "_" + ctx._params.uid))) {
+			if (!fs.existsSync(this._getPath(ctx.body.hash, 'data'))) {
+				return Promise.resolve(this.getPutUrl(ctx));
 			}
 			// If the link is already register just return directly ok
 			return Promise.resolve();
 		}
 		// Get the target object to add the mapping
-		let targetStore = this._verifyMapAndStore();
-		return targetStore.get(this._params.uid).then( (object) => {
-			return this.updateSuccess(targetStore, object, this._params.property, 'add', this.body, this.body.metadatas);
+		let targetStore = this._verifyMapAndStore(ctx);
+		return targetStore.get(ctx._params.uid).then( (object) => {
+			return this.updateSuccess(targetStore, object, ctx._params.property, 'add', ctx.body, ctx.body.metadatas);
 		}).then ( (updated) => {
 			// Need to store the usage of the file
-			if (!fs.existsSync(this._getPath(this.body.hash))) {
-				fs.mkdirSync(this._getPath(this.body.hash));
+			if (!fs.existsSync(this._getPath(ctx.body.hash))) {
+				fs.mkdirSync(this._getPath(ctx.body.hash));
 			}
-			this._touch(this._getPath(this.body.hash, this._params.store + "_" + this._params.uid));
-			if (this.challenge(this.body.hash, this.body.challenge)) {
+			this._touch(this._getPath(ctx.body.hash, ctx._params.store + "_" + ctx._params.uid));
+			if (this.challenge(ctx.body.hash, ctx.body.challenge)) {
 				// Return empty as we dont need to upload the data
 				return Promise.resolve();
 			}
 			// Return the url to upload the binary now
-			return Promise.resolve(this.getPutUrl());
+			return Promise.resolve(this.getPutUrl(ctx));
 		});
 	}
 

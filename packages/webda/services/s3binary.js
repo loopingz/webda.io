@@ -54,30 +54,30 @@ class S3Binary extends Binary {
       	config[url] = {"method": ["GET"], "executor": this._name, "expose": expose, "_method": this.getRedirectUrl, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}};
 	}
 
-	putRedirectUrl() {
-		if (this.body.hash === undefined) {
-			console.log("Request not conform", this.body);
+	putRedirectUrl(ctx) {
+		if (ctx.body.hash === undefined) {
+			console.log("Request not conform", ctx.body);
 			throw 403;
 		}
-		let targetStore = this._verifyMapAndStore();
-		var base64String = new Buffer(this.body.hash, 'hex').toString('base64');
-		var params = {Bucket: this._params.bucket, Key: this._getPath(this.body.hash), 'ContentType': 'application/octet-stream', 'ContentMD5': base64String};
+		let targetStore = this._verifyMapAndStore(ctx);
+		var base64String = new Buffer(ctx.body.hash, 'hex').toString('base64');
+		var params = {Bucket: this._params.bucket, Key: this._getPath(ctx.body.hash), 'ContentType': 'application/octet-stream', 'ContentMD5': base64String};
 		// List bucket
-		return this._s3.listObjectsV2({Bucket: this._params.bucket, Prefix: this._getPath(this.body.hash, '')}).promise().then( (data) => {
+		return this._s3.listObjectsV2({Bucket: this._params.bucket, Prefix: this._getPath(ctx.body.hash, '')}).promise().then( (data) => {
 			let foundMap = false;
 			let foundData = false;
 			for (let i in data.Contents) {
 				if (data.Contents[i].Key.endsWith('data')) foundData = true;
-				if (data.Contents[i].Key.endsWith(this._params.uid)) foundMap = true;
+				if (data.Contents[i].Key.endsWith(ctx._params.uid)) foundMap = true;
 			}
 			if (foundMap) {
 				if (foundData) return Promise.resolve();
 				return this.getSignedUrl('putObject', params);
 			}
-			return targetStore.get(this._params.uid).then( (object) => {
-				return this.updateSuccess(targetStore, object, this._params.property, 'add', this.body, this.body.metadatas);
+			return targetStore.get(ctx._params.uid).then( (object) => {
+				return this.updateSuccess(targetStore, object,  ctx._params.property, 'add', ctx.body, ctx.body.metadatas);
 			}).then ( (updated) => {
-				return this.putMarker(this.body.hash, this._params.uid, this._params.store);
+				return this.putMarker(ctx.body.hash, ctx._params.uid, ctx._params.store);
 			}).then ( () => {
 				return this.getSignedUrl('putObject', params);
 			});
@@ -101,22 +101,22 @@ class S3Binary extends Binary {
 		});
 	}
 
-	getRedirectUrl() {
-		let targetStore = this._verifyMapAndStore();
-		return targetStore.get(this._params.uid).then( (obj) => {
-			if (obj === undefined || obj[this._params.property] === undefined || obj[this._params.property][this._params.index] === undefined) {
+	getRedirectUrl(ctx) {
+		let targetStore = this._verifyMapAndStore(ctx);
+		return targetStore.get(ctx._params.uid).then( (obj) => {
+			if (obj === undefined || obj[ctx._params.property] === undefined || obj[ctx._params.property][ctx._params.index] === undefined) {
 				throw 404;
 			}
-			let info = obj[this._params.property][this._params.index];
+			let info = obj[ctx._params.property][ctx._params.index];
 			var params = {Bucket: this._params.bucket, Key: this._getPath(info.hash)};
 			params.Expires = 30; // A get should not take more than 30s
-			this.emit('binaryGet', {'object': info, 'service': this});
+			this.emit('binaryGet', {'object': info, 'service': this, 'context': ctx});
 			params.ResponseContentDisposition = "attachment; filename=" + info.name;
 			params.ResponseContentType = info.mimetype;
 			return this.getSignedUrl('getObject', params);
 		}).then( (url) => {
-			this.writeHead(302, {'Location': url});
-			this.end();
+			ctx.writeHead(302, {'Location': url});
+			ctx.end();
 			return Promise.resolve();
 		});
 	}

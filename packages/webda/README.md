@@ -35,14 +35,14 @@ Below is the manual step with the manual modification, I would recommand to use 
 
 We will use the inline RouteHelper here, except the Lambda Route helper, the other are mainly helper for quick and easy test but you should use Service when you can as they are easier to unit test and make code cleaner.
 
-```
+```javascript
 {
   "*": "demo.webda.io",
   "demo.webda.io": {
   	...
   	"/myurl": {
   	  "type": "inline",
-  	  "callback": "function(executor) { executor.write('I am an inline route'); }"
+  	  "callback": "function(ctx) { ctx.write('I am an inline route'); }"
   	}
   }
 }
@@ -63,22 +63,22 @@ class MyService extends Executor {
    	 config['/myservice']={method:["GET", "DELETE"], _method: this.handleRequest, executor: this};
    }
    
-   delete() {
+   delete(ctx) {
      // If we dont output anything, then the default result will be a 204
    }	
    
-   get() {
+   get(ctx) {
     // Should output : I am a getter and i've sent an welcome email to you
-   	this.write(this._params.sentence);
+	ctx.write(this._params.sentence);
    	let otherService = this.getService("Mailer");
    	otherService.send();
    }
    
-   handleRequest() {
-     if (this._route._http.method === "GET") {
-     	this.get();
+   handleRequest(ctx) {
+     if (ctx._route._http.method === "GET") {
+     	this.get(ctx);
      } else {
-        this.delete();
+        this.delete(ctx);
      }
    }
 )
@@ -161,13 +161,13 @@ getService("Store").on('Store.Save', (evt) => {
 	// Do something
 });
 
-// Emit a event
-this.emit('Action.Done', {object: this.target})
+// Emit a event ( add the context if possible )
+this.emit('Action.Done', {object: this.target, ctx: ctx})
 ```
 
 ## Executors
 
-The **executors** are services that handle some routes directly, they have **access to the request body, the session, and can write out content to the client**. Executors derive from services, that's why the framework only see the element Service.
+The **executors** are services that handle some routes directly, they have **access to the request body, the session, and can write out content to the client through the context object**. Executors derive from services, that's why the framework only see the element Service.
 
 Executors is a service family that handle the request.
 

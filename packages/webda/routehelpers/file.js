@@ -17,20 +17,15 @@ class FileRouteHelper extends Executor {
 	/**
 	 * @ignore
 	 */
-	constructor(webda, name, params) {
-		super(webda, name, params);
-		this._type = "FileExecutor";
-	}
-
-	execute() {
-		if (typeof(this._route.file) === "string") {
-			var include = this._route.file;
+	execute(ctx) {
+		if (typeof(ctx._route.file) === "string") {
+			var include = ctx._route.file;
 			if (include.startsWith("./")) {
 				include = process.cwd() + '/' + include;
 			}
-			return require(include)(this);
+			return require(include)(ctx);
 		} else {
-			return this._route.file(this);
+			return ctx._route.file(ctx);
 		}
 	}
 }

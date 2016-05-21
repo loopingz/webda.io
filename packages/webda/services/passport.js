@@ -147,7 +147,7 @@ class PassportExecutor extends Executor {
 			if (ctx.session.getUserId()) {
 				promise = Promise.resolve({'uuid':ctx.session.getUserId()});
 			} else {
-				promise = userStore.save(this.registerUser(profile._json));
+				promise = userStore.save(this.registerUser(ctx, profile._json));
 			}
 			return promise.then( (user) => {
 				ctx.write("register new ident");
@@ -175,11 +175,11 @@ class PassportExecutor extends Executor {
 		));
 	}
 
-	registerUser(datas, user) {
+	registerUser(ctx, datas, user) {
 		if (!user) {
 			user = {};
 		}
-		this.emit("Register", {"user": user, "datas": datas});
+		this.emit("Register", {"user": user, "datas": datas, "ctx": ctx});
 		return user;
 	}
 
@@ -344,7 +344,7 @@ class PassportExecutor extends Executor {
 					ctx.body._password = this.hashPassword(ctx.body.password);
 					delete ctx.body.password;
 					delete ctx.body.register;
-					return userStore.save(this.registerUser(ctx.body, ctx.body)).then ( (user) => {
+					return userStore.save(this.registerUser(ctx, ctx.body, ctx.body)).then ( (user) => {
 						var newIdent = {'uuid': uuid, 'type': 'email', 'email': email, 'user': user.uuid};
 						if (validation) {
 							newIdent.validation = validation;

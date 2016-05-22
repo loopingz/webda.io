@@ -48,6 +48,10 @@ class AWSDeployer extends Deployer {
 		this._awsLambda = new AWS.Lambda();
 		this._origin = this.params.website;
 
+		if (!this.resources.lambdaVersionsLimit) {
+			this.resources.lambdaVersionsLimit = 3;
+		}
+
 		if (args != undefined) {
 			if (args[0] === "export") {
 				return this.export(args.slice(1));
@@ -231,6 +235,8 @@ class AWSDeployer extends Deployer {
 		this.stepper("Updating Lambda function");
 		var params = {FunctionName: this._lambdaFunctionName, ZipFile: this._package, Publish: true};
 		return this._awsLambda.updateFunctionCode(params).promise().then( (fct) => {
+			return this.cleanVersions(fct);
+		}).then( (fct) => {
 			var params = {
 				MemorySize: this._lambdaMemorySize,
 				FunctionName: this._lambdaFunctionName,
@@ -243,6 +249,37 @@ class AWSDeployer extends Deployer {
 			return this._awsLambda.updateFunctionConfiguration(params).promise();
 		});
 	}
+
+	cleanVersions(fct) {
+		return this._awsLambda.listVersionsByFunction({FunctionName: fct.FunctionName}).promise().then( (res) => {
+			res.Versions.sort( (a, b ) => {
+				if (a.Version === '$LATEST') {
+					return -1;
+				}
+				if (b.Version === '$LATEST') {
+					return 1;
+				}
+				if (parseInt(a.Version) > parseInt(b.Version)) {
+					return -1;
+				}
+				return 1;
+			});
+			if (res.Versions.length <= this.resources.lambdaVersionsLimit) {
+				return Promise.resolve(fct);	
+			}
+			let versions = res.Versions.slice(this.resources.lambdaVersionsLimit);
+			let promise = Promise.resolve();
+			for (let i in versions) {
+				promise.then(() => { 
+					return this._awsLambda.deleteFunction({FunctionName: fct.FunctionName, Qualifier: versions[i].Version}).promise();
+				});
+			}
+			return promise.then( () => {
+				return Promise.resolve(fct);
+			});
+		});
+	}
+
 	generateLambda() {
 		return this._awsLambda.listFunctions().promise().then( (fcts) => {
 			for (let i in fcts.Functions) {

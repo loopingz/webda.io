@@ -45,6 +45,7 @@ class Mailer extends Service {
 		return this._transporter.sendMail(options, callback);
 	}
 
+	/** @ignore */
 	static getModda() {
 		return {
 			"uuid": "Webda/Mailer",

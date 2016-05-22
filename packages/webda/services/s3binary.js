@@ -26,7 +26,7 @@ class S3Binary extends Binary {
 	/** @ignore */
 	constructor(webda, name, params) {
 		super(webda, name, params);
-		/** Used for test purpose */
+		// Used for test purpose
 		if (params.accessKeyId === undefined) {
 			this._params.accessKeyId = params.accessKeyId = process.env["WEBDA_AWS_KEY"];
 		}

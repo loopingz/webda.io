@@ -1,3 +1,5 @@
+![](http://webda.io/images/touch/icon-128x128.png)
+
 # webda [![Build Status](https://travis-ci.org/loopingz/webda.svg?branch=master)](https://travis-ci.org/loopingz/webda)
 
 **Composable Serverless API**
@@ -16,7 +18,7 @@ The **webda.config.json** contains the configuration of the app, defining Servic
 
 You should checkout our demo project : [link](http://github.com/loopingz/webda-demo.git)
 
-Here is also the Youtube video to run it
+Check our video presentation on [Youtube](https://www.youtube.com/playlist?list=PLfn1MAL4_e7ERdqj9rWlmEkK5gMkL4bKI)
 
 
 #### Create a project
@@ -187,11 +189,27 @@ Just a simple one that store the object on the filesystem in a folder flatten
 
 #### DynamoDB
 
-link to dynamo / quick pres
+DynamoDB is the NoSQL as a Service from AWS, it is nice to use along with Lambda deployment to have true serverless application.
+
+The implementation is for now really basic, and need some improvement
+
+Checkout the [AWS Website](https://aws.amazon.com/dynamodb/)
 
 #### MongoDB
 
-link to mongo / quick pres
+MongoDB is one of the most popular NoSQL server.
+
+The implementation is for now really basic, and need some improvement
+
+Checkout the [AWS Website](https://aws.amazon.com/dynamodb/)
+
+### Policies
+
+Store by default use the OwnerPolicy, policies define who has the right to access the REST API endpoint for a store.
+
+#### OwnerPolicy
+
+By default the OwnerPolicy add your user id to the object you create on the user field. It will then check for GET/UPDATE/DELETE if you are the user that is reference in the field user. If your user has the same uuid as the object it allows you to perform the operation as well.
 
 
 ## Embedded Services

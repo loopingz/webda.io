@@ -488,6 +488,16 @@ class Webda {
 		return 1;
 	}
 
+	/**
+	 * Create a new context for a request
+	 *
+	 * @class Service
+	 * @param {Object} body - The request body
+	 * @param {Object} session - The request session
+	 * @param {Object} stream - The request output stream if any
+	 * @param {Object} files - The files input stream
+	 * @return {Object} A new context object to pass along
+	 */
 	newContext(body, session, stream, files) {
 		return new Context(this, body, session, stream, files);
 	}
@@ -503,6 +513,9 @@ class Webda {
 		return JSON.stringify(object, this.jsonFilter);
 	}
 
+	/**
+	 * @private
+	 */
 	initHosts(vhost, config) {
 	    if (config._initiated) {
 	      return;

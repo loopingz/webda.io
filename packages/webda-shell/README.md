@@ -1,9 +1,14 @@
+![](http://webda.io/images/touch/icon-128x128.png)
+
 # webda-shell
 
 **Composable Serverless API**
 
 This is the configuration interface, deployment interface for the project [Webda](http://github.com/loopingz/webda.git)
 
+[http://webda.io](http://webda.io)
+
+Check our video presentation on [Youtube](https://www.youtube.com/playlist?list=PLfn1MAL4_e7ERdqj9rWlmEkK5gMkL4bKI)
 
 ## Install
 
@@ -24,7 +29,7 @@ You'll get the configuration UI for your project
 
 
 
-#### Server the current project
+#### Serve the current project
 
 This will load the Webda framework and run your project with it on port 18080
 
@@ -33,6 +38,11 @@ This will load the Webda framework and run your project with it on port 18080
 webda serve
 ```
 
+You can serve with a specific deployment configuration by adding the deployment name
+
+```
+webda serve DeploymentName
+```
 
 #### Debug the current project
 
@@ -41,6 +51,8 @@ webda debug
 ```
 
 It will serve the project on port 18080 and restart the server on any changes made on the folder files
+
+As for serve you can also specify the deployment name to use
 
 
 #### Deploy
@@ -53,6 +65,19 @@ Then just use the Deploy button on the UI or the webda bin :
 webda deploy Test
 ```
 
+#### Generate Swagger/Postman configuration 
+
+If you use Amazon we expose a way for you to get the Postman configuration of your API using AWS
+
+```
+webda deploy Test export swagger postman postman.json
+```
+
+#### Only redeploy Lambda code on AWS
+
+```
+webda deploy Test lambda
+```
 
 
 ## Configuration UI

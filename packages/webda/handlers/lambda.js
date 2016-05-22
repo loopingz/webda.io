@@ -119,11 +119,11 @@ class LambdaServer extends Webda {
 			this.handleLambdaReturn(ctx, callback);
 		}).catch ( (err) => {
 			if (typeof(err) === "number") {
+				ctx.statusCode = err;
 				this.flushHeaders(ctx);
-				this._result.code = err;
 			} else {
 				console.log(err);
-				this._result.code = 500;
+				ctx.statusCode = 500;
 			}
 			this.handleLambdaReturn(ctx, callback);
 		});

@@ -361,7 +361,7 @@ class PassportExecutor extends Executor {
 				}
 				throw 404;
 			}
-			this.end();
+			ctx.end();
 		});
 	}
 
@@ -371,14 +371,6 @@ class PassportExecutor extends Executor {
 
 	handlePhone() {
 		ctx.writeHead(204);
-	}
-
-	end() {
-		if (this._oauth1) {
-			this._oauth1();
-		} else {
-			super.end();
-		}
 	}
 
 	authenticate(ctx) {

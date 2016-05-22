@@ -75,19 +75,19 @@ class PassportExecutor extends Executor {
 		// Handle the lost password here
 		url += '/{provider}';
 		config[url] = {"method": ["GET"], "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.authenticate};
-		config[url + "/callback{?code,*otherQuery}"] = {"method": "GET", "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.callback};
+		config[url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}"] = {"method": "GET", "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.callback};
 	}
 
 
-	callback() {
-		var providerConfig = this._params.providers[this._params.provider];
+	callback(ctx) {
+		var providerConfig = this._params.providers[ctx._params.provider];
 		if (!providerConfig) {
 			throw 404;
 		}
 		return new Promise( (resolve, reject) => {
 			var done = function(result) { resolve(); }; 
-			this.setupOAuth(providerConfig);
-			passport.authenticate(this._params.provider, { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect}, done)(this, this, done);
+			this.setupOAuth(ctx, providerConfig);
+			passport.authenticate(ctx._params.provider, { successRedirect: this._params.successRedirect, failureRedirect: this._params.failureRedirect}, done)(ctx, ctx, done);
 		});
 	};
 
@@ -114,8 +114,8 @@ class PassportExecutor extends Executor {
 	}
 
 	getCallbackUrl(ctx, provider) {
-		if (this._params.providers[this._params.provider].callbackURL) {
-			return this._params.providers[this._params.provider].callbackURL;
+		if (this._params.providers[ctx._params.provider].callbackURL) {
+			return this._params.providers[ctx._params.provider].callbackURL;
 		}
 		// Issue with specified port for now
 		var url = ctx._route._http.protocol + "://" + ctx._route._http.host + ctx._route._http.url;
@@ -170,7 +170,7 @@ class PassportExecutor extends Executor {
 	setupOAuth(ctx, config) {
 		config.callbackURL = this.getCallbackUrl(ctx);
 		passport.use(new Strategies[ctx._params.provider].strategy(config,(accessToken, refreshToken, profile, done) => {
-				this.handleOAuthReturn(ctx, profile._json, new Ident(this._params.provider, profile.id, accessToken, refreshToken), done);
+				this.handleOAuthReturn(ctx, profile._json, new Ident(ctx._params.provider, profile.id, accessToken, refreshToken), done);
 			}
 		));
 	}
@@ -396,13 +396,14 @@ class PassportExecutor extends Executor {
 		if (providerConfig) {
 			if (!Strategies[ctx._params.provider].promise) {
 				this.setupOAuth(ctx, providerConfig);
-				return passport.authenticate(this._params.provider, {'scope': providerConfig.scope})(ctx, ctx);
+				return passport.authenticate(ctx._params.provider, {'scope': providerConfig.scope})(ctx, ctx);
 			}
 			var self = this;
 			return new Promise( (resolve, reject) => {
-				this._oauth1 = function(obj) { this._oauth1=undefined; resolve(obj); };
+				ctx._end = ctx.end;
+				ctx.end = function(obj) { ctx.end=ctx._end; resolve(obj); };
 				this.setupOAuth(ctx, providerConfig);
-				passport.authenticate(this._params.provider, {'scope': providerConfig.scope}, this._oauth1)(ctx, ctx, ctx._oauth1);
+				passport.authenticate(ctx._params.provider, {'scope': providerConfig.scope}, this._oauth1)(ctx, ctx, ctx._oauth1);
 			});
 		}
 		throw 404;

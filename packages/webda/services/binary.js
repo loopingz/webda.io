@@ -111,7 +111,13 @@ class Binary extends Executor {
 				map[prop]["-onerror"] = "NoStore";
 				continue;
 			}
-			reverseStore.addReverseMap(map[prop], {'store': this._name, 'name': map[prop]});
+			if (typeof(map[prop]) === "string") {
+				reverseStore.addReverseMap(map[prop], {'store': this._name, 'name': map[prop]});
+			} else {
+				for (let i in map[prop]) {
+					reverseStore.addReverseMap(map[prop][i], {'store': this._name, 'name': map[prop][i]});
+				}
+			}
 	    }
 	}
 
@@ -161,7 +167,7 @@ class Binary extends Executor {
 		fileObj['challenge']=file.challenge;
 		update[property].push(fileObj);
 		// Dont handle reverseMap
-		return targetStore.update(update, object.uuid, false).then ( (updated) => {
+		return targetStore.update(update, object.uuid, true).then ( (updated) => {
 			this.emit('binaryCreate', {'object': fileObj, 'service': this});
 			return Promise.resolve(updated);
 		});
@@ -199,7 +205,7 @@ class Binary extends Executor {
 			info = update[property][index];
 			update[property][index]=fileObj;
 		}
-		return targetStore.update(update, object.uuid, false).then( (updated) => {
+		return targetStore.update(update, object.uuid, true).then( (updated) => {
 			if (info) {
 				this.cascadeDelete(info, object_uid);
 				this.emit('binaryUpdate', {'object': fileObj, 'old': info, 'service': this});
@@ -220,7 +226,7 @@ class Binary extends Executor {
 		var info = object[property][index];
 		update[property] = object[property];
 		update[property].splice(index, 1);
-		return targetStore.update(update, object.uuid, false).then ( (updated) => {
+		return targetStore.update(update, object.uuid, true).then ( (updated) => {
 			this.emit('binaryDelete', {'object': info, 'service': this});
 			return Promise.resolve(updated)
 		});

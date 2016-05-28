@@ -566,6 +566,10 @@ class Store extends Executor {
 			return this.get(ctx._params.uuid).then ( (object) => {
 				if (!object) throw 404;
 				this._policy.canDelete(ctx, object);	
+				// http://stackoverflow.com/questions/28684209/huge-delay-on-delete-requests-with-204-response-and-no-content-in-objectve-c#
+				// IOS don't handle 204 with Content-Length != 0 it seems
+				// Have trouble to handle the Content-Length on API Gateway so returning an empty object for now
+				ctx.write({});
 				return this.delete(ctx._params.uuid);
 			});
 		} else if (ctx._route._http.method == "PUT") {

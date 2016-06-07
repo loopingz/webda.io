@@ -142,14 +142,16 @@ class Binary extends Executor {
 	}
 
 	_checkMap(name, property) {
-		if (this._params.map !== undefined && this._params.map[name] !== undefined) {
-			for (var i in this._params.map[name]) {
-				if (this._params.map[name][i] === property) {
-					return;
-				}
-			}
+		var map = this._params.map[this._lowercaseMaps[name.toLowerCase()]];
+		if (map === undefined) {
+			throw Error("Unknown mapping");
 		}
-		throw Error("Unknown mapping");		
+		if (typeof(map) === "string" && map !== property) {
+			throw Error("Unknown mapping");
+		}
+		if (Array.isArray(map) && map.indexOf(property) === -1) {
+			throw Error("Unknown mapping");
+		}
 	}
 
 	storeSuccess(targetStore, object, property, file, metadatas) {
@@ -167,7 +169,7 @@ class Binary extends Executor {
 		fileObj['challenge']=file.challenge;
 		update[property].push(fileObj);
 		// Dont handle reverseMap
-		return targetStore.update(update, object.uuid, true).then ( (updated) => {
+		return targetStore.update(update, object.uuid, false).then ( (updated) => {
 			this.emit('binaryCreate', {'object': fileObj, 'service': this});
 			return Promise.resolve(updated);
 		});
@@ -205,7 +207,7 @@ class Binary extends Executor {
 			info = update[property][index];
 			update[property][index]=fileObj;
 		}
-		return targetStore.update(update, object.uuid, true).then( (updated) => {
+		return targetStore.update(update, object.uuid, false).then( (updated) => {
 			if (info) {
 				this.cascadeDelete(info, object_uid);
 				this.emit('binaryUpdate', {'object': fileObj, 'old': info, 'service': this});
@@ -226,7 +228,7 @@ class Binary extends Executor {
 		var info = object[property][index];
 		update[property] = object[property];
 		update[property].splice(index, 1);
-		return targetStore.update(update, object.uuid, true).then ( (updated) => {
+		return targetStore.update(update, object.uuid, false).then ( (updated) => {
 			this.emit('binaryDelete', {'object': info, 'service': this});
 			return Promise.resolve(updated)
 		});
@@ -299,8 +301,14 @@ class Binary extends Executor {
 	_verifyMapAndStore(ctx) {
 		// To avoid any probleme lowercase everything
 		var map = this._params.map[this._lowercaseMaps[ctx._params.store.toLowerCase()]];
-		if (map === undefined || map.indexOf(ctx._params.property) == -1) {
+		if (map === undefined) {
 			throw 404;	
+		}
+		if (typeof(map) === "string" && map !== ctx._params.property) {
+			throw 404;
+		}
+		if (Array.isArray(map) && map.indexOf(ctx._params.property) == -1) {
+			throw 404;
 		}
 		var targetStore = this.getService(ctx._params.store);
 		if (targetStore === undefined) {
@@ -362,7 +370,7 @@ class Binary extends Executor {
 					throw 412;
 				}
 				if (ctx._route._http.method == "DELETE") {
-					return this.delete(targetStore, object, ctx._params.property, index).then ((object) => {
+					return this.delete(targetStore, object, ctx._params.property, ctx._params.index).then ((object) => {
 						ctx.write(object);
 					});
 				} else if (ctx._route._http.method == "PUT") {

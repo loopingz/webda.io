@@ -7,7 +7,7 @@ var webda;
 var userStore;
 var binary;
 
-var normal = function (userStore, binary) {
+var normal = function (userStore, binary, map) {
   var eventFired = 0;
   var events = ['binaryGet','binaryUpdate','binaryCreate','binaryDelete'];
   for (evt in events) {
@@ -20,36 +20,38 @@ var normal = function (userStore, binary) {
   var count = 1;
   var user1;
   var user2;
-  userStore.save({"test": "plop"}).then( function(user) {
+  var user;
+  return userStore.save({"test": "plop"}).then( function(user) {
     user1 = user;
     return userStore.save({"test": "plop"});
   }).then( function(user) {
     user2 = user;
-    return binary.store(userStore, user1, 'images', {'path': './test/Dockerfile'}, {});
+    return binary.store(userStore, user1, map, {'path': './test/Dockerfile'}, {});
   }).then(function () {
     return userStore.get(user1.uuid);
   }).then(function(user) {
-    assert.notEqual(user.images, undefined);
-    assert.equal(user.images.length, 1);
-    hash = user.images[0].hash;
+    assert.notEqual(user[map], undefined);
+    assert.equal(user[map].length, 1);
+    hash = user[map][0].hash;
     return binary.getUsageCount(hash);
   }).then(function(value) {
     assert.equal(value, 1);
-    return binary.store(userStore, user2, 'images', {'path': './test/Dockerfile'}, {});
+    return binary.store(userStore, user2, map, {'path': './test/Dockerfile'}, {});
   }).then(function() {
     return userStore.get(user2.uuid);
-  }).then(function(user) {
-    assert.notEqual(user.images, undefined);
-    assert.equal(user.images.length, 1);
-    hash = user.images[0].hash;
+  }).then(function(userArg) {
+    user = userArg;
+    assert.notEqual(user[map], undefined);
+    assert.equal(user[map].length, 1);
+    hash = user[map][0].hash;
     return binary.getUsageCount(hash);
   }).then(function(value) {
     assert.equal(value, 2);
-    return binary.delete(userStore, user, 'images', 0);
+    return binary.delete(userStore, user, map, 0);
   }).then(function() {
     return userStore.get(user2.uuid);
   }).then(function(user) {
-    assert.equal(user.images.length, 0);
+    assert.equal(user[map].length, 0);
     return binary.getUsageCount(hash);
   }).then(function(value) {
     assert.equal(value, 1);
@@ -58,12 +60,13 @@ var normal = function (userStore, binary) {
     return binary.getUsageCount(hash);
   }).then(function (value) {
     assert.equal(value, 0);
+    return Promise.resolve();
   });      
 }
 
 var notMapped = function (userStore, binary) {
   var exception = false;
-  userStore.save({"test": "plop"}).then (function (user1) {
+  return userStore.save({"test": "plop"}).then (function (user1) {
     return binary.store(userStore, user1, 'images2', {'path': './test/Dockerfile'}, {});
   }).catch( function(err) {
     exception = true;
@@ -72,33 +75,35 @@ var notMapped = function (userStore, binary) {
   });
 }
 
-var update = function (userStore, binary) {
+var update = function (userStore, binary, map) {
   var user1;
-  userStore.save({"test": "plop"}).then (function (user) {
+  var user;
+  return userStore.save({"test": "plop"}).then (function (user) {
     user1 = user;
-    return binary.store(userStore, user1, 'images', {'path': './test/Dockerfile'}, {});
+    return binary.store(userStore, user1, map, {'path': './test/Dockerfile'}, {});
   }).then(function () {
     return userStore.get(user1.uuid);
-  }).then(function (user) {
-    assert.notEqual(user.images, undefined);
-    assert.equal(user.images.length, 1);
-    hash = user.images[0].hash;
+  }).then(function (userArg) {
+    user = userArg;
+    assert.notEqual(user[map], undefined);
+    assert.equal(user[map].length, 1);
+    hash = user[map][0].hash;
     return binary.getUsageCount(hash);
   }).then(function(value) {
     assert.equal(value, 1);
-    return binary.update(userStore, user, 'images', 0, {'path': './test/Dockerfile.txt'}, {});
+    return binary.update(userStore, user, map, 0, {'path': './test/Dockerfile.txt'}, {});
   }).then(function() {
     return userStore.get(user1.uuid);
   }).then(function (user) {
-    assert.notEqual(user.images, undefined);
-    assert.equal(user.images.length, 1);
-    assert.notEqual(hash, user.images[0].hash);
-    assert.equal(user.images[0].mimetype, 'text/plain');
-    assert.equal(user.images[0].name, 'Dockerfile.txt');
+    assert.notEqual(user[map], undefined);
+    assert.equal(user[map].length, 1);
+    assert.notEqual(hash, user[map][0].hash);
+    assert.equal(user[map][0].mimetype, 'text/plain');
+    assert.equal(user[map][0].name, 'Dockerfile.txt');
     return binary.getUsageCount(hash);
   }).then(function(value) {
     assert.equal(value, 0);
-    return binary.getUsageCount(user.images[0].hash)
+    return binary.getUsageCount(user[map][0].hash)
   }).then(function(value) {
     assert.equal(value, 1);
   }); 
@@ -129,9 +134,9 @@ describe('Binary', function() {
         return binary.__clean();
       });
     });
-    it('normal', function() { return normal(userStore, binary); });
+    it('normal', function() { return normal(userStore, binary, 'images'); });
     it('not-mapped', function() { return notMapped(userStore, binary); });
-    it('update', function() { return update(userStore, binary); });
+    it('update', function() { return update(userStore, binary, 'images'); });
   });
   describe('S3Binary', function() {
     var uuids = {};
@@ -147,9 +152,9 @@ describe('Binary', function() {
         return binary.__clean();
       });
     });
-    it('normal', function() { if (skipS3) { this.skip(); return; } return normal(userStore, binary); });
+    it('normal', function() { if (skipS3) { this.skip(); return; } return normal(userStore, binary, 's3images'); });
     it('not-mapped', function() { if (skipS3) { this.skip(); return; } return notMapped(userStore, binary); });
-    it('update', function() { if (skipS3) { this.skip(); return; } return update(userStore, binary); });
+    it('update', function() { if (skipS3) { this.skip(); return; } return update(userStore, binary, 's3images'); });
   });
   describe('challenge()', function () {
     it('_isValidChallenge', function () {

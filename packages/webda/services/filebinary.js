@@ -151,10 +151,8 @@ class FileBinary extends Binary {
 	}
 
 	delete(targetStore, object, property, index) {
-		return new Promise( (resolve, reject) => {
-			var hash = object[property][index].hash;
-			return this.deleteSuccess(targetStore, object, property, index);
-		}).then( (updated) => {
+		var hash = object[property][index].hash;
+		return this.deleteSuccess(targetStore, object, property, index).then( (updated) => {
 			this._cleanUsage(hash, object.uuid);
 			return Promise.resolve(updated);
 		});

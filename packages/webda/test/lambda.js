@@ -29,20 +29,13 @@ describe('Lambda', function() {
           return;
         }
         var resp = {};
-        webda.flushHeaders = (executor) => {
-          resp.httpCode = executor._returnCode;
-          resp.httpHeader = executor._headers;
-        }
-        webda.flush = (executor) => {
-          resp.data = executor._body;
-        }
-        var executor = webda.getExecutor("test.webda.io", methods[i], "/webda");
-        executor.setContext({}, {});
-        return executor.execute().then( function() {
-          assert.notEqual(resp, undefined);
-          assert.equal(resp.httpCode, 200);
-          assert.equal(resp.httpHeader['Content-Type'], 'text/plain');
-          assert.equal(resp.data, methods[i] + ' called');
+        var ctx = webda.newContext();
+        var executor = webda.getExecutor(ctx, "test.webda.io", methods[i], "/webda");
+        return executor.execute(ctx).then( function() {
+          assert.notEqual(ctx, undefined);
+          assert.equal(ctx.statusCode, 200);
+          assert.equal(ctx._headers['Content-Type'], 'text/plain');
+          assert.equal(ctx._body, methods[i] + ' called');
         })
       });
     }

@@ -32,7 +32,7 @@ class LambdaRouteHelper extends Executor {
 	handleResult(ctx, data) {
 		try {
 			// Should parse JSON
-	      	var result = JSON.parse(data);		
+	      	var result = JSON.parse(data);	
 	      	if (result.code == undefined) {
 	      		result.code = 200;
 	      	}
@@ -55,7 +55,7 @@ class LambdaRouteHelper extends Executor {
 
 	execute(ctx) {
 		return new Promise( (resolve, reject) => {
-			if (!this._params['arn']) {
+			if (!ctx._params['arn']) {
 				return reject("arn of the Lambda method to inkoke is required");
 			}
 			var AWS = require('aws-sdk');

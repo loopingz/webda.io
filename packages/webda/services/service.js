@@ -43,9 +43,10 @@ class Service extends EventEmitter {
 	/**
 	 * Will be called after all the Services are created
 	 *
+	 * @param config for the host so you can add your own route here
 	 * @abstract
 	 */
-	init() {}
+	init(config) {}
 
 	/**
 	 * For future use, while deploying this should be call so the service can create what it needs if necessary

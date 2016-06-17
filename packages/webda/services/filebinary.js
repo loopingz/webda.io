@@ -142,7 +142,7 @@ class FileBinary extends Binary {
 		var files = fs.readdirSync(this._getPath(hash));
 		for (var i in files) {
 			if (files[i].endsWith(uuid)) {
-				fs.unlink(this._getPath(hash, files[i]));
+				fs.unlinkSync(this._getPath(hash, files[i]));
 			}
 		}
 		if (files.length == 3) {

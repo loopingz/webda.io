@@ -18,6 +18,8 @@ class AWSDeployer extends Deployer {
 		this._restApiName = this.resources.restApi;
 		this._lambdaFunctionName = this.resources.lamdaFunctionName;
 		this._lambdaRole = this.resources.lambdaRole;
+		this._lambdaHandler = this.resources.lambdaHandler;
+		this._lambdaDefaultHandler = this._lambdaHandler === undefined;
 		this._lambdaTimeout = 3;
 		if (this._lambdaRole === undefined || this._restApiName === undefined) {
 			throw Error("Need to define LambdaRole and RestApiName at least");
@@ -159,13 +161,15 @@ class AWSDeployer extends Deployer {
 					archive.file(toPacks[i]);
 				}
 			}
-			var entrypoint = require.resolve(global.__webda_shell + "/deployers/aws_entrypoint.js");
-			if (fs.existsSync(entrypoint)) {
-				archive.file(entrypoint, {name:"entrypoint.js"});
-			} else if (fs.existsSync("deployers/aws_entrypoint.js")) {
-				archive.file("deployers/aws_entrypoint.js", {name:"entrypoint.js"})	
-			} else {
-				throw Error("Cannot find the entrypoint for Lambda");
+			if (this._lambdaDefaultHandler) {
+				var entrypoint = require.resolve(global.__webda_shell + "/deployers/aws_entrypoint.js");
+				if (fs.existsSync(entrypoint)) {
+					archive.file(entrypoint, {name:"entrypoint.js"});
+				} else if (fs.existsSync("deployers/aws_entrypoint.js")) {
+					archive.file("deployers/aws_entrypoint.js", {name:"entrypoint.js"})	
+				} else {
+					throw Error("Cannot find the entrypoint for Lambda");
+				}
 			}
 			archive.append(this.srcConfig, {name:"webda.config.json"})	
 			archive.finalize();
@@ -175,13 +179,17 @@ class AWSDeployer extends Deployer {
 
 	createLambdaFunction() {
 		this.stepper("Creating Lambda function");
+		var handler = 'entrypoint.handler';
+		if (!this._lambdaDefaultHandler) {
+			handler = this._lambdaHandler;
+		}
 		var params = {
 			MemorySize: this._lambdaMemorySize,
 			Code: {
 				ZipFile: this._package
 			},
 			FunctionName: this._lambdaFunctionName,
-			Handler: 'entrypoint.handler',
+			Handler: handler,
 			Role: this._lambdaRole,
 			Runtime: 'nodejs4.3',
 			Timeout: this._lamdaTimeout,

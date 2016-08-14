@@ -20,6 +20,7 @@ class AWSDeployer extends Deployer {
 		this._lambdaRole = this.resources.lambdaRole;
 		this._lambdaHandler = this.resources.lambdaHandler;
 		this._lambdaDefaultHandler = this._lambdaHandler === undefined;
+		this._lambdaHandler = this._lambdaDefaultHandler ? 'entrypoint.handler' : this._lambdaHandler;
 		this._lambdaTimeout = 3;
 		if (this._lambdaRole === undefined || this._restApiName === undefined) {
 			throw Error("Need to define LambdaRole and RestApiName at least");
@@ -179,17 +180,13 @@ class AWSDeployer extends Deployer {
 
 	createLambdaFunction() {
 		this.stepper("Creating Lambda function");
-		var handler = 'entrypoint.handler';
-		if (!this._lambdaDefaultHandler) {
-			handler = this._lambdaHandler;
-		}
 		var params = {
 			MemorySize: this._lambdaMemorySize,
 			Code: {
 				ZipFile: this._package
 			},
 			FunctionName: this._lambdaFunctionName,
-			Handler: handler,
+			Handler: this._lambdaHandler,
 			Role: this._lambdaRole,
 			Runtime: 'nodejs4.3',
 			Timeout: this._lamdaTimeout,

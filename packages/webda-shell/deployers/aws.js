@@ -22,15 +22,18 @@ class AWSDeployer extends Deployer {
 		this._lambdaDefaultHandler = this._lambdaHandler === undefined;
 		this._lambdaHandler = this._lambdaDefaultHandler ? 'entrypoint.handler' : this._lambdaHandler;
 		this._lambdaTimeout = 3;
-		if (this._lambdaRole === undefined || this._restApiName === undefined) {
-			throw Error("Need to define LambdaRole and RestApiName at least");
+                if (this._lambdaFunctionName === undefined) {
+                        this._lambdaFunctionName = this.resources.restApi;
+                }
+		if (this._lambdaRole === undefined || this._lambdaFunctionName === undefined) {
+			throw Error("Need to define LambdaRole and a FunctionName");
+		}
+		if (this._restApiName === undefined) {
+			this._maxStep = 2;
 		}
 		if (!this._lambdaRole.startsWith("arn:aws")) {
 			// Try to get the Role ARN ?
 			throw Error("LambdaRole needs to be the ARN of the Role");
-		}
-		if (this._lambdaFunctionName === undefined) {
-			this._lambdaFunctionName = this.resources.restApi;
 		}
 		if (this.resources.lambdaMemory) {
 			this._lambdaMemorySize = this.resources.lambdaMemory;
@@ -45,7 +48,7 @@ class AWSDeployer extends Deployer {
 			console.log('Setting region to: ' + this.resources.region);
 		}
 		this.region = AWS.config.region;
-		let zipPath = "dist/" + this._restApiName + '.zip';
+		let zipPath = "dist/" + this._lambdaFunctionName + '.zip';
 		AWS.config.update({accessKeyId: this.resources.accessKeyId, secretAccessKey: this.resources.secretAccessKey});
 		this._awsGateway = new AWS.APIGateway();
 		this._awsLambda = new AWS.Lambda();
@@ -72,7 +75,7 @@ class AWSDeployer extends Deployer {
 			this._package = fs.readFileSync(zipPath);
 			var hash = crypto.createHash('sha256');
 			this._packageHash =  hash.update(this._package).digest('base64');
-			console.log("Package dist/" + this._restApiName + ".zip (" + this._packageHash + ")");
+			console.log("Package dist/" + this._lambdaFunctionName + ".zip (" + this._packageHash + ")");
 		});
 
 		if (args[0] === "package") {
@@ -82,7 +85,7 @@ class AWSDeployer extends Deployer {
 		promise = promise.then( () => {
 			return this.generateLambda();	
 		})
-		if (args[0] === "lambda") {
+		if (args[0] === "lambda" || this._restApiName === undefined) {
 			return promise;
 		}
 		promise.then( () => {
@@ -245,7 +248,7 @@ class AWSDeployer extends Deployer {
 			var params = {
 				MemorySize: this._lambdaMemorySize,
 				FunctionName: this._lambdaFunctionName,
-				Handler: 'entrypoint.handler',
+				Handler: this._lambdaHandler,
 				Role: this._lambdaRole,
 				Runtime: 'nodejs4.3',
 				Timeout: this._lamdaTimeout,

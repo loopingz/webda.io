@@ -102,6 +102,30 @@
 					"type": "MongoStore",
 					"collection": "users"
 				},
+				"MemoryIdents": {
+					"map": {
+							"MemoryUsers": {
+								"key": "user",
+								"target": "idents",
+								"fields": "type",
+								"cascade": true
+							}
+					},
+					"expose": {
+						"restrict": {
+							"create": true,
+							"update": true,
+							"get": true
+						}
+					},
+					"type": "MemoryStore"
+				},
+				"MemoryUsers": {
+					"expose": {
+						"url": "/users"
+					},
+					"type": "MemoryStore"
+				},
 				"Idents": {
 					"map": {
 							"Users": {

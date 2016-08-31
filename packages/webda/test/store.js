@@ -57,9 +57,9 @@ var mapper = function (identStore, userStore) {
     // Add a second user to play
     return userStore.save({"name": "test2"});
   }).then ( function(user) {
-    ident2.user = user2 = user.uuid;
+    user2 = user.uuid;
     // Move ident2 from user1 to user2
-    return identStore.update(ident2);
+    return identStore.update({'user': user.uuid, 'uuid': ident2.uuid});
   }).then( function() {
     // Check user1 has no more ident
     return userStore.get(user1);
@@ -251,6 +251,22 @@ describe('Store', function() {
       });
       it('Basic CRUD', function() { if (skipMongo) { this.skip(); return; } return crud(identStore, userStore); });
       it('Mapper', function() { if (skipMongo) { this.skip(); return; } return mapper(identStore, userStore); });
+    });
+    describe('MemoryStore', function() {
+      beforeEach(function () {
+        identStore = webda.getService("memoryidents");
+        userStore = webda.getService("memoryusers");
+        assert.notEqual(identStore, undefined);
+        assert.notEqual(userStore, undefined);
+        return identStore.__clean().then (function() {
+          return userStore.__clean();
+        }).catch (function(err) {
+          console.log(err);
+          return Promise.reject(err);
+        });
+      });
+      it('Basic CRUD', function() { return crud(identStore, userStore); });
+      it('Mapper', function() { return mapper(identStore, userStore); });
     });
     describe('DynamoStore', function() {
       var uuids = {};

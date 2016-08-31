@@ -72,10 +72,14 @@ class DynamoStore extends Store {
 		}
 	}
 
+	_serializeDate(date) {
+		return JSON.stringify(date).replace(/"/g,"");
+	}
+
 	_cleanObject(object) {
 		if (typeof(object) !== "object") return object;
 		if (object instanceof Date) {
-			return JSON.stringify(object).replace(/"/g,"");
+			return this._serializeDate(object);
 		}
 		var res;
 		if (object instanceof Array) {
@@ -92,14 +96,52 @@ class DynamoStore extends Store {
 		return res;
 	}
 
-	_delete(uid) {
+	_deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
 		var params = {'TableName': this._params.table, 'Key': {"uuid": uid}};
+		var attrs = {};
+		attrs["#"+prop] = prop;
+		params.ExpressionAttributeNames = attrs;
+		params.UpdateExpression = "REMOVE #" + prop + "[" + index + "]";
+		params.WriteCondition = "attribute_not_exists(#" + prop + "[" + index + "]) AND #" + prop + "[" + index + "]." + itemWriteConditionField + " = " + itemWriteCondition;
+		return this._client.update(params).promise();
+	}
+
+	_upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
+		var params = {'TableName': this._params.table, 'Key': {"uuid": uid}};
+		var attrValues = {};
+		var attrs = {};
+		attrs["#"+prop] = prop;
+		attrValues[":"+prop] = this._cleanObject(item);
+		params.ExpressionAttributeValues = attrValues;
+		params.ExpressionAttributeNames = attrs;
+		if (index === undefined) {
+			params.UpdateExpression = "SET #" + prop + "= list_append(#"+prop+",:"+prop+")";
+			attrValues[":"+prop] = [attrValues[":"+prop]];
+		} else {
+			params.UpdateExpression = "SET #" + prop + "[" + index + "] = :" + prop;
+			params.WriteCondition = "attribute_not_exists(#" + prop + "[" + index + "]) AND #" + prop + "[" + index + "]." + itemWriteConditionField + " = " + itemWriteCondition;
+		}
+		return this._client.update(params).promise();
+	}
+
+	_getWriteCondition(writeCondition) {
+		if (writeCondition instanceof Date) {
+			writeCondition = this._serializeDate(writeCondition);
+		}
+		return this._writeConditionField + ' = ' + writeCondition;
+	}
+
+	_delete(uid, writeCondition) {
+		var params = {'TableName': this._params.table, 'Key': {"uuid": uid}};
+		if (writeCondition) {
+			params.WriteCondition = this._getWriteCondition(writeCondition);
+		}
 		return this._client.delete(params).promise().then ((result) => {
 			return Promise.resolve(result);
 		});
 	}
 
-	_update(object, uid) {
+	_update(object, uid, writeCondition) {
 		object = this._cleanObject(object);
 		var expr = "SET ";
 		var sep = "";
@@ -120,9 +162,11 @@ class DynamoStore extends Store {
 			return Promise.resolve();
 		}
 		var params = {'TableName': this._params.table, 'Key': {"uuid": uid}, 'UpdateExpression': expr, ExpressionAttributeValues: attrValues, ExpressionAttributeNames: attrs};
-		return this._client.update(params).promise().then ((result) => {
-			return Promise.resolve(result);
-		});
+		// The Write Condition checks the value before writing
+		if (writeCondition) {
+			params.WriteCondition = this._getWriteCondition(writeCondition);
+		}
+		return this._client.update(params).promise();
 	}
 
 	_get(uid) {

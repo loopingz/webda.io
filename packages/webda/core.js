@@ -36,6 +36,7 @@ class Webda {
 		this._services = {};
 		this._services['Webda/Authentication']=require('./services/passport');
 		this._services['Webda/FileStore']=require('./stores/file');
+		this._services['Webda/MemoryStore']=require('./stores/memory');
 		this._services['Webda/MongoStore']=require('./stores/mongodb');
 		this._services['Webda/DynamoStore']=require('./stores/dynamodb');
 		this._services['Webda/FileBinary']=require('./services/filebinary');

@@ -47,6 +47,36 @@ class MongoStore extends Store {
 		});
 	}
 
+	_deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
+		return this._connect().then( () => {
+			var params = {'$pull': {}};
+			params['$pull'][prop] = {};
+			params['$pull'][prop][itemWriteConditionField] = itemWriteCondition;
+			return this._collection.updateOne({ _id: uid}, params);
+		});
+		var params = {'TableName': this._params.table, 'Key': {"uuid": uid}};
+		var attrs = {};
+		attrs["#"+prop] = prop;
+		params.ExpressionAttributeNames = attrs;
+		params.UpdateExpression = "REMOVE #" + prop + "[" + index + "]";
+		params.WriteCondition = "attribute_not_exists(#" + prop + "[" + index + "]) AND #" + prop + "[" + index + "]." + itemWriteConditionField + " = " + uid;
+		return this._client.update(params).promise();
+	}
+
+	upsertItemToCollection(uid, prop, item, index, itemUid) {
+		return this._connect().then( () => {
+			var params = {};
+			if (index === undefined) {
+				params = {'$push': {}};
+				params['$push'][prop] = item;
+			} else {
+				params = {'$set': {}};
+				params['$set'][prop+"."+index] = item;
+			}
+			return this._collection.updateOne({ _id: uid}, params);
+		});
+	}
+
 	_save(object, uid) {
 		object._id = object.uuid;
 		return this._connect().then( () => {
@@ -69,13 +99,13 @@ class MongoStore extends Store {
 		});
 	}
 
-	_delete(uid) {
+	_delete(uid, writeCondition) {
 		return this._connect().then( () => {
 			return this._collection.deleteOne({ _id: uid});
 		});
 	}
 
-	_update(object, uid) {
+	_update(object, uid, writeCondition) {
 		return this._connect().then( () => {
 			return this._collection.updateOne({ _id: uid}, {'$set': object});
 		}).then ( (result) => {

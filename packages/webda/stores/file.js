@@ -50,8 +50,49 @@ class FileStore extends Store {
 		return Promise.resolve(object);
 	}
 
-	_delete(uid) {
-		return this.exists(uid).then ( (res) => {
+	_upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
+		return this._get(uid).then ( (res) => {
+			if (res === undefined) {
+				throw Error("NotFound");
+			}
+			if (index === undefined) {
+				if (itemWriteCondition !== undefined && res[prop].length !== itemWriteCondition) {
+					throw Error('UpdateCondition not met');
+				}
+				if (res[prop] === undefined) {
+					res[prop] = [item];
+				} else {
+					res[prop].push(item);
+				}
+			} else {
+				if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
+					throw Error('UpdateCondition not met');
+				}
+				res[prop][index] = item;
+			}
+			return this._save(res, uid);
+		});
+	}
+
+	_deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
+		return this._get(uid).then ( (res) => {
+			if (res === undefined) {
+				throw Error("NotFound");
+			}
+
+			if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
+				throw Error('UpdateCondition not met');
+			}
+			res[prop].splice(index, 1);
+			return this._save(res, uid);
+		});
+	}
+
+	_delete(uid, writeCondition) {
+		return this._get(uid).then ( (res) => {
+			if (writeCondition && res && res[this._writeConditionField] != writeCondition) {
+				return Promise.reject(Error('UpdateCondition not met'));
+			}
 			if (res) {
 				fs.unlinkSync(this.file(uid));
 			}
@@ -59,13 +100,16 @@ class FileStore extends Store {
 		});
 	}
 
-	_update(object, uid) {
+	_update(object, uid, writeCondition) {
 		return this.exists(uid).then( (found) => {
 			if (!found) {
 				return Promise.reject(Error('NotFound'));
 			}
 			return this._get(uid);
 		}).then( (stored) => {
+			if (writeCondition && stored[this._writeConditionField] != writeCondition) {
+				return Promise.reject(Error('UpdateCondition not met'));
+			}
 			for (var prop in object) {
 				stored[prop]=object[prop];
 			}

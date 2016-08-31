@@ -43,6 +43,7 @@ class Store extends Executor {
 		this._name = name;
 		this._reverseMap = [];
 		this._cascade = [];
+		this._writeConditionField = "lastUpdate";
 	}
 
 	init(config) {
@@ -101,6 +102,31 @@ class Store extends Executor {
 		}
 	}
 
+	upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
+		if (itemWriteConditionField === undefined) {
+			itemWriteConditionField = 'uuid';
+		}
+		return this._upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField);
+	}
+
+	_upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
+		throw "AbstractStore has no upsertItemToCollection"
+	}
+
+	deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
+		if (index === undefined || prop === undefined) {
+			throw Error("Invalid Argument");
+		}
+		if (itemWriteConditionField === undefined) {
+			itemWriteConditionField = 'uuid';
+		}
+		return this._deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField);
+	}
+
+	_deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
+		throw "AbstractStore has no deleteItemFromCollection"
+	}
+
 	initMap(map) {
 		if (map == undefined || map._init) {
 			return;
@@ -148,9 +174,12 @@ class Store extends Executor {
 			if (object.uuid == undefined || object.uuid != uid) {
 				object.uuid = uid;
 			}
-			if (this._params.lastUpdate === undefined || this._params.lastUpdate) {
-				object.lastUpdate = new Date();
+			for (var i in this._reverseMap) {
+				if (object[this._reverseMap[i]] === undefined) {
+					object[this._reverseMap[i]] = [];
+				}
 			}
+			object.lastUpdate = new Date();
 			this.emit('Store.Save', {'object': object, 'store': this});
 			resolve(this._save(object, uid));
 		}).then( (object) => {
@@ -199,6 +228,10 @@ class Store extends Executor {
 			if (Object.keys(object).length === 0) {
 				resolve({});
 			}
+			let writeCondition;
+			if (this._params.lastUpdate) {
+				writeCondition = lastUpdate;
+			}
 			if (this._params.map != undefined) {
 				resolve(this._get(uid).then((loaded) => {
 					return this.handleMap(loaded, this._params.map, object);
@@ -207,11 +240,11 @@ class Store extends Executor {
 					if (this._params.lastUpdate === undefined || this._params.lastUpdate) {
 						object.lastUpdate = new Date();
 					}
-					return this._update(object, uid);
+					return this._update(object, uid, writeCondition);
 				}));
 			} else {
 				this.emit('Store.Update', {'object': object, 'store': this});
-				resolve(this._update(object, uid));
+				resolve(this._update(object, uid, writeCondition));
 			}
 		}).then ( (result) => {
 			this.emit('Store.Updated', {'object': result, 'store': this});
@@ -219,23 +252,39 @@ class Store extends Executor {
 		});
 	}
 
-	removeMapper(map, uuid, mapper) {
+	getMapper(map, uuid) {
 		for (var i = 0; i < map.length; i++) {
 			if (map[i]['uuid'] == uuid) {
-				map.splice(i, 1);
-				return true;
+				return i;
 			}
+		}
+		return -1;
+	}
+
+	removeMapper(map, uuid) {
+		let i = this.getMapper(map, uuid);
+		if (i >= 0) {
+			map.splice(i, 1);
+			return true;
 		}
 		return false;
 	}
 
 	_handleUpdatedMap(object, map, mapped, store, updates) {
+		var mapper = {'uuid': object.uuid};
 		// Update only if the key field has been updated
 		var found = false;
 		for (var field in updates) {
 			if (map.fields) {
 				var fields = map.fields.split(",");
-				for (var mapperfield in fields) {
+				for (let i in fields) {
+					let  mapperfield = fields[i];
+					// Create the mapper object
+					if (updates[mapperfield] !== undefined) {
+						mapper[mapperfield] = updates[mapperfield];
+					} else if (object[mapperfield] !== undefined) {
+						mapper[mapperfield] = object[mapperfield];
+					}
 					if (fields[mapperfield] == field) {
 						found = true;
 						break;
@@ -255,14 +304,32 @@ class Store extends Executor {
 
 		// check if reference object has changed
 		if (updates[map.key] != undefined && mapped.uuid != updates[map.key]) {
-			// Transfering
-			if (this.removeMapper(mapped[map.target], object.uuid)) {
-				return this._handleUpdatedMapTransferOut(object, map, mapped, store, updates);
-			} else {
-				return this._handleUpdatedMapTransferIn(object, map, store, updates);
+			// create mapper
+			if (map.fields) {
+				var fields = map.fields.split(",");
+				for (var j in fields) {
+					let mapperfield = fields[j];
+					// Create the mapper object
+					if (updates[mapperfield] !== undefined) {
+						mapper[mapperfield] = updates[mapperfield];
+					} else if (object[mapperfield] !== undefined) {
+						mapper[mapperfield] = object[mapperfield];
+					}
+				}
 			}
+			let i = this.getMapper(mapped[map.target], object.uuid);
+			let promise = Promise.resolve();
+			if (i >= 0) {
+				// Remove the data from old object
+				promise.then( () => {
+					return store.deleteItemFromCollection(mapped.uuid, map.target, i, object.uuid, 'uuid');
+				});
+			}
+			return promise.then( () => {
+				// Add the data to new object
+				return store.upsertItemToCollection(updates[map.key], map.target, mapper);
+			});
 		} else {
-			this.removeMapper(mapped[map.target], object.uuid);
 			return this._handleUpdatedMapMapper(object, map, mapped, store, updates);
 		}
 	}
@@ -291,7 +358,6 @@ class Store extends Executor {
 
 	_handleUpdatedMapMapper(object, map, mapped, store, updates) {
 		// Update the mapper
-		var to_update = {};
 		var mapper = {};
 		mapper.uuid = object.uuid;
 		if (map.fields) {
@@ -304,22 +370,24 @@ class Store extends Executor {
 				}
 			}
 		}
-		to_update[map.target]=mapped[map.target];
-		to_update[map.target].push(mapper);
 		// Remove old reference
-		return store.update(to_update, mapped.uuid, false);
+		let i = this.getMapper(mapped[map.target], object.uuid);
+		// If not found just add it to the collection
+		if (i < 0) {
+			return store.upsertItemToCollection(mapped.uuid, map.target, mapper);
+		}
+		// Else update with a check on the uuid
+		return store.upsertItemToCollection(mapped.uuid, map.target, mapper, i, object.uuid, 'uuid');
 	}
 
 	_handleDeletedMap(object, map, mapped, store) {
 		// Remove from the collection
-		if (mapped[map.target] == undefined) {
+		if (mapped[map.target] === undefined) {
 			return Promise.resolve();
 		}
-		if (this.removeMapper(mapped[map.target], object.uuid)) {
-			// TODO Should be update
-			var update = {};
-			update[map.target] = mapped[map.target];
-			return store.update(update, mapped.uuid, false);
+		let i = this.getMapper(mapped[map.target], object.uuid);
+		if (i >= 0) {
+			return store.deleteItemFromCollection(mapped.uuid, map.target, i, object.uuid, 'uuid');
 		}
 		return Promise.resolve();
 	}
@@ -337,9 +405,7 @@ class Store extends Executor {
 				mapper[fields[field]] = object[fields[field]];
 			}
 		}
-		// Can happen with self defined uuid like ident
-		update[map.target].push(mapper);
-		return store.update(update, mapped.uuid, false);
+		return store.upsertItemToCollection(mapped.uuid, map.target, mapper);
 	}
 
 	handleMap(object, map, updates) {
@@ -385,7 +451,7 @@ class Store extends Executor {
 		}
 	}
 
-	_update(object, uid) {
+	_update(object, uid, writeCondition) {
 		throw "AbstractStore has no _update"
 	}
 
@@ -454,7 +520,7 @@ class Store extends Executor {
 		/** @ignore */
 	}
 
-	_delete(uid) {
+	_delete(uid, writeCondition) {
 		throw "AbstractStore has no _delete";
 	}
 

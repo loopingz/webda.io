@@ -331,6 +331,25 @@ class Webda {
 	}
 
 	/**
+	 * Return the global parameters of a domain
+	 * @param {String} vhost The domain to retrieve or default if not specified
+	 */
+	getGlobalParams(vhost) {
+		if (this._config[vhost] === undefined) {
+	       if (this._config['*'] === undefined) {
+	    	   return {};
+	       }
+	       vhost = this._config['*'];
+	    }
+	    if (this._config[vhost] === undefined || 
+	    		this._config[vhost].global === undefined ||
+	    		this._config[vhost].global.params === undefined) {
+	    	return {};
+	    }
+	    return this._config[vhost].global.params;
+	}
+
+	/**
 	 * Encode the cookie into a header form
 	 *
 	 * @ignore

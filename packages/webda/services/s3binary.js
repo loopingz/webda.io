@@ -33,7 +33,7 @@ class S3Binary extends Binary {
 		if (params.secretAccessKey === undefined) {
 			this._params.secretAccessKey = params.secretAccessKey = process.env["WEBDA_AWS_SECRET"];
 		}
-		if (params.bucket === undefined || params.accessKeyId === undefined || params.secretAccessKey === undefined) {
+		if (params.bucket === undefined) {
 			this._createException = "Need to define a bucket,accessKeyId,secretAccessKey at least";
 		}
 		if (params.region !== undefined) {
@@ -101,19 +101,26 @@ class S3Binary extends Binary {
 		});
 	}
 
+	getRedirectUrlFromObject(obj, property, index, context, expire) {
+		let info = obj[property][index];
+		var params = {Bucket: this._params.bucket, Key: this._getPath(info.hash)};
+		if (expire === undefined) {
+			expire = 30;
+		}
+		params.Expires = expire; // A get should not take more than 30s
+		this.emit('binaryGet', {'object': info, 'service': this, 'context': context});
+		params.ResponseContentDisposition = "attachment; filename=" + info.name;
+		params.ResponseContentType = info.mimetype;
+		return this.getSignedUrl('getObject', params);
+	}
+
 	getRedirectUrl(ctx) {
 		let targetStore = this._verifyMapAndStore(ctx);
 		return targetStore.get(ctx._params.uid).then( (obj) => {
 			if (obj === undefined || obj[ctx._params.property] === undefined || obj[ctx._params.property][ctx._params.index] === undefined) {
 				throw 404;
 			}
-			let info = obj[ctx._params.property][ctx._params.index];
-			var params = {Bucket: this._params.bucket, Key: this._getPath(info.hash)};
-			params.Expires = 30; // A get should not take more than 30s
-			this.emit('binaryGet', {'object': info, 'service': this, 'context': ctx});
-			params.ResponseContentDisposition = "attachment; filename=" + info.name;
-			params.ResponseContentType = info.mimetype;
-			return this.getSignedUrl('getObject', params);
+			return this.getRedirectUrlFromObject(obj, ctx._params.property, ctx._params.index, ctx);
 		}).then( (url) => {
 			ctx.writeHead(302, {'Location': url});
 			ctx.end();
@@ -121,8 +128,8 @@ class S3Binary extends Binary {
 		});
 	}
 
-	get(info) {
-		return this._get(info.hash).createReadStream().send();
+	_get(info) {
+		return this._getS3(info.hash).createReadStream().send();
 	}
 
 	getUsageCount(hash) {
@@ -166,7 +173,13 @@ class S3Binary extends Binary {
 		return hash + '/' + postfix;
 	}
 
-	_get(hash) {
+	_getUrl(info, ctx) {
+		// Dont return any url if 
+		if (!ctx) return;
+		return ctx._route._http.protocol + "://" + ctx._route._http.headers.host + this._url + "/upload/data/" + ctx.body.hash;
+	}
+
+	_getS3(hash) {
 		return this._s3.headObject({Bucket: this._params.bucket, Key: this._getPath(hash)}).promise().catch( function(err) {
 			if (err.code !== 'NotFound') {
 				return Promise.reject(err);
@@ -183,7 +196,7 @@ class S3Binary extends Binary {
 		if (index === undefined) {
 			index = "add";
 		}
-		return this._get(file.hash).then((data) => {
+		return this._getS3(file.hash).then((data) => {
 			if (data === undefined) {
 				var metadatas = {};
 				metadatas['x-amz-meta-challenge']=file.challenge;

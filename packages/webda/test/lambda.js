@@ -21,7 +21,6 @@ describe('Lambda', function() {
   describe('launch()', function () {
 
     var methods = ["GET", "PUT", "POST", "DELETE"];
-    console.log(skip);
     for (var i in methods) {
       it(methods[i], function () {
         if (skip) {

@@ -1,5 +1,6 @@
 "use strict";
 const Executor = require("../services/executor.js");
+const LambdaCaller = require("../utils/lambdacaller.js");
 
 /**
  * Execute a Lambda function and return the result, it is usefull for remote moddas already exposed
@@ -55,34 +56,19 @@ class LambdaRouteHelper extends Executor {
 
 	execute(ctx) {
 		return new Promise( (resolve, reject) => {
-			if (!ctx._params['arn']) {
-				return reject("arn of the Lambda method to inkoke is required");
+			var caller;
+			try {
+				caller = new LambdaCaller(ctx._params);
+			} catch (e) {
+				ctx.writeHead(500, {'Content-Type': 'text/plain'});
+		      	ctx.end();
+				return reject(e);
 			}
-			var AWS = require('aws-sdk');
-			AWS.config.update({region: 'us-west-2'});
-			AWS.config.update({accessKeyId: ctx._params['accessKeyId'], secretAccessKey: ctx._params['secretAccessKey']});
-			var lambda = new AWS.Lambda();
-			var params = {};
-			params["_http"] = ctx._route._http;
-			var params = {
-				FunctionName: ctx._params.arn,
-				ClientContext: null,
-				InvocationType: 'RequestResponse',
-				LogType: 'None',
-				Payload: JSON.stringify(params)// not sure here / new Buffer('...') || 'STRING_VALUE'
-		    };
-		  	lambda.invoke(params, (err, data) => {
-		    	if (err) {
-		      		console.log(err, err.stack);
-		      		ctx.writeHead(500, {'Content-Type': 'text/plain'});
-		      		ctx.end();
-		      		return reject(err);
-		    	}
-		    	if (data.Payload != '{}') {
-		    		this.handleResult(ctx, data.Payload);
-		    	}
-		    	return resolve();
-		  	});
+			caller.execute({'_http': ctx._route._http}).then((data) => {
+				return resolve(this.handleResult(ctx, data.Payload));
+			}).catch((err) => {
+				return reject(err);
+			});
 		});
 	}
 }

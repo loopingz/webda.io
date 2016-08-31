@@ -87,6 +87,7 @@ class Binary extends Executor {
 	 */
 	get(info) {
 		this.emit('binaryGet', {'object': info, 'service': this});
+		return this._get(info);
 	}
 
 	/** @ignore */
@@ -95,6 +96,14 @@ class Binary extends Executor {
 		if (this._params.expose) {
 			this.initRoutes(config);
 		}
+	}
+
+	_getUrl(info) {
+		return;
+	}
+
+	_get(info) {
+		return;
 	}
 
 	initMap(map) {
@@ -170,7 +179,7 @@ class Binary extends Executor {
 		update[property].push(fileObj);
 		// Dont handle reverseMap
 		return targetStore.update(update, object.uuid, false).then ( (updated) => {
-			this.emit('binaryCreate', {'object': fileObj, 'service': this});
+			this.emit('binaryCreate', {'object': fileObj, 'service': this, 'target': object});
 			return Promise.resolve(updated);
 		});
 	}
@@ -210,9 +219,9 @@ class Binary extends Executor {
 		return targetStore.update(update, object.uuid, false).then( (updated) => {
 			if (info) {
 				this.cascadeDelete(info, object_uid);
-				this.emit('binaryUpdate', {'object': fileObj, 'old': info, 'service': this});
+				this.emit('binaryUpdate', {'object': fileObj, 'old': info, 'service': this, 'target': object});
 			} else {
-				this.emit('binaryCreate', {'object': fileObj, 'service': this});
+				this.emit('binaryCreate', {'object': fileObj, 'service': this, 'target': object});
 			}
 			return Promise.resolve(updated);
 		});
@@ -269,6 +278,8 @@ class Binary extends Executor {
       	if (!this._params.expose.restrict.get) {
 	      	url = this._params.expose.url + "/{store}/{uid}/{property}/{index}";
 	      	config[url] = {"method": ["GET"], "executor": this._name, "_method": this.httpRoute};
+	      	url = this._params.expose.url + "/download/{store}/{uid}/{property}/{index}/{expire}/{token}";
+	      	config[url] = {"method": ["GET"], "executor": this._name, "_method": this.httpDownload};
 	    }
 
 	    if (!this._params.expose.restrict.create) {
@@ -286,6 +297,21 @@ class Binary extends Executor {
 	      	url = this._params.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";      	
 	      	config[url] = {"method": ["DELETE"], "executor": this._name, "_method": this.httpRoute};
 	    }
+	}
+
+	httpDownload(ctx) {
+		// Verify the token
+		// store + uid + property + index + expire => token
+		if (this._verifyToken(ctx._params)) {
+
+		}
+		let targetStore = this._verifyMapAndStore(ctx);
+		return targetStore.get(ctx._params.uid).then ((object) => {
+			return this.store(targetStore, object, ctx._params.property, this._getFile(ctx), ctx.body).then((object) => {
+				ctx.write(object);
+				return Promise.resolve();
+			});
+		});
 	}
 
 	httpPost(ctx) {

@@ -304,14 +304,14 @@ class Webda {
 	 * @abstract
 	 */
 	flushHeaders(executor) {
-		console.log("Abstract implementation of Webda");
+
 	}
 
 	/**
 	 * Flush the entire response to the client
 	 */
 	flush(executor) {
-		console.log("Abstract implementation of Webda");
+
 	}
 
 	/**

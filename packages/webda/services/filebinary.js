@@ -35,7 +35,7 @@ class FileBinary extends Binary {
       	config[url] = {"method": ["PUT"], "executor": this._name, "_method": this.storeBinary, "aws": {"defaultCode": 204}};
     }
 
-	get(info) {
+	_get(info) {
 		var path = this._getPath(info.hash, 'data');
 		if (!fs.existsSync(path)) {
 			return "";

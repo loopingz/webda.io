@@ -2,20 +2,22 @@
 
 class LambdaCaller {
 
-	constructor(config) {
-		if (!config.arn) {
+	constructor(arn, config) {
+		if (arn instanceof Object) {
+			config = arn;
+			arn = config.arn;
+		}
+		if (!arn) {
 			throw new Error("ARN is required");
 		}
 		this.AWS = require('aws-sdk');
 		if (config.region) {
 			this.AWS.config.update({region: config.region});
-		} else {
-			this.AWS.config.update({region: 'us-west-2'});
 		}
 		if (config['accessKeyId'] !== undefined) {
 			this.AWS.config.update({accessKeyId: config['accessKeyId'], secretAccessKey: config['secretAccessKey']});
 		}
-		this._arn = config['arn'];
+		this._arn = arn;
 	}
 
 	execute(params, async) {

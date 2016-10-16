@@ -164,11 +164,6 @@ class Binary extends Executor {
 	}
 
 	storeSuccess(targetStore, object, property, file, metadatas) {
-		var update = {};
-		update[property] = object[property];
-		if (update[property] === undefined) {
-			update[property] = [];
-		}
 		var fileObj = {};
 		fileObj['metadatas'] = metadatas;
 		fileObj['name']=file.originalname;
@@ -176,9 +171,8 @@ class Binary extends Executor {
 		fileObj['size']=file.size;
 		fileObj['hash']=file.hash;
 		fileObj['challenge']=file.challenge;
-		update[property].push(fileObj);
 		// Dont handle reverseMap
-		return targetStore.update(update, object.uuid, false).then ( (updated) => {
+		return targetStore.upsertItemToCollection(object.uuid, property, fileObj).then ( (updated) => {
 			this.emit('binaryCreate', {'object': fileObj, 'service': this, 'target': object});
 			return Promise.resolve(updated);
 		});
@@ -196,11 +190,6 @@ class Binary extends Executor {
 	}
 
 	updateSuccess(targetStore, object, property, index, file, metadatas) {
-		var update = {};
-		update[property] = object[property];
-		if (update[property] === undefined) {
-			update[property] = [];
-		}
 		var fileObj = {};
 		fileObj['metadatas'] = metadatas;
 		fileObj['name']=file.originalname;
@@ -210,13 +199,14 @@ class Binary extends Executor {
 		fileObj['challenge']=file.challenge;
 		var object_uid = object.uuid;
 		var info;
+		var promise;
 		if (index == "add") {
-			update[property].push(fileObj);
+			promise = targetStore.upsertItemToCollection(object.uuid, property, fileObj);
 		} else {
-			info = update[property][index];
-			update[property][index]=fileObj;
+			promise = targetStore.upsertItemToCollection(object.uuid, property, fileObj, index, object[property][index].hash, 'hash');
+			info = object[property][index];
 		}
-		return targetStore.update(update, object.uuid, false).then( (updated) => {
+		return promise.then( (updated) => {
 			if (info) {
 				this.cascadeDelete(info, object_uid);
 				this.emit('binaryUpdate', {'object': fileObj, 'old': info, 'service': this, 'target': object});
@@ -233,11 +223,8 @@ class Binary extends Executor {
 	}
 
 	deleteSuccess(targetStore, object, property, index) {
-		var update = {};
 		var info = object[property][index];
-		update[property] = object[property];
-		update[property].splice(index, 1);
-		return targetStore.update(update, object.uuid, false).then ( (updated) => {
+		return targetStore.deleteItemFromCollection(object.uuid, property, index, info.hash, 'hash').then ( (updated) => {
 			this.emit('binaryDelete', {'object': info, 'service': this});
 			return Promise.resolve(updated)
 		});

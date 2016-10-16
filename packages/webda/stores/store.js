@@ -180,7 +180,7 @@ class Store extends Executor {
 				}
 			}
 			object.lastUpdate = new Date();
-			this.emit('Store.Save', {'object': object, 'store': this});
+			this.emit('Store.Save', {'obj©ect': object, 'store': this});
 			resolve(this._save(object, uid));
 		}).then( (object) => {
 			this.emit('Store.Saved', {'object': object, 'store': this});
@@ -232,14 +232,12 @@ class Store extends Executor {
 			if (this._params.lastUpdate) {
 				writeCondition = lastUpdate;
 			}
+			object.lastUpdate = new Date();
 			if (this._params.map != undefined) {
 				resolve(this._get(uid).then((loaded) => {
 					return this.handleMap(loaded, this._params.map, object);
 				}).then(() => {
 					this.emit('Store.Update', {'object': object, 'store': this});
-					if (this._params.lastUpdate === undefined || this._params.lastUpdate) {
-						object.lastUpdate = new Date();
-					}
 					return this._update(object, uid, writeCondition);
 				}));
 			} else {
@@ -282,12 +280,9 @@ class Store extends Executor {
 					// Create the mapper object
 					if (updates[mapperfield] !== undefined) {
 						mapper[mapperfield] = updates[mapperfield];
+						found = true;
 					} else if (object[mapperfield] !== undefined) {
 						mapper[mapperfield] = object[mapperfield];
-					}
-					if (fields[mapperfield] == field) {
-						found = true;
-						break;
 					}
 				}
 			}

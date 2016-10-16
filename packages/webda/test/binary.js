@@ -94,7 +94,8 @@ var update = function (userStore, binary, map) {
     return binary.update(userStore, user, map, 0, {'path': './test/Dockerfile.txt'}, {});
   }).then(function() {
     return userStore.get(user1.uuid);
-  }).then(function (user) {
+  }).then(function (userArg) {
+    user = userArg;
     assert.notEqual(user[map], undefined);
     assert.equal(user[map].length, 1);
     assert.notEqual(hash, user[map][0].hash);

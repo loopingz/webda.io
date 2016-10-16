@@ -148,15 +148,17 @@ class DynamoStore extends Store {
 		var attrValues = {};
 		var attrs = {};
 		var skipUpdate = true;
+		var i = 1;
 		for (var attr in object) {
 			if (attr === 'uuid') {
 				continue;
 			}
 			skipUpdate = false;
-			expr += sep + "#" + attr + " = :" + attr;
-			attrValues[":" + attr]=object[attr];
-			attrs["#"+attr]=attr;
+			expr += sep + "#a" + i + " = :v" + i;
+			attrValues[":v" + i]=object[attr];
+			attrs["#a"+i]=attr;
 			sep = ",";
+			i++;
 		}
 		if (skipUpdate) {
 			return Promise.resolve();

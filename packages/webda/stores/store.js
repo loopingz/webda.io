@@ -211,6 +211,7 @@ class Store extends Executor {
 	update(object, uid, reverseMap) {
 		/** @ignore */
 		return new Promise( (resolve, reject) => {
+			var loaded;
 			if (uid == undefined) {
 				uid = object.uuid;
 			}
@@ -233,17 +234,22 @@ class Store extends Executor {
 				writeCondition = lastUpdate;
 			}
 			object.lastUpdate = new Date();
-			if (this._params.map != undefined) {
-				resolve(this._get(uid).then((loaded) => {
-					return this.handleMap(loaded, this._params.map, object);
-				}).then(() => {
-					this.emit('Store.Update', {'object': object, 'store': this});
-					return this._update(object, uid, writeCondition);
-				}));
-			} else {
-				this.emit('Store.Update', {'object': object, 'store': this});
-				resolve(this._update(object, uid, writeCondition));
-			}
+			resolve(this._get(uid).then((load) => {
+				loaded = load;
+				return this.handleMap(loaded, this._params.map, object);
+			}).then(() => {
+				this.emit('Store.Update', {'object': loaded, 'store': this, 'update': object});
+				return this._update(object, uid, writeCondition).then( (res) => {
+					// Return updated 
+					for (var i in res) {
+						loaded[i] = res[i];
+					}
+					for (var i in object) {
+						loaded[i] = object[i];
+					}
+					return Promise.resolve(loaded);
+				});
+			}));
 		}).then ( (result) => {
 			this.emit('Store.Updated', {'object': result, 'store': this});
 			return Promise.resolve(result);
@@ -389,7 +395,6 @@ class Store extends Executor {
 
 	_handleCreatedMap(object, map, mapped, store) {
 		var update = {};
-		update[map.target] = mapped[map.target];
 		// Add to the object
 		var mapper = {};
 		mapper.uuid = object.uuid;
@@ -400,6 +405,12 @@ class Store extends Executor {
 				mapper[fields[field]] = object[fields[field]];
 			}
 		}
+		if (mapped[map.target] === undefined) {
+			update[mapped[map.target]]=[];
+			update[mapped[map.target]].push(mapper);
+			return store._update(update, mapped.uuid)
+		}
+		update[map.target] = mapped[map.target];
 		return store.upsertItemToCollection(mapped.uuid, map.target, mapper);
 	}
 
@@ -421,10 +432,6 @@ class Store extends Executor {
 			promises.push(store.get(object[map[prop].key]).then( (mapped) => {
 				if (mapped == undefined) {
 					return Promise.resolve();
-				}
-				// Enforce the collection if needed
-				if (mapped[map[prop].target] == undefined) {
-					mapped[map[prop].target]=[];
 				}
 				if (updates === "created") {
 					return this._handleCreatedMap(object, map[prop], mapped, store);

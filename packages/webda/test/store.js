@@ -42,8 +42,10 @@ var mapper = function (identStore, userStore) {
     assert.equal(user.idents.length, 2);
     ident2.type = 'google2';
     // Update ident2 to check mapper update
-    return identStore.update(ident2);
-  }).then( function() {
+    return identStore.update({'uuid': ident2.uuid, 'type': 'google2'});
+  }).then( function(res) {
+    assert.equal(res.type, 'google2');
+    assert.equal(res.user, user1);
     return userStore.get(user1);
   }).then( function(user) {
     assert.equal(user.idents.length, 2);

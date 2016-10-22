@@ -86,7 +86,7 @@ class Binary extends Executor {
 	 * @emits 'binaryGet'
 	 */
 	get(info) {
-		this.emit('binaryGet', {'object': info, 'service': this});
+		this.emit('Binary.Get', {'object': info, 'service': this});
 		return this._get(info);
 	}
 
@@ -163,23 +163,6 @@ class Binary extends Executor {
 		}
 	}
 
-	storeSuccess(targetStore, object, property, file, metadatas) {
-		var fileObj = {};
-		fileObj['metadatas'] = metadatas;
-		fileObj['name']=file.originalname;
-		fileObj['mimetype']=file.mimetype;
-		fileObj['size']=file.size;
-		fileObj['hash']=file.hash;
-		fileObj['challenge']=file.challenge;
-		// Dont handle reverseMap
-		return targetStore.upsertItemToCollection(object.uuid, property, fileObj).then ( (updated) => {
-			this.emit('binaryCreate', {'object': fileObj, 'service': this, 'target': object});
-			return Promise.resolve(updated);
-		});
-	}
-
-	
-
 	_validChallenge(challenge) {
 		var re = /[0-9A-Fa-f]{64}/g;
 		return re.test(challenge);
@@ -201,7 +184,13 @@ class Binary extends Executor {
 		var info;
 		var promise;
 		if (index == "add") {
-			promise = targetStore.upsertItemToCollection(object.uuid, property, fileObj);
+			if (object[property] === undefined) {
+				var obj = {};
+				obj[property] = [fileObj];
+				promise = targetStore._update(obj, object.uuid);
+			} else {
+				promise = targetStore.upsertItemToCollection(object.uuid, property, fileObj);
+			}
 		} else {
 			promise = targetStore.upsertItemToCollection(object.uuid, property, fileObj, index, object[property][index].hash, 'hash');
 			info = object[property][index];
@@ -209,9 +198,9 @@ class Binary extends Executor {
 		return promise.then( (updated) => {
 			if (info) {
 				this.cascadeDelete(info, object_uid);
-				this.emit('binaryUpdate', {'object': fileObj, 'old': info, 'service': this, 'target': object});
+				this.emit('Binary.Update', {'object': fileObj, 'old': info, 'service': this, 'target': object});
 			} else {
-				this.emit('binaryCreate', {'object': fileObj, 'service': this, 'target': object});
+				this.emit('Binary.Create', {'object': fileObj, 'service': this, 'target': object});
 			}
 			return Promise.resolve(updated);
 		});
@@ -225,7 +214,7 @@ class Binary extends Executor {
 	deleteSuccess(targetStore, object, property, index) {
 		var info = object[property][index];
 		return targetStore.deleteItemFromCollection(object.uuid, property, index, info.hash, 'hash').then ( (updated) => {
-			this.emit('binaryDelete', {'object': info, 'service': this});
+			this.emit('Binary.Delete', {'object': info, 'service': this});
 			return Promise.resolve(updated)
 		});
 	}
@@ -273,7 +262,9 @@ class Binary extends Executor {
 	      	// No need the index to add file
 	      	url = this._params.expose.url + "/{store}/{uid}/{property}";
 	      	config[url] = {"method": ["POST"], "executor": this._name, "_method": this.httpPost};
+	    }
 
+	    if (!this._params.expose.restrict.create) {
 	      	// Add file with challenge
 	      	url = this._params.expose.url + "/upload/{store}/{uid}/{property}/{index}";
 	      	config[url] = {"method": ["PUT"], "executor": this._name, "_method": this.httpChallenge};

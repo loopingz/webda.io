@@ -55,6 +55,10 @@ class DockerDeployer extends ShellDeployer {
 			args.push("--tag");
 			args.push(this.resources.tag);
 		}
+		if (this.resources.Dockerfile) {
+			args.push("--file");
+			args.push(this.resources.Dockerfile);
+		}
 		args.push(".");
 		console.log("docker " + args.join(" "));
 		return this.execute("docker", args, this.out.bind(this), this.out.bind(this));
@@ -65,12 +69,15 @@ class DockerDeployer extends ShellDeployer {
 		var args = [];
 		args.push("push");
 		args.push(this.resources.tag);
-		return this.execute("docker", args);
+		return this.execute("docker", args, this.out.bind(this), this.out.bind(this));
 	}
 
 	checkDockerfile() {
 		this.stepper("Checking Dockerfile");
 		return new Promise( (resolve, reject) => {
+			if (this.resources.Dockerfile) {
+				resolve();
+			}
 			if (!fs.existsSync("./Dockerfile")) {
 				this._cleanDockerfile = true;
 				fs.writeFileSync("./Dockerfile", this.getDockerfile());

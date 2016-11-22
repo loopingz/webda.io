@@ -90,6 +90,31 @@ class Binary extends Executor {
 		return this._get(info);
 	}
 
+	/**
+	 * Download a binary to a file
+	 *
+	 * @param {Object} info The reference stored in your target object
+	 * @param {String} filepath to save the binary to
+	 */
+	downloadTo(info, filename) {
+		var readStream = this.get(info);
+		var writeStream = fs.createWriteStream(filename);
+		return new Promise((resolve, reject) => {
+			writeStream.on('finish', (src) => {
+				return resolve();
+			});
+			writeStream.on('error', (src) => {
+				try {
+					fs.unlinkSync(filename);
+				} catch(err) {
+					console.log(err);
+				}
+				return reject();
+			});
+			readStream.pipe(writeStream);
+		});
+	}
+
 	/** @ignore */
 	init(config) {
 		this.initMap(this._params.map);

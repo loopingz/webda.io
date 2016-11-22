@@ -315,6 +315,13 @@ class Webda {
 	}
 
 	/**
+	 * Return if Webda is in debug mode
+	 */
+	isDebug() {
+		return false;
+	}
+
+	/**
 	 * Handle the 404
 	 * @ignore
 	 * @protected

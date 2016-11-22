@@ -52,6 +52,7 @@ class PassportExecutor extends Executor {
 		} else {
 			url = this._params.expose;
 		}
+		this._url = url;
 		let identStoreName = this._params.identStore;
 		let userStoreName = this._params.userStore;
 		if (identStoreName === undefined) {
@@ -66,20 +67,21 @@ class PassportExecutor extends Executor {
 			this._initException = "Unresolved dependency on idents and users services";
 		}
 		// List authentication configured
-		config[url] = {"method": ["GET", "DELETE"], "executor": this._name, "_method": this.listAuthentications};
+		config[url] = {"method": ["GET", "DELETE"], "executor": this._name, "_method": this._listAuthentications};
 		// Get the current user
-		config[url + "/me"] = {"method": ["GET"], "executor": this._name, "_method": this.getMe};
+		config[url + "/me"] = {"method": ["GET"], "executor": this._name, "_method": this._getMe};
 		// Add static for email for now, if set before it should have priority
-		config[url + "/email"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this.handleEmail};
-		config[url + "/email/callback{?email,token}"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.handleEmailCallback};
+		config[url + "/email"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this._handleEmail};
+		config[url + "/email/callback{?email,token}"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this._handleEmailCallback};
+		config[url + "/email/passwordRecovery"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this._passwordRecovery};
 		// Handle the lost password here
 		url += '/{provider}';
-		config[url] = {"method": ["GET"], "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.authenticate};
-		config[url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}"] = {"method": "GET", "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this.callback};
+		config[url] = {"method": ["GET"], "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this._authenticate};
+		config[url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}"] = {"method": "GET", "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this._callback};
 	}
 
 
-	callback(ctx) {
+	_callback(ctx) {
 		var providerConfig = this._params.providers[ctx._params.provider];
 		if (!providerConfig) {
 			throw 404;
@@ -91,7 +93,7 @@ class PassportExecutor extends Executor {
 		});
 	};
 
-	getMe(ctx) {
+	_getMe(ctx) {
 		if (ctx.session.getUserId() === undefined) {
 			throw 404;
 			return;
@@ -104,7 +106,8 @@ class PassportExecutor extends Executor {
 			return;
 		});
 	}
-	listAuthentications(ctx) {
+
+	_listAuthentications(ctx) {
 		if (ctx._route._http.method === "DELETE") {
 			this.logout(ctx);
 			ctx.write("GoodBye");
@@ -183,7 +186,39 @@ class PassportExecutor extends Executor {
 		return user;
 	}
 
-	handleEmailCallback(ctx) {
+	getPasswordRecoveryInfos(uuid, interval) {
+		var userStore = this.getService("users");
+		// Use the one from config if not specified
+		if (!interval) {
+			interval = this._params.passwordRecoveryInterval;
+		}
+		// Use one hour other case
+		if (!interval) {
+			interval = 3600;
+		}
+		var expire = Date.now() + interval;
+		return userStore.get(uuid).then((user) => {
+			return {expire: expire, token: this.hashPassword(uuid + expire + user._password), login: uuid};
+		});
+	}
+
+	_passwordRecovery(ctx) {
+		var userStore = this.getService("users");
+		if (ctx.body.password === undefined || ctx.body.login === undefined || ctx.body.token === undefined || ctx.body.expire === undefined) {
+			throw 400;
+		}
+		return userStore.get(ctx.body.login).then((user) => {
+			if (ctx.body.token !== this.hashPassword(ctx.body.login + ctx.body.expire + user._password)) {
+				throw 403;
+			}
+			if (ctx.body.expire < Date.now()) {
+				throw 410;
+			}
+			return userStore.update({_password: this.hashPassword(ctx.body.password)}, ctx.body.login);
+		});
+	}
+
+	_handleEmailCallback(ctx) {
 		// Validate an email for an ident based on an url
 		var identStore = this.getService("idents");
 		if (identStore === undefined) {
@@ -240,7 +275,7 @@ class PassportExecutor extends Executor {
 
 	hashPassword(pass) {
 		var hash = crypto.createHash('sha256');
-		return hash.update(pass).digest('hex');
+		return hash.update(pass + this._webda.getSalt()).digest('hex');
 	}
 
 	logout(ctx) {
@@ -269,7 +304,7 @@ class PassportExecutor extends Executor {
 		return this.getService(this._params.providers.email.mailer?this._params.providers.email.mailer:"Mailer");
 	}
 
-	handleEmail(ctx) {
+	_handleEmail(ctx) {
 		var identStore = this._identsStore;
 		if (identStore === undefined) {
 			console.log("Email auth needs an ident store");
@@ -373,7 +408,7 @@ class PassportExecutor extends Executor {
 		ctx.writeHead(204);
 	}
 
-	authenticate(ctx) {
+	_authenticate(ctx) {
 		// Handle Logout 
 		if (ctx._params.provider == "logout") {
 			this.logout(ctx);

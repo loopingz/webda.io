@@ -11,6 +11,7 @@ var executor;
 var found = false;
 var webda = new Webda(config);
 var ctx;
+var userId;
 
 
 const validationUrl = /.*\/auth\/email\/callback\?email=([^&]+)&token=([^ ]+)/
@@ -69,6 +70,7 @@ describe('Passport', function() {
   			return executor.execute(ctx);
   		}).then ( () => {
   			assert.equal(events, 2); // Register + Login
+        userId = ctx.session.getUserId();
   			assert.notEqual(ctx.session.getUserId(), undefined);
         assert.equal(mailer.sent.length, 2);
   			return userStore.get(ctx.session.getUserId());
@@ -179,6 +181,46 @@ describe('Passport', function() {
   			assert.equal(events, 1);
   		});
   	});
+
+    it('passwordRecovery', function() {
+      var params = {'login':userId, 'password': 'retest'};
+      var tokenInfo = {};
+      events = 0;
+      ctx = webda.newContext(params, webda.getNewSession());
+      executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email/passwordRecovery", "http");
+      return webda.getService('Authentication').getPasswordRecoveryInfos(userId, -10).then( (infos) => {
+        tokenInfo = infos;
+        return executor.execute(ctx);
+      }).catch( (err) => {
+        assert.equal(err, 400);
+        // Missing the body
+        ctx.body.token = tokenInfo.token;
+        ctx.body.expire = 123;
+        return executor.execute(ctx);
+      }).catch( (err) => {
+        assert.equal(err, 403);
+        // Missing the body
+        ctx.body.token = tokenInfo.token;
+        ctx.body.expire = tokenInfo.expire;
+        return executor.execute(ctx);
+      }).catch( (err) => {
+        assert.equal(err, 410);
+        return webda.getService('Authentication').getPasswordRecoveryInfos(userId);
+      }).then( (tokenInfo) => {
+        // Missing the body
+        ctx.body.token = tokenInfo.token;
+        ctx.body.expire = tokenInfo.expire;
+        return executor.execute(ctx);
+      }).then ( () => {
+        // Should be update with password retest now
+        ctx.body = {'login':'test2@webda.io', 'password': 'retest'};
+        ctx.session = webda.getNewSession();
+        executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", "http");
+        return executor.execute(ctx);
+      }).then( () => {
+        assert.notEqual(ctx.session.getUserId(), undefined);
+      });
+    });
   });
   describe("OAuth", function () {
   	it('AWS Compatibility', function() {

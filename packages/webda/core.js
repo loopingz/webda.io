@@ -273,6 +273,16 @@ class Webda {
 	}
 
 	/**
+	 * Return a salt to use when doing digest
+	 *
+	 * @returns {String} Current salt
+	 */
+	getSalt() {
+		// For now a static config file but should have a rolling service secret
+		return this._config[this._vhost].global.salt;
+	}
+
+	/**
 	 * @private
 	 */
 	getServiceWithRoute(ctx, route) {

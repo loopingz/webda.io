@@ -126,6 +126,21 @@ class FileStore extends Store {
 		});
 	}
 
+	incrementAttribute(uid, prop, value) {
+		return this.exists(uid).then( (found) => {
+			if (!found) {
+				return Promise.reject(Error('NotFound'));
+			}
+			return this._get(uid);
+		}).then( (stored) => {
+			if (stored[prop] === undefined) {
+				stored[prop] = 0;
+			}
+			stored[prop]+=value;
+			return this._save(stored, uid);
+		});
+	}
+
 	___cleanData() {
 		if (!fs.existsSync(this._params.folder)) {
 			fs.mkdir(this._params.folder);  

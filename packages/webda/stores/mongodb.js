@@ -63,6 +63,14 @@ class MongoStore extends Store {
 		return this._client.update(params).promise();
 	}
 
+	incrementAttribute(uid, prop, value) {
+		return this._connect().then( () => {
+			var params = {};
+			params['$inc'][prop] = item;
+			return this._collection.updateOne({ _id: uid}, params);
+		});
+	}
+
 	upsertItemToCollection(uid, prop, item, index, itemUid) {
 		return this._connect().then( () => {
 			var params = {};

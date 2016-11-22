@@ -43,6 +43,18 @@ class MemoryStore extends Store {
 		return Promise.resolve();
 	}
 
+	incrementAttribute(uid, prop, value) {
+		var res = this.storage[uid];
+		if (res === undefined) {
+			throw Error("NotFound");
+		}
+		if (!res[prop]) {
+			res[prop] = 0;
+		}
+		res[prop] += value;
+		return this._save(res, uid);
+	}
+
 	_upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
 		var res = this.storage[uid];
 		if (res === undefined) {

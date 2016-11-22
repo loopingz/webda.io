@@ -137,18 +137,29 @@ var crud = function (identStore,userStore) {
     return identStore.get(object.uuid);
   }).then (function (getter) {
     assert.equal(eventFired, 2);
-    eventFired = 0;
     assert.equal(getter.test, "plop2");
+    return identStore.incrementAttribute(ident1.uuid, 'counter', 1);
+  }).then( function() {
+    return identStore.get(ident1.uuid);
+  }).then( function(ident) {
+    assert.equal(ident.counter, 1);
+    return identStore.incrementAttribute(ident1.uuid, 'counter', 3);
+  }).then( function() {
+    return identStore.get(ident1.uuid);
+  }).then( function(ident1) {
+    assert.equal(ident1.counter, 4);
+    return identStore.incrementAttribute(ident1.uuid, 'counter', -6);
+  }).then( function() {
+    return identStore.get(ident1.uuid);
+  }).then( function(ident1) {
+    assert.equal(ident1.counter, -2);
     // Check DELETE
+    eventFired = 0;
     return identStore.delete(ident1.uuid);
   }).then (function () {
     assert.equal(eventFired, 2);
     eventFired = 0;
     return identStore.get(ident1.uuid);
-  }).then (function (getter) {
-    assert.equal(eventFired, 1);
-    eventFired = 0;
-    assert.equal(getter, undefined);
   });
 };
 

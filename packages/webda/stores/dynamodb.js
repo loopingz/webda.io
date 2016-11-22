@@ -178,6 +178,17 @@ class DynamoStore extends Store {
 		});
 	}
 
+	incrementAttribute(uid, prop, value) {
+		var params = {
+			'TableName': this._params.table,
+			'Key': {"uuid": uid},
+			'UpdateExpression': 'ADD #a1 :v1',
+			ExpressionAttributeValues: {':v1': value},
+			ExpressionAttributeNames: {'#a1': prop}
+		};
+		return this._client.update(params).promise();
+	}
+
 	install(params) {
 		/* Code sample for later use
 		@ignore

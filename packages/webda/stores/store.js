@@ -102,6 +102,10 @@ class Store extends Executor {
 		}
 	}
 
+	incrementAttribute(uid, prop, value) {
+		throw "AbstractStore has no incrementAttribute"
+	}
+
 	upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
 		if (itemWriteConditionField === undefined) {
 			itemWriteConditionField = 'uuid';

@@ -1,5 +1,5 @@
 "use strict";
-var uuid = require('node-uuid');
+const uuid = require('uuid');
 const OwnerPolicy = require('../policies/ownerpolicy');
 
 /**

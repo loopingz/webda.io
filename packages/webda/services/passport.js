@@ -198,7 +198,7 @@ class PassportExecutor extends Executor {
 		}
 		var expire = Date.now() + interval;
 		return userStore.get(uuid).then((user) => {
-			return {expire: expire, token: this.hashPassword(uuid + expire + user._password), login: uuid};
+			return {expire: expire, token: this.hashPassword(uuid + expire + user.__password), login: uuid};
 		});
 	}
 
@@ -208,13 +208,13 @@ class PassportExecutor extends Executor {
 			throw 400;
 		}
 		return userStore.get(ctx.body.login).then((user) => {
-			if (ctx.body.token !== this.hashPassword(ctx.body.login + ctx.body.expire + user._password)) {
+			if (ctx.body.token !== this.hashPassword(ctx.body.login + ctx.body.expire + user.__password)) {
 				throw 403;
 			}
 			if (ctx.body.expire < Date.now()) {
 				throw 410;
 			}
-			return userStore.update({_password: this.hashPassword(ctx.body.password)}, ctx.body.login);
+			return userStore.update({__password: this.hashPassword(ctx.body.password)}, ctx.body.login);
 		});
 	}
 
@@ -330,7 +330,7 @@ class PassportExecutor extends Executor {
 				}
 				return userStore.get(ident.user).then ( (user) => {
 					// Check password
-					if (user._password === this.hashPassword(ctx.body.password)) {
+					if (user.__password === this.hashPassword(ctx.body.password)) {
 						if (ident.failedLogin > 0) {
 							ident.failedLogin = 0;
 						}
@@ -376,7 +376,7 @@ class PassportExecutor extends Executor {
 						user = {};
 					}
 					// Store with a _
-					ctx.body._password = this.hashPassword(ctx.body.password);
+					ctx.body.__password = this.hashPassword(ctx.body.password);
 					delete ctx.body.password;
 					delete ctx.body.register;
 					return userStore.save(this.registerUser(ctx, ctx.body, ctx.body)).then ( (user) => {

@@ -76,7 +76,7 @@ describe('Passport', function() {
   			return userStore.get(ctx.session.getUserId());
   		}).then ( (user) => {
   			assert.notEqual(user, undefined);
-        assert.notEqual(user._password, undefined);
+        assert.notEqual(user.__password, undefined);
         assert.equal(user.test, "TESTOR"); // Verify that the listener on Register has done something
         // Now logout
         executor = webda.getExecutor(ctx, "test.webda.io", "DELETE", "/auth", "http");

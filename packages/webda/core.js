@@ -42,10 +42,11 @@ class Webda {
 		this._services['Webda/FileBinary']=require('./services/filebinary');
 		this._services['Webda/S3Binary']=require('./services/s3binary');
 		this._services['Webda/Mailer']=require('./services/mailer');
-		// Policies
-		this._policies = {};
-		this._policies['OwnerPolicy']=require('./policies/ownerpolicy');
-		this._policies['VoidPolicy']=require('./policies/policy');
+		// Models
+		this._models = {};
+		this._models['Webda/CoreModel']=require('./models/coremodel');
+		this._models['Webda/Ident']=require('./models/ident');
+		// Load the configuration
 		this._config = this.loadConfiguration(config);
 	}
 
@@ -185,6 +186,25 @@ class Webda {
 				return this._config[this._vhost].global._services[name];
 			}
 		}
+	}
+
+	/**
+	 * Check for a model name and return the wanted class or throw exception if none found
+	 *
+	 * @param {String} name The model name to retrieve
+	 */
+	getModel(name) {
+		if (!this._config || !name) {
+			return;
+		}
+		name = name.toLowerCase();
+		if (this._config[this._vhost] !== undefined) {
+			if (this._config[this._vhost].global !== undefined && this._config[this._vhost].global._models !== undefined
+					&& this._config[this._vhost].global._models[name]) {
+				return this._config[this._vhost].global._models[name];
+			}
+		}
+		throw Error("Undefined model " + name);
 	}
 
 	/**
@@ -450,8 +470,8 @@ class Webda {
 	      		config.global.services[service]._createException = err;
 	      	}
 	    }
-	    // Add default policies to the services
-	    this.initPolicies(config);
+	    // Add models
+	    this.initModels(config);
 
 	    // Init services
 	    for (var service in config.global._services) {
@@ -503,10 +523,20 @@ class Webda {
 		}
 	}
 
-	initPolicies(config) {
-		for (let i in this._policies) {
-			if (config.global._services[i]) continue;
-			config.global._services[i.toLowerCase()] = new this._policies[i](this, i, {});
+	initModels(config) {
+		if (config.global._models === undefined) {
+			config.global._models = {};
+		}
+		for (let i in config.global.models) {
+			var type = i;
+			if (type.indexOf('/') < 2) {
+	    		type = "Webda/" + type;
+	    	}
+			config.global._models[type.toLowerCase()] = require(config.global.models[i]);
+		}
+		for (let i in this._models) {
+			if (config.global._models[i]) continue;
+			config.global._models[i.toLowerCase()] = this._models[i];
 		}
 	}
 

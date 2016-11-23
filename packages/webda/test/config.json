@@ -15,6 +15,9 @@
 					"require": "./test/moddas/voidstore"
 				}
 			},
+			"models": {
+				"WebdaTest/Task": "./test/models/task"
+			},
 			"services": {
 				"Authentication": {
 					"successRedirect": "https://shootandprove.loopingz.com/user.html",
@@ -41,6 +44,7 @@
 				"dynamoidents": {
 					"inject": "user",
 					"check": "user",
+					"model": "",
 					"map": {
 							"dynamousers": {
 								"key": "user",
@@ -156,7 +160,7 @@
 				"Tasks": {
 					"type": "FileStore",
 					"folder": "./test/data/tasks",
-					"validator": "./test/schemas/task.json",
+					"model": "WebdaTest/Task",
 					"expose": true
 				},
 				"binary": {

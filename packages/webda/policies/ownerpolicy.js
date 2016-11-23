@@ -1,14 +1,12 @@
 "use strict";
 
-const Policy = require("./policy");
-
-class OwnerPolicy extends Policy {
+const OwnerPolicy = Sup => class extends Sup {
 	/**
 	 * Return false if can't create
 	 */
-	canCreate(ctx, object) {
-		object.user = ctx.session.getUserId();
-		if (!object.user) {
+	canCreate(ctx) {
+		this.user = ctx.session.getUserId();
+		if (!this.user) {
 			throw 403;
 		}
 		return true;
@@ -16,9 +14,9 @@ class OwnerPolicy extends Policy {
 	/**
 	 * Return false if can't update
 	 */
-	canUpdate(ctx, object) {
+	canUpdate(ctx) {
 		// Allow to modify itself by default
-		if (ctx.session.getUserId() !== object.user && ctx.session.getUserId() !== object.uuid) {
+		if (ctx.session.getUserId() !== this.user && ctx.session.getUserId() !== this.uuid) {
 			throw 403;
 		}
 		return true;
@@ -26,14 +24,14 @@ class OwnerPolicy extends Policy {
 	/**
 	 * Return false if can't get
 	 */
-	canGet(ctx, object) {
-		if (object.public) {
+	canGet(ctx) {
+		if (this.public) {
 			return true;
 		}
-		if (ctx.session.getUserId() !== object.user && ctx.session.getUserId() !== object.uuid) {
+		if (ctx.session.getUserId() !== this.user && ctx.session.getUserId() !== this.uuid) {
 			throw 403;
 		}
-		if (!object.user && ctx.session.getUserId() !== object.uuid) {
+		if (!this.user && ctx.session.getUserId() !== this.uuid) {
 			throw 403;
 		}
 		return true;
@@ -41,8 +39,8 @@ class OwnerPolicy extends Policy {
 	/**
 	 * Return false if can't delete
 	 */
-	canDelete(ctx, object) {
-		if (ctx.session.getUserId() !== object.user && ctx.session.getUserId() !== object.uuid) {
+	canDelete(ctx) {
+		if (ctx.session.getUserId() !== this.user && ctx.session.getUserId() !== this.uuid) {
 			throw 403;
 		}
 		return true;

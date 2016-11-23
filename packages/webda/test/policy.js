@@ -39,7 +39,6 @@ describe('Policy', function() {
       		// Should be ok in that case
       		assert.equal(failed, true);
       		failed = false;
-      		assert.equal(ctx.body.user, "fake_user");
       		task = ctx.body;
       		ctx.session.login("fake_user2", "fake_ident");
       		ctx.body = {};

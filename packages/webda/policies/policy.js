@@ -1,11 +1,9 @@
 "use strict";
 
-const Service = require("../services/service.js");
-
 /**
  *
  */
-class Policy extends Service {
+const Policy = Sup => class extends Sup {
 	/**
 	 * Return false if can't create
 	 */

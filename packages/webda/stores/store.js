@@ -51,14 +51,14 @@ class Store extends Executor {
 		if (this._params.expose) {
 			this.initRoutes(config, this._params.expose);
 		}
-		let policy = this._params.policy;
-		if (!policy) {
-			policy = "OwnerPolicy";
+		let model = this._params.model;
+		if (!model) {
+			model = "Webda/CoreModel";
 		}
-		this._policy = this._webda.getService(policy);
-		if (!this._policy) {
-			console.log("Bad security policy " + policy);
-			this._policy = this._webda.getService("OwnerPolicy");
+		this._model = this._webda.getModel(model);
+		if (!this._model) {
+			console.log("Bad security policy " + model);
+			this._model = this._webda.getModel("Webda/CoreModel");
 		}
 	}
 
@@ -184,7 +184,7 @@ class Store extends Executor {
 				}
 			}
 			object.lastUpdate = new Date();
-			this.emit('Store.Save', {'obj©ect': object, 'store': this});
+			this.emit('Store.Save', {'object': object, 'store': this});
 			resolve(this._save(object, uid));
 		}).then( (object) => {
 			this.emit('Store.Saved', {'object': object, 'store': this});
@@ -539,6 +539,9 @@ class Store extends Executor {
 	get(uid) {
 		/** @ignore */
 		return this._get(uid).then ( (object) => {
+			if (object) {
+				object = new this._model(object, true);
+			}
 			this.emit('Store.Get', {'object': object, 'store': this});
 			return Promise.resolve(object);
 		});
@@ -565,22 +568,10 @@ class Store extends Executor {
 	// ADD THE EXECUTOR PART
 
 	httpCreate(ctx) {
-		var object = ctx.body;
-		// Policy
-		this._policy.canCreate(ctx, object);
-
-		if (!object.uuid) {
-			object.uuid = this.generateUid();
-		}
-		for (var prop in object) {
-			if (prop[0] == "_") {
-				delete object[prop]
-			}
-		}
-		if (this._params.validator) {
-			if (!this._webda.validate(object, this._params.validator)) {
-				throw 400;
-			}
+		var object = new this._model(ctx.body);
+		object.canCreate(ctx);
+		if (!object.validate(ctx)) {
+			throw 400;
 		}
 		return this.exists(object.uuid).then( (exists) => {
 			if (exists) {
@@ -593,20 +584,12 @@ class Store extends Executor {
 	}
 
 	httpUpdate(ctx) {
-		for (var prop in ctx.body) {
-			if (prop[0] == "_") {
-				delete ctx.body[prop]
-			}
-		}
 		ctx.body.uuid = ctx._params.uuid;
 		return this.get(ctx._params.uuid).then ( (object) => {
 			if (!object) throw 404;
-			this._policy.canUpdate(ctx, object, ctx.body);
-
-			if (this._params.validator) {
-				if (!this._webda.validate(_extend(object, ctx.body), this._params.validator)) {
-					throw 400;
-				}
+			object.canUpdate(ctx);
+			if (!object.validate(ctx)) {
+				throw 400;
 			}
 			return this.update(ctx.body, ctx._params.uuid);
 		}).then ( (object) => {
@@ -623,7 +606,8 @@ class Store extends Executor {
                 if (object === undefined) {
 					throw 404;
 				}
-				this._policy.canGet(ctx, object);
+				object = new this._model(object, true);
+				object.canGet(ctx);
 	            ctx.write(object);
 			});
 		} else {
@@ -637,7 +621,7 @@ class Store extends Executor {
 		} else if (ctx._route._http.method == "DELETE") {
 			return this.get(ctx._params.uuid).then ( (object) => {
 				if (!object) throw 404;
-				this._policy.canDelete(ctx, object);	
+				object.canDelete(ctx);	
 				// http://stackoverflow.com/questions/28684209/huge-delay-on-delete-requests-with-204-response-and-no-content-in-objectve-c#
 				// IOS don't handle 204 with Content-Length != 0 it seems
 				// Have trouble to handle the Content-Length on API Gateway so returning an empty object for now

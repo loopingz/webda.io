@@ -1,6 +1,7 @@
 "use strict";
 const Writable = require('stream').Writable;
 const _extend = require('util')._extend;
+const CoreModel = require('../models/coremodel');
 
 class Context {
 
@@ -21,11 +22,16 @@ class Context {
 	 * Write data to the client
 	 *
 	 * @param output If it is an object it will be serializeb with toPublicJSON, if it is a String it will be appended to the result, if it is a buffer it will replace the result
+	 * @param ...args any arguments to pass to the toPublicJSON method
 	 */
 	write(output) {
 		if (typeof(output) == "object" && !(output instanceof Buffer)) {
 			this._headers['Content-type']='application/json';
-			this._body = this._webda.toPublicJSON(output);
+			if (output instanceof CoreModel) {
+				this._body = JSON.stringify(output);
+			} else {
+				this._body = this._webda.toPublicJSON(output);
+			}
 			return;
 		} else if (typeof(output) == "string") {
 			if (this._body == undefined) {

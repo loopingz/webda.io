@@ -1,7 +1,7 @@
 "use strict";
 
 var stores = {};
-var uuid = require('node-uuid');
+var uuid = require('uuid');
 const Executor = require("../services/executor");
 const _extend = require("util")._extend;
 

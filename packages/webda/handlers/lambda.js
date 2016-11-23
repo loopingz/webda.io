@@ -4,7 +4,7 @@ var Webda = require('../core');
 var SecureCookie = require('../utils/cookie');
 var _extend = require("util")._extend;
 const cookieParse = require("cookie").parse;
-const uuid = require('node-uuid');
+const uuid = require('uuid');
 
 /**
  * The Lambda entrypoint for Webda

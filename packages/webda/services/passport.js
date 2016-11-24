@@ -74,6 +74,7 @@ class PassportExecutor extends Executor {
 		config[url + "/email"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this._handleEmail};
 		config[url + "/email/callback{?email,token}"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this._handleEmailCallback};
 		config[url + "/email/passwordRecovery"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this._passwordRecovery};
+		config[url + "/email/{email}/recover"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "_method": this._passwordRecoveryEmail};
 		// Handle the lost password here
 		url += '/{provider}';
 		config[url] = {"method": ["GET"], "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this._authenticate};
@@ -187,8 +188,7 @@ class PassportExecutor extends Executor {
 	}
 
 	getPasswordRecoveryInfos(uuid, interval) {
-		var userStore = this.getService("users");
-		// Use the one from config if not specified
+		var promise;
 		if (!interval) {
 			interval = this._params.passwordRecoveryInterval;
 		}
@@ -197,8 +197,38 @@ class PassportExecutor extends Executor {
 			interval = 3600;
 		}
 		var expire = Date.now() + interval;
-		return userStore.get(uuid).then((user) => {
-			return {expire: expire, token: this.hashPassword(uuid + expire + user.__password), login: uuid};
+		if (typeof(uuid) === 'string') {
+			var userStore = this.getService("users");
+			// Use the one from config if not specified
+			promise = userStore.get(uuid);
+		} else {
+			promise = Promise.resolve(uuid);
+		}
+		return promise.then((user) => {
+			return {expire: expire, token: this.hashPassword(uuid + expire + user.__password), login: user.uuid};
+		});
+	}
+
+	_passwordRecoveryEmail(ctx) {
+		var userStore = this.getService("users");
+		var identStore = this.getService("idents");
+		if (identStore === undefined) {
+			console.log("Email auth needs an ident store");
+			throw 500;
+		}
+		return identStore.get(ctx._params.email + "_email").then( (ident) => {
+			if (!ident) {
+				throw 404;
+			}
+			return userStore.get(ident.user);
+		}).then( (user) => {
+			// Dont allow to do too many request
+			if (user._lastPasswordRecovery > Date.now() - 3600 * 4) {
+				throw 429;
+			}
+			return userStore.update({_lastPasswordRecovery: Date.now()}, user.uuid).then( () => {
+				return this.sendRecoveryEmail(ctx, user, ctx._params.email);	
+			});
 		});
 	}
 
@@ -249,28 +279,32 @@ class PassportExecutor extends Executor {
 
 	}
 
+	sendRecoveryEmail(ctx, user, email) {
+		return this.getPasswordRecoveryInfos(user).then( (infos) => {
+			var mailer = this.getMailMan();
+			let replacements = _extend({}, this._params.providers.email);
+			replacements.infos = infos;
+			replacements.context = ctx;
+			let mailOptions = {
+				to: email,
+				template: 'PASSPORT_EMAIL_RECOVERY',
+				replacements: replacements
+			};
+			return mailer.send(mailOptions);
+		});
+	}
+
 	sendValidationEmail(ctx, email) {
-		var config = this._params.providers.email;
-		if (!config.validationEmailSubject) {
-			config.subject = "Webda Framework registration email";
-		}
-		let text = config.validationEmailText;
-		if (!text) {
-			text = "Please validate your email by clicking the link below\n{url}";
-		}
-		let replacements = _extend({}, config);
+		var mailer = this.getMailMan();
+		let replacements = _extend({}, this._params.providers.email);
+		replacements.context = ctx;
 		replacements.url = ctx._route._http.root + "/auth/email/callback?email=" + email + "&token=" + this.generateEmailValidationToken(email);
-		// TODO Add a template engine
-		for (let i in replacements) {
-			if (typeof(replacements[i]) !== "string") continue;
-			text = text.replace("{"+i+"}", replacements[i]);
-		}
 		let mailOptions = {
-		    to: email, // list of receivers
-		    subject: config.subject, // Subject line
-		    text: text
-        };
-		this.getMailMan().send(mailOptions);
+			to: email,
+			template: 'PASSPORT_EMAIL_REGISTER',
+			replacements: replacements
+		};
+		mailer.send(mailOptions);
 	}
 
 	hashPassword(pass) {
@@ -317,7 +351,7 @@ class PassportExecutor extends Executor {
 		var mailerService = this.getMailMan();
 		if (mailerService === undefined) {
 			// Bad configuration ( might want to use other than 500 )
-			//throw 500;
+			throw 500;
 		}
 		var userStore = this._usersStore;
 		var updates = {};

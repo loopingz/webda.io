@@ -3,6 +3,9 @@
 var nodemailer = require('nodemailer');
 var ses = require('nodemailer-ses-transport');
 const Service = require("./service");
+const fs = require('fs');
+const Mustache = require('mustache');
+const EmailTemplate = require('email-templates').EmailTemplate
 
 /**
  * A basic Mailer based on the nodemailer module
@@ -26,7 +29,26 @@ class Mailer extends Service {
 	}
 
 	init() {
+		this._templates = {};
+		if (!this._params.templates) {
+			this._params.templates = "./templates";
+		}
+	}
 
+	_getTemplate(name) {
+		if (!this._templates[name]) {
+			// Load template
+			console.log(__dirname);
+			let templateDir = this._params.templates + '/' + name;
+			if (!fs.existsSync(templateDir)) {
+				templateDir = __dirname + '/../templates/' + name;
+				if (!fs.existsSync(templateDir)) {
+					return;
+				}
+			}
+			this._templates[name] = new EmailTemplate(templateDir);
+		}
+		return this._templates[name];
 	}
 
 	/**
@@ -42,7 +64,34 @@ class Mailer extends Service {
 		if (!options.from) {
 			options.from = this._params.sender;
 		}
-		return this._transporter.sendMail(options, callback);
+		var promise = Promise.resolve();
+		if (options.template) {
+			if (!options.replacements) {
+				options.replacements = {};
+			}
+			options.replacements.now = new Date();
+			let template = this._getTemplate(options.template);
+			if(template) {
+				promise = promise.then( () => {
+					return template.render(options.replacements);
+				}).then( (result) => {
+					if (result.subject) {
+						options.subject = result.subject;
+					}
+					if (result.html) {
+						options.html = result.html;
+					}
+					if (result.text) {
+						options.text = result.text;
+					}
+				});
+			} else {
+				throw Error("Unknown mail template");
+			}
+		}
+		return promise.then( () => {
+			this._transporter.sendMail(options, callback)
+		});
 	}
 
 	/** @ignore */

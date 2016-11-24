@@ -85,7 +85,7 @@ describe('Passport', function() {
         // Now validate first user
         executor._params.providers.email.postValidation = false;
         assert.equal(ctx.session.getUserId(), undefined);
-        var match = mailer.sent[0].text.match(validationUrl);
+        var match = mailer.sent[0].replacements.url.match(validationUrl);
         assert.notEqual(match, undefined);
         assert.equal(match[1], 'test@webda.io');
         ctx.body = {'token': match[2], 'password': 'test', 'login': match[1], 'register': true, 'add': 'plop'};
@@ -100,7 +100,7 @@ describe('Passport', function() {
         assert.notEqual(ident.validation, undefined);
         assert.equal(mailer.sent.length, 2);
         // Validate email for test2 now
-        var match = mailer.sent[1].text.match(validationUrl);
+        var match = mailer.sent[1].replacements.url.match(validationUrl);
         assert.notEqual(match, undefined);
         assert.equal(match[1], 'test2@webda.io');
         ctx.body = undefined;
@@ -185,6 +185,7 @@ describe('Passport', function() {
     it('passwordRecovery', function() {
       var params = {'login':userId, 'password': 'retest'};
       var tokenInfo = {};
+      var failed = false;
       events = 0;
       ctx = webda.newContext(params, webda.getNewSession());
       executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email/passwordRecovery", "http");
@@ -192,21 +193,33 @@ describe('Passport', function() {
         tokenInfo = infos;
         return executor.execute(ctx);
       }).catch( (err) => {
+        failed = true;
         assert.equal(err, 400);
         // Missing the body
         ctx.body.token = tokenInfo.token;
         ctx.body.expire = 123;
+      }).then( () => {
+        assert.equal(failed, true);
+        failed = false;
         return executor.execute(ctx);
       }).catch( (err) => {
+        failed = true;
         assert.equal(err, 403);
         // Missing the body
         ctx.body.token = tokenInfo.token;
         ctx.body.expire = tokenInfo.expire;
         return executor.execute(ctx);
+      }).then( () => {
+        assert.equal(failed, true);
+        failed = false;
+        return executor.execute(ctx);
       }).catch( (err) => {
+        failed = true;
         assert.equal(err, 410);
         return webda.getService('Authentication').getPasswordRecoveryInfos(userId);
       }).then( (tokenInfo) => {
+        assert.equal(failed, true);
+        failed = false;
         // Missing the body
         ctx.body.token = tokenInfo.token;
         ctx.body.expire = tokenInfo.expire;
@@ -219,6 +232,20 @@ describe('Passport', function() {
         return executor.execute(ctx);
       }).then( () => {
         assert.notEqual(ctx.session.getUserId(), undefined);
+        executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/auth/email/test2@webda.io/recover", "http");
+        return executor.execute(ctx);
+      }).then( () => {
+        assert.equal(mailer.sent.length, 1);
+        assert.notEqual(mailer.sent[0].replacements.infos, undefined);
+        assert.notEqual(mailer.sent[0].replacements.infos.expire, undefined);
+        assert.notEqual(mailer.sent[0].replacements.infos.token, undefined);
+        return executor.execute(ctx);
+      }).catch( (err) => {
+        failed = true;
+        assert.equal(err, 429);
+      }).then( () => {
+        assert.equal(failed, true);
+        failed = false;
       });
     });
   });

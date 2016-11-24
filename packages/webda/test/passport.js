@@ -42,7 +42,7 @@ describe('Passport', function() {
   	it('register', function() {
       var params = {'email':'test@webda.io', 'password': 'test'};
       ctx = webda.newContext(params);
-  		executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", "http");
+  		executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", "http", 80, {'Accept-Language': 'en-GB'});
   		events = 0;
   		return executor.execute(ctx).catch( (err) => {
         // Wrong parameters in the request
@@ -77,6 +77,7 @@ describe('Passport', function() {
   		}).then ( (user) => {
   			assert.notEqual(user, undefined);
         assert.notEqual(user.__password, undefined);
+        assert.equal(user.locale, 'en-GB');
         assert.equal(user.test, "TESTOR"); // Verify that the listener on Register has done something
         // Now logout
         executor = webda.getExecutor(ctx, "test.webda.io", "DELETE", "/auth", "http");
@@ -146,6 +147,7 @@ describe('Passport', function() {
         let user = JSON.parse(ctx._body);
         assert.equal(user.plop, 'yep');
         assert.equal(user.register, undefined);
+        assert.equal(user.locale, 'es-ES');
         assert.notEqual(user, undefined);
       });
     });

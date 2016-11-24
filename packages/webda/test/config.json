@@ -5,6 +5,7 @@
 				"TEST": "Global",
 				"region": "us-east-1"
 			},
+			"locales": ["es-ES", "en-GB", "fr-FR"],
 			"moddas": {
 				"Test/Mailer": {
 					"type": "local",

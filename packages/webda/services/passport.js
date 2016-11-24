@@ -183,6 +183,7 @@ class PassportExecutor extends Executor {
 		if (!user) {
 			user = {};
 		}
+		user.locale = ctx.getLocale();
 		this.emit("Register", {"user": user, "datas": datas, "ctx": ctx});
 		return user;
 	}
@@ -282,14 +283,22 @@ class PassportExecutor extends Executor {
 	sendRecoveryEmail(ctx, user, email) {
 		return this.getPasswordRecoveryInfos(user).then( (infos) => {
 			var mailer = this.getMailMan();
+			let locale = user.locale;
+			if (!locale) {
+				locale = ctx.getLocale();
+			}
 			let replacements = _extend({}, this._params.providers.email);
 			replacements.infos = infos;
 			replacements.context = ctx;
 			let mailOptions = {
 				to: email,
+				locale: locale,
 				template: 'PASSPORT_EMAIL_RECOVERY',
 				replacements: replacements
 			};
+			if (!user.locale) {
+				mailOptions.locale = ctx.locale;
+			}
 			return mailer.send(mailOptions);
 		});
 	}
@@ -301,6 +310,7 @@ class PassportExecutor extends Executor {
 		replacements.url = ctx._route._http.root + "/auth/email/callback?email=" + email + "&token=" + this.generateEmailValidationToken(email);
 		let mailOptions = {
 			to: email,
+			locale: ctx.getLocale(),
 			template: 'PASSPORT_EMAIL_REGISTER',
 			replacements: replacements
 		};

@@ -160,6 +160,18 @@ class Webda {
 	}
 
 	/**
+	 * To define the locales just add a locales: ['en_GB', 'fr_FR'] in your host global configuration
+	 *
+	 * @return The configured locales or "en_GB" if none are defined
+	 */
+	getLocales() {
+		if (!this._config || !this._config[this._vhost] || !this._config[this._vhost].global || !this._config[this._vhost].global.locales) {
+			return ["en_GB"];
+		}
+		return this._config[this._vhost].global.locales;
+	}
+
+	/**
 	 * Get a new session object initiate with the data object
 	 * Can be used to create short term encrypted data, the keys of the session should be refresh frequently
 	 * 
@@ -563,10 +575,11 @@ class Webda {
 	 * @param {Object} session - The request session
 	 * @param {Object} stream - The request output stream if any
 	 * @param {Object} files - The files input stream
+	 * @param {Object} headers - The request headers if any
 	 * @return {Object} A new context object to pass along
 	 */
-	newContext(body, session, stream, files) {
-		return new Context(this, body, session, stream, files);
+	newContext(body, session, stream, files, headers) {
+		return new Context(this, body, session, stream, files, headers);
 	}
 
 	/**

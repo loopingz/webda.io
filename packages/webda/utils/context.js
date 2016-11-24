@@ -2,6 +2,7 @@
 const Writable = require('stream').Writable;
 const _extend = require('util')._extend;
 const CoreModel = require('../models/coremodel');
+const acceptLanguage = require('accept-language');
 
 class Context {
 
@@ -118,6 +119,17 @@ class Context {
 		return this._webda.getService(name);
 	}
 
+	/**
+	 * Get the request locale if found
+	 */
+	getLocale() {
+		var locales = this._webda.getLocales();
+		acceptLanguage.languages(locales);
+		if (this.headers['Accept-Language']) {
+			return acceptLanguage.get(this.headers['Accept-Language']);
+		}
+		return locales[0];
+	}
 
 	/**
 	 * @ignore
@@ -128,6 +140,9 @@ class Context {
 		this._params = _extend(this._params, route.params);
 		// For retro compatibilify
 		this._params = _extend(this._params, this.query);
+		if (this._route && this._route._http && this._route._http.headers) {
+			this.headers = this._route._http.headers;
+		}
 	}
 
 	/**
@@ -165,6 +180,7 @@ class Context {
 		this._stream = stream;
 		this._buffered = false;
 		this._params = {};
+		this.headers = {};
 		if (stream === undefined) {
 			this._stream = new Writable();
 			this._stream._body = [];

@@ -10,6 +10,33 @@ describe('Webda', function() {
     webda = new Webda(config);
     ctx = webda.newContext();
   });
+  describe('getLocales()', function() {
+    var headers = {};
+    it('Get default locale', function() {
+      webda.setHost("test.webda.io");
+      headers['Accept-Language'] = 'zh-CN';
+      ctx.setRoute({_http: {headers: headers}});
+      assert.equal(ctx.getLocale(), 'es-ES');
+    });
+    it('Get approx locale', function() {
+      webda.setHost("test.webda.io");
+      headers['Accept-Language'] = 'en-US;q=0.6,en;q=0.4,es;q=0.2';
+      ctx.setRoute({_http: {headers: headers}});
+      assert.equal(ctx.getLocale(), 'en-GB');
+    });
+    it('Get exact locale', function() {
+      webda.setHost("test.webda.io");
+      headers['Accept-Language'] = 'fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4,es;q=0.2';
+      ctx.setRoute({_http: {headers: headers}});
+      assert.equal(ctx.getLocale(), 'fr-FR');
+    });
+    it('Get fallback locale', function() {
+      webda.setHost("test.webda.io");
+      headers['Accept-Language'] = 'zn-CH,zn;q=0.8,en-US;q=0.6,en;q=0.4,es;q=0.2';
+      ctx.setRoute({_http: {headers: headers}});
+      assert.equal(ctx.getLocale(), 'en-GB');
+    });
+  });
   describe('getService()', function () {
     it('Illegal vhost', function () {
         assert.equal(null, webda.getService("Authentication"));

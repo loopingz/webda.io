@@ -77,6 +77,7 @@ class DockerDeployer extends ShellDeployer {
 		return new Promise( (resolve, reject) => {
 			if (this.resources.Dockerfile) {
 				resolve();
+				return;
 			}
 			if (!fs.existsSync("./Dockerfile")) {
 				this._cleanDockerfile = true;

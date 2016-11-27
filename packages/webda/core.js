@@ -160,13 +160,13 @@ class Webda {
 	}
 
 	/**
-	 * To define the locales just add a locales: ['en_GB', 'fr_FR'] in your host global configuration
+	 * To define the locales just add a locales: ['en-GB', 'fr-FR'] in your host global configuration
 	 *
-	 * @return The configured locales or "en_GB" if none are defined
+	 * @return The configured locales or "en-GB" if none are defined
 	 */
 	getLocales() {
 		if (!this._config || !this._config[this._vhost] || !this._config[this._vhost].global || !this._config[this._vhost].global.locales) {
-			return ["en_GB"];
+			return ["en-GB"];
 		}
 		return this._config[this._vhost].global.locales;
 	}
@@ -544,7 +544,20 @@ class Webda {
 			if (type.indexOf('/') < 2) {
 	    		type = "Webda/" + type;
 	    	}
-			config.global._models[type.toLowerCase()] = require(config.global.models[i]);
+	    	var include = config.global.models[i];
+	    	try {
+	      		if (typeof(include) === "string") {
+	      			if (include.startsWith("./")) {
+						include = process.cwd() + '/' + include;
+					}
+	        		config.global._models[type.toLowerCase()] = require(include);
+	        	}
+	        	
+	      	} catch (ex) {
+	      		console.log("Create model " + type + " failed");
+	      		console.log(ex.stack);
+	        	continue;
+	      	}
 		}
 		for (let i in this._models) {
 			if (config.global._models[i]) continue;

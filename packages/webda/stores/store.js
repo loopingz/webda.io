@@ -569,11 +569,12 @@ class Store extends Executor {
 
 	httpCreate(ctx) {
 		var object = new this._model(ctx.body);
-		object.canCreate(ctx);
-		if (!object.validate(ctx)) {
-			throw 400;
-		}
-		return this.exists(object.uuid).then( (exists) => {
+		return object.canCreate(ctx).then( (object) => {
+			if (!object.validate(ctx)) {
+				throw 400;
+			}	
+			return this.exists(object.uuid);
+		}).then( (exists) => {
 			if (exists) {
 				throw 409;
 			}
@@ -587,7 +588,8 @@ class Store extends Executor {
 		ctx.body.uuid = ctx._params.uuid;
 		return this.get(ctx._params.uuid).then ( (object) => {
 			if (!object) throw 404;
-			object.canUpdate(ctx);
+			return object.canUpdate(ctx);
+		}).then( (object) => {
 			if (!object.validate(ctx)) {
 				throw 400;
 			}
@@ -607,8 +609,9 @@ class Store extends Executor {
 					throw 404;
 				}
 				object = new this._model(object, true);
-				object.canGet(ctx);
-	            ctx.write(object);
+				return object.canGet(ctx);
+			}).then( (object) => {
+				ctx.write(object);
 			});
 		} else {
 			// List probably
@@ -621,7 +624,8 @@ class Store extends Executor {
 		} else if (ctx._route._http.method == "DELETE") {
 			return this.get(ctx._params.uuid).then ( (object) => {
 				if (!object) throw 404;
-				object.canDelete(ctx);	
+				return object.canDelete(ctx);	
+			}).then( () => {
 				// http://stackoverflow.com/questions/28684209/huge-delay-on-delete-requests-with-204-response-and-no-content-in-objectve-c#
 				// IOS don't handle 204 with Content-Length != 0 it seems
 				// Have trouble to handle the Content-Length on API Gateway so returning an empty object for now

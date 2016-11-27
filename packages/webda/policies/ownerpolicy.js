@@ -9,7 +9,7 @@ const OwnerPolicy = Sup => class extends Sup {
 		if (!this.user) {
 			throw 403;
 		}
-		return true;
+		return Promise.resolve(this);
 	}
 	/**
 	 * Return false if can't update
@@ -19,14 +19,14 @@ const OwnerPolicy = Sup => class extends Sup {
 		if (ctx.session.getUserId() !== this.user && ctx.session.getUserId() !== this.uuid) {
 			throw 403;
 		}
-		return true;
+		return Promise.resolve(this);
 	}
 	/**
 	 * Return false if can't get
 	 */
 	canGet(ctx) {
 		if (this.public) {
-			return true;
+			return Promise.resolve(this);
 		}
 		if (ctx.session.getUserId() !== this.user && ctx.session.getUserId() !== this.uuid) {
 			throw 403;
@@ -34,7 +34,7 @@ const OwnerPolicy = Sup => class extends Sup {
 		if (!this.user && ctx.session.getUserId() !== this.uuid) {
 			throw 403;
 		}
-		return true;
+		return Promise.resolve(this);
 	}
 	/**
 	 * Return false if can't delete
@@ -43,7 +43,7 @@ const OwnerPolicy = Sup => class extends Sup {
 		if (ctx.session.getUserId() !== this.user && ctx.session.getUserId() !== this.uuid) {
 			throw 403;
 		}
-		return true;
+		return Promise.resolve(this);
 	}
 }
 

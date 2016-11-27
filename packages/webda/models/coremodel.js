@@ -50,7 +50,7 @@ class CoreModel extends OwnerPolicy(Object) {
 		return value;
 	}
 
-	toJSON(ctx) {
+	toJSON() {
 		let obj = {};
 		for (let i in this) {
 			let value = this._jsonFilter(i, this[i]);

@@ -28,11 +28,13 @@ class Context {
 	write(output) {
 		if (typeof(output) == "object" && !(output instanceof Buffer)) {
 			this._headers['Content-type']='application/json';
+			CoreModel.__ctx = this;
 			if (output instanceof CoreModel) {
 				this._body = JSON.stringify(output);
 			} else {
 				this._body = this._webda.toPublicJSON(output);
 			}
+			CoreModel.__ctx = undefined;
 			return;
 		} else if (typeof(output) == "string") {
 			if (this._body == undefined) {

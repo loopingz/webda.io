@@ -110,9 +110,9 @@ class PassportExecutor extends Executor {
 
 	_listAuthentications(ctx) {
 		if (ctx._route._http.method === "DELETE") {
-			this.logout(ctx);
-			ctx.write("GoodBye");
-			return;
+			return this.logout(ctx).then( () => {
+				ctx.write("GoodBye");	
+			});
 		}
 		ctx.write(Object.keys(this._params.providers));
 	}
@@ -137,13 +137,14 @@ class PassportExecutor extends Executor {
 			// Login with OAUTH
 			if (result) {
 				ctx.write("login");
-				this.login(ctx, result.user, result);
-				// Need to improve DynamoDB testing about invalid value 
-				return identStore.update({'lastUsed': new Date(), 'profile': profile}, result.uuid).then( () => {
-					ctx.write("redirect");
-					ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider});
-					ctx.end();
-					done(result);
+				return this.login(ctx, result.user, result).then( () => {
+					// Need to improve DynamoDB testing about invalid value 
+					return identStore.update({'lastUsed': new Date(), 'profile': profile}, result.uuid).then( () => {
+						ctx.write("redirect");
+						ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider});
+						ctx.end();
+						done(result);
+					});
 				});
 			}
 			// Registration with OAuth
@@ -151,7 +152,9 @@ class PassportExecutor extends Executor {
 			if (ctx.session.getUserId()) {
 				promise = Promise.resolve({'uuid':ctx.session.getUserId()});
 			} else {
-				promise = userStore.save(this.registerUser(ctx, profile._json));
+				promise = this.registerUser(ctx, profile._json).then( (user) => {
+					return userStore.save(user);
+				});
 			}
 			return promise.then( (user) => {
 				ctx.write("register new ident");
@@ -160,10 +163,11 @@ class PassportExecutor extends Executor {
 				ident.profile = profile;
 				return identStore.save(ident).then( () => {
 					ctx.write("redirect");
-					this.login(ctx, user, ident);
-					ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider});
-					ctx.end();
-					done(ident)
+					return this.login(ctx, user, ident).then( () => {
+						ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider});
+						ctx.end();
+						done(ident);
+					});
 				});
 			});
 		}).catch( (err) => {
@@ -184,8 +188,9 @@ class PassportExecutor extends Executor {
 			user = {};
 		}
 		user.locale = ctx.getLocale();
-		this.emit("Register", {"user": user, "datas": datas, "ctx": ctx});
-		return user;
+		return this.emit("Register", {"user": user, "datas": datas, "ctx": ctx}).then( () => {
+			return Promise.resolve(user);
+		});
 	}
 
 	getPasswordRecoveryInfos(uuid, interval) {
@@ -323,8 +328,9 @@ class PassportExecutor extends Executor {
 	}
 
 	logout(ctx) {
-		this.emit("Logout", {ctx: ctx});
-		ctx.session.destroy();
+		return this.emit("Logout", {ctx: ctx}).then( () => {
+			ctx.session.destroy();	
+		});
 	}
 
 	login(ctx, user, ident) {
@@ -341,7 +347,7 @@ class PassportExecutor extends Executor {
 		}
 		event.ctx = ctx;
 		ctx.session.login(event.userId, event.identId);
-		this.emit("Login", event);
+		return this.emit("Login", event);
 	}
 
 	getMailMan() {
@@ -382,11 +388,10 @@ class PassportExecutor extends Executor {
 						updates.failedLogin = 0;
 
 						return identStore.update(updates, ident.uuid).then ( () => {
-							this.login(ctx, ident.user, ident);
+							return this.login(ctx, ident.user, ident);
+						}).then( () => {
 							ctx.write(user);
-							return Promise.resolve();
 						});
-						
 					} else {
 						ctx.writeHead(403);
 						if (ident.failedLogin === undefined) {
@@ -423,13 +428,16 @@ class PassportExecutor extends Executor {
 					ctx.body.__password = this.hashPassword(ctx.body.password);
 					delete ctx.body.password;
 					delete ctx.body.register;
-					return userStore.save(this.registerUser(ctx, ctx.body, ctx.body)).then ( (user) => {
+					return this.registerUser(ctx, ctx.body, ctx.body).then( (user) => {
+						return userStore.save(user);
+					}).then ( (user) => {
 						var newIdent = {'uuid': uuid, 'type': 'email', 'email': email, 'user': user.uuid};
 						if (validation) {
 							newIdent.validation = validation;
 						}
 						return identStore.save(newIdent).then ( (ident) => {
-							this.login(ctx, user, ident);
+							return this.login(ctx, user, ident);
+						}).then( () => {
 							ctx.write(user);
 							if (!validation && !mailConfig.skipEmailValidation) {
 								return this.sendValidationEmail(ctx, email);
@@ -455,13 +463,13 @@ class PassportExecutor extends Executor {
 	_authenticate(ctx) {
 		// Handle Logout 
 		if (ctx._params.provider == "logout") {
-			this.logout(ctx);
-			if (this._params.website) {
-				ctx.writeHead(302, {'Location': this._params.website});
-			} else {
-				throw 204;
-			}
-			return;
+			return this.logout(ctx).then( () => {
+				if (this._params.website) {
+					ctx.writeHead(302, {'Location': this._params.website});
+				} else {
+					throw 204;
+				}	
+			});
 		}
 		var providerConfig = this._params.providers[ctx._params.provider];
 		if (providerConfig) {

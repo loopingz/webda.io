@@ -168,26 +168,29 @@ class Store extends Executor {
 	 */
 	save(object, uid) {
 		/** @ignore */
-		return new Promise( (resolve, reject) => {
-			if (uid == undefined) {
-				uid = object.uuid;
+		var saved;
+		if (uid == undefined) {
+			uid = object.uuid;
+		}
+		if (uid == undefined) {
+			uid = this.generateUid();
+		}
+		if (object.uuid == undefined || object.uuid != uid) {
+			object.uuid = uid;
+		}
+		for (var i in this._reverseMap) {
+			if (object[this._reverseMap[i]] === undefined) {
+				object[this._reverseMap[i]] = [];
 			}
-			if (uid == undefined) {
-				uid = this.generateUid();
-			}
-			if (object.uuid == undefined || object.uuid != uid) {
-				object.uuid = uid;
-			}
-			for (var i in this._reverseMap) {
-				if (object[this._reverseMap[i]] === undefined) {
-					object[this._reverseMap[i]] = [];
-				}
-			}
-			object.lastUpdate = new Date();
-			this.emit('Store.Save', {'object': object, 'store': this});
-			resolve(this._save(object, uid));
+		}
+		object.lastUpdate = new Date();
+		return this.emit('Store.Save', {'object': object, 'store': this}).then( () => {
+			return this._save(object, uid);
 		}).then( (object) => {
-			this.emit('Store.Saved', {'object': object, 'store': this});
+			saved = object;
+			return this.emit('Store.Saved', {'object': object, 'store': this});
+		}).then( () => {
+			object = saved;
 			if (this._params.map != undefined) {
 				return this.handleMap(object, this._params.map, "created").then( () => {
 					return Promise.resolve(object);
@@ -214,6 +217,7 @@ class Store extends Executor {
 	 */
 	update(object, uid, reverseMap) {
 		/** @ignore */
+		var saved;
 		return new Promise( (resolve, reject) => {
 			var loaded;
 			if (uid == undefined) {
@@ -242,7 +246,8 @@ class Store extends Executor {
 				loaded = load;
 				return this.handleMap(loaded, this._params.map, object);
 			}).then(() => {
-				this.emit('Store.Update', {'object': loaded, 'store': this, 'update': object});
+				return this.emit('Store.Update', {'object': loaded, 'store': this, 'update': object});
+			}).then(() => {
 				return this._update(object, uid, writeCondition).then( (res) => {
 					// Return updated 
 					for (var i in res) {
@@ -255,8 +260,10 @@ class Store extends Executor {
 				});
 			}));
 		}).then ( (result) => {
-			this.emit('Store.Updated', {'object': result, 'store': this});
-			return Promise.resolve(result);
+			saved = result;
+			return this.emit('Store.Updated', {'object': result, 'store': this});
+		}).then(() => {
+			return Promise.resolve(saved);
 		});
 	}
 
@@ -474,6 +481,7 @@ class Store extends Executor {
 	delete(uid) {
 		/** @ignore */
 		var to_delete;
+		var saved;
 		return new Promise( (resolve, reject) => {
 			if (typeof(uid) === 'object') {
 				to_delete = uid;
@@ -487,9 +495,11 @@ class Store extends Executor {
 				throw 404;
 			}
 			to_delete = obj;
-			this.emit('Store.Delete', {'object': obj, 'store': this});
+			saved = obj;
+			return this.emit('Store.Delete', {'object': obj, 'store': this});
+		}).then( () => {	
 			if (this._params.map != undefined) {
-				return this.handleMap(obj, this._params.map, "deleted");
+				return this.handleMap(saved, this._params.map, "deleted");
 			} else {
 				return Promise.resolve();
 			}
@@ -507,13 +517,12 @@ class Store extends Executor {
 				}
 				return Promise.all(promises);
 			} else {
-				Promise.resolve();
+				return Promise.resolve();
 			}
 		}).then( () => {
 			return this._delete(uid);
 		}).then ( () => {
-			this.emit('Store.Deleted', {'object': to_delete, 'store': this});
-			return Promise.resolve(true);
+			return this.emit('Store.Deleted', {'object': to_delete, 'store': this});
 		});
 	}
 
@@ -542,8 +551,9 @@ class Store extends Executor {
 			if (object) {
 				object = new this._model(object, true);
 			}
-			this.emit('Store.Get', {'object': object, 'store': this});
-			return Promise.resolve(object);
+			return this.emit('Store.Get', {'object': object, 'store': this}).then (() => {
+				return Promise.resolve(object);	
+			});
 		});
 	}
 
@@ -552,12 +562,12 @@ class Store extends Executor {
 	}
 
 	find(request, offset, limit) {
-		return new Promise( (resolve, reject) => {
-			this.emit('Store.Find', {'request': request, 'store': this, 'offset': offset, 'limit': limit});
-			return resolve(this._find(request, offset, limit));
+		return this.emit('Store.Find', {'request': request, 'store': this, 'offset': offset, 'limit': limit}).then( () => {
+			return this._find(request, offset, limit);	
 		}).then ( (result) => {
-			this.emit('Store.Found', {'request': request, 'store': this, 'offset': offset, 'limit': limit, 'results': result});
-			return Promise.resolve(result);
+			return this.emit('Store.Found', {'request': request, 'store': this, 'offset': offset, 'limit': limit, 'results': result}).then( () => {
+				return Promise.resolve(result);	
+			});
 		});
 	}
 

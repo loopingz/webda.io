@@ -4,7 +4,6 @@ var Webda = require('../core');
 var SecureCookie = require('../utils/cookie');
 var _extend = require("util")._extend;
 const cookieParse = require("cookie").parse;
-const uuid = require('uuid');
 
 /**
  * The Lambda entrypoint for Webda
@@ -101,16 +100,14 @@ class LambdaServer extends Webda {
 	  	var body = event["body-json"];
 	  	var ctx = this.newContext(body, session);
 	  	// Debug mode
-	  	var rid = uuid.v4();
-	  	console.log('Request[' + rid + ']', vhost, method, resourcePath);
+	  	console.log(vhost, method, resourcePath);
 	  	if (this.isDebug()) {
-	  		console.log('Request[' + rid + '] payload', JSON.stringify(body, null, 4));
+	  		console.log('payload', JSON.stringify(body, null, 4));
 	  	}
 	  	var executor = this.getExecutor(ctx, vhost, method, resourcePath, protocol, port, headers);
 	  	if (this.isDebug()) {
-	  		console.log('Request[' + rid + '] result', this._result);	
+	  		console.log('result', this._result);	
 	  	}
-	  	console.log('Request[' + rid + '] finished');
 
 	  	if (executor == null) {
 	  		callback("Bad mapping " + vhost + " - " + method + " " + resourcePath, null);

@@ -86,8 +86,9 @@ class Binary extends Executor {
 	 * @emits 'binaryGet'
 	 */
 	get(info) {
-		this.emit('Binary.Get', {'object': info, 'service': this});
-		return this._get(info);
+		return this.emit('Binary.Get', {'object': info, 'service': this}).then( () => {
+			return this._get(info);	
+		});
 	}
 
 	/**
@@ -207,6 +208,7 @@ class Binary extends Executor {
 		fileObj['challenge']=file.challenge;
 		var object_uid = object.uuid;
 		var info;
+		var update;
 		var promise;
 		if (index == "add") {
 			if (object[property] === undefined) {
@@ -221,13 +223,15 @@ class Binary extends Executor {
 			info = object[property][index];
 		}
 		return promise.then( (updated) => {
+			update = updated;
 			if (info) {
 				this.cascadeDelete(info, object_uid);
-				this.emit('Binary.Update', {'object': fileObj, 'old': info, 'service': this, 'target': object});
+				return this.emit('Binary.Update', {'object': fileObj, 'old': info, 'service': this, 'target': object});
 			} else {
-				this.emit('Binary.Create', {'object': fileObj, 'service': this, 'target': object});
+				return this.emit('Binary.Create', {'object': fileObj, 'service': this, 'target': object});
 			}
-			return Promise.resolve(updated);
+		}).then( () => {
+			return Promise.resolve(update);
 		});
 	}
 
@@ -238,9 +242,12 @@ class Binary extends Executor {
 
 	deleteSuccess(targetStore, object, property, index) {
 		var info = object[property][index];
+		var update;
 		return targetStore.deleteItemFromCollection(object.uuid, property, index, info.hash, 'hash').then ( (updated) => {
-			this.emit('Binary.Delete', {'object': info, 'service': this});
-			return Promise.resolve(updated)
+			update = updated;
+			return this.emit('Binary.Delete', {'object': info, 'service': this});
+		}).then( () => {
+			return Promise.resolve(update);
 		});
 	}
 

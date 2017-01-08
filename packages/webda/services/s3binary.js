@@ -108,10 +108,11 @@ class S3Binary extends Binary {
 			expire = 30;
 		}
 		params.Expires = expire; // A get should not take more than 30s
-		this.emit('Binary.Get', {'object': info, 'service': this, 'context': context});
-		params.ResponseContentDisposition = "attachment; filename=" + info.name;
-		params.ResponseContentType = info.mimetype;
-		return this.getSignedUrl('getObject', params);
+		return this.emit('Binary.Get', {'object': info, 'service': this, 'context': context}).then( () => {
+			params.ResponseContentDisposition = "attachment; filename=" + info.name;
+			params.ResponseContentType = info.mimetype;
+			return this.getSignedUrl('getObject', params);	
+		});
 	}
 
 	getRedirectUrl(ctx) {

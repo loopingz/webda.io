@@ -30,7 +30,7 @@ describe('Validator', function() {
          ctx.session.login("fake_user", "fake_ident");
          ctx.body = {"noname": "Task #1"};
       	 return executor.execute(ctx).catch ((err) => {
-	      	// Expect 403 as no user is logged
+	      	// Expect 400 as no name was provided
           failed = true;
 	      	assert.equal(err, 400);
 	      	ctx.body = {"name": "Task #1"};

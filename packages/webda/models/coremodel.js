@@ -22,7 +22,7 @@ class CoreModel extends OwnerPolicy(Object) {
 			raw.uuid = this.generateUid();
 		}
 		for (let prop in raw) {
-			if (!secure && (prop[0] === "_" || prop.indexOf('$_') === 0)) {
+			if (!secure && (prop[0] === "_")) {
 				continue;
 			}
 			this[prop] = raw[prop];
@@ -30,13 +30,18 @@ class CoreModel extends OwnerPolicy(Object) {
 	}
 
 	validate(ctx, updates) {
-		if (!this._schema) {
-			return true;
-		}
-		if (updates) {
-			this.load(updates);
-		}
-		return ctx._webda.validate(this, this._schema);
+		return new Promise((resolve, reject) => {
+			if (!this._schema) {
+				resolve(true);
+			}
+			if (updates) {
+				this.load(updates);
+			}
+			if (!ctx._webda.validate(this, this._schema)) {
+				reject(ctx._webda.validationLastErrors());
+			}
+			resolve(true);
+		});
 	}
 
 	generateUid() {
@@ -44,7 +49,7 @@ class CoreModel extends OwnerPolicy(Object) {
 	}
 
 	_jsonFilter(key, value) {
-		if (key[0] === '_') {
+		if (key[0] === '_' && key.length > 1 && key[1] === '_') {
 			return undefined;
 		}
 		return value;

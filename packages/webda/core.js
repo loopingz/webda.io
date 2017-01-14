@@ -65,6 +65,13 @@ class Webda {
 	}
 
 	/**
+	 * Get last errors from AJV schema validator ( called through validate method )
+	 */
+	validationLastErrors() {
+		return this._ajv.errors;
+	}
+
+	/**
 	 * Execute a file in sandbox mode
 	 *
 	 * @param {Object} executor The executor to give to the file

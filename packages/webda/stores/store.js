@@ -580,9 +580,11 @@ class Store extends Executor {
 	httpCreate(ctx) {
 		var object = new this._model(ctx.body);
 		return object.canCreate(ctx).then( (object) => {
-			if (!object.validate(ctx)) {
+			return object.validate(ctx).catch( (err) => {
+				console.log(err);
 				throw 400;
-			}	
+			});
+		}).then( () => {
 			return this.exists(object.uuid);
 		}).then( (exists) => {
 			if (exists) {
@@ -600,9 +602,11 @@ class Store extends Executor {
 			if (!object) throw 404;
 			return object.canUpdate(ctx);
 		}).then( (object) => {
-			if (!object.validate(ctx)) {
+			return object.validate(ctx, ctx.body).catch( (err) => {
+				console.log(err);
 				throw 400;
-			}
+			});
+		}).then( () => {
 			return this.update(ctx.body, ctx._params.uuid);
 		}).then ( (object) => {
 			if (object == undefined) {

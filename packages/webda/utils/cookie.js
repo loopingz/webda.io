@@ -90,6 +90,7 @@ class SecureCookie {
 			}
 			delete this[prop];
 		}
+		this._changed = true;
 	}
 
 	getIdentUsed() {

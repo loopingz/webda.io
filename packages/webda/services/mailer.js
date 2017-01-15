@@ -90,7 +90,7 @@ class Mailer extends Service {
 			}
 		}
 		return promise.then( () => {
-			this._transporter.sendMail(options, callback)
+			return this._transporter.sendMail(options, callback)
 		});
 	}
 

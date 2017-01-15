@@ -70,11 +70,13 @@ class PassportExecutor extends Executor {
 		config[url] = {"method": ["GET", "DELETE"], "executor": this._name, "_method": this._listAuthentications};
 		// Get the current user
 		config[url + "/me"] = {"method": ["GET"], "executor": this._name, "_method": this._getMe};
-		// Add static for email for now, if set before it should have priority
-		config[url + "/email"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this._handleEmail};
-		config[url + "/email/callback{?email,token}"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this._handleEmailCallback};
-		config[url + "/email/passwordRecovery"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this._passwordRecovery};
-		config[url + "/email/{email}/recover"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "_method": this._passwordRecoveryEmail};
+		if (this._params.providers.email) {
+			// Add static for email for now, if set before it should have priority
+			config[url + "/email"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this._handleEmail};
+			config[url + "/email/callback{?email,token}"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this._handleEmailCallback};
+			config[url + "/email/passwordRecovery"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this._passwordRecovery};
+			config[url + "/email/{email}/recover"] = {"method": ["GET"], "executor": this._name, "params": {"provider": "email"}, "_method": this._passwordRecoveryEmail};
+		}
 		// Handle the lost password here
 		url += '/{provider}';
 		config[url] = {"method": ["GET"], "executor": this._name, "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}, "_method": this._authenticate};
@@ -200,7 +202,7 @@ class PassportExecutor extends Executor {
 		}
 		// Use one hour other case
 		if (!interval) {
-			interval = 3600;
+			interval = 3600000;
 		}
 		var expire = Date.now() + interval;
 		if (typeof(uuid) === 'string') {
@@ -211,7 +213,7 @@ class PassportExecutor extends Executor {
 			promise = Promise.resolve(uuid);
 		}
 		return promise.then((user) => {
-			return {expire: expire, token: this.hashPassword(uuid + expire + user.__password), login: user.uuid};
+			return {expire: expire, token: this.hashPassword(user.uuid + expire + user.__password), login: user.uuid};
 		});
 	}
 
@@ -229,7 +231,7 @@ class PassportExecutor extends Executor {
 			return userStore.get(ident.user);
 		}).then( (user) => {
 			// Dont allow to do too many request
-			if (user._lastPasswordRecovery > Date.now() - 3600 * 4) {
+			if (user._lastPasswordRecovery > Date.now() - 3600000 * 4) {
 				throw 429;
 			}
 			return userStore.update({_lastPasswordRecovery: Date.now()}, user.uuid).then( () => {
@@ -294,6 +296,7 @@ class PassportExecutor extends Executor {
 			}
 			let replacements = _extend({}, this._params.providers.email);
 			replacements.infos = infos;
+			replacements.to = email;
 			replacements.context = ctx;
 			let mailOptions = {
 				to: email,

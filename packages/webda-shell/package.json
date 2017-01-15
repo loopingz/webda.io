@@ -1,6 +1,6 @@
 {
   "name": "webda-shell",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Deploy a Webda app or configure it",
   "keywords": [
     "aws",

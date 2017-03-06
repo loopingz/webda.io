@@ -46,7 +46,7 @@ class FileStore extends Store {
 	}
 
 	_save(object, uid) {
-		fs.writeFileSync(this.file(uid), JSON.stringify(object));
+		fs.writeFileSync(this.file(uid), object.toStoredJSON());
 		return Promise.resolve(object);
 	}
 
@@ -120,7 +120,8 @@ class FileStore extends Store {
 	_get(uid) {
 		return this.exists(uid).then ((res) => {
 			if (res) {
-				return Promise.resolve(JSON.parse(fs.readFileSync(this.file(uid))));		
+				let data = fs.readFileSync(this.file(uid));
+				return Promise.resolve(new this._model(JSON.parse(data), true));
 			}
 			return Promise.resolve(undefined);
 		});
@@ -147,7 +148,10 @@ class FileStore extends Store {
 		}
 		var files = fs.readdirSync(this._params.folder);
 		for (var file in files) {
-			fs.unlink(this._params.folder + '/' + files[file]);
+			let filename = this._params.folder + '/' + files[file];
+			fs.unlink(filename, (err) => {
+				
+			});
 		}
 		return Promise.resolve();
 	}

@@ -169,13 +169,13 @@ class Store extends Executor {
 	save(object, uid) {
 		/** @ignore */
 		var saved;
-		if (uid == undefined) {
+		if (uid === undefined) {
 			uid = object.uuid;
 		}
-		if (uid == undefined) {
+		if (uid === undefined) {
 			uid = this.generateUid();
 		}
-		if (object.uuid == undefined || object.uuid != uid) {
+		if (object.uuid === undefined || object.uuid !== uid) {
 			object.uuid = uid;
 		}
 		for (var i in this._reverseMap) {
@@ -184,10 +184,19 @@ class Store extends Executor {
 			}
 		}
 		object.lastUpdate = new Date();
+		// Make sure to send a model object
+		if (!(object instanceof this._model)) {
+			object = new this._model(object, true);
+		}
 		return this.emit('Store.Save', {'object': object, 'store': this}).then( () => {
 			return this._save(object, uid);
 		}).then( (object) => {
-			saved = object;
+			// Make sure to return a model object
+			if (!(saved instanceof this._model)) {
+				saved = new this._model(object, true);
+			} else {
+				saved = object;
+			}
 			return this.emit('Store.Saved', {'object': object, 'store': this});
 		}).then( () => {
 			object = saved;
@@ -622,7 +631,6 @@ class Store extends Executor {
                 if (object === undefined) {
 					throw 404;
 				}
-				object = new this._model(object, true);
 				return object.canGet(ctx);
 			}).then( (object) => {
 				ctx.write(object);

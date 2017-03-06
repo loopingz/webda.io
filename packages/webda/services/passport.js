@@ -384,11 +384,11 @@ class PassportExecutor extends Executor {
 				return userStore.get(ident.user).then ( (user) => {
 					// Check password
 					if (user.__password === this.hashPassword(ctx.body.password)) {
-						if (ident.failedLogin > 0) {
-							ident.failedLogin = 0;
+						if (ident._failedLogin > 0) {
+							ident._failedLogin = 0;
 						}
-						updates.lastUsed = new Date();
-						updates.failedLogin = 0;
+						updates._lastUsed = new Date();
+						updates._failedLogin = 0;
 
 						return identStore.update(updates, ident.uuid).then ( () => {
 							return this.login(ctx, ident.user, ident);
@@ -397,11 +397,11 @@ class PassportExecutor extends Executor {
 						});
 					} else {
 						ctx.writeHead(403);
-						if (ident.failedLogin === undefined) {
-							ident.failedLogin = 0;
+						if (ident._failedLogin === undefined) {
+							ident._failedLogin = 0;
 						}
-						updates.failedLogin = ident.failedLogin++;
-						updates.lastFailedLogin = new Date();
+						updates._failedLogin = ident._failedLogin++;
+						updates._lastFailedLogin = new Date();
 						// Swalow exeception issue to double check !
 						return identStore.update(updates, ident.uuid);
 					}

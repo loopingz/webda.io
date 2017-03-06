@@ -29,15 +29,24 @@ class CoreModel extends OwnerPolicy(Object) {
 		}
 	}
 
+	/**
+	 * Return the object schema, if defined any modification done to the object by external source
+	 * must comply to this schema
+	 */
+	_getSchema() {
+		return;
+	}
+
 	validate(ctx, updates) {
 		return new Promise((resolve, reject) => {
-			if (!this._schema) {
+			let schema = this._getSchema();
+			if (!schema) {
 				resolve(true);
 			}
 			if (updates) {
 				this.load(updates);
 			}
-			if (!ctx._webda.validate(this, this._schema)) {
+			if (!ctx._webda.validate(this, schema)) {
 				reject(ctx._webda.validationLastErrors());
 			}
 			resolve(true);
@@ -55,14 +64,25 @@ class CoreModel extends OwnerPolicy(Object) {
 		return value;
 	}
 
-	toJSON() {
+	toStoredJSON() {
+		return JSON.stringify(this._toJSON(true));
+	}
+
+	_toJSON(secure) {
 		let obj = {};
 		for (let i in this) {
-			let value = this._jsonFilter(i, this[i]);
+			let value = this[i];
+			if (!secure) {
+				value = this._jsonFilter(i, this[i]);
+			}
 			if (value === undefined) continue;
 			obj[i] = value;
 		}
 		return obj;
+	}
+
+	toJSON() {
+		return this._toJSON(false);
 	}
 }
 

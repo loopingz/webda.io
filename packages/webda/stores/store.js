@@ -189,15 +189,26 @@ class Store extends Executor {
 			object = new this._model(object, true);
 		}
 		return this.emit('Store.Save', {'object': object, 'store': this}).then( () => {
+			// Handle object auto listener
+			if (typeof(object._onSave) === 'function') {
+				return object._onSave();
+			}
+			return Promise.resolve();
+		}).then( () => {
 			return this._save(object, uid);
 		}).then( (object) => {
 			// Make sure to return a model object
-			if (!(saved instanceof this._model)) {
+			if (!(object instanceof this._model)) {
 				saved = new this._model(object, true);
 			} else {
 				saved = object;
 			}
 			return this.emit('Store.Saved', {'object': object, 'store': this});
+		}).then( () => {
+			if (typeof(object._onSaved) === 'function') {
+				return object._onSaved();
+			}
+			return Promise.resolve();
 		}).then( () => {
 			object = saved;
 			if (this._params.map != undefined) {
@@ -257,6 +268,11 @@ class Store extends Executor {
 			}).then(() => {
 				return this.emit('Store.Update', {'object': loaded, 'store': this, 'update': object});
 			}).then(() => {
+				if (typeof(loaded._onUpdate) === 'function') {
+					loaded._onUpdate(object);
+				}
+				return Promise.resolve();
+			}).then(() => {
 				return this._update(object, uid, writeCondition).then( (res) => {
 					// Return updated 
 					for (var i in res) {
@@ -271,6 +287,11 @@ class Store extends Executor {
 		}).then ( (result) => {
 			saved = result;
 			return this.emit('Store.Updated', {'object': result, 'store': this});
+		}).then(() => {
+			if (typeof(saved._onUpdated) === 'function') {
+				saved._onUpdated();
+			}
+			return Promise.resolve();
 		}).then(() => {
 			return Promise.resolve(saved);
 		});
@@ -506,6 +527,11 @@ class Store extends Executor {
 			to_delete = obj;
 			saved = obj;
 			return this.emit('Store.Delete', {'object': obj, 'store': this});
+		}).then( () => {
+			if (typeof(to_delete._onDelete) === 'function') {
+				return to_delete._onDelete();
+			}
+			return Promise.resolve();
 		}).then( () => {	
 			if (this._params.map != undefined) {
 				return this.handleMap(saved, this._params.map, "deleted");
@@ -532,6 +558,11 @@ class Store extends Executor {
 			return this._delete(uid);
 		}).then ( () => {
 			return this.emit('Store.Deleted', {'object': to_delete, 'store': this});
+		}).then ( () => {
+			if (typeof(to_delete._onDeleted) === 'function') {
+				return to_delete._onDeleted();
+			}
+			return Promise.resolve();
 		});
 	}
 
@@ -557,10 +588,16 @@ class Store extends Executor {
 	get(uid) {
 		/** @ignore */
 		return this._get(uid).then ( (object) => {
-			if (object) {
-				object = new this._model(object, true);
+			if (!object) {
+				return Promise.resolve(undefined);
 			}
+			object = new this._model(object, true);
 			return this.emit('Store.Get', {'object': object, 'store': this}).then (() => {
+				if (typeof(object._onGet) === 'function') {
+					return object._onGet();
+				}
+				return Promise.resolve();
+			}).then( () => {
 				return Promise.resolve(object);	
 			});
 		});

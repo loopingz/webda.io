@@ -144,7 +144,7 @@ class FileStore extends Store {
 
 	___cleanData() {
 		if (!fs.existsSync(this._params.folder)) {
-			fs.mkdir(this._params.folder);  
+			return Promise.resolve();
 		}
 		var files = fs.readdirSync(this._params.folder);
 		for (var file in files) {

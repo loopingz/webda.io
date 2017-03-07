@@ -42,7 +42,16 @@ describe('Validator', function() {
           ctx.body = {"name": "Task #1"};
       		executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/tasks");
       		return executor.execute(ctx);
-      	});
+      	}).then( () => {
+          let task = JSON.parse(ctx._body);
+          // It is two because the Saved has been called two
+          assert.notEqual(task.uuid, undefined);
+          assert.equal(task._autoListener, 2);
+          return taskStore.get(task.uuid);
+        }).then( (task) => {
+          // It should only be 1 as the onSaved is not preserved
+          assert.equal(task._autoListener, 1);
+        });
       });
     });
 });

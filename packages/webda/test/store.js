@@ -92,7 +92,7 @@ var mapper = function (identStore, userStore) {
     return identStore.get(ident2.uuid);
   }).then( function(ident) {
     assert.equal(ident, undefined);
-    assert.equal(eventFired, 13);
+    assert.equal(eventFired, 12);
   });
 }
 

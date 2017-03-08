@@ -547,7 +547,7 @@ class AWSDeployer extends Deployer {
 		if (typeof(aws.defaultCode) == "number") {
 			aws.defaultCode = aws.defaultCode.toString();
 		}
-		var codes = ["200", "204", "302", "303", "400" ,"401","403","404","405","409","412","500"];
+		var codes = ["200", "204", "302", "303", "400" ,"401","402","403","404","405","409","412","429","500"];
 		// As we cannot specify error code directly we need to map each... yes i know running regexp a script engine to only find an error code doesnt look like a good idea....
 		// Code headers
 		var promise = Promise.resolve();

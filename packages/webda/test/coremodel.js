@@ -6,6 +6,9 @@ const Webda = require("../core.js");
 const config = require("./config.json");
 var webda = new Webda(config);
 var ctx = webda.newContext();
+webda = new Webda(config);
+webda.setHost("test.webda.io");
+webda.initAll();
 
 describe('CoreModel', function() {
 	it('Verify unsecure constructor', function() {
@@ -37,8 +40,6 @@ describe('CoreModel', function() {
 
 	describe('JSON Schema validation', function() {
 		it('Verify bad schema object', function() {
-			let webda = new Webda(config);
-	    	let ctx = webda.newContext();
 	    	let failed = false;
 	    	let object = new Task({"noname": "Task #1"});
 	    	return object.validate(ctx).catch( () => {
@@ -49,8 +50,6 @@ describe('CoreModel', function() {
 		});
 
 		it('Verify good schema object', function() {
-			let webda = new Webda(config);
-	    	let ctx = webda.newContext();
 	    	let failed = false;
 	    	let object = new Task({"name": "Task #1"});
 	    	return object.validate(ctx).catch( () => {
@@ -59,5 +58,45 @@ describe('CoreModel', function() {
 	    		assert.notEqual(failed, true);
 	    	});
 		});
+	});
+
+	describe('Test (C)RUD', function() {
+		var ident;
+		var identStore = webda.getService("Idents");
+		beforeEach(function () {
+	        assert.notEqual(identStore, undefined);
+	        identStore.__clean();
+	        ident = {uuid: 'test', property: 'plop'};
+	        return identStore.save(ident).then( (obj) => {
+	        	ident = obj;
+	        });
+        });
+
+        it('Verify Retrieve', function() {
+        	return identStore.update({property: 'plop2'}, 'test').then( () => {
+        		return ident.refresh();
+        	}).then( () => {
+        		assert.equal(ident.property, 'plop2');
+        	});
+        });
+
+        it('Verify Update', function() {
+        	ident.property = 'plop2';
+        	ident.newOne = 'yes';
+        	return ident.save().then( () => {
+        		return identStore.get('test');
+        	}).then( (retieved) => {
+        		assert.equal(retieved.property, 'plop2');
+        		assert.equal(retieved.newOne, 'yes');
+        	});
+        });
+
+        it('Verify Delete', function() {
+        	return ident.delete().then( () => {
+        		return identStore.get('test');
+        	}).then( (retieved) => {
+        		assert.equal(retieved, undefined);
+        	});
+        });
 	});
 });

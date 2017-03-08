@@ -30,6 +30,50 @@ class CoreModel extends OwnerPolicy(Object) {
 	}
 
 	/**
+	 * Get the object again
+	 *
+	 * @throws Error if the object is not coming from a store
+	 */
+	refresh() {
+		if (!this.__store) {
+			throw Error("No store linked to this object");
+		}
+		return this.__store.get(this.uuid).then( (obj) => {
+			for (var i in obj) {
+				this[i] = obj[i];
+			}
+		});
+	}
+
+	/**
+	 * Delete this object
+	 *
+	 * @throws Error if the object is not coming from a store
+	 */
+	delete() {
+		if (!this.__store) {
+			throw Error("No store linked to this object");
+		}
+		return this.__store.delete(this.uuid);
+	}
+
+	/**
+	 * Save this object
+	 *
+	 * @throws Error if the object is not coming from a store
+	 */
+	save() {
+		if (!this.__store) {
+			throw Error("No store linked to this object");
+		}
+		return this.__store.save(this).then( (obj) => {
+			for (var i in obj) {
+				this[i] = obj[i];
+			}
+		});	
+	}
+
+	/**
 	 * Return the object schema, if defined any modification done to the object by external source
 	 * must comply to this schema
 	 */
@@ -65,7 +109,9 @@ class CoreModel extends OwnerPolicy(Object) {
 	}
 
 	toStoredJSON() {
-		return JSON.stringify(this._toJSON(true));
+		let obj = this._toJSON(true);
+		obj.__store = undefined;
+		return JSON.stringify(obj);
 	}
 
 	_toJSON(secure) {

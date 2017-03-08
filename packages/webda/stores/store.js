@@ -100,6 +100,7 @@ class Store extends Executor {
 		if (!(object instanceof this._model)) {
 			object = new this._model(object, true);
 		}
+		object.__store = this;
 		for (var i in this._reverseMap) {
 			for (var j in object[this._reverseMap[i].property]) {
 				object[this._reverseMap[i].property][j] = this._reverseMap[i].store.initModel(object[this._reverseMap[i].property][j]);

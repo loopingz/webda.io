@@ -43,6 +43,7 @@ var normal = function (userStore, binary, map) {
     user = userArg;
     assert.notEqual(user[map], undefined);
     assert.equal(user[map].length, 1);
+    assert.equal(user[map][0].constructor.name, 'BinaryMap');
     hash = user[map][0].hash;
     return binary.getUsageCount(hash);
   }).then(function(value) {

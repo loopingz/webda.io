@@ -17,7 +17,8 @@
 				}
 			},
 			"models": {
-				"WebdaTest/Task": "./test/models/task"
+				"WebdaTest/Task": "./test/models/task",
+				"WebdaTest/Ident": "./test/models/ident"
 			},
 			"services": {
 				"Authentication": {
@@ -61,6 +62,7 @@
 							"get": true
 						}
 					},
+					"model": "WebdaTest/Ident",
 					"type": "DynamoStore",
 					"table": "webda-test-idents"
 				},
@@ -93,6 +95,7 @@
 							"get": true
 						}
 					},
+					"model": "WebdaTest/Ident",
 					"type": "MongoStore",
 					"collection": "idents"
 				},
@@ -123,6 +126,7 @@
 							"get": true
 						}
 					},
+					"model": "WebdaTest/Ident",
 					"type": "MemoryStore"
 				},
 				"MemoryUsers": {
@@ -147,6 +151,7 @@
 							"get": true
 						}
 					},
+					"model": "WebdaTest/Ident",
 					"type": "FileStore",
 					"folder": "./test/data/idents",
 					"validator": "IdentValidator"

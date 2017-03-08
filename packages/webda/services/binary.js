@@ -6,6 +6,21 @@ const path = require("path");
 const mime = require('mime-types');
 const crypto = require("crypto");
 
+
+/**
+ * This is a map used to retrieve binary
+ *
+ * @class BinaryMap
+ */
+class BinaryMap {
+	constructor(obj) {
+		for (var i in obj) {
+			this[i] = obj[i];
+		}
+	}
+}
+
+
 /**
  * This is an abstract service to represent a storage of files
  * The binary allow you to expose this service as HTTP ( therefore is an executor )
@@ -147,13 +162,17 @@ class Binary extends Executor {
 				continue;
 			}
 			if (typeof(map[prop]) === "string") {
-				reverseStore.addReverseMap(map[prop], {'store': this._name, 'name': map[prop]});
+				reverseStore.addReverseMap(map[prop], {'store': this._name, 'name': map[prop]}, this);
 			} else {
 				for (let i in map[prop]) {
-					reverseStore.addReverseMap(map[prop][i], {'store': this._name, 'name': map[prop][i]});
+					reverseStore.addReverseMap(map[prop][i], {'store': this._name, 'name': map[prop][i]}, this);
 				}
 			}
 	    }
+	}
+
+	initModel(obj) {
+		return new BinaryMap(obj);
 	}
 
 	_getHashes(buffer) {

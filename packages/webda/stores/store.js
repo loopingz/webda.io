@@ -95,8 +95,22 @@ class Store extends Executor {
 		}
 	}
 
-	addReverseMap(prop, cascade) {
-		this._reverseMap.push(prop);
+	initModel(object) {
+		// Make sure to send a model object
+		if (!(object instanceof this._model)) {
+			object = new this._model(object, true);
+		}
+		for (var i in this._reverseMap) {
+			for (var j in object[this._reverseMap[i].property]) {
+				object[this._reverseMap[i].property][j] = this._reverseMap[i].store.initModel(object[this._reverseMap[i].property][j]);
+
+			}
+		}
+		return object;
+	}
+
+	addReverseMap(prop, cascade, store) {
+		this._reverseMap.push({'property':prop, 'store': store});
 		if (cascade) {
 			this._cascade.push(cascade);
 		}
@@ -147,7 +161,7 @@ class Store extends Executor {
 			if (map[prop].cascade) {
 				cascade = {'store': this._name, 'name': map[prop].target};
 			}
-			reverseStore.addReverseMap(map[prop].target, cascade);
+			reverseStore.addReverseMap(map[prop].target, cascade, this);
 	    }
 	}
 
@@ -179,15 +193,12 @@ class Store extends Executor {
 			object.uuid = uid;
 		}
 		for (var i in this._reverseMap) {
-			if (object[this._reverseMap[i]] === undefined) {
-				object[this._reverseMap[i]] = [];
+			if (object[this._reverseMap[i].property] === undefined) {
+				object[this._reverseMap[i].property] = [];
 			}
 		}
 		object.lastUpdate = new Date();
-		// Make sure to send a model object
-		if (!(object instanceof this._model)) {
-			object = new this._model(object, true);
-		}
+		object = this.initModel(object);
 		return this.emit('Store.Save', {'object': object, 'store': this}).then( () => {
 			// Handle object auto listener
 			if (typeof(object._onSave) === 'function') {
@@ -196,13 +207,8 @@ class Store extends Executor {
 			return Promise.resolve();
 		}).then( () => {
 			return this._save(object, uid);
-		}).then( (object) => {
-			// Make sure to return a model object
-			if (!(object instanceof this._model)) {
-				saved = new this._model(object, true);
-			} else {
-				saved = object;
-			}
+		}).then( (res) => {
+			object = this.initModel(res);
 			return this.emit('Store.Saved', {'object': object, 'store': this});
 		}).then( () => {
 			if (typeof(object._onSaved) === 'function') {
@@ -210,7 +216,6 @@ class Store extends Executor {
 			}
 			return Promise.resolve();
 		}).then( () => {
-			object = saved;
 			if (this._params.map != undefined) {
 				return this.handleMap(object, this._params.map, "created").then( () => {
 					return Promise.resolve(object);
@@ -249,8 +254,8 @@ class Store extends Executor {
 			// Dont allow to update collections from map
 			if (this._reverseMap != undefined && reverseMap) {
 				for (var i in this._reverseMap) {
-					if (object[this._reverseMap[i]] != undefined) {
-						delete object[this._reverseMap[i]];
+					if (object[this._reverseMap[i].property] != undefined) {
+						delete object[this._reverseMap[i].property];
 					}
 				}
 			}
@@ -263,7 +268,7 @@ class Store extends Executor {
 			}
 			object.lastUpdate = new Date();
 			resolve(this._get(uid).then((load) => {
-				loaded = load;
+				loaded = this.initModel(load);
 				return this.handleMap(loaded, this._params.map, object);
 			}).then(() => {
 				return this.emit('Store.Update', {'object': loaded, 'store': this, 'update': object});
@@ -285,7 +290,7 @@ class Store extends Executor {
 				});
 			}));
 		}).then ( (result) => {
-			saved = result;
+			saved = this.initModel(result);
 			return this.emit('Store.Updated', {'object': result, 'store': this});
 		}).then(() => {
 			if (typeof(saved._onUpdated) === 'function') {
@@ -591,7 +596,7 @@ class Store extends Executor {
 			if (!object) {
 				return Promise.resolve(undefined);
 			}
-			object = new this._model(object, true);
+			object = this.initModel(object);
 			return this.emit('Store.Get', {'object': object, 'store': this}).then (() => {
 				if (typeof(object._onGet) === 'function') {
 					return object._onGet();

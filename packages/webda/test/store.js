@@ -2,6 +2,7 @@
 var assert = require("assert");
 var Webda = require("../core.js");
 var config = require("./config.json");
+const Idents = require("./models/ident");
 var user1;
 var user2;
 var ident1;
@@ -50,6 +51,7 @@ var mapper = function (identStore, userStore) {
   }).then( function(user) {
     assert.equal(user.idents.length, 2);
     assert.equal(user.idents[1].type, "google2");
+    assert.equal(user.idents[1] instanceof Idents, true);
     return identStore.delete(ident1.uuid);
   }).then( function() {
     return userStore.get(user1);

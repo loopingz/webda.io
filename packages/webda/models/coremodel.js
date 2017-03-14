@@ -42,6 +42,7 @@ class CoreModel extends OwnerPolicy(Object) {
 			for (var i in obj) {
 				this[i] = obj[i];
 			}
+			return Promise.resolve(this);
 		});
 	}
 

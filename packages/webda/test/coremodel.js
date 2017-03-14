@@ -75,7 +75,8 @@ describe('CoreModel', function() {
         it('Verify Retrieve', function() {
         	return identStore.update({property: 'plop2'}, 'test').then( () => {
         		return ident.refresh();
-        	}).then( () => {
+        	}).then( (res) => {
+        		assert.equal(res.property, 'plop2');
         		assert.equal(ident.property, 'plop2');
         	});
         });

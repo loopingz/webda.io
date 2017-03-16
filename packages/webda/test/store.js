@@ -313,8 +313,9 @@ describe('Store', function() {
       it('Body cleaning', function() {
         //var parse = require("./data/to_clean.json");
         userStore = webda.getService("dynamousers");
-        let clean = userStore._cleanObject({arr: [{value:'', test: 'oki'},{value:''},{value:'Test'}], sub: {value:''}})
+        let clean = userStore._cleanObject(new Idents({arr: [{value:'', test: 'oki'},{value:''},{value:'Test'}], sub: {value:''}, __store: userStore}, true));
         assert.equal(clean.sub.value, undefined);
+        assert.equal(clean.__store, undefined);
         assert.equal(clean.arr instanceof Array, true);
         assert.equal(clean.arr[0].value, undefined);
         assert.equal(clean.arr[1].value, undefined);

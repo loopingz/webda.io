@@ -46,7 +46,7 @@ class FileStore extends Store {
 	}
 
 	_save(object, uid) {
-		fs.writeFileSync(this.file(uid), object.toStoredJSON());
+		fs.writeFileSync(this.file(uid), object.toStoredJSON(true));
 		return Promise.resolve(object);
 	}
 

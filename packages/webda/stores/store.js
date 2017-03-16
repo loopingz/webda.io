@@ -452,12 +452,6 @@ class Store extends Executor {
 				mapper[fields[field]] = object[fields[field]];
 			}
 		}
-		if (mapped[map.target] === undefined) {
-			update[mapped[map.target]]=[];
-			update[mapped[map.target]].push(mapper);
-			return store._update(update, mapped.uuid)
-		}
-		update[map.target] = mapped[map.target];
 		return store.upsertItemToCollection(mapped.uuid, map.target, mapper);
 	}
 

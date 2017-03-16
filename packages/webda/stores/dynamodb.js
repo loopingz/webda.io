@@ -1,6 +1,6 @@
 "use strict";
-const Store = require("./store")
-
+const Store = require("./store");
+const CoreModel = require("../models/coremodel");
 const AWS = require('aws-sdk');
 
 /**
@@ -81,6 +81,9 @@ class DynamoStore extends Store {
 		if (object instanceof Date) {
 			return this._serializeDate(object);
 		}
+		if (object instanceof CoreModel) {
+			object = object.toStoredJSON();
+		}
 		var res;
 		if (object instanceof Array) {
 		 	res = [];
@@ -150,7 +153,7 @@ class DynamoStore extends Store {
 		var skipUpdate = true;
 		var i = 1;
 		for (var attr in object) {
-			if (attr === 'uuid') {
+			if (attr === 'uuid' || object[attr] === undefined) {
 				continue;
 			}
 			skipUpdate = false;

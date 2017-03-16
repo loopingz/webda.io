@@ -1,7 +1,8 @@
 "use strict";
-const Store = require("./store")
+const Store = require("./store");
+const CoreModel = require("../models/coremodel");
 
-var MongoClient = require('mongodb').MongoClient
+var MongoClient = require('mongodb').MongoClient;
 
 
 /**
@@ -65,8 +66,8 @@ class MongoStore extends Store {
 
 	incrementAttribute(uid, prop, value) {
 		return this._connect().then( () => {
-			var params = {};
-			params['$inc'][prop] = item;
+			var params = {'$inc': {}};
+			params['$inc'][prop] = value;
 			return this._collection.updateOne({ _id: uid}, params);
 		});
 	}
@@ -86,6 +87,9 @@ class MongoStore extends Store {
 	}
 
 	_save(object, uid) {
+		if (object instanceof CoreModel) {
+			object = object.toStoredJSON();
+		}
 		object._id = object.uuid;
 		return this._connect().then( () => {
 			return this._collection.insertOne(object);
@@ -114,6 +118,9 @@ class MongoStore extends Store {
 	}
 
 	_update(object, uid, writeCondition) {
+		if (object instanceof CoreModel) {
+			object = object.toStoredJSON();
+		}
 		return this._connect().then( () => {
 			return this._collection.updateOne({ _id: uid}, {'$set': object});
 		}).then ( (result) => {

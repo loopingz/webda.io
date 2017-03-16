@@ -30,7 +30,14 @@ describe('CoreModel', function() {
 			});
 
 			it('Verify JSON stored export', function() {
-				let exported = JSON.parse(object.toStoredJSON());
+				let exported = object.toStoredJSON();
+				assert.equal(exported.__serverOnly, 'server');
+				assert.equal(exported._test, 'plop');
+				assert.equal(exported.test, 'plop');
+			});
+
+			it('Verify JSON stored export - stringify', function() {
+				let exported = JSON.parse(object.toStoredJSON(true));
 				assert.equal(exported.__serverOnly, 'server');
 				assert.equal(exported._test, 'plop');
 				assert.equal(exported.test, 'plop');

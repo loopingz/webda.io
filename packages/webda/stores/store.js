@@ -1,7 +1,7 @@
 "use strict";
 
 var stores = {};
-var uuid = require('uuid');
+const uuid = require('uuid');
 const Executor = require("../services/executor");
 const _extend = require("util")._extend;
 
@@ -275,7 +275,7 @@ class Store extends Executor {
 				return this.emit('Store.Update', {'object': loaded, 'store': this, 'update': object});
 			}).then(() => {
 				if (typeof(loaded._onUpdate) === 'function') {
-					loaded._onUpdate(object);
+					return loaded._onUpdate(object);
 				}
 				return Promise.resolve();
 			}).then(() => {
@@ -295,7 +295,7 @@ class Store extends Executor {
 			return this.emit('Store.Updated', {'object': result, 'store': this});
 		}).then(() => {
 			if (typeof(saved._onUpdated) === 'function') {
-				saved._onUpdated();
+				return saved._onUpdated();
 			}
 			return Promise.resolve();
 		}).then(() => {
@@ -516,15 +516,17 @@ class Store extends Executor {
 			if (typeof(uid) === 'object') {
 				to_delete = uid;
 				uid = to_delete.uuid;
-				resolve(to_delete);
-			} else {
-				resolve(this._get(uid));
-			}	
+				if (uid instanceof this._model) {
+					resolve(to_delete);
+					return;
+				}
+			}
+			resolve(this._get(uid));
 		}).then( (obj) => {
 			if (obj === undefined) {
 				throw 404;
 			}
-			to_delete = obj;
+			to_delete = this.initModel(obj);
 			saved = obj;
 			return this.emit('Store.Delete', {'object': obj, 'store': this});
 		}).then( () => {

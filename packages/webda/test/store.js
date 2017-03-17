@@ -165,7 +165,7 @@ var crud = function (identStore,userStore) {
   });
 };
 
-var skipDynamo = true;
+var skipAWS = true;
 var skipMongo = true;
 describe('Store', function() {
     var webda;
@@ -173,8 +173,8 @@ describe('Store', function() {
     var userStore;
     before (function () {
       skipMongo = process.env["WEBDA_MONGO_URL"] === undefined;
-      skipDynamo = process.env["WEBDA_AWS_KEY"] === undefined;
-      if (skipDynamo) {
+      skipAWS = process.env["WEBDA_AWS_KEY"] === undefined;
+      if (skipAWS) {
         console.log("Not running DynamoStore test as no AWS env found");
       }
       if (skipMongo) {
@@ -286,7 +286,7 @@ describe('Store', function() {
     describe('DynamoStore', function() {
       var uuids = {};
       beforeEach(function () {
-        if (skipDynamo) {
+        if (skipAWS) {
           return;
         }
         identStore = webda.getService("dynamoidents");
@@ -298,10 +298,10 @@ describe('Store', function() {
           return userStore.__clean();
         });
       });
-      it('Basic CRUD', function() { if (skipDynamo) { this.skip(); return; } return crud(identStore, userStore); });
-      it('Mapper', function() { if (skipDynamo) { this.skip(); return; } return mapper(identStore, userStore); });
+      it('Basic CRUD', function() { if (skipAWS) { this.skip(); return; } return crud(identStore, userStore); });
+      it('Mapper', function() { if (skipAWS) { this.skip(); return; } return mapper(identStore, userStore); });
       it('Date handling', function() {
-        if (skipDynamo) { this.skip(); return; }
+        if (skipAWS) { this.skip(); return; }
         return userStore.save({"uuid": "testUpdate", "subobject": {"empty": "", "t": {"plop": ""}, "date": new Date()}}).then ( () => {
           return userStore.get("testUpdate");
         }).then ((user) => {

@@ -21,6 +21,14 @@
 				"WebdaTest/Ident": "./test/models/ident"
 			},
 			"services": {
+				"MemoryQueue": {
+					"type": "MemoryQueue",
+					"expire": 1
+				},
+				"SQSQueue": {
+					"type": "SQSQueue",
+					"queue": "https://sqs.us-east-1.amazonaws.com/277712386420/webda-test"
+				},
 				"Authentication": {
 					"successRedirect": "https://shootandprove.loopingz.com/user.html",
 					"failureRedirect": "/login-error",

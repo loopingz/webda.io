@@ -1,3 +1,4 @@
+"use strict";
 const Service = require("../services/service");
 
 class QueueService extends Service {
@@ -11,6 +12,10 @@ class QueueService extends Service {
 	}
 
 	deleteMessage(id) {
+		throw Error("Abstract service");
+	}
+
+	size() {
 		throw Error("Abstract service");
 	}
 

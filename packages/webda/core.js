@@ -42,6 +42,8 @@ class Webda {
 		this._services['Webda/FileBinary']=require('./services/filebinary');
 		this._services['Webda/S3Binary']=require('./services/s3binary');
 		this._services['Webda/Mailer']=require('./services/mailer');
+		this._services['Webda/MemoryQueue']=require('./queues/memoryqueue');
+		this._services['Webda/SQSQueue']=require('./queues/sqsqueue');
 		// Models
 		this._models = {};
 		this._models['Webda/CoreModel']=require('./models/coremodel');

@@ -1,3 +1,4 @@
+"use strict";
 const QueueService = require("./queueservice");
 const AWS = require('aws-sdk');
 
@@ -5,6 +6,12 @@ class SQSQueueService extends QueueService {
 
 	init(config) {
 		super.init(config);
+		if (this._params.accessKeyId === undefined || this._params.accessKeyId === '') {
+			this._params.accessKeyId = process.env["WEBDA_AWS_KEY"];
+		}
+		if (this._params.secretAccessKey === undefined || this._params.secretAccessKey === '') {
+			this._params.secretAccessKey = process.env["WEBDA_AWS_SECRET"];
+		}
 		if (this._params.accessKeyId && this._params.secretAccessKey) {
             AWS.config.update({accessKeyId: this._params.accessKeyId, secretAccessKey: this._params.secretAccessKey});
       	}
@@ -12,6 +19,12 @@ class SQSQueueService extends QueueService {
 		if (!this._params.WaitTimeSeconds) {
 			this._params.WaitTimeSeconds = 20;
 		}
+	}
+
+	size() {
+		return this.sqs.getQueueAttributes({AttributeNames: ["ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"], QueueUrl: this._params.queue}).promise().then( (res) => {
+			return Promise.resolve(parseInt(res['Attributes']['ApproximateNumberOfMessages']) + parseInt(res['Attributes']['ApproximateNumberOfMessagesNotVisible']));
+		});
 	}
 
 	sendMessage(params) {
@@ -45,6 +58,10 @@ class SQSQueueService extends QueueService {
 				resolve(data);
 			});
 		});
+	}
+
+	__clean() {
+		return this.sqs.purgeQueue({QueueUrl: this._params.queue}).promise();
 	}
 
 }

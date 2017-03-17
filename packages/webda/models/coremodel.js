@@ -118,6 +118,13 @@ class CoreModel extends OwnerPolicy(Object) {
 		return obj;
 	}
 
+	_getService(service) {
+		if (!this.__store) {
+			return undefined;
+		}
+		return this.__store.getService(service);
+	}
+
 	_toJSON(secure) {
 		let obj = {};
 		for (let i in this) {

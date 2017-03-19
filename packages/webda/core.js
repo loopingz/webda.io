@@ -169,6 +169,16 @@ class Webda {
 	}
 
 	/**
+	 * Return webda current version
+	 *
+	 * @returns package version
+	 * @since 0.4.0
+	 */
+	getVersion() {
+		return JSON.parse(fs.readFileSync(__dirname + '/package.json')).version;
+	}
+
+	/**
 	 * To define the locales just add a locales: ['en-GB', 'fr-FR'] in your host global configuration
 	 *
 	 * @return The configured locales or "en-GB" if none are defined

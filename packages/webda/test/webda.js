@@ -37,6 +37,11 @@ describe('Webda', function() {
       assert.equal(ctx.getLocale(), 'en-GB');
     });
   });
+  describe('getVersion()', function() {
+    it('current', function() {
+      assert.equal(webda.getVersion(), '0.3.0');
+    });
+  });
   describe('getService()', function () {
     it('Illegal vhost', function () {
         assert.equal(null, webda.getService("Authentication"));

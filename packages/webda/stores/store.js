@@ -584,7 +584,17 @@ class Store extends Executor {
 	/**
 	 * Get an object
 	 *
-	 * @param {String} uuid to delete
+	 * @param {Array} uuid to gets if undefined then retrieve the all table
+	 * @return {Promise} the objects retrieved ( can be [] if not found )
+	 */
+	getAll(list) {
+		throw "AbstractStore has no getAll";
+	}
+
+	/**
+	 * Get an object
+	 *
+	 * @param {String} uuid to get
 	 * @return {Promise} the object retrieved ( can be undefined if not found )
 	 */
 	get(uid) {

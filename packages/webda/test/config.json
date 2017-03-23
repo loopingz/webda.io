@@ -82,6 +82,7 @@
 							"create": true
 						}
 					},
+					"scanPage": 2,
 					"type": "DynamoStore",
 					"table": "webda-test-users"
 				},

@@ -34,6 +34,19 @@ class MemoryStore extends Store {
 		return Promise.resolve(this.storage[uid]);
 	}
 
+	getAll(uids) {
+		if (!uids) {
+			return Object.values(this.storage);
+		}
+		let result = [];
+		for (let i in uids) {
+			if (this.storage[uids[i]]) {
+				result.push(this.storage[uids[i]]);
+			}
+		}
+		return Promise.resolve(result);
+	}
+
 	_get(uid) {
 		return Promise.resolve(this.storage[uid]);
 	}

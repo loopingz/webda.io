@@ -9,6 +9,28 @@ var ident1;
 var ident2;
 var executor;
 var ctx;
+
+function getAll(identStore, userStore) {
+  var user1;
+  var user2;
+  var user3;
+  return userStore.save({'name': 'test1'}).then( function (user) {
+    user1 = user;
+    return userStore.save({'name': 'test2'});
+  }).then( function (user) {
+    user2 = user;
+    return userStore.save({'name': 'test3'});
+  }).then( function (user) {
+    user3 = user;
+    return userStore.getAll();
+  }).then( function(users) {
+    assert.equal(users.length, 3);
+    return userStore.getAll([user1.uuid, user3.uuid]);
+  }).then( function(users) {
+    assert.equal(users.length, 2);
+  });
+}
+
 var mapper = function (identStore, userStore) {
   var eventFired = 0;
   var events = ['Store.Save','Store.Saved','Store.Get','Store.Delete','Store.Deleted','Store.Update','Store.Updated','Store.Find','Store.Found'];
@@ -197,6 +219,7 @@ describe('Store', function() {
       });
       it('Basic CRUD', function() { return crud(identStore, userStore); });
       it('Mapper', function() { return mapper(identStore, userStore); });
+      it('GetAll / Scan', function() { return getAll(identStore, userStore); });
     });
     describe('Store', function() {
       var eventFired = 0;
@@ -266,6 +289,7 @@ describe('Store', function() {
       });
       it('Basic CRUD', function() { if (skipMongo) { this.skip(); return; } return crud(identStore, userStore); });
       it('Mapper', function() { if (skipMongo) { this.skip(); return; } return mapper(identStore, userStore); });
+      it('GetAll / Scan', function() { if (skipMongo) { this.skip(); return; } return getAll(identStore, userStore); });
     });
     describe('MemoryStore', function() {
       beforeEach(function () {
@@ -282,6 +306,7 @@ describe('Store', function() {
       });
       it('Basic CRUD', function() { return crud(identStore, userStore); });
       it('Mapper', function() { return mapper(identStore, userStore); });
+      it('GetAll / Scan', function() { return getAll(identStore, userStore); });
     });
     describe('DynamoStore', function() {
       var uuids = {};
@@ -300,6 +325,7 @@ describe('Store', function() {
       });
       it('Basic CRUD', function() { if (skipAWS) { this.skip(); return; } return crud(identStore, userStore); });
       it('Mapper', function() { if (skipAWS) { this.skip(); return; } return mapper(identStore, userStore); });
+      it('GetAll / Scan', function() { if (skipAWS) { this.skip(); return; } return getAll(identStore, userStore); });
       it('Date handling', function() {
         if (skipAWS) { this.skip(); return; }
         return userStore.save({"uuid": "testUpdate", "subobject": {"empty": "", "t": {"plop": ""}, "date": new Date()}}).then ( () => {
@@ -308,8 +334,6 @@ describe('Store', function() {
           assert.notEqual(user.date, {});
         });
       });
-    });
-    describe('DynamoStore', function() {
       it('Body cleaning', function() {
         //var parse = require("./data/to_clean.json");
         userStore = webda.getService("dynamousers");

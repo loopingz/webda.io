@@ -128,6 +128,19 @@ class MongoStore extends Store {
 		});
 	}
 
+	getAll(uids) {
+		var items = [];
+		return this._connect().then( () => {
+			let params = {};
+			if (uids) {
+				params._id = {$in: uids};
+			}
+			return this._collection.find(params);
+		}).then ( (result) => {
+			return result.toArray();
+		});
+	}
+
 	_get(uid) {
 		return this._connect().then( () => {
 			return this._collection.findOne({ _id: uid});

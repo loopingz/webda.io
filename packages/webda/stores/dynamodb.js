@@ -174,6 +174,34 @@ class DynamoStore extends Store {
 		return this._client.update(params).promise();
 	}
 
+	_scan(items, paging) {
+		return new Promise( (resolve, reject) => {
+			this._client.scan({TableName: this._params.table, Limit: this._params.scanPage, ExclusiveStartKey: paging}, (err, data) => {
+				if (err) {
+					reject(err);
+				}
+				for (let i in data.Items) {
+					items.push(data.Items[i]);
+				}
+				if (data.LastEvaluatedKey) {
+					return resolve(this._scan(items, data.LastEvaluatedKey));
+				}
+				return resolve(items);
+			});
+		});
+	}
+
+	getAll(uids) {
+		if (!uids) {
+			return this._scan([]);
+		}
+		var params = {'RequestItems': {}};
+		params['RequestItems'][this._params.table] = {'Keys': uids.map((value) => {return {"uuid": value};})};
+		return this._client.batchGet(params).promise().then ((result) => {
+			return Promise.resolve(result.Responses[this._params.table]);
+		});
+	}
+
 	_get(uid) {
 		var params = {'TableName': this._params.table, 'Key': {"uuid": uid}};
 		return this._client.get(params).promise().then ((result) => {

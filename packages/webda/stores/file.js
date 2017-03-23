@@ -117,6 +117,21 @@ class FileStore extends Store {
 		});
 	}
 
+	getAll(uids) {
+		if (!uids) {
+			uids = [];
+			var files = fs.readdirSync(this._params.folder);
+			for (var file in files) {
+				uids.push(file);
+			}
+		}
+		let result = [];
+		for (let i in uids) {
+			result.push(this._get(uids[i]));
+		}
+		return Promise.all(result);
+	}
+
 	_get(uid) {
 		return this.exists(uid).then ((res) => {
 			if (res) {

@@ -191,7 +191,7 @@ class AWSDeployer extends Deployer {
 			FunctionName: this._lambdaFunctionName,
 			Handler: this._lambdaHandler,
 			Role: this._lambdaRole,
-			Runtime: 'nodejs4.3',
+			Runtime: 'nodejs6.10',
 			Timeout: this._lamdaTimeout,
 			'Description': 'Deployed with Webda for API: ' + this._restApiName,
 			Publish: true

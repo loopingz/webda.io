@@ -36,7 +36,9 @@ class MemoryStore extends Store {
 
 	getAll(uids) {
 		if (!uids) {
-			return Object.values(this.storage);
+			return Object.keys(this.storage).map((key) => {
+			    return this.storage[key];
+			});
 		}
 		let result = [];
 		for (let i in uids) {

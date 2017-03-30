@@ -2,17 +2,23 @@
 "use strict";
 var fs = require('fs');
 var child_process = require('child_process');
+const yauzl = require("yauzl");
+const path = require("path");
+const mkdirp = require("mkdirp");
+const rp = require('request-promise');
+const colors = require('colors');
+const readline = require('readline');
 
 if (fs.existsSync("node_modules/webda")) {
   // Local module of webda exists use it
-  console.log("Using local webda");
-  global.__webda = process.cwd() + '/node_modules/webda';  
+  console.log("Using local web" + "da".yellow);
+  global.__webda = process.cwd() + '/node_modules/webda';
 } else if (fs.existsSync("core.js") && fs.existsSync("services/executor.js")) {
   console.log("Using local webda development version");
   // We are in a webda development directory
   global.__webda = process.cwd();
 } else {
-  console.log("Using embedded webda");
+  console.log("Using embedded web" + "da".yellow);
   // Use the webda-shell default webda
   global.__webda = 'webda';
 }
@@ -22,16 +28,23 @@ var server;
 if (fs.existsSync('handlers/config.js')) {
   global.__webda_shell = "..";
 } else {
-  global.__webda_shell = "webda-shell";  
+  global.__webda_shell = "webda-shell";
 }
 config = require(global.__webda_shell + '/handlers/config');
 server = require(global.__webda_shell + '/handlers/http');
 
 var arg = process.argv[2];
 
-if ('--help' === arg || null == arg) {
-  console.log('\n  USAGE: webda [config|serve|deploy|debug]\n\n');
+if ('--help' === arg || null === arg) {
+  let bold = parseInt('033', 8);
+  console.log('\n  USAGE: webda [config|init|serve|deploy|debug]\n\n');
   console.log('  --help                     Display this message and exit\n');
+  console.log('');
+  console.log(' config'.bold.yellow + ': Launch the configuration UI');
+  console.log(' init'.bold.yellow + ': Init a sample project');
+  console.log(' serve'.bold.yellow + ': Serve current project');
+  console.log(' deploy'.bold.yellow + ': Deploy current project');
+  console.log(' debug'.bold.yellow + ': Debug current project');
   process.exit(0);
 }
 
@@ -41,8 +54,50 @@ var server_pid;
 var server_config;
 var deployment;
 if (args.length > 1) {
-  deployment = args[1]; 
+  deployment = args[1];
 }
+
+function unzip(dest_dir, body) {
+  if (!dest_dir.endsWith('/')) {
+    dest_dir += '/';
+  }
+  return new Promise((resolve, reject) => {
+    yauzl.fromBuffer(body, {lazyEntries: true}, function(err, zipfile) {
+        if (err) {
+          return reject(err);
+        }
+        zipfile.readEntry();
+        zipfile.on("end", function() {
+          return resolve();
+        });
+        zipfile.on("entry", function(entry) {
+          if (/\/$/.test(entry.fileName)) {
+          // directory file names end with '/'
+          mkdirp(dest_dir + entry.fileName, function(err) {
+            if (err) {
+              return reject(err);
+            }
+            zipfile.readEntry();
+          });
+          } else {
+          // file entry
+          zipfile.openReadStream(entry, function(err, readStream) {
+            if (err) throw err;
+            // ensure parent directory exists
+            mkdirp(path.dirname(dest_dir + entry.fileName), function(err) {
+              if (err) throw err;
+              readStream.pipe(fs.createWriteStream(dest_dir + entry.fileName));
+              readStream.on("end", function() {
+                zipfile.readEntry();
+              });
+            });
+          });
+          }
+      });
+    });
+  });
+}
+
 switch (arg) {
   case 'serve':
     if (deployment) {
@@ -53,6 +108,62 @@ switch (arg) {
     }
     webda = new server(server_config);
     return webda.serve(18080);
+  case 'init':
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    webda = require(global.__webda + '/core.js');
+    if (!webda.prototype.getVersion) {
+      console.log('You are using a webda < 0.3.1, you should update');
+      return;
+    }
+    let version = webda.prototype.getVersion();
+    if (!deployment) {
+      deployment = '.';
+    }
+    if (!deployment.startsWith('.') && !deployment.startsWith('/')) {
+      deployment = './' + deployment;
+    }
+    console.log('Init a sample project for webda v' + version + ' to ' + deployment);
+    let promise = Promise.resolve();
+    if (!fs.existsSync(deployment)) {
+      promise = new Promise((resolve, reject) => {
+        rl.question('The target folder does not exist, do you want to create it ? Y/N', (answer) => {
+          if (answer === 'Y' || answer === 'y') {
+            return resolve(mkdirp(deployment));
+          }
+          rl.close();
+          process.exit(0);
+        });
+      });
+    } else if (fs.readdirSync(deployment).length) {
+      promise = new Promise((resolve, reject) => {
+        rl.question('The target folder is not empty, do you want to continue ?'.red + ' Y/N', (answer) => {
+          if (answer === 'Y' || answer === 'y') {
+            return resolve();
+          }
+          rl.close();
+          process.exit(0);
+        });
+      });
+    }
+    return promise.then( () => {
+      return rp({method: 'GET', uri: 'http://webda.io/samples/v'+version+'.zip',
+                  resolveWithFullResponse: true, encoding: null })
+    }).then( (response) => {
+      return unzip(deployment, response.body);
+    }).then( () => {
+      console.log('Your project has been initialized with a sample project'.green);
+      if (fs.existsSync('./README.md')) {
+        console.log('\nYou can read the README.md for further instruction'.green);
+      }
+    }).catch( (err) => {
+        console.log('There is no sample found for this version of webda, sorry :('.red);
+    }).then( () => {
+      rl.close();
+      process.exit(0);
+    });
   case 'debug':
     let launchServe = function() {
       if (server_pid) {

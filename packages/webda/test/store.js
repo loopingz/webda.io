@@ -120,6 +120,54 @@ var mapper = function (identStore, userStore) {
   });
 }
 
+var collection = function(identStore) {
+  var ident;
+  var failed = false;
+  return identStore.save({'test': 'plop'}).then( (res) => {
+    ident = res;
+    return identStore.upsertItemToCollection(ident.uuid, 'actions', {uuid: 'action_1', type: 'plop', date: new Date()});
+  }).then( () => {
+    return ident.refresh();
+  }).then( () => {
+    assert.notEqual(ident.actions, undefined);
+    assert.equal(ident.actions.length, 1);
+    return identStore.upsertItemToCollection(ident.uuid, 'actions', {uuid: 'action_2', type: 'plop', date: new Date()});
+  }).then( () => {
+    return ident.refresh();
+  }).then( () => {
+    assert.notEqual(ident.actions, undefined);
+    assert.equal(ident.actions.length, 2);
+    return identStore.upsertItemToCollection(ident.uuid, 'actions', {uuid: 'action_1', type: 'plop2', date: new Date()}, 0);
+  }).then( () => {
+    return ident.refresh();
+  }).then( () => {
+    assert.notEqual(ident.actions, undefined);
+    assert.equal(ident.actions.length, 2);
+    assert.equal(ident.actions[0].type, 'plop2');
+    assert.equal(ident.actions[0].uuid, 'action_1');
+    return identStore.upsertItemToCollection(ident.uuid, 'actions', {uuid: 'action_1', type: 'plop2', date: new Date()}, 0, 'plop', 'type');
+  }).catch( (err) => {
+    failed = true;
+  }).then( () => {
+    assert.equal(failed, true);
+    failed = false;
+    return identStore.deleteItemFromCollection(ident.uuid, 'actions', 0, 'action_2');
+  }).catch( (err) => {
+    failed = true;
+  }).then( () => {
+    assert.equal(failed, true);
+    failed = false;
+    return identStore.deleteItemFromCollection(ident.uuid, 'actions', 0, 'action_1');
+  }).then( () => {
+    return ident.refresh();
+  }).then( () => {
+    assert.notEqual(ident.actions, undefined);
+    assert.equal(ident.actions.length, 1);
+    assert.equal(ident.actions[0].type, 'plop');
+    assert.equal(ident.actions[0].uuid, 'action_2');
+  });
+}
+
 var crud = function (identStore,userStore) {
   var eventFired = 0;
   var events = ['Store.Save','Store.Saved','Store.Get','Store.Delete','Store.Deleted','Store.Update','Store.Updated','Store.Find','Store.Found'];
@@ -218,6 +266,7 @@ describe('Store', function() {
         userStore.__clean();
       });
       it('Basic CRUD', function() { return crud(identStore, userStore); });
+      it('Collection CRUD', function() { return collection(identStore); });
       it('Mapper', function() { return mapper(identStore, userStore); });
       it('GetAll / Scan', function() { return getAll(identStore, userStore); });
     });
@@ -288,6 +337,7 @@ describe('Store', function() {
         });
       });
       it('Basic CRUD', function() { if (skipMongo) { this.skip(); return; } return crud(identStore, userStore); });
+      it('Collection CRUD', function() { if (skipMongo) { this.skip(); return; } return collection(identStore); });
       it('Mapper', function() { if (skipMongo) { this.skip(); return; } return mapper(identStore, userStore); });
       it('GetAll / Scan', function() { if (skipMongo) { this.skip(); return; } return getAll(identStore, userStore); });
     });
@@ -305,6 +355,7 @@ describe('Store', function() {
         });
       });
       it('Basic CRUD', function() { return crud(identStore, userStore); });
+      it('Collection CRUD', function() { return collection(identStore); });
       it('Mapper', function() { return mapper(identStore, userStore); });
       it('GetAll / Scan', function() { return getAll(identStore, userStore); });
     });
@@ -324,6 +375,7 @@ describe('Store', function() {
         });
       });
       it('Basic CRUD', function() { if (skipAWS) { this.skip(); return; } return crud(identStore, userStore); });
+      it('Collection CRUD', function() { if (skipAWS) { this.skip(); return; } return collection(identStore); });
       it('Mapper', function() { if (skipAWS) { this.skip(); return; } return mapper(identStore, userStore); });
       it('GetAll / Scan', function() { if (skipAWS) { this.skip(); return; } return getAll(identStore, userStore); });
       it('Date handling', function() {

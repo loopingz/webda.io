@@ -118,8 +118,9 @@ class DynamoStore extends Store {
 		params.ExpressionAttributeValues = attrValues;
 		params.ExpressionAttributeNames = attrs;
 		if (index === undefined) {
-			params.UpdateExpression = "SET #" + prop + "= list_append(#"+prop+",:"+prop+")";
+			params.UpdateExpression = "SET #" + prop + "= list_append(if_not_exists (#"+prop+", :empty_list),:"+prop+")";
 			attrValues[":"+prop] = [attrValues[":"+prop]];
+			attrValues[":empty_list"] = [];
 		} else {
 			params.UpdateExpression = "SET #" + prop + "[" + index + "] = :" + prop;
 			params.WriteCondition = "attribute_not_exists(#" + prop + "[" + index + "]) AND #" + prop + "[" + index + "]." + itemWriteConditionField + " = " + itemWriteCondition;

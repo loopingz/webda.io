@@ -639,7 +639,6 @@ class Store extends Executor {
 		var object = new this._model(ctx.body);
 		return object.canCreate(ctx).then( (object) => {
 			return object.validate(ctx).catch( (err) => {
-				console.log(err);
 				throw 400;
 			});
 		}).then( () => {
@@ -661,7 +660,6 @@ class Store extends Executor {
 			return object.canUpdate(ctx);
 		}).then( (object) => {
 			return object.validate(ctx, ctx.body).catch( (err) => {
-				console.log(err);
 				throw 400;
 			});
 		}).then( () => {

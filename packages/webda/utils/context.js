@@ -122,6 +122,23 @@ class Context {
 	}
 
 	/**
+	 * Get the current user from session
+	 */
+	getCurrentUser() {
+		let uid = this.getCurrentUserId();
+		return this.getService('Users').get(uid);
+	}
+
+	/**
+	 * Get the current user id from session
+	 */
+	getCurrentUserId() {
+		if (this.session) {
+			return this.session.getUserId();
+		}
+		return undefined;
+	}
+	/**
 	 * Get the request locale if found
 	 */
 	getLocale() {

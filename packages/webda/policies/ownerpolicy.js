@@ -11,12 +11,17 @@ const OwnerPolicy = Sup => class extends Sup {
 		}
 		return Promise.resolve(this);
 	}
+
+	getOwner() {
+		return this.user;
+	}
+
 	/**
 	 * Return false if can't update
 	 */
 	canUpdate(ctx) {
 		// Allow to modify itself by default
-		if (ctx.session.getUserId() !== this.user && ctx.session.getUserId() !== this.uuid) {
+		if (ctx.session.getUserId() !== this.getOwner() && ctx.session.getUserId() !== this.uuid) {
 			throw 403;
 		}
 		return Promise.resolve(this);
@@ -28,10 +33,10 @@ const OwnerPolicy = Sup => class extends Sup {
 		if (this.public) {
 			return Promise.resolve(this);
 		}
-		if (ctx.session.getUserId() !== this.user && ctx.session.getUserId() !== this.uuid) {
+		if (ctx.session.getUserId() !== this.getOwner() && ctx.session.getUserId() !== this.uuid) {
 			throw 403;
 		}
-		if (!this.user && ctx.session.getUserId() !== this.uuid) {
+		if (!this.getOwner() && ctx.session.getUserId() !== this.uuid) {
 			throw 403;
 		}
 		return Promise.resolve(this);
@@ -40,7 +45,7 @@ const OwnerPolicy = Sup => class extends Sup {
 	 * Return false if can't delete
 	 */
 	canDelete(ctx) {
-		if (ctx.session.getUserId() !== this.user && ctx.session.getUserId() !== this.uuid) {
+		if (ctx.session.getUserId() !== this.getOwner() && ctx.session.getUserId() !== this.uuid) {
 			throw 403;
 		}
 		return Promise.resolve(this);

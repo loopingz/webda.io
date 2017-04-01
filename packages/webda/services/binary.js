@@ -230,13 +230,7 @@ class Binary extends Executor {
 		var update;
 		var promise;
 		if (index == "add") {
-			if (object[property] === undefined) {
-				var obj = {};
-				obj[property] = [fileObj];
-				promise = targetStore._update(obj, object.uuid);
-			} else {
-				promise = targetStore.upsertItemToCollection(object.uuid, property, fileObj);
-			}
+			promise = targetStore.upsertItemToCollection(object.uuid, property, fileObj);
 		} else {
 			promise = targetStore.upsertItemToCollection(object.uuid, property, fileObj, index, object[property][index].hash, 'hash');
 			info = object[property][index];

@@ -37,23 +37,20 @@ class SQSQueueService extends QueueService {
 	receiveMessage() {
 		this.queueArg = {QueueUrl: this._params.queue, WaitTimeSeconds: this._params.WaitTimeSeconds};
 		return new Promise( (resolve, reject) => {
-			this.sqs.receiveMessage(this.queueArg, (err, data) => {
-				if (err) {
-					reject(err);
-				}
+			this.sqs.receiveMessage(this.queueArg).promise().then((data) => {
 				if (!data.Messages) {
-					return resolve([]);
+					return Promise.resolve([]);
 				}
-				resolve(data.Messages);
+				return Promise.resolve(data.Messages);
 			});
 		});
 	}
 
 	deleteMessage(receipt) {
 		return new Promise( (resolve, reject) => {
-			return this.sqs.deleteMessage({QueueUrl: this._params.queue, ReceiptHandle: receipt}, (err, data) => {
+			this.sqs.deleteMessage({QueueUrl: this._params.queue, ReceiptHandle: receipt}, (err, data) => {
 				if (err) {
-					reject(err);
+					return reject(err);
 				}
 				resolve(data);
 			});

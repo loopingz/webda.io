@@ -25,9 +25,14 @@ function getAll(identStore, userStore) {
     return userStore.getAll();
   }).then( function(users) {
     assert.equal(users.length, 3);
+    assert.equal(users[0] instanceof userStore._model, true);
+    assert.equal(users[1] instanceof userStore._model, true);
+    assert.equal(users[2] instanceof userStore._model, true);
     return userStore.getAll([user1.uuid, user3.uuid]);
   }).then( function(users) {
     assert.equal(users.length, 2);
+    assert.equal(users[0] instanceof userStore._model, true);
+    assert.equal(users[1] instanceof userStore._model, true);
   });
 }
 

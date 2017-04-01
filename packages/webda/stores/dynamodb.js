@@ -182,7 +182,7 @@ class DynamoStore extends Store {
 					reject(err);
 				}
 				for (let i in data.Items) {
-					items.push(data.Items[i]);
+					items.push(this.initModel(data.Items[i]));
 				}
 				if (data.LastEvaluatedKey) {
 					return resolve(this._scan(items, data.LastEvaluatedKey));
@@ -199,7 +199,7 @@ class DynamoStore extends Store {
 		var params = {'RequestItems': {}};
 		params['RequestItems'][this._params.table] = {'Keys': uids.map((value) => {return {"uuid": value};})};
 		return this._client.batchGet(params).promise().then ((result) => {
-			return Promise.resolve(result.Responses[this._params.table]);
+			return Promise.resolve(result.Responses[this._params.table].map(this.initModel, this));
 		});
 	}
 

@@ -127,7 +127,7 @@ class FileStore extends Store {
 		}
 		let result = [];
 		for (let i in uids) {
-			result.push(this._get(uids[i]));
+			result.push(this.initModel(this._get(uids[i])));
 		}
 		return Promise.all(result);
 	}

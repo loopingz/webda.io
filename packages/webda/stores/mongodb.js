@@ -138,6 +138,8 @@ class MongoStore extends Store {
 			return this._collection.find(params);
 		}).then ( (result) => {
 			return result.toArray();
+		}).then ( (items) => {
+			return items.map(this.initModel, this);
 		});
 	}
 

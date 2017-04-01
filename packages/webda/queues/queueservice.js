@@ -19,11 +19,19 @@ class QueueService extends Service {
 		throw Error("Abstract service");
 	}
 
+	_workerResume() {
+		if (this._timeout) {
+			clearTimeout(this._timeout);
+		}
+		this._timeout = setTimeout(this._workerReceiveMessage.bind(this), 1000);
+		return Promise.resolve();
+	}
+
 	_workerReceiveMessage() {
 		try {
-			this.receiveMessage().then( (items) => {
+			return this.receiveMessage().then( (items) => {
 				if (items.length === 0) {
-					setTimeout(this._workerReceiveMessage.bind(this), 1000);
+					return this._workerResume();
 				}
 				var promise = Promise.resolve();
 				for (var i = 0; i < items.length; i++) {
@@ -36,12 +44,12 @@ class QueueService extends Service {
 						});
 					})(items[i]);
 				}
-				promise.then( () => {
-					setTimeout(this._workerReceiveMessage.bind(this), 1000);
-				}).catch( (err) => {
-					console.log('Error with notification', err);
-					setTimeout(this._workerReceiveMessage.bind(this), 1000);
-				});
+				return promise;
+			}).then( () => {
+				return this._workerResume();
+			}).catch( (err) => {
+				console.log('Error with notification', err);
+				return this._workerResume();
 			});
 		} catch (err) {
 			this.pause *= 2;

@@ -5,50 +5,50 @@ var config = require("./config.json");
 var webda;
 var ctx;
 
-describe('Webda', function() {
-  beforeEach( function() {
+describe('Webda', function () {
+  beforeEach(function () {
     webda = new Webda(config);
     ctx = webda.newContext();
   });
-  describe('getLocales()', function() {
+  describe('getLocales()', function () {
     var headers = {};
-    it('Get default locale', function() {
+    it('Get default locale', function () {
       webda.setHost("test.webda.io");
       headers['Accept-Language'] = 'zh-CN';
       ctx.setRoute({_http: {headers: headers}});
       assert.equal(ctx.getLocale(), 'es-ES');
     });
-    it('Get approx locale', function() {
+    it('Get approx locale', function () {
       webda.setHost("test.webda.io");
       headers['Accept-Language'] = 'en-US;q=0.6,en;q=0.4,es;q=0.2';
       ctx.setRoute({_http: {headers: headers}});
       assert.equal(ctx.getLocale(), 'en-GB');
     });
-    it('Get exact locale', function() {
+    it('Get exact locale', function () {
       webda.setHost("test.webda.io");
       headers['Accept-Language'] = 'fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4,es;q=0.2';
       ctx.setRoute({_http: {headers: headers}});
       assert.equal(ctx.getLocale(), 'fr-FR');
     });
-    it('Get fallback locale', function() {
+    it('Get fallback locale', function () {
       webda.setHost("test.webda.io");
       headers['Accept-Language'] = 'zn-CH,zn;q=0.8,en-US;q=0.6,en;q=0.4,es;q=0.2';
       ctx.setRoute({_http: {headers: headers}});
       assert.equal(ctx.getLocale(), 'en-GB');
     });
   });
-  describe('getVersion()', function() {
-    it('current', function() {
+  describe('getVersion()', function () {
+    it('current', function () {
       assert.equal(webda.getVersion(), '0.3.2');
     });
   });
   describe('getService()', function () {
     it('Illegal vhost', function () {
-        assert.equal(null, webda.getService("Authentication"));
+      assert.equal(null, webda.getService("Authentication"));
     });
     it('normal', function () {
-        webda.setHost("test.webda.io");
-        assert.notEqual(null, webda.getService("Authentication"));
+      webda.setHost("test.webda.io");
+      assert.notEqual(null, webda.getService("Authentication"));
     });
   })
   describe('getExecutor()', function () {
@@ -112,7 +112,7 @@ describe('Webda', function() {
       executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/auth/google/callback?code=4/kS_0n1xLdgh47kNTNY064vUMNR0ZJtHUzy9jFxHRY_k#");
       assert.equal(ctx._params.code, "4/kS_0n1xLdgh47kNTNY064vUMNR0ZJtHUzy9jFxHRY_k#");
       assert.equal(ctx._params.provider, "google");
-      
+
     });
     it('/ inside path', function () {
       executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/urltemplate/666/test");

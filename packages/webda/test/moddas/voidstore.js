@@ -3,30 +3,30 @@
 const Store = require("../../stores/store");
 
 class VoidStore extends Store {
-	
-	exists(uid) {
-		return Promise.resolve(true);
-	}
 
-	_find(request, offset, limit) {
-		return Promise.resolve([]);
-	}
+  exists(uid) {
+    return Promise.resolve(true);
+  }
 
-	_save(object, uid) {
-		return Promise.resolve(object);
-	}
+  _find(request, offset, limit) {
+    return Promise.resolve([]);
+  }
 
-	_delete(uid) {
-		return Promise.resolve();
-	}
+  _save(object, uid) {
+    return Promise.resolve(object);
+  }
 
-	_update(object, uid) {
-		return Promise.resolve(object);
-	}
+  _delete(uid) {
+    return Promise.resolve();
+  }
 
-	_get(uid) {
-		return Promise.resolve({});
-	}
+  _update(object, uid) {
+    return Promise.resolve(object);
+  }
+
+  _get(uid) {
+    return Promise.resolve({});
+  }
 }
 
 

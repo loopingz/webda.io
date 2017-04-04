@@ -16,18 +16,18 @@ const Executor = require('../services/executor.js');
  *
  */
 class StringRouteHelper extends Executor {
-	/** @ignore */
-	execute(ctx) {
-		if (ctx._params.mime) {
-		   ctx.writeHead(200, {'Content-Type': ctx._params.mime});
-		}
-		if (typeof ctx._params.result != "string") {
-			ctx.write(JSON.stringify(ctx._params.result));
-		} else {
-			ctx.write(ctx._params.result);
-		}
-		ctx.end();
-	}
+  /** @ignore */
+  execute(ctx) {
+    if (ctx._params.mime) {
+      ctx.writeHead(200, {'Content-Type': ctx._params.mime});
+    }
+    if (typeof ctx._params.result != "string") {
+      ctx.write(JSON.stringify(ctx._params.result));
+    } else {
+      ctx.write(ctx._params.result);
+    }
+    ctx.end();
+  }
 }
 
 module.exports = StringRouteHelper

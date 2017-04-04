@@ -14,20 +14,20 @@ const Executor = require("../services/executor.js");
  */
 class FileRouteHelper extends Executor {
 
-	/**
-	 * @ignore
-	 */
-	execute(ctx) {
-		if (typeof(ctx._route.file) === "string") {
-			var include = ctx._route.file;
-			if (include.startsWith("./")) {
-				include = process.cwd() + '/' + include;
-			}
-			return require(include)(ctx);
-		} else {
-			return ctx._route.file(ctx);
-		}
-	}
+  /**
+   * @ignore
+   */
+  execute(ctx) {
+    if (typeof(ctx._route.file) === "string") {
+      var include = ctx._route.file;
+      if (include.startsWith("./")) {
+        include = process.cwd() + '/' + include;
+      }
+      return require(include)(ctx);
+    } else {
+      return ctx._route.file(ctx);
+    }
+  }
 }
 
 module.exports = FileRouteHelper;

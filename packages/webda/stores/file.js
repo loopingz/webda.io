@@ -15,186 +15,186 @@ var fs = require("fs");
  *
  */
 class FileStore extends Store {
-	/** @ignore */
-	constructor(webda, name, options) {
-		super(webda, name, options);
-		if (!fs.existsSync(options.folder)) {
-			fs.mkdirSync(options.folder);
-		}
-	}
+  /** @ignore */
+  constructor(webda, name, options) {
+    super(webda, name, options);
+    if (!fs.existsSync(options.folder)) {
+      fs.mkdirSync(options.folder);
+    }
+  }
 
-	file(uid) {
-		return this._params.folder + '/' + uid;
-	}
+  file(uid) {
+    return this._params.folder + '/' + uid;
+  }
 
-	exists(uid) {
-		// existsSync is deprecated might change it
-		return Promise.resolve(fs.existsSync(this.file(uid)));
-	}
+  exists(uid) {
+    // existsSync is deprecated might change it
+    return Promise.resolve(fs.existsSync(this.file(uid)));
+  }
 
-	_find(request) {
-		var self = this;
-		var res = [];
-		var path = require('path');
-		var files = fs.readdirSync(self._params.folder).filter(function(file) {
-    		return !fs.statSync(path.join(self._params.folder, file)).isDirectory();
-  		});
-  		for (var file in files) {
-  			res.push(this._get(files[file]));
-  		}
-		return Promise.all(res);
-	}
+  _find(request) {
+    var self = this;
+    var res = [];
+    var path = require('path');
+    var files = fs.readdirSync(self._params.folder).filter(function (file) {
+      return !fs.statSync(path.join(self._params.folder, file)).isDirectory();
+    });
+    for (var file in files) {
+      res.push(this._get(files[file]));
+    }
+    return Promise.all(res);
+  }
 
-	_save(object, uid) {
-		fs.writeFileSync(this.file(uid), object.toStoredJSON(true));
-		return Promise.resolve(object);
-	}
+  _save(object, uid) {
+    fs.writeFileSync(this.file(uid), object.toStoredJSON(true));
+    return Promise.resolve(object);
+  }
 
-	_upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
-		return this._get(uid).then ( (res) => {
-			if (res === undefined) {
-				throw Error("NotFound");
-			}
-			if (index === undefined) {
-				if (itemWriteCondition !== undefined && res[prop].length !== itemWriteCondition) {
-					throw Error('UpdateCondition not met');
-				}
-				if (res[prop] === undefined) {
-					res[prop] = [item];
-				} else {
-					res[prop].push(item);
-				}
-			} else {
-				if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
-					throw Error('UpdateCondition not met');
-				}
-				res[prop][index] = item;
-			}
-			return this._save(res, uid);
-		});
-	}
+  _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
+    return this._get(uid).then((res) => {
+      if (res === undefined) {
+        throw Error("NotFound");
+      }
+      if (index === undefined) {
+        if (itemWriteCondition !== undefined && res[prop].length !== itemWriteCondition) {
+          throw Error('UpdateCondition not met');
+        }
+        if (res[prop] === undefined) {
+          res[prop] = [item];
+        } else {
+          res[prop].push(item);
+        }
+      } else {
+        if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
+          throw Error('UpdateCondition not met');
+        }
+        res[prop][index] = item;
+      }
+      return this._save(res, uid);
+    });
+  }
 
-	_deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
-		return this._get(uid).then ( (res) => {
-			if (res === undefined) {
-				throw Error("NotFound");
-			}
+  _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
+    return this._get(uid).then((res) => {
+      if (res === undefined) {
+        throw Error("NotFound");
+      }
 
-			if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
-				throw Error('UpdateCondition not met');
-			}
-			res[prop].splice(index, 1);
-			return this._save(res, uid);
-		});
-	}
+      if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
+        throw Error('UpdateCondition not met');
+      }
+      res[prop].splice(index, 1);
+      return this._save(res, uid);
+    });
+  }
 
-	_delete(uid, writeCondition) {
-		return this._get(uid).then ( (res) => {
-			if (writeCondition && res && res[this._writeConditionField] != writeCondition) {
-				return Promise.reject(Error('UpdateCondition not met'));
-			}
-			if (res) {
-				fs.unlinkSync(this.file(uid));
-			}
-			return Promise.resolve();
-		});
-	}
+  _delete(uid, writeCondition) {
+    return this._get(uid).then((res) => {
+      if (writeCondition && res && res[this._writeConditionField] != writeCondition) {
+        return Promise.reject(Error('UpdateCondition not met'));
+      }
+      if (res) {
+        fs.unlinkSync(this.file(uid));
+      }
+      return Promise.resolve();
+    });
+  }
 
-	_update(object, uid, writeCondition) {
-		return this.exists(uid).then( (found) => {
-			if (!found) {
-				return Promise.reject(Error('NotFound'));
-			}
-			return this._get(uid);
-		}).then( (stored) => {
-			if (writeCondition && stored[this._writeConditionField] != writeCondition) {
-				return Promise.reject(Error('UpdateCondition not met'));
-			}
-			for (var prop in object) {
-				stored[prop]=object[prop];
-			}
-			return this._save(stored, uid);
-		});
-	}
+  _update(object, uid, writeCondition) {
+    return this.exists(uid).then((found) => {
+      if (!found) {
+        return Promise.reject(Error('NotFound'));
+      }
+      return this._get(uid);
+    }).then((stored) => {
+      if (writeCondition && stored[this._writeConditionField] != writeCondition) {
+        return Promise.reject(Error('UpdateCondition not met'));
+      }
+      for (var prop in object) {
+        stored[prop] = object[prop];
+      }
+      return this._save(stored, uid);
+    });
+  }
 
-	getAll(uids) {
-		if (!uids) {
-			uids = [];
-			var files = fs.readdirSync(this._params.folder);
-			for (var file in files) {
-				uids.push(file);
-			}
-		}
-		let result = [];
-		for (let i in uids) {
-			result.push(this.initModel(this._get(uids[i])));
-		}
-		return Promise.all(result);
-	}
+  getAll(uids) {
+    if (!uids) {
+      uids = [];
+      var files = fs.readdirSync(this._params.folder);
+      for (var file in files) {
+        uids.push(file);
+      }
+    }
+    let result = [];
+    for (let i in uids) {
+      result.push(this.initModel(this._get(uids[i])));
+    }
+    return Promise.all(result);
+  }
 
-	_get(uid) {
-		return this.exists(uid).then ((res) => {
-			if (res) {
-				let data = fs.readFileSync(this.file(uid));
-				return Promise.resolve(new this._model(JSON.parse(data), true));
-			}
-			return Promise.resolve(undefined);
-		});
-	}
+  _get(uid) {
+    return this.exists(uid).then((res) => {
+      if (res) {
+        let data = fs.readFileSync(this.file(uid));
+        return Promise.resolve(new this._model(JSON.parse(data), true));
+      }
+      return Promise.resolve(undefined);
+    });
+  }
 
-	incrementAttribute(uid, prop, value) {
-		return this.exists(uid).then( (found) => {
-			if (!found) {
-				return Promise.reject(Error('NotFound'));
-			}
-			return this._get(uid);
-		}).then( (stored) => {
-			if (stored[prop] === undefined) {
-				stored[prop] = 0;
-			}
-			stored[prop]+=value;
-			return this._save(stored, uid);
-		});
-	}
+  incrementAttribute(uid, prop, value) {
+    return this.exists(uid).then((found) => {
+      if (!found) {
+        return Promise.reject(Error('NotFound'));
+      }
+      return this._get(uid);
+    }).then((stored) => {
+      if (stored[prop] === undefined) {
+        stored[prop] = 0;
+      }
+      stored[prop] += value;
+      return this._save(stored, uid);
+    });
+  }
 
-	___cleanData() {
-		if (!fs.existsSync(this._params.folder)) {
-			return Promise.resolve();
-		}
-		var files = fs.readdirSync(this._params.folder);
-		for (var file in files) {
-			let filename = this._params.folder + '/' + files[file];
-			fs.unlink(filename, (err) => {
-				
-			});
-		}
-		return Promise.resolve();
-	}
+  ___cleanData() {
+    if (!fs.existsSync(this._params.folder)) {
+      return Promise.resolve();
+    }
+    var files = fs.readdirSync(this._params.folder);
+    for (var file in files) {
+      let filename = this._params.folder + '/' + files[file];
+      fs.unlink(filename, (err) => {
 
-	static getModda() {
-		return {
-			"uuid": "Webda/FileStore",
-			"label": "File Store",
-			"description": "Implements user registration and login using either email or OAuth, it handles for now Facebook, Google, Amazon, GitHub, Twitter\nIt needs a Idents and a Users Store to work",
-			"webcomponents": [],
-			"documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
-			"logo": "images/placeholders/filedb.png",
-			"configuration": {
-				"default": {
-					"folder": "/tmp/types",
-				},
-				"schema": {
-					type: "object",
-					properties: {
-						"folder": {
-							type: "string"
-						}
-					},
-					required: ["folder"]
-				}
-			}
-		}
-	}
+      });
+    }
+    return Promise.resolve();
+  }
+
+  static getModda() {
+    return {
+      "uuid": "Webda/FileStore",
+      "label": "File Store",
+      "description": "Implements user registration and login using either email or OAuth, it handles for now Facebook, Google, Amazon, GitHub, Twitter\nIt needs a Idents and a Users Store to work",
+      "webcomponents": [],
+      "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
+      "logo": "images/placeholders/filedb.png",
+      "configuration": {
+        "default": {
+          "folder": "/tmp/types",
+        },
+        "schema": {
+          type: "object",
+          properties: {
+            "folder": {
+              type: "string"
+            }
+          },
+          required: ["folder"]
+        }
+      }
+    }
+  }
 }
 
 module.exports = FileStore

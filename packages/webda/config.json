@@ -1,35 +1,35 @@
 {
-	"test.webda.io": {
-		"global": {
-			"params": {
-				"accessKeyId": "YOUR_ACCESS_KEY",
-				"secretAccessKey": "YOUR_SECRET_KEY",
-				"TEST": "Global"
-			},
-			"services": {
-				"Mailer": {
-                    "sender": "\"Shoot and Prove\" <no-reply@shootandprove.com>",
-                    "config": {
-                        "transport": "ses",
-                        "accessKeyId": "YOUR_ACCESS_KEY",
-                        "secretAccessKey": "YOUR_SECRET_KEY",
-                        "region": "us-east-1"
-                    },
-                    "templates": "./templates2"
-                }
-			}
-		},
-		"/users/{id}": {
-			"method": "GET",
-			"lambda": "plop",
-			"params": {
-				"TEST_ADD": "Users",
-				"TEST": "Local"
-			}
-		},
-		"/": {
-			"method": "GET",
-			"lambda": "webda-test"
-		}
-	}
+  "test.webda.io": {
+    "global": {
+      "params": {
+        "accessKeyId": "YOUR_ACCESS_KEY",
+        "secretAccessKey": "YOUR_SECRET_KEY",
+        "TEST": "Global"
+      },
+      "services": {
+        "Mailer": {
+          "sender": "\"Shoot and Prove\" <no-reply@shootandprove.com>",
+          "config": {
+            "transport": "ses",
+            "accessKeyId": "YOUR_ACCESS_KEY",
+            "secretAccessKey": "YOUR_SECRET_KEY",
+            "region": "us-east-1"
+          },
+          "templates": "./templates2"
+        }
+      }
+    },
+    "/users/{id}": {
+      "method": "GET",
+      "lambda": "plop",
+      "params": {
+        "TEST_ADD": "Users",
+        "TEST": "Local"
+      }
+    },
+    "/": {
+      "method": "GET",
+      "lambda": "webda-test"
+    }
+  }
 }

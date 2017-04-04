@@ -7,14 +7,14 @@ var webda;
 var resp;
 var skip = false;
 
-describe('Lambda', function() {
-  before (function() {
+describe('Lambda', function () {
+  before(function () {
     skip = process.env["WEBDA_AWS_KEY"] === undefined;
     if (skip) {
       console.log("Not running as no AWS env found");
     }
   })
-  beforeEach( function() {
+  beforeEach(function () {
     webda = new Webda(config);
     webda.setHost("test.webda.io");
   });
@@ -30,7 +30,7 @@ describe('Lambda', function() {
         var resp = {};
         var ctx = webda.newContext();
         var executor = webda.getExecutor(ctx, "test.webda.io", methods[i], "/webda");
-        return executor.execute(ctx).then( function() {
+        return executor.execute(ctx).then(function () {
           assert.notEqual(ctx, undefined);
           assert.equal(ctx.statusCode, 200);
           assert.equal(ctx._headers['Content-Type'], 'text/plain');

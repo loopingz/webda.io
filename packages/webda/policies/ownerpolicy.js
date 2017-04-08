@@ -16,6 +16,17 @@ const OwnerPolicy = Sup => class extends Sup {
     return this.user;
   }
 
+  canAct(ctx, action) {
+    if (action === 'create') {
+      return this.canCreate(ctx);
+    } else if (action === 'update') {
+      return this.canUpdate(ctx);
+    } else if (action === 'get') {
+      return this.canGet(ctx);
+    } else if (action === 'delete') {
+      return this.canDelete(ctx);
+    }
+  }
   /**
    * Return false if can't update
    */

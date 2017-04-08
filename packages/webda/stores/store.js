@@ -19,6 +19,8 @@ const _extend = require("util")._extend;
  *   Store.Delete: Before deleting the object
  *   Store.Deleted: After deleting the object
  *   Store.Get: When getting the object
+ *   Store.Action: When an action will be done on an object
+ *   Store.Actioned: When an action has been done on an object
  *
  * Mapping:
  *
@@ -48,9 +50,6 @@ class Store extends Executor {
 
   init(config) {
     this.initMap(this._params.map);
-    if (this._params.expose) {
-      this.initRoutes(config, this._params.expose);
-    }
     let model = this._params.model;
     if (!model) {
       model = "Webda/CoreModel";
@@ -59,6 +58,9 @@ class Store extends Executor {
     if (!this._model) {
       console.log("Bad security policy " + model);
       this._model = this._webda.getModel("Webda/CoreModel");
+    }
+    if (this._params.expose) {
+      this.initRoutes(config, this._params.expose);
     }
   }
 
@@ -92,6 +94,39 @@ class Store extends Executor {
     }
     if (methods.length) {
       config[expose.url + "/{uuid}"] = {"method": methods, "executor": this._name, "expose": expose, "_method": this.httpRoute};
+    }
+    if (this._model) {
+    	let actions = this._model.getActions();
+    	Object.keys(actions).forEach( (name) => {
+        let action = actions[name];
+        action.name = name;
+        if (!action.name) {
+          throw Error('Action needs a name got:', action);
+        }
+    		if (!action.method) {
+    			action.method = ['PUT'];
+    		}
+    		action.executor = this._name;
+        if (action.global) {
+          // By default will grab the object and then call the action
+          if (!action._method) {
+            if (!this._model[action.name]) {
+              throw Error('Action static method ' + action.name + ' does not exist');
+            }
+            action._method = this.httpAction;
+          }
+          config[expose.url + '/' + action.name] = action;
+        } else {
+          // By default will grab the object and then call the action
+          if (!action._method) {
+            if (!this._model.prototype[action.name]) {
+              throw Error('Action method ' + action.name + ' does not exist');
+            }
+            action._method = this.httpAction;
+          }
+          config[expose.url + '/{uuid}/' + action.name] = action;
+        }
+    	});
     }
   }
 
@@ -653,11 +688,39 @@ class Store extends Executor {
     });
   }
 
+  httpAction(ctx) {
+    let action = ctx._route.name;
+    if (ctx._params.uuid) {
+      let object;
+      return this.get(ctx._params.uuid).then((res) => {
+        object = res;
+        if (object === undefined || !object[action]) {
+          throw 404;
+        }
+        return object.canAct(ctx, action);
+      }).then(() => {
+        return this.emit('Store.Action', {'action': action, 'object': object,
+          'store': this, 'body': ctx.body, 'params': ctx._params});
+      }).then(() => {
+        return object[action](ctx);
+      }).then(() => {
+        return this.emit('Store.Actioned', {'object': object, 'store': this});
+      });
+    } else if (ctx._route.global) {
+      return this.emit('Store.Action', {'action': action, 'store': this,
+                          'body': ctx.body, 'params': ctx._params}).then( () => {
+        return this._model[ctx._route.name](ctx);
+      }).then( () => {
+        return this.emit('Store.Actioned', {'action': action, 'store': this, 'body': ctx.body, 'params': ctx._params});
+      });
+    }
+  }
+
   httpUpdate(ctx) {
     ctx.body.uuid = ctx._params.uuid;
     return this.get(ctx._params.uuid).then((object) => {
       if (!object) throw 404;
-      return object.canUpdate(ctx);
+      return object.canAct(ctx, 'update');
     }).then((object) => {
       return object.validate(ctx, ctx.body).catch((err) => {
         throw 400;
@@ -678,7 +741,7 @@ class Store extends Executor {
         if (object === undefined) {
           throw 404;
         }
-        return object.canGet(ctx);
+        return object.canAct(ctx, 'get');
       }).then((object) => {
         ctx.write(object);
       });
@@ -693,7 +756,7 @@ class Store extends Executor {
     } else if (ctx._route._http.method == "DELETE") {
       return this.get(ctx._params.uuid).then((object) => {
         if (!object) throw 404;
-        return object.canDelete(ctx);
+        return object.canAct(ctx, 'delete');
       }).then(() => {
         // http://stackoverflow.com/questions/28684209/huge-delay-on-delete-requests-with-204-response-and-no-content-in-objectve-c#
         // IOS don't handle 204 with Content-Length != 0 it seems

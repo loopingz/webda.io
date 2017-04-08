@@ -288,6 +288,51 @@ describe('Store', function () {
     it('GetAll / Scan', function () {
       return getAll(identStore, userStore);
     });
+
+    it('Model actions', function() {
+      let failed = false;
+      let eventFired = 0;
+      identStore.on('Store.Action', function (evt) {
+        eventFired++;
+      });
+      identStore.on('Store.Actioned', function (evt) {
+        eventFired++;
+      });
+      ctx = webda.newContext({"type": "CRUD", "uuid": "PLOP"});
+      executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/idents/coucou/plop");
+      assert.notEqual(executor, undefined);
+      return executor.execute(ctx).catch( (err) => {
+        failed = true;
+        assert.equal(err, 404);
+      }).then( () => {
+        assert.equal(failed, true);
+        failed = false;
+        return identStore.save({uuid: 'coucou'});
+      }).then( () => {
+        return executor.execute(ctx);
+      }).then( () => {
+        // Our fake action is pushing true to _plop
+        assert.equal(JSON.parse(ctx._body)._plop, true);
+        assert.equal(eventFired, 2);
+      });
+    });
+
+    it('Model static actions', function() {
+      let failed = false;
+      let eventFired = 0;
+      identStore.on('Store.Action', function (evt) {
+        eventFired++;
+      });
+      ctx = webda.newContext({"type": "CRUD", "uuid": "PLOP"});
+      executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/idents/index");
+      assert.notEqual(executor, undefined);
+      return executor.execute(ctx).then( () => {
+        // Our fake index action is just outputing 'indexer'
+        assert.equal(ctx._body, 'indexer');
+        assert.equal(eventFired, 1);
+      });
+    });
+
   });
   describe('Store', function () {
     var eventFired = 0;

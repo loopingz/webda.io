@@ -9,6 +9,15 @@ const OwnerPolicy = require('../policies/ownerpolicy');
  * @class
  */
 class CoreModel extends OwnerPolicy(Object) {
+
+  static getActions() {
+    return {};
+  }
+
+  getAvailableActions() {
+    return {};
+  }
+
   /**
    * @ignore
    */

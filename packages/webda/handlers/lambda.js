@@ -100,14 +100,11 @@ class LambdaServer extends Webda {
     var body = event["body-json"];
     var ctx = this.newContext(body, session);
     // Debug mode
-    console.log(vhost, method, resourcePath);
+    console.log('REQUEST', vhost, method, resourcePath);
     if (this.isDebug()) {
-      console.log('payload', JSON.stringify(body, null, 4));
+      console.log('PAYLOAD', JSON.stringify(body, null, 4));
     }
     var executor = this.getExecutor(ctx, vhost, method, resourcePath, protocol, port, headers);
-    if (this.isDebug()) {
-      console.log('result', this._result);
-    }
 
     if (executor == null) {
       callback("Bad mapping " + vhost + " - " + method + " " + resourcePath, null);
@@ -149,7 +146,9 @@ class LambdaServer extends Webda {
         code = parseInt(code);
       }
     }
-
+    if (this.isDebug()) {
+      console.log('RESULT', this._result);
+    }
     if (this._result.code == code) {
       callback(null, this._result);
     } else {

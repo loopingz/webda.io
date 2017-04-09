@@ -44,6 +44,10 @@ class WebdaServer extends Webda {
       return;
     }
     var ctx = this.newContext(req.body, req.session, res, req.files);
+    console.log('REQUEST', vhost, req.method, req.url);
+    if (this.isDebug()) {
+      console.log('PAYLOAD', JSON.stringify(req.body, null, 4));
+    }
     var executor = this.getExecutor(ctx, vhost, req.method, req.url, protocol, req.port, req.headers);
     if (executor == null) {
       this.display404(res);
@@ -59,8 +63,7 @@ class WebdaServer extends Webda {
         this.flushHeaders(ctx);
         res.end();
       } else {
-        console.log("Exception occured : " + JSON.stringify(err));
-        console.log(err.stack);
+        console.log("ERROR Exception occured : " + JSON.stringify(err), err.stack);
         res.writeHead(500);
         res.end();
         throw err;

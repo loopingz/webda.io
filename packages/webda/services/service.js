@@ -82,10 +82,32 @@ class Service extends EventEmitter {
   }
 
   /**
+   * Listen to an event as on(...) would do except that it will be asynchronous
+   * @param event
+   * @param callback
+   * @param queue Name of queue to use, can be undefined, queue name are used to define differents priorities
+   */
+  onAsync(event, callback, queue) {
+    this._webda.getService('AsyncEvents').bindAsyncListener(this, event, callback, queue);
+  }
+
+  /**
+   * Return a webda service
+   * @param service name to retrieve
+   */
+  getService(service) {
+    return this._webda.getService(service);
+  }
+
+  /**
    * Return the Modda definition if any
    *
    */
   static getModda() {
+  }
+
+  getName() {
+    return this._name;
   }
 
   /**

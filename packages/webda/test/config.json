@@ -25,9 +25,24 @@
         "WebdaTest/Ident": "./test/models/ident"
       },
       "services": {
+        "AsyncEvents": {
+          "type": "AsyncEvents",
+          "queues": {
+            "default": "EventQueue",
+            "priority": "PriorityEventQueue"
+          }
+        },
         "MemoryQueue": {
           "type": "MemoryQueue",
           "expire": 1
+        },
+        "PriorityEventQueue": {
+          "type": "MemoryQueue",
+          "expire": 3600
+        },
+        "EventQueue": {
+          "type": "MemoryQueue",
+          "expire": 3600
         },
         "SQSQueue": {
           "type": "SQSQueue",

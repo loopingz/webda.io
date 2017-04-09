@@ -6,12 +6,13 @@ var fs = require('fs');
  */
 
 function ensureFiles(files, cb) {
-  var missingFiles = files.reduce(function(prev, filePath) {
+  var missingFiles = files.reduce(function (prev, filePath) {
     var fileFound = false;
 
     try {
       fileFound = fs.statSync(filePath).isFile();
-    } catch (e) { }
+    } catch (e) {
+    }
 
     if (!fileFound) {
       prev.push(filePath + ' Not Found');

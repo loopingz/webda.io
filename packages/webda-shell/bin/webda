@@ -14,7 +14,7 @@ if (fs.existsSync("node_modules/webda")) {
   console.log("Using local web" + "da".yellow);
   global.__webda = process.cwd() + '/node_modules/webda';
 } else if (fs.existsSync("core.js") && fs.existsSync("services/executor.js")) {
-  console.log("Using local webda development version");
+  console.log("Using local web" + "da".yellow + "development version");
   // We are in a webda development directory
   global.__webda = process.cwd();
 } else {
@@ -209,6 +209,17 @@ switch (arg) {
     return;
   default:
     webda = new config();
+    if (deployment) {
+      // Loading first the configuration
+      server_config = webda.loadDeploymentConfig(deployment);
+      let json = JSON.stringify(server_config, null, ' ');
+      if (args[2]) {
+        fs.writeFileSync(args[2], json);
+      } else {
+        console.log(json);  
+      }
+      process.exit(0);
+    }
     // get the admin ui could be nice
     return webda.commandLine(args);
 }

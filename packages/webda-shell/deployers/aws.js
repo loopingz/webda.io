@@ -3,6 +3,7 @@ const Deployer = require("./deployer");
 const AWS = require('aws-sdk');
 const fs = require('fs');
 const crypto = require('crypto');
+const colors = require('colors');
 
 class AWSDeployer extends Deployer {
 
@@ -63,7 +64,7 @@ class AWSDeployer extends Deployer {
         return this.export(args.slice(1));
       }
     }
-    console.log("Deploying to AWS");
+    console.log("Deploying to " + "AWS".yellow);
     var promise = Promise.resolve();
     if (args[0] !== "aws-only") {
       promise = promise.then(() => {

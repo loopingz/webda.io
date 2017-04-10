@@ -96,6 +96,7 @@ RUN mkdir /server/
 ADD . /server/
 
 RUN cd /server && rm -rf node_modules && npm install
+RUN cd /server && rm -rf deployments
 CMD cd /server && node_modules/.bin/webda serve > /data/webda.log
 `;
   }

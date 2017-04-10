@@ -48,6 +48,16 @@ var simple = function (webda) {
   }).then( () => {
     assert.equal(eventsCount, 1);
     assert.equal(priorityEventsCount, 1);
+    // Disable async and verify that it directly update now
+    eventService._async = false;
+    return users.save({'uuid': 'test', 'type': 1});
+  }).then( () => {
+    assert.equal(eventsCount, 2);
+    assert.equal(priorityEventsCount, 1);
+    return users.delete('test');
+  }).then((res) => {
+    assert.equal(eventsCount, 2);
+    assert.equal(priorityEventsCount, 2);
   });
 }
 

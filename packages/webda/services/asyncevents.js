@@ -88,6 +88,8 @@ class EventService extends Service {
   }
 
   worker(queue) {
+    // Avoid loops
+    this._async = false;
     return this._queues[queue].worker(this._handleEvents);
   }
 }

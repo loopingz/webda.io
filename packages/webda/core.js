@@ -221,6 +221,46 @@ class Webda {
   }
 
   /**
+   * Return a map of defined services
+   * @returns {{}}
+   */
+  getServices() {
+    if (this._config[this._vhost] !== undefined) {
+      if (this._config[this._vhost].global !== undefined && this._config[this._vhost].global._services !== undefined) {
+        return this._config[this._vhost].global._services;
+      }
+    }
+    return {};
+  }
+
+  /**
+   * Return a map of defined stores
+   * @returns {{}}
+   */
+  getStores() {
+    let res = {}
+    let services = this.getServices();
+    Object.keys(services).map( (service) => {
+      if (services[service] instanceof Store) {
+        res[service] = services[service];
+      }
+    });
+    return services;
+  }
+
+  /**
+   * Return a map of defined models
+   * @returns {{}}
+   */
+  getModels() {
+    if (this._config[this._vhost] !== undefined) {
+      if (this._config[this._vhost].global !== undefined && this._config[this._vhost].global._models !== undefined) {
+        return this._config[this._vhost].global._models;
+      }
+    }
+  }
+
+  /**
    * Check for a model name and return the wanted class or throw exception if none found
    *
    * @param {String} name The model name to retrieve

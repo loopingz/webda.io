@@ -58,7 +58,7 @@ class MemoryStore extends Store {
     return Promise.resolve();
   }
 
-  incrementAttribute(uid, prop, value) {
+  _incrementAttribute(uid, prop, value) {
     var res = this.storage[uid];
     if (res === undefined) {
       throw Error("NotFound");

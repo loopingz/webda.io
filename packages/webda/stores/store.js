@@ -152,15 +152,25 @@ class Store extends Executor {
     }
   }
 
+  _incrementAttribute(uid, prop, value) {
+    throw "AbstractStore has no _incrementAttribute";
+  }
+
   incrementAttribute(uid, prop, value) {
-    throw "AbstractStore has no incrementAttribute"
+    return this._incrementAttribute(uid, prop, value).then( () => {
+      return this.emit('Store.PartialUpdate', {'object_id': uid, 'store': this,
+        'partial_update': {'increment': {'value': value, 'property': prop}}});
+    });
   }
 
   upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
     if (itemWriteConditionField === undefined) {
       itemWriteConditionField = 'uuid';
     }
-    return this._upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField);
+    return this._upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField).then( () => {
+      return this.emit('Store.PartialUpdate', {'object_id': uid, 'store': this,
+          'partial_update': {'addItem': {'value': item, 'property': prop, 'index': index}}});
+    });
   }
 
   _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
@@ -174,7 +184,10 @@ class Store extends Executor {
     if (itemWriteConditionField === undefined) {
       itemWriteConditionField = 'uuid';
     }
-    return this._deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField);
+    return this._deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField).then( () => {
+      return this.emit('Store.PartialUpdate', {'object_id': uid, 'store': this,
+          'partial_update': {'deleteItem': {'value': index, 'property': prop, 'index': index}}});
+    });
   }
 
   _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
@@ -685,6 +698,7 @@ class Store extends Executor {
       return this.save(object, object.uuid);
     }).then((new_object) => {
       ctx.write(new_object);
+      return this.emit('Store.WebCreate', {'values': ctx.body, 'object': new_object, 'store': this});
     });
   }
 
@@ -732,6 +746,7 @@ class Store extends Executor {
         throw 500;
       }
       ctx.write(object);
+      return this.emit('Store.WebUpdate', {'updates': ctx.body, 'object': object, 'store': this});
     });
   }
 
@@ -744,6 +759,7 @@ class Store extends Executor {
         return object.canAct(ctx, 'get');
       }).then((object) => {
         ctx.write(object);
+        return this.emit('Store.WebGet', {'object': object, 'store': this});
       });
     } else {
       // List probably
@@ -763,6 +779,8 @@ class Store extends Executor {
         // Have trouble to handle the Content-Length on API Gateway so returning an empty object for now
         ctx.write({});
         return this.delete(ctx._params.uuid);
+      }).then( () => {
+        return this.emit('Store.WebDelete', {'object_id': ctx._params.uuid, 'store': this});
       });
     } else if (ctx._route._http.method == "PUT") {
       return this.httpUpdate(ctx);

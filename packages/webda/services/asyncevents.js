@@ -1,3 +1,4 @@
+"use strict";
 const Service = require("./service");
 
 class AsyncEvent {

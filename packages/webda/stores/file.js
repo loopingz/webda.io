@@ -142,7 +142,7 @@ class FileStore extends Store {
     });
   }
 
-  incrementAttribute(uid, prop, value) {
+  _incrementAttribute(uid, prop, value) {
     return this.exists(uid).then((found) => {
       if (!found) {
         return Promise.reject(Error('NotFound'));

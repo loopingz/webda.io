@@ -220,7 +220,7 @@ class DynamoStore extends Store {
     });
   }
 
-  incrementAttribute(uid, prop, value) {
+  _incrementAttribute(uid, prop, value) {
     var params = {
       'TableName': this._params.table,
       'Key': {"uuid": uid},

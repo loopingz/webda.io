@@ -64,7 +64,7 @@ class MongoStore extends Store {
     return this._client.update(params).promise();
   }
 
-  incrementAttribute(uid, prop, value) {
+  _incrementAttribute(uid, prop, value) {
     return this._connect().then(() => {
       var params = {'$inc': {}};
       params['$inc'][prop] = value;
@@ -72,7 +72,7 @@ class MongoStore extends Store {
     });
   }
 
-  upsertItemToCollection(uid, prop, item, index, itemUid) {
+  _upsertItemToCollection(uid, prop, item, index, itemUid) {
     return this._connect().then(() => {
       var params = {};
       if (index === undefined) {

@@ -295,7 +295,8 @@ var ServerConfig = {
           expose: {},
           folder: './deployments',
           type: 'FileStore',
-          lastUpdate: false
+          lastUpdate: false,
+          beautify: ' '
         },
         configuration: {
           require: ConfigurationService

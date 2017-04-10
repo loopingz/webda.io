@@ -37,14 +37,15 @@ var arg = process.argv[2];
 
 if ('--help' === arg || null === arg) {
   let bold = parseInt('033', 8);
-  console.log('\n  USAGE: webda [config|init|serve|deploy|debug]\n\n');
+  console.log('\n  USAGE: webda [config|debug|deploy|init|serve|worker]\n\n');
   console.log('  --help                     Display this message and exit\n');
   console.log('');
-  console.log(' config'.bold.yellow + ': Launch the configuration UI');
-  console.log(' init'.bold.yellow + ': Init a sample project');
-  console.log(' serve'.bold.yellow + ': Serve current project');
-  console.log(' deploy'.bold.yellow + ': Deploy current project');
+  console.log(' config'.bold.yellow + ': Launch the configuration UI or export a deployment config');
+  console.log(' init'.bold.yellow + ': Init a sample project for your current version');
+  console.log(' serve'.bold.yellow + ' (DeployConfiguration): Serve current project, can serve with DeployConfiguration');
+  console.log(' deploy'.bold.yellow + ' DeployConfiguration: Deploy current project with DeployConfiguration name');
   console.log(' debug'.bold.yellow + ': Debug current project');
+  console.log(' worker'.bold.yellow + ' WorkerName arg1 ...: Launch the WorkerName with arg1 ...');
   process.exit(0);
 }
 
@@ -166,6 +167,16 @@ switch (arg) {
       rl.close();
       process.exit(0);
     });
+  case 'worker':
+    webda = new server(server_config);
+    let service = webda.getService(deployment);
+    if (!service) {
+      let error = 'The service ' + deployment + ' is missing';
+      console.log(error.red);
+      process.exit(1);
+    }
+    // Launch the worker with arguments
+    return service.worker.bind.apply(service.worker, [service].concat(args.slice(2)));
   case 'debug':
     let launchServe = function () {
       if (server_pid) {

@@ -27,6 +27,9 @@ class CoreModel extends OwnerPolicy(Object) {
   }
 
   load(raw, secure) {
+    if (!raw) {
+      return;
+    }
     if (!raw.uuid) {
       raw.uuid = this.generateUid();
     }
@@ -36,6 +39,13 @@ class CoreModel extends OwnerPolicy(Object) {
       }
       this[prop] = raw[prop];
     }
+  }
+
+  /**
+   * Return the object registered store
+   */
+  getStore() {
+    return this.__store;
   }
 
   /**
@@ -77,6 +87,22 @@ class CoreModel extends OwnerPolicy(Object) {
       throw Error("No store linked to this object");
     }
     return this.__store.save(this).then((obj) => {
+      for (var i in obj) {
+        this[i] = obj[i];
+      }
+    });
+  }
+
+  /**
+   * Update this object
+   *
+   * @throws Error if the object is not coming from a store
+   */
+  update(changes) {
+    if (!this.__store) {
+      throw Error("No store linked to this object");
+    }
+    return this.__store.update(changes, this.uuid).then((obj) => {
       for (var i in obj) {
         this[i] = obj[i];
       }

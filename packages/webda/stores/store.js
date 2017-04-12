@@ -717,14 +717,20 @@ class Store extends Executor {
           'store': this, 'body': ctx.body, 'params': ctx._params});
       }).then(() => {
         return object[action](ctx);
-      }).then(() => {
+      }).then((res) => {
+        if (res) {
+          ctx.write(res);
+        }
         return this.emit('Store.Actioned', {'object': object, 'store': this});
       });
     } else if (ctx._route.global) {
       return this.emit('Store.Action', {'action': action, 'store': this,
                           'body': ctx.body, 'params': ctx._params}).then( () => {
         return this._model[ctx._route.name](ctx);
-      }).then( () => {
+      }).then( (res) => {
+        if (res) {
+          ctx.write(res);
+        }
         return this.emit('Store.Actioned', {'action': action, 'store': this, 'body': ctx.body, 'params': ctx._params});
       });
     }

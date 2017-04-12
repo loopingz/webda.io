@@ -314,6 +314,8 @@ describe('Store', function () {
         // Our fake action is pushing true to _plop
         assert.equal(JSON.parse(ctx._body)._plop, true);
         assert.equal(eventFired, 2);
+        assert.notEqual(webda.getExecutor(ctx, "test.webda.io", "POST", "/idents/coucou/yop"), null);
+        assert.notEqual(webda.getExecutor(ctx, "test.webda.io", "GET", "/idents/coucou/yop"), null);
       });
     });
 

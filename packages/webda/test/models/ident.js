@@ -8,7 +8,11 @@ const CoreModel = require('../../models/coremodel');
 class Ident extends CoreModel {
 
   static getActions() {
-    return {'plop': {}, 'index': {global: true, method: 'GET'}};
+    return {'plop': {}, 'index': {global: true, method: 'GET'}, 'yop': {method: ['GET','POST']}};
+  }
+
+  yop() {
+
   }
 
   canAct(ctx, action) {

@@ -100,7 +100,7 @@ class LambdaServer extends Webda {
     var body = event["body-json"];
     var ctx = this.newContext(body, session);
     // Debug mode
-    console.log('REQUEST', vhost, method, resourcePath);
+    console.log('REQUEST', vhost, method, resourcePath, ctx.getCurrentUserId());
     if (this.isDebug()) {
       console.log('PAYLOAD', JSON.stringify(body, null, 4));
     }

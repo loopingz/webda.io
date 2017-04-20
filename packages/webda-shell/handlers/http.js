@@ -44,7 +44,7 @@ class WebdaServer extends Webda {
       return;
     }
     var ctx = this.newContext(req.body, req.session, res, req.files);
-    console.log('REQUEST', vhost, req.method, req.url);
+    console.log('REQUEST', vhost, req.method, req.url, ctx.getCurrentUserId());
     if (this.isDebug()) {
       console.log('PAYLOAD', JSON.stringify(req.body, null, 4));
     }

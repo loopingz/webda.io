@@ -79,16 +79,17 @@ class DockerDeployer extends ShellDeployer {
         resolve();
         return;
       }
-      if (!fs.existsSync("./Dockerfile")) {
+      if (!this.resources.Dockerfile) {
         this._cleanDockerfile = true;
-        fs.writeFileSync("./Dockerfile", this.getDockerfile());
+        fs.writeFileSync('./.webda.Dockerfile', this.getDockerfile(this.resources.logfile, this.resources.command));
+        this.resources.Dockerfile = './.webda.Dockerfile'
       }
       resolve();
     });
   }
 
-  getDockerfile() {
-    return `
+  getDockerfile(logfile, command) {
+    var dockerfile = `
 FROM node:latest
 MAINTAINER docker@webda.io
 
@@ -96,9 +97,21 @@ RUN mkdir /server/
 ADD . /server/
 
 RUN cd /server && rm -rf node_modules && npm install
-RUN cd /server && rm -rf deployments
-CMD cd /server && node_modules/.bin/webda serve > /data/webda.log
 `;
+    console.log('getDockerfile');
+    if (!command) {
+      command = 'serve';
+    }
+    if (!logfile) {
+      logfile = '/data/webda.log';
+    }
+    if (!this.deployment.uuid) {
+      // Export deployment
+      dockerfile += 'RUN cd /server && webda -d ' + this.deployment.uuid + ' config webda.config.json\n';
+    }
+    dockerfile += 'RUN cd /server && rm -rf deployments\n';
+    dockerfile += 'CMD cd /server && node_modules/.bin/webda ' + command + ' > ' + logfile + '\n'
+    return dockerfile;
   }
 
   static getModda() {

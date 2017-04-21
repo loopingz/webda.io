@@ -242,7 +242,6 @@ switch (argv._[0]) {
       }
       process.exit(0);
     }
-    console.log(argv._);
     // get the admin ui could be nice
     return webda.commandLine(argv._);
 }

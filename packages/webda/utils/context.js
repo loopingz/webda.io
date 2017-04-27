@@ -86,6 +86,10 @@ class Context {
     this._cookie[param] = value;
   }
 
+  addAsyncRequest(promise) {
+    this.promises.push(promise);
+  }
+
   /**
    * Flush the request
    *
@@ -97,18 +101,20 @@ class Context {
     if (this._ended) {
       throw Error("Already ended");
     }
-    this._ended = true;
-    if (this._buffered && this._stream._body !== undefined) {
-      this._body = Buffer.concat(this._stream._body);
-    }
-    if (!this._flushHeaders) {
-      this._flushHeaders = true;
-      if (this._body !== undefined && this.statusCode == 204) {
-        this.statusCode = 200;
+    this._ended = Promise.all(this._promises).then(() => {
+      if (this._buffered && this._stream._body !== undefined) {
+        this._body = Buffer.concat(this._stream._body);
       }
-      this._webda.flushHeaders(this);
-    }
-    this._webda.flush(this);
+      if (!this._flushHeaders) {
+        this._flushHeaders = true;
+        if (this._body !== undefined && this.statusCode == 204) {
+          this.statusCode = 200;
+        }
+        this._webda.flushHeaders(this);
+      }
+      this._webda.flush(this);
+      return Promise.resolve();
+    });
   }
 
   /**
@@ -192,6 +198,7 @@ class Context {
     }
     this.body = body;
     this.files = files;
+    this._promises = [];
     this._headers = {};
     this._flushHeaders = false;
     this._body = undefined;

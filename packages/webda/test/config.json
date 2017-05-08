@@ -73,7 +73,6 @@
         "dynamoidents": {
           "inject": "user",
           "check": "user",
-          "model": "",
           "map": {
             "dynamousers": {
               "key": "user",
@@ -89,6 +88,7 @@
               "get": true
             }
           },
+          "asyncDelete": true,
           "model": "WebdaTest/Ident",
           "type": "DynamoStore",
           "table": "webda-test-idents"
@@ -108,6 +108,7 @@
         "mongoidents": {
           "inject": "user",
           "check": "user",
+          "asyncDelete": true,
           "map": {
             "mongousers": {
               "key": "user",
@@ -147,6 +148,7 @@
               "cascade": true
             }
           },
+          "asyncDelete": true,
           "expose": {
             "restrict": {
               "create": true,
@@ -172,6 +174,7 @@
               "cascade": true
             }
           },
+          "asyncDelete": true,
           "expose": {
             "restrict": {
               "create": true,

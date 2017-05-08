@@ -120,8 +120,14 @@ var mapper = function (identStore, userStore) {
   }).then(function () {
     return identStore.get(ident2.uuid);
   }).then(function (ident) {
+    assert.equal(ident.__deleted, true);
+    assert.equal(eventFired, 13);
+    return identStore.delete(ident2.uuid, true);
+  }).then(function () {
+    return identStore.get(ident2.uuid);
+  }).then(function (ident) {
     assert.equal(ident, undefined);
-    assert.equal(eventFired, 12);
+    assert.equal(eventFired, 15);
   });
 }
 

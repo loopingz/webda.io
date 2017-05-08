@@ -102,8 +102,8 @@ describe('CoreModel', function () {
     it('Verify Delete', function () {
       return ident.delete().then(() => {
         return identStore.get('test');
-      }).then((retieved) => {
-        assert.equal(retieved, undefined);
+      }).then((retrieved) => {
+        assert.equal(retrieved.__deleted, true);
       });
     });
   });

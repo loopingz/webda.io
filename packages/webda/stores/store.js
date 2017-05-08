@@ -554,9 +554,10 @@ class Store extends Executor {
    * Delete an object
    *
    * @param {String} uuid to delete
+   * @param {Boolean} delete sync even if asyncDelete is active
    * @return {Promise} the deletion promise
    */
-  delete(uid) {
+  delete(uid, sync) {
     /** @ignore */
     var to_delete;
     var saved;
@@ -599,12 +600,15 @@ class Store extends Executor {
           for (var item in to_delete[this._cascade[i].name]) {
             promises.push(targetStore.cascadeDelete(to_delete[this._cascade[i].name][item], uid));
           }
-        }
+        } 
         return Promise.all(promises);
       } else {
         return Promise.resolve();
       }
     }).then(() => {
+      if (this._params.asyncDelete && !sync) {
+        return this._update({'__deleted': true}, uid);
+      }
       return this._delete(uid);
     }).then(() => {
       return this.emit('Store.Deleted', {'object': to_delete, 'store': this});
@@ -708,7 +712,7 @@ class Store extends Executor {
       let object;
       return this.get(ctx._params.uuid).then((res) => {
         object = res;
-        if (object === undefined || !object[action]) {
+        if (object === undefined || !object[action] || object.__delete) {
           throw 404;
         }
         return object.canAct(ctx, action);
@@ -739,7 +743,7 @@ class Store extends Executor {
   httpUpdate(ctx) {
     ctx.body.uuid = ctx._params.uuid;
     return this.get(ctx._params.uuid).then((object) => {
-      if (!object) throw 404;
+      if (!object || object.__delete) throw 404;
       return object.canAct(ctx, 'update');
     }).then((object) => {
       return object.validate(ctx, ctx.body).catch((err) => {
@@ -759,7 +763,7 @@ class Store extends Executor {
   httpGet(ctx) {
     if (ctx._params.uuid) {
       return this.get(ctx._params.uuid).then((object) => {
-        if (object === undefined) {
+        if (object === undefined || object.__delete) {
           throw 404;
         }
         return object.canAct(ctx, 'get');
@@ -777,7 +781,7 @@ class Store extends Executor {
       return this.httpGet(ctx);
     } else if (ctx._route._http.method == "DELETE") {
       return this.get(ctx._params.uuid).then((object) => {
-        if (!object) throw 404;
+        if (!object || object.__delete) throw 404;
         return object.canAct(ctx, 'delete');
       }).then(() => {
         // http://stackoverflow.com/questions/28684209/huge-delay-on-delete-requests-with-204-response-and-no-content-in-objectve-c#

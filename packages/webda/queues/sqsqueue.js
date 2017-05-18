@@ -42,9 +42,9 @@ class SQSQueueService extends QueueService {
     return new Promise((resolve, reject) => {
       this.sqs.receiveMessage(this.queueArg).promise().then((data) => {
         if (!data.Messages) {
-          return Promise.resolve([]);
+          return resolve([]);
         }
-        return Promise.resolve(data.Messages);
+        return resolve(data.Messages);
       });
     });
   }

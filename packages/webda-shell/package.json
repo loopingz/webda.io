@@ -1,6 +1,6 @@
 {
   "name": "webda-shell",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "Deploy a Webda app or configure it",
   "keywords": [
     "aws",
@@ -68,7 +68,7 @@
     "nodejs-websocket": "^1.5.0",
     "open": "0.0.5",
     "request-promise": "^4.2.0",
-    "webda": "=0.3.4",
+    "webda": "=0.3.5",
     "yargs": "^7.1.0",
     "yauzl": "^2.7.0"
   }

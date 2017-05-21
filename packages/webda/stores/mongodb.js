@@ -44,7 +44,7 @@ class MongoStore extends Store {
   exists(uid) {
     // Should use find + limit 1
     return this._get(uid).then((result) => {
-      Promise.resolve(result !== undefined);
+      return Promise.resolve(result !== undefined);
     });
   }
 

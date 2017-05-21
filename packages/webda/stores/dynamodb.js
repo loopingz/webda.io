@@ -41,7 +41,7 @@ class DynamoStore extends Store {
   exists(uid) {
     // Should use find + limit 1
     return this._get(uid).then(function (result) {
-      Promise.resolve(result !== undefined);
+      return Promise.resolve(result !== undefined);
     });
   }
 

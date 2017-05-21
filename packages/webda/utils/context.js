@@ -146,6 +146,13 @@ class Context {
   }
 
   /**
+   * Return the webda
+   */
+  getWebda() {
+    return this._webda;
+  }
+
+  /**
    * Get the request locale if found
    */
   getLocale() {

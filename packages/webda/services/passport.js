@@ -128,11 +128,10 @@ class PassportExecutor extends Executor {
   };
 
   _getMe(ctx) {
-    if (ctx.session.getUserId() === undefined) {
+    if (ctx.getCurrentUserId() === undefined) {
       throw 404;
-      return;
     }
-    return this._usersStore.get(ctx.session.getUserId()).then((user) => {
+    return ctx.getCurrentUser().then((user) => {
       if (user === undefined) {
         throw 404;
       }

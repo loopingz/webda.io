@@ -239,16 +239,24 @@ var crud = function (identStore, userStore) {
     assert.equal(ident1.counter, 4);
     return identStore.incrementAttribute(ident1.uuid, 'counter', -6);
   }).then(function () {
+    return identStore.exists(ident1.uuid);
+  }).then(function (res) {
+    assert.equal(res, true);
     return identStore.get(ident1.uuid);
   }).then(function (ident1) {
     assert.equal(ident1.counter, -2);
     // Check DELETE
     eventFired = 0;
-    return identStore.delete(ident1.uuid);
+    return identStore.delete(ident1.uuid, true);
   }).then(function () {
     assert.equal(eventFired, 2);
     eventFired = 0;
     return identStore.get(ident1.uuid);
+  }).then(function (ident) {
+    assert.equal(ident, undefined);
+    return identStore.exists(ident1.uuid);
+  }).then(function (res) {
+    assert.equal(res, false);
   });
 };
 

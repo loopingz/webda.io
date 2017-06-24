@@ -15,7 +15,7 @@
     "run": "node core"
   },
   "dependencies": {
-    "accept-language": "^3.0.15",
+    "accept-language": "=3.0.15",
     "ajv": "^4.0.5",
     "aws-sdk": "^2.24.0",
     "cookie": "^0.2.3",

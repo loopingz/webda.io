@@ -251,7 +251,7 @@ class AWSDeployer extends Deployer {
         FunctionName: this._lambdaFunctionName,
         Handler: this._lambdaHandler,
         Role: this._lambdaRole,
-        Runtime: 'nodejs4.3',
+        Runtime: 'nodejs6.10',
         Timeout: this._lamdaTimeout,
         Description: 'Deployed with Webda for API: ' + this._restApiName
       };
@@ -445,7 +445,6 @@ class AWSDeployer extends Deployer {
   }
 
   deleteAwsResource(remote) {
-    console.log("deleteAwsResource: ", remote);
     return this._awsGateway.deleteResource({'resourceId': remote.id, 'restApiId': this.restApiId}).promise();
   }
 
@@ -466,21 +465,16 @@ class AWSDeployer extends Deployer {
       params.requestParameters["method.request.querystring." + local._queryParameters[i]] = false;
     }
     return this._awsGateway.putMethod(params).promise().then((awsMethod) => {
+      // Integration type : AWS_PROXY
       var params = {
         'resourceId': resource.id,
         'integrationHttpMethod': 'POST',
         'httpMethod': method,
         'restApiId': this.restApiId,
-        'type': 'AWS'
+        'type': 'AWS_PROXY'
       };
       params.uri = "arn:aws:apigateway:" + this.region + ":lambda:path/2015-03-31/functions/" + this._lambdaFunction.FunctionArn + "/invocations";
-      params.requestTemplates = {};
-      // Need to filter wildcard query params
-      params.requestParameters = {};
-      params.requestTemplates["application/json"] = this.getRequestTemplates();
       return this._awsGateway.putIntegration(params).promise();
-    }).then(() => {
-      return this.createAWSMethodErrorReturnCode(resource, method, local.aws);
     });
   }
 
@@ -539,94 +533,10 @@ class AWSDeployer extends Deployer {
     });
   }
 
-  getHeadersMap(integration, code, headers, defaultCode) {
-    if (headers === undefined) {
-      headers = [];
-    }
-    if (headers.length === 0) {
-      headers[0] = 'Set-Cookie';
-    }
-    var res = {};
-    // Add CORS
-    if (integration) {
-      res['method.response.header.Access-Control-Allow-Credentials'] = "'" + true + "'";
-      res['method.response.header.Access-Control-Allow-Origin'] = "'" + this._origin + "'";
-    } else {
-      res['method.response.header.Access-Control-Allow-Credentials'] = false;
-      res['method.response.header.Access-Control-Allow-Origin'] = false;
-    }
-    // Cannot handle more than one headers for non-main , due to the fact that we cannot template the statusCode....
-    // https://forums.aws.amazon.com/thread.jspa?threadID=216264
-
-    if (code !== defaultCode) {
-      headers = ['Set-Cookie'];
-      // Cant set any header
-      return res;
-    }
-    for (let i in headers) {
-      var value = false;
-      if (integration) {
-        if (code == defaultCode) {
-          value = "integration.response.body.headers." + headers[i];
-        } else {
-          value = "integration.response.body.errorMessage";
-        }
-      }
-      res['method.response.header.' + headers[i]] = value;
-    }
-
-    return res;
-  }
-
-  createAWSMethodErrorReturnCode(resource, method, aws) {
-    if (aws === undefined) {
-      aws = {defaultCode: "200", headersMap: ['Set-Cookie']};
-    }
-    if (typeof(aws.defaultCode) == "number") {
-      aws.defaultCode = aws.defaultCode.toString();
-    }
-    var codes = ["200", "204", "302", "303", "400", "401", "402", "403", "404", "405", "409", "412", "429", "500"];
-    // As we cannot specify error code directly we need to map each... yes i know running regexp a script engine to only find an error code doesnt look like a good idea....
-    // Code headers
-    var promise = Promise.resolve();
-    for (let code in codes) {
-      promise = promise.then(() => {
-        var params = {
-          'resourceId': resource.id,
-          'httpMethod': method,
-          'restApiId': this.restApiId,
-          'statusCode': codes[code]
-        };
-        params.responseModels = {};
-        params.responseParameters = this.getHeadersMap(false, codes[code], aws.headersMap, aws.defaultCode);
-        params.responseModels["application/json"] = 'Empty';
-        return this._awsGateway.putMethodResponse(params).promise();
-      }).then(() => {
-        var params = {
-          'resourceId': resource.id,
-          'httpMethod': method,
-          'restApiId': this.restApiId,
-          'statusCode': codes[code]
-        };
-        params.responseTemplates = {};
-        params.responseParameters = this.getHeadersMap(true, codes[code], aws.headersMap, aws.defaultCode);
-        if (codes[code] === aws.defaultCode) {
-          params.responseTemplates["application/json"] = "#set($inputRoot = $input.path('$'))\n$inputRoot.body";
-        } else {
-          params.responseTemplates["application/json"] = "\"\"";
-          params.selectionPattern = ".*CODE_" + codes[code] + ".*";
-        }
-        return this._awsGateway.putIntegrationResponse(params).promise();
-      });
-    }
-    return promise;
-  }
-
   createAWSMethodsResource(resource, local, methods) {
     if (!methods.length) {
       return Promise.resolve();
     }
-    var allowedMethods = methods.join(",");
     // AWS dont like to have too much request at the same time :)
     return this.createAWSMethodResource(resource, local, methods[0]).then(() => {
       return this.createAWSMethodsResource(resource, local, methods.slice(1));
@@ -675,52 +585,6 @@ class AWSDeployer extends Deployer {
       }
       return Promise.resolve();
     });
-  }
-
-  getRequestTemplates() {
-    return `#set($allParams = $input.params())
-		{
-		"body-json" : $input.json('$'),
-		"params" : {
-		#foreach($type in $allParams.keySet())
-		    #set($params = $allParams.get($type))
-		"$type" : {
-		    #foreach($paramName in $params.keySet())
-		    "$paramName" : "$util.escapeJavaScript($params.get($paramName))"
-		        #if($foreach.hasNext),#end
-		    #end
-		}
-		    #if($foreach.hasNext),#end
-		#end
-		},
-		"stage-variables" : {
-		#foreach($key in $stageVariables.keySet())
-		"$key" : "$util.escapeJavaScript($stageVariables.get($key))"
-		    #if($foreach.hasNext),#end
-		#end
-		},
-		"context" : {
-			"vhost":"` + this.vhost + `",
-		    "account-id" : "$context.identity.accountId",
-		    "api-id" : "$context.apiId",
-		    "api-key" : "$context.identity.apiKey",
-		    "authorizer-principal-id" : "$context.authorizer.principalId",
-		    "caller" : "$context.identity.caller",
-		    "cognito-authentication-provider" : "$context.identity.cognitoAuthenticationProvider",
-		    "cognito-authentication-type" : "$context.identity.cognitoAuthenticationType",
-		    "cognito-identity-id" : "$context.identity.cognitoIdentityId",
-		    "cognito-identity-pool-id" : "$context.identity.cognitoIdentityPoolId",
-		    "http-method" : "$context.httpMethod",
-		    "stage" : "$context.stage",
-		    "source-ip" : "$context.identity.sourceIp",
-		    "user" : "$context.identity.user",
-		    "user-agent" : "$context.identity.userAgent",
-		    "user-arn" : "$context.identity.userArn",
-		    "request-id" : "$context.requestId",
-		    "resource-id" : "$context.resourceId",
-		    "resource-path" : "$context.resourcePath"
-		    }
-		}`;
   }
 
   static getModda() {

@@ -25,7 +25,7 @@ class LambdaServer extends Webda {
     headers['Set-Cookie'] = this.getCookieHeader(ctx);
     this._result = {};
     this._result.headers = headers;
-    this._result.code = ctx.statusCode;
+    this._result.statusCode = ctx.statusCode;
   }
 
   flush(ctx) {
@@ -41,7 +41,7 @@ class LambdaServer extends Webda {
    */
   handleRequest(event, context, callback) {
     var cookies = {};
-    var rawCookie = event.params.header.Cookie;
+    var rawCookie = event.headers.Cookie;
     if (rawCookie) {
       cookies = cookieParse(rawCookie);
     }
@@ -49,55 +49,33 @@ class LambdaServer extends Webda {
     var session = sessionCookie;
     var vhost;
     var i;
-    if (event.params.header !== undefined) {
-      vhost = event.params.header.Host;
-    }
-    if (vhost === undefined) {
-      vhost = event.context.vhost;
-    }
-    var context = event.context;
-    var headers;
-    if (event.params !== undefined) {
-      headers = event.params.header;
-    }
-    if (headers === undefined) {
-      headers = {};
-    }
-    if (context === undefined) {
-      context = {};
-    }
-    var method = context["http-method"];
-    var resourcePath = context['resource-path'];
-    var protocol = headers['CloudFront-Forwarded-Proto'];
-    var port = headers['X-Forwarded-Port'];
-    if (resourcePath === undefined) {
-      resourcePath = "/";
-    }
-    if (method === undefined) {
-      method = "GET";
-    }
-    if (protocol === undefined) {
-      protocol = "https";
-    }
-    if (port === undefined) {
-      port = 443;
-    }
+
+    var context = event.context || {};
+    var headers = event.headers || {};
+    vhost = headers.Host;
+    var method = event.httpMethod || 'GET';
+    var resourcePath = event.resource || '/';
+    var protocol = headers['CloudFront-Forwarded-Proto'] || 'https';
+    var port = headers['X-Forwarded-Port'] || 443;
+    /*
     // Replace variable in URL for now
     for (i in event.params.path) {
       resourcePath = resourcePath.replace("{" + i + "}", event.params.path[i]);
     }
+    */
+    resourcePath = event.path;
     // Rebuild query string
-    if (event.params.querystring) {
+    if (event.queryStringParameters) {
       var sep = "?";
-      for (i in event.params.querystring) {
+      for (i in event.queryStringParameters) {
         // If additional error code it will be contained so need to check for &
         // May need to add urlencode
-        resourcePath += sep + i + "=" + event.params.querystring[i];
+        resourcePath += sep + i + "=" + event.queryStringParameters[i];
         sep = "&";
       }
     }
     //
-    var body = event["body-json"];
+    var body = JSON.parse(event.body);
     var ctx = this.newContext(body, session);
     // Debug mode
     console.log('REQUEST', vhost, method, resourcePath, ctx.getCurrentUserId());
@@ -111,8 +89,8 @@ class LambdaServer extends Webda {
     }
 
     // Set predefined headers for CORS
-    if (event.params.header.Origin) {
-      ctx.setHeader('Access-Control-Allow-Origin', event.params.header.Origin);
+    if (headers.Origin) {
+      ctx.setHeader('Access-Control-Allow-Origin', headers.Origin);
     }
     ctx.setHeader('Access-Control-Allow-Credentials', true);
 
@@ -141,22 +119,10 @@ class LambdaServer extends Webda {
     if (ctx.statusCode) {
       this._result.code = ctx.statusCode;
     }
-    var code = 200;
-    if (ctx._route && ctx._route.aws !== undefined && ctx._route.aws.defaultCode !== undefined) {
-      code = ctx._route.aws.defaultCode;
-      if (code == "string") {
-        code = parseInt(code);
-      }
-    }
     if (this.isDebug()) {
       console.log('RESULT', this._result);
     }
-    if (this._result.code == code) {
-      callback(null, this._result);
-    } else {
-      this._result.apiCode = "CODE_" + this._result.code.toString();
-      callback(JSON.stringify(this._result), null);
-    }
+    callback(null, {statusCode: ctx.statusCode, headers: this._result.headers, body: this._result.body});
   }
 }
 

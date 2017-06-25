@@ -77,7 +77,6 @@ class PassportExecutor extends Executor {
         "method": ["GET"],
         "executor": this._name,
         "params": {"provider": "email"},
-        "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']},
         "_method": this._handleEmailCallback
       };
       config[url + "/email/passwordRecovery"] = {
@@ -98,13 +97,11 @@ class PassportExecutor extends Executor {
     config[url] = {
       "method": ["GET"],
       "executor": this._name,
-      "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']},
       "_method": this._authenticate
     };
     config[url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}"] = {
       "method": "GET",
       "executor": this._name,
-      "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']},
       "_method": this._callback
     };
   }

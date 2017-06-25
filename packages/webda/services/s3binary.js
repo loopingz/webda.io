@@ -55,8 +55,7 @@ class S3Binary extends Binary {
       "method": ["GET"],
       "executor": this._name,
       "expose": expose,
-      "_method": this.getRedirectUrl,
-      "aws": {"defaultCode": 302, "headersMap": ['Location', 'Set-Cookie']}
+      "_method": this.getRedirectUrl
     };
   }
 

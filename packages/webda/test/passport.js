@@ -255,7 +255,6 @@ describe('Passport', function () {
     it('AWS Compatibility', function () {
       ctx = webda.newContext();
       executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/auth/github");
-      assert.equal(ctx._route.aws.defaultCode, 302);
     });
     it('Callback', function () {
       var done = function () {

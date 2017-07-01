@@ -5,6 +5,10 @@ var _extend = require("util")._extend;
 
 class WebdaServer extends Webda {
 
+  logRequest(...args) {
+    console.log('REQUEST', ...args);
+  }
+
   handleRequest(req, res) {
     // Ensure cookie session
     if (req.cookies.webda === undefined) {
@@ -44,7 +48,7 @@ class WebdaServer extends Webda {
       return;
     }
     var ctx = this.newContext(req.body, req.session, res, req.files);
-    console.log('REQUEST', vhost, req.method, req.url, ctx.getCurrentUserId());
+    this.logRequest(vhost, req.method, req.url, ctx.getCurrentUserId());
     if (this.isDebug()) {
       console.log('PAYLOAD', JSON.stringify(req.body, null, 4));
     }

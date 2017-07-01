@@ -80,6 +80,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <template is="dom-bind" id="app">
     <iron-ajax id="vhostAjax" handle-as="json" on-response="handleVhosts" auto></iron-ajax>
     <iron-ajax id="deploymentsAjax" handle-as="json" last-response="{{deployments}}"></iron-ajax>
+    <iron-ajax id="versionsAjax" handle-as="json" last-response="{{versions}}"></iron-ajax>
     <iron-ajax id="routesAjax" handle-as="json" last-response="{{routes}}"></iron-ajax>
     <iron-ajax id="servicesAjax" handle-as="json" last-response="{{services}}" on-response="mapServices"></iron-ajax>
     <iron-ajax id="moddasAjax" handle-as="json" last-response="{{moddas}}" on-response="loadSchemas"></iron-ajax>
@@ -129,6 +130,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </paper-tabs>
           <span class="space"></span>
           <div id="logo" class="disconnect"><a href="http://webda.io" target="_blank"><span></span></a></div>
+          <paper-tooltip for="logo">webda: [[versions.core]]<br />webda-shell: [[versions.shell]]</paper-tooltip>
         </paper-toolbar>
 
         <!-- Main Content -->

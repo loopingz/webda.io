@@ -6,8 +6,7 @@ const path = require("path");
 
 const Executor = require(__webda + "/services/executor");
 const Webda = require(__webda + "/core");
-const merge = require('merge')
-
+const merge = require('merge');
 
 class ConfigurationService extends Executor {
 
@@ -33,6 +32,7 @@ class ConfigurationService extends Executor {
       "executor": this._name,
       "_method": this.restDeployment
     };
+    config['/api/versions'] = {"method": ["GET"], "executor": this._name, "_method": this.versions};
     config['/api/deploy/{name}'] = {"method": ["GET"], "executor": this._name, "_method": this.deploy};
     config['/api/vhosts'] = {"method": ["POST", "GET"], "executor": this._name, "_method": this.getVhosts};
     config['/api/configs'] = {"method": ["GET"], "executor": this._name, "_method": this.getConfig};
@@ -58,6 +58,10 @@ class ConfigurationService extends Executor {
       ctx._params.path = "index.html";
     }
     this.fileBrowser(ctx, __dirname + "/../app/");
+  }
+
+  versions(ctx) {
+    ctx.write({shell: WebdaConfigurationServer.getVersion(), core: WebdaConfigurationServer.getWebdaVersion()});
   }
 
   fileBrowser(ctx, prefix) {
@@ -143,7 +147,7 @@ class ConfigurationService extends Executor {
   }
 
   deploy(ctx) {
-    this._webda.deploy(ctx._params.name, [], true);
+    return this._webda.deploy(ctx._params.name, [], true);
   }
 
   crudService(ctx) {
@@ -355,6 +359,18 @@ class WebdaConfigurationServer extends WebdaServer {
     }
   }
 
+  static getVersion() {
+    return JSON.parse(fs.readFileSync(__dirname + '/../package.json')).version;
+  }
+
+  static getWebdaVersion() {
+    let webda = require(global.__webda + '/core.js');
+    if (!webda.prototype.getVersion) {
+      return '< 0.3.1';
+    }
+    return webda.prototype.getVersion();
+  }
+
   loadMock(config) {
     // Load the Webda core with the desired configuration
 
@@ -418,6 +434,17 @@ class WebdaConfigurationServer extends WebdaServer {
   resolveConfiguration(config, deployment) {
     merge.recursive(config.global.params, deployment.params);
     merge.recursive(config.global.services, deployment.services);
+  }
+
+  install(env, args, fork) {
+    // Create Lambda role if needed
+  }
+
+  uninstall(env, args, fork) {
+    
+  }
+
+  logRequest(...args) {
   }
 
   deploy(env, args, fork) {
@@ -529,36 +556,6 @@ class WebdaConfigurationServer extends WebdaServer {
     });
   }
 
-  commandLine(args) {
-
-    switch (args[0]) {
-      case 'config':
-        var browser = true;
-        if (args[1] !== undefined) {
-          browser = false;
-        }
-        this.serve(18181, browser);
-        break;
-      case 'deploy':
-        if (args[1] === undefined) {
-          console.log('Need to specify an environment');
-          return;
-        }
-        this.deploy(args[1], args.slice(2)).catch((err) => {
-          console.trace(err);
-        });
-        break;
-      case 'undeploy':
-        if (args[1] === undefined) {
-          console.log('Need to specify an environment');
-          return;
-        }
-        new this.undeploy(args[1], args.slice(2)).catch((err) => {
-          console.trace(err);
-        });
-        break;
-    }
-  }
 }
 
 module.exports = WebdaConfigurationServer

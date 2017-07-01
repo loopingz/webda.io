@@ -203,6 +203,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     app.$.deploymentsAjax.generateRequest();
     app.$.servicesAjax.generateRequest();
     app.$.moddasAjax.generateRequest();
+    app.$.versionsAjax.generateRequest();
   }
 
   app.handleVhosts = function (evt) {
@@ -283,6 +284,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   window.addEventListener('WebComponentsReady', function() {
     // Fire all network :)
     app.$.vhostAjax.url = app.getUrl('/configs');
+    app.$.versionsAjax.url = app.getUrl('/versions');
     app.$.deploymentsAjax.url = app.getUrl('/deployments');
     app.$.servicesAjax.url = app.getUrl('/services');
     app.$.routesAjax.url = app.getUrl('/routes');

@@ -93,7 +93,7 @@ class AWSDeployer extends Deployer {
     if (args[0] === "lambda" || this._restApiName === undefined) {
       return promise;
     }
-    promise.then(() => {
+    return promise.then(() => {
       return this.generateAPIGateway();
     }).then(() => {
       return this.installServices();

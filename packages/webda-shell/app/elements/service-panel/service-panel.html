@@ -11,13 +11,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../url-method-selector/url-method-selector.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 
 <dom-module id="service-panel">
   <template>
-    <style include="shared-styles">
-    </style>
+    <style include="shared-styles iron-flex iron-flex-alignment"></style>
     <label>Type</label>
     <div>[[type]]</div>
+    <template is="dom-if" if="[[_isStore(type)]]">
+      <label>Expose</label>
+      <url-method-selector methods="{{methods}}" toggles></url-method-selector>
+    </template>
     <paper-icon-button icon="list" title="View full parameters" on-tap="showFull" style="float:right; margin-top: -16px;"></paper-icon-button>
     <label>Configuration</label>
     <juicy-jsoneditor id="params" mode="tree" modes=["view","tree","text","form"] json="{{params}}"></juicy-jsoneditor>
@@ -33,7 +37,56 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         showFull: function() {
           app.displayJson(app.getRealConfiguration(this.component));
         },
+        _isStore(type) {
+          var stores = ['Webda/DynamoStore','Webda/MemoryStore','Webda/FileStore','Webda/MongoStore']
+          return stores.indexOf(type) >= 0;
+        },
+        _getExpose(field) {
+          if (!this.params.expose) {
+            return false;
+          }
+          return this.params.expose === true || this.params.expose.restrict && !this.params.expose.restrict[field];
+        },
+        _exposeUpdate: function() {
+          if (!this.params || this._setter) return;
+          if (!this.params.expose || !this.params.expose.restrict) {
+            this.params.expose = {restrict: {}};
+          }
+          var count = 0;
+          if (this.methods.indexOf('GET')<0) {
+            this.params.expose.restrict.get = true;
+            count++;
+          } else if (this.params.expose.restrict.get) {
+            delete this.params.expose.restrict.get;
+          }
+          if (this.methods.indexOf('POST')<0) {
+            this.params.expose.restrict.create = true;
+            count++;
+          } else if (this.params.expose.restrict.create) {
+            delete this.params.expose.restrict.create;
+          }
+          if (this.methods.indexOf('PUT')<0) {
+            this.params.expose.restrict.update = true;
+            count++;
+          } else if (this.params.expose.restrict.update) {
+            delete this.params.expose.restrict.update;
+          }
+          if (this.methods.indexOf('DELETE')<0) {
+            this.params.expose.restrict.delete = true;
+            count++;
+          } else if (this.params.expose.restrict.delete) {
+            delete this.params.expose.restrict.delete;
+          }
+          if (count === 0) {
+            this.params.expose = true;
+          }
+          if (count === 4) {
+            delete this.params.expose;
+          }
+          this.updateParams();
+        },
         updateParams: function() {
+          if (!this.component) return;
           // Not optimal
           var newService = {};
           for (let i in this.params) {
@@ -97,10 +150,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           if (this.type === undefined && this.component) {
             this.type = this.component._name;
           }
+          if (this._isStore(this.type)) {
+            console.log('setter', this.params.expose);
+            this._setter = true;
+            var methods = [];
+            if (this._getExpose('delete')) {
+              methods.push('DELETE');
+            }
+            if (this._getExpose('get')) {
+              methods.push('GET');
+            }
+            if (this._getExpose('update')) {
+              methods.push('PUT');
+            }
+            if (this._getExpose('create')) {
+              methods.push('POST');
+            }
+            this.methods = methods;
+            this._setter = false;
+          }
           this.validate()
         },
         ready: function() {
-          this.timeout;
           this.$.params.addEventListener('change', (evt) => {
             // Change is emit before the change, and not other event is emitted
             // For now using timeout to recompute the info
@@ -115,6 +186,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           });
         },
         properties: {
+          methods: {
+            type: Array,
+            observer: '_exposeUpdate'
+          },
           dirty: {
             type: Boolean,
             value: false,

@@ -7,6 +7,10 @@ const colors = require('colors');
 
 class AWSDeployer extends Deployer {
 
+  installServices() {
+    // Create role for Lambda if not exists
+  }
+
   deploy(args) {
     this._maxStep = 4;
     if (args[0] === "package") {
@@ -27,7 +31,7 @@ class AWSDeployer extends Deployer {
       this._lambdaFunctionName = this.resources.restApi;
     }
     if (this._lambdaRole === undefined || this._lambdaFunctionName === undefined) {
-      throw Error("Need to define LambdaRole and a FunctionName");
+      throw Error("Need to define LambdaRole and a Rest API Name");
     }
     if (this._restApiName === undefined) {
       this._maxStep = 2;
@@ -135,6 +139,9 @@ class AWSDeployer extends Deployer {
       fs.unlinkSync(zipPath)
     }
     var ignores = ['dist', 'bin', 'test', 'Dockerfile', 'README.md', 'package.json', 'deployments', 'app', 'webda.config.json'];
+    if (this.resources.package && this.resources.package.ignores) {
+      ignores = ignores.concat(this.resources.package.ignores);
+    }
     // Should load the ignore from a file
     var toPacks = [];
     var files = fs.readdirSync('.');

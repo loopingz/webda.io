@@ -42,6 +42,27 @@ class MemoryQueueService extends QueueService {
   __clean() {
     this._queue = {};
   }
+
+  static getModda() {
+    return {
+      "uuid": "Webda/MemoryQueue",
+      "label": "MemoryQueue",
+      "description": "Implements a simple in memory queue",
+      "webcomponents": [],
+      "documentation": "",
+      "logo": "images/placeholders/memoryqueue.png",
+      "configuration": {
+        "default": {
+        },
+        "schema": {
+          type: "object",
+          properties: {            
+          },
+          required: []
+        }
+      }
+    }
+  }
 }
 
 module.exports = MemoryQueueService

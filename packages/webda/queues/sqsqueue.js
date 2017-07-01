@@ -64,6 +64,38 @@ class SQSQueueService extends QueueService {
     return this.sqs.purgeQueue({QueueUrl: this._params.queue}).promise();
   }
 
+
+  static getModda() {
+    return {
+      "uuid": "Webda/SQSQueue",
+      "label": "SQS Queue",
+      "description": "Implements a Queue stored in SQS",
+      "webcomponents": [],
+      "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
+      "logo": "images/placeholders/sqs.png",
+      "configuration": {
+        "default": {
+          "queue": "YOUR QUEUE URL"
+        },
+        "schema": {
+          type: "object",
+          properties: {
+            "accessKeyId": {
+              type: "string"
+            },
+            "secretAccessKey": {
+              type: "string"
+            },
+            "queue": {
+              type: "string"
+            }
+          },
+          required: ["accessKeyId", "secretAccessKey", "queue"]
+        }
+      }
+    }
+  }
+
 }
 
 module.exports = SQSQueueService;

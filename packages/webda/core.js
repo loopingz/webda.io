@@ -154,6 +154,13 @@ class Webda {
    * @ignore
    */
   setHost(vhost) {
+    if (!vhost) {
+      if (this._config['*']) {
+        vhost = this._config['*'];
+      } else {
+        vhost = this._config[Object.keys(this._config)[0]];
+      }
+    }
     this._vhost = vhost
     this.initHosts(vhost, this._config[vhost]);
   }

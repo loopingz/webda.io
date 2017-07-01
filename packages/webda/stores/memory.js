@@ -105,6 +105,27 @@ class MemoryStore extends Store {
     res[prop].splice(index, 1);
     return this._save(res, uid);
   }
+
+  static getModda() {
+    return {
+      "uuid": "Webda/MemoryStore",
+      "label": "MemoryStore",
+      "description": "Implements a simple in memory store",
+      "webcomponents": [],
+      "documentation": "",
+      "logo": "images/placeholders/memorystore.png",
+      "configuration": {
+        "default": {
+        },
+        "schema": {
+          type: "object",
+          properties: {            
+          },
+          required: []
+        }
+      }
+    }
+  }
 }
 
 

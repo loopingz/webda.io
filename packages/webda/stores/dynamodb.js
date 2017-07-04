@@ -231,16 +231,44 @@ class DynamoStore extends Store {
     return this._client.update(params).promise();
   }
 
+  getARNPolicy(accountId) {
+    let region = this._params.region || 'us-east-1';
+    return {
+        "Sid": this.constructor.name + this._name,
+        "Effect": "Allow",
+        "Action": [
+            "dynamodb:BatchGetItem",
+            "dynamodb:BatchWriteItem",
+            "dynamodb:DeleteItem",
+            "dynamodb:GetItem",
+            "dynamodb:GetRecords",
+            "dynamodb:GetShardIterator",
+            "dynamodb:PutItem",
+            "dynamodb:Query",
+            "dynamodb:Scan",
+            "dynamodb:UpdateItem"
+        ],
+        "Resource": [
+            'arn:aws:dynamodb:' + region + ':' + accountId + ':table/' + this._params.table
+        ]
+    }
+  }
+
   install(params) {
-    /* Code sample for later use
-     @ignore
-     if (params.region !== undefined) {
-     AWS.config.update(({region: params.region});
-     }
-     AWS.config.update({accessKeyId: params.accessKeyId, secretAccessKey: params.secretAccessKey});
-     var client = new AWS.DynamoDB.DocumentClient();
-     console.log("Should create table ", {'TableName': this._params.table, 'Key': {"uuid": uid}});
-     */
+     var dynamodb = new params.AWS.DynamoDB();
+     return dynamodb.describeTable({TableName: this._params.table}).promise().catch ( (err) => {
+      if (err.code === 'ResourceNotFoundException') {
+        console.log("\tCreating table", this._params.table);
+        return dynamodb.createTable(
+          {
+            TableName: this._params.table,
+            ProvisionedThroughput: {ReadCapacityUnits: 5,WriteCapacityUnits: 5},
+            KeySchema: [{AttributeName: 'uuid', KeyType: 'HASH'}],
+            AttributeDefinitions: [{AttributeName: 'uuid', AttributeType: 'S'}]
+          }
+        ).promise();
+      }
+     });
   }
 
   uninstall(params) {

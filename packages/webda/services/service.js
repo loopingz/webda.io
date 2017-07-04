@@ -55,6 +55,7 @@ class Service extends EventEmitter {
    * @abstract
    */
   install(params) {
+    return Promise.resolve();
   }
 
   /**
@@ -63,6 +64,7 @@ class Service extends EventEmitter {
    * @abstract
    */
   uninstall(params) {
+    return Promise.resolve();
   }
 
   /**

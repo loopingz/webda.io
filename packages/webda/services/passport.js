@@ -132,8 +132,9 @@ class PassportExecutor extends Executor {
       if (user === undefined) {
         throw 404;
       }
-      ctx.write(user);
-      return;
+      return this.emit("GetMe", {ctx: ctx, user: user}).then(() => {
+        ctx.write(user);
+      });
     });
   }
 

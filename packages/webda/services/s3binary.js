@@ -245,6 +245,49 @@ class S3Binary extends Binary {
     });
   }
 
+  install(params) {
+     var s3 = new params.AWS.S3();
+     return s3.headBucket({Bucket: this._params.bucket}).promise().catch( (err) => {
+      if (err.code === 'Forbidden') {
+        console.log('S3 bucket already exists in another account');
+      } else if (err.code === 'NotFound') {
+        console.log('\tCreating S3 Bucket', this._params.bucket);
+        return s3.createBucket({Bucket: this._params.bucket}).promise();
+      }
+     });
+  }
+
+  getARNPolicy(accountId) {
+    return {
+        "Sid": this.constructor.name + this._name,
+        "Effect": "Allow",
+        "Action": [
+            "s3:AbortMultipartUpload",
+            "s3:DeleteObject",
+            "s3:DeleteObjectVersion",
+            "s3:GetObject",
+            "s3:GetObjectAcl",
+            "s3:GetObjectTagging",
+            "s3:GetObjectTorrent",
+            "s3:GetObjectVersion",
+            "s3:GetObjectVersionAcl",
+            "s3:GetObjectVersionTagging",
+            "s3:GetObjectVersionTorrent",
+            "s3:ListBucket",
+            "s3:ListBucketMultipartUploads",
+            "s3:ListBucketVersions",
+            "s3:ListMultipartUploadParts",
+            "s3:PutBucketAcl",
+            "s3:PutObject",
+            "s3:PutObjectAcl",
+            "s3:RestoreObject"
+        ],
+        "Resource": [
+            'arn:aws:s3:::' + this._params.bucket
+        ]
+    }
+  }
+
   static getModda() {
     return {
       "uuid": "Webda/S3Binary",

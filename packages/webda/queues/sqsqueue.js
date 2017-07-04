@@ -64,6 +64,48 @@ class SQSQueueService extends QueueService {
     return this.sqs.purgeQueue({QueueUrl: this._params.queue}).promise();
   }
 
+  install(params) {
+    let queue = this._getQueueInfosFromUrl();
+     var sqs = new params.AWS.SQS();
+     return sqs.getQueueUrl({QueueName: queue.name, QueueOwnerAWSAccountId: queue.accountId}).promise().catch( (err) => {
+      if (err.code === 'AWS.SimpleQueueService.NonExistentQueue') {
+        console.log('\tCreating SQS queue ', queue.name);
+        return sqs.createQueue({QueueName: queue.name}).promise();
+      }
+     });
+  }
+
+  _getQueueInfosFromUrl() {
+    let re = new RegExp(/.*sqs\.(.*)\.amazonaws.com\/([0-9]+)\/(.*)/, 'i');
+    let found = re.exec(this._params.queue);
+    if (found.length != 4) {
+      throw new Error('SQS Queue URL malformed');
+    }
+    return {
+      accountId: found[2],
+      region: found[1],
+      name: found[3]
+    };
+  }
+
+  getARNPolicy() {
+    // Parse this._params.queue;
+    let queue = this._getQueueInfosFromUrl();
+    return {
+        "Sid": this.constructor.name + this._name,
+        "Effect": "Allow",
+        "Action": [
+            "sqs:DeleteMessage",
+            "sqs:DeleteMessageBatch",
+            "sqs:ReceiveMessage",
+            "sqs:SendMessage",
+            "sqs:SendMessageBatch"
+        ],
+        "Resource": [
+            'arn:aws:sqs:' + queue.region + ':' + queue.accountId + ':' + queue.name
+        ]
+    }
+  }
 
   static getModda() {
     return {

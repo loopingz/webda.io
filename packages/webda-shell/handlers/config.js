@@ -432,12 +432,25 @@ class WebdaConfigurationServer extends WebdaServer {
    * @param {Object} Teh deployment to resolve
    */
   resolveConfiguration(config, deployment) {
+    if (deployment.resources.region && !deployment.params.region) {
+      deployment.params.region = deployment.resources.region;
+    }
     merge.recursive(config.global.params, deployment.params);
     merge.recursive(config.global.services, deployment.services);
   }
 
-  install(env, args, fork) {
+  install(env, server_config, args) {
     // Create Lambda role if needed
+    return this.getService("deployments").get(env).then((deployment) => {
+      if (deployment === undefined) {
+        console.log("Deployment " + env + " unknown");
+        return Promise.reject();
+      }
+      this.resolveConfiguration(this.config[this.getHost()], deployment);
+      let srcConfig = this.exportJson(this.config);
+      let host = this.getHost();
+      return new this._deployers[deployment.type](host, this.computeConfig[host], srcConfig, deployment).installServices(args);
+    });
   }
 
   uninstall(env, args, fork) {

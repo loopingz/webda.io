@@ -8,7 +8,7 @@ const LAMBDA_ROLE_POLICY = '{"Version":"2012-10-17","Statement":[{"Effect":"Allo
 
 class AWSDeployer extends Deployer {
 
-  generateARN() {
+  generateARN(args) {
     let accessKeyId = this.resources.accessKeyId || env('AWS_ACCESS_KEY_ID');
     let secretAccessKey = this.resources.secretAccessKey || env('AWS_SECRET_ACCESS_KEY');
     let region = this.resources.region || env('AWS_DEFAULT_REGION');
@@ -18,7 +18,8 @@ class AWSDeployer extends Deployer {
     let policyName = this._lambdaFunctionName + 'Policy';
     let sts = new AWS.STS();
     let iam = new AWS.IAM();
-    AWS.config.update({accessKeyId: accessKeyId, secretAccessKey: secretAccessKey});
+    AWS.config.update({accessKeyId: accessKeyId, secretAccessKey: secretAccessKey, region: region});
+    this.resources.AWS = AWS;
     return sts.getCallerIdentity().promise().then( (id) => {
       // arn:aws:logs:us-east-1:123456789012:*
       let statements = [];
@@ -108,7 +109,7 @@ class AWSDeployer extends Deployer {
 
   installServices(args) {
     return this.generateARN(args).then( () => {
-      return super.installServices(args);  
+      return super.installServices(args);
     });
   }
 

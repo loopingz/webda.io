@@ -34,15 +34,28 @@ class Deployer {
     return Promise.resolve();
   }
 
+  getServices() {
+    var res = {};
+    for (let i in this.config.global.services) {
+      let service = this.config.global._services[i.toLowerCase()];
+      if (service === undefined) {
+        continue;
+      }
+      res[i] = service;
+    }
+    return res;
+  }
+
   uninstallServices() {
     var promise = Promise.resolve();
     for (let i in this.config.global.services) {
-      if (this.config.global.services[i]._service === undefined) {
+      let service = this.config.global._services[i.toLowerCase()];
+      if (service === undefined) {
         continue;
       }
       promise = promise.then(() => {
         console.log('Uninstalling service ' + i);
-        return this.config.global.services[i]._service.install(this.resources);
+        return service.install(this.resources);
       });
     }
     return promise;
@@ -50,13 +63,13 @@ class Deployer {
 
   installServices() {
     var promise = Promise.resolve();
-    for (let i in this.config.global.services) {
-      if (this.config.global.services[i]._service === undefined) {
-        continue;
-      }
+    let services = this.getServices();
+    //console.log(this.config);
+    for (let i in services) {
+      let service = services[i];
       promise = promise.then(() => {
-        console.log('Installing service ' + i);
-        return this.config.global.services[i]._service.install(this.resources);
+        console.log('Installing service ', i);
+        return service.install(this.resources);
       });
     }
     return promise;

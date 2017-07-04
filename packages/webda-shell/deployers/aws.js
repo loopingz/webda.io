@@ -4,11 +4,112 @@ const AWS = require('aws-sdk');
 const fs = require('fs');
 const crypto = require('crypto');
 const colors = require('colors');
+const LAMBDA_ROLE_POLICY = '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"lambda.amazonaws.com"},"Action":"sts:AssumeRole"}]}';
 
 class AWSDeployer extends Deployer {
 
-  installServices() {
-    // Create role for Lambda if not exists
+  generateARN() {
+    let accessKeyId = this.resources.accessKeyId || env('AWS_ACCESS_KEY_ID');
+    let secretAccessKey = this.resources.secretAccessKey || env('AWS_SECRET_ACCESS_KEY');
+    let region = this.resources.region || env('AWS_DEFAULT_REGION');
+    this._lambdaFunctionName = this.resources.lamdaFunctionName || this.resources.restApi;
+    let services = this.getServices();
+    let roleName = this._lambdaFunctionName + 'Role';
+    let policyName = this._lambdaFunctionName + 'Policy';
+    let sts = new AWS.STS();
+    let iam = new AWS.IAM();
+    AWS.config.update({accessKeyId: accessKeyId, secretAccessKey: secretAccessKey});
+    return sts.getCallerIdentity().promise().then( (id) => {
+      // arn:aws:logs:us-east-1:123456789012:*
+      let statements = [];
+      this.resources.AWSAccountId = id.Account;
+
+      if (this.resources.lambdaRole) {
+        return Promise.resolve();
+      }
+
+      // Build policy
+      for (let i in services) {
+        if (services[i].getARNPolicy) {
+          statements.push(services[i].getARNPolicy(id.Account));
+        }
+      }
+      statements.push({
+          "Sid": "WebdaLambdaLog",
+          "Effect": "Allow",
+          "Action": [
+              "logs:CreateLogGroup",
+              "logs:CreateLogStream"
+          ],
+          "Resource": [
+              "arn:aws:logs:" + region + ":" + id.Account + ":*"
+          ]
+      });
+      let policyDocument = {
+        "Version": "2012-10-17",
+        "Statement": statements
+      }
+      let policy;
+      return iam.listPolicies({PathPrefix: '/webda/'}).promise().then( (data) => {
+        for (let i in data.Policies) {
+          if (data.Policies[i].PolicyName === policyName) {
+            policy = data.Policies[i];
+          }
+        }
+        if (!policy) {
+          console.log('Creating AWS Policy', policyName);
+          // Create the policy has it doesnt not exist
+          return iam.createPolicy({PolicyDocument: JSON.stringify(policyDocument), PolicyName: policyName, Description: 'webda-generated', Path: '/webda/'}).promise().then( (data) => {
+            policy = data.Policy;
+          });
+        } else {
+          // Compare policy with the new one
+          return iam.getPolicyVersion({PolicyArn: policy.Arn, VersionId: policy.DefaultVersionId}).promise().then( (data) => {
+            // If nothing changed just continue
+            if (decodeURIComponent(data.PolicyVersion.Document) === JSON.stringify(policyDocument)) {
+              return Promise.resolve();
+            }
+            console.log('Update AWS Policy', policyName);
+            // Create new version for the policy
+            return iam.createPolicyVersion({PolicyArn: policy.Arn, PolicyDocument: JSON.stringify(policyDocument), SetAsDefault: true}).promise().then( () => {
+              // Remove old version
+              return iam.deletePolicyVersion({PolicyArn: policy.Arn, VersionId: policy.DefaultVersionId}).promise();
+            });
+          })
+        }
+      }).then( () => {
+        // 
+        return iam.listRoles({PathPrefix: '/webda/'}).promise().then( (data) => {
+          let role;
+          for (let i in data.Roles) {
+            if (data.Roles[i].RoleName === roleName) {
+              role = data.Roles[i];
+            }
+          }
+          if (!role) {
+            console.log('Creating AWS Role', roleName);
+            return iam.createRole({Description: 'webda-generated', Path: '/webda/', RoleName: roleName, AssumeRolePolicyDocument: LAMBDA_ROLE_POLICY}).promise();
+          }
+          return Promise.resolve(role);
+        }).then( () => {
+          return iam.listAttachedRolePolicies({RoleName: roleName}).promise();
+        }).then( (data) => {
+          for (let i in data.AttachedPolicies) {
+            if (data.AttachedPolicies[i].PolicyName === policyName) {
+              return Promise.resolve();
+            }
+          }
+          console.log('Attaching AWS Policy', policyName, 'to', roleName);
+          return iam.attachRolePolicy({PolicyArn: policy.Arn, RoleName: roleName}).promise();
+        });
+      });
+    });
+  }
+
+  installServices(args) {
+    return this.generateARN(args).then( () => {
+      return super.installServices(args);  
+    });
   }
 
   deploy(args) {
@@ -21,15 +122,13 @@ class AWSDeployer extends Deployer {
       this._maxStep = 3;
     }
     this._restApiName = this.resources.restApi;
-    this._lambdaFunctionName = this.resources.lamdaFunctionName;
+    this._lambdaFunctionName = this.resources.lamdaFunctionName || this.resources.restApi;
     this._lambdaRole = this.resources.lambdaRole;
     this._lambdaHandler = this.resources.lambdaHandler;
     this._lambdaDefaultHandler = this._lambdaHandler === undefined;
     this._lambdaHandler = this._lambdaDefaultHandler ? 'entrypoint.handler' : this._lambdaHandler;
     this._lambdaTimeout = 3;
-    if (this._lambdaFunctionName === undefined) {
-      this._lambdaFunctionName = this.resources.restApi;
-    }
+
     if (this._lambdaRole === undefined || this._lambdaFunctionName === undefined) {
       throw Error("Need to define LambdaRole and a Rest API Name");
     }
@@ -54,7 +153,9 @@ class AWSDeployer extends Deployer {
     }
     this.region = AWS.config.region;
     let zipPath = "dist/" + this._lambdaFunctionName + '.zip';
-    AWS.config.update({accessKeyId: this.resources.accessKeyId, secretAccessKey: this.resources.secretAccessKey});
+    let accessKeyId = this.resources.accessKeyId || env('AWS_ACCESS_KEY_ID');
+    let secretAccessKey = this.resources.secretAccessKey || env('AWS_SECRET_ACCESS_KEY');
+    AWS.config.update({accessKeyId: accessKeyId, secretAccessKey: secretAccessKey});
     this._awsGateway = new AWS.APIGateway();
     this._awsLambda = new AWS.Lambda();
     this._origin = this.params.website;

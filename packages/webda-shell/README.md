@@ -27,6 +27,16 @@ webda config
 
 You'll get the configuration UI for your project
 
+```
+# To avoid opening browser
+webda config --serve
+
+# Display the configuration for a specific deployment
+webda config -d deploymentName
+
+# Export the configuration for a specific deployment to a file
+webda config -d deploymentName export.json
+```
 
 
 #### Serve the current project
@@ -41,7 +51,7 @@ webda serve
 You can serve with a specific deployment configuration by adding the deployment name
 
 ```
-webda serve DeploymentName
+webda -d deploymentName serve
 ```
 
 #### Debug the current project
@@ -59,10 +69,12 @@ As for serve you can also specify the deployment name to use
 
 First you need to create a deployment, from the configuration UI
 
+Prior to version 0.4, the deployment is specified as an argument right after deploy argument
+
 Then just use the Deploy button on the UI or the webda bin :
 
 ```
-webda deploy Test
+webda -d deploymentName deploy
 ```
 
 #### Generate Swagger/Postman configuration 
@@ -70,13 +82,13 @@ webda deploy Test
 If you use Amazon we expose a way for you to get the Postman configuration of your API using AWS
 
 ```
-webda deploy Test export swagger postman postman.json
+webda -d deploymentName deploy export swagger postman postman.json
 ```
 
 #### Only redeploy Lambda code on AWS
 
 ```
-webda deploy Test lambda
+webda -d deploymentName deploy lambda
 ```
 
 

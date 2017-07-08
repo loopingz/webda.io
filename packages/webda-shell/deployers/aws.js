@@ -8,14 +8,18 @@ const LAMBDA_ROLE_POLICY = '{"Version":"2012-10-17","Statement":[{"Effect":"Allo
 
 class AWSDeployer extends Deployer {
 
+  _getObjectTypeName(type) {
+    return this._lambdaFunctionName + type;
+  }
+
   generateARN(args) {
     let accessKeyId = this.resources.accessKeyId || env('AWS_ACCESS_KEY_ID');
     let secretAccessKey = this.resources.secretAccessKey || env('AWS_SECRET_ACCESS_KEY');
     let region = this.resources.region || env('AWS_DEFAULT_REGION');
     this._lambdaFunctionName = this.resources.lamdaFunctionName || this.resources.restApi;
     let services = this.getServices();
-    let roleName = this._lambdaFunctionName + 'Role';
-    let policyName = this._lambdaFunctionName + 'Policy';
+    let roleName = this._getObjectName('Role');
+    let policyName = this._getObjectName('Policy');
     let sts = new AWS.STS();
     let iam = new AWS.IAM();
     AWS.config.update({accessKeyId: accessKeyId, secretAccessKey: secretAccessKey, region: region});
@@ -130,16 +134,37 @@ class AWSDeployer extends Deployer {
     this._lambdaHandler = this._lambdaDefaultHandler ? 'entrypoint.handler' : this._lambdaHandler;
     this._lambdaTimeout = 3;
 
-    if (this._lambdaRole === undefined || this._lambdaFunctionName === undefined) {
+    var promise = Promise.resolve();
+
+    if (!this._lambdaRole) {
+      let iam = new AWS.IAM();
+      let roleName = this._getObjectTypeName('Role');
+      // No role has been supplied search for the auto generate one
+      promise = iam.listRoles({PathPrefix: '/webda/'}).promise().then( (data) => {
+        let role;
+        for (let i in data.Roles) {
+          if (data.Roles[i].RoleName === roleName) {
+            role = data.Roles[i];
+            this._lambdaRole = role.Arn;
+            return;
+          }
+        }
+      });
+    }
+
+    if (this._lambdaFunctionName === undefined) {
       throw Error("Need to define LambdaRole and a Rest API Name");
     }
     if (this._restApiName === undefined) {
       this._maxStep = 2;
     }
-    if (!this._lambdaRole.startsWith("arn:aws")) {
-      // Try to get the Role ARN ?
-      throw Error("LambdaRole needs to be the ARN of the Role");
-    }
+    promise = promise.then( () => {
+      if (!this._lambdaRole.startsWith("arn:aws")) {
+        // Try to get the Role ARN ?
+        throw Error("LambdaRole needs to be the ARN of the Role");
+      }
+    });
+
     if (this.resources.lambdaMemory) {
       this._lambdaMemorySize = this.resources.lambdaMemory;
     } else {
@@ -171,7 +196,7 @@ class AWSDeployer extends Deployer {
       }
     }
     console.log("Deploying to " + "AWS".yellow);
-    var promise = Promise.resolve();
+    
     if (args[0] !== "aws-only") {
       promise = promise.then(() => {
         return this.generatePackage(zipPath);

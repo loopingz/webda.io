@@ -478,7 +478,7 @@ class WebdaConfigurationServer extends WebdaServer {
           // Conflict already deploying
           throw 409;
         }
-        this.deployFork(env, args);
+        this.deployFork(env);
         return Promise.resolve();
       }
 
@@ -537,8 +537,9 @@ class WebdaConfigurationServer extends WebdaServer {
   deployFork(env) {
     var args = [];
     args.push('/usr/local/lib/node_modules/webda-shell/bin/webda');
+    args.push('-d ' + env);
     args.push("deploy");
-    args.push(env);
+
     console.log("Forking Webda with: ", args);
     this.deployChild = require("child_process").spawn('node', args);
     this._deployOutput = [];

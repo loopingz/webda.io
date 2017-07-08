@@ -9,7 +9,7 @@ const rp = require('request-promise');
 const colors = require('colors');
 const readline = require('readline');
 var argv = require('yargs')
-              .alias('d', 'deployment').alias('s','serve').argv;
+              .alias('d', 'deployment').alias('o','open').argv;
 const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout

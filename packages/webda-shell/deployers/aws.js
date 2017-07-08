@@ -18,8 +18,8 @@ class AWSDeployer extends Deployer {
     let region = this.resources.region || env('AWS_DEFAULT_REGION');
     this._lambdaFunctionName = this.resources.lamdaFunctionName || this.resources.restApi;
     let services = this.getServices();
-    let roleName = this._getObjectName('Role');
-    let policyName = this._getObjectName('Policy');
+    let roleName = this._getObjectTypeName('Role');
+    let policyName = this._getObjectTypeName('Policy');
     let sts = new AWS.STS();
     let iam = new AWS.IAM();
     AWS.config.update({accessKeyId: accessKeyId, secretAccessKey: secretAccessKey, region: region});
@@ -44,7 +44,8 @@ class AWSDeployer extends Deployer {
           "Effect": "Allow",
           "Action": [
               "logs:CreateLogGroup",
-              "logs:CreateLogStream"
+              "logs:CreateLogStream",
+              "logs:PutLogEvents"
           ],
           "Resource": [
               "arn:aws:logs:" + region + ":" + id.Account + ":*"
@@ -89,6 +90,7 @@ class AWSDeployer extends Deployer {
           for (let i in data.Roles) {
             if (data.Roles[i].RoleName === roleName) {
               role = data.Roles[i];
+              this._lambdaRole = role.Arn;
             }
           }
           if (!role) {
@@ -96,7 +98,8 @@ class AWSDeployer extends Deployer {
             return iam.createRole({Description: 'webda-generated', Path: '/webda/', RoleName: roleName, AssumeRolePolicyDocument: LAMBDA_ROLE_POLICY}).promise();
           }
           return Promise.resolve(role);
-        }).then( () => {
+        }).then( (role) => {
+          this._lambdaRole = role.Arn;
           return iam.listAttachedRolePolicies({RoleName: roleName}).promise();
         }).then( (data) => {
           for (let i in data.AttachedPolicies) {
@@ -135,19 +138,11 @@ class AWSDeployer extends Deployer {
     this._lambdaTimeout = 3;
 
     var promise = Promise.resolve();
-
-    if (!this._lambdaRole) {
-      let iam = new AWS.IAM();
-      let roleName = this._getObjectTypeName('Role');
-      // No role has been supplied search for the auto generate one
-      promise = iam.listRoles({PathPrefix: '/webda/'}).promise().then( (data) => {
-        let role;
-        for (let i in data.Roles) {
-          if (data.Roles[i].RoleName === roleName) {
-            role = data.Roles[i];
-            this._lambdaRole = role.Arn;
-            return;
-          }
+    if (args[0] !== "package") {
+      promise = this.installServices().then( () => {
+        if (!this._lambdaRole.startsWith("arn:aws")) {
+          // Try to get the Role ARN ?
+          throw Error("LambdaRole needs to be the ARN of the Role");
         }
       });
     }
@@ -158,12 +153,6 @@ class AWSDeployer extends Deployer {
     if (this._restApiName === undefined) {
       this._maxStep = 2;
     }
-    promise = promise.then( () => {
-      if (!this._lambdaRole.startsWith("arn:aws")) {
-        // Try to get the Role ARN ?
-        throw Error("LambdaRole needs to be the ARN of the Role");
-      }
-    });
 
     if (this.resources.lambdaMemory) {
       this._lambdaMemorySize = this.resources.lambdaMemory;
@@ -222,8 +211,6 @@ class AWSDeployer extends Deployer {
     }
     return promise.then(() => {
       return this.generateAPIGateway();
-    }).then(() => {
-      return this.installServices();
     }).catch((err) => {
       console.log(err);
     });

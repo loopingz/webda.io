@@ -13,9 +13,9 @@ class AWSDeployer extends Deployer {
   }
 
   generateARN(args) {
-    let accessKeyId = this.resources.accessKeyId || env('AWS_ACCESS_KEY_ID');
-    let secretAccessKey = this.resources.secretAccessKey || env('AWS_SECRET_ACCESS_KEY');
-    let region = this.resources.region || env('AWS_DEFAULT_REGION');
+    let accessKeyId = this.resources.accessKeyId || process.env.AWS_ACCESS_KEY_ID;
+    let secretAccessKey = this.resources.secretAccessKey || process.env.AWS_SECRET_ACCESS_KEY;
+    let region = this.resources.region || process.env.AWS_DEFAULT_REGION;
     this._lambdaFunctionName = this.resources.lamdaFunctionName || this.resources.restApi;
     let services = this.getServices();
     let roleName = this._getObjectTypeName('Role');
@@ -168,8 +168,8 @@ class AWSDeployer extends Deployer {
     }
     this.region = AWS.config.region;
     let zipPath = "dist/" + this._lambdaFunctionName + '.zip';
-    let accessKeyId = this.resources.accessKeyId || env('AWS_ACCESS_KEY_ID');
-    let secretAccessKey = this.resources.secretAccessKey || env('AWS_SECRET_ACCESS_KEY');
+    let accessKeyId = this.resources.accessKeyId || process.env.AWS_ACCESS_KEY_ID;
+    let secretAccessKey = this.resources.secretAccessKey || process.env.AWS_SECRET_ACCESS_KEY;
     AWS.config.update({accessKeyId: accessKeyId, secretAccessKey: secretAccessKey});
     this._awsGateway = new AWS.APIGateway();
     this._awsLambda = new AWS.Lambda();

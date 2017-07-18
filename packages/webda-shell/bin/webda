@@ -9,7 +9,7 @@ const rp = require('request-promise');
 const colors = require('colors');
 const readline = require('readline');
 var argv = require('yargs')
-              .alias('d', 'deployment').alias('o','open').argv;
+              .alias('d', 'deployment').alias('o','open').alias('x', 'devMode').argv;
 const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout
@@ -118,6 +118,10 @@ function handleCommand(cmd) {
         console.log("Serve as development");
       }
       webda = new server(server_config);
+      webda._devMode = argv.devMode;
+      if (webda._devMode) {
+        console.log('Dev mode activated : wildcard CORS enabled');
+      }
       return webda.serve(18080);
     case 'install':
       {

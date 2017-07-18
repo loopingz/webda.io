@@ -82,18 +82,33 @@ class LambdaServer extends Webda {
     if (this.isDebug()) {
       console.log('PAYLOAD', JSON.stringify(body, null, 4));
     }
+
+    let origin = headers.Origin || headers.origin;
+    // Set predefined headers for CORS
+    if (origin) {
+      let website = this.getGlobalParams(vhost).website;
+      if (Array.isArray(website)) {
+        website = website.join(',');
+      }
+      if (website.indexOf(origin) >= 0 || website === '*') {
+        ctx.setHeader('Access-Control-Allow-Origin', origin);  
+      }
+    }
+    ctx.setHeader('Access-Control-Allow-Credentials', true);
+
+    if (method === 'OPTIONS') {
+      // Return allow all methods for now
+      ctx.setHeader('Access-Control-Allow-Methods', 'POST,DELETE,OPTIONS,PUT,GET');
+      ctx.end();
+      this.handleLambdaReturn(ctx, callback);
+      return;
+    }
+
     var executor = this.getExecutor(ctx, vhost, method, resourcePath, protocol, port, headers);
 
     if (executor == null) {
       callback("Bad mapping " + vhost + " - " + method + " " + resourcePath, null);
     }
-
-    // Set predefined headers for CORS
-    if (headers.Origin) {
-      ctx.setHeader('Access-Control-Allow-Origin', headers.Origin);
-    }
-    ctx.setHeader('Access-Control-Allow-Credentials', true);
-
 
     return Promise.resolve(executor.execute(ctx)).then(() => {
       if (!ctx._ended) {

@@ -29,6 +29,8 @@ class DynamoStore extends Store {
     }
     if (params.region !== undefined) {
       AWS.config.update({region: params.region});
+    } else if (process.env["AWS_DEFAULT_REGION"]) {
+      AWS.config.update({region: process.env["AWS_DEFAULT_REGION"]});
     }
     AWS.config.update({accessKeyId: params.accessKeyId, secretAccessKey: params.secretAccessKey});
     this._client = new AWS.DynamoDB.DocumentClient();

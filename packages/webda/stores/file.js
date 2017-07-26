@@ -122,12 +122,12 @@ class FileStore extends Store {
       uids = [];
       var files = fs.readdirSync(this._params.folder);
       for (var file in files) {
-        uids.push(file);
+        uids.push(files[file]);
       }
     }
     let result = [];
     for (let i in uids) {
-      result.push(this.initModel(this._get(uids[i])));
+      result.push(this._get(uids[i]));
     }
     return Promise.all(result);
   }
@@ -136,7 +136,7 @@ class FileStore extends Store {
     return this.exists(uid).then((res) => {
       if (res) {
         let data = fs.readFileSync(this.file(uid));
-        return Promise.resolve(new this._model(JSON.parse(data), true));
+        return Promise.resolve(this.initModel(JSON.parse(data)));
       }
       return Promise.resolve(undefined);
     });

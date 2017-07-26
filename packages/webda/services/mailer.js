@@ -20,9 +20,15 @@ const EmailTemplate = require('email-templates').EmailTemplate
 class Mailer extends Service {
   /** @ignore */
   constructor(webda, name, params) {
-    super(webda, name, params)
+    super(webda, name, params);
     try {
-      this._transporter = nodemailer.createTransport(params.config);
+      params.config = params.config || {};
+      if (params.config.transport === 'ses' && !params.config.SES) {
+        let aws = require('aws-sdk');
+        aws.config.update(params.config);
+        params.SES = new aws.SES({apiVersion: '2010-12-01'});
+      }
+      this._transporter = nodemailer.createTransport(params.config);  
     } catch (ex) {
       this._transporter = undefined;
     }
@@ -59,7 +65,7 @@ class Mailer extends Service {
   send(options, callback) {
     if (this._transporter === undefined) {
       console.log("Cannot send email as no transporter is defined");
-      return;
+      return Promise.reject("Cannot send email as no transporter is defined");
     }
     if (!options.from) {
       options.from = this._params.sender;

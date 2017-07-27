@@ -23,8 +23,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     }
     </style>
     <div style="height: 30px;">
-    <template is="dom-repeat" items="[[availableMethods]]">
-      <url-method-badge id="[[item]]" method="[[item]]" toggles="[[toggles]]" checked="[[checked]]" on-change="getSelection"></url-method-badge>  
+    <template is="dom-repeat" items="[[_methods]]">
+      <url-method-badge id="[[item.type]]" method="[[item.type]]" toggles="[[toggles]]" checked="[[item.checked]]" on-change="getSelection"></url-method-badge>  
     </template>
     </div>
   </template>
@@ -35,15 +35,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       Polymer({
         is: 'url-method-selector',
         setSelection: function() {
-          if (this.methods === undefined) return;
+          var res = [];
           var methods = this.methods;
           if (typeof(this.methods) == "string") {
             methods = this.methods = [this.methods];
+          } else if (!methods) {
+            methods = [];
           }
           for (var i in this.availableMethods) {
-            if (!this.$$("#"+this.availableMethods[i])) continue;
-            this.$$("#"+this.availableMethods[i]).checked = methods.indexOf(this.availableMethods[i]) >= 0;
+            res.push({type: this.availableMethods[i], checked: methods.indexOf(this.availableMethods[i]) >= 0 || this.checked});
           }
+          this._methods = res;
         },
         getSelection: function() {
           // Not the nicest component ever
@@ -69,7 +71,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           availableMethods: {
             value: ["GET", "POST", "PUT", "DELETE"],
-            type: Array
+            type: Array,
+            observer: 'setSelection'
           }
         }
       });

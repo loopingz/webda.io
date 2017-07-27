@@ -53,7 +53,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         @apply(--paper-font-body2);
       }
     </style>
-    <div class$="method method_{{method}}" on-tap="toggle" checked$="[[checked]]">{{method}}</div>
+    <div id="btn" class$="method method_{{method}}" on-tap="toggle" checked$="[[checked]]">{{method}}</div>
   </template>
 
   <script>
@@ -68,13 +68,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             this.fire('change', {method: this.method, 'checked': this.checked});
           }
         },
+        _setCheck: function() {
+          this.$.btn.checked = this.checked;
+          console.log('this button should be', this.checked);
+        },
         properties: {
           onToggle: {
             type: String,
           },
           checked: {
             type: Boolean,
-            value: false
+            value: false,
+            observer: '_setCheck'
           },
           toggles: {
             type: Boolean,

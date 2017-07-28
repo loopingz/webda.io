@@ -175,6 +175,14 @@ class AWSDeployer extends Deployer {
     this._awsLambda = new AWS.Lambda();
     this._origin = this.params.website;
 
+    if (this._origin) {
+      if (this._origin === '*' || Array.isArray(this._origin) || this._origin.indexOf(',') >= 0) {
+        this._addOPTIONS = true;
+      } else {
+        this._addMockCORS = true;
+      }
+    }
+
     if (!this.resources.lambdaVersionsLimit) {
       this.resources.lambdaVersionsLimit = 3;
     }
@@ -549,6 +557,12 @@ class AWSDeployer extends Deployer {
       });
     }
     return promise.then(() => {
+      if (this._addOPTIONS) {
+        if (typeof(local.method) == "string") {
+          local.method = [local.method];
+        } 
+        local.method.push('OPTIONS');
+      }
       if (typeof(local.method) == "string") {
         allowedMethods = local.method;
         return this.createAWSMethodResource(resource, local, local.method);
@@ -557,8 +571,8 @@ class AWSDeployer extends Deployer {
         return this.createAWSMethodsResource(resource, local, local.method);
       }
     }).then(() => {
-      if (this._origin) {
-        return this.createCORSMethod(resource, allowedMethods);
+      if (this._addMockCORS) {
+        return this.createCORSMethod(resource, allowedMethods);  
       }
       return Promise.resolve();
     });
@@ -693,6 +707,12 @@ class AWSDeployer extends Deployer {
       return this.tree[local._url] = this._awsGateway.createResource(params).promise();
     }).then((res) => {
       resource = res;
+      if (this._addOPTIONS) {
+        if (typeof(local.method) == "string") {
+          local.method = [local.method];
+        } 
+        local.method.push('OPTIONS');
+      }
       if (typeof(local.method) == "string") {
         allowedMethods = local.method;
         return this.createAWSMethodResource(resource, local, local.method);
@@ -701,8 +721,8 @@ class AWSDeployer extends Deployer {
         return this.createAWSMethodsResource(resource, local, local.method);
       }
     }).then(() => {
-      if (this._origin) {
-        return this.createCORSMethod(resource, allowedMethods);
+      if (this._addMockCORS) {
+        return this.createCORSMethod(resource, allowedMethods);  
       }
       return Promise.resolve();
     });

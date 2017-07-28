@@ -182,6 +182,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     app.models.forEach((item) => {if (!item.builtin) customModels.push(item)})
     if (index !== undefined) {
       customModels[index]._type = 'Model';
+      customModels[index]._name = customModels[index].name;
       app.selectComponent(customModels[index]);
     }
   }

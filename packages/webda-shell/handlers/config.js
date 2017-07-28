@@ -135,6 +135,32 @@ class ConfigurationService extends Executor {
     return arrayRes;
   }
 
+  _getClass(name, extending, templating, models) {
+    console.log(name, extending, templating, models);
+    let className = name.split('/').pop();
+    let extendName = extending.split('/').pop();
+    let requireFile;
+    // Builtin
+    if (this._webda._models[extending]) {
+      requireFile = 'webda/models/' + extendName.toLowerCase();
+    } else {
+      requireFile = '.' + models[extending];
+    }
+    let content =
+`"use strict";
+const ` + extendName + ` = require('`+requireFile+`');
+
+class ` + className + ` extends ` + extendName + ` {`;
+    if (templating) {
+      content +=
+`
+  canDo() {
+
+  }
+`
+    }
+    return content + '}\n';
+  }
   crudModels(ctx) {
     let models = this._getModels();
     if (!this._config.global) {
@@ -143,16 +169,50 @@ class ConfigurationService extends Executor {
     if (!this._config.global.models) {
       this._config.global.models = {};
     }
-    if (ctx._route._http.method === "DELETE") {
-      //console.log(this._config.gobal.models);
+    if (ctx._route._http.method === "GET") {
+      if (ctx._params.name) {
+        if (!models[ctx._params.name]) {
+          throw 404;
+        }
+        if (models[ctx._params.name].builtin) {
+          throw 403;
+        }
+        ctx.write(fs.readFileSync(models[ctx._params.name].src + '.js').toString());
+        return;
+      } else {
+        ctx.write(models);
+        return;
+      }
+      return;
+    } else if (ctx._route._http.method === "DELETE") {
+      let name = ctx._params.name;
+      console.log('should DELETE', name, ctx._params);
+      if (this._config.global.models[name]) {
+        let file = this._config.global.models[name];
+        if (!file.endsWith('.js')) {
+          file += '.js';
+        }
+        if (fs.existsSync(file)) {
+          fs.unlinkSync(file);
+        }
+        delete this._config.global.models[name];
+      }
+      this.save();
+      return;
     } else if (ctx._route._http.method === "POST") {
+      let name = ctx.body.name;
       let model = this._config.global.models[name];
       this.cleanBody(ctx);
-      if (model != null || fs.existsSync(ctx.body.source)) {
+      let file = ctx.body.src;
+      this._config.global.models[name] = ctx.body.src;
+      if (!file.endsWith('.js')) {
+        file += '.js'; 
+      }
+      if (model != null || fs.existsSync(file)) {
         throw 409;
       }
-      this._config.global.models[name] = ctx.body.source;
-      fs.writeFileSync(ctx.body.source, this._getClass(ctx.body.templating));
+      
+      fs.writeFileSync(file, this._getClass(name, ctx.body.extending, ctx.body.templating, models));
       this.save();
     } else if (ctx._route._http.method === "PUT") {
 

@@ -26,7 +26,7 @@ class Mailer extends Service {
       if (params.config.transport === 'ses' && !params.config.SES) {
         let aws = require('aws-sdk');
         aws.config.update(params.config);
-        params.SES = new aws.SES({apiVersion: '2010-12-01'});
+        params.config.SES = new aws.SES({apiVersion: '2010-12-01'});
       }
       this._transporter = nodemailer.createTransport(params.config);  
     } catch (ex) {

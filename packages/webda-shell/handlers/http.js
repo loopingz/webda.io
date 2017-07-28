@@ -106,8 +106,13 @@ class WebdaServer extends Webda {
     return 'webda-private-key';
   }
 
-  serve(port) {
+  serve(port, websockets) {
     var http = require('http');
+    if (websockets) {
+      // Activate websocket
+      console.log('Activating socket.io');
+      this._io = require('socket.io')(http);
+    }
     var express = require('express');
     var cookieParser = require('cookie-parser');
     var bodyParser = require('body-parser');

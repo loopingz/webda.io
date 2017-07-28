@@ -154,8 +154,22 @@ class ` + className + ` extends ` + extendName + ` {`;
     if (templating) {
       content +=
 `
-  canDo() {
-
+  canAct(ctx, action) {
+    // Dont allow anything by default
+    // Remove the throw to let it work
+    if (action === 'create') {
+      throw 403;
+      return Promise.resolve(ctx);
+    } else if (action === 'update') {
+      throw 403;
+      return Promise.resolve(ctx);
+    } else if (action === 'get') {
+      throw 403;
+      return Promise.resolve(ctx);
+    } else if (action === 'delete') {
+      throw 403;
+      return Promise.resolve(ctx);
+    }
   }
 `
     }

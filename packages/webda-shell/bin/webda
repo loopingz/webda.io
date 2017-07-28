@@ -8,8 +8,14 @@ const mkdirp = require("mkdirp");
 const rp = require('request-promise');
 const colors = require('colors');
 const readline = require('readline');
+// Should declare each command
 var argv = require('yargs')
-              .alias('d', 'deployment').alias('o','open').alias('x', 'devMode').argv;
+              .alias('d', 'deployment')
+              .alias('o','open')
+              .alias('x', 'devMode')
+              .option('port', {alias:'p', default: 18080})
+              .option('websockets', {alias: 'w', default: false})
+              .argv;
 const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout
@@ -122,7 +128,7 @@ function handleCommand(cmd) {
       if (webda._devMode) {
         console.log('Dev mode activated : wildcard CORS enabled');
       }
-      return webda.serve(18080);
+      return webda.serve(argv.port, argv.websockets);
     case 'install':
       {
         console.log("Installing deployment: " + argv.deployment);

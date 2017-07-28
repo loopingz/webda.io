@@ -239,9 +239,8 @@ function handleCommand(cmd) {
         }
         return Promise.resolve();
       }
-      var browser = !argv.serve;
       webda = new config();
-      return webda.serve(18181, browser);
+      return webda.serve(18181, argv.open);
     case 'deploy':
       webda = new config();
       console.log('Deploying', argv.deployment);

@@ -81,6 +81,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <iron-ajax id="vhostAjax" handle-as="json" on-response="handleVhosts" auto></iron-ajax>
     <iron-ajax id="deploymentsAjax" handle-as="json" last-response="{{deployments}}"></iron-ajax>
     <iron-ajax id="versionsAjax" handle-as="json" last-response="{{versions}}"></iron-ajax>
+    <iron-ajax id="modelsAjax" handle-as="json" last-response="{{models}}"></iron-ajax>
     <iron-ajax id="routesAjax" handle-as="json" last-response="{{routes}}"></iron-ajax>
     <iron-ajax id="servicesAjax" handle-as="json" last-response="{{services}}" on-response="mapServices"></iron-ajax>
     <iron-ajax id="moddasAjax" handle-as="json" last-response="{{moddas}}" on-response="loadSchemas"></iron-ajax>
@@ -110,6 +111,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               <paper-item on-click="onSelectService" data-index="{{index}}">{{ item._name }}</paper-item>
             </template>
           </section>
+          <section data-route="models">
+            <template is="dom-repeat" items="{{models}}" filter="_noBuiltin">
+              <paper-item on-click="onSelectModel" data-index="{{index}}">{{ item.name }}</paper-item>
+            </template>
+          </section>
           <section data-route="deployments">
             <template is="dom-repeat" items="{{deployments}}">
               <paper-item on-click="onSelectDeployment" data-index="{{index}}">{{ item.uuid }}</paper-item>
@@ -125,6 +131,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <paper-icon-button id="paperToggle" icon="menu" paper-drawer-toggle></paper-icon-button>
           <paper-tabs attr-for-selected="data-route" selected="{{route}}" noink on-iron-select="resetComponent">
             <paper-tab data-route="routes"><iron-icon icon="explore"></iron-icon>Routes</paper-tab>
+            <paper-tab data-route="models"><iron-icon icon="class"></iron-icon>Models</paper-tab>
             <paper-tab data-route="services"><iron-icon icon="extension"></iron-icon>Services</paper-tab>
             <paper-tab data-route="deployments"><iron-icon icon="cloud-upload"></iron-icon>Deployments</paper-tab>
           </paper-tabs>
@@ -148,7 +155,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 <configuration-panel component="{{currentComponent}}" dirty="{{dirty}}"></configuration-panel>
               </section>
               <section data-type="Service">
-                <service-panel component="{{currentComponent}}" dirty="{{dirty}}"></service-panel>
+                <service-panel component="{{currentComponent}}" dirty="{{dirty}}" models="[[models]]"></service-panel>
+              </section>
+              <section data-type="Model">
+                <model-panel component="{{currentComponent}}" dirty="{{dirty}}"></model-panel>
               </section>
               <section data-type="Route">
                 <route-panel id="routeComponent" component="{{currentComponent}}" dirty="{{dirty}}"></route-panel>                
@@ -175,6 +185,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <new-route-dialog modal id="newRouteDialog"></new-route-dialog>
     <new-service-dialog modal id="newServiceDialog" moddas="[[moddas]]"></new-service-dialog>
     <new-deployment-dialog modal id="newDeploymentDialog" deployers="[[deployers]]"></new-deployment-dialog>
+    <new-model-dialog modal id="newModelDialog" models="[[models]]"></new-model-dialog>
     <paper-dialog modal id="displayJsonDialog" style="width: 95%;min-height: 95%;">
     <h2>Resolved parameters</h2>
     <div style="margin-top: 20px; width: "><juicy-jsoneditor id="params" mode="tree" modes=["view","tree","text","form"] json="[[json]]"></juicy-jsoneditor></div>

@@ -12,6 +12,8 @@ class ConfigurationService extends Executor {
 
   init(config) {
     config['/api/modda'] = {"method": ["GET"], "executor": this._name, "_method": this.getServices};
+    config['/api/models'] = {"method": ["GET", "POST"], "executor": this._name, "_method": this.crudModels};
+    config['/api/models/{name}'] = {"method": ["GET", "PUT", "DELETE"], "executor": this._name, "_method": this.crudModels};
     config['/api/services'] = {"method": ["GET"], "executor": this._name, "_method": this.crudService};
     config['/api/services/{name}'] = {
       "method": ["PUT", "DELETE", "POST"],
@@ -114,6 +116,47 @@ class ConfigurationService extends Executor {
   updateGlobal(ctx) {
     this._config.global.params = ctx.body.params;
     this.save();
+  }
+
+  _getModels() {
+    var res = {};
+    // Add builtin model
+    for (let i in this._webda._models) {
+      res[i] = {builtin: true, name: i};
+    }
+    // Add custom model
+    for (let i in this._config.global.models) {
+      res[i] = {'src': this._config.global.models[i], 'name': i};
+    }
+    var arrayRes = [];
+    for (let i in res) {
+      arrayRes.push(res[i]);
+    }
+    return arrayRes;
+  }
+
+  crudModels(ctx) {
+    let models = this._getModels();
+    if (!this._config.global) {
+      this._config.global = {models: {}};
+    }
+    if (!this._config.global.models) {
+      this._config.global.models = {};
+    }
+    if (ctx._route._http.method === "DELETE") {
+      //console.log(this._config.gobal.models);
+    } else if (ctx._route._http.method === "POST") {
+      let model = this._config.global.models[name];
+      this.cleanBody(ctx);
+      if (model != null || fs.existsSync(ctx.body.source)) {
+        throw 409;
+      }
+      this._config.global.models[name] = ctx.body.source;
+      fs.writeFileSync(ctx.body.source, this._getClass(ctx.body.templating));
+      this.save();
+    } else if (ctx._route._http.method === "PUT") {
+
+    }
   }
 
   getDeployers(ctx) {

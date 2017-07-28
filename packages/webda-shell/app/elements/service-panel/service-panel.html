@@ -12,6 +12,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../url-method-selector/url-method-selector.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 
 <dom-module id="service-panel">
   <template>
@@ -20,7 +22,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div>[[type]]</div>
     <template is="dom-if" if="[[_isStore(type)]]">
       <label>Expose</label>
+      [[methods]] [[params.model]]
       <url-method-selector methods="{{methods}}" toggles></url-method-selector>
+      <paper-dropdown-menu label="Model">
+        <paper-listbox class="dropdown-content" selected="{{params.model}}" attr-for-selected="value">
+          <template is="dom-repeat" items="[[models]]">
+            <paper-item value="[[item.name]]">[[item.name]]</paper-item>
+          </template>
+        </paper-listbox>
+      </paper-dropdown-menu>
+      <br />
     </template>
     <paper-icon-button icon="list" title="View full parameters" on-tap="showFull" style="float:right; margin-top: -16px;"></paper-icon-button>
     <label>Configuration</label>
@@ -41,11 +52,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           var stores = ['Webda/DynamoStore','Webda/MemoryStore','Webda/FileStore','Webda/MongoStore']
           return stores.indexOf(type) >= 0;
         },
-        _getExpose(field) {
-          if (!this.params.expose) {
+        _getExpose(params, field) {
+          if (!params.expose) {
             return false;
           }
-          return this.params.expose === true || this.params.expose.restrict && !this.params.expose.restrict[field];
+          return params.expose === true || params.expose.restrict && !params.expose.restrict[field];
         },
         _exposeUpdate: function() {
           if (!this.params || this._setter) return;
@@ -131,7 +142,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         filterComponent: function () {
           // As configuration is include in the definition need to filter _type and _name
-          this.params = {};
+          let params = {};
           this.type = undefined;
           for (let i in this.component) {
             if (i.startsWith('_')) {
@@ -145,30 +156,33 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               this.type = "Custom";
               continue;
             }
-            this.params[i] = this.component[i];
+            params[i] = this.component[i];
           }
           if (this.type === undefined && this.component) {
             this.type = this.component._name;
           }
           if (this._isStore(this.type)) {
-            console.log('setter', this.params.expose);
+            if (!params.model) {
+              params.model = "Webda/CoreModel";
+            }
             this._setter = true;
             var methods = [];
-            if (this._getExpose('delete')) {
+            if (this._getExpose(params, 'delete')) {
               methods.push('DELETE');
             }
-            if (this._getExpose('get')) {
+            if (this._getExpose(params, 'get')) {
               methods.push('GET');
             }
-            if (this._getExpose('update')) {
+            if (this._getExpose(params, 'update')) {
               methods.push('PUT');
             }
-            if (this._getExpose('create')) {
+            if (this._getExpose(params, 'create')) {
               methods.push('POST');
             }
             this.methods = methods;
             this._setter = false;
           }
+          this.params = params;
           this.validate()
         },
         ready: function() {
@@ -189,6 +203,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           methods: {
             type: Array,
             observer: '_exposeUpdate'
+          },
+          models: {
+            type: Array
           },
           dirty: {
             type: Boolean,

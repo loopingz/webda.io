@@ -58,6 +58,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       app.$.newServiceDialog.open();
     } else if (app.route == "deployments") {
       app.$.newDeploymentDialog.open();
+    } else if (app.route == "models") {
+      app.$.newModelDialog.open();
     }
   }
 
@@ -153,7 +155,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   }
 
   app.jsonify = function(obj) {
-    console.log(JSON.stringify(obj, jsonFilter, 4));
     return JSON.stringify(obj, jsonFilter, 4).trim();
   }
 
@@ -173,6 +174,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     var index = app.getAttribute('dataIndex', evt.target);
     if (index !== undefined) {
       app.selectComponent(app.deployments[index]);
+    }
+  }
+  app.onSelectModel = function(evt) {
+    var index = app.getAttribute('dataIndex', evt.target);
+    var customModels = [];
+    app.models.forEach((item) => {if (!item.builtin) customModels.push(item)})
+    if (index !== undefined) {
+      customModels[index]._type = 'Model';
+      app.selectComponent(customModels[index]);
     }
   }
   app.onSelectRoute = function(evt) {
@@ -204,6 +214,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     app.$.servicesAjax.generateRequest();
     app.$.moddasAjax.generateRequest();
     app.$.versionsAjax.generateRequest();
+    app.$.modelsAjax.generateRequest();
   }
 
   app.handleVhosts = function (evt) {
@@ -270,7 +281,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   /*****/
 
   app.getRouteLabel = function (label) {
-    var labels = {'routes': 'Routes', 'services': 'Services', 'deployments': 'Deployments'};
+    var labels = {'routes': 'Routes', 'services': 'Services', 'deployments': 'Deployments', 'models': 'Models'};
     return labels[label];
   }
   app.displayInstalledToast = function() {
@@ -290,6 +301,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     app.$.routesAjax.url = app.getUrl('/routes');
     app.$.moddasAjax.url = app.getUrl('/moddas');
     app.$.deployersAjax.url = app.getUrl('/deployers');
+    app.$.modelsAjax.url = app.getUrl('/models');
     
     app.connect();
 
@@ -336,6 +348,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       app.$.toast.text = 'Deployment created';
       app.$.toast.show();
     });
+    app.$.newModelDialog.addEventListener('iron-overlay-closed', function (evt) {
+      if (!evt.detail.confirmed) return;
+      app.refresh();
+      app.$.toast.text = 'Model created';
+      app.$.toast.show();
+    });
     app.$.newServiceDialog.addEventListener('iron-overlay-closed', function (evt) {
       if (!evt.detail.confirmed) return;
       app.refresh();
@@ -375,6 +393,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       app.deployAction = "Deployment Finished";
       app.deployStepper.finished = true;
     }
+  }
+
+  app._noBuiltin = function(item) {
+    return !item.builtin;
   }
 
   app.connect = function() {

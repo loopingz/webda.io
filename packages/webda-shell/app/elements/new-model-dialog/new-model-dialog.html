@@ -1,0 +1,179 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
+<link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../url-method-selector/url-method-selector.html">
+<dom-module id="new-model-dialog">
+  <template>
+    <style>
+      :host {
+        display: block;
+        width: 95%;
+        min-height: 95%;
+      }
+
+      span {
+        @apply(--paper-font-body1);
+      }
+
+      #content {
+        width: 100%;
+        height: 100%;
+      }
+      paper-dialog-scrollable {
+        height: 100%;
+      }
+      .buttons {
+        position: absolute;
+        bottom: 0px;
+        right: 0px;
+        left: 0px;
+        border-top: 1px solid var(--light-primary-color);
+      }
+      paper-dialog-scrollable {
+        margin-bottom: 48px;
+        min-height: 90%;
+      }
+      .paper-dialog-scrollable-0.can-scroll:not(.scrolled-to-bottom):not(:last-child)::after {
+        background: none;
+      }
+      juicy-ace-editor {
+        height: 300px;
+      }
+      label {
+        color:#737373;
+        font-size:12px;
+      }
+      paper-card[selected] {
+        background-color: var(--accent-color);
+      }
+      paper-card {
+        padding-bottom: 3px;
+      }
+      paper-tabs {
+        border-bottom: 1px solid var(--light-primary-color);
+        --paper-tabs-selection-bar-color: var(--primary-color);
+      }
+
+      paper-tab {
+        --paper-tab-ink: var(--light-primary-color);
+      }
+      #error {
+        float: left;
+        color: #ff0000;
+        margin-right: 8px;
+        margin-top: 8px;
+      }
+    </style>
+    <style include="paper-dialog-shared-styles"></style>
+      <h2>New Model</h2>
+      <paper-input value="{{name}}" label="Name" placeholder="Enter model name"></paper-input>
+      <paper-input value="{{src}}" label="Source file" placeholder="Enter source file"></paper-input>
+      <paper-dropdown-menu label="Extends">
+        <paper-listbox class="dropdown-content" selected="{{extending}}" attr-for-selected="value">
+          <template is="dom-repeat" items="[[models]]">
+            <paper-item value="[[item.name]]">[[item.name]]</paper-item>
+          </template>
+        </paper-listbox>
+      </paper-dropdown-menu>
+      <paper-toggle-button checked="{{templating}}">Init with default methods</paper-toggle-button>
+      <div class="buttons">
+        <span id="error">[[error]]</span>
+        <paper-button dialog-dismiss>Cancel</paper-button>
+        <paper-button disabled="[[!name]]" on-tap="create">Create</paper-button>
+      </div>
+      <iron-ajax id="ajax" handle-as="json"></iron-ajax>
+  </template>
+  <script>
+    (function() {
+      'use strict';
+      Polymer({
+        is: 'new-model-dialog',
+        getName: function(uuid) {
+          if (uuid.indexOf('/') >= 0) {
+            return uuid.substr(uuid.indexOf('/')+1);
+          }
+          return uuid;
+        },
+        behaviors: [Polymer.PaperDialogBehavior],
+        properties: {
+          models: {
+            type: Array
+          },
+          templating: {
+            type: Boolean,
+            value: true
+          },
+          src: {
+            type: String
+          },
+          extending: {
+            type: String,
+            value: 'Webda/CoreModel'
+          },
+          name: {
+            type: String,
+            observer: '_updateName'
+          },
+          editMode: {
+            type: Boolean,
+            value: false,
+            notify: true
+          }
+        },
+        _updateName: function() {
+          if (!this.name) {
+            return;
+          }
+          let source = this.name.split('/').pop();
+          if (source === '') {
+            return;
+          }
+          this.src = './models/' + source.toLowerCase();
+        },
+        create: function () {
+          this.$.ajax.method = 'POST';
+          this.model = {};
+          this.model.name = this.name;
+          this.model.src = this.src;
+          this.model.templating = this.templating;
+          this.model.extending = this.extending;
+          this.$.ajax.body = this.model;
+          this.$.ajax.url = app.getUrl('/models');
+          this.$.ajax.contentType = 'application/json';
+          this.$.ajax.generateRequest().completes.then( () => {
+            this._updateClosingReasonConfirmed(true);
+            this.close(); 
+            this.src = this.name = '';
+            this.extending = 'Webda/CoreModel';
+            this.old.removeAttribute("selected");
+            this.old =  undefined;
+          }, (err) => {
+            if (err.message.endsWith("409")) {
+              this.error = 'This name is already used'
+            } else {
+              this.error = err.message;
+            }
+          });
+        },
+        toggleEdit: function() {
+          this.editMode = !this.editMode;
+        },
+        ready: function() {
+          this.node = this;
+        }
+      });
+    })();
+  </script>
+</dom-module>

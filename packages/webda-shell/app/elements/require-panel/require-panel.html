@@ -35,10 +35,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         is: 'require-panel',
         toggleEdit: function() {
           this.editMode = !this.editMode;
+        },
+        _updateEdit: function() {
           if (this.editMode && this.file !== undefined && this.file !== '') {
             this.$.ajax.method = 'GET';
             this.$.ajax.contentType = 'text/plain';
             this.$.ajax.url = app.getUrl('/browse/' + this.file);
+            if (this.addJs) {
+              this.$.ajax.url += '.js';
+            }
             this.$.ajax.body = {};
             this.$.ajax.generateRequest().completes.then( () => {
               this.code = this.$.ajax.lastResponse;
@@ -49,6 +54,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.$.ajax.method = 'PUT';
             this.$.ajax.contentType = 'text/plain';
             this.$.ajax.url = app.getUrl('/browse/' + this.file);
+            if (this.addJs) {
+              this.$.ajax.url += '.js';
+            }
             this.$.ajax.body = this.$$("#testor").editor.getValue();
             this.$.ajax.generateRequest().completes.then( () => {
               app.$.toast.text = 'Content saved';
@@ -58,10 +66,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         properties: {
           file: {
             type: String,
-            notify: true
+            notify: true,
+            observer: '_updateEdit'
+          },
+          addJs: {
+            type: Boolean,
+            value: false
           },
           editMode: {
-            type: Boolean
+            type: Boolean,
+            observer: '_updateEdit'
           }
         }
       });

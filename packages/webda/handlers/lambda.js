@@ -109,6 +109,7 @@ class LambdaServer extends Webda {
     if (executor == null) {
       callback("Bad mapping " + vhost + " - " + method + " " + resourcePath, null);
     }
+    ctx.init();
 
     return Promise.resolve(executor.execute(ctx)).then(() => {
       if (!ctx._ended) {

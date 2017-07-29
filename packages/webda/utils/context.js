@@ -220,6 +220,9 @@ class Context {
       this._stream._body = [];
       this._stream._write = this._write;
     }
+  }
+
+  init() {
     this._stream.on('pipe', (src) => {
       this._flushHeaders = true;
       this._buffered = true;

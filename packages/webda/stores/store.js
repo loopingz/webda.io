@@ -95,7 +95,7 @@ class Store extends Executor {
     if (methods.length) {
       config[expose.url + "/{uuid}"] = {"method": methods, "executor": this._name, "expose": expose, "_method": this.httpRoute};
     }
-    if (this._model) {
+    if (this._model && this._model.getActions) {
     	let actions = this._model.getActions();
     	Object.keys(actions).forEach( (name) => {
         let action = actions[name];

@@ -1,22 +1,21 @@
 "use strict";
-
+const CoreModel = require('./coremodel');
 /**
  * First basic model for Ident
- * Will evolve with version 0.2 and Model addition
- *
  * @class
  */
-class Ident {
-  /**
-   * @ignore
-   */
-  constructor(type, uid, accessToken, refreshToken) {
-    this.type = type;
-    this.uid = uid;
-    this.uuid = uid + "_" + type;
-    this.tokens = {};
-    this.tokens.refresh = refreshToken;
-    this.tokens.access = accessToken;
+class Ident extends CoreModel {
+
+  static init(type, uid, accessToken, refreshToken, profile) {
+    var obj = new Ident({});
+    obj.type = type;
+    obj.uid = uid;
+    obj.uuid = uid + "_" + type;
+    obj.profile = profile;
+    obj.tokens = {};
+    obj.tokens.refresh = refreshToken;
+    obj.tokens.access = accessToken;
+    return obj;
   }
 
   getUser() {

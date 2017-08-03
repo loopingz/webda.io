@@ -159,7 +159,7 @@ class PassportExecutor extends Executor {
     return url + "/callback";
   };
 
-  handleOAuthReturn(ctx, profile, ident, done) {
+  handleOAuthReturn(ctx, ident, done) {
     var identStore = this._identsStore;
     var userStore = this._usersStore;
     var userPromise;
@@ -169,7 +169,7 @@ class PassportExecutor extends Executor {
         ctx.write("login");
         return this.login(ctx, result.user, result).then(() => {
           // Need to improve DynamoDB testing about invalid value 
-          return identStore.update({'lastUsed': new Date(), 'profile': profile}, result.uuid).then(() => {
+          return identStore.update({'lastUsed': new Date()}, result.uuid).then(() => {
             ctx.write("redirect");
             ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider});
             ctx.end();
@@ -180,9 +180,9 @@ class PassportExecutor extends Executor {
       // Registration with OAuth
       let promise;
       if (ctx.session.getUserId()) {
-        promise = Promise.resolve({'uuid': ctx.session.getUserId()});
+        promise = ctx.getCurrentUser();
       } else {
-        promise = this.registerUser(ctx, profile._json).then((user) => {
+        promise = this.registerUser(ctx, ident.profile).then((user) => {
           return userStore.save(user);
         });
       }
@@ -190,8 +190,8 @@ class PassportExecutor extends Executor {
         ctx.write("register new ident");
         ident.user = user.uuid;
         ident.lastUsed = new Date();
-        ident.profile = profile;
         return identStore.save(ident).then(() => {
+          ident.__new = true;
           ctx.write("redirect");
           return this.login(ctx, user, ident).then(() => {
             ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider});
@@ -208,7 +208,7 @@ class PassportExecutor extends Executor {
   setupOAuth(ctx, config) {
     config.callbackURL = this.getCallbackUrl(ctx);
     passport.use(new Strategies[ctx._params.provider].strategy(config, (accessToken, refreshToken, profile, done) => {
-        this.handleOAuthReturn(ctx, profile._json, new Ident(ctx._params.provider, profile.id, accessToken, refreshToken), done);
+        this.handleOAuthReturn(ctx, Ident.init(ctx._params.provider, profile.id, accessToken, refreshToken, profile._json), done);
       }
     ));
   }

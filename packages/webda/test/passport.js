@@ -261,14 +261,14 @@ describe('Passport', function () {
       };
       var lastUsed = null;
       events = 0;
-      let ident = new Ident("github", "test");
+      let ident = Ident.init("github", "test");
       let profile = {'displayName': 'Georges Abitbol'};
       ctx = webda.newContext({}, webda.getNewSession());
       executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/auth/github/callback?code=blahblah");
-      return executor.handleOAuthReturn(ctx, profile, ident, done).then(() => {
+      return executor.handleOAuthReturn(ctx, ident, done).then(() => {
         assert.equal(ctx.statusCode, 302);
         assert.equal(ctx._params.code, "blahblah");
-        assert.equal(ctx._headers.Location, "https://shootandprove.loopingz.com/user.html?validation=github");
+        assert.equal(ctx._headers.Location, "https://webda.io/user.html?validation=github");
         // The ident must have been created and have a last used
         assert.notEqual(ident.lastUsed, lastUsed);
         lastUsed = ident;
@@ -278,7 +278,7 @@ describe('Passport', function () {
         assert.equal(events, 2);
         events = 0;
         assert.equal(ctx.session.isLogged(), true);
-        return executor.handleOAuthReturn(ctx, profile, ident, done);
+        return executor.handleOAuthReturn(ctx, ident, done);
       }).then(() => {
         assert.equal(events, 1); // Only Login
         assert.notEqual(ident.lastUsed, lastUsed);
@@ -288,11 +288,11 @@ describe('Passport', function () {
         assert.equal(user.idents.length, 1); // Only one github login
         assert.equal(user.idents[0].uuid, "test_github"); // Only one github login
         assert.equal(user.test, "TESTOR"); // Verify that the listener on Register has done something
-        return executor.handleOAuthReturn(ctx, profile, new Ident("github", "retest"), done);
+        return executor.handleOAuthReturn(ctx, Ident.init("github", "retest"), done);
       }).then(() => {
         assert.equal(events, 1); // Only Login
         assert.equal(ctx.statusCode, 302);
-        assert.equal(ctx._headers.Location, "https://shootandprove.loopingz.com/user.html?validation=github");
+        assert.equal(ctx._headers.Location, "https://webda.io/user.html?validation=github");
         return userStore.get(ident.user);
       }).then((user) => {
         assert.equal(user.idents.length, 2); // Two github login

@@ -49,7 +49,7 @@
           "queue": "https://sqs.us-east-1.amazonaws.com/277712386420/webda-test"
         },
         "Authentication": {
-          "successRedirect": "https://shootandprove.loopingz.com/user.html",
+          "successRedirect": "https://webda.io/user.html",
           "failureRedirect": "/login-error",
           "providers": {
             "facebook": {},

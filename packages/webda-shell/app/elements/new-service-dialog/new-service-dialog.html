@@ -86,7 +86,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       
         <iron-pages attr-for-selected="data-repo" selected="{{section}}">
           <section data-repo="Custom">
-            <require-panel file="{{service.require}}"></require-panel>
+            <require-panel file="{{service.require}}" add-js placeholder="./services/myservice"></require-panel>
           </section>
           <section data-repo="Webda">
           <paper-dialog-scrollable dialog-element="[[node]]">
@@ -130,10 +130,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       Polymer({
         is: 'new-service-dialog',
         getName: function(uuid) {
-          if (uuid.indexOf('/') >= 0) {
-            return uuid.substr(uuid.indexOf('/')+1);
-          }
-          return uuid;
+          return uuid.split('/').pop();
         },
         select: function (evt) {
           var target = evt.target;
@@ -155,8 +152,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             this.old = target;
           }
         },
+        _updateName: function(name) {
+          if (!name) {
+            return;
+          }
+          this.set('service.require', './services/' + this.getName(name));
+        },
         behaviors: [Polymer.PaperDialogBehavior],
         properties: {
+          name: {
+            type: String,
+            observer: '_updateName'
+          },
           moddas: {
             type: Array,
             value: [{'label': 'Authentication', 'type': 'Authentication'},

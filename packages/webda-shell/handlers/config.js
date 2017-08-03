@@ -150,7 +150,10 @@ class ConfigurationService extends Executor {
 `"use strict";
 const ` + extendName + ` = require('`+requireFile+`');
 
-class ` + className + ` extends ` + extendName + ` {`;
+class ` + className + ` extends ` + extendName + ` {
+  static getActions() {
+    return {};
+  }`;
     if (templating) {
       content +=
 `

@@ -17,7 +17,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <iron-ajax id="ajax" handle-as="text"></iron-ajax>
     <paper-fab mini on-tap="toggleEdit" icon="description" style="float: right; margin-top: 10px; margin-bottom: -10px;"></paper-fab>
-    <paper-input placeholder="./includes/myfunction" value="{{file}}" label="Filepath"></paper-input>
+    <paper-input placeholder="[[placeholder]]" value="{{file}}" label="Filepath"></paper-input>
     <template is="dom-if" if="{{editMode}}">
       <div>
         <label style="color:#737373; font-size:12px;" class="paper-input">Code</label>
@@ -64,6 +64,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             });
         },
         properties: {
+          placeholder: {
+            type: String,
+            value: './includes/myfunction'
+          },
           file: {
             type: String,
             notify: true,

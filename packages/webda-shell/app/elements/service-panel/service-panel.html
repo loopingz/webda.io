@@ -22,7 +22,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div>[[type]]</div>
     <template is="dom-if" if="[[_isStore(type)]]">
       <label>Expose</label>
-      [[methods]] [[params.model]]
       <url-method-selector methods="{{methods}}" toggles></url-method-selector>
       <paper-dropdown-menu label="Model">
         <paper-listbox class="dropdown-content" selected="{{params.model}}" attr-for-selected="value">

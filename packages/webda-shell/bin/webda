@@ -13,6 +13,7 @@ var argv = require('yargs')
               .alias('d', 'deployment')
               .alias('o','open')
               .alias('x', 'devMode')
+              .option('version', {type: 'boolean'})
               .option('port', {alias:'p', default: 18080})
               .option('websockets', {alias: 'w', default: false})
               .argv;
@@ -21,18 +22,22 @@ const rl = readline.createInterface({
       output: process.stdout
     });
 
+function getVersion(file) {
+  return require(file + '/package.json').version;
+}
+
 if (fs.existsSync("node_modules/webda")) {
   // Local module of webda exists use it
-  console.log("Using local web" + "da".yellow);
   global.__webda = process.cwd() + '/node_modules/webda';
+  console.log("Using local web" + "da".yellow + " - v" + getVersion(global.__webda));
 } else if (fs.existsSync("core.js") && fs.existsSync("services/executor.js")) {
   console.log("Using local web" + "da".yellow + "development version");
   // We are in a webda development directory
   global.__webda = process.cwd();
 } else {
-  console.log("Using embedded web" + "da".yellow);
   // Use the webda-shell default webda
   global.__webda = 'webda';
+  console.log("Using embedded web" + "da".yellow + " - v" + getVersion(global.__webda));
 }
 
 var config;
@@ -53,6 +58,10 @@ function help() {
   console.log(' deploy'.bold.yellow + ' DeployConfiguration: Deploy current project with DeployConfiguration name');
   console.log(' debug'.bold.yellow + ': Debug current project');
   console.log(' launch'.bold.yellow + ' ServiceName method arg1 ...: Launch the ServiceName method with arg1 ...');
+}
+
+if (argv.version) {
+  console.log('webda-shell: v' + getVersion(global.__webda_shell));
   process.exit(0);
 }
 

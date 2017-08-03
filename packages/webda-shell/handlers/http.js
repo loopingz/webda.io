@@ -9,21 +9,13 @@ class WebdaServer extends Webda {
     console.log('REQUEST', ...args);
   }
 
-  handleRequest(req, res) {
+  handleRequest(req, res, next) {
     // Ensure cookie session
     if (req.cookies.webda === undefined) {
       req.cookies.webda = {};
     }
     var sessionCookie = new SecureCookie({'secret': 'webda-private-key'}, req.cookies.webda).getProxy();
     req.session = sessionCookie;
-
-    // Add correct headers for X-scripting
-    if (req.headers['x-forwarded-server'] === undefined) {
-      if (this._devMode && req.headers['origin']) {
-        res.setHeader('Access-Control-Allow-Origin', req.headers['origin']);  
-      }
-    }
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
     // Handle reverse proxy
     var vhost = ( req.headers.host.match(/:/g) ) ? req.headers.host.slice(0, req.headers.host.indexOf(":")) : req.headers.host
     if (req.hostname !== undefined) {
@@ -41,7 +33,14 @@ class WebdaServer extends Webda {
     //req.session.cookie.domain = vhost;
 
     if (req.method == "OPTIONS") {
+      // Add correct headers for X-scripting
+      if (req.headers['x-forwarded-server'] === undefined) {
+        if (this._devMode && req.headers['origin']) {
+          res.setHeader('Access-Control-Allow-Origin', req.headers['origin']);  
+        }
+      }
       var methods = 'GET,POST,PUT,DELETE,OPTIONS';
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
       res.setHeader('Access-Control-Allow-Methods', methods);
       res.setHeader('Allow', methods);
@@ -55,10 +54,20 @@ class WebdaServer extends Webda {
       console.log('PAYLOAD', JSON.stringify(req.body, null, 4));
     }
     var executor = this.getExecutor(ctx, vhost, req.method, req.url, protocol, req.port, req.headers);
+
     if (executor == null) {
-      this.display404(res);
-      return;
+      return next();
     }
+    // Init the pipe on stream
+    ctx.init();
+
+    // Add correct headers for X-scripting
+    if (req.headers['x-forwarded-server'] === undefined) {
+      if (this._devMode && req.headers['origin']) {
+        res.setHeader('Access-Control-Allow-Origin', req.headers['origin']);  
+      }
+    }
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     return Promise.resolve(executor.execute(ctx)).then(() => {
       if (!ctx._ended) {
         return ctx.end();
@@ -108,11 +117,7 @@ class WebdaServer extends Webda {
 
   serve(port, websockets) {
     var http = require('http');
-    if (websockets) {
-      // Activate websocket
-      console.log('Activating socket.io');
-      this._io = require('socket.io')(http);
-    }
+    
     var express = require('express');
     var cookieParser = require('cookie-parser');
     var bodyParser = require('body-parser');
@@ -129,9 +134,20 @@ class WebdaServer extends Webda {
     app.use(bodyParser.raw({type: '*/*', limit: '50mb'}));
 
     app.set('trust proxy', 'loopback, 10.0.0.0/8');
+    
     app.use(this.handleRequest.bind(this));
+    this.setHost();
+    if (this.getGlobalParams().static) {
+      console.log('Serving static content', this.getGlobalParams().static);
+      app.use(express.static(this.getGlobalParams().static));  
+    }
 
     this._http = http.createServer(app).listen(port);
+    if (websockets) {
+      // Activate websocket
+      console.log('Activating socket.io');
+      this._io = require('socket.io')(this._http);
+    }
     console.log('Server running at http://0.0.0.0:' + port);
   }
 }

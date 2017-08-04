@@ -73,14 +73,14 @@ describe('CoreModel', function () {
     beforeEach(function () {
       assert.notEqual(identStore, undefined);
       identStore.__clean();
-      ident = {uuid: 'test', property: 'plop'};
+      ident = {property: 'plop'};
       return identStore.save(ident).then((obj) => {
         ident = obj;
       });
     });
 
     it('Verify Retrieve', function () {
-      return identStore.update({property: 'plop2'}, 'test').then(() => {
+      return identStore.update({property: 'plop2'}, ident.uuid).then(() => {
         return ident.refresh();
       }).then((res) => {
         assert.equal(res.property, 'plop2');
@@ -92,7 +92,7 @@ describe('CoreModel', function () {
       ident.property = 'plop2';
       ident.newOne = 'yes';
       return ident.save().then(() => {
-        return identStore.get('test');
+        return identStore.get(ident.uuid);
       }).then((retieved) => {
         assert.equal(retieved.property, 'plop2');
         assert.equal(retieved.newOne, 'yes');
@@ -101,7 +101,7 @@ describe('CoreModel', function () {
 
     it('Verify Delete', function () {
       return ident.delete().then(() => {
-        return identStore.get('test');
+        return identStore.get(ident.uuid);
       }).then((retrieved) => {
         assert.equal(retrieved.__deleted, true);
       });

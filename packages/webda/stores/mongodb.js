@@ -151,7 +151,7 @@ class MongoStore extends Store {
     });
   }
 
-  ___cleanData() {
+  __clean() {
     return this._connect().then(() => {
       return new Promise((resolve, reject) => {
         this._collection.remove((err, result) => {

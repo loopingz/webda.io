@@ -286,7 +286,7 @@ class DynamoStore extends Store {
      */
   }
 
-  ___cleanData() {
+  __clean() {
     var params = {'TableName': this._params.table};
     return this._client.scan(params).promise().then((result) => {
       var promises = [];

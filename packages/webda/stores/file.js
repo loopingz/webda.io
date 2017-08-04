@@ -155,7 +155,7 @@ class FileStore extends Store {
     });
   }
 
-  ___cleanData() {
+  __clean() {
     if (!fs.existsSync(this._params.folder)) {
       return Promise.resolve();
     }

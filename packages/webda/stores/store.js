@@ -797,6 +797,9 @@ class Store extends Executor {
     }
   }
 
+  __clean() {
+    
+  }
 }
 
 module.exports = Store

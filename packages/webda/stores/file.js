@@ -101,12 +101,10 @@ class FileStore extends Store {
   }
 
   _update(object, uid, writeCondition) {
-    return this.exists(uid).then((found) => {
-      if (!found) {
+    return this._get(uid).then((stored) => {
+      if (!stored) {
         return Promise.reject(Error('NotFound'));
       }
-      return this._get(uid);
-    }).then((stored) => {
       if (writeCondition && stored[this._writeConditionField] != writeCondition) {
         return Promise.reject(Error('UpdateCondition not met'));
       }
@@ -162,13 +160,19 @@ class FileStore extends Store {
       return Promise.resolve();
     }
     var files = fs.readdirSync(this._params.folder);
+    var promises = [];
     for (var file in files) {
       let filename = this._params.folder + '/' + files[file];
-      fs.unlink(filename, (err) => {
-
-      });
+      promises.push( new Promise( (resolve, reject) => {
+        fs.unlink(filename, (err) => {
+          if (err) {
+            reject(err);
+          }
+          resolve();
+        });
+      }));
     }
-    return Promise.resolve();
+    return Promise.all(promises);
   }
 
   static getModda() {

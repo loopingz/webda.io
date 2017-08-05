@@ -20,9 +20,9 @@ class AWSDeployer extends Deployer {
     let services = this.getServices();
     let roleName = this._getObjectTypeName('Role');
     let policyName = this._getObjectTypeName('Policy');
+    AWS.config.update({accessKeyId: accessKeyId, secretAccessKey: secretAccessKey, region: region});
     let sts = new AWS.STS();
     let iam = new AWS.IAM();
-    AWS.config.update({accessKeyId: accessKeyId, secretAccessKey: secretAccessKey, region: region});
     this.resources.AWS = AWS;
     return sts.getCallerIdentity().promise().then( (id) => {
       // arn:aws:logs:us-east-1:123456789012:*

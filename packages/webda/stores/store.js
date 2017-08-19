@@ -69,9 +69,7 @@ class Store extends Executor {
       expose = {};
       expose.url = "/" + this._name.toLowerCase();
     } else if (typeof(expose) == "string") {
-      url = expose;
-      expose = {};
-      expose.url = url;
+      expose = {url: expose};
     } else if (typeof(expose) == "object" && expose.url == undefined) {
       expose.url = "/" + this._name.toLowerCase();
     }
@@ -110,8 +108,8 @@ class Store extends Executor {
         if (action.global) {
           // By default will grab the object and then call the action
           if (!action._method) {
-            if (!this._model[action.name]) {
-              throw Error('Action static method ' + action.name + ' does not exist');
+            if (!this._model['_' + action.name]) {
+              throw Error('Action static method _' + action.name + ' does not exist');
             }
             action._method = this.httpAction;
           }
@@ -119,8 +117,8 @@ class Store extends Executor {
         } else {
           // By default will grab the object and then call the action
           if (!action._method) {
-            if (!this._model.prototype[action.name]) {
-              throw Error('Action method ' + action.name + ' does not exist');
+            if (!this._model.prototype['_' + action.name]) {
+              throw Error('Action method _' + action.name + ' does not exist');
             }
             action._method = this.httpAction;
           }
@@ -198,10 +196,9 @@ class Store extends Executor {
     if (map == undefined || map._init) {
       return;
     }
-    var maps = {}
     for (var prop in map) {
       var reverseStore = this._webda.getService(prop);
-      if (reverseStore === undefined || !reverseStore instanceof Store) {
+      if (reverseStore === undefined || !(reverseStore instanceof Store)) {
         map[prop]["-onerror"] = "NoStore";
         console.log("Can't setup mapping as store doesn't exist");
         continue;
@@ -231,7 +228,6 @@ class Store extends Executor {
    */
   save(object, uid) {
     /** @ignore */
-    var saved;
     if (uid === undefined) {
       uid = object.uuid;
     }
@@ -329,10 +325,10 @@ class Store extends Executor {
       }).then(() => {
         return this._update(object, uid, writeCondition).then((res) => {
           // Return updated 
-          for (var i in res) {
+          for (let i in res) {
             loaded[i] = res[i];
           }
-          for (var i in object) {
+          for (let i in object) {
             loaded[i] = object[i];
           }
           return Promise.resolve(loaded);
@@ -375,7 +371,7 @@ class Store extends Executor {
     var found = false;
     for (var field in updates) {
       if (map.fields) {
-        var fields = map.fields.split(",");
+        let fields = map.fields.split(",");
         for (let i in fields) {
           let mapperfield = fields[i];
           // Create the mapper object
@@ -402,7 +398,7 @@ class Store extends Executor {
     if (updates[map.key] != undefined && mapped.uuid != updates[map.key]) {
       // create mapper
       if (map.fields) {
-        var fields = map.fields.split(",");
+        let fields = map.fields.split(",");
         for (var j in fields) {
           let mapperfield = fields[j];
           // Create the mapper object
@@ -489,7 +485,6 @@ class Store extends Executor {
   }
 
   _handleCreatedMap(object, map, mapped, store) {
-    var update = {};
     // Add to the object
     var mapper = {};
     mapper.uuid = object.uuid;
@@ -712,7 +707,7 @@ class Store extends Executor {
       let object;
       return this.get(ctx._params.uuid).then((res) => {
         object = res;
-        if (object === undefined || !object[action] || object.__delete) {
+        if (object === undefined || object.__delete) {
           throw 404;
         }
         return object.canAct(ctx, action);
@@ -720,7 +715,7 @@ class Store extends Executor {
         return this.emit('Store.Action', {'action': action, 'object': object,
           'store': this, 'body': ctx.body, 'params': ctx._params});
       }).then(() => {
-        return object[action](ctx);
+        return object['_' + action](ctx);
       }).then((res) => {
         if (res) {
           ctx.write(res);
@@ -730,7 +725,7 @@ class Store extends Executor {
     } else if (ctx._route.global) {
       return this.emit('Store.Action', {'action': action, 'store': this,
                           'body': ctx.body, 'params': ctx._params}).then( () => {
-        return this._model[ctx._route.name](ctx);
+        return this._model['_' + ctx._route.name](ctx);
       }).then( (res) => {
         if (res) {
           ctx.write(res);

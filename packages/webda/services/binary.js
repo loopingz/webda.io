@@ -151,12 +151,11 @@ class Binary extends Executor {
     if (map == undefined || map._init) {
       return;
     }
-    var maps = {}
     this._lowercaseMaps = {};
     for (var prop in map) {
       this._lowercaseMaps[prop.toLowerCase()] = prop;
       var reverseStore = this._webda.getService(prop);
-      if (reverseStore === undefined || !reverseStore instanceof Store) {
+      if (reverseStore === undefined || !(reverseStore instanceof Store)) {
         console.log("Can't setup mapping as store doesn't exist");
         map[prop]["-onerror"] = "NoStore";
         continue;
@@ -324,10 +323,6 @@ class Binary extends Executor {
 
   httpDownload(ctx) {
     // Verify the token
-    // store + uid + property + index + expire => token
-    if (this._verifyToken(ctx._params)) {
-
-    }
     let targetStore = this._verifyMapAndStore(ctx);
     return targetStore.get(ctx._params.uid).then((object) => {
       return this.store(targetStore, object, ctx._params.property, this._getFile(ctx), ctx.body).then((object) => {
@@ -414,7 +409,6 @@ class Binary extends Executor {
           readStream.pipe(ctx._stream);
         });
       } else {
-        var update = {};
         if (object[ctx._params.property][ctx._params.index].hash !== ctx._params.hash) {
           throw 412;
         }

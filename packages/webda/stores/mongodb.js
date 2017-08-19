@@ -55,13 +55,6 @@ class MongoStore extends Store {
       params['$pull'][prop][itemWriteConditionField] = itemWriteCondition;
       return this._collection.updateOne({_id: uid}, params);
     });
-    var params = {'TableName': this._params.table, 'Key': {"uuid": uid}};
-    var attrs = {};
-    attrs["#" + prop] = prop;
-    params.ExpressionAttributeNames = attrs;
-    params.UpdateExpression = "REMOVE #" + prop + "[" + index + "]";
-    params.WriteCondition = "attribute_not_exists(#" + prop + "[" + index + "]) AND #" + prop + "[" + index + "]." + itemWriteConditionField + " = " + uid;
-    return this._client.update(params).promise();
   }
 
   _incrementAttribute(uid, prop, value) {
@@ -129,7 +122,6 @@ class MongoStore extends Store {
   }
 
   getAll(uids) {
-    var items = [];
     return this._connect().then(() => {
       let params = {};
       if (uids) {

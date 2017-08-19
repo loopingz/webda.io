@@ -162,7 +162,6 @@ class PassportExecutor extends Executor {
   handleOAuthReturn(ctx, ident, done) {
     var identStore = this._identsStore;
     var userStore = this._usersStore;
-    var userPromise;
     return identStore.get(ident.uuid).then((result) => {
       // Login with OAUTH
       if (result) {
@@ -435,10 +434,7 @@ class PassportExecutor extends Executor {
           }
         });
       } else {
-        var user = ctx.body.user;
         var email = ctx.body.login;
-        var registeredUser;
-        var validation;
         // Read the form
         if (ctx.body.register || ctx._params.register) {
           var validation = undefined;
@@ -451,9 +447,6 @@ class PassportExecutor extends Executor {
               // token is undefined send an email
               return this.sendValidationEmail(ctx, email);
             }
-          }
-          if (user === undefined) {
-            user = {};
           }
           // Store with a _
           ctx.body.__password = this.hashPassword(ctx.body.password);
@@ -479,7 +472,6 @@ class PassportExecutor extends Executor {
         }
         throw 404;
       }
-      ctx.end();
     });
   }
 
@@ -508,7 +500,6 @@ class PassportExecutor extends Executor {
         this.setupOAuth(ctx, providerConfig);
         return passport.authenticate(ctx._params.provider, {'scope': providerConfig.scope})(ctx, ctx);
       }
-      var self = this;
       return new Promise((resolve, reject) => {
         ctx._end = ctx.end;
         ctx.end = function (obj) {

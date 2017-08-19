@@ -262,7 +262,6 @@ describe('Passport', function () {
       var lastUsed = null;
       events = 0;
       let ident = Ident.init("github", "test");
-      let profile = {'displayName': 'Georges Abitbol'};
       ctx = webda.newContext({}, webda.getNewSession());
       executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/auth/github/callback?code=blahblah");
       return executor.handleOAuthReturn(ctx, ident, done).then(() => {

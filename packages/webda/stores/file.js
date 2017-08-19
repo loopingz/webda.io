@@ -134,7 +134,7 @@ class FileStore extends Store {
     return this.exists(uid).then((res) => {
       if (res) {
         let data = fs.readFileSync(this.file(uid));
-        return Promise.resolve(this.initModel(JSON.parse(data)));
+        return Promise.resolve(this.initModel(JSON.parse(data.toString())));
       }
       return Promise.resolve(undefined);
     });

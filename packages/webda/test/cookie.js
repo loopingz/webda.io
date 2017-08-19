@@ -63,7 +63,7 @@ describe('SecureCookie', function () {
       var enc = cookie.save();
       var exception = false;
       try {
-        var cookie2 = new SecureCookie({secret: "TEST2"}, enc);
+        new SecureCookie({secret: "TEST2"}, enc);
       } catch (err) {
         exception = true;
       }

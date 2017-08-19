@@ -38,7 +38,6 @@ var simple = function (queue) {
 }
 
 describe('Queues', function () {
-  var skipMongo = process.env["WEBDA_MONGO_URL"] === undefined;
   var skipAWS = process.env["WEBDA_AWS_KEY"] === undefined;
   var webda;
 

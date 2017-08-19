@@ -15,6 +15,11 @@ class SQSQueueService extends QueueService {
     if (this._params.accessKeyId && this._params.secretAccessKey) {
       AWS.config.update({accessKeyId: this._params.accessKeyId, secretAccessKey: this._params.secretAccessKey});
     }
+    if (this._params.region !== undefined) {
+      AWS.config.update({region: this._params.region});
+    } else if (process.env["AWS_DEFAULT_REGION"]) {
+      AWS.config.update({region: process.env["AWS_DEFAULT_REGION"]});
+    }
     this.sqs = new AWS.SQS();
     if (!this._params.WaitTimeSeconds) {
       this._params.WaitTimeSeconds = 20;

@@ -10,14 +10,13 @@ var binary;
 var normal = function (userStore, binary, map) {
   var eventFired = 0;
   var events = ['binaryGet', 'binaryUpdate', 'binaryCreate', 'binaryDelete'];
-  for (evt in events) {
+  for (let evt in events) {
     binary.on(events[evt], function (evt) {
       eventFired++;
     });
   }
   // Check CREATE - READ
   var hash;
-  var count = 1;
   var user1;
   var user2;
   var user;
@@ -79,6 +78,7 @@ var notMapped = function (userStore, binary) {
 var update = function (userStore, binary, map) {
   var user1;
   var user;
+  let hash;
   return userStore.save({"test": "plop"}).then(function (user) {
     user1 = user;
     return binary.store(userStore, user1, map, {'path': './test/Dockerfile'}, {});
@@ -115,6 +115,7 @@ describe('Binary', function () {
   var webda;
   var binary;
   var userStore;
+  var skipS3;
   before(function () {
     skipS3 = process.env["WEBDA_AWS_KEY"] === undefined;
     if (skipS3) {
@@ -147,7 +148,6 @@ describe('Binary', function () {
     });
   });
   describe('S3Binary', function () {
-    var uuids = {};
     beforeEach(function () {
       if (skipS3) {
         return;

@@ -8,18 +8,20 @@ var Ajv = require('ajv');
 const path = require('path');
 const cookieSerialize = require("cookie").serialize;
 const Context = require("./utils/context");
+const EventEmitter = require('events');
 
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
  *
  * @class Webda
  */
-class Webda {
+class Webda extends EventEmitter {
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
    */
   constructor(config) {
     /** @ignore */
+    super();
     this._vhost = '';
     // Schema validations
     this._ajv = Ajv();
@@ -247,7 +249,7 @@ class Webda {
   getStores() {
     let res = {}
     let services = this.getServices();
-    Object.keys(services).map( (service) => {
+    Object.keys(services).forEach( (service) => {
       if (services[service] instanceof Store) {
         res[service] = services[service];
       }
@@ -401,6 +403,9 @@ class Webda {
     if (executor === undefined && this._routehelpers[name] !== undefined) {
       executor = new this._routehelpers[name](this, name, this._config[route._http.host].global.params);
     }
+    if (executor === undefined) {
+      return;
+    }
     ctx.setRoute(this.extendParams(route, this._config[route._http.host].global));
     executor.updateContext(ctx);
     return executor;
@@ -518,8 +523,9 @@ class Webda {
     if (services === undefined) {
       return;
     }
+    let service;
     // Construct services
-    for (var service in services) {
+    for (service in services) {
       var type = services[service].type;
       if (type === undefined) {
         type = service;
@@ -563,7 +569,7 @@ class Webda {
     this.initModels(config);
 
     // Init services
-    for (var service in config.global._services) {
+    for (service in config.global._services) {
       if (config.global._services[service].init !== undefined) {
         try {
           config.global._services[service].init(config);
@@ -574,6 +580,7 @@ class Webda {
         }
       }
     }
+    this.emit('Webda.Init.Services', config.global._services);
   }
 
   jsonFilter(key, value) {
@@ -610,6 +617,7 @@ class Webda {
         this._services[i] = require(modda.package);
       }
     }
+    this.emit('Webda.Init.Moddas');
   }
 
   initModels(config) {
@@ -640,6 +648,7 @@ class Webda {
       if (config.global._models[i]) continue;
       config.global._models[i.toLowerCase()] = this._models[i];
     }
+    this.emit('Webda.Init.Models', config.global._models);
   }
 
   comparePath(a, b) {
@@ -707,6 +716,7 @@ class Webda {
     }
     config._pathMap.sort(this.comparePath);
     config._initiated = true;
+    this.emit('Webda.Init.Host', config);
   }
 
 }

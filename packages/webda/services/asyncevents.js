@@ -30,7 +30,7 @@ class EventService extends Service {
     this._queues = {};
     this._defaultQueue = '';
     if (this._params.queues) {
-      Object.keys(this._params.queues).map( (key) => {
+      Object.keys(this._params.queues).forEach( (key) => {
         // Define default as first queue
         if (!this._defaultQueue) {
           this._defaultQueue = key;

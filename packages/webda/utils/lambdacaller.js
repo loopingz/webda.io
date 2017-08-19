@@ -31,7 +31,7 @@ class LambdaCaller {
       invocationType = 'Event';
     }
     var lambda = new this.AWS.Lambda();
-    var params = {
+    params = {
       FunctionName: this._arn,
       ClientContext: null,
       InvocationType: invocationType,

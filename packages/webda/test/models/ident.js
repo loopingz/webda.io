@@ -11,7 +11,7 @@ class Ident extends CoreModel {
     return {'plop': {}, 'index': {global: true, method: 'GET'}, 'yop': {method: ['GET','POST']}};
   }
 
-  yop() {
+  _yop() {
 
   }
 
@@ -19,11 +19,11 @@ class Ident extends CoreModel {
 
   }
 
-  static index(ctx) {
+  static _index(ctx) {
     ctx.write('indexer');
   }
 
-  plop(ctx) {
+  _plop(ctx) {
     this._plop = true;
     ctx.write(this);
     return Promise.resolve();

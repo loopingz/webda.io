@@ -12,13 +12,11 @@ var ctx;
 
 function getAll(identStore, userStore) {
   var user1;
-  var user2;
   var user3;
   return userStore.save({'name': 'test1'}).then(function (user) {
     user1 = user;
     return userStore.save({'name': 'test2'});
   }).then(function (user) {
-    user2 = user;
     return userStore.save({'name': 'test3'});
   }).then(function (user) {
     user3 = user;
@@ -334,7 +332,6 @@ describe('Store', function () {
     });
 
     it('Model static actions', function() {
-      let failed = false;
       let eventFired = 0;
       identStore.on('Store.Action', function (evt) {
         eventFired++;
@@ -472,7 +469,6 @@ describe('Store', function () {
     });
   });
   describe('DynamoStore', function () {
-    var uuids = {};
     beforeEach(function () {
       if (skipAWS) {
         return;

@@ -27,7 +27,6 @@ describe('Lambda', function () {
           this.skip();
           return;
         }
-        var resp = {};
         var ctx = webda.newContext();
         var executor = webda.getExecutor(ctx, "test.webda.io", methods[i], "/webda");
         return executor.execute(ctx).then(function () {

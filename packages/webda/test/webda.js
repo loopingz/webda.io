@@ -4,6 +4,7 @@ var Executor = require("../services/executor.js");
 var config = require("./config.json");
 var webda;
 var ctx;
+var executor;
 
 describe('Webda', function () {
   beforeEach(function () {
@@ -39,7 +40,7 @@ describe('Webda', function () {
   });
   describe('getVersion()', function () {
     it('current', function () {
-      assert.equal(webda.getVersion(), '0.4.3');
+      assert.equal(webda.getVersion(), '0.4.4');
     });
   });
   describe('getService()', function () {

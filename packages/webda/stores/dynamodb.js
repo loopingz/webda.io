@@ -187,7 +187,7 @@ class DynamoStore extends Store {
     return new Promise((resolve, reject) => {
       this._client.scan({TableName: this._params.table, Limit: this._params.scanPage, ExclusiveStartKey: paging}, (err, data) => {
         if (err) {
-          reject(err);
+          return reject(err);
         }
         for (let i in data.Items) {
           items.push(this.initModel(data.Items[i]));

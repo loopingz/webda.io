@@ -36,7 +36,7 @@ class WebdaServer extends Webda {
       // Add correct headers for X-scripting
       if (req.headers['x-forwarded-server'] === undefined) {
         if (this._devMode && req.headers['origin']) {
-          res.setHeader('Access-Control-Allow-Origin', req.headers['origin']);  
+          res.setHeader('Access-Control-Allow-Origin', req.headers['origin']);
         }
       }
       var methods = 'GET,POST,PUT,DELETE,OPTIONS';
@@ -64,7 +64,7 @@ class WebdaServer extends Webda {
     // Add correct headers for X-scripting
     if (req.headers['x-forwarded-server'] === undefined) {
       if (this._devMode && req.headers['origin']) {
-        res.setHeader('Access-Control-Allow-Origin', req.headers['origin']);  
+        res.setHeader('Access-Control-Allow-Origin', req.headers['origin']);
       }
     }
     res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -115,31 +115,37 @@ class WebdaServer extends Webda {
     return 'webda-private-key';
   }
 
+  handleStaticIndexRequest(req, res, next) {
+    res.sendFile(this._staticIndex);
+  }
+
   serve(port, websockets) {
     var http = require('http');
-    
+    const path = require('path');
+
     var express = require('express');
     var cookieParser = require('cookie-parser');
     var bodyParser = require('body-parser');
     var multer = require('multer'); // v1.0.5
     var upload = multer(); // for parsing multipart/form-data
 
+    var requestLimit = this.getGlobalParams().requestLimit ? this.getGlobalParams().requestLimit : '20mb';
     var app = express();
     app.use(cookieParser());
     app.use(bodyParser.text({type: 'text/plain'}));
-    app.use(bodyParser.json());
+    app.use(bodyParser.json({limit: requestLimit}));
     app.use(bodyParser.urlencoded({extended: true}));
     app.use(upload.array('file'));
     // Will lower the limit soon, we should have a library that handle multipart file
-    app.use(bodyParser.raw({type: '*/*', limit: '50mb'}));
+    app.use(bodyParser.raw({type: '*/*', limit: requestLimit}));
 
     app.set('trust proxy', 'loopback, 10.0.0.0/8');
-    
+
     app.use(this.handleRequest.bind(this));
     this.setHost();
     if (this.getGlobalParams().static) {
       console.log('Serving static content', this.getGlobalParams().static);
-      app.use(express.static(this.getGlobalParams().static));  
+      app.use(express.static(this.getGlobalParams().static));
     }
 
     this._http = http.createServer(app).listen(port);
@@ -147,6 +153,11 @@ class WebdaServer extends Webda {
       // Activate websocket
       console.log('Activating socket.io');
       this._io = require('socket.io')(this._http);
+      this.emit('Webda.Init.SocketIO', this._io);
+    }
+    if (this.getGlobalParams().staticIndex) {
+      this._staticIndex = path.resolve(this.getGlobalParams().staticIndex);
+      app.get('*', this.handleStaticIndexRequest.bind(this));
     }
     console.log('Server running at http://0.0.0.0:' + port);
   }

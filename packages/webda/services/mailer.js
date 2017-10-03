@@ -22,13 +22,14 @@ class Mailer extends Service {
   constructor(webda, name, params) {
     super(webda, name, params);
     try {
-      params.config = params.config || {};
-      if (params.config.transport === 'ses' && !params.config.SES) {
+      let config = {};
+      Object.assign(config, params.config);
+      if (config.transport === 'ses' && !config.SES) {
         let aws = require('aws-sdk');
-        aws.config.update(params.config);
-        params.config.SES = new aws.SES({apiVersion: '2010-12-01'});
+        aws.config.update(config);
+        config.SES = new aws.SES({apiVersion: '2010-12-01'});
       }
-      this._transporter = nodemailer.createTransport(params.config);  
+      this._transporter = nodemailer.createTransport(config);
     } catch (ex) {
       this._transporter = undefined;
     }

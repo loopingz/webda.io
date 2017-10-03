@@ -88,8 +88,7 @@ var update = function (userStore, binary, map) {
     user = userArg;
     assert.notEqual(user[map], undefined);
     assert.equal(user[map].length, 1);
-    hash = user[map][0].hash;
-    return binary.getUsageCount(hash);
+    return binary.getUsageCount(user[map][0].hash);
   }).then(function (value) {
     assert.equal(value, 1);
     return binary.update(userStore, user, map, 0, {'path': './test/Dockerfile.txt'}, {});

@@ -21,9 +21,9 @@ class DockerDeployer extends ShellDeployer {
       }
       return this.pushDocker();
     }).then(() => {
-      this.cleanDockerfile();
+      return this.cleanDockerfile();
     }).catch(() => {
-      this.cleanDockerfile();
+      return this.cleanDockerfile();
     });
   }
 
@@ -72,6 +72,10 @@ class DockerDeployer extends ShellDeployer {
     return this.execute("docker", args, this.out.bind(this), this.out.bind(this));
   }
 
+  getDockerfileName() {
+    return './.webda.Dockerfile';
+  }
+
   checkDockerfile() {
     this.stepper("Checking Dockerfile");
     return new Promise((resolve, reject) => {
@@ -81,8 +85,8 @@ class DockerDeployer extends ShellDeployer {
       }
       if (!this.resources.Dockerfile) {
         this._cleanDockerfile = true;
-        fs.writeFileSync('./.webda.Dockerfile', this.getDockerfile(this.resources.logfile, this.resources.command));
-        this.resources.Dockerfile = './.webda.Dockerfile'
+        fs.writeFileSync(this.getDockerfileName(), this.getDockerfile(this.resources.logfile, this.resources.command));
+        this.resources.Dockerfile = this.getDockerfileName();
       }
       resolve();
     });
@@ -102,15 +106,15 @@ RUN cd /server && rm -rf node_modules && npm install
     if (!command) {
       command = 'serve';
     }
-    if (!logfile) {
-      logfile = '/data/webda.log';
+    if (logfile) {
+      logfile = ' > ' + logfile;
     }
     if (!this.deployment.uuid) {
       // Export deployment
       dockerfile += 'RUN cd /server && webda -d ' + this.deployment.uuid + ' config webda.config.json\n';
     }
     dockerfile += 'RUN cd /server && rm -rf deployments\n';
-    dockerfile += 'CMD cd /server && node_modules/.bin/webda ' + command + ' > ' + logfile + '\n'
+    dockerfile += 'CMD cd /server && node_modules/.bin/webda ' + command + logfile + '\n'
     return dockerfile;
   }
 

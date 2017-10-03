@@ -56,6 +56,7 @@ function help() {
   console.log(' install'.bold.yellow + ': Install the resources for the declared services ( DynamoDB Tables, S3 Buckets )');
   console.log(' serve'.bold.yellow + ' (DeployConfiguration): Serve current project, can serve with DeployConfiguration');
   console.log(' deploy'.bold.yellow + ' DeployConfiguration: Deploy current project with DeployConfiguration name');
+  console.log(' worker'.bold.yellow + ': Launch a worker on a queue');
   console.log(' debug'.bold.yellow + ': Debug current project');
   console.log(' launch'.bold.yellow + ' ServiceName method arg1 ...: Launch the ServiceName method with arg1 ...');
 }
@@ -67,6 +68,7 @@ if (argv.version) {
 
 if (argv.h || argv.help || argv._.length === 0) {
   help();
+  process.exit(0);
 }
 
 var webda;
@@ -250,7 +252,7 @@ function handleCommand(cmd) {
         if (argv._.length > 1) {
           fs.writeFileSync(argv._[1], json);
         } else {
-          console.log(json);  
+          console.log(json);
         }
         return Promise.resolve();
       }

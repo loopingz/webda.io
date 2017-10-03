@@ -223,12 +223,12 @@ class ` + className + ` extends ` + extendName + ` {
       let file = ctx.body.src;
       this._config.global.models[name] = ctx.body.src;
       if (!file.endsWith('.js')) {
-        file += '.js'; 
+        file += '.js';
       }
       if (model != null || fs.existsSync(file)) {
         throw 409;
       }
-      
+
       fs.writeFileSync(file, this._getClass(name, ctx.body.extending, ctx.body.templating, models));
       this.save();
     } else if (ctx._route._http.method === "PUT") {
@@ -440,6 +440,7 @@ class WebdaConfigurationServer extends WebdaServer {
     this._deployers["aws"] = require("../deployers/aws");
     this._deployers["docker"] = require("../deployers/docker");
     this._deployers["shell"] = require("../deployers/shell");
+    this._deployers["wedeploy"] = require("../deployers/wedeploy");
   }
 
   exportJson(o) {
@@ -574,7 +575,7 @@ class WebdaConfigurationServer extends WebdaServer {
   }
 
   uninstall(env, args, fork) {
-    
+
   }
 
   logRequest(...args) {

@@ -128,6 +128,14 @@ class Context {
   }
 
   /**
+   * Get the HTTP stream to output raw data
+   * @returns {*}
+   */
+  getStream() {
+    return this._stream;
+  }
+
+  /**
    * Get the current user from session
    */
   getCurrentUser() {

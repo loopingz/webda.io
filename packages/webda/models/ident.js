@@ -8,9 +8,9 @@ class Ident extends CoreModel {
 
   static init(type, uid, accessToken, refreshToken, profile) {
     var obj = new Ident({});
-    obj.type = type;
-    obj.uid = uid;
-    obj.uuid = uid + "_" + type;
+    obj.type = type.toLowerCase();
+    obj.uid = uid.toLowerCase();
+    obj.uuid = obj.uid + "_" + obj.type;
     obj.profile = profile;
     obj.tokens = {};
     obj.tokens.refresh = refreshToken;

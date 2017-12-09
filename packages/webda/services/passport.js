@@ -272,14 +272,14 @@ class PassportExecutor extends Executor {
     if (ctx.body.password === undefined || ctx.body.login === undefined || ctx.body.token === undefined || ctx.body.expire === undefined) {
       throw 400;
     }
-    return userStore.get(ctx.body.login).then((user) => {
-      if (ctx.body.token !== this.hashPassword(ctx.body.login + ctx.body.expire + user.__password)) {
+    return userStore.get(ctx.body.login.toLowerCase()).then((user) => {
+      if (ctx.body.token !== this.hashPassword(ctx.body.login.toLowerCase() + ctx.body.expire + user.__password)) {
         throw 403;
       }
       if (ctx.body.expire < Date.now()) {
         throw 410;
       }
-      return userStore.update({__password: this.hashPassword(ctx.body.password)}, ctx.body.login);
+      return userStore.update({__password: this.hashPassword(ctx.body.password)}, ctx.body.login.toLowerCase());
     });
   }
 
@@ -401,7 +401,7 @@ class PassportExecutor extends Executor {
     }
     var userStore = this._usersStore;
     var updates = {};
-    var uuid = ctx.body.login + "_email";
+    var uuid = ctx.body.login.toLowerCase() + "_email";
     return identStore.get(uuid).then((ident) => {
       if (ident != undefined && ident.user != undefined) {
         // Register on an known user
@@ -434,7 +434,7 @@ class PassportExecutor extends Executor {
           }
         });
       } else {
-        var email = ctx.body.login;
+        var email = ctx.body.login.toLowerCase();
         // Read the form
         if (ctx.body.register || ctx._params.register) {
           var validation = undefined;

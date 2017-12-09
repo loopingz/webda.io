@@ -40,7 +40,7 @@ describe('Passport', function () {
   });
   describe('Email', function () {
     it('register', function () {
-      var params = {'email': 'test@webda.io', 'password': 'test'};
+      var params = {'email': 'test@Webda.io', 'password': 'test'};
       ctx = webda.newContext(params);
       executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", "http", 80, {'Accept-Language': 'en-GB'});
       events = 0;

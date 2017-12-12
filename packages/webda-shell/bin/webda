@@ -131,6 +131,7 @@ function handleCommand(cmd) {
       if (argv.deployment) {
         // Loading first the configuration
         console.log("Serve as deployment: " + argv.deployment);
+        server_config = new config().loadDeploymentConfig(argv.deployment);
       } else {
         console.log("Serve as development");
       }

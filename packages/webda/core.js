@@ -53,6 +53,9 @@ class Webda extends EventEmitter {
     this._models['Webda/Ident'] = require('./models/ident');
     // Load the configuration
     this._config = this.loadConfiguration(config);
+    if (!this._config.version) {
+      this._config = this.migrateConfig(this._config);
+    }
     this.init();
   }
 
@@ -149,6 +152,26 @@ class Webda extends EventEmitter {
     }
   }
 
+  migrateConfig(config) {
+    console.log('Old webda.config.json format, trying to migrate');
+    let newConfig = {parameters: {}, services: {}, models: {}, routes: {}, version: 1};
+    let domain;
+    if (config['*']) {
+      domain = config[config['*']];
+    } else {
+      domain = config[Object.keys(config)[0]];
+    }
+    if (domain.global) {
+      newConfig.parameters = domain.global.params || {};
+      newConfig.services = domain.global.services || {};
+      newConfig.models = domain.global.models || {};
+    }
+    for (let i in domain) {
+      if (i === 'global') continue;
+      newConfig.routes[i] = domain[i];
+    }
+    return newConfig;
+  }
   /**
    * Init a specific vhost and set the context to this vhost
    *
@@ -446,7 +469,7 @@ class Webda extends EventEmitter {
    * @param {String} vhost The domain to retrieve or default if not specified
    */
   getGlobalParams(vhost) {
-    return this._config.parameters;
+    return this._config.parameters || {};
   }
 
   /**

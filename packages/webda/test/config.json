@@ -1,4 +1,5 @@
 {
+  "version": 1,
   "parameters": {
     "TEST": "Global",
     "region": "us-east-1",

@@ -45,65 +45,51 @@ class PassportExecutor extends Executor {
    * @ignore
    * Setup the default routes
    */
-  init(config) {
-    var url = this._params.expose;
-    if (url === undefined) {
-      url = '/auth';
-    } else {
-      url = this._params.expose;
-    }
-    this._url = url;
-    let identStoreName = this._params.identStore;
-    let userStoreName = this._params.userStore;
-    if (identStoreName === undefined) {
-      identStoreName = "idents";
-    }
-    if (userStoreName === undefined) {
-      userStoreName = "users";
-    }
-    this._identsStore = this.getService(identStoreName);
-    this._usersStore = this.getService(userStoreName);
+  init() {
+    let url = this._url = this._params.expose || '/auth';
+    this._identsStore = this.getService(this._params.identStore || 'idents');
+    this._usersStore = this.getService(this._params.userStore || 'users');
     if (this._identsStore === undefined || this._usersStore === undefined) {
       this._initException = "Unresolved dependency on idents and users services";
     }
     // List authentication configured
-    config[url] = {"method": ["GET", "DELETE"], "executor": this._name, "_method": this._listAuthentications};
+    this._addRoute(url, {"method": ["GET", "DELETE"], "executor": this, "_method": this._listAuthentications});
     // Get the current user
-    config[url + "/me"] = {"method": ["GET"], "executor": this._name, "_method": this._getMe};
+    this._addRoute(url + "/me", {"method": ["GET"], "executor": this._name, "_method": this._getMe});
     if (this._params.providers.email) {
       // Add static for email for now, if set before it should have priority
-      config[url + "/email"] = {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this._handleEmail};
-      config[url + "/email/callback{?email,token}"] = {
+      this._addRoute(url + "/email", {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this._handleEmail});
+      this._addRoute(url + "/email/callback{?email,token}", {
         "method": ["GET"],
         "executor": this._name,
         "params": {"provider": "email"},
         "_method": this._handleEmailCallback
-      };
-      config[url + "/email/passwordRecovery"] = {
+      });
+      this._addRoute(url + "/email/passwordRecovery" ,{
         "method": ["POST"],
         "executor": this._name,
         "params": {"provider": "email"},
         "_method": this._passwordRecovery
-      };
-      config[url + "/email/{email}/recover"] = {
+      });
+      this._addRoute(url + "/email/{email}/recover" ,{
         "method": ["GET"],
         "executor": this._name,
         "params": {"provider": "email"},
         "_method": this._passwordRecoveryEmail
-      };
+      });
     }
     // Handle the lost password here
     url += '/{provider}';
-    config[url] = {
+    this._addRoute(url, {
       "method": ["GET"],
       "executor": this._name,
       "_method": this._authenticate
-    };
-    config[url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}"] = {
+    });
+    this._addRoute(url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}", {
       "method": "GET",
       "executor": this._name,
       "_method": this._callback
-    };
+    });
   }
 
 

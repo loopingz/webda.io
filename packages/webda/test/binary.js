@@ -123,8 +123,6 @@ describe('Binary', function () {
   });
   beforeEach(function () {
     webda = new Webda(config);
-    webda.setHost("test.webda.io");
-    webda.initAll();
   });
   describe('FileBinary', function () {
     beforeEach(function () {

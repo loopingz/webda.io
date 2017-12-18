@@ -73,11 +73,9 @@ class Store extends Executor {
     } else if (typeof(expose) == "object" && expose.url == undefined) {
       expose.url = "/" + this._name.toLowerCase();
     }
-    if (expose.restrict == undefined) {
-      expose.restrict = {}
-    }
+    expose.restrict = expose.restrict || {}
     if (!expose.restrict.create) {
-      config[expose.url] = {"method": ["POST"], "executor": this._name, "expose": expose, "_method": this.httpCreate};
+      this._addRoute(expose.url, {"method": ["POST"], "executor": this._name, "expose": expose, "_method": this.httpCreate});
     }
     // Dont even create the route that are restricted so we can ease up the test on handler
     let methods = [];
@@ -91,7 +89,7 @@ class Store extends Executor {
       methods.push("DELETE");
     }
     if (methods.length) {
-      config[expose.url + "/{uuid}"] = {"method": methods, "executor": this._name, "expose": expose, "_method": this.httpRoute};
+      this._addRoute(expose.url + "/{uuid}", {"method": methods, "executor": this._name, "expose": expose, "_method": this.httpRoute});
     }
     if (this._model && this._model.getActions) {
     	let actions = this._model.getActions();
@@ -113,7 +111,7 @@ class Store extends Executor {
             }
             action._method = this.httpAction;
           }
-          config[expose.url + '/' + action.name] = action;
+          this._addRoute(expose.url + '/' + action.name, action);
         } else {
           // By default will grab the object and then call the action
           if (!action._method) {
@@ -122,7 +120,7 @@ class Store extends Executor {
             }
             action._method = this.httpAction;
           }
-          config[expose.url + '/{uuid}/' + action.name] = action;
+          this._addRoute(expose.url + '/{uuid}/' + action.name, action);
         }
     	});
     }

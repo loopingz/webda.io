@@ -7,8 +7,6 @@ const config = require("./config.json");
 var webda = new Webda(config);
 var ctx = webda.newContext();
 webda = new Webda(config);
-webda.setHost("test.webda.io");
-webda.initAll();
 
 describe('CoreModel', function () {
   it('Verify unsecure constructor', function () {

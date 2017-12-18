@@ -276,8 +276,6 @@ describe('Store', function () {
   });
   beforeEach(function () {
     webda = new Webda(config);
-    webda.setHost("test.webda.io");
-    webda.initAll();
   });
   describe('FileStore', function () {
     beforeEach(function () {

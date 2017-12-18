@@ -8,8 +8,6 @@ var task;
 var failed = false;
 var webda = new Webda(config);
 var ctx;
-webda.setHost("test.webda.io");
-webda.initAll();
 
 describe('Validator', function () {
   var taskStore;

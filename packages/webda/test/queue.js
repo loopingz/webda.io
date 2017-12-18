@@ -43,8 +43,6 @@ describe('Queues', function () {
 
   beforeEach(function () {
     webda = new Webda(config);
-    webda.setHost("test.webda.io");
-    webda.initAll();
   });
 
   describe('SQSQueue', function () {

@@ -7,8 +7,6 @@ var session;
 var task;
 var failed = false;
 var webda = new Webda(config);
-webda.setHost("test.webda.io");
-webda.initAll();
 var ctx;
 
 describe('Policy', function () {

@@ -53,6 +53,7 @@ class Webda extends EventEmitter {
     this._models['Webda/Ident'] = require('./models/ident');
     // Load the configuration
     this._config = this.loadConfiguration(config);
+    this.init();
   }
 
   /**
@@ -153,17 +154,10 @@ class Webda extends EventEmitter {
    *
    * @protected
    * @ignore
+   * @deprecated
    */
   setHost(vhost) {
-    if (!vhost) {
-      if (this._config['*']) {
-        vhost = this._config['*'];
-      } else {
-        vhost = this._config[Object.keys(this._config)[0]];
-      }
-    }
-    this._vhost = vhost
-    this.initHosts(vhost, this._config[vhost]);
+    console.log('vhost is no longer handled');
   }
 
   /**
@@ -193,10 +187,10 @@ class Webda extends EventEmitter {
    * @return The configured locales or "en-GB" if none are defined
    */
   getLocales() {
-    if (!this._config || !this._config[this._vhost] || !this._config[this._vhost].global || !this._config[this._vhost].global.locales) {
+    if (!this._config || !this._config.parameters.locales) {
       return ["en-GB"];
     }
-    return this._config[this._vhost].global.locales;
+    return this._config.parameters.locales;
   }
 
   /**
@@ -211,6 +205,16 @@ class Webda extends EventEmitter {
   }
 
   /**
+   * Add a route dynamicaly
+   *
+   * @param {String} url of the route can contains dynamic part like {uuid}
+   * @param {Object} info the type of executor
+   */
+  addRoute(url, info) {
+    this._config.routes[url] = info;
+  }
+
+  /**
    * Check for a service name and return the wanted singleton or undefined if none found
    *
    * @param {String} name The service name to retrieve
@@ -220,11 +224,8 @@ class Webda extends EventEmitter {
       return;
     }
     name = name.toLowerCase();
-    if (this._config[this._vhost] !== undefined) {
-      if (this._config[this._vhost].global !== undefined && this._config[this._vhost].global._services !== undefined
-        && this._config[this._vhost].global._services[name]) {
-        return this._config[this._vhost].global._services[name];
-      }
+    if (this._config._services !== undefined) {
+      return this._config._services[name];
     }
   }
 
@@ -233,10 +234,8 @@ class Webda extends EventEmitter {
    * @returns {{}}
    */
   getServices() {
-    if (this._config[this._vhost] !== undefined) {
-      if (this._config[this._vhost].global !== undefined && this._config[this._vhost].global._services !== undefined) {
-        return this._config[this._vhost].global._services;
-      }
+    if (this._config._services) {
+      return this._config._services;
     }
     return {};
   }
@@ -261,11 +260,10 @@ class Webda extends EventEmitter {
    * @returns {{}}
    */
   getModels() {
-    if (this._config[this._vhost] !== undefined) {
-      if (this._config[this._vhost].global !== undefined && this._config[this._vhost].global._models !== undefined) {
-        return this._config[this._vhost].global._models;
-      }
+    if (this._config._models !== undefined) {
+      return this._config._models;
     }
+    return {};
   }
 
   /**
@@ -278,11 +276,8 @@ class Webda extends EventEmitter {
       return;
     }
     name = name.toLowerCase();
-    if (this._config[this._vhost] !== undefined) {
-      if (this._config[this._vhost].global !== undefined && this._config[this._vhost].global._models !== undefined
-        && this._config[this._vhost].global._models[name]) {
-        return this._config[this._vhost].global._models[name];
-      }
+    if (this._config._models !== undefined && this._config._models[name] !== undefined) {
+      return this._config._models[name];
     }
     throw Error("Undefined model " + name);
   }
@@ -306,7 +301,7 @@ class Webda extends EventEmitter {
       }
 
       if (routeUrl === url) {
-        ctx._params = _extend(ctx._params, config.global.params);
+        ctx._params = _extend(ctx._params, config.parameters);
         return map;
       }
 
@@ -315,7 +310,7 @@ class Webda extends EventEmitter {
       }
       var parse_result = map['_uri-template-parse'].fromUri(url);
       if (parse_result !== undefined) {
-        ctx._params = _extend(ctx._params, config.global.params);
+        ctx._params = _extend(ctx._params, config.parameters);
         ctx._params = _extend(ctx._params, parse_result);
         ctx.query = parse_result;
         return map;
@@ -336,33 +331,18 @@ class Webda extends EventEmitter {
    * @param {Object} headers The headers of the request
    */
   getExecutor(ctx, vhost, method, url, protocol, port, headers) {
-    // Check vhost
-    var wildcard = false;
-    var originalVhost = vhost;
-    if (this._config[vhost] === undefined) {
-      if (this._config['*'] === undefined) {
-        return null;
-      }
-      wildcard = true;
-      vhost = this._config['*'];
-    }
-    this.setHost(vhost);
-    // Init vhost if needed
-    this.initHosts(vhost, this._config[vhost]);
     // Check mapping
-    var route = this.getRouteFromUrl(ctx, this._config[vhost], method, url);
+    var route = this.getRouteFromUrl(ctx, this._config, method, url);
     if (route === undefined) {
       return;
     }
     route._http = {
       "host": vhost,
-      "vhost": originalVhost,
       "method": method,
       "url": url,
       "protocol": protocol,
       "port": port,
       "headers": headers,
-      "wildcard": wildcard,
       "root": protocol + "://" + vhost
     };
     return this.getServiceWithRoute(ctx, route);
@@ -379,7 +359,7 @@ class Webda extends EventEmitter {
    */
   getSecret() {
     // For now a static config file but should have a rolling service secret
-    return this._config[this._vhost].global.secret;
+    return this._config.parameters.secret;
   }
 
   /**
@@ -389,7 +369,7 @@ class Webda extends EventEmitter {
    */
   getSalt() {
     // For now a static config file but should have a rolling service secret
-    return this._config[this._vhost].global.salt;
+    return this._config.parameters.salt;
   }
 
   /**
@@ -400,12 +380,12 @@ class Webda extends EventEmitter {
     var executor = this.getService(name);
     // If no service is found then check for routehelpers
     if (executor === undefined && this._routehelpers[name] !== undefined) {
-      executor = new this._routehelpers[name](this, name, this._config[route._http.host].global.params);
+      executor = new this._routehelpers[name](this, name, this._config.parameters);
     }
     if (executor === undefined) {
       return;
     }
-    ctx.setRoute(this.extendParams(route, this._config[route._http.host].global));
+    ctx.setRoute(this.extendParams(route, this._config));
     executor.updateContext(ctx);
     return executor;
   }
@@ -466,18 +446,7 @@ class Webda extends EventEmitter {
    * @param {String} vhost The domain to retrieve or default if not specified
    */
   getGlobalParams(vhost) {
-    if (this._config[vhost] === undefined) {
-      if (this._config['*'] === undefined) {
-        return {};
-      }
-      vhost = this._config['*'];
-    }
-    if (this._config[vhost] === undefined ||
-      this._config[vhost].global === undefined ||
-      this._config[vhost].global.params === undefined) {
-      return {};
-    }
-    return this._config[vhost].global.params;
+    return this._config.parameters;
   }
 
   /**
@@ -514,10 +483,10 @@ class Webda extends EventEmitter {
    * @ignore
    *
    */
-  initServices(config) {
-    var services = config.global.services;
-    if (config.global._services === undefined) {
-      config.global._services = {};
+  initServices() {
+    var services = this._config.services;
+    if (this._config._services === undefined) {
+      this._config._services = {};
     }
     if (services === undefined) {
       return;
@@ -556,30 +525,30 @@ class Webda extends EventEmitter {
         console.log("No constructor found for service " + service);
         continue;
       }
-      var params = this.extendParams(services[service], config.global.params);
+      var params = this.extendParams(services[service], this._config.parameters);
       delete params.require;
       try {
-        config.global._services[service.toLowerCase()] = new serviceConstructor(this, service, params);
+        this._config._services[service.toLowerCase()] = new serviceConstructor(this, service, params);
       } catch (err) {
-        config.global.services[service]._createException = err;
+        this._config.services[service]._createException = err;
       }
     }
     // Add models
-    this.initModels(config);
+    this.initModels(this._config);
 
     // Init services
-    for (service in config.global._services) {
-      if (config.global._services[service].init !== undefined) {
+    for (service in this._config._services) {
+      if (this._config._services[service].init !== undefined) {
         try {
-          config.global._services[service].init(config);
+          this._config._services[service].init(this._config);
         } catch (err) {
-          config.global._services[service]._initException = err;
+          this._config._services[service]._initException = err;
           console.log("Init service " + service + " failed");
           console.log(err.stack);
         }
       }
     }
-    this.emit('Webda.Init.Services', config.global._services);
+    this.emit('Webda.Init.Services', this._config._services);
   }
 
   jsonFilter(key, value) {
@@ -587,23 +556,36 @@ class Webda extends EventEmitter {
     return value;
   }
 
-  initAll() {
-    var oldHost = this._vhost;
-    for (var vhost in this._config) {
-      if (vhost === "*") continue;
-      this.setHost(vhost);
-      this.initHosts(vhost, this._config[vhost]);
+  init() {
+    if (!this._config.routes) {
+      this._config.routes = {};
     }
-    this._vhost = oldHost;
+    this.initModdas(this._config);
+
+    if (this._config.services !== undefined) {
+      this.initServices(this._config.services);
+    }
+    this.initURITemplates(this._config.routes);
+
+    // Order path desc
+    this._config._pathMap = [];
+    for (var i in this._config.routes) {
+      if (i === "global") continue;
+      // Might need to trail the query string
+      this._config._pathMap.push({url: i, config: this._config.routes[i]});
+    }
+    this._config._pathMap.sort(this.comparePath);
+    this._config._initiated = true;
+    this.emit('Webda.Init', this._config);
   }
 
   initModdas(config) {
     // Moddas are the custom type of service
     // They are either coming from npm or are direct lambda feature or local with require
-    if (config.global.moddas === undefined) return;
+    if (config.moddas === undefined) return;
 
-    for (let i in config.global.moddas) {
-      let modda = config.global.moddas[i];
+    for (let i in config.moddas) {
+      let modda = config.moddas[i];
       if (modda.type == "local") {
         // Add the required type
         this._services[i] = require(modda.require);
@@ -620,21 +602,21 @@ class Webda extends EventEmitter {
   }
 
   initModels(config) {
-    if (config.global._models === undefined) {
-      config.global._models = {};
+    if (config._models === undefined) {
+      config._models = {};
     }
-    for (let i in config.global.models) {
+    for (let i in config.models) {
       var type = i;
       if (type.indexOf('/') < 2) {
         type = "Webda/" + type;
       }
-      var include = config.global.models[i];
+      var include = config.models[i];
       try {
         if (typeof(include) === "string") {
           if (include.startsWith("./")) {
             include = process.cwd() + '/' + include;
           }
-          config.global._models[type.toLowerCase()] = require(include);
+          config._models[type.toLowerCase()] = require(include);
         }
 
       } catch (ex) {
@@ -644,10 +626,10 @@ class Webda extends EventEmitter {
       }
     }
     for (let i in this._models) {
-      if (config.global._models[i]) continue;
-      config.global._models[i.toLowerCase()] = this._models[i];
+      if (config._models[i]) continue;
+      config._models[i.toLowerCase()] = this._models[i];
     }
-    this.emit('Webda.Init.Models', config.global._models);
+    this.emit('Webda.Init.Models', config._models);
   }
 
   comparePath(a, b) {
@@ -689,33 +671,6 @@ class Webda extends EventEmitter {
    */
   toPublicJSON(object) {
     return JSON.stringify(object, this.jsonFilter);
-  }
-
-  /**
-   * @private
-   */
-  initHosts(vhost, config) {
-    if (config._initiated) {
-      return;
-    }
-
-    this.initModdas(config);
-
-    if (config.global !== undefined) {
-      this.initServices(config);
-    }
-    this.initURITemplates(config);
-
-    // Order path desc
-    config._pathMap = [];
-    for (var i in config) {
-      if (i === "global") continue;
-      // Might need to trail the query string
-      config._pathMap.push({url: i, config: config[i]});
-    }
-    config._pathMap.sort(this.comparePath);
-    config._initiated = true;
-    this.emit('Webda.Init.Host', config);
   }
 
 }

@@ -66,8 +66,6 @@ describe('EventService', function () {
 
   beforeEach(function () {
     webda = new Webda(config);
-    webda.setHost("test.webda.io");
-    webda.initAll();
   });
 
   it('Basic', function () {

@@ -19,8 +19,6 @@ const validationUrl = /.*\/auth\/email\/callback\?email=([^&]+)&token=([^ ]+)/
 describe('Passport', function () {
   before(function () {
     webda = new Webda(config);
-    webda.setHost("test.webda.io");
-    webda.initAll();
     userStore = webda.getService("Users")
     userStore.__clean();
     identStore = webda.getService("Idents");

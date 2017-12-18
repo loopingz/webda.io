@@ -20,6 +20,17 @@ const Service = require('./service');
 class Executor extends Service {
 
   /**
+   * Add a route dynamicaly
+   *
+   * @param {String} url of the route can contains dynamic part like {uuid}
+   * @param {Object} info the type of executor
+   */
+  _addRoute(url, info) {
+    info.executor = this._name;
+    this._webda.addRoute(url, info);
+  }
+
+  /**
    * Main method called by the webda framework if the route don't specify a _method
    *
    * @abstract

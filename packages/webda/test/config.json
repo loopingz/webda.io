@@ -1,221 +1,223 @@
 {
-  "test.webda.io": {
-    "global": {
-      "params": {
-        "TEST": "Global",
-        "region": "us-east-1"
-      },
-      "locales": [
-        "es-ES",
-        "en-GB",
-        "fr-FR"
-      ],
-      "moddas": {
-        "Test/Mailer": {
-          "type": "local",
-          "require": "./test/moddas/debugmailer"
-        },
-        "Test/VoidStore": {
-          "type": "local",
-          "require": "./test/moddas/voidstore"
-        }
-      },
-      "models": {
-        "WebdaTest/Task": "./test/models/task",
-        "WebdaTest/Ident": "./test/models/ident"
-      },
-      "services": {
-        "AsyncEvents": {
-          "type": "AsyncEvents",
-          "queues": {
-            "default": "EventQueue",
-            "priority": "PriorityEventQueue"
-          }
-        },
-        "MemoryQueue": {
-          "type": "MemoryQueue",
-          "expire": 1
-        },
-        "PriorityEventQueue": {
-          "type": "MemoryQueue",
-          "expire": 3600
-        },
-        "EventQueue": {
-          "type": "MemoryQueue",
-          "expire": 3600
-        },
-        "SQSQueue": {
-          "type": "SQSQueue",
-          "queue": "https://sqs.us-east-1.amazonaws.com/277712386420/webda-test"
-        },
-        "Authentication": {
-          "successRedirect": "https://webda.io/user.html",
-          "failureRedirect": "/login-error",
-          "providers": {
-            "facebook": {},
-            "email": {
-              "from": "",
-              "subject": "",
-              "html": "",
-              "text": "",
-              "mailer": "DefinedMailer",
-              "postValidation": false
-            },
-            "phone": {},
-            "twitter": {},
-            "google": {},
-            "github": {}
-          }
-        },
-        "DefinedMailer": {
-          "type": "Test/Mailer"
-        },
-        "dynamoidents": {
-          "inject": "user",
-          "check": "user",
-          "map": {
-            "dynamousers": {
-              "key": "user",
-              "target": "idents",
-              "fields": "type",
-              "cascade": true
-            }
-          },
-          "expose": {
-            "restrict": {
-              "create": true,
-              "update": true,
-              "get": true
-            }
-          },
-          "asyncDelete": true,
-          "model": "WebdaTest/Ident",
-          "type": "DynamoStore",
-          "table": "webda-test-idents"
-        },
-        "dynamousers": {
-          "expose": {
-            "url": "/users",
-            "restrict": {
-              "authentication": true,
-              "create": true
-            }
-          },
-          "scanPage": 2,
-          "type": "DynamoStore",
-          "table": "webda-test-users"
-        },
-        "mongoidents": {
-          "inject": "user",
-          "check": "user",
-          "asyncDelete": true,
-          "map": {
-            "mongousers": {
-              "key": "user",
-              "target": "idents",
-              "fields": "type",
-              "cascade": true
-            }
-          },
-          "expose": {
-            "restrict": {
-              "create": true,
-              "update": true,
-              "get": true
-            }
-          },
-          "model": "WebdaTest/Ident",
-          "type": "MongoStore",
-          "collection": "idents"
-        },
-        "mongousers": {
-          "expose": {
-            "url": "/users",
-            "restrict": {
-              "authentication": true,
-              "create": true
-            }
-          },
-          "type": "MongoStore",
-          "collection": "users"
-        },
-        "MemoryIdents": {
-          "map": {
-            "MemoryUsers": {
-              "key": "user",
-              "target": "idents",
-              "fields": "type",
-              "cascade": true
-            }
-          },
-          "asyncDelete": true,
-          "expose": {
-            "url": "/memory/idents"
-          },
-          "model": "WebdaTest/Ident",
-          "type": "MemoryStore"
-        },
-        "MemoryUsers": {
-          "expose": {
-            "url": "/users"
-          },
-          "type": "MemoryStore"
-        },
-        "Idents": {
-          "map": {
-            "Users": {
-              "key": "user",
-              "target": "idents",
-              "fields": "type",
-              "cascade": true
-            }
-          },
-          "asyncDelete": true,
-          "expose": {
-            "restrict": {
-              "create": true,
-              "update": true,
-              "get": true
-            }
-          },
-          "model": "WebdaTest/Ident",
-          "type": "FileStore",
-          "folder": "./test/data/idents",
-          "validator": "IdentValidator"
-        },
-        "Users": {
-          "expose": {
-            "url": "/users"
-          },
-          "type": "FileStore",
-          "folder": "./test/data/users"
-        },
-        "Tasks": {
-          "type": "FileStore",
-          "folder": "./test/data/tasks",
-          "model": "WebdaTest/Task",
-          "expose": true
-        },
-        "binary": {
-          "type": "FileBinary",
-          "folder": "./test/data/binaries",
-          "map": {
-            "users": [
-              "images"
-            ]
-          }
-        },
-        "s3binary": {
-          "type": "S3Binary",
-          "bucket": "webda-test",
-          "map": {
-            "users": [
-              "s3images"
-            ]
-          }
-        }
+  "parameters": {
+    "TEST": "Global",
+    "region": "us-east-1",
+    "locales": [
+      "es-ES",
+      "en-GB",
+      "fr-FR"
+    ]
+  },
+  "moddas": {
+    "Test/Mailer": {
+      "type": "local",
+      "require": "./test/moddas/debugmailer"
+    },
+    "Test/VoidStore": {
+      "type": "local",
+      "require": "./test/moddas/voidstore"
+    }
+  },
+  "models": {
+    "WebdaTest/Task": "./test/models/task",
+    "WebdaTest/Ident": "./test/models/ident"
+  },
+  "services": {
+    "AsyncEvents": {
+      "type": "AsyncEvents",
+      "queues": {
+        "default": "EventQueue",
+        "priority": "PriorityEventQueue"
       }
     },
+    "MemoryQueue": {
+      "type": "MemoryQueue",
+      "expire": 1
+    },
+    "PriorityEventQueue": {
+      "type": "MemoryQueue",
+      "expire": 3600
+    },
+    "EventQueue": {
+      "type": "MemoryQueue",
+      "expire": 3600
+    },
+    "SQSQueue": {
+      "type": "SQSQueue",
+      "queue": "https://sqs.us-east-1.amazonaws.com/277712386420/webda-test"
+    },
+    "Authentication": {
+      "successRedirect": "https://webda.io/user.html",
+      "failureRedirect": "/login-error",
+      "providers": {
+        "facebook": {},
+        "email": {
+          "from": "",
+          "subject": "",
+          "html": "",
+          "text": "",
+          "mailer": "DefinedMailer",
+          "postValidation": false
+        },
+        "phone": {},
+        "twitter": {},
+        "google": {},
+        "github": {}
+      }
+    },
+    "DefinedMailer": {
+      "type": "Test/Mailer"
+    },
+    "dynamoidents": {
+      "inject": "user",
+      "check": "user",
+      "map": {
+        "dynamousers": {
+          "key": "user",
+          "target": "idents",
+          "fields": "type",
+          "cascade": true
+        }
+      },
+      "expose": {
+        "restrict": {
+          "create": true,
+          "update": true,
+          "get": true
+        }
+      },
+      "asyncDelete": true,
+      "model": "WebdaTest/Ident",
+      "type": "DynamoStore",
+      "table": "webda-test-idents"
+    },
+    "dynamousers": {
+      "expose": {
+        "url": "/users",
+        "restrict": {
+          "authentication": true,
+          "create": true
+        }
+      },
+      "scanPage": 2,
+      "type": "DynamoStore",
+      "table": "webda-test-users"
+    },
+    "mongoidents": {
+      "inject": "user",
+      "check": "user",
+      "asyncDelete": true,
+      "map": {
+        "mongousers": {
+          "key": "user",
+          "target": "idents",
+          "fields": "type",
+          "cascade": true
+        }
+      },
+      "expose": {
+        "restrict": {
+          "create": true,
+          "update": true,
+          "get": true
+        }
+      },
+      "model": "WebdaTest/Ident",
+      "type": "MongoStore",
+      "collection": "idents"
+    },
+    "mongousers": {
+      "expose": {
+        "url": "/users",
+        "restrict": {
+          "authentication": true,
+          "create": true
+        }
+      },
+      "type": "MongoStore",
+      "collection": "users"
+    },
+    "MemoryIdents": {
+      "map": {
+        "MemoryUsers": {
+          "key": "user",
+          "target": "idents",
+          "fields": "type",
+          "cascade": true
+        }
+      },
+      "asyncDelete": true,
+      "expose": {
+        "restrict": {
+          "create": true,
+          "update": true,
+          "get": true
+        }
+      },
+      "model": "WebdaTest/Ident",
+      "type": "MemoryStore"
+    },
+    "MemoryUsers": {
+      "expose": {
+        "url": "/users"
+      },
+      "type": "MemoryStore"
+    },
+    "Idents": {
+      "map": {
+        "Users": {
+          "key": "user",
+          "target": "idents",
+          "fields": "type",
+          "cascade": true
+        }
+      },
+      "asyncDelete": true,
+      "expose": {
+        "restrict": {
+          "create": true,
+          "update": true,
+          "get": true
+        }
+      },
+      "model": "WebdaTest/Ident",
+      "type": "FileStore",
+      "folder": "./test/data/idents",
+      "validator": "IdentValidator"
+    },
+    "Users": {
+      "expose": {
+        "url": "/users"
+      },
+      "type": "FileStore",
+      "folder": "./test/data/users"
+    },
+    "Tasks": {
+      "type": "FileStore",
+      "folder": "./test/data/tasks",
+      "model": "WebdaTest/Task",
+      "expose": true
+    },
+    "binary": {
+      "type": "FileBinary",
+      "folder": "./test/data/binaries",
+      "map": {
+        "users": [
+          "images"
+        ]
+      }
+    },
+    "s3binary": {
+      "type": "S3Binary",
+      "bucket": "webda-test",
+      "map": {
+        "users": [
+          "s3images"
+        ]
+      }
+    }
+  },
+  "routes": {
     "/urltemplate/{id}": {
       "method": "GET",
       "executor": "debug",

@@ -165,6 +165,7 @@ class Webda extends EventEmitter {
       newConfig.parameters = domain.global.params || {};
       newConfig.services = domain.global.services || {};
       newConfig.models = domain.global.models || {};
+      newConfig.parameters.locales = domain.global.locales;
     }
     for (let i in domain) {
       if (i === 'global') continue;

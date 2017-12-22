@@ -502,6 +502,23 @@ class Store extends Executor {
     return store.upsertItemToCollection(mapped.uuid, map.target, mapper);
   }
 
+  _handleMapProperty(store, object, property, updates) {
+    return store.get(object[property.key]).then((mapped) => {
+      if (mapped == undefined) {
+        return Promise.resolve();
+      }
+      if (updates === "created") {
+        return this._handleCreatedMap(object, property, mapped, store);
+      } else if (updates == "deleted") {
+        return this._handleDeletedMap(object, property, mapped, store);
+      } else if (typeof(updates) == "object") {
+        return this._handleUpdatedMap(object, property, mapped, store, updates);
+      } else {
+        return Promise.reject(Error("Unknown handleMap type " + updates));
+      }
+    })
+  }
+
   handleMap(object, map, updates) {
     var promises = [];
     if (object === undefined) {
@@ -517,20 +534,7 @@ class Store extends Executor {
       if (store == undefined) {
         continue;
       }
-      promises.push(store.get(object[map[prop].key]).then((mapped) => {
-        if (mapped == undefined) {
-          return Promise.resolve();
-        }
-        if (updates === "created") {
-          return this._handleCreatedMap(object, map[prop], mapped, store);
-        } else if (updates == "deleted") {
-          return this._handleDeletedMap(object, map[prop], mapped, store);
-        } else if (typeof(updates) == "object") {
-          return this._handleUpdatedMap(object, map[prop], mapped, store, updates);
-        } else {
-          return Promise.reject(Error("Unknown handleMap type " + updates));
-        }
-      }));
+      promises.push(this._handleMapProperty(store, object, map[prop], updates));
     }
     if (promises.length == 1) {
       return promises[0];

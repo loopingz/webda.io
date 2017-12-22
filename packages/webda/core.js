@@ -130,7 +130,6 @@ class Webda extends EventEmitter {
         return require(config);
       }
     }
-    var result = null;
     // Default load from file
     if (process.env.WEBDA_CONFIG == undefined) {
       config = './webda.config.json';
@@ -139,7 +138,7 @@ class Webda extends EventEmitter {
         return require(this._configFile);
       }
       config = '/etc/webda/config.json';
-      if (result == undefined && fs.existsSync(config)) {
+      if (fs.existsSync(config)) {
         this._configFile = path.resolve(config);
         return require(this._configFile);
       }

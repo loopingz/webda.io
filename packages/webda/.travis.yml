@@ -1,3 +1,9 @@
 language: node_js
+addons:
+  sonarcloud:
+    organization: "loopingz-github"
 node_js:
   - "6"
+script:
+  - npm test
+  - sonar-scanner

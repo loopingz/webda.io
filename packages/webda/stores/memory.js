@@ -116,12 +116,6 @@ class MemoryStore extends Store {
       "logo": "images/placeholders/memorystore.png",
       "configuration": {
         "default": {
-        },
-        "schema": {
-          type: "object",
-          properties: {            
-          },
-          required: []
         }
       }
     }

@@ -53,12 +53,6 @@ class MemoryQueueService extends QueueService {
       "logo": "images/placeholders/memoryqueue.png",
       "configuration": {
         "default": {
-        },
-        "schema": {
-          type: "object",
-          properties: {            
-          },
-          required: []
         }
       }
     }

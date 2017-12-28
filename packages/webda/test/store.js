@@ -443,6 +443,7 @@ describe('Store', function () {
     });
   });
   describe('MemoryStore', function () {
+    var failed = false;
     beforeEach(function () {
       identStore = webda.getService("memoryidents");
       userStore = webda.getService("memoryusers");
@@ -466,6 +467,39 @@ describe('Store', function () {
     });
     it('GetAll / Scan', function () {
       return getAll(identStore, userStore);
+    });
+    it('asyncDeleteHttp', function () {
+      return identStore.save({uuid: 'toDelete', test: 'ok'}).then ( () => {
+        return identStore.delete('toDelete');
+      }).then ( () => {
+        executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/memory/idents/toDelete");
+        assert.notEqual(executor, undefined);
+        return executor.execute(ctx);
+      }).catch( (err) => {
+        failed = true;
+        assert.equal(err, 404);
+      }).then( () => {
+        assert.equal(failed, true);
+        failed = false;
+        executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/memory/idents/toDelete");
+        assert.notEqual(executor, undefined);
+        return executor.execute(ctx);
+      }).catch( (err) => {
+        failed = true;
+        assert.equal(err, 404);
+      }).then( () => {
+        assert.equal(failed, true);
+        failed = false;
+        executor = webda.getExecutor(ctx, "test.webda.io", "DELETE", "/memory/idents/toDelete");
+        assert.notEqual(executor, undefined);
+        return executor.execute(ctx);
+      }).catch( (err) => {
+        failed = true;
+        assert.equal(err, 404);
+      }).then( () => {
+        assert.equal(failed, true);
+        failed = false;
+      });
     });
   });
   describe('DynamoStore', function () {

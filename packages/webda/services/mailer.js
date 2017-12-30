@@ -108,7 +108,7 @@ class Mailer extends Service {
       "label": "Mailer",
       "description": "Implements a mailer to use in other services, it is used by the Authentication if you activate the email",
       "webcomponents": [],
-      "logo": "images/placeholders/email.png",
+      "logo": "images/icons/email.png",
       "configuration": {
         "default": {
           "config": {}

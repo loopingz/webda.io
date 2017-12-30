@@ -50,7 +50,7 @@ class MemoryQueueService extends QueueService {
       "description": "Implements a simple in memory queue",
       "webcomponents": [],
       "documentation": "",
-      "logo": "images/placeholders/memoryqueue.png",
+      "logo": "images/icons/memoryqueue.png",
       "configuration": {
         "default": {
         }

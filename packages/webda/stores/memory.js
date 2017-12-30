@@ -113,7 +113,7 @@ class MemoryStore extends Store {
       "description": "Implements a simple in memory store",
       "webcomponents": [],
       "documentation": "",
-      "logo": "images/placeholders/memorystore.png",
+      "logo": "images/icons/memorystore.png",
       "configuration": {
         "default": {
         }

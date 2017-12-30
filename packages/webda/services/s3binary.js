@@ -295,7 +295,7 @@ class S3Binary extends Binary {
       "description": "Implements S3 storage, so you can upload binary from users, handles mapping with other objects. It only stores once a binary, and if you use the attached Polymer behavior it will not even uplaod file if they are on the server already",
       "webcomponents": [],
       "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
-      "logo": "images/placeholders/s3.png",
+      "logo": "images/icons/s3.png",
       "configuration": {
         "default": {
           "bucket": "YOUR S3 Bucket",

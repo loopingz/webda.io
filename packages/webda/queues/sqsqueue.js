@@ -119,7 +119,7 @@ class SQSQueueService extends QueueService {
       "description": "Implements a Queue stored in SQS",
       "webcomponents": [],
       "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
-      "logo": "images/placeholders/sqs.png",
+      "logo": "images/icons/sqs.png",
       "configuration": {
         "default": {
           "queue": "YOUR QUEUE URL"

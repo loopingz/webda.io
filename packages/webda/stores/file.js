@@ -182,7 +182,7 @@ class FileStore extends Store {
       "description": "Implements user registration and login using either email or OAuth, it handles for now Facebook, Google, Amazon, GitHub, Twitter\nIt needs a Idents and a Users Store to work",
       "webcomponents": [],
       "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
-      "logo": "images/placeholders/filedb.png",
+      "logo": "images/icons/filedb.png",
       "configuration": {
         "default": {
           "folder": "/tmp/types",

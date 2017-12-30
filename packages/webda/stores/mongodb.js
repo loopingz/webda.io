@@ -163,7 +163,7 @@ class MongoStore extends Store {
       "description": "Implements MongoDB NoSQL",
       "webcomponents": [],
       "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
-      "logo": "images/placeholders/mongodb.png",
+      "logo": "images/icons/mongodb.png",
       "configuration": {
         "default": {
           "mongourl": "mongodb://127.0.0.1:27017",

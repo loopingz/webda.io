@@ -25,7 +25,9 @@ const rl = readline.createInterface({
 function getVersion(file) {
   return require(file + '/package.json').version;
 }
-
+global.__webda_shell = __dirname + "/..";
+console.log('web' + "da".yellow + "-shell - v" + getVersion(__webda_shell));
+// Check if local webda is not compatible
 if (fs.existsSync("node_modules/webda")) {
   // Local module of webda exists use it
   global.__webda = process.cwd() + '/node_modules/webda';
@@ -39,10 +41,9 @@ if (fs.existsSync("node_modules/webda")) {
   global.__webda = 'webda';
   console.log("Using embedded web" + "da".yellow + " - v" + getVersion(global.__webda));
 }
-
 var config;
 var server;
-global.__webda_shell = __dirname + "/..";
+
 config = require(global.__webda_shell + '/handlers/config');
 server = require(global.__webda_shell + '/handlers/http');
 
@@ -170,6 +171,7 @@ function handleCommand(cmd) {
           // Loading first the configuration
           console.log("Uninstalling deployment: ".red + argv.deployment.red);
           // Should add a confirmation here with RED letter
+          server_config = new config().loadDeploymentConfig(argv.deployment);
         }
         webda = new server(server_config);
         webda.setHost();
@@ -182,16 +184,18 @@ function handleCommand(cmd) {
         }
         return;
       }
+    case 'worker':
     case 'launch':
       let service_name = argv._[1];
       if (argv.deployment) {
         // Loading first the configuration
         console.log("Should work as deployment: " + argv.deployment);
+        server_config = new config().loadDeploymentConfig(argv.deployment);
       }
       webda = new server(server_config);
       webda.setHost();
       let service = webda.getService(service_name);
-      let method = argv._[2];
+      let method = argv._[2] || 'work';
       if (!service) {
         let error = 'The service ' + service_name + ' is missing';
         console.log(error.red);

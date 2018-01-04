@@ -53,6 +53,7 @@ function help() {
   console.log('  --help                     Display this message and exit\n');
   console.log('');
   console.log(' config'.bold.yellow + ': Launch the configuration UI or export a deployment config');
+  console.log(' serviceconfig'.bold.yellow + ': Display the configuration of a service with its deployment');
   console.log(' init'.bold.yellow + ': Init a sample project for your current version');
   console.log(' install'.bold.yellow + ': Install the resources for the declared services ( DynamoDB Tables, S3 Buckets )');
   console.log(' serve'.bold.yellow + ' (DeployConfiguration): Serve current project, can serve with DeployConfiguration');
@@ -182,8 +183,25 @@ function handleCommand(cmd) {
             services[name].uninstall();
           }
         }
-        return;
+        process.exit(0);
       }
+    case 'serviceconfig': {
+      if (argv.deployment) {
+        // Loading first the configuration
+        console.log("Service configuration as deployment: " + argv.deployment);
+        server_config = new config().loadDeploymentConfig(argv.deployment);
+      }
+      webda = new server(server_config);
+      webda.setHost();
+      let service = webda.getService(argv._[1]);
+      if (!service) {
+        let error = 'The service ' + service_name + ' is missing';
+        console.log(error.red);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(service._params, null, ' '));
+      process.exit(0);
+    }
     case 'worker':
     case 'launch':
       let service_name = argv._[1];

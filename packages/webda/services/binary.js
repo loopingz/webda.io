@@ -156,7 +156,7 @@ class Binary extends Executor {
       this._lowercaseMaps[prop.toLowerCase()] = prop;
       var reverseStore = this._webda.getService(prop);
       if (reverseStore === undefined || !(reverseStore instanceof Store)) {
-        console.log("Can't setup mapping as store doesn't exist");
+        console.log("Can't setup mapping as store '", prop, "' doesn't exist");
         map[prop]["-onerror"] = "NoStore";
         continue;
       }
@@ -297,27 +297,27 @@ class Binary extends Executor {
 
     if (!this._params.expose.restrict.get) {
       url = this._params.expose.url + "/{store}/{uid}/{property}/{index}";
-      config[url] = {"method": ["GET"], "executor": this._name, "_method": this.httpRoute};
+      this._addRoute(url, {"method": ["GET"], "executor": this._name, "_method": this.httpRoute});
       url = this._params.expose.url + "/download/{store}/{uid}/{property}/{index}/{expire}/{token}";
-      config[url] = {"method": ["GET"], "executor": this._name, "_method": this.httpDownload};
+      this._addRoute(url, {"method": ["GET"], "executor": this._name, "_method": this.httpDownload});
     }
 
     if (!this._params.expose.restrict.create) {
       // No need the index to add file
       url = this._params.expose.url + "/{store}/{uid}/{property}";
-      config[url] = {"method": ["POST"], "executor": this._name, "_method": this.httpPost};
+      this._addRoute(url, {"method": ["POST"], "executor": this._name, "_method": this.httpPost});
     }
 
     if (!this._params.expose.restrict.create) {
       // Add file with challenge
       url = this._params.expose.url + "/upload/{store}/{uid}/{property}/{index}";
-      config[url] = {"method": ["PUT"], "executor": this._name, "_method": this.httpChallenge};
+      this._addRoute(url, {"method": ["PUT"], "executor": this._name, "_method": this.httpChallenge});
     }
 
     if (!this._params.expose.restrict.delete) {
       // Need hash to avoid concurrent delete
       url = this._params.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
-      config[url] = {"method": ["DELETE"], "executor": this._name, "_method": this.httpRoute};
+      this._addRoute(url, {"method": ["DELETE"], "executor": this._name, "_method": this.httpRoute});
     }
   }
 

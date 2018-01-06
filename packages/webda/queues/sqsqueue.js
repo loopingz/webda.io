@@ -1,26 +1,12 @@
 "use strict";
 const QueueService = require("./queueservice");
-const AWS = require('aws-sdk');
+const AWSServiceMixIn = require("../services/aws");
 
-class SQSQueueService extends QueueService {
+class SQSQueueService extends AWSServiceMixIn(QueueService) {
 
   init(config) {
     super.init(config);
-    if (this._params.accessKeyId === undefined || this._params.accessKeyId === '') {
-      this._params.accessKeyId = process.env["WEBDA_AWS_KEY"];
-    }
-    if (this._params.secretAccessKey === undefined || this._params.secretAccessKey === '') {
-      this._params.secretAccessKey = process.env["WEBDA_AWS_SECRET"];
-    }
-    if (this._params.accessKeyId && this._params.secretAccessKey) {
-      AWS.config.update({accessKeyId: this._params.accessKeyId, secretAccessKey: this._params.secretAccessKey});
-    }
-    if (this._params.region !== undefined) {
-      AWS.config.update({region: this._params.region});
-    } else if (process.env["AWS_DEFAULT_REGION"]) {
-      AWS.config.update({region: process.env["AWS_DEFAULT_REGION"]});
-    }
-    this.sqs = new AWS.SQS();
+    this.sqs = new (this._getAWS(this._params)).SQS();
     if (!this._params.WaitTimeSeconds) {
       this._params.WaitTimeSeconds = 20;
     }
@@ -71,7 +57,7 @@ class SQSQueueService extends QueueService {
 
   install(params) {
     let queue = this._getQueueInfosFromUrl();
-     var sqs = new params.AWS.SQS();
+     var sqs = new this._getAWS(params).SQS();
      return sqs.getQueueUrl({QueueName: queue.name, QueueOwnerAWSAccountId: queue.accountId}).promise().catch( (err) => {
       if (err.code === 'AWS.SimpleQueueService.NonExistentQueue') {
         console.log('\tCreating SQS queue ', queue.name);
@@ -125,19 +111,20 @@ class SQSQueueService extends QueueService {
           "queue": "YOUR QUEUE URL"
         },
         "schema": {
-          type: "object",
-          properties: {
+          "type": "object",
+          "properties": {
             "accessKeyId": {
-              type: "string"
+              "type": "string"
             },
             "secretAccessKey": {
-              type: "string"
+              "type": "string"
             },
             "queue": {
-              type: "string"
+              "type": "string",
+              "default": "YOUR QUEUE URL"
             }
           },
-          required: ["accessKeyId", "secretAccessKey", "queue"]
+          "required": ["accessKeyId", "secretAccessKey", "queue"]
         }
       }
     }

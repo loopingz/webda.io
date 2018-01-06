@@ -1,7 +1,7 @@
 "use strict";
 const Store = require("./store");
 const CoreModel = require("../models/coremodel");
-const AWS = require('aws-sdk');
+const AWSServiceMixIn = require("../services/aws");
 
 /**
  * DynamoStore handles the DynamoDB
@@ -13,27 +13,15 @@ const AWS = require('aws-sdk');
  *   region: ''
  *
  */
-class DynamoStore extends Store {
+class DynamoStore extends AWSServiceMixIn(Store) {
   /** @ignore */
   constructor(webda, name, params) {
     super(webda, name, params);
-    if (params.accessKeyId === undefined || params.accessKeyId === '') {
-      this._params.accessKeyId = params.accessKeyId = process.env["WEBDA_AWS_KEY"];
-    }
-    if (params.secretAccessKey === undefined || params.secretAccessKey === '') {
-      this._params.secretAccessKey = params.secretAccessKey = process.env["WEBDA_AWS_SECRET"];
-    }
     this._connectPromise = undefined;
     if (params.table === undefined || params.accessKeyId === undefined || params.secretAccessKey === undefined) {
       this._createException = "Need to define a table,accessKeyId,secretAccessKey at least";
     }
-    if (params.region !== undefined) {
-      AWS.config.update({region: params.region});
-    } else if (process.env["AWS_DEFAULT_REGION"]) {
-      AWS.config.update({region: process.env["AWS_DEFAULT_REGION"]});
-    }
-    AWS.config.update({accessKeyId: params.accessKeyId, secretAccessKey: params.secretAccessKey});
-    this._client = new AWS.DynamoDB.DocumentClient();
+    this._client = new (this._getAWS(params)).DynamoDB.DocumentClient();
   }
 
   init(config) {
@@ -257,18 +245,19 @@ class DynamoStore extends Store {
   }
 
   install(params) {
-     var dynamodb = new params.AWS.DynamoDB();
+     var dynamodb = new (this._getAWS(params)).DynamoDB();
      return dynamodb.describeTable({TableName: this._params.table}).promise().catch ( (err) => {
       if (err.code === 'ResourceNotFoundException') {
         console.log("\tCreating table", this._params.table);
-        return dynamodb.createTable(
-          {
-            TableName: this._params.table,
-            ProvisionedThroughput: {ReadCapacityUnits: 5,WriteCapacityUnits: 5},
+        let createTable = this._params.createTableParameters || {
+            ProvisionedThroughput: {},
             KeySchema: [{AttributeName: 'uuid', KeyType: 'HASH'}],
             AttributeDefinitions: [{AttributeName: 'uuid', AttributeType: 'S'}]
-          }
-        ).promise();
+          };
+        createTable.TableName = this._params.table;
+        createTable.ProvisionedThroughput.ReadCapacityUnits = createTable.ProvisionedThroughput.ReadCapacityUnits || this._params.tableReadCapacity || 5;
+        createTable.ProvisionedThroughput.WriteCapacityUnits = createTable.ProvisionedThroughput.WriteCapacityUnits || this._params.tableWriteCapacity || 5;
+        return dynamodb.createTable(createTable).promise();
       }
      });
   }

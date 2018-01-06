@@ -1,10 +1,8 @@
 "use strict";
 // Load the AWS SDK for Node.js
-const AWS = require('aws-sdk');
-const zlib = require('zlib');
-const crypto = require('crypto');
 const Binary = require("./binary");
 const _extend = require('util')._extend;
+const AWSServiceMixIn = require("../services/aws");
 
 /**
  * S3Binary handles the storage of binary on a S3 bucket
@@ -22,7 +20,7 @@ const _extend = require('util')._extend;
  *
  * See Binary the general interface
  */
-class S3Binary extends Binary {
+class S3Binary extends AWSServiceMixIn(Binary) {
   /** @ignore */
   constructor(webda, name, params) {
     super(webda, name, params);
@@ -36,27 +34,24 @@ class S3Binary extends Binary {
     if (params.bucket === undefined) {
       this._createException = "Need to define a bucket,accessKeyId,secretAccessKey at least";
     }
-    if (params.region !== undefined) {
-      AWS.config.region = params.region;
-    }
-    AWS.config.update({accessKeyId: params.accessKeyId, secretAccessKey: params.secretAccessKey});
+    this.AWS = this._getAWS(params);
   }
 
   init(config) {
     super.init(config);
-    this._s3 = new AWS.S3();
+    this._s3 = new this.AWS.S3();
   }
 
   initRoutes(config, expose) {
     super.initRoutes(config, expose);
     // Will use getRedirectUrl so override the default route
     var url = this._url + "/{store}/{uid}/{property}/{index}";
-    config[url] = {
+    this._addRoute(url, {
       "method": ["GET"],
       "executor": this._name,
       "expose": expose,
       "_method": this.getRedirectUrl
-    };
+    });
   }
 
   putRedirectUrl(ctx) {
@@ -90,7 +85,7 @@ class S3Binary extends Binary {
   }
 
   putMarker(hash, uuid, storeName) {
-    var s3obj = new AWS.S3({params: {Bucket: this._params.bucket, Key: this._getPath(hash, uuid), Metadata: {'x-amz-meta-store': storeName}}});
+    var s3obj = new this.AWS.S3({params: {Bucket: this._params.bucket, Key: this._getPath(hash, uuid), Metadata: {'x-amz-meta-store': storeName}}});
     return s3obj.putObject().promise();
   }
 
@@ -208,7 +203,7 @@ class S3Binary extends Binary {
       if (data === undefined) {
         var metadatas = {};
         metadatas['x-amz-meta-challenge'] = file.challenge;
-        var s3obj = new AWS.S3({params: {Bucket: self._params.bucket, Key: self._getPath(file.hash), "Metadata": metadatas}});
+        var s3obj = new this.AWS.S3({params: {Bucket: self._params.bucket, Key: self._getPath(file.hash), "Metadata": metadatas}});
         return new Promise((resolve, reject) => {
           s3obj.upload({Body: file.buffer}, function (err, data) {
             if (err) {
@@ -246,14 +241,17 @@ class S3Binary extends Binary {
   }
 
   install(params) {
-     var s3 = new params.AWS.S3();
+     var s3 = new (this._getAWS(params)).S3();
      return s3.headBucket({Bucket: this._params.bucket}).promise().catch( (err) => {
+       console.log('have', err);
       if (err.code === 'Forbidden') {
         console.log('S3 bucket already exists in another account');
       } else if (err.code === 'NotFound') {
         console.log('\tCreating S3 Bucket', this._params.bucket);
         return s3.createBucket({Bucket: this._params.bucket}).promise();
       }
+     }).then( () => {
+       console.log('Successful call');
      });
   }
 

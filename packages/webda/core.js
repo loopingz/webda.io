@@ -554,6 +554,7 @@ class Webda extends EventEmitter {
       try {
         this._config._services[service.toLowerCase()] = new serviceConstructor(this, service, params);
       } catch (err) {
+        console.log('Cannot create service', service, err);
         this._config.services[service]._createException = err;
       }
     }

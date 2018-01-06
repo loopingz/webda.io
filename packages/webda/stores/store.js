@@ -202,7 +202,7 @@ class Store extends Executor {
       var reverseStore = this._webda.getService(prop);
       if (reverseStore === undefined || !(reverseStore instanceof Store)) {
         map[prop]["-onerror"] = "NoStore";
-        console.log("Can't setup mapping as store doesn't exist");
+        console.log("Can't setup mapping as store '", prop,"' doesn't exist");
         continue;
       }
       var cascade = undefined;

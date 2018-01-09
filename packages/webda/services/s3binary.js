@@ -2,7 +2,7 @@
 // Load the AWS SDK for Node.js
 const Binary = require("./binary");
 const _extend = require('util')._extend;
-const AWSServiceMixIn = require("../services/aws");
+const AWSServiceMixIn = require("./aws-mixin");
 
 /**
  * S3Binary handles the storage of binary on a S3 bucket
@@ -243,15 +243,12 @@ class S3Binary extends AWSServiceMixIn(Binary) {
   install(params) {
      var s3 = new (this._getAWS(params)).S3();
      return s3.headBucket({Bucket: this._params.bucket}).promise().catch( (err) => {
-       console.log('have', err);
       if (err.code === 'Forbidden') {
         console.log('S3 bucket already exists in another account');
       } else if (err.code === 'NotFound') {
         console.log('\tCreating S3 Bucket', this._params.bucket);
         return s3.createBucket({Bucket: this._params.bucket}).promise();
       }
-     }).then( () => {
-       console.log('Successful call');
      });
   }
 

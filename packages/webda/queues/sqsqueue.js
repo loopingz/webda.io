@@ -1,6 +1,6 @@
 "use strict";
 const QueueService = require("./queueservice");
-const AWSServiceMixIn = require("../services/aws");
+const AWSServiceMixIn = require("../services/aws-mixin");
 
 class SQSQueueService extends AWSServiceMixIn(QueueService) {
 

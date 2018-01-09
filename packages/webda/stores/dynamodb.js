@@ -1,7 +1,7 @@
 "use strict";
 const Store = require("./store");
 const CoreModel = require("../models/coremodel");
-const AWSServiceMixIn = require("../services/aws");
+const AWSServiceMixIn = require("../services/aws-mixin");
 
 /**
  * DynamoStore handles the DynamoDB

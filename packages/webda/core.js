@@ -78,6 +78,7 @@ class Webda extends EventEmitter {
       }
       return;
     }
+    this._modules = {services: {}, models: {}}
     const Finder = require('fs-finder');
     // Modules should be cached on deploy
     var files = Finder.from('./node_modules').findFiles('webda.module.json');
@@ -100,9 +101,11 @@ class Webda extends EventEmitter {
   _loadModule(info) {
     for (let key in info.services) {
       this._services[key] = require(info.services[key]);
+      this._modules.services[key] = info.services[key];
     }
     for (let key in info.models) {
       this._models[key] = require(info.models[key]);
+      this._modules.models[key] = info.models[key];
     }
   }
 

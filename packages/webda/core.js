@@ -56,7 +56,54 @@ class Webda extends EventEmitter {
     if (!this._config.version) {
       this._config = this.migrateConfig(this._config);
     }
+    // Load modules
+    this._loadModules();
+
     this.init();
+  }
+
+  /**
+   * Load the modules,
+   *
+   * @protected
+   * @ignore Useless for documentation
+   */
+  _loadModules() {
+    if (this._config.cachedModules) {
+      for (let key in this._config.cachedModules.services) {
+        this._services[key] = require(this._config.cachedModules.services[key]);
+      }
+      for (let key in this._config.cachedModules.models) {
+        this._models[key] = require(this._config.cachedModules.models[key]);
+      }
+      return;
+    }
+    const Finder = require('fs-finder');
+    // Modules should be cached on deploy
+    var files = Finder.from('./node_modules').findFiles('webda.module.json');
+    if (files.length) {
+      this.log('DEBUG', 'Found modules', files);
+      files.forEach((file) => {
+        let info = require(file);
+        this._loadModule(info);
+      });
+    }
+  }
+
+
+  /**
+   * Load the module,
+   *
+   * @protected
+   * @ignore Useless for documentation
+   */
+  _loadModule(info) {
+    for (let key in info.services) {
+      this._services[key] = require(info.services[key]);
+    }
+    for (let key in info.models) {
+      this._models[key] = require(info.models[key]);
+    }
   }
 
   /**

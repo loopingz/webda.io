@@ -130,7 +130,7 @@ class Webda extends EventEmitter {
     var fs = require('fs');
     if (config !== undefined) {
       if (fs.existsSync(config)) {
-        console.log("Load " + config);
+        this.log('INFO', 'Load ' + config);
         return require(config);
       }
     }
@@ -147,13 +147,13 @@ class Webda extends EventEmitter {
         return require(this._configFile);
       }
     } else {
-      console.log("Load " + process.env.WEBDA_CONFIG);
+      this.log('INFO', 'Load ' + process.env.WEBDA_CONFIG);
       return require(process.env.WEBDA_CONFIG);
     }
   }
 
   migrateConfig(config) {
-    console.log('Old webda.config.json format, trying to migrate');
+    this.log('WARN', 'Old webda.config.json format, trying to migrate');
     let newConfig = {parameters: {}, services: {}, models: {}, routes: {}, version: 1};
     let domain;
     if (config['*']) {
@@ -181,7 +181,7 @@ class Webda extends EventEmitter {
    * @deprecated
    */
   setHost(vhost) {
-    console.log('vhost is no longer handled');
+    this.log('WARN', 'vhost is no longer handled');
   }
 
   /**
@@ -540,13 +540,13 @@ class Webda extends EventEmitter {
             serviceConstructor = include;
           }
         } catch (ex) {
-          console.log("Create service " + service + " failed");
-          console.log(ex.stack);
+          this.log('ERROR', 'Create service ' + service + ' failed');
+          this.log('TRACE', ex.stack);
           continue;
         }
       }
       if (serviceConstructor === undefined) {
-        console.log("No constructor found for service " + service);
+        this.log('ERROR', 'No constructor found for service ' + service);
         continue;
       }
       var params = this.extendParams(services[service], this._config.parameters);
@@ -554,7 +554,7 @@ class Webda extends EventEmitter {
       try {
         this._config._services[service.toLowerCase()] = new serviceConstructor(this, service, params);
       } catch (err) {
-        console.log('Cannot create service', service, err);
+        this.log('ERROR', 'Cannot create service', service, err);
         this._config.services[service]._createException = err;
       }
     }
@@ -568,8 +568,8 @@ class Webda extends EventEmitter {
           this._config._services[service].init(this._config);
         } catch (err) {
           this._config._services[service]._initException = err;
-          console.log("Init service " + service + " failed");
-          console.log(err.stack);
+          this.log('ERROR', "Init service " + service + " failed");
+          this.log('TRACE', err.stack);
         }
       }
     }
@@ -645,8 +645,8 @@ class Webda extends EventEmitter {
         }
 
       } catch (ex) {
-        console.log("Create model " + type + " failed");
-        console.log(ex.stack);
+        this.log('ERROR', 'Create model ' + type + ' failed');
+        this.log('TRACE', ex.stack);
         continue;
       }
     }
@@ -698,6 +698,14 @@ class Webda extends EventEmitter {
     return JSON.stringify(object, this.jsonFilter);
   }
 
+  /**
+   * Logs
+   * @param level
+   * @param args
+   */
+  log(level, ...args) {
+    console.log(level, ...args);
+  }
 }
 Webda.Service = require("./services/service");
 

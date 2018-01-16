@@ -248,7 +248,7 @@ class DynamoStore extends AWSServiceMixIn(Store) {
      var dynamodb = new (this._getAWS(params)).DynamoDB();
      return dynamodb.describeTable({TableName: this._params.table}).promise().catch ( (err) => {
       if (err.code === 'ResourceNotFoundException') {
-        console.log("\tCreating table", this._params.table);
+        this._webda.log('INFO', 'Creating table', this._params.table);
         let createTable = this._params.createTableParameters || {
             ProvisionedThroughput: {},
             KeySchema: [{AttributeName: 'uuid', KeyType: 'HASH'}],
@@ -271,7 +271,7 @@ class DynamoStore extends AWSServiceMixIn(Store) {
      AWS.config.update({accessKeyId: params.accessKeyId, secretAccessKey: params.secretAccessKey});
      var client = new AWS.DynamoDB.DocumentClient();
      var params = ""; 
-     console.log("Should delete table ", {'TableName': this._params.table, 'Key': {"uuid": uid}});
+     this._webda.log('INFO', {'TableName': this._params.table, 'Key': {"uuid": uid}});
      */
   }
 

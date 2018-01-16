@@ -78,10 +78,7 @@ class LambdaServer extends Webda {
     var body = JSON.parse(event.body);
     var ctx = this.newContext(body, session);
     // Debug mode
-    console.log('REQUEST', vhost, method, resourcePath, ctx.getCurrentUserId());
-    if (this.isDebug()) {
-      console.log('PAYLOAD', JSON.stringify(body, null, 4));
-    }
+    this.emit('Webda.Request', vhost, method, resourcePath, ctx.getCurrentUserId(), body);
 
     let origin = headers.Origin || headers.origin;
     // Set predefined headers for CORS
@@ -107,6 +104,7 @@ class LambdaServer extends Webda {
     var executor = this.getExecutor(ctx, vhost, method, resourcePath, protocol, port, headers);
 
     if (executor == null) {
+      this.emit('Webda.404', vhost, method, resourcePath, ctx.getCurrentUserId(), body);
       callback("Bad mapping " + vhost + " - " + method + " " + resourcePath, null);
     }
     ctx.init();
@@ -123,7 +121,7 @@ class LambdaServer extends Webda {
         ctx.statusCode = err;
         this.flushHeaders(ctx);
       } else {
-        console.log(err);
+        this.log('ERROR', err);
         ctx.statusCode = 500;
       }
       this.handleLambdaReturn(ctx, callback);
@@ -135,9 +133,7 @@ class LambdaServer extends Webda {
     if (ctx.statusCode) {
       this._result.code = ctx.statusCode;
     }
-    if (this.isDebug()) {
-      console.log('RESULT', this._result);
-    }
+    this.emit('Webda.Result', ctx, this._result);
     callback(null, {statusCode: ctx.statusCode, headers: this._result.headers, body: this._result.body});
   }
 }

@@ -45,11 +45,11 @@ class Mailer extends Service {
   _getTemplate(name) {
     if (!this._templates[name]) {
       // Load template
-      console.log(__dirname);
       let templateDir = this._params.templates + '/' + name;
       if (!fs.existsSync(templateDir)) {
         templateDir = __dirname + '/../templates/' + name;
         if (!fs.existsSync(templateDir)) {
+          this._webda.log('WARN', 'No template found for',name);
           return;
         }
       }
@@ -65,7 +65,7 @@ class Mailer extends Service {
    */
   send(options, callback) {
     if (this._transporter === undefined) {
-      console.log("Cannot send email as no transporter is defined");
+      this._webda.log('ERROR', 'Cannot send email as no transporter is defined');
       return Promise.reject("Cannot send email as no transporter is defined");
     }
     if (!options.from) {

@@ -56,7 +56,7 @@ class Store extends Executor {
     }
     this._model = this._webda.getModel(model);
     if (!this._model) {
-      console.log("Bad security policy " + model);
+      this._webda.log('WARN', 'Bad model', model,'fallback to CoreModel');
       this._model = this._webda.getModel("Webda/CoreModel");
     }
     if (this._params.expose) {
@@ -202,7 +202,7 @@ class Store extends Executor {
       var reverseStore = this._webda.getService(prop);
       if (reverseStore === undefined || !(reverseStore instanceof Store)) {
         map[prop]["-onerror"] = "NoStore";
-        console.log("Can't setup mapping as store '", prop,"' doesn't exist");
+        this._webda.log('WARN', 'Can\'t setup mapping as store "', prop,'" doesn\'t exist');
         continue;
       }
       var cascade = undefined;

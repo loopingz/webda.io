@@ -66,8 +66,8 @@ class FileBinary extends Binary {
    */
   putRedirectUrl(ctx) {
     if (ctx.body.hash === undefined) {
-      console.log("Request not conform", ctx.body);
-      return Promise.reject();
+      this._webda.log('WARN', 'Request not conform', ctx.body);
+      throw 400;
     }
     if (fs.existsSync(this._getPath(ctx.body.hash, ctx._params.store + "_" + ctx._params.uid))) {
       if (!fs.existsSync(this._getPath(ctx.body.hash, 'data'))) {

@@ -56,7 +56,7 @@ class S3Binary extends AWSServiceMixIn(Binary) {
 
   putRedirectUrl(ctx) {
     if (ctx.body.hash === undefined) {
-      console.log("Request not conform", ctx.body);
+      this._webda.log('WARN', 'Request not conform', ctx.body);
       throw 403;
     }
     let targetStore = this._verifyMapAndStore(ctx);
@@ -161,7 +161,7 @@ class S3Binary extends AWSServiceMixIn(Binary) {
 
   cascadeDelete(info, uuid) {
     return this._cleanUsage(info.hash, uuid).catch(function (err) {
-      console.log(err);
+      this._webda.log('WARN', 'Cascade delete failed', err);
     });
   }
 
@@ -244,9 +244,9 @@ class S3Binary extends AWSServiceMixIn(Binary) {
      var s3 = new (this._getAWS(params)).S3();
      return s3.headBucket({Bucket: this._params.bucket}).promise().catch( (err) => {
       if (err.code === 'Forbidden') {
-        console.log('S3 bucket already exists in another account');
+        this._webda.log('ERROR', 'S3 bucket already exists in another account');
       } else if (err.code === 'NotFound') {
-        console.log('\tCreating S3 Bucket', this._params.bucket);
+        this._webda.log('INFO', 'Creating S3 Bucket', this._params.bucket);
         return s3.createBucket({Bucket: this._params.bucket}).promise();
       }
      });

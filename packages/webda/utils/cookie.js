@@ -45,6 +45,7 @@ class SecureCookie {
         _extend(this, this._decrypt(data));
       } catch (err) {
         // Reinit the session as we cannot read the cookie
+        // Might pass webda to get more context
         console.log("CANT DECRYPT:", data);
         this._changed = true;
       }

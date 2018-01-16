@@ -234,7 +234,7 @@ class PassportExecutor extends Executor {
     var userStore = this.getService("users");
     var identStore = this.getService("idents");
     if (identStore === undefined) {
-      console.log("Email auth needs an ident store");
+      this._webda.log('ERROR','Email auth needs an ident store');
       throw 500;
     }
     return identStore.get(ctx._params.email + "_email").then((ident) => {
@@ -273,7 +273,7 @@ class PassportExecutor extends Executor {
     // Validate an email for an ident based on an url
     var identStore = this.getService("idents");
     if (identStore === undefined) {
-      console.log("Email auth needs an ident store");
+      this._webda.log('ERROR', 'Email auth needs an ident store');
       throw 500;
     }
     if (ctx._params.token) {
@@ -373,7 +373,7 @@ class PassportExecutor extends Executor {
   _handleEmail(ctx) {
     var identStore = this._identsStore;
     if (identStore === undefined) {
-      console.log("Email auth needs an ident store");
+      this._webda.log('ERROR', 'Email auth needs an ident store');
       throw 500;
     }
     if (ctx.body.password === undefined || ctx.body.login === undefined) {

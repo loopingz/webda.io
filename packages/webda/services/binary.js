@@ -123,7 +123,7 @@ class Binary extends Executor {
         try {
           fs.unlinkSync(filename);
         } catch (err) {
-          console.log(err);
+          this._webda.log('ERROR', err);
         }
         return reject();
       });
@@ -156,7 +156,7 @@ class Binary extends Executor {
       this._lowercaseMaps[prop.toLowerCase()] = prop;
       var reverseStore = this._webda.getService(prop);
       if (reverseStore === undefined || !(reverseStore instanceof Store)) {
-        console.log("Can't setup mapping as store '", prop, "' doesn't exist");
+        this._webda.log('WARN', 'Can\'t setup mapping as store ', prop, ' doesn\'t exist');
         map[prop]["-onerror"] = "NoStore";
         continue;
       }

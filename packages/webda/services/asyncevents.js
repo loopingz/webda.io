@@ -41,7 +41,7 @@ class EventService extends Service {
     this._async = !config.sync;
     // Check we have at least one queue to handle asynchronous
     if (this._async && Object.keys(this._queues).length < 1) {
-      console.log(this._params);
+      this._webda.log('ERROR', 'Need at least one queue for async to be ready', this._params);
       throw Error('Need at least one queue for async to be ready');
     }
   }

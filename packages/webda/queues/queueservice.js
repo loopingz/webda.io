@@ -48,12 +48,12 @@ class QueueService extends Service {
       }).then(() => {
         return this._workerResume();
       }).catch((err) => {
-        console.log('Error with notification', err);
+        this._webda.log('ERROR', 'Notification', err);
         return this._workerResume();
       });
     } catch (err) {
       this.pause *= 2;
-      console.log(err);
+      this._webda.log('ERROR', err);
       setTimeout(this._workerReceiveMessage.bind(this), this.pause * 1000);
     }
   }

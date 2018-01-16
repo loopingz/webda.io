@@ -60,7 +60,7 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
      var sqs = new this._getAWS(params).SQS();
      return sqs.getQueueUrl({QueueName: queue.name, QueueOwnerAWSAccountId: queue.accountId}).promise().catch( (err) => {
       if (err.code === 'AWS.SimpleQueueService.NonExistentQueue') {
-        console.log('\tCreating SQS queue ', queue.name);
+        this._webda.log('ERROR', 'Creating SQS queue', queue.name);
         return sqs.createQueue({QueueName: queue.name}).promise();
       }
      });

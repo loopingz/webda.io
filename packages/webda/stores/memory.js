@@ -18,8 +18,12 @@ class MemoryStore extends Store {
   }
 
   _save(object, uid) {
-    this.storage[uid] = object;
-    return Promise.resolve(this.storage[uid]);
+    uid = uid || object.uuid;
+    if (!(object instanceof this._model)) {
+      object = this.initModel(object);
+    }
+    this.storage[uid] = object.toStoredJSON(true);
+    return Promise.resolve(this._getSync(uid));
   }
 
   _delete(uid) {
@@ -28,29 +32,40 @@ class MemoryStore extends Store {
   }
 
   _update(object, uid) {
+    uid = uid || object.uuid;
+    let obj = this._getSync(uid);
     for (let prop in object) {
-      this.storage[uid][prop] = object[prop];
+      obj[prop] = object[prop];
     }
-    return Promise.resolve(this.storage[uid]);
+    this.storage[uid] = obj.toStoredJSON(true);
+    return Promise.resolve(this._getSync(uid));
   }
 
   getAll(uids) {
     if (!uids) {
       return Object.keys(this.storage).map((key) => {
-        return this.storage[key];
+        return this._getSync(key);
       });
     }
     let result = [];
     for (let i in uids) {
       if (this.storage[uids[i]]) {
-        result.push(this.storage[uids[i]]);
+        result.push(this._getSync(uids[i]));
       }
     }
     return Promise.resolve(result);
   }
 
+  _getSync(uid) {
+    if (this.storage[uid]) {
+      return this.initModel(JSON.parse(this.storage[uid]));
+    }
+    return null;
+  }
+
   _get(uid) {
-    return Promise.resolve(this.storage[uid]);
+    if (!this.storage[uid]) return Promise.resolve();
+    return Promise.resolve(this._getSync(uid));
   }
 
   __clean() {
@@ -63,6 +78,7 @@ class MemoryStore extends Store {
     if (res === undefined) {
       throw Error("NotFound");
     }
+    res = this._getSync(uid);
     if (!res[prop]) {
       res[prop] = 0;
     }
@@ -75,6 +91,7 @@ class MemoryStore extends Store {
     if (res === undefined) {
       throw Error("NotFound");
     }
+    res = this._getSync(uid);
     if (index === undefined) {
       if (itemWriteCondition !== undefined && res[prop].length !== itemWriteCondition) {
         throw Error('UpdateCondition not met');
@@ -98,7 +115,7 @@ class MemoryStore extends Store {
     if (res === undefined) {
       throw Error("NotFound");
     }
-
+    res = this._getSync(uid);
     if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
       throw Error('UpdateCondition not met');
     }
@@ -113,9 +130,15 @@ class MemoryStore extends Store {
       "description": "Implements a simple in memory store",
       "webcomponents": [],
       "documentation": "",
-      "logo": "images/icons/memorystore.png",
+      "logo": "images/placeholders/memorystore.png",
       "configuration": {
         "default": {
+        },
+        "schema": {
+          type: "object",
+          properties: {
+          },
+          required: []
         }
       }
     }

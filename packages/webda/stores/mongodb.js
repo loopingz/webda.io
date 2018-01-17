@@ -168,6 +168,10 @@ class MongoStore extends Store {
         "default": {
           "mongourl": "mongodb://127.0.0.1:27017",
         },
+        "widget": {
+          "tag": "webda-store-configurator",
+          "url": "elements/services/webda-webda-store-configurator.html"
+        },
         "schema": {
           type: "object",
           properties: {

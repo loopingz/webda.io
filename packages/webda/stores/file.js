@@ -187,6 +187,10 @@ class FileStore extends Store {
         "default": {
           "folder": "/tmp/types",
         },
+        "widget": {
+          "tag": "webda-store-configurator",
+          "url": "elements/services/webda-webda-store-configurator.html"
+        },
         "schema": {
           type: "object",
           properties: {

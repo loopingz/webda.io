@@ -149,11 +149,7 @@
       },
       "asyncDelete": true,
       "expose": {
-        "restrict": {
-          "create": true,
-          "update": true,
-          "get": true
-        }
+        "url": "/memory/idents"
       },
       "model": "WebdaTest/Ident",
       "type": "MemoryStore"

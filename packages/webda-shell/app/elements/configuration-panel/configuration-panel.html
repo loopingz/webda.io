@@ -16,8 +16,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <template>
     <style include="shared-styles">
     </style>
-    <label>Configuration</label>
-    <juicy-jsoneditor mode="tree" modes=["view","tree","text","form"] json="{{component.params}}"></juicy-jsoneditor>
+    <label>[[label]]</label>
+    <juicy-jsoneditor id="params" mode="{{mode}}" modes="[[modes]]" json="{{component.parameters}}"></juicy-jsoneditor>
   </template>
 
   <script>
@@ -26,7 +26,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       Polymer({
         is: 'configuration-panel',
+        _toggleReadonly: function() {
+          this.toggleClass('readonly', true, this.$.params);
+          this._setModes(['view']);
+          this.mode = 'view';
+        },
         properties: {
+          mode: {
+            type: String,
+            value: 'tree',
+            notify: true
+          },
+          modes: {
+            type: String,
+            value: ["view","tree","text","form"],
+            readOnly: true
+          },
+          readOnly: {
+            type: Boolean,
+            observer: '_toggleReadonly'
+          },
+          label: {
+            type: String,
+            value: 'Configuration'
+          },
           dirty: {
             type: Boolean,
             value: false,

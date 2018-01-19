@@ -25,7 +25,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <template is="dom-if" if="{{hasParams}}">
     <div>
       <label>Configuration</label>
-      <juicy-jsoneditor class="unknown" mode="tree" modes=["view","tree","text","form"] json="{{component.params}}"></juicy-jsoneditor>
+      <juicy-jsoneditor class="unknown" mode="{{juicyMode}}" modes=["view","tree","text","form"] json="{{component.params}}"></juicy-jsoneditor>
       </div>
     </template>
     </div>
@@ -50,6 +50,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           });
         },
         properties: {
+          mode: {
+            type: String,
+            value: 'tree',
+            notify: true
+          },
+          currentDeployment: {
+            type: Object
+          },
           dirty: {
             type: Boolean,
             value: false,

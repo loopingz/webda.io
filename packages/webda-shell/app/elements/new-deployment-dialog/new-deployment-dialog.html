@@ -10,6 +10,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
 <link rel="import" href="../url-method-selector/url-method-selector.html">
 <dom-module id="new-deployment-dialog">
   <template>
@@ -37,8 +38,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         border-top: 1px solid var(--light-primary-color);
       }
       paper-dialog-scrollable {
-        margin-bottom: 48px;
-        min-height: 90%;
+        position: fixed;
+        bottom: 68px;
+        left: 50px;
+        top: 50px;
+        right: 50px;
       }
       .paper-dialog-scrollable-0.can-scroll:not(.scrolled-to-bottom):not(:last-child)::after {
         background: none;
@@ -70,78 +74,54 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <style include="paper-dialog-shared-styles"></style>
       <h2>New Deployment</h2>
-      <paper-input label="Name" value="{{name}}" placeholder="Enter deployment name"></paper-input>
-      <div align="center" class="block-selector">
-        <template is="dom-repeat" items="[[deployers]]">
-          <paper-card heading="{{item.label}}" id="{{index}}" on-tap="select" image="{{item.logo}}" class="white" style="margin-bottom:8px;">
-          </paper-card>
-        </template>
+      <paper-dialog-scrollable>
+        <paper-input label="Name" value="{{configuration.name}}" placeholder="Enter deployment name"></paper-input>
+        <webda-moddas-selector moddas="[[deployers]]" selected="{{deployer}}"></webda-moddas-selector>
         <div>[[selected.description]]</div>
-      </div>
+        <webda-modda-configurator modda="[[deployer]]" configuration="{{configuration}}"></webda-modda-configurator>
+      </paper-dialog-scrollable>
       <div class="buttons">
         <span id="error">[[error]]</span>
         <paper-button dialog-dismiss>Cancel</paper-button>
         <paper-button disabled="[[invalidForm]]" id="createButton" on-tap="create">Create</paper-button>
       </div>
-      <iron-ajax id="ajax" handle-as="json"></iron-ajax>
   </template>
   <script>
     (function() {
       'use strict';
-      var resetValue = function() {
-          return {"services": {}, "params":
-              {"accessKeyId": "YOUR_RUNTIME_KEY",
-                "secretAccessKey": "YOUR_RUNTIME_SECRET",
-                "region": "us-west-2"},"resources":{"restApi":"API_NAME_ON_AWS","accessKeyId":"YOUR_DEPLOYEMENT_KEY","secretAccessKey":"YOUR_DEPLOYEMENT_SECRET"}};
-        }
       Polymer({
         is: 'new-deployment-dialog',
         behaviors: [Polymer.PaperDialogBehavior],
         validateForm: function() {
-          this.invalidForm = !(this.configuration && this.name && this.configuration.type && this.name !== '');
+          if (!this.deployer) {
+            this.error = 'You need to select a type of deployer';
+            return false;
+          }
+          if (this.configuration.name && this.configuration.name !== '') {
+            if (this.deployerConfigurator) {
+              return this.deployerConfigurator.validate();
+            }
+            return true;
+          } else {
+            return false;
+          }
+        },
+        _updateDeployer() {
+          this.configuration = this.deployer.configuration.default || {};
+          this.configuration.name = this.name;
+          this.configuration.type = this.deployer.uuid;
         },
         create: function () {
-          this.$.ajax.method = 'POST';
-          // Clone default config
-          this.configuration = JSON.parse(JSON.stringify(this.selected.configuration.default));
-          this.configuration.uuid = this.name;
-          this.configuration.type = this.selected.uuid;
-          this.$.ajax.body = this.configuration;
-          this.$.ajax.url = app.getUrl('/deployments');
-          this.$.ajax.contentType = 'application/json';
-          this.$.ajax.generateRequest().completes.then( () => {
-            this._updateClosingReasonConfirmed(true);
-            this.close(); 
-            this.configuration = resetValue();
-            this.old.removeAttribute("selected");
-            this.old =  undefined;
-            this.name = '';
-          }, (err) => {
-            if (err.message.endsWith("409")) {
-              this.error = 'This name is already used'
-            } else {
-              this.error = err.message;
+          this.error = '';
+          if (!this.validateForm()) {
+            if (this.error === '') {
+              this.error = 'Form invalid';
             }
-          });
-        },
-        select: function (evt) {
-          // Should be a behavior now
-          var target = evt.target;
-          while (target !== undefined && target.localName !== 'paper-card') {
-            target = target.parentNode;
+            return;
           }
-          if (target !== undefined) {
-            this.selected = this.deployers[target.id];
-            this.configuration.type = this.deployers[target.id];
-            if (this.old) {
-              this.old.removeAttribute("selected");
-            }
-            target.setAttribute("selected", true);
-            this.old = target;
-          } else {
-            this.configuration.type = undefined;
-          }
-          this.validateForm();
+          this.configuration.type = this.deployer.uuid;
+          this.dispatchEvent(new CustomEvent('add-deployment-unit', { detail: this.configuration, bubbles: true, composed: true }));
+          this.close();
         },
         properties: {
           editMode: {
@@ -154,13 +134,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             type: Array
           },
           configuration: {
-            type: Object,
-            value: resetValue
+            type: Object
           },
-          name: {
-            type: String,
-            value: '',
-            observer: 'validateForm'
+          deployer: {
+            type: Object,
+            observer: '_updateDeployer'
           }
         },
         toggleEdit: function() {
@@ -168,7 +146,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         ready: function() {
           this.node = this;
-          this.validateForm();
         }
       });
     })();

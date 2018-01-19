@@ -1,0 +1,93 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<dom-module id="webda-modda-configurator">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+      }
+      #configurationWidget {
+        margin-bottom: 20px;
+      }
+      paper-dropdown-menu {
+        width: 100%;
+      }
+    </style>
+    <div align="center">
+      <div id="configurationWidget"></div>
+      <paper-icon-button icon="list" title="View full parameters" on-tap="showFull" style="float:right; margin-top: -16px;"></paper-icon-button>
+      <label>Configuration</label>
+      <juicy-jsoneditor mode="{{mode}}" modes=["view","tree","text","form"] json="{{configuration}}"></juicy-jsoneditor>
+    </div>
+  </template>
+
+  <script>
+    (function() {
+      'use strict';
+
+      Polymer({
+        is: 'webda-modda-configurator',
+        properties: {
+          modda: {
+            type: Object,
+            observer: '_updateModda'
+          },
+          configuration: {
+            type: Object,
+            value: {source: 'test'},
+            notify: true,
+            observer: '_updateModda'
+          }
+        },
+        showFull: function() {
+          app.displayJson(app.getRealConfiguration(this.component));
+        },
+        _updateModda: function () {
+          if (this.loading) {
+            return;
+          }
+          // Remove configuration panel
+          while (this.$.configurationWidget.firstChild) {
+            this.$.configurationWidget.removeChild(this.$.configurationWidget.firstChild);
+          }
+          // Add modda
+          if (this.modda) {
+            this.configuration = this.configuration || JSON.parse(JSON.stringify(this.modda.configuration.default));
+            // Add configuration widget if exists
+            this.moddaConfigurator = undefined;
+            if (this.modda.configuration && this.modda.configuration.widget && this.modda.configuration.widget.url) {
+              this.loading = true;
+              Polymer.Base.importHref(this.modda.configuration.widget.url, (evt) => {
+                this.loading = false;
+                this.moddaConfigurator = window.document.createElement(this.modda.configuration.widget.tag, {configuration: {source: 'test'}});
+                this.mode = 'view';
+                if (this.moddaConfigurator) {
+                  this.moddaConfigurator.configuration = this.configuration;
+                  this.moddaConfigurator.addEventListener('configuration-changed', (evt) => {
+                    this.configuration = this.moddaConfigurator.configuration;
+                  });
+                  Polymer.dom(this.$.configurationWidget).appendChild(this.moddaConfigurator);
+                }
+              });
+            } else {
+              this.mode = 'tree';
+            }
+          }
+        },
+        ready: function() {
+        }
+      });
+    })();
+  </script>
+</dom-module>

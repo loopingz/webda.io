@@ -64,6 +64,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             });
         },
         properties: {
+          mode: {
+            type: String,
+            value: 'tree',
+            notify: true
+          },
           placeholder: {
             type: String,
             value: './includes/myfunction'

@@ -10,9 +10,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
-<link rel="import" href="../url-method-selector/url-method-selector.html">
 
-<dom-module id="url-route">
+<dom-module id="configuration-item">
   <template>
     <style include="shared-styles">
       :host {
@@ -47,19 +46,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         background-image: url('/images/puzzle.png');
         background-size: 32px 32px;
       }
-      .service {
-        color: var(--disabled-text-color);
-      }
       span,
       input {
         @apply(--paper-font-body2);
       }
     </style>
-    <paper-item class$="[[_service]]" selected$="[[isSelected(dataIndex, selectedIndex)]]">
-      <div style="float: right;">
-        <url-method-selector available-methods="[[methods]]" checked></url-method-selector>
-      </div>
-      <div>{{url._name}}</div>
+    <paper-item selected$="[[isSelected(dataIndex, selectedIndex)]]">
+      <content></content>
     </paper-item>
   </template>
 
@@ -68,37 +61,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       'use strict';
 
       Polymer({
-        is: 'url-route',
+        is: 'configuration-item',
 
         isSelected: function(data, select) {
           if (data === select) {
             return true;
           }
           return false;
-        },
-        updateValues: function () {
-          this.selected = this.dataIndex === this.selectedIndex;
-          if (typeof(this.url.method) === "string") {
-            this.methods = [this.url.method];
-          } else {
-            this.methods = this.url.method;
-          }
-          if (!this.url["_manual"]) {
-            this._service = "service";
-          } else {
-            this._service = "";
-          }
-        },
-        properties: {
-          methods: {
-            type: Array,
-            value: ["GET"]
-          },
-          url: {
-            type: Object,
-            notify: true,
-            observer: 'updateValues'
-          }
         }
       });
     })();

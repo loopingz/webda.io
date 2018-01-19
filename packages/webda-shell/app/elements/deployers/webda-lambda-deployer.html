@@ -1,0 +1,78 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<dom-module id="webda-lambda-deployer">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+      }
+      paper-toggle-button {
+        margin-top: 10px;
+      }
+    </style>
+    <div>
+      <paper-input label="REST API Name" value="{{configuration.restApi}}"></paper-input>
+      <paper-input label="Lambda Name" value="{{configuration.functionName}}" allowed-pattern="[a-zA-Z0-9-_]" placeholder="[[_toLambdaName(configuration.restApi)]]"></paper-input>
+      <paper-input label="Lambda Role" value="{{configuration.lambdaRole}}" placeholder="[[_toLambdaRole(configuration.functionName, configuration.restApi)]]"></paper-input>
+      <paper-input label="Memory" value="{{configuration.lambdaMemory}}" placeholder="512" type="number" step="64" min="128" max="3008"></paper-input>
+      <paper-toggle-button checked="{{configuration.customDomain}}">Create custom domain</paper-toggle-button>
+      <div hidden="{{!configuration.customDomain}}">
+        <paper-input label="Domain name" value="{{configuration.customDomainName}}" placeholder="{{configuration.restApi}}"></paper-input>
+        <paper-dropdown-menu label="Endpoint type" placeholder="EDGE">
+          <paper-listbox class="dropdown-content" attr-for-selected="uuid" selected="{{configuration.customDomainEndpoint}}">
+            <paper-item uuid="EDGE">Edge</paper-item>
+            <paper-item uuid="REGIONAL">Regional</paper-item>
+          </paper-listbox>
+        </paper-dropdown-menu>
+      </div>
+      <paper-toggle-button checked="{{configuration.customCertificate}}">Create custom certificate</paper-toggle-button>
+
+    </div>
+  </template>
+
+  <script>
+    (function() {
+      'use strict';
+
+      Polymer({
+        is: 'webda-lambda-deployer',
+        properties: {
+          configuration: {
+            type: Object,
+            value: {},
+            notify: true
+          }
+        },
+        _toLambdaName: function(name) {
+          name = name || '';
+          return name.replace(/[^a-zA-Z0-9_]/g, '-');
+        },
+        _toLambdaRole: function(fct, rest) {
+          fct = fct || this._toLambdaName(rest);
+          return fct + 'Role';
+        },
+        getConfiguration: function() {
+          return this.configuration;
+        },
+        setConfiguration: function(config) {
+          this.configuration = config;
+        },
+        validate: function() {
+          return this.configuration.source && this.configuration.target;
+        },
+        ready: function() {
+        }
+      });
+    })();
+  </script>
+</dom-module>

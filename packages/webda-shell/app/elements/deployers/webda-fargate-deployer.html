@@ -1,0 +1,93 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<dom-module id="webda-fargate-deployer">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+      }
+      paper-toggle-button {
+        margin-top: 10px;
+      }
+    </style>
+    <div>
+      <paper-input label="Cluster name" value="{{configuration.clusterName}}" placeholder="webda-cluster"></paper-input>
+      <paper-input label="Service name" value="{{configuration.serviceName}}" placeholder="Service name"></paper-input>
+      <paper-input label="VPC Subnets" value="{{configuration.subnets}}" placeholder="Subnets to use, by default any subnet of default VPC"></paper-input>
+      <paper-input label="VPC Subnets" value="{{configuration.securityGroup}}" placeholder="Security group to use, or default security group for the VPC"></paper-input>
+      <paper-input label="Tasks #" value="{{configuration.tasksNumber}}" placeholder="2" type="number" min="1"></paper-input>
+      <paper-input label="Tasks definition name" value="{{configuration.taskDefinition}}" placeholder="[[configuration.serviceName]]"></paper-input>
+      <paper-input label="Repository namespace" value="{{configuration.repositoryNamespace}}" placeholder="[[configuration.serviceName]]"></paper-input>
+      <paper-input label="Task Role" value="{{configuration.taskRole}}" placeholder="{{configuration.serviceName}}FargateRole"></paper-input>
+      <paper-dropdown-menu label="Task memory" vertical-align="bottom">
+        <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{configuration.taskMemory}}" placeholder="1GB">
+          <paper-item value="512">0.5GB</paper-item>
+          <template is="dom-repeat" items="[[memoryOptions]]">
+            <paper-item value="[[item.value]]">[[item.label]]</paper-item>
+          </template>
+        </paper-listbox>
+      </paper-dropdown-menu>
+      <paper-dropdown-menu label="Task cpu" vertical-align="bottom">
+        <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{configuration.taskCpu}}" placeholder="0.5 vCPU">
+          <paper-item value="256">0.25 vCPU</paper-item>
+          <paper-item value="512">0.5 vCPU</paper-item>
+          <paper-item value="1024">1 vCPU</paper-item>
+          <paper-item value="2048">2 vCPU</paper-item>
+          <paper-item value="4096">4 vCPU</paper-item>
+        </paper-listbox>
+      </paper-dropdown-menu>
+      <webda-workers-selector label="Tasks" selection="{{configuration.workers}}" include-api>
+      </webda-workers-selector>
+    </div>
+  </template>
+
+  <script>
+    (function() {
+      'use strict';
+
+      Polymer({
+        is: 'webda-fargate-deployer',
+        properties: {
+          configuration: {
+            type: Object,
+            value: {
+              workers: []
+            },
+            notify: true,
+            observer: '_update'
+          }
+        },
+        getConfiguration: function() {
+          return this.configuration;
+        },
+        _update: function() {
+          if (!this.configuration.workers) {
+            this.set('configuration.workers', []);
+          }
+        },
+        validate: function() {
+          return true;
+        },
+        ready: function() {
+          let memoryOptions = [];
+          for (let i = 1; i < 31; i++) {
+            memoryOptions.push({value: (i * 1024).toString(), label: i + 'GB'});
+          }
+          this.memoryOptions = memoryOptions;
+          this.workers = Webda.workers;
+        }
+      });
+    })();
+  </script>
+</dom-module>
+

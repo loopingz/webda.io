@@ -10,21 +10,115 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../../bower_components/paper-item/paper-icon-item.html">
 <link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
 
 <dom-module id="deployment-panel">
   <template>
     <style include="shared-styles">
+    paper-tabs {
+      margin-bottom: 20px;
+    }
+    paper-tabs iron-icon {
+      margin-right: 20px;
+    }
+    .explanation {
+      margin-bottom: 20px;
+    }
+    iron-pages > div {
+      padding: 10px;
+    }
+    paper-tabs {
+      border-bottom: 1px solid #ccc;
+    }
+    div[subroute='units'] paper-tabs {
+      margin-bottom: 0px;
+    }
+    div[subroute='units'] paper-tab {
+      border-right: 1px solid #ccc;
+      border-top: 1px solid #ccc;
+    }
+    div[subroute='units'] paper-tab:first-of-type {
+      border-left: 1px solid #ccc;
+    }
+    div[subroute='units'] paper-tab iron-icon {
+      margin-right: 10px;
+    }
+    div[subroute='units'] paper-tab iron-icon[icon="add"] {
+      margin-right: 0px;
+    }
+    #unitConfiguration {
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    div[subroute='units'] > div {
+      @apply(--layout-horizontal);
+    }
+    div[subroute='units'] > div > div:last-child {
+      border-left: 1px solid #ccc;
+      width: 36%;
+      bottom: 0px;
+      top: 117px;
+      position: absolute;
+      right: 0px;
+      overflow-y: scroll;
+    }
+    div[subroute='units'] {
+      padding: 0px !important;
+      margin-top: -20px;
+      bottom: 0;
+    }
+    div[subroute='units'] paper-listbox {
+      background: transparent;
+    }
     </style>
-    <paper-toggle-button checked="{{active}}" on-change='setActive'>Active</paper-toggle-button>
-    <label>Configuration</label>
-    <juicy-jsoneditor mode="tree" modes=["view","tree","text","form"] json="{{component.params}}"></juicy-jsoneditor>
-    <label>Services</label>
-    <juicy-jsoneditor mode="tree" modes=["view","tree","text","form"] json="{{component.services}}"></juicy-jsoneditor>
-    <label>Deployment resources</label>
-    <juicy-jsoneditor mode="tree" modes=["view","tree","text","form"] json="{{component.resources}}"></juicy-jsoneditor>
-    <paper-button on-tap="deploy" style="float: right; margin-right: 20px;" raised class="primary">Deploy</paper-button>
+    <paper-tabs attr-for-selected="subroute" selected="{{subroute}}" noink>
+      <paper-tab subroute='configuration'><iron-icon icon="build"></iron-icon>Configuration</paper-tab>
+      <paper-tab subroute='resources'><iron-icon icon="launch"></iron-icon>Resources</paper-tab>
+      <paper-tab subroute='units'><iron-icon icon="dashboard"></iron-icon>Deployment Unit</paper-tab>
+    </paper-tabs>
+    <iron-pages attr-for-selected="subroute" selected="{{subroute}}">
+      <div subroute='configuration'>
+        <div class="explanation"><p>This will override the default configuration of your application, you can override both global configuration and service configuration</p><a href="">Learn More</a></div>
+        <label>Configuration</label>
+        <juicy-jsoneditor mode="{{juicyMode}}" modes=["view","tree","text","form"] json="{{component.parameters}}"></juicy-jsoneditor>
+        <label>Services</label>
+        <juicy-jsoneditor mode="{{juicyMode}}" modes=["view","tree","text","form"] json="{{component.services}}"></juicy-jsoneditor>
+      </div>
+      <div subroute='resources'>
+        <div class="explanation"><p>Define all needed resources for your deployment units to be able to deploy</p><a href="">Learn More</a></div>
+        <label>Deployment resources</label>
+        <juicy-jsoneditor mode="{{juicyMode}}" modes=["view","tree","text","form"] json="{{component.resources}}"></juicy-jsoneditor>
+      </div>
+      <div subroute='units'>
+        <div>
+          <div style="width: 66%">
+          <template is="dom-if" if="[[hasActiveUnit]]">
+            <div id="unitConfiguration">
+              <webda-modda-configurator modda="[[activeUnitDeployer]]" configuration="{{activeUnit}}"></webda-modda-configurator>
+            </div>
+          </template>
+          <template is="dom-if" if="[[!hasActiveUnit]]">
+            <div style="padding: 20px;">
+              <p>Deployment unit let you deploy into several environment parts of the application</p>
+              <p>Click on the <iron-icon icon="add"></iron-icon> to add a new unit or on an existing one to configure it</p>
+              <a href="">Learn More</a>
+            </div>
+          </template>
+          </div>
+          <div>
+            <paper-listbox>
+              <template is="dom-repeat" items="[[component.units]]">
+                <paper-icon-item on-tap="_selectUnit" unit="[[item]]"><iron-icon src="[[item._icon]]" item-icon></iron-icon>[[item.name]]</paper-icon-item>
+              </template>
+              <paper-icon-item on-tap="_addUnit"><iron-icon icon="add" item-icon></iron-icon>Add new deployment unit</paper-icon-item>
+            </paper-listbox>
+          </div>
+        </div>
+      </div>
+    </iron-pages>
     <iron-ajax id="ajax" handle-as="json"></iron-ajax>
+    <new-deployment-dialog modal id="newDeploymentDialog" deployers="[[deployers]]"></new-deployment-dialog>
   </template>
 
   <script>
@@ -33,29 +127,81 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       Polymer({
         is: 'deployment-panel',
-        deploy: function () {
-          app.fire('deploy', this.component.uuid);
+        ready: function() {
+          this.$.newDeploymentDialog.addEventListener('add-deployment-unit', (evt) => {
+            this.push('component.units', evt.detail);
+            this.dispatchEvent(new CustomEvent('webda-save-current-component', {bubbles: true, composed: true }));
+            this.activeUnit = evt.detail;
+          });
+        },
+        _selectUnit: function(evt) {
+          this.activeUnit = evt.target.unit;
+          this.hasActiveUnit = this.activeUnit !== undefined;
+          this.activeUnitDeployer = undefined;
+          if (!this.hasActiveUnit) {
+            return;
+          }
+          // Search for the deployers
+          this.deployers.forEach( (deployer) => {
+            if (this.activeUnit.type !== deployer.uuid) return;
+            this.activeUnitDeployer = deployer;
+          });
+        },
+        _addUnit: function() {
+          this.$.newDeploymentDialog.open();
         },
         setActive: function() {
           if (this.active) {
-            app.currentDeployment = this.component;  
+            app.currentDeployment = this.component;
           } else {
             app.currentDeployment = undefined;
           }
         },
-        updateActive: function() {
+        _updateActive: function() {
           this.active = (app.currentDeployment && this.component && app.currentDeployment._name == this.component._name);
+          if (!this.component) return;
+          if (this.component._type !== 'deployment') return;
+          this.services.forEach( (service) => {
+            this.component.services[service._name] = this.component.services[service._name] || {};
+          });
+          this.activeUnit = undefined;
+          this.hasActiveUnit = false;
+        },
+        _updateUnit: function() {
+          console.log(this.activeUnit);
         },
         properties: {
+          subroute: {
+            type: String,
+            value: 'configuration'
+          },
+          services: {
+            type: Object
+          },
+          mode: {
+            type: String,
+            value: 'tree'
+          },
           dirty: {
             type: Boolean,
             value: false,
             readonly: true
           },
+          hasActiveUnit: {
+            type: Boolean,
+            value: false
+          },
+          deployers: {
+            type: Object
+          },
+          activeUnit: {
+            type: Object,
+            observer: '_updateUnit'
+          },
           component: {
             type: Object,
             notify: true,
-            observer: 'updateActive'
+            observer: '_updateActive'
           }
         }
       });

@@ -37,6 +37,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     --light-accent-color: #ffd9a3;
     --dark-accent-color: #f50057;
 
+    --webda-green: #80BE6E;
+    --webda-green-light-1: #accca3;
+    --webda-green-light-2: #edf3ec;
+
+    --webda-yellow: #FD9827;
+    --webda-yellow-light-1: #fdc17d;
+    --webda-yellow-light-2: #feead3;
+
+    --webda-blue: #4054B2;
+
     /* Components */
 
     /* paper-drawer-panel */
@@ -97,6 +107,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     right: 0px;
     left: 0px;
     border-top: 1px solid;
+  }
+
+  #topBar {
+    --paper-toolbar-tall: {
+      display: flex;
+      justify-content: space-between;
+    };
+    --paper-toolbar-content: {
+      display: flex;
+      justify-content: space-between;
+    };
   }
   paper-menu a {
     @apply(--layout-horizontal);
@@ -169,6 +190,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     margin: 10px;
   }
 
+  paper-tabs {
+    --paper-tabs-selection-bar-color: var(--webda-yellow);
+  }
   #drawer.paper-drawer-panel > [drawer] {
     background-color: #edf3ec;
   }

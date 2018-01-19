@@ -83,18 +83,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-tab data-repo="Webda">Webda</paper-tab>
         <paper-tab data-repo="Marketplace">Marketplace</paper-tab>
       </paper-tabs>
-      
+
         <iron-pages attr-for-selected="data-repo" selected="{{section}}">
           <section data-repo="Custom">
-            <require-panel file="{{service.require}}" add-js placeholder="./services/myservice"></require-panel>
+            <require-panel file="{{require}}" add-js placeholder="./services/myservice"></require-panel>
           </section>
           <section data-repo="Webda">
           <paper-dialog-scrollable dialog-element="[[node]]">
             <div>
-              <template is="dom-repeat" items="[[moddas]]">
-                <paper-card heading="[[item.label]]" value="{{}}" id="{{index}}" on-tap="select" image="[[item.logo]]" class="white" style="margin-bottom:8px;">
-                </paper-card>
-              </template>
+              <webda-moddas-selector moddas="[[moddas]]" selected="{{selected}}"></webda-moddas-selector>
               <template is="dom-if" if="[[selected]]">
                 <div style="margin-top: 30px;">
                 [[selected.description]]
@@ -107,7 +104,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <section data-repo="Marketplace">
           <paper-dialog-scrollable dialog-element="[[node]]">
             <div>
-              Coming soon
+              Will contain any new service available through npm containing a webda.moddas.json and validate through the webda.io team
               <template is="dom-repeat" items="[[marketplaces]]">
                 <paper-card heading="{{item.label}}" value="{{}}" id="{{index}}" on-tap="select" image="images/placeholders/empty.png" class="white" style="margin-bottom:8px;">
                 </paper-card>
@@ -131,26 +128,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         is: 'new-service-dialog',
         getName: function(uuid) {
           return uuid.split('/').pop();
-        },
-        select: function (evt) {
-          var target = evt.target;
-          while (target !== undefined && target.localName !== 'paper-card') {
-            target = target.parentNode;
-          }
-          if (target !== undefined) {
-            this.selected = this.moddas[target.id];
-            this.service.type = this.selected.uuid;
-            var oldName = '';
-            if (this.old) {
-              this.old.removeAttribute("selected");
-              oldName = this.getName(this.moddas[this.old.id].uuid);
-            }
-            if (this.name === undefined || this.name === '' || oldName === this.name) {
-              this.name = this.getName(this.service.type);
-            }
-            target.setAttribute("selected", true);
-            this.old = target;
-          }
         },
         _updateName: function(name) {
           if (!name) {
@@ -186,18 +163,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         create: function () {
           this.$.ajax.method = 'POST';
-          if (this.selected && this.selected.configuration.default) {
+          this.service = {};
+          if (this.section === 'Webda' && this.selected && this.selected.configuration.default) {
             var defConf = this.selected.configuration.default;
             for (var i in defConf) {
               this.service[i]=defConf[i];
             }
+            this.service.type = this.selected.uuid;
+          }
+          if (this.section === 'Custom') {
+            this.service.type = 'Custom';
+            this.service.require = this.require;
           }
           this.$.ajax.body = this.service;
           this.$.ajax.url = app.getUrl('/services/' + this.name);
           this.$.ajax.contentType = 'application/json';
           this.$.ajax.generateRequest().completes.then( () => {
             this._updateClosingReasonConfirmed(true);
-            this.close(); 
+            this.close();
             this.service = {};
             this.old.removeAttribute("selected");
             this.old =  undefined;

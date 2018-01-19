@@ -12,7 +12,9 @@ class WeDeployDeployer extends DockerDeployer {
       return Promise.reject();
     }
     this._maxStep = 2;
-    this._cleanDockerfile = false;
+    if (fs.existsSync(this.getDockerfileName())) {
+      throw Error('Cannot have a Dockerfile in the directory');
+    }
 
     return this.checkDockerfile().then(() => {
       return this.wedeploy();
@@ -24,6 +26,7 @@ class WeDeployDeployer extends DockerDeployer {
   }
 
   wedeploy() {
+    this.stepper("WeDeploy...ing");
     var args = ["deploy", "-p", this.resources.project, "-s", this.resources.service];
     return this.execute("we", args, this.out.bind(this), this.out.bind(this));
   }
@@ -34,21 +37,20 @@ class WeDeployDeployer extends DockerDeployer {
     console.log(data);
   }
 
+  cleanDockerfile() {
+    fs.unlinkSync(this.getDockerfileName());
+    return Promise.resolve();
+  }
+
   checkDockerfile() {
     this.stepper("Checking Dockerfile");
+    let cmd = '';
+    if (this.resources.worker !== 'API') {
+      cmd = 'worker ' + this.resources.worker;
+    }
     return new Promise((resolve, reject) => {
-      this._cleanDockerfile = true;
-      if (this.resources.Dockerfile === 'Dockerfile') {
-        this._cleanDockerfile = false;
-        return;
-      } else if (this.resources.Dockerfile) {
-        fs.copyFileSync(this.resources.Dockerfile, this.getDockerfileName());
-      } else {
-        fs.writeFileSync(this.getDockerfileName(), this.getDockerfile(this.resources.logfile, this.resources.command));
-        this.resources.Dockerfile = this.getDockerfileName();
-      }
+      fs.writeFileSync(this.getDockerfileName(), this.getDockerfile(cmd));
       resolve();
-      return;
     });
   }
 
@@ -59,19 +61,16 @@ class WeDeployDeployer extends DockerDeployer {
 
   static getModda() {
     return {
-      "uuid": "wedeploy",
+      "uuid": "WebdaDeployer/WeDeploy",
       "label": "WeDeploy",
       "description": "Create a Wedeploy service and update it",
       "webcomponents": [],
-      "logo": "images/placeholders/wedeploy.png",
+      "logo": "images/icons/wedeploy.png",
       "configuration": {
-        "default": {
-          "params": {},
-          "resources": {
-            "project": "projectName",
-            "service": "serviceName"
-          },
-          "services": {}
+        "default": {},
+        "widget": {
+          "tag": "webda-wedeploy-deployer",
+          "url": "elements/deployers/webda-wedeploy-deployer.html"
         },
         "schema": {
           type: "object"

@@ -1,0 +1,689 @@
+"use strict";
+const AWSDeployer = require("./aws");
+const fs = require('fs');
+const crypto = require('crypto');
+const colors = require('colors');
+const LAMBDA_ROLE_POLICY = '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"lambda.amazonaws.com"},"Action":"sts:AssumeRole"}]}';
+
+class LambdaDeployer extends AWSDeployer {
+
+  transformRestApiToFunctionName(name) {
+    return name.replace(/[^a-zA-Z0-9_]/g, '-');
+  }
+
+  deploy(args) {
+    this._AWS = this._getAWS(this.resources);
+    this._maxStep = 4;
+    if (args[0] === "package") {
+      this._maxStep = 1;
+    } else if (args[0] === "lambda") {
+      this._maxStep = 2;
+    } else if (args[0] === "aws-only") {
+      this._maxStep = 3;
+    }
+    this._restApiName = this.resources.restApi;
+    this._lambdaFunctionName = this.resources.functionName || this.transformRestApiToFunctionName(this.resources.restApi);
+    this._lambdaRole = this.resources.lambdaRole;
+    this._lambdaHandler = this.resources.lambdaHandler || 'entrypoint.handler';
+    this._lambdaTimeout = 3;
+
+    var promise = Promise.resolve();
+    if (args[0] !== "package") {
+      promise = this.generateRoleARN(this._restApiName + 'Lambda', LAMBDA_ROLE_POLICY, this._lambdaRole).then( (roleArn) => {
+        this._lambdaRole = roleArn;
+        if (!this._lambdaRole.startsWith("arn:aws")) {
+          // Try to get the Role ARN ?
+          throw Error("LambdaRole needs to be the ARN of the Role");
+        }
+      });
+    }
+
+    if (this._lambdaFunctionName === undefined) {
+      throw Error("Need to define a Rest API Name at least", this._lambdaFunctionName);
+    }
+    if (this._restApiName === undefined) {
+      this._maxStep = 2;
+    }
+
+    if (this.resources.lambdaMemory) {
+      this._lambdaMemorySize = Number.valueOf(this.resources.lambdaMemory);
+    } else {
+      // Dont handle less well for now
+      this._lambdaMemorySize = 512;
+    }
+    this.region = this._AWS.config.region;
+    let zipPath = "dist/" + this._lambdaFunctionName + '.zip';
+    this._awsGateway = new this._AWS.APIGateway();
+    this._awsLambda = new this._AWS.Lambda();
+    this._origin = this.parameters.website;
+
+    if (this._origin) {
+      if (this._origin === '*' || Array.isArray(this._origin) || this._origin.indexOf(',') >= 0) {
+        this._addOPTIONS = true;
+      } else {
+        this._addMockCORS = true;
+      }
+    }
+
+    if (!this.resources.lambdaVersionsLimit) {
+      this.resources.lambdaVersionsLimit = 3;
+    }
+
+    if (args != undefined) {
+      if (args[0] === "export") {
+        return this.export(args.slice(1));
+      }
+    }
+    console.log("Deploying to " + "AWS".yellow);
+
+    if (args[0] !== "aws-only") {
+      promise = promise.then(() => {
+        return this.generatePackage(zipPath);
+      });
+    }
+
+    promise.then(() => {
+      this._package = fs.readFileSync(zipPath);
+      var hash = crypto.createHash('sha256');
+      this._packageHash = hash.update(this._package).digest('base64');
+      console.log("Package dist/" + this._lambdaFunctionName + ".zip (" + this._packageHash + ")");
+    });
+
+    if (args[0] === "package") {
+      return promise;
+    }
+
+    promise = promise.then(() => {
+      return this.generateLambda();
+    })
+    if (args[0] === "lambda" || this._restApiName === undefined) {
+      return promise;
+    }
+    return promise.then(() => {
+      return this.generateAPIGateway();
+    });
+  }
+
+  export(args) {
+    if (args.length == 0) {
+      console.log("Please specify the output file");
+      return;
+    }
+    var exportFile = args[args.length - 1];
+    args.pop();
+    var params = {accepts: 'application/json', stageName: this.deployment.uuid};
+    if (args === undefined || args[0] === undefined) {
+      params.exportType = 'swagger';
+    } else {
+      params.exportType = args[0];
+      args = args.slice(1);
+      params.parameters = {};
+      for (var i in args) {
+        params.parameters[args[i]] = args[i];
+      }
+    }
+    console.log("Exporting " + params.exportType + " to " + exportFile);
+    return this.getRestApi().then((api) => {
+      params.restApiId = this.restApiId;
+      return this._awsGateway.getExport(params).promise().then((exportJson) => {
+        fs.writeFileSync(exportFile, exportJson.body);
+      });
+    });
+  }
+
+  generatePackage(zipPath) {
+    this.stepper("Creating package");
+    var archiver = require('archiver');
+    if (!fs.existsSync("dist")) {
+      fs.mkdirSync("dist");
+    }
+    if (fs.existsSync(zipPath)) {
+      fs.unlinkSync(zipPath)
+    }
+    var ignores = ['dist', 'bin', 'test', 'Dockerfile', 'README.md', 'package.json', 'deployments', 'app', 'webda.config.json'];
+    if (this.resources.package && this.resources.package.ignores) {
+      ignores = ignores.concat(this.resources.package.ignores);
+    }
+    // Should load the ignore from a file
+    var toPacks = [];
+    var files = fs.readdirSync('.');
+    for (let i in files) {
+      var name = files[i];
+      if (name.startsWith(".")) continue;
+      if (ignores.indexOf(name) >= 0) continue;
+      toPacks.push(name);
+    }
+    var output = fs.createWriteStream(zipPath);
+    var archive = archiver('zip');
+
+    var p = new Promise((resolve, reject) => {
+      output.on('finish', () => {
+        resolve();
+      });
+
+      archive.on('error', function (err) {
+        console.log(err);
+        reject(err);
+      });
+
+      archive.pipe(output);
+      for (let i in toPacks) {
+        var stat = fs.statSync(toPacks[i]);
+        if (stat.isDirectory()) {
+          archive.directory(toPacks[i], toPacks[i]);
+        } else if (stat.isFile()) {
+          archive.file(toPacks[i]);
+        }
+      }
+      if (this._lambdaDefaultHandler) {
+        var entrypoint = require.resolve(global.__webda_shell + "/deployers/aws-entrypoint.js");
+        if (fs.existsSync(entrypoint)) {
+          archive.file(entrypoint, {name: "entrypoint.js"});
+        } else if (fs.existsSync("deployers/aws-entrypoint.js")) {
+          archive.file("deployers/aws-entrypoint.js", {name: "entrypoint.js"})
+        } else {
+          throw Error("Cannot find the entrypoint for Lambda");
+        }
+      }
+      archive.append(this.srcConfig, {name: "webda.config.json"})
+      archive.finalize();
+    });
+    return p;
+  }
+
+  createLambdaFunction() {
+    this.stepper("Creating Lambda function");
+    var params = {
+      MemorySize: this._lambdaMemorySize,
+      Code: {
+        ZipFile: this._package
+      },
+      FunctionName: this._lambdaFunctionName,
+      Handler: this._lambdaHandler,
+      Role: this._lambdaRole,
+      Runtime: 'nodejs6.10',
+      Timeout: this._lambdaTimeout,
+      'Description': 'Deployed with Webda for API: ' + this._restApiName,
+      Publish: true
+    };
+    return this._awsLambda.createFunction(params).promise().then((fct) => {
+      this._lambdaFunction = fct;
+      return Promise.resolve(fct);
+    });
+  }
+
+  removeLambdaPermission(sid) {
+    return this._awsLambda.removePermission({'FunctionName': this._lambdaFunctionName, 'StatementId': sid}).promise();
+  }
+
+  addLambdaPermission() {
+    console.log("Setting Lambda rights");
+    var key = 'Webda' + this.restApiId;
+    return this.getLambdaPolicy().then((p) => {
+      var stats = JSON.parse(p.Policy).Statement;
+      for (let i in stats) {
+        if (stats[i].Sid === key) {
+          // Do not update as the policy is already set
+          return Promise.resolve();
+        }
+      }
+      return Promise.reject({code: 'ResourceNotFoundException'});
+    }).catch((err) => {
+      if (err.code !== 'ResourceNotFoundException') throw err;
+      var awsId = this._lambdaFunction.FunctionArn.split(":")[4];
+      var params = {
+        Action: 'lambda:InvokeFunction',
+        FunctionName: this._lambdaFunctionName,
+        Principal: 'apigateway.amazonaws.com',
+        StatementId: key,
+        SourceArn: 'arn:aws:execute-api:' + this.region + ':' + awsId + ':' + this.restApiId + '/*'
+      };
+      return this._awsLambda.addPermission(params).promise();
+    });
+
+    // http://docs.aws.amazon.com/apigateway/latest/developerguide/permissions.html
+    // "arn:aws:execute-api:us-east-1:my-aws-account-id:my-api-id/my-stage/GET/my-resource-path"
+  }
+
+  getLambdaPolicy() {
+    return this._awsLambda.getPolicy({FunctionName: this._lambdaFunctionName}).promise();
+  }
+
+  updateLambdaFunction() {
+    this.stepper("Updating Lambda function");
+    var params = {FunctionName: this._lambdaFunctionName, ZipFile: this._package, Publish: true};
+    return this._awsLambda.updateFunctionCode(params).promise().then((fct) => {
+      return this.cleanVersions(fct);
+    }).then((fct) => {
+      var params = {
+        MemorySize: this._lambdaMemorySize,
+        FunctionName: this._lambdaFunctionName,
+        Handler: this._lambdaHandler,
+        Role: this._lambdaRole,
+        Runtime: 'nodejs6.10',
+        Timeout: this._lambdaTimeout,
+        Description: 'Deployed with Webda for API: ' + this._restApiName
+      };
+      return this._awsLambda.updateFunctionConfiguration(params).promise();
+    });
+  }
+
+  cleanVersions(fct) {
+    return this._awsLambda.listVersionsByFunction({FunctionName: fct.FunctionName}).promise().then((res) => {
+      res.Versions.sort((a, b) => {
+        if (a.Version === '$LATEST') {
+          return -1;
+        }
+        if (b.Version === '$LATEST') {
+          return 1;
+        }
+        if (parseInt(a.Version) > parseInt(b.Version)) {
+          return -1;
+        }
+        return 1;
+      });
+      if (res.Versions.length <= this.resources.lambdaVersionsLimit) {
+        return Promise.resolve(fct);
+      }
+      let versions = res.Versions.slice(this.resources.lambdaVersionsLimit);
+      let promise = Promise.resolve();
+      for (let i in versions) {
+        promise.then(() => {
+          return this._awsLambda.deleteFunction({
+            FunctionName: fct.FunctionName,
+            Qualifier: versions[i].Version
+          }).promise();
+        });
+      }
+      return promise.then(() => {
+        return Promise.resolve(fct);
+      });
+    });
+  }
+
+  generateLambda() {
+    return this._awsLambda.listFunctions().promise().then((fcts) => {
+      for (let i in fcts.Functions) {
+        if (fcts.Functions[i].FunctionName == this._lambdaFunctionName) {
+          this._lambdaFunction = fcts.Functions[i];
+          if (fcts.Functions[i].CodeSha256 == this._packageHash) {
+            this.stepper("Not updating Lambda Function as it has not changed");
+            // No need to update the lambda function
+            return Promise.resolve();
+          }
+          return this.updateLambdaFunction();
+        }
+      }
+      // Could handle paging
+      return this.createLambdaFunction();
+    });
+  }
+
+  generateAPIGateway() {
+    this.stepper("Generating API Gateway");
+    return this.generateAPIGatewayMapping().then(() => {
+      this.stepper("Setting permissions and publish");
+      return this.generateAPIGatewayStage();
+    }).then((deployment) => {
+      return this.addLambdaPermission();
+    }).then( () => {
+      console.log("You can now access to your API to : https://" + this.restApiId + ".execute-api." + this.region + ".amazonaws.com/" + this.deployment.uuid);
+      if (this.resources.customDomain && this.resources.customCertificate) {
+        return this.generateAPIGatewayCustomDomain();
+      }
+      return Promise.resolve();
+    });
+  }
+
+  generateAPIGatewayCustomDomain() {
+    let domain = this.resources.customDomainName || this.resources.restApi;
+    let cert;
+    // Check custom certificate
+    if (!this.resources.customCertificate) {
+      return Promise.resolve();
+    }
+    let endpoint = this.resources.customDomainEndpoint || 'EDGE';
+    let region;
+    if (endpoint === 'EDGE') {
+      // Enforce region to us-east-1 for certificate
+      region = 'us-east-1';
+    }
+    // For EDGE need to be in us-east-1 -> might want to upgrade to both EDGE and REGIONAL
+    return this._createCertificate(domain, region).then( (res) => {
+      cert = res;
+      return this._awsGateway.getDomainNames().promise();
+    }).then( (res) => {
+      let custom;
+      // Search for the custom domain
+      for (let i in res.items) {
+        if (res.items[i].domainName === domain) {
+          custom = res.items[i];
+        }
+      }
+      if (!custom) {
+        let params = {
+          domainName: domain,
+          endpointConfiguration: { types: [endpoint] }
+        };
+        if (endpoint === 'EDGE') {
+          params.certificateArn = cert.CertificateArn;
+        } else {
+          params.regionalCertificateArn = cert.CertificateArn;
+        }
+        // Create one
+        console.log('Create API Gateway custom domain', domain);
+        return this._awsGateway.createDomainName(params).promise().then( (res) => {
+          custom = res;
+          return this._awsGateway.createBasePathMapping({domainName: domain, restApiId: this.restApiId, basePath: '', stage: this.deployment.uuid}).promise();
+        }).then( () => {
+          return Promise.resolve(custom);
+        });
+      }
+      // Might want to update from the current one if customDomainEndpoint has changed
+      return Promise.resolve(custom);
+    }).then( (distrib) => {
+      return this._createDNSEntry(domain, 'CNAME', distrib.distributionDomainName);
+    });
+  }
+
+  generateAPIGatewayStage() {
+    console.log("Generating API Gateway Deployment");
+    return this._awsGateway.createDeployment({restApiId: this.restApiId, stageName: this.deployment.uuid}).promise();
+  }
+
+  getRestApi() {
+    return this._awsGateway.getRestApis().promise().then((result) => {
+      var resource = null;
+      for (var i in result.items) {
+        if (result.items[i].name === this._restApiName) {
+          resource = result.items[i];
+          this.restApiId = resource.id;
+          break;
+        }
+      }
+      return Promise.resolve(resource);
+    });
+  }
+
+  generateAPIGatewayMapping() {
+    console.log("Creating API Gateway Mapping");
+    return this.getRestApi().then((result) => {
+      if (!result) {
+        return this._awsGateway.createRestApi({
+          'name': this._restApiName,
+          'description': 'Webda Auto Deployed'
+        }).promise();
+      }
+      return Promise.resolve(result);
+    }).then((result) => {
+      this.restApiId = result.id;
+      return this._awsGateway.getResources({'restApiId': this.restApiId, 'limit': 500}).promise();
+    }).then((result) => {
+      var found = {};
+      var promise = Promise.resolve();
+      this.tree = {};
+      var toCreate = [];
+      this._progression = 0;
+      for (let i in result.items) {
+        this.tree[result.items[i].path] = result.items[i];
+      }
+      found["/"] = true;
+      // Compare with local
+      for (let url in this.config.routes) {
+        let current = this.config.routes[url];
+        current._url = current._url || url;
+        // Need to cut the query section
+        if (url.indexOf("?") >= 0) {
+          current._fullUrl = url;
+          current._queryParameters = url.substr(url.indexOf("?") + 1, url.length - url.indexOf("?") - 2).split(",");
+          current._url = url.substr(0, url.indexOf("?") - 1);
+          url = current._url;
+        }
+        let i = url.indexOf("/", 1);
+        let currentPath = url.substr(0, i);
+        while (i >= 0) {
+          found[url.substr(0, i)] = true;
+          i = url.indexOf("/", i + 1);
+        }
+        if (this.tree[url]) {
+          found[url] = true;
+          promise = promise.then(() => {
+            return this.updateAwsResource(this.tree[url], current)
+          });
+        } else {
+          toCreate.push(current);
+        }
+      }
+
+      // Order to create per path
+      toCreate.sort(function (a, b) {
+        return a._url.localeCompare(b._url);
+      });
+
+      toCreate.forEach( (route) => {
+        promise = promise.then(() => {
+          return this.createAwsResource(route);
+        });
+      });
+
+      // Remove old resources
+      for (let i in this.tree) {
+        if (found[i]) continue;
+        continue;
+        promise = promise.then(() => {
+          return this.deleteAwsResource(this.tree[i]);
+        });
+      }
+      return promise;
+    });
+  }
+
+  updateAwsResource(resource, local) {
+    var promise = Promise.resolve();
+    var allowedMethods;
+    for (let i in resource.resourceMethods) {
+      promise = promise.then(() => {
+        return this._awsGateway.deleteMethod({
+          'resourceId': resource.id,
+          'restApiId': this.restApiId,
+          'httpMethod': i
+        }).promise();
+      });
+    }
+    return promise.then(() => {
+      if (this._addOPTIONS) {
+        if (typeof(local.method) == "string") {
+          local.method = [local.method];
+        }
+        local.method.push('OPTIONS');
+      }
+      if (typeof(local.method) == "string") {
+        allowedMethods = local.method;
+        return this.createAWSMethodResource(resource, local, local.method);
+      } else {
+        allowedMethods = local.method.join(",");
+        return this.createAWSMethodsResource(resource, local, local.method);
+      }
+    }).then(() => {
+      if (this._addMockCORS) {
+        return this.createCORSMethod(resource, allowedMethods);
+      }
+      return Promise.resolve();
+    });
+    ;
+  }
+
+  deleteAwsResource(remote) {
+    return this._awsGateway.deleteResource({'resourceId': remote.id, 'restApiId': this.restApiId}).promise();
+  }
+
+  createAWSMethodResource(resource, local, method) {
+    console.log("Creating " + method + " on " + local._url);
+    var params = {
+      "authorizationType": "NONE",
+      'resourceId': resource.id,
+      'httpMethod': method,
+      'restApiId': this.restApiId
+    };
+    params.requestParameters = {};
+    for (let i in local._queryParameters) {
+      if (local._queryParameters[i].startsWith("*")) {
+        console.log("Wildcard are not supported by AWS :(");
+        continue;
+      }
+      params.requestParameters["method.request.querystring." + local._queryParameters[i]] = false;
+    }
+    return this._awsGateway.putMethod(params).promise().then((awsMethod) => {
+      // Integration type : AWS_PROXY
+      var params = {
+        'resourceId': resource.id,
+        'integrationHttpMethod': 'POST',
+        'httpMethod': method,
+        'restApiId': this.restApiId,
+        'type': 'AWS_PROXY'
+      };
+      params.uri = "arn:aws:apigateway:" + this.region + ":lambda:path/2015-03-31/functions/" + this._lambdaFunction.FunctionArn + "/invocations";
+      return this._awsGateway.putIntegration(params).promise();
+    });
+  }
+
+  createCORSMethod(resource, methods) {
+    console.log("Adding OPTIONS method for CORS");
+    var responseParameters = {};
+    responseParameters['method.response.header.Access-Control-Allow-Headers'] = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'";
+    // Should improve this with methods
+    if (methods) {
+      methods = methods + ",OPTIONS";
+    } else {
+      methods = "POST,PUT,GET,DELETE,OPTIONS";
+    }
+    responseParameters['method.response.header.Access-Control-Allow-Methods'] = "'" + methods + "'";
+    responseParameters['method.response.header.Access-Control-Allow-Origin'] = "'" + this._origin + "'";
+    responseParameters['method.response.header.Access-Control-Allow-Credentials'] = "'true'";
+    var params = {
+      "authorizationType": "NONE",
+      'resourceId': resource.id,
+      'httpMethod': 'OPTIONS',
+      'restApiId': this.restApiId
+    };
+    return this._awsGateway.putMethod(params).promise().then(() => {
+      var params = {'resourceId': resource.id, 'httpMethod': 'OPTIONS', 'restApiId': this.restApiId, 'type': 'MOCK'};
+      params.requestTemplates = {};
+      params.requestParameters = {};
+      params.requestTemplates["application/json"] = '{"statusCode": 200}';
+      return this._awsGateway.putIntegration(params).promise();
+    }).then(() => {
+      // AWS ReturnCode
+      var params = {
+        'resourceId': resource.id,
+        'httpMethod': 'OPTIONS',
+        'restApiId': this.restApiId,
+        'statusCode': '200'
+      };
+      params.responseModels = {};
+      params.responseModels["application/json"] = 'Empty';
+      var map = {};
+      for (let i in responseParameters) {
+        map[i] = false;
+      }
+      params.responseParameters = map;
+      return this._awsGateway.putMethodResponse(params).promise();
+    }).then(() => {
+      var params = {
+        'resourceId': resource.id,
+        'httpMethod': 'OPTIONS',
+        'restApiId': this.restApiId,
+        'statusCode': '200'
+      };
+      params.responseTemplates = {};
+      params.responseParameters = responseParameters;
+      params.responseTemplates["application/json"] = "";
+      return this._awsGateway.putIntegrationResponse(params).promise();
+    });
+  }
+
+  createAWSMethodsResource(resource, local, methods) {
+    if (!methods.length) {
+      return Promise.resolve();
+    }
+    // AWS dont like to have too much request at the same time :)
+    return this.createAWSMethodResource(resource, local, methods[0]).then(() => {
+      return this.createAWSMethodsResource(resource, local, methods.slice(1));
+    });
+  }
+
+  createAwsResource(local) {
+    var i = local._url.indexOf("/", 1);
+    var allowedMethods;
+    var resource;
+    var promise = new Promise((resolve, reject) => {
+      resolve(this.tree['/']);
+    });
+    while (i >= 0) {
+      let currentPath = local._url.substr(0, i);
+      promise = promise.then((item) => {
+        if (this.tree[currentPath] === undefined) {
+          let pathPart = currentPath.substr(currentPath.lastIndexOf('/') + 1);
+          this.tree[currentPath] = this._awsGateway.createResource({
+            'parentId': item.id,
+            'pathPart': pathPart,
+            'restApiId': this.restApiId
+          }).promise()
+          return this.tree[currentPath];
+        }
+        return Promise.resolve(this.tree[currentPath]);
+      });
+      i = local._url.indexOf("/", i + 1);
+    }
+    return promise.then((parent) => {
+      let pathPart = local._url.substr(local._url.lastIndexOf('/') + 1);
+      let params = {'parentId': parent.id, 'pathPart': pathPart, 'restApiId': this.restApiId};
+      return this.tree[local._url] = this._awsGateway.createResource(params).promise();
+    }).then((res) => {
+      resource = res;
+      if (this._addOPTIONS) {
+        if (typeof(local.method) == "string") {
+          local.method = [local.method];
+        }
+        local.method.push('OPTIONS');
+      }
+      if (typeof(local.method) == "string") {
+        allowedMethods = local.method;
+        return this.createAWSMethodResource(resource, local, local.method);
+      } else {
+        allowedMethods = local.method.join(",");
+        return this.createAWSMethodsResource(resource, local, local.method);
+      }
+    }).then(() => {
+      if (this._addMockCORS) {
+        return this.createCORSMethod(resource, allowedMethods);
+      }
+      return Promise.resolve();
+    });
+  }
+
+
+  static getModda() {
+    return {
+      "uuid": "WebdaDeployer/Lambda",
+      "label": "Lambda",
+      "description": "Deploy on Lambda, map it with API Gateway",
+      "webcomponents": [],
+      "logo": "images/icons/lambda.png",
+      "configuration": {
+        "widget": {
+          "url": "elements/deployers/webda-lambda-deployer.html",
+          "tag": "webda-lambda-deployer"
+        },
+        "default": {
+
+        },
+        "schema": {
+          type: "object"
+        }
+      }
+    }
+  }
+}
+
+module.exports = LambdaDeployer;

@@ -20,21 +20,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <style include="shared-styles iron-flex iron-flex-alignment"></style>
     <label>Type</label>
     <div>[[type]]</div>
-    <template is="dom-if" if="[[_isStore(type)]]">
-      <label>Expose</label>
-      <url-method-selector methods="{{methods}}" toggles></url-method-selector>
-      <paper-dropdown-menu label="Model">
-        <paper-listbox class="dropdown-content" selected="{{params.model}}" attr-for-selected="value">
-          <template is="dom-repeat" items="[[models]]">
-            <paper-item value="[[item.name]]">[[item.name]]</paper-item>
-          </template>
-        </paper-listbox>
-      </paper-dropdown-menu>
-      <br />
-    </template>
-    <paper-icon-button icon="list" title="View full parameters" on-tap="showFull" style="float:right; margin-top: -16px;"></paper-icon-button>
-    <label>Configuration</label>
-    <juicy-jsoneditor id="params" mode="tree" modes=["view","tree","text","form"] json="{{params}}"></juicy-jsoneditor>
+    <webda-modda-configurator modda="[[modda]]" configuration="{{params}}"></webda-modda-configurator>
     [[errors]]
   </template>
 
@@ -44,57 +30,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       Polymer({
         is: 'service-panel',
-        showFull: function() {
-          app.displayJson(app.getRealConfiguration(this.component));
-        },
-        _isStore(type) {
-          var stores = ['Webda/DynamoStore','Webda/MemoryStore','Webda/FileStore','Webda/MongoStore']
-          return stores.indexOf(type) >= 0;
-        },
-        _getExpose(params, field) {
-          if (!params.expose) {
-            return false;
-          }
-          return params.expose === true || params.expose.restrict && !params.expose.restrict[field];
-        },
-        _exposeUpdate: function() {
-          if (!this.params || this._setter) return;
-          if (!this.params.expose || !this.params.expose.restrict) {
-            this.params.expose = {restrict: {}};
-          }
-          var count = 0;
-          if (this.methods.indexOf('GET')<0) {
-            this.params.expose.restrict.get = true;
-            count++;
-          } else if (this.params.expose.restrict.get) {
-            delete this.params.expose.restrict.get;
-          }
-          if (this.methods.indexOf('POST')<0) {
-            this.params.expose.restrict.create = true;
-            count++;
-          } else if (this.params.expose.restrict.create) {
-            delete this.params.expose.restrict.create;
-          }
-          if (this.methods.indexOf('PUT')<0) {
-            this.params.expose.restrict.update = true;
-            count++;
-          } else if (this.params.expose.restrict.update) {
-            delete this.params.expose.restrict.update;
-          }
-          if (this.methods.indexOf('DELETE')<0) {
-            this.params.expose.restrict.delete = true;
-            count++;
-          } else if (this.params.expose.restrict.delete) {
-            delete this.params.expose.restrict.delete;
-          }
-          if (count === 0) {
-            this.params.expose = true;
-          }
-          if (count === 4) {
-            delete this.params.expose;
-          }
-          this.updateParams();
-        },
         updateParams: function() {
           if (!this.component) return;
           // Not optimal
@@ -104,7 +39,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             this.component[i] = this.params[i];
           }
           for (let i in this.component) {
-            if (i == "require" || i == "type") {
+            if (i === "require" || i === "type") {
               continue;
             }
             if (i.startsWith('_')) continue;
@@ -140,11 +75,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
         },
         filterComponent: function () {
+          if (!this.component || !this.component.type) return;
+          // Should check the components
+          let type = this.component.type || 'Unknown';
+          if (type.indexOf('/') < 0) {
+            type = 'Webda/' + type;
+          }
+          this.modda = Webda.getModda(type);
           // As configuration is include in the definition need to filter _type and _name
           let params = {};
           this.type = undefined;
           for (let i in this.component) {
             if (i.startsWith('_')) {
+              continue;
+            }
+            if (i === 'callback') {
               continue;
             }
             if (i == "type") {
@@ -160,51 +105,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           if (this.type === undefined && this.component) {
             this.type = this.component._name;
           }
-          if (this._isStore(this.type)) {
-            if (!params.model) {
-              params.model = "Webda/CoreModel";
-            }
-            this._setter = true;
-            var methods = [];
-            if (this._getExpose(params, 'delete')) {
-              methods.push('DELETE');
-            }
-            if (this._getExpose(params, 'get')) {
-              methods.push('GET');
-            }
-            if (this._getExpose(params, 'update')) {
-              methods.push('PUT');
-            }
-            if (this._getExpose(params, 'create')) {
-              methods.push('POST');
-            }
-            this.methods = methods;
-            this._setter = false;
-          }
-          this.params = params;
+          this.set('params',params);
           this.validate()
         },
-        ready: function() {
-          this.$.params.addEventListener('change', (evt) => {
-            // Change is emit before the change, and not other event is emitted
-            // For now using timeout to recompute the info
-            // Not nice
-            var timeout = () => {
-              this.updateParams();
-            };
-            if (this.timeout) {
-              clearTimeout(this.timeout);
-            }
-            this.timeout = setTimeout(timeout, 100);
-          });
-        },
         properties: {
+          mode: {
+            type: String,
+            value: 'tree',
+            notify: true
+          },
+          currentDeployment: {
+            type: Object,
+            observer: 'validate'
+          },
           methods: {
             type: Array,
             observer: '_exposeUpdate'
-          },
-          models: {
-            type: Array
           },
           dirty: {
             type: Boolean,

@@ -5,12 +5,26 @@
 <dom-module id="shared-styles">
   <template>
     <style>
+      configuration-item iron-icon {
+        position: absolute;
+        right: 20px;
+        top: 14px;
+      }
       .page-title {
         @apply(--paper-font-display2);
       }
+      paper-scroll-header-panel {
+        --paper-scroll-header-container: {
+          bottom: 64px;
+        };
+      }
       paper-button.primary {
-        background-color: var(--accent-color);
+        background-color: var(--webda-yellow);
         color: white;
+      }
+      paper-button.primary[disabled] {
+        background-color: var(--webda-yellow-light-2);
+        color: #999;
       }
       paper-menu a > *, paper-menu paper-item > *, paper-menu paper-icon-item > * {
         pointer-events: none;
@@ -20,6 +34,97 @@
         .page-title {
           font-size: 24px!important;
         }
+      }
+      div.explanation {
+      }
+      section[data-route="configuration"] > div {
+        padding: 20px;
+      }
+      section[data-route="configuration"] > div li {
+        display: block;
+        padding: 20px;
+        border: 1px solid;
+        border-radius: 10px;
+        max-width: 250px;
+        text-align: center;
+        margin-bottom: 20px;
+        background-color: white;
+        opacity: 0.8;
+        transform: 0.5s opacity;
+        border-color: #aaa;
+      }
+      section[data-route="configuration"] > div li:not(:last-child)::after {
+        content: ' ';
+        width: 0;
+        height: 0;
+        border-left: 30px solid transparent;
+        border-right: 30px solid transparent;
+        border-top: 20px solid var(--webda-yellow-light-1);
+        font-size: 0;
+        line-height: 0;
+        position: absolute;
+        left: calc(50% - 15px);
+        margin-top: 40px;
+      }
+      section[data-route="configuration"] > div li:hover {
+        border-color: var(--webda-yellow);
+        opacity: 1.0;
+      }
+      a {
+        text-decoration: dashed;
+        color: black;
+        transition: 0.5s color, 0.5s text-decoration-color;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-position: under;
+        text-decoration-color: var(--webda-yellow-light-1);
+      }
+      a:hover {
+        color: var(--webda-yellow);
+        text-decoration-color: var(--webda-yellow);
+      }
+      .explanation h2 {
+        float: right;
+        margin-top: -5px;
+      }
+      .explanation > div {
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 500px;
+        text-overflow: clip;
+        margin-top: 128px;
+        border: 1px solid #ccc;
+        padding: 20px;
+        border-radius: 10px;
+      }
+      .explanation iron-icon {
+        --iron-icon-width: 128px;
+        --iron-icon-height: 128px;
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: -84px;
+        background-color: #fafafa;
+        color: var(--webda-yellow);
+      }
+      .centered {
+         @apply(--layout);
+         @apply(--layout-horizontal);
+         @apply(--layout-center);
+         flex-flow: column;
+      }
+      .righted {
+         @apply(--layout);
+         @apply(--layout-horizontal);
+         @apply(--layout-end-justified);
+      }
+      .configurationSelectors {
+        @apply(--layout);
+        @apply(--layout-horizontal);
+        @apply(--layout-around-justified);
+      }
+
+      paper-tabs {
+        --paper-tabs-selection-bar-color: var(--webda-yellow);
       }
     </style>
   </template>

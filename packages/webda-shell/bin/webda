@@ -192,7 +192,7 @@ function handleCommand(cmd) {
         server_config = new config().loadDeploymentConfig(argv.deployment);
       }
       webda = new server(server_config);
-      webda.setHost();
+      service_name = argv._[1];
       let service = webda.getService(argv._[1]);
       if (!service) {
         let error = 'The service ' + service_name + ' is missing';
@@ -225,7 +225,17 @@ function handleCommand(cmd) {
         process.exit(1);
       }
       // Launch the worker with arguments
-      return service[method].apply(service, argv._.slice(3));
+      let timestamp = new Date().getTime();
+      let promise = service[method].apply(service, argv._.slice(3));
+      if (promise instanceof Promise) {
+        return promise.catch( (err) => {
+          console.log('An error occured', err);
+        });
+      }
+      return Promise.resolve(promise).then( () => {
+        let seconds = ((new Date().getTime()) - timestamp) / 1000;
+        console.log('Took', Math.ceil(seconds) + 's');
+      });
     case 'debug':
       let launchServe = function () {
         if (server_pid) {
@@ -270,7 +280,10 @@ function handleCommand(cmd) {
       return;
     case 'config':
       if (argv.deployment) {
-        server_config = new config().loadDeploymentConfig(argv.deployment);
+        let webda = new config();
+        server_config = webda.loadDeploymentConfig(argv.deployment);
+        // Caching the modules
+        server_config.cachedModules = webda._modules;
         let json = JSON.stringify(server_config, null, ' ');
         if (argv._.length > 1) {
           fs.writeFileSync(argv._[1], json);
@@ -283,14 +296,13 @@ function handleCommand(cmd) {
       return webda.serve(18181, argv.open);
     case 'deploy':
       webda = new config();
-      console.log('Deploying', argv.deployment);
       return webda.deploy(argv.deployment, argv._.slice(1)).catch((err) => {
-        console.trace(err);
+        console.log('Error', err);
       });
     case 'undeploy':
       webda = new config();
       return webda.undeploy(argv.deployment, argv._.slice(1)).catch((err) => {
-        console.trace(err);
+        console.log(err);
       });
     case 'init':
       {

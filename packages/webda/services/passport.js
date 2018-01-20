@@ -433,6 +433,7 @@ class PassportExecutor extends Executor {
           }
         });
       } else {
+        // TODO Handle add of email on authenticated user
         var email = ctx.body.login.toLowerCase();
         // Read the form
         if (ctx.body.register || ctx._params.register) {

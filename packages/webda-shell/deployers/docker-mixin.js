@@ -15,7 +15,9 @@ const DockerMixIn = Sup => class extends Sup {
       stdin = null;
       args.push(".");
     } else {
+      args.push("--file");
       args.push("-");
+      args.push(".");
     }
 
     console.log("docker " + args.join(" "));
@@ -87,8 +89,8 @@ MAINTAINER docker@webda.io
 
 RUN mkdir /webda/
 ADD . /webda/
-
-RUN cd /webda && rm -rf node_modules && npm install && npm install webda-shell
+WORKDIR /webda
+RUN rm -rf node_modules && npm install && npm install webda-shell
 `;
     if (!command) {
       command = 'serve';
@@ -100,10 +102,10 @@ RUN cd /webda && rm -rf node_modules && npm install && npm install webda-shell
     }
     if (this.deployment && this.deployment.uuid) {
       // Export deployment
-      dockerfile += 'RUN cd /webda && node_modules/.bin/webda -d ' + this.deployment.uuid + ' config webda.config.json\n';
+      dockerfile += 'RUN node_modules/.bin/webda -d ' + this.deployment.uuid + ' config webda.config.json\n';
     }
-    dockerfile += 'RUN cd /webda && rm -rf deployments\n';
-    dockerfile += 'CMD cd /webda && node_modules/.bin/webda ' + command + logfile + '\n'
+    dockerfile += 'RUN rm -rf deployments\n';
+    dockerfile += 'CMD node_modules/.bin/webda ' + command + logfile + '\n'
     return dockerfile;
   }
 

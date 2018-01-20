@@ -238,6 +238,7 @@ class Store extends Executor {
     }
     if (object.uuid === undefined || object.uuid !== uid) {
       object.uuid = uid;
+      object.creationDate = new Date();
     }
     for (var i in this._reverseMap) {
       if (object[this._reverseMap[i].property] === undefined) {
@@ -690,6 +691,7 @@ class Store extends Executor {
 
   httpCreate(ctx) {
     var object = new this._model(ctx.body);
+    object.creationDate = new Date();
     return object.canCreate(ctx).then((object) => {
       return object.validate(ctx).catch((err) => {
         throw 400;

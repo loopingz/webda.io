@@ -49,6 +49,10 @@ class PassportExecutor extends Executor {
     let url = this._url = this._params.expose || '/auth';
     this._identsStore = this.getService(this._params.identStore || 'idents');
     this._usersStore = this.getService(this._params.userStore || 'users');
+    this._params.passwordRegexp = this._params.passwordRegexp || '.{8,}';
+    if (this._params.passwordVerifier) {
+      this._passwordVerifier = this.getService(this._params.passwordVerifier);
+    }
     if (this._identsStore === undefined || this._usersStore === undefined) {
       this._initException = "Unresolved dependency on idents and users services";
     }
@@ -151,12 +155,10 @@ class PassportExecutor extends Executor {
     return identStore.get(ident.uuid).then((result) => {
       // Login with OAUTH
       if (result) {
-        ctx.write("login");
         return this.login(ctx, result.user, result).then(() => {
           // Need to improve DynamoDB testing about invalid value 
           return identStore.update({'lastUsed': new Date()}, result.uuid).then(() => {
-            ctx.write("redirect");
-            ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider});
+            ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider, 'X-Webda-Authentication': 'success'});
             ctx.end();
             done(result);
           });
@@ -172,14 +174,12 @@ class PassportExecutor extends Executor {
         });
       }
       return promise.then((user) => {
-        ctx.write("register new ident");
         ident.user = user.uuid;
         ident.lastUsed = new Date();
         return identStore.save(ident).then(() => {
           ident.__new = true;
-          ctx.write("redirect");
           return this.login(ctx, user, ident).then(() => {
-            ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider});
+            ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider, 'X-Webda-Authentication': 'success'});
             ctx.end();
             done(ident);
           });
@@ -253,6 +253,17 @@ class PassportExecutor extends Executor {
     });
   }
 
+  _verifyPassword(password) {
+    if (this._passwordVerifier) {
+      return Promise.resolve(this._passwordVerifier.validate(password));
+    }
+    let regexp = new RegExp(this._params.passwordRegexp);
+    if (!regexp.exec(password)) {
+      throw 400;
+    }
+    return Promise.resolve(true);
+  }
+
   _passwordRecovery(ctx) {
     var userStore = this.getService("users");
     if (ctx.body.password === undefined || ctx.body.login === undefined || ctx.body.token === undefined || ctx.body.expire === undefined) {
@@ -265,6 +276,8 @@ class PassportExecutor extends Executor {
       if (ctx.body.expire < Date.now()) {
         throw 410;
       }
+      return this._verifyPassword(ctx.body.password);
+    }).then( () => {
       return userStore.update({__password: this.hashPassword(ctx.body.password)}, ctx.body.login.toLowerCase());
     });
   }
@@ -289,7 +302,7 @@ class PassportExecutor extends Executor {
         }
         return identStore.update({validation: new Date()}, ident.uuid);
       }).then(() => {
-        ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider});
+        ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider, 'X-Webda-Authentication': 'success'});
         return Promise.resolve();
       });
     }
@@ -436,9 +449,11 @@ class PassportExecutor extends Executor {
           }
           // Store with a _
           ctx.body.__password = this.hashPassword(ctx.body.password);
-          delete ctx.body.password;
-          delete ctx.body.register;
-          return this.registerUser(ctx, ctx.body, ctx.body).then((user) => {
+          return this._verifyPassword(ctx.body.password).then( () => {
+            delete ctx.body.password;
+            delete ctx.body.register;
+            return this.registerUser(ctx, ctx.body, ctx.body)
+          }).then((user) => {
             return userStore.save(user);
           }).then((user) => {
             var newIdent = {'uuid': uuid, 'type': 'email', 'email': email, 'user': user.uuid};

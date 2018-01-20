@@ -38,7 +38,7 @@ describe('Passport', function () {
   });
   describe('Email', function () {
     it('register', function () {
-      var params = {'email': 'test@Webda.io', 'password': 'test'};
+      var params = {'email': 'test@Webda.io', 'password': 'testtest'};
       ctx = webda.newContext(params);
       executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", "http", 80, {'Accept-Language': 'en-GB'});
       events = 0;
@@ -63,7 +63,7 @@ describe('Passport', function () {
       }).then((ident) => {
         assert.equal(ident, undefined);
         executor._params.providers.email.postValidation = true;
-        ctx.body.login = "test2@webda.io";
+        ctx.body.login = "Test2@webda.io";
         ctx.session = webda.getNewSession();
         return executor.execute(ctx);
       }).then(() => {
@@ -87,7 +87,7 @@ describe('Passport', function () {
         var match = mailer.sent[0].replacements.url.match(validationUrl);
         assert.notEqual(match, undefined);
         assert.equal(match[1], 'test@webda.io');
-        ctx.body = {'token': match[2], 'password': 'test', 'login': match[1], 'register': true, 'add': 'plop'};
+        ctx.body = {'token': match[2], 'password': 'testtest', 'login': match[1], 'register': true, 'add': 'plop'};
         executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", "http");
         return executor.execute(ctx);
       }).then(() => {
@@ -110,7 +110,7 @@ describe('Passport', function () {
         assert.equal(ctx.statusCode, 302);
         // Verify the skipEmailValidation parameter
         events = 0;
-        ctx.body = {'login': 'test4@webda.io', 'password': 'test', register: true};
+        ctx.body = {'login': 'test4@webda.io', 'password': 'testtest', register: true};
         ctx.session = webda.getNewSession();
         executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", "http");
         executor._params.providers.email.postValidation = true;
@@ -124,6 +124,24 @@ describe('Passport', function () {
       });
     });
 
+    it('register - bad password', function () {
+      // By default a password of 8 is needed
+      var params = {'login': 'testBad@Webda.io', 'password': 'test', register: true};
+      ctx = webda.newContext(params);
+      executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", "http", 80, {'Accept-Language': 'en-GB'});
+      // Activate post validation
+      executor._params.providers.email.postValidation = true;
+      var error = false;
+      return executor.execute(ctx).catch((err) => {
+        // Wrong parameters in the request
+        assert.equal(err, 400);
+        error = true;
+      }).then((err) => {
+        // Unknown user without the register option
+        assert.equal(error, true);
+      });
+    });
+
     it('/me', function () {
       ctx = webda.newContext({}, webda.getNewSession());
       executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/auth/me", "http");
@@ -132,7 +150,7 @@ describe('Passport', function () {
         found = true;
         // Session with empty user
         assert.equal(err, 404);
-        ctx.body = {'login': 'test5@webda.io', 'password': 'test', register: true, 'plop': 'yep'};
+        ctx.body = {'login': 'test5@webda.io', 'password': 'testtest', register: true, 'plop': 'yep'};
         executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", "http");
         return executor.execute(ctx);
       }).then(() => {
@@ -151,7 +169,7 @@ describe('Passport', function () {
     });
 
     it('login', function () {
-      var params = {'login': 'test3@webda.io', 'password': 'test'};
+      var params = {'login': 'test3@webda.io', 'password': 'testtest'};
       events = 0;
       ctx = webda.newContext(params, webda.getNewSession());
       executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", "http");
@@ -183,7 +201,7 @@ describe('Passport', function () {
     });
 
     it('passwordRecovery', function () {
-      var params = {'login': userId, 'password': 'retest'};
+      var params = {'login': userId, 'password': 'retesttest'};
       var tokenInfo = {};
       var failed = false;
       events = 0;
@@ -226,7 +244,7 @@ describe('Passport', function () {
         return executor.execute(ctx);
       }).then(() => {
         // Should be update with password retest now
-        ctx.body = {'login': 'test2@webda.io', 'password': 'retest'};
+        ctx.body = {'login': 'test2@webda.io', 'password': 'retesttest'};
         ctx.session = webda.getNewSession();
         executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", "http");
         return executor.execute(ctx);

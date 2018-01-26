@@ -25,7 +25,7 @@ describe('Webda Configuration Migration', function () {
 		assert.equal(webda.getGlobalParams().region, 'us-east-1');
 		// Check custom route migration
 		ctx = webda.newContext();
-		executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/urltemplate/666");
+		let executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/urltemplate/666");
 		assert.notEqual(executor, undefined);
 	    assert.equal(ctx['_route']['_http']["method"], "GET");
 	    assert.equal(ctx['_route']['_http']["url"], "/urltemplate/666");

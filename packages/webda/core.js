@@ -641,7 +641,7 @@ class Webda extends EventEmitter {
     this.initModdas(this._config);
 
     if (this._config.services !== undefined) {
-      this.initServices(this._config.services);
+      this.initServices();
     }
     this.initURITemplates(this._config.routes);
 

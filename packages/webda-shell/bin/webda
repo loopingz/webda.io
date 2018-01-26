@@ -192,7 +192,7 @@ function handleCommand(cmd) {
         server_config = new config().loadDeploymentConfig(argv.deployment);
       }
       webda = new server(server_config);
-      service_name = argv._[1];
+      let service_name = argv._[1];
       let service = webda.getService(argv._[1]);
       if (!service) {
         let error = 'The service ' + service_name + ' is missing';

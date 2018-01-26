@@ -22,6 +22,7 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
     if (!this.resources.serviceName) {
       throw Error('Need to define at least a serviceName');
     }
+    this.resources.publicIp = this.resources.publicIp || 'ENABLED';
     this.resources.taskCpu = this.resources.taskCpu || '1024';
     this.resources.taskMemory = this.resources.taskMemory || '1024';
     this.resources.clusterName = this.resources.clusterName || 'webda-cluster';
@@ -145,13 +146,13 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
         networkConfiguration: {
           awsvpcConfiguration: {
             subnets: this._subnets,
-            assignPublicIp: 'ENABLED',
+            assignPublicIp: this.resources.publicIp,
             securityGroups: []
           }
         }
       };
       if (this.resources.securityGroup) {
-        serviceDefinition.networkConfiguration.securityGroups.push(this.resources.securityGroup);
+        serviceDefinition.networkConfiguration.awsvpcConfiguration.securityGroups.push(this.resources.securityGroup);
       }
       if (!this._service) {
         // Create the service
@@ -201,7 +202,15 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
       containerDefinitions.push({
         name: i,
         essential: true,
-        image: worker.repository
+        image: worker.repository,
+        logConfiguration: {
+          logDriver: 'awslogs',
+          options: {
+            'awslogs-group': '/ecs/' + this.resources.serviceName,
+            'awslogs-region': this._AWS.config.region,
+            'awslogs-stream-prefix': 'ecs-webda'
+          }
+        }
       });
     }
     return containerDefinitions;

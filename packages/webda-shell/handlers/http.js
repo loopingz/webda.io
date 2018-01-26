@@ -2,6 +2,7 @@
 var Webda = require(__webda + '/core');
 var SecureCookie = require(__webda + '/utils/cookie');
 var _extend = require("util")._extend;
+const path = require("path");
 
 class WebdaServer extends Webda {
 

@@ -86,6 +86,7 @@ const DockerMixIn = Sup => class extends Sup {
     var dockerfile = `
 FROM node:latest
 MAINTAINER docker@webda.io
+EXPOSE 18080
 
 RUN mkdir /webda/
 ADD . /webda/

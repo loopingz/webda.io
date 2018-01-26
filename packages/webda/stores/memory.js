@@ -136,7 +136,7 @@ class MemoryStore extends Store {
         },
         "widget": {
           "tag": "webda-store-configurator",
-          "url": "elements/services/webda-webda-store-configurator.html"
+          "url": "elements/services/webda-store-configurator.html"
         },
         "schema": {
           type: "object",

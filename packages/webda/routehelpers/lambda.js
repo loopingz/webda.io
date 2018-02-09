@@ -60,11 +60,15 @@ class LambdaRouteHelper extends Executor {
       try {
         caller = new LambdaCaller(ctx._params);
       } catch (e) {
-        ctx.writeHead(500, {'Content-Type': 'text/plain'});
+        ctx.writeHead(500, {
+          'Content-Type': 'text/plain'
+        });
         ctx.end();
         return reject(e);
       }
-      caller.execute({'_http': ctx._route._http}).then((data) => {
+      caller.execute({
+        '_http': ctx._route._http
+      }).then((data) => {
         return resolve(this.handleResult(ctx, data.Payload));
       }).catch((err) => {
         return reject(err);

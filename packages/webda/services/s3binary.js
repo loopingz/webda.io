@@ -61,9 +61,17 @@ class S3Binary extends AWSServiceMixIn(Binary) {
     }
     let targetStore = this._verifyMapAndStore(ctx);
     var base64String = new Buffer(ctx.body.hash, 'hex').toString('base64');
-    var params = {Bucket: this._params.bucket, Key: this._getPath(ctx.body.hash), 'ContentType': 'application/octet-stream', 'ContentMD5': base64String};
+    var params = {
+      Bucket: this._params.bucket,
+      Key: this._getPath(ctx.body.hash),
+      'ContentType': 'application/octet-stream',
+      'ContentMD5': base64String
+    };
     // List bucket
-    return this._s3.listObjectsV2({Bucket: this._params.bucket, Prefix: this._getPath(ctx.body.hash, '')}).promise().then((data) => {
+    return this._s3.listObjectsV2({
+      Bucket: this._params.bucket,
+      Prefix: this._getPath(ctx.body.hash, '')
+    }).promise().then((data) => {
       let foundMap = false;
       let foundData = false;
       for (let i in data.Contents) {
@@ -85,13 +93,21 @@ class S3Binary extends AWSServiceMixIn(Binary) {
   }
 
   putMarker(hash, uuid, storeName) {
-    var s3obj = new this.AWS.S3({params: {Bucket: this._params.bucket, Key: this._getPath(hash, uuid), Metadata: {'x-amz-meta-store': storeName}}});
+    var s3obj = new this.AWS.S3({
+      params: {
+        Bucket: this._params.bucket,
+        Key: this._getPath(hash, uuid),
+        Metadata: {
+          'x-amz-meta-store': storeName
+        }
+      }
+    });
     return s3obj.putObject().promise();
   }
 
   getSignedUrl(action, params) {
     return new Promise((resolve, reject) => {
-      let callback = function (err, url) {
+      let callback = function(err, url) {
         if (err) {
           reject(err);
         }
@@ -103,12 +119,19 @@ class S3Binary extends AWSServiceMixIn(Binary) {
 
   getRedirectUrlFromObject(obj, property, index, context, expire) {
     let info = obj[property][index];
-    var params = {Bucket: this._params.bucket, Key: this._getPath(info.hash)};
+    var params = {
+      Bucket: this._params.bucket,
+      Key: this._getPath(info.hash)
+    };
     if (expire === undefined) {
       expire = 30;
     }
     params.Expires = expire; // A get should not take more than 30s
-    return this.emit('Binary.Get', {'object': info, 'service': this, 'context': context}).then(() => {
+    return this.emit('Binary.Get', {
+      'object': info,
+      'service': this,
+      'context': context
+    }).then(() => {
       params.ResponseContentDisposition = "attachment; filename=" + info.name;
       params.ResponseContentType = info.mimetype;
       return this.getSignedUrl('getObject', params);
@@ -123,19 +146,27 @@ class S3Binary extends AWSServiceMixIn(Binary) {
       }
       return this.getRedirectUrlFromObject(obj, ctx._params.property, ctx._params.index, ctx);
     }).then((url) => {
-      ctx.writeHead(302, {'Location': url});
+      ctx.writeHead(302, {
+        'Location': url
+      });
       ctx.end();
       return Promise.resolve();
     });
   }
 
   _get(info) {
-    return this._s3.getObject({Bucket: this._params.bucket, Key: this._getPath(info.hash)}).createReadStream();
+    return this._s3.getObject({
+      Bucket: this._params.bucket,
+      Key: this._getPath(info.hash)
+    }).createReadStream();
   }
 
   getUsageCount(hash) {
     // Not efficient if more than 1000 docs
-    return this._s3.listObjects({Bucket: this._params.bucket, Prefix: this._getPath(hash, '')}).promise().then(function (data) {
+    return this._s3.listObjects({
+      Bucket: this._params.bucket,
+      Prefix: this._getPath(hash, '')
+    }).promise().then(function(data) {
       return Promise.resolve(data.Contents.length - 1);
     });
   }
@@ -146,7 +177,10 @@ class S3Binary extends AWSServiceMixIn(Binary) {
 
   _cleanUsage(hash, uuid) {
     // Dont clean data for now
-    var params = {Bucket: this._params.bucket, Key: this._getPath(hash, uuid)};
+    var params = {
+      Bucket: this._params.bucket,
+      Key: this._getPath(hash, uuid)
+    };
     return this._s3.deleteObject(params).promise();
   }
 
@@ -160,7 +194,7 @@ class S3Binary extends AWSServiceMixIn(Binary) {
   }
 
   cascadeDelete(info, uuid) {
-    return this._cleanUsage(info.hash, uuid).catch(function (err) {
+    return this._cleanUsage(info.hash, uuid).catch(function(err) {
       this._webda.log('WARN', 'Cascade delete failed', err);
     });
   }
@@ -183,7 +217,10 @@ class S3Binary extends AWSServiceMixIn(Binary) {
   }
 
   _getS3(hash) {
-    return this._s3.headObject({Bucket: this._params.bucket, Key: this._getPath(hash)}).promise().catch(function (err) {
+    return this._s3.headObject({
+      Bucket: this._params.bucket,
+      Key: this._getPath(hash)
+    }).promise().catch(function(err) {
       if (err.code !== 'NotFound') {
         return Promise.reject(err);
       }
@@ -203,9 +240,17 @@ class S3Binary extends AWSServiceMixIn(Binary) {
       if (data === undefined) {
         var metadatas = {};
         metadatas['x-amz-meta-challenge'] = file.challenge;
-        var s3obj = new this.AWS.S3({params: {Bucket: self._params.bucket, Key: self._getPath(file.hash), "Metadata": metadatas}});
+        var s3obj = new this.AWS.S3({
+          params: {
+            Bucket: self._params.bucket,
+            Key: self._getPath(file.hash),
+            "Metadata": metadatas
+          }
+        });
         return new Promise((resolve, reject) => {
-          s3obj.upload({Body: file.buffer}, function (err, data) {
+          s3obj.upload({
+            Body: file.buffer
+          }, function(err, data) {
             if (err) {
               return reject(err);
             }
@@ -228,10 +273,19 @@ class S3Binary extends AWSServiceMixIn(Binary) {
   }
 
   ___cleanData() {
-    return this._s3.listObjectsV2({Bucket: this._params.bucket}).promise().then((data) => {
-      var params = {Bucket: this._params.bucket, Delete: {Objects: []}};
+    return this._s3.listObjectsV2({
+      Bucket: this._params.bucket
+    }).promise().then((data) => {
+      var params = {
+        Bucket: this._params.bucket,
+        Delete: {
+          Objects: []
+        }
+      };
       for (var i in data.Contents) {
-        params.Delete.Objects.push({Key: data.Contents[i].Key});
+        params.Delete.Objects.push({
+          Key: data.Contents[i].Key
+        });
       }
       if (params.Delete.Objects.length === 0) {
         return Promise.resolve();
@@ -241,45 +295,49 @@ class S3Binary extends AWSServiceMixIn(Binary) {
   }
 
   install(params) {
-     var s3 = new (this._getAWS(params)).S3();
-     return s3.headBucket({Bucket: this._params.bucket}).promise().catch( (err) => {
+    var s3 = new(this._getAWS(params)).S3();
+    return s3.headBucket({
+      Bucket: this._params.bucket
+    }).promise().catch((err) => {
       if (err.code === 'Forbidden') {
         this._webda.log('ERROR', 'S3 bucket already exists in another account');
       } else if (err.code === 'NotFound') {
         this._webda.log('INFO', 'Creating S3 Bucket', this._params.bucket);
-        return s3.createBucket({Bucket: this._params.bucket}).promise();
+        return s3.createBucket({
+          Bucket: this._params.bucket
+        }).promise();
       }
-     });
+    });
   }
 
   getARNPolicy(accountId) {
     return {
-        "Sid": this.constructor.name + this._name,
-        "Effect": "Allow",
-        "Action": [
-            "s3:AbortMultipartUpload",
-            "s3:DeleteObject",
-            "s3:DeleteObjectVersion",
-            "s3:GetObject",
-            "s3:GetObjectAcl",
-            "s3:GetObjectTagging",
-            "s3:GetObjectTorrent",
-            "s3:GetObjectVersion",
-            "s3:GetObjectVersionAcl",
-            "s3:GetObjectVersionTagging",
-            "s3:GetObjectVersionTorrent",
-            "s3:ListBucket",
-            "s3:ListBucketMultipartUploads",
-            "s3:ListBucketVersions",
-            "s3:ListMultipartUploadParts",
-            "s3:PutBucketAcl",
-            "s3:PutObject",
-            "s3:PutObjectAcl",
-            "s3:RestoreObject"
-        ],
-        "Resource": [
-            'arn:aws:s3:::' + this._params.bucket
-        ]
+      "Sid": this.constructor.name + this._name,
+      "Effect": "Allow",
+      "Action": [
+        "s3:AbortMultipartUpload",
+        "s3:DeleteObject",
+        "s3:DeleteObjectVersion",
+        "s3:GetObject",
+        "s3:GetObjectAcl",
+        "s3:GetObjectTagging",
+        "s3:GetObjectTorrent",
+        "s3:GetObjectVersion",
+        "s3:GetObjectVersionAcl",
+        "s3:GetObjectVersionTagging",
+        "s3:GetObjectVersionTorrent",
+        "s3:ListBucket",
+        "s3:ListBucketMultipartUploads",
+        "s3:ListBucketVersions",
+        "s3:ListMultipartUploadParts",
+        "s3:PutBucketAcl",
+        "s3:PutObject",
+        "s3:PutObjectAcl",
+        "s3:RestoreObject"
+      ],
+      "Resource": [
+        'arn:aws:s3:::' + this._params.bucket
+      ]
     }
   }
 

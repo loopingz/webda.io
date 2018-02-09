@@ -36,7 +36,7 @@ class FileStore extends Store {
     var self = this;
     var res = [];
     var path = require('path');
-    var files = fs.readdirSync(self._params.folder).filter(function (file) {
+    var files = fs.readdirSync(self._params.folder).filter(function(file) {
       return !fs.statSync(path.join(self._params.folder, file)).isDirectory();
     });
     for (var file in files) {
@@ -163,7 +163,7 @@ class FileStore extends Store {
     var promises = [];
     for (var file in files) {
       let filename = this._params.folder + '/' + files[file];
-      promises.push( new Promise( (resolve, reject) => {
+      promises.push(new Promise((resolve, reject) => {
         fs.unlink(filename, (err) => {
           if (err) {
             reject(err);

@@ -6,7 +6,7 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
 
   init(config) {
     super.init(config);
-    this.sqs = new (this._getAWS(this._params)).SQS();
+    this.sqs = new(this._getAWS(this._params)).SQS();
     if (!this._params.WaitTimeSeconds) {
       this._params.WaitTimeSeconds = 20;
     }
@@ -29,7 +29,10 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
   }
 
   receiveMessage() {
-    this.queueArg = {QueueUrl: this._params.queue, WaitTimeSeconds: this._params.WaitTimeSeconds};
+    this.queueArg = {
+      QueueUrl: this._params.queue,
+      WaitTimeSeconds: this._params.WaitTimeSeconds
+    };
     return new Promise((resolve, reject) => {
       this.sqs.receiveMessage(this.queueArg).promise().then((data) => {
         if (!data.Messages) {
@@ -42,7 +45,10 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
 
   deleteMessage(receipt) {
     return new Promise((resolve, reject) => {
-      this.sqs.deleteMessage({QueueUrl: this._params.queue, ReceiptHandle: receipt}, (err, data) => {
+      this.sqs.deleteMessage({
+        QueueUrl: this._params.queue,
+        ReceiptHandle: receipt
+      }, (err, data) => {
         if (err) {
           return reject(err);
         }
@@ -52,18 +58,25 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
   }
 
   __clean() {
-    return this.sqs.purgeQueue({QueueUrl: this._params.queue}).promise();
+    return this.sqs.purgeQueue({
+      QueueUrl: this._params.queue
+    }).promise();
   }
 
   install(params) {
     let queue = this._getQueueInfosFromUrl();
-     var sqs = new this._getAWS(params).SQS();
-     return sqs.getQueueUrl({QueueName: queue.name, QueueOwnerAWSAccountId: queue.accountId}).promise().catch( (err) => {
+    var sqs = new this._getAWS(params).SQS();
+    return sqs.getQueueUrl({
+      QueueName: queue.name,
+      QueueOwnerAWSAccountId: queue.accountId
+    }).promise().catch((err) => {
       if (err.code === 'AWS.SimpleQueueService.NonExistentQueue') {
         this._webda.log('ERROR', 'Creating SQS queue', queue.name);
-        return sqs.createQueue({QueueName: queue.name}).promise();
+        return sqs.createQueue({
+          QueueName: queue.name
+        }).promise();
       }
-     });
+    });
   }
 
   _getQueueInfosFromUrl() {
@@ -83,18 +96,18 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
     // Parse this._params.queue;
     let queue = this._getQueueInfosFromUrl();
     return {
-        "Sid": this.constructor.name + this._name,
-        "Effect": "Allow",
-        "Action": [
-            "sqs:DeleteMessage",
-            "sqs:DeleteMessageBatch",
-            "sqs:ReceiveMessage",
-            "sqs:SendMessage",
-            "sqs:SendMessageBatch"
-        ],
-        "Resource": [
-            'arn:aws:sqs:' + queue.region + ':' + queue.accountId + ':' + queue.name
-        ]
+      "Sid": this.constructor.name + this._name,
+      "Effect": "Allow",
+      "Action": [
+        "sqs:DeleteMessage",
+        "sqs:DeleteMessageBatch",
+        "sqs:ReceiveMessage",
+        "sqs:SendMessage",
+        "sqs:SendMessageBatch"
+      ],
+      "Resource": [
+        'arn:aws:sqs:' + queue.region + ':' + queue.accountId + ':' + queue.name
+      ]
     }
   }
 

@@ -101,7 +101,10 @@ class Binary extends Executor {
    * @emits 'binaryGet'
    */
   get(info) {
-    return this.emit('Binary.Get', {'object': info, 'service': this}).then(() => {
+    return this.emit('Binary.Get', {
+      'object': info,
+      'service': this
+    }).then(() => {
       return this._get(info);
     });
   }
@@ -161,10 +164,16 @@ class Binary extends Executor {
         continue;
       }
       if (typeof(map[prop]) === "string") {
-        reverseStore.addReverseMap(map[prop], {'store': this._name, 'name': map[prop]}, this);
+        reverseStore.addReverseMap(map[prop], {
+          'store': this._name,
+          'name': map[prop]
+        }, this);
       } else {
         for (let i in map[prop]) {
-          reverseStore.addReverseMap(map[prop][i], {'store': this._name, 'name': map[prop][i]}, this);
+          reverseStore.addReverseMap(map[prop][i], {
+            'store': this._name,
+            'name': map[prop][i]
+          }, this);
         }
       }
     }
@@ -238,9 +247,18 @@ class Binary extends Executor {
       update = updated;
       if (info) {
         this.cascadeDelete(info, object_uid);
-        return this.emit('Binary.Update', {'object': fileObj, 'old': info, 'service': this, 'target': object});
+        return this.emit('Binary.Update', {
+          'object': fileObj,
+          'old': info,
+          'service': this,
+          'target': object
+        });
       } else {
-        return this.emit('Binary.Create', {'object': fileObj, 'service': this, 'target': object});
+        return this.emit('Binary.Create', {
+          'object': fileObj,
+          'service': this,
+          'target': object
+        });
       }
     }).then(() => {
       return Promise.resolve(update);
@@ -257,7 +275,10 @@ class Binary extends Executor {
     var update;
     return targetStore.deleteItemFromCollection(object.uuid, property, index, info.hash, 'hash').then((updated) => {
       update = updated;
-      return this.emit('Binary.Delete', {'object': info, 'service': this});
+      return this.emit('Binary.Delete', {
+        'object': info,
+        'service': this
+      });
     }).then(() => {
       return Promise.resolve(update);
     });
@@ -297,27 +318,47 @@ class Binary extends Executor {
 
     if (!this._params.expose.restrict.get) {
       url = this._params.expose.url + "/{store}/{uid}/{property}/{index}";
-      this._addRoute(url, {"method": ["GET"], "executor": this._name, "_method": this.httpRoute});
+      this._addRoute(url, {
+        "method": ["GET"],
+        "executor": this._name,
+        "_method": this.httpRoute
+      });
       url = this._params.expose.url + "/download/{store}/{uid}/{property}/{index}/{expire}/{token}";
-      this._addRoute(url, {"method": ["GET"], "executor": this._name, "_method": this.httpDownload});
+      this._addRoute(url, {
+        "method": ["GET"],
+        "executor": this._name,
+        "_method": this.httpDownload
+      });
     }
 
     if (!this._params.expose.restrict.create) {
       // No need the index to add file
       url = this._params.expose.url + "/{store}/{uid}/{property}";
-      this._addRoute(url, {"method": ["POST"], "executor": this._name, "_method": this.httpPost});
+      this._addRoute(url, {
+        "method": ["POST"],
+        "executor": this._name,
+        "_method": this.httpPost
+      });
     }
 
     if (!this._params.expose.restrict.create) {
       // Add file with challenge
       url = this._params.expose.url + "/upload/{store}/{uid}/{property}/{index}";
-      this._addRoute(url, {"method": ["PUT"], "executor": this._name, "_method": this.httpChallenge});
+      this._addRoute(url, {
+        "method": ["PUT"],
+        "executor": this._name,
+        "_method": this.httpChallenge
+      });
     }
 
     if (!this._params.expose.restrict.delete) {
       // Need hash to avoid concurrent delete
       url = this._params.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
-      this._addRoute(url, {"method": ["DELETE"], "executor": this._name, "_method": this.httpRoute});
+      this._addRoute(url, {
+        "method": ["DELETE"],
+        "executor": this._name,
+        "_method": this.httpRoute
+      });
     }
   }
 
@@ -373,7 +414,11 @@ class Binary extends Executor {
   httpChallenge(ctx) {
     return this.putRedirectUrl(ctx).then((url) => {
       var base64String = new Buffer(ctx.body.hash, 'hex').toString('base64');
-      ctx.write({url: url, done: !(url !== undefined), md5: base64String});
+      ctx.write({
+        url: url,
+        done: !(url !== undefined),
+        md5: base64String
+      });
       return Promise.resolve();
     });
   }

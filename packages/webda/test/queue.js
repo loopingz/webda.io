@@ -4,13 +4,17 @@ var Webda = require("../core.js");
 var config = require("./config.json");
 
 
-var simple = function (queue) {
+var simple = function(queue) {
   var msg;
-  return queue.sendMessage({'type': 1}).then(() => {
+  return queue.sendMessage({
+    'type': 1
+  }).then(() => {
     return queue.size();
   }).then((size) => {
     assert.equal(size, 1);
-    return queue.sendMessage({'type': 2});
+    return queue.sendMessage({
+      'type': 2
+    });
   }).then(() => {
     return queue.size();
   }).then((size) => {
@@ -37,22 +41,22 @@ var simple = function (queue) {
   });
 }
 
-describe('Queues', function () {
+describe('Queues', function() {
   var skipAWS = process.env["WEBDA_AWS_KEY"] === undefined;
   var webda;
 
-  beforeEach(function () {
+  beforeEach(function() {
     webda = new Webda(config);
   });
 
-  describe('SQSQueue', function () {
-    beforeEach(function () {
+  describe('SQSQueue', function() {
+    beforeEach(function() {
       if (skipAWS) {
         return;
       }
       return webda.getService("sqsqueue").__clean();
     });
-    it('Basic', function () {
+    it('Basic', function() {
       if (skipAWS) {
         this.skip();
         return;
@@ -61,8 +65,8 @@ describe('Queues', function () {
     });
   });
 
-  describe('MemoryQueue', function () {
-    it('Basic', function () {
+  describe('MemoryQueue', function() {
+    it('Basic', function() {
       return simple(webda.getService('memoryqueue'));
     });
   });

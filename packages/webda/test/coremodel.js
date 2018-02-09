@@ -8,33 +8,40 @@ var webda = new Webda(config);
 var ctx = webda.newContext();
 webda = new Webda(config);
 
-describe('CoreModel', function () {
-  it('Verify unsecure constructor', function () {
-    let object = new CoreModel({_test: 'plop', test: 'plop'});
+describe('CoreModel', function() {
+  it('Verify unsecure constructor', function() {
+    let object = new CoreModel({
+      _test: 'plop',
+      test: 'plop'
+    });
     assert.equal(object._test, undefined);
     assert.equal(object.test, 'plop');
   });
 
-  it('Verify secure constructor', function () {
-    let object = new CoreModel({_test: 'plop', test: 'plop', __serverOnly: 'server'}, true);
+  it('Verify secure constructor', function() {
+    let object = new CoreModel({
+      _test: 'plop',
+      test: 'plop',
+      __serverOnly: 'server'
+    }, true);
     assert.equal(object._test, 'plop');
     assert.equal(object.test, 'plop');
-    describe('JSON support and fields protection', function () {
-      it('Verify JSON export', function () {
+    describe('JSON support and fields protection', function() {
+      it('Verify JSON export', function() {
         let exported = JSON.parse(JSON.stringify(object));
         assert.equal(exported.__serverOnly, undefined);
         assert.equal(exported._test, 'plop');
         assert.equal(exported.test, 'plop');
       });
 
-      it('Verify JSON stored export', function () {
+      it('Verify JSON stored export', function() {
         let exported = object.toStoredJSON();
         assert.equal(exported.__serverOnly, 'server');
         assert.equal(exported._test, 'plop');
         assert.equal(exported.test, 'plop');
       });
 
-      it('Verify JSON stored export - stringify', function () {
+      it('Verify JSON stored export - stringify', function() {
         let exported = JSON.parse(object.toStoredJSON(true));
         assert.equal(exported.__serverOnly, 'server');
         assert.equal(exported._test, 'plop');
@@ -43,10 +50,12 @@ describe('CoreModel', function () {
     });
   });
 
-  describe('JSON Schema validation', function () {
-    it('Verify bad schema object', function () {
+  describe('JSON Schema validation', function() {
+    it('Verify bad schema object', function() {
       let failed = false;
-      let object = new Task({"noname": "Task #1"});
+      let object = new Task({
+        "noname": "Task #1"
+      });
       return object.validate(ctx).catch(() => {
         failed = true;
       }).then(() => {
@@ -54,9 +63,11 @@ describe('CoreModel', function () {
       });
     });
 
-    it('Verify good schema object', function () {
+    it('Verify good schema object', function() {
       let failed = false;
-      let object = new Task({"name": "Task #1"});
+      let object = new Task({
+        "name": "Task #1"
+      });
       return object.validate(ctx).catch(() => {
         failed = true;
       }).then(() => {
@@ -65,20 +76,24 @@ describe('CoreModel', function () {
     });
   });
 
-  describe('Test (C)RUD', function () {
+  describe('Test (C)RUD', function() {
     var ident;
     var identStore = webda.getService("Idents");
-    beforeEach(function () {
+    beforeEach(function() {
       assert.notEqual(identStore, undefined);
       identStore.__clean();
-      ident = {property: 'plop'};
+      ident = {
+        property: 'plop'
+      };
       return identStore.save(ident).then((obj) => {
         ident = obj;
       });
     });
 
-    it('Verify Retrieve', function () {
-      return identStore.update({property: 'plop2'}, ident.uuid).then(() => {
+    it('Verify Retrieve', function() {
+      return identStore.update({
+        property: 'plop2'
+      }, ident.uuid).then(() => {
         return ident.refresh();
       }).then((res) => {
         assert.equal(res.property, 'plop2');
@@ -86,7 +101,7 @@ describe('CoreModel', function () {
       });
     });
 
-    it('Verify Update', function () {
+    it('Verify Update', function() {
       ident.property = 'plop2';
       ident.newOne = 'yes';
       return ident.save().then(() => {
@@ -97,7 +112,7 @@ describe('CoreModel', function () {
       });
     });
 
-    it('Verify Delete', function () {
+    it('Verify Delete', function() {
       return ident.delete().then(() => {
         return identStore.get(ident.uuid);
       }).then((retrieved) => {

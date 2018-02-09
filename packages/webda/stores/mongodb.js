@@ -50,18 +50,26 @@ class MongoStore extends Store {
 
   _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
     return this._connect().then(() => {
-      var params = {'$pull': {}};
+      var params = {
+        '$pull': {}
+      };
       params['$pull'][prop] = {};
       params['$pull'][prop][itemWriteConditionField] = itemWriteCondition;
-      return this._collection.updateOne({_id: uid}, params);
+      return this._collection.updateOne({
+        _id: uid
+      }, params);
     });
   }
 
   _incrementAttribute(uid, prop, value) {
     return this._connect().then(() => {
-      var params = {'$inc': {}};
+      var params = {
+        '$inc': {}
+      };
       params['$inc'][prop] = value;
-      return this._collection.updateOne({_id: uid}, params);
+      return this._collection.updateOne({
+        _id: uid
+      }, params);
     });
   }
 
@@ -69,13 +77,19 @@ class MongoStore extends Store {
     return this._connect().then(() => {
       var params = {};
       if (index === undefined) {
-        params = {'$push': {}};
+        params = {
+          '$push': {}
+        };
         params['$push'][prop] = item;
       } else {
-        params = {'$set': {}};
+        params = {
+          '$set': {}
+        };
         params['$set'][prop + "." + index] = item;
       }
-      return this._collection.updateOne({_id: uid}, params);
+      return this._collection.updateOne({
+        _id: uid
+      }, params);
     });
   }
 
@@ -106,7 +120,9 @@ class MongoStore extends Store {
 
   _delete(uid, writeCondition) {
     return this._connect().then(() => {
-      return this._collection.deleteOne({_id: uid});
+      return this._collection.deleteOne({
+        _id: uid
+      });
     });
   }
 
@@ -115,7 +131,11 @@ class MongoStore extends Store {
       object = object.toStoredJSON();
     }
     return this._connect().then(() => {
-      return this._collection.updateOne({_id: uid}, {'$set': object});
+      return this._collection.updateOne({
+        _id: uid
+      }, {
+        '$set': object
+      });
     }).then((result) => {
       return Promise.resolve(object);
     });
@@ -125,7 +145,9 @@ class MongoStore extends Store {
     return this._connect().then(() => {
       let params = {};
       if (uids) {
-        params._id = {$in: uids};
+        params._id = {
+          $in: uids
+        };
       }
       return this._collection.find(params);
     }).then((result) => {
@@ -137,7 +159,9 @@ class MongoStore extends Store {
 
   _get(uid) {
     return this._connect().then(() => {
-      return this._collection.findOne({_id: uid});
+      return this._collection.findOne({
+        _id: uid
+      });
     }).then((result) => {
       return Promise.resolve(result === null ? undefined : result);
     });

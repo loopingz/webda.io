@@ -12,7 +12,8 @@
   "main": "immutable",
   "scripts": {
     "test": "mocha",
-    "run": "node core"
+    "run": "node core",
+    "format": "node ./scripts/format.js"
   },
   "dependencies": {
     "accept-language": "=3.0.15",
@@ -48,6 +49,8 @@
     "utils"
   ],
   "devDependencies": {
+    "glob": "^7.1.2",
+    "js-beautify": "^1.7.5",
     "mocha": ">=2.2.5"
   },
   "homepage": "https://github.com/loopingz/webda"

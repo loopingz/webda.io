@@ -45,7 +45,9 @@ class LambdaServer extends Webda {
     if (rawCookie) {
       cookies = cookieParse(rawCookie);
     }
-    var sessionCookie = new SecureCookie({'secret': 'webda-private-key'}, cookies.webda).getProxy();
+    var sessionCookie = new SecureCookie({
+      'secret': 'webda-private-key'
+    }, cookies.webda).getProxy();
     var session = sessionCookie;
     var vhost;
     var i;
@@ -88,7 +90,7 @@ class LambdaServer extends Webda {
         website = website.join(',');
       }
       if (website.indexOf(origin) >= 0 || website === '*') {
-        ctx.setHeader('Access-Control-Allow-Origin', origin);  
+        ctx.setHeader('Access-Control-Allow-Origin', origin);
       }
     }
     ctx.setHeader('Access-Control-Allow-Credentials', true);
@@ -134,7 +136,11 @@ class LambdaServer extends Webda {
       this._result.code = ctx.statusCode;
     }
     this.emit('Webda.Result', ctx, this._result);
-    callback(null, {statusCode: ctx.statusCode, headers: this._result.headers, body: this._result.body});
+    callback(null, {
+      statusCode: ctx.statusCode,
+      headers: this._result.headers,
+      body: this._result.body
+    });
   }
 }
 

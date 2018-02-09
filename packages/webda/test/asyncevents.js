@@ -4,7 +4,7 @@ var Webda = require("../core.js");
 var config = require("./config.json");
 
 
-var simple = function (webda) {
+var simple = function(webda) {
   var users = webda.getService('users');
   var eventsCount = 0;
   var priorityEventsCount = 0;
@@ -17,7 +17,10 @@ var simple = function (webda) {
   users.onAsync('Store.Deleted', () => {
     priorityEventsCount++
   }, 'priority');
-  return users.save({'uuid': 'test', 'type': 1}).then(() => {
+  return users.save({
+    'uuid': 'test',
+    'type': 1
+  }).then(() => {
     return defaultQueue.size();
   }).then((size) => {
     assert.equal(size, 1);
@@ -37,21 +40,24 @@ var simple = function (webda) {
     assert.equal(eventsCount, 0);
     assert.equal(priorityEventsCount, 0);
     return defaultQueue.receiveMessage();
-  }).then( (evt) => {
+  }).then((evt) => {
     return eventService._handleEvents(evt);
-  }).then( () => {
+  }).then(() => {
     assert.equal(eventsCount, 1);
     assert.equal(priorityEventsCount, 0);
     return priorityQueue.receiveMessage();
-  }).then( (evt) => {
+  }).then((evt) => {
     return eventService._handleEvents(evt);
-  }).then( () => {
+  }).then(() => {
     assert.equal(eventsCount, 1);
     assert.equal(priorityEventsCount, 1);
     // Disable async and verify that it directly update now
     eventService._async = false;
-    return users.save({'uuid': 'test', 'type': 1});
-  }).then( () => {
+    return users.save({
+      'uuid': 'test',
+      'type': 1
+    });
+  }).then(() => {
     assert.equal(eventsCount, 2);
     assert.equal(priorityEventsCount, 1);
     return users.delete('test');
@@ -61,14 +67,14 @@ var simple = function (webda) {
   });
 }
 
-describe('EventService', function () {
+describe('EventService', function() {
   var webda;
 
-  beforeEach(function () {
+  beforeEach(function() {
     webda = new Webda(config);
   });
 
-  it('Basic', function () {
+  it('Basic', function() {
     return simple(webda);
   });
 });

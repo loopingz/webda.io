@@ -27,7 +27,9 @@ class Mailer extends Service {
       if (config.transport === 'ses' && !config.SES) {
         let aws = require('aws-sdk');
         aws.config.update(config);
-        config.SES = new aws.SES({apiVersion: '2010-12-01'});
+        config.SES = new aws.SES({
+          apiVersion: '2010-12-01'
+        });
       }
       this._transporter = nodemailer.createTransport(config);
     } catch (ex) {
@@ -49,7 +51,7 @@ class Mailer extends Service {
       if (!fs.existsSync(templateDir)) {
         templateDir = __dirname + '/../templates/' + name;
         if (!fs.existsSync(templateDir)) {
-          this._webda.log('WARN', 'No template found for',name);
+          this._webda.log('WARN', 'No template found for', name);
           return;
         }
       }

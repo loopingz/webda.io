@@ -30,7 +30,7 @@ class EventService extends Service {
     this._queues = {};
     this._defaultQueue = '';
     if (this._params.queues) {
-      Object.keys(this._params.queues).forEach( (key) => {
+      Object.keys(this._params.queues).forEach((key) => {
         // Define default as first queue
         if (!this._defaultQueue) {
           this._defaultQueue = key;
@@ -56,7 +56,7 @@ class EventService extends Service {
     let mapper = (new AsyncEvent(service.getName(), event)).getMapper();
     if (!this._callbacks[mapper]) {
       service.on(event, this.pushEvent.bind(this, service, event, queue));
-      this._callbacks[mapper]=[];
+      this._callbacks[mapper] = [];
     }
     this._callbacks[mapper].push(callback);
   }
@@ -75,7 +75,7 @@ class EventService extends Service {
       return Promise.reject('Callbacks should not be empty');
     }
     let promises = [];
-    this._callbacks[event.getMapper()].map( (executor) => {
+    this._callbacks[event.getMapper()].map((executor) => {
       promises.push(executor(event.payload, event));
     });
     // Need to handle the failure
@@ -83,7 +83,7 @@ class EventService extends Service {
   }
 
   _handleEvents(events) {
-    events.map( (event) => {
+    events.map((event) => {
       this._handleEvent(AsyncEvent.fromQueue(event.Body));
     });
   }

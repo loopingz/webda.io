@@ -9,11 +9,11 @@ var failed = false;
 var webda = new Webda(config);
 var ctx;
 
-describe('Policy', function () {
+describe('Policy', function() {
   var taskStore;
   var userStore;
-  describe('OwnerPolicy', function () {
-    beforeEach(function () {
+  describe('OwnerPolicy', function() {
+    beforeEach(function() {
       taskStore = webda.getService("Tasks");
       userStore = webda.getService("Users");
       assert.notEqual(taskStore, undefined);
@@ -21,17 +21,21 @@ describe('Policy', function () {
       taskStore.__clean();
       userStore.__clean();
     });
-    it('Create', function () {
+    it('Create', function() {
       ctx = webda.newContext({});
       executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/tasks");
       assert.notEqual(executor, undefined);
-      ctx.body = {"name": "Task #1"};
+      ctx.body = {
+        "name": "Task #1"
+      };
       return executor.execute(ctx).catch((err) => {
         // Expect 403 as no user is logged
         failed = true;
         assert.equal(err, 403);
         ctx.session.login("fake_user", "fake_ident");
-        ctx.body = {"name": "Task #1"};
+        ctx.body = {
+          "name": "Task #1"
+        };
         return executor.execute(ctx);
       }).then(() => {
         // Should be ok in that case
@@ -53,7 +57,9 @@ describe('Policy', function () {
         failed = false;
         let result = JSON.parse(ctx._body);
         assert.equal(result.uuid, task.uuid);
-        ctx.body = {'public': true};
+        ctx.body = {
+          'public': true
+        };
         executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/tasks/" + task.uuid);
         return executor.execute(ctx);
       }).then(() => {
@@ -65,7 +71,9 @@ describe('Policy', function () {
         let result = JSON.parse(ctx._body);
         assert.equal(result.uuid, task.uuid);
         executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/tasks/" + task.uuid);
-        ctx.body = {'public': false};
+        ctx.body = {
+          'public': false
+        };
         return executor.execute(ctx);
       }).catch((err) => {
         failed = true;
@@ -74,7 +82,9 @@ describe('Policy', function () {
         assert.equal(failed, true);
         failed = false;
         executor = webda.getExecutor(ctx, "test.webda.io", "DELETE", "/tasks/" + task.uuid);
-        ctx.body = {'public': false};
+        ctx.body = {
+          'public': false
+        };
         return executor.execute(ctx);
       }).catch((err) => {
         failed = true;
@@ -84,7 +94,9 @@ describe('Policy', function () {
         failed = false;
         executor = webda.getExecutor(ctx, "test.webda.io", "DELETE", "/tasks/" + task.uuid);
         ctx.session.login("fake_user", "fake_ident");
-        ctx.body = {'public': false};
+        ctx.body = {
+          'public': false
+        };
         return executor.execute(ctx);
       });
     });

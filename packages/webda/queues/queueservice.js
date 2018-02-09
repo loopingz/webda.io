@@ -62,7 +62,7 @@ class QueueService extends Service {
     this.pause = 1;
     this.callback = callback;
     this._workerReceiveMessage();
-    return new Promise( (resolve, reject) => {
+    return new Promise((resolve, reject) => {
 
     });
   }

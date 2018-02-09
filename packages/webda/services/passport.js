@@ -7,11 +7,26 @@ const _extend = require("util")._extend;
 const Ident = require('../models/ident');
 
 var Strategies = {
-  "facebook": {strategy: require('passport-facebook').Strategy, promise: false},
-  "google": {strategy: require('passport-google-oauth').OAuth2Strategy, promise: false},
-  "amazon": {strategy: require('passport-amazon').Strategy, promise: false},
-  "github": {strategy: require('passport-github2').Strategy, promise: false},
-  "twitter": {strategy: require('passport-twitter').Strategy, promise: true}
+  "facebook": {
+    strategy: require('passport-facebook').Strategy,
+    promise: false
+  },
+  "google": {
+    strategy: require('passport-google-oauth').OAuth2Strategy,
+    promise: false
+  },
+  "amazon": {
+    strategy: require('passport-amazon').Strategy,
+    promise: false
+  },
+  "github": {
+    strategy: require('passport-github2').Strategy,
+    promise: false
+  },
+  "twitter": {
+    strategy: require('passport-twitter').Strategy,
+    promise: true
+  }
 }
 
 /**
@@ -57,28 +72,49 @@ class PassportExecutor extends Executor {
       this._initException = "Unresolved dependency on idents and users services";
     }
     // List authentication configured
-    this._addRoute(url, {"method": ["GET", "DELETE"], "executor": this, "_method": this._listAuthentications});
+    this._addRoute(url, {
+      "method": ["GET", "DELETE"],
+      "executor": this,
+      "_method": this._listAuthentications
+    });
     // Get the current user
-    this._addRoute(url + "/me", {"method": ["GET"], "executor": this._name, "_method": this._getMe});
+    this._addRoute(url + "/me", {
+      "method": ["GET"],
+      "executor": this._name,
+      "_method": this._getMe
+    });
     if (this._params.providers.email) {
       // Add static for email for now, if set before it should have priority
-      this._addRoute(url + "/email", {"method": ["POST"], "executor": this._name, "params": {"provider": "email"}, "_method": this._handleEmail});
+      this._addRoute(url + "/email", {
+        "method": ["POST"],
+        "executor": this._name,
+        "params": {
+          "provider": "email"
+        },
+        "_method": this._handleEmail
+      });
       this._addRoute(url + "/email/callback{?email,token}", {
         "method": ["GET"],
         "executor": this._name,
-        "params": {"provider": "email"},
+        "params": {
+          "provider": "email"
+        },
         "_method": this._handleEmailCallback
       });
-      this._addRoute(url + "/email/passwordRecovery" ,{
+      this._addRoute(url + "/email/passwordRecovery", {
         "method": ["POST"],
         "executor": this._name,
-        "params": {"provider": "email"},
+        "params": {
+          "provider": "email"
+        },
         "_method": this._passwordRecovery
       });
-      this._addRoute(url + "/email/{email}/recover" ,{
+      this._addRoute(url + "/email/{email}/recover", {
         "method": ["GET"],
         "executor": this._name,
-        "params": {"provider": "email"},
+        "params": {
+          "provider": "email"
+        },
         "_method": this._passwordRecoveryEmail
       });
     }
@@ -103,7 +139,7 @@ class PassportExecutor extends Executor {
       throw 404;
     }
     return new Promise((resolve, reject) => {
-      var done = function (result) {
+      var done = function(result) {
         resolve();
       };
       this.setupOAuth(ctx, providerConfig);
@@ -122,7 +158,10 @@ class PassportExecutor extends Executor {
       if (user === undefined) {
         throw 404;
       }
-      return this.emit("GetMe", {ctx: ctx, user: user}).then(() => {
+      return this.emit("GetMe", {
+        ctx: ctx,
+        user: user
+      }).then(() => {
         ctx.write(user);
       });
     });
@@ -157,8 +196,13 @@ class PassportExecutor extends Executor {
       if (result) {
         return this.login(ctx, result.user, result).then(() => {
           // Need to improve DynamoDB testing about invalid value 
-          return identStore.update({'lastUsed': new Date()}, result.uuid).then(() => {
-            ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider, 'X-Webda-Authentication': 'success'});
+          return identStore.update({
+            'lastUsed': new Date()
+          }, result.uuid).then(() => {
+            ctx.writeHead(302, {
+              'Location': this._params.successRedirect + '?validation=' + ctx._params.provider,
+              'X-Webda-Authentication': 'success'
+            });
             ctx.end();
             done(result);
           });
@@ -179,7 +223,10 @@ class PassportExecutor extends Executor {
         return identStore.save(ident).then(() => {
           ident.__new = true;
           return this.login(ctx, user, ident).then(() => {
-            ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider, 'X-Webda-Authentication': 'success'});
+            ctx.writeHead(302, {
+              'Location': this._params.successRedirect + '?validation=' + ctx._params.provider,
+              'X-Webda-Authentication': 'success'
+            });
             ctx.end();
             done(ident);
           });
@@ -193,9 +240,8 @@ class PassportExecutor extends Executor {
   setupOAuth(ctx, config) {
     config.callbackURL = this.getCallbackUrl(ctx);
     passport.use(new Strategies[ctx._params.provider].strategy(config, (accessToken, refreshToken, profile, done) => {
-        this.handleOAuthReturn(ctx, Ident.init(ctx._params.provider, profile.id, accessToken, refreshToken, profile._json), done);
-      }
-    ));
+      this.handleOAuthReturn(ctx, Ident.init(ctx._params.provider, profile.id, accessToken, refreshToken, profile._json), done);
+    }));
   }
 
   registerUser(ctx, datas, user) {
@@ -203,7 +249,11 @@ class PassportExecutor extends Executor {
       user = {};
     }
     user.locale = ctx.getLocale();
-    return this.emit("Register", {"user": user, "datas": datas, "ctx": ctx}).then(() => {
+    return this.emit("Register", {
+      "user": user,
+      "datas": datas,
+      "ctx": ctx
+    }).then(() => {
       return Promise.resolve(user);
     });
   }
@@ -226,7 +276,11 @@ class PassportExecutor extends Executor {
       promise = Promise.resolve(uuid);
     }
     return promise.then((user) => {
-      return {expire: expire, token: this.hashPassword(user.uuid + expire + user.__password), login: user.uuid};
+      return {
+        expire: expire,
+        token: this.hashPassword(user.uuid + expire + user.__password),
+        login: user.uuid
+      };
     });
   }
 
@@ -234,7 +288,7 @@ class PassportExecutor extends Executor {
     var userStore = this.getService("users");
     var identStore = this.getService("idents");
     if (identStore === undefined) {
-      this._webda.log('ERROR','Email auth needs an ident store');
+      this._webda.log('ERROR', 'Email auth needs an ident store');
       throw 500;
     }
     return identStore.get(ctx._params.email + "_email").then((ident) => {
@@ -247,7 +301,9 @@ class PassportExecutor extends Executor {
       if (user._lastPasswordRecovery > Date.now() - 3600000 * 4) {
         throw 429;
       }
-      return userStore.update({_lastPasswordRecovery: Date.now()}, user.uuid).then(() => {
+      return userStore.update({
+        _lastPasswordRecovery: Date.now()
+      }, user.uuid).then(() => {
         return this.sendRecoveryEmail(ctx, user, ctx._params.email);
       });
     });
@@ -277,8 +333,10 @@ class PassportExecutor extends Executor {
         throw 410;
       }
       return this._verifyPassword(ctx.body.password);
-    }).then( () => {
-      return userStore.update({__password: this.hashPassword(ctx.body.password)}, ctx.body.login.toLowerCase());
+    }).then(() => {
+      return userStore.update({
+        __password: this.hashPassword(ctx.body.password)
+      }, ctx.body.login.toLowerCase());
     });
   }
 
@@ -292,7 +350,9 @@ class PassportExecutor extends Executor {
     if (ctx._params.token) {
       let validation = ctx._params.token;
       if (validation !== this.generateEmailValidationToken(ctx._params.email)) {
-        ctx.writeHead(302, {'Location': this._params.failureRedirect});
+        ctx.writeHead(302, {
+          'Location': this._params.failureRedirect
+        });
         return Promise.resolve();
       }
       var uuid = ctx._params.email + "_email";
@@ -300,9 +360,14 @@ class PassportExecutor extends Executor {
         if (ident === undefined) {
           throw 404;
         }
-        return identStore.update({validation: new Date()}, ident.uuid);
+        return identStore.update({
+          validation: new Date()
+        }, ident.uuid);
       }).then(() => {
-        ctx.writeHead(302, {'Location': this._params.successRedirect + '?validation=' + ctx._params.provider, 'X-Webda-Authentication': 'success'});
+        ctx.writeHead(302, {
+          'Location': this._params.successRedirect + '?validation=' + ctx._params.provider,
+          'X-Webda-Authentication': 'success'
+        });
         return Promise.resolve();
       });
     }
@@ -357,7 +422,9 @@ class PassportExecutor extends Executor {
   }
 
   logout(ctx) {
-    return this.emit("Logout", {ctx: ctx}).then(() => {
+    return this.emit("Logout", {
+      ctx: ctx
+    }).then(() => {
       ctx.session.destroy();
     });
   }
@@ -450,14 +517,19 @@ class PassportExecutor extends Executor {
           }
           // Store with a _
           ctx.body.__password = this.hashPassword(ctx.body.password);
-          return this._verifyPassword(ctx.body.password).then( () => {
+          return this._verifyPassword(ctx.body.password).then(() => {
             delete ctx.body.password;
             delete ctx.body.register;
             return this.registerUser(ctx, ctx.body, ctx.body)
           }).then((user) => {
             return userStore.save(user);
           }).then((user) => {
-            var newIdent = {'uuid': uuid, 'type': 'email', 'email': email, 'user': user.uuid};
+            var newIdent = {
+              'uuid': uuid,
+              'type': 'email',
+              'email': email,
+              'user': user.uuid
+            };
             if (validation) {
               newIdent.validation = validation;
             }
@@ -490,7 +562,9 @@ class PassportExecutor extends Executor {
     if (ctx._params.provider == "logout") {
       return this.logout(ctx).then(() => {
         if (this._params.website) {
-          ctx.writeHead(302, {'Location': this._params.website});
+          ctx.writeHead(302, {
+            'Location': this._params.website
+          });
         } else {
           throw 204;
         }
@@ -500,16 +574,20 @@ class PassportExecutor extends Executor {
     if (providerConfig) {
       if (!Strategies[ctx._params.provider].promise) {
         this.setupOAuth(ctx, providerConfig);
-        return passport.authenticate(ctx._params.provider, {'scope': providerConfig.scope})(ctx, ctx);
+        return passport.authenticate(ctx._params.provider, {
+          'scope': providerConfig.scope
+        })(ctx, ctx);
       }
       return new Promise((resolve, reject) => {
         ctx._end = ctx.end;
-        ctx.end = function (obj) {
+        ctx.end = function(obj) {
           ctx.end = ctx._end;
           resolve(obj);
         };
         this.setupOAuth(ctx, providerConfig);
-        passport.authenticate(ctx._params.provider, {'scope': providerConfig.scope}, this._oauth1)(ctx, ctx, ctx._oauth1);
+        passport.authenticate(ctx._params.provider, {
+          'scope': providerConfig.scope
+        }, this._oauth1)(ctx, ctx, ctx._oauth1);
       });
     }
     throw 404;

@@ -12,10 +12,15 @@ class LambdaCaller {
     }
     this.AWS = require('aws-sdk');
     if (config.region) {
-      this.AWS.config.update({region: config.region});
+      this.AWS.config.update({
+        region: config.region
+      });
     }
     if (config['accessKeyId'] !== undefined) {
-      this.AWS.config.update({accessKeyId: config['accessKeyId'], secretAccessKey: config['secretAccessKey']});
+      this.AWS.config.update({
+        accessKeyId: config['accessKeyId'],
+        secretAccessKey: config['secretAccessKey']
+      });
     }
     this._arn = arn;
   }

@@ -56,7 +56,7 @@ class Store extends Executor {
     }
     this._model = this._webda.getModel(model);
     if (!this._model) {
-      this._webda.log('WARN', 'Bad model', model,'fallback to CoreModel');
+      this._webda.log('WARN', 'Bad model', model, 'fallback to CoreModel');
       this._model = this._webda.getModel("Webda/CoreModel");
     }
     if (this._params.expose) {
@@ -69,13 +69,20 @@ class Store extends Executor {
       expose = {};
       expose.url = "/" + this._name.toLowerCase();
     } else if (typeof(expose) == "string") {
-      expose = {url: expose};
+      expose = {
+        url: expose
+      };
     } else if (typeof(expose) == "object" && expose.url == undefined) {
       expose.url = "/" + this._name.toLowerCase();
     }
     expose.restrict = expose.restrict || {}
     if (!expose.restrict.create) {
-      this._addRoute(expose.url, {"method": ["POST"], "executor": this._name, "expose": expose, "_method": this.httpCreate});
+      this._addRoute(expose.url, {
+        "method": ["POST"],
+        "executor": this._name,
+        "expose": expose,
+        "_method": this.httpCreate
+      });
     }
     // Dont even create the route that are restricted so we can ease up the test on handler
     let methods = [];
@@ -89,20 +96,25 @@ class Store extends Executor {
       methods.push("DELETE");
     }
     if (methods.length) {
-      this._addRoute(expose.url + "/{uuid}", {"method": methods, "executor": this._name, "expose": expose, "_method": this.httpRoute});
+      this._addRoute(expose.url + "/{uuid}", {
+        "method": methods,
+        "executor": this._name,
+        "expose": expose,
+        "_method": this.httpRoute
+      });
     }
     if (this._model && this._model.getActions) {
-    	let actions = this._model.getActions();
-    	Object.keys(actions).forEach( (name) => {
+      let actions = this._model.getActions();
+      Object.keys(actions).forEach((name) => {
         let action = actions[name];
         action.name = name;
         if (!action.name) {
           throw Error('Action needs a name got:', action);
         }
-    		if (!action.method) {
-    			action.method = ['PUT'];
-    		}
-    		action.executor = this._name;
+        if (!action.method) {
+          action.method = ['PUT'];
+        }
+        action.executor = this._name;
         if (action.global) {
           // By default will grab the object and then call the action
           if (!action._method) {
@@ -122,7 +134,7 @@ class Store extends Executor {
           }
           this._addRoute(expose.url + '/{uuid}/' + action.name, action);
         }
-    	});
+      });
     }
   }
 
@@ -142,7 +154,10 @@ class Store extends Executor {
   }
 
   addReverseMap(prop, cascade, store) {
-    this._reverseMap.push({'property': prop, 'store': store});
+    this._reverseMap.push({
+      'property': prop,
+      'store': store
+    });
     if (cascade) {
       this._cascade.push(cascade);
     }
@@ -157,9 +172,17 @@ class Store extends Executor {
     if (value === 0) {
       return Promise.resolve();
     }
-    return this._incrementAttribute(uid, prop, value).then( () => {
-      return this.emit('Store.PartialUpdate', {'object_id': uid, 'store': this,
-        'partial_update': {'increment': {'value': value, 'property': prop}}});
+    return this._incrementAttribute(uid, prop, value).then(() => {
+      return this.emit('Store.PartialUpdate', {
+        'object_id': uid,
+        'store': this,
+        'partial_update': {
+          'increment': {
+            'value': value,
+            'property': prop
+          }
+        }
+      });
     });
   }
 
@@ -167,9 +190,18 @@ class Store extends Executor {
     if (itemWriteConditionField === undefined) {
       itemWriteConditionField = 'uuid';
     }
-    return this._upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField).then( () => {
-      return this.emit('Store.PartialUpdate', {'object_id': uid, 'store': this,
-          'partial_update': {'addItem': {'value': item, 'property': prop, 'index': index}}});
+    return this._upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField).then(() => {
+      return this.emit('Store.PartialUpdate', {
+        'object_id': uid,
+        'store': this,
+        'partial_update': {
+          'addItem': {
+            'value': item,
+            'property': prop,
+            'index': index
+          }
+        }
+      });
     });
   }
 
@@ -184,9 +216,18 @@ class Store extends Executor {
     if (itemWriteConditionField === undefined) {
       itemWriteConditionField = 'uuid';
     }
-    return this._deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField).then( () => {
-      return this.emit('Store.PartialUpdate', {'object_id': uid, 'store': this,
-          'partial_update': {'deleteItem': {'value': index, 'property': prop, 'index': index}}});
+    return this._deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField).then(() => {
+      return this.emit('Store.PartialUpdate', {
+        'object_id': uid,
+        'store': this,
+        'partial_update': {
+          'deleteItem': {
+            'value': index,
+            'property': prop,
+            'index': index
+          }
+        }
+      });
     });
   }
 
@@ -202,12 +243,15 @@ class Store extends Executor {
       var reverseStore = this._webda.getService(prop);
       if (reverseStore === undefined || !(reverseStore instanceof Store)) {
         map[prop]["-onerror"] = "NoStore";
-        this._webda.log('WARN', 'Can\'t setup mapping as store "', prop,'" doesn\'t exist');
+        this._webda.log('WARN', 'Can\'t setup mapping as store "', prop, '" doesn\'t exist');
         continue;
       }
       var cascade = undefined;
       if (map[prop].cascade) {
-        cascade = {'store': this._name, 'name': map[prop].target};
+        cascade = {
+          'store': this._name,
+          'name': map[prop].target
+        };
       }
       reverseStore.addReverseMap(map[prop].target, cascade, this);
     }
@@ -247,7 +291,10 @@ class Store extends Executor {
     }
     object.lastUpdate = new Date();
     object = this.initModel(object);
-    return this.emit('Store.Save', {'object': object, 'store': this}).then(() => {
+    return this.emit('Store.Save', {
+      'object': object,
+      'store': this
+    }).then(() => {
       // Handle object auto listener
       if (typeof(object._onSave) === 'function') {
         return object._onSave();
@@ -257,7 +304,10 @@ class Store extends Executor {
       return this._save(object, uid);
     }).then((res) => {
       object = this.initModel(res);
-      return this.emit('Store.Saved', {'object': object, 'store': this});
+      return this.emit('Store.Saved', {
+        'object': object,
+        'store': this
+      });
     }).then(() => {
       if (typeof(object._onSaved) === 'function') {
         return object._onSaved();
@@ -267,7 +317,7 @@ class Store extends Executor {
       if (this._params.map != undefined) {
         return this.handleMap(object, this._params.map, "created").then(() => {
           return Promise.resolve(object);
-        }, function (err) {
+        }, function(err) {
           return Promise.reject(err)
         });
       } else {
@@ -319,7 +369,11 @@ class Store extends Executor {
         loaded = this.initModel(load);
         return this.handleMap(loaded, this._params.map, object);
       }).then(() => {
-        return this.emit('Store.Update', {'object': loaded, 'store': this, 'update': object});
+        return this.emit('Store.Update', {
+          'object': loaded,
+          'store': this,
+          'update': object
+        });
       }).then(() => {
         if (typeof(loaded._onUpdate) === 'function') {
           return loaded._onUpdate(object);
@@ -339,7 +393,10 @@ class Store extends Executor {
       }));
     }).then((result) => {
       saved = this.initModel(result);
-      return this.emit('Store.Updated', {'object': result, 'store': this});
+      return this.emit('Store.Updated', {
+        'object': result,
+        'store': this
+      });
     }).then(() => {
       if (typeof(saved._onUpdated) === 'function') {
         return saved._onUpdated();
@@ -369,7 +426,9 @@ class Store extends Executor {
   }
 
   _handleUpdatedMap(object, map, mapped, store, updates) {
-    var mapper = {'uuid': object.uuid};
+    var mapper = {
+      'uuid': object.uuid
+    };
     // Update only if the key field has been updated
     var found = false;
     for (var field in updates) {
@@ -579,7 +638,10 @@ class Store extends Executor {
       }
       to_delete = this.initModel(obj);
       saved = obj;
-      return this.emit('Store.Delete', {'object': obj, 'store': this});
+      return this.emit('Store.Delete', {
+        'object': obj,
+        'store': this
+      });
     }).then(() => {
       if (typeof(to_delete._onDelete) === 'function') {
         return to_delete._onDelete();
@@ -609,11 +671,16 @@ class Store extends Executor {
       }
     }).then(() => {
       if (this._params.asyncDelete && !sync) {
-        return this._update({'__deleted': true}, uid);
+        return this._update({
+          '__deleted': true
+        }, uid);
       }
       return this._delete(uid);
     }).then(() => {
-      return this.emit('Store.Deleted', {'object': to_delete, 'store': this});
+      return this.emit('Store.Deleted', {
+        'object': to_delete,
+        'store': this
+      });
     }).then(() => {
       if (typeof(to_delete._onDeleted) === 'function') {
         return to_delete._onDeleted();
@@ -658,7 +725,10 @@ class Store extends Executor {
         return Promise.resolve(undefined);
       }
       object = this.initModel(object);
-      return this.emit('Store.Get', {'object': object, 'store': this}).then(() => {
+      return this.emit('Store.Get', {
+        'object': object,
+        'store': this
+      }).then(() => {
         if (typeof(object._onGet) === 'function') {
           return object._onGet();
         }
@@ -674,10 +744,21 @@ class Store extends Executor {
   }
 
   find(request, offset, limit) {
-    return this.emit('Store.Find', {'request': request, 'store': this, 'offset': offset, 'limit': limit}).then(() => {
+    return this.emit('Store.Find', {
+      'request': request,
+      'store': this,
+      'offset': offset,
+      'limit': limit
+    }).then(() => {
       return this._find(request, offset, limit);
     }).then((result) => {
-      return this.emit('Store.Found', {'request': request, 'store': this, 'offset': offset, 'limit': limit, 'results': result}).then(() => {
+      return this.emit('Store.Found', {
+        'request': request,
+        'store': this,
+        'offset': offset,
+        'limit': limit,
+        'results': result
+      }).then(() => {
         return Promise.resolve(result);
       });
     });
@@ -705,7 +786,11 @@ class Store extends Executor {
       return this.save(object, object.uuid);
     }).then((new_object) => {
       ctx.write(new_object);
-      return this.emit('Store.WebCreate', {'values': ctx.body, 'object': new_object, 'store': this});
+      return this.emit('Store.WebCreate', {
+        'values': ctx.body,
+        'object': new_object,
+        'store': this
+      });
     });
   }
 
@@ -720,25 +805,42 @@ class Store extends Executor {
         }
         return object.canAct(ctx, action);
       }).then(() => {
-        return this.emit('Store.Action', {'action': action, 'object': object,
-          'store': this, 'body': ctx.body, 'params': ctx._params});
+        return this.emit('Store.Action', {
+          'action': action,
+          'object': object,
+          'store': this,
+          'body': ctx.body,
+          'params': ctx._params
+        });
       }).then(() => {
         return object['_' + action](ctx);
       }).then((res) => {
         if (res) {
           ctx.write(res);
         }
-        return this.emit('Store.Actioned', {'object': object, 'store': this});
+        return this.emit('Store.Actioned', {
+          'object': object,
+          'store': this
+        });
       });
     } else if (ctx._route.global) {
-      return this.emit('Store.Action', {'action': action, 'store': this,
-                          'body': ctx.body, 'params': ctx._params}).then( () => {
+      return this.emit('Store.Action', {
+        'action': action,
+        'store': this,
+        'body': ctx.body,
+        'params': ctx._params
+      }).then(() => {
         return this._model['_' + ctx._route.name](ctx);
-      }).then( (res) => {
+      }).then((res) => {
         if (res) {
           ctx.write(res);
         }
-        return this.emit('Store.Actioned', {'action': action, 'store': this, 'body': ctx.body, 'params': ctx._params});
+        return this.emit('Store.Actioned', {
+          'action': action,
+          'store': this,
+          'body': ctx.body,
+          'params': ctx._params
+        });
       });
     }
   }
@@ -759,7 +861,11 @@ class Store extends Executor {
         throw 500;
       }
       ctx.write(object);
-      return this.emit('Store.WebUpdate', {'updates': ctx.body, 'object': object, 'store': this});
+      return this.emit('Store.WebUpdate', {
+        'updates': ctx.body,
+        'object': object,
+        'store': this
+      });
     });
   }
 
@@ -772,7 +878,10 @@ class Store extends Executor {
         return object.canAct(ctx, 'get');
       }).then((object) => {
         ctx.write(object);
-        return this.emit('Store.WebGet', {'object': object, 'store': this});
+        return this.emit('Store.WebGet', {
+          'object': object,
+          'store': this
+        });
       });
     } else {
       // List probably
@@ -792,8 +901,11 @@ class Store extends Executor {
         // Have trouble to handle the Content-Length on API Gateway so returning an empty object for now
         ctx.write({});
         return this.delete(ctx._params.uuid);
-      }).then( () => {
-        return this.emit('Store.WebDelete', {'object_id': ctx._params.uuid, 'store': this});
+      }).then(() => {
+        return this.emit('Store.WebDelete', {
+          'object_id': ctx._params.uuid,
+          'store': this
+        });
       });
     } else if (ctx._route._http.method == "PUT") {
       return this.httpUpdate(ctx);

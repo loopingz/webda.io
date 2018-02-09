@@ -21,7 +21,7 @@ class DynamoStore extends AWSServiceMixIn(Store) {
     if (params.table === undefined || params.accessKeyId === undefined || params.secretAccessKey === undefined) {
       this._createException = "Need to define a table,accessKeyId,secretAccessKey at least";
     }
-    this._client = new (this._getAWS(params)).DynamoDB.DocumentClient();
+    this._client = new(this._getAWS(params)).DynamoDB.DocumentClient();
   }
 
   init(config) {
@@ -30,7 +30,7 @@ class DynamoStore extends AWSServiceMixIn(Store) {
 
   exists(uid) {
     // Should use find + limit 1
-    return this._get(uid).then(function (result) {
+    return this._get(uid).then(function(result) {
       return Promise.resolve(result !== undefined);
     });
   }
@@ -38,8 +38,11 @@ class DynamoStore extends AWSServiceMixIn(Store) {
   _save(object, uid) {
     object = this._cleanObject(object);
     // Cannot have empty attribute on DynamoDB need to clean this
-    var params = {'TableName': this._params.table, 'Item': object};
-    return this._client.put(params).promise().then(function (result) {
+    var params = {
+      'TableName': this._params.table,
+      'Item': object
+    };
+    return this._client.put(params).promise().then(function(result) {
       return Promise.resolve(object);
     });
   }
@@ -90,7 +93,12 @@ class DynamoStore extends AWSServiceMixIn(Store) {
   }
 
   _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
-    var params = {'TableName': this._params.table, 'Key': {"uuid": uid}};
+    var params = {
+      'TableName': this._params.table,
+      'Key': {
+        "uuid": uid
+      }
+    };
     var attrs = {};
     attrs["#" + prop] = prop;
     params.ExpressionAttributeNames = attrs;
@@ -100,7 +108,12 @@ class DynamoStore extends AWSServiceMixIn(Store) {
   }
 
   _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
-    var params = {'TableName': this._params.table, 'Key': {"uuid": uid}};
+    var params = {
+      'TableName': this._params.table,
+      'Key': {
+        "uuid": uid
+      }
+    };
     var attrValues = {};
     var attrs = {};
     attrs["#" + prop] = prop;
@@ -126,7 +139,12 @@ class DynamoStore extends AWSServiceMixIn(Store) {
   }
 
   _delete(uid, writeCondition) {
-    var params = {'TableName': this._params.table, 'Key': {"uuid": uid}};
+    var params = {
+      'TableName': this._params.table,
+      'Key': {
+        "uuid": uid
+      }
+    };
     if (writeCondition) {
       params.WriteCondition = this._getWriteCondition(writeCondition);
     }
@@ -159,7 +177,9 @@ class DynamoStore extends AWSServiceMixIn(Store) {
     }
     var params = {
       'TableName': this._params.table,
-      'Key': {"uuid": uid},
+      'Key': {
+        "uuid": uid
+      },
       'UpdateExpression': expr,
       ExpressionAttributeValues: attrValues,
       ExpressionAttributeNames: attrs
@@ -173,7 +193,11 @@ class DynamoStore extends AWSServiceMixIn(Store) {
 
   _scan(items, paging) {
     return new Promise((resolve, reject) => {
-      this._client.scan({TableName: this._params.table, Limit: this._params.scanPage, ExclusiveStartKey: paging}, (err, data) => {
+      this._client.scan({
+        TableName: this._params.table,
+        Limit: this._params.scanPage,
+        ExclusiveStartKey: paging
+      }, (err, data) => {
         if (err) {
           return reject(err);
         }
@@ -192,10 +216,14 @@ class DynamoStore extends AWSServiceMixIn(Store) {
     if (!uids) {
       return this._scan([]);
     }
-    var params = {'RequestItems': {}};
+    var params = {
+      'RequestItems': {}
+    };
     params['RequestItems'][this._params.table] = {
       'Keys': uids.map((value) => {
-        return {"uuid": value};
+        return {
+          "uuid": value
+        };
       })
     };
     return this._client.batchGet(params).promise().then((result) => {
@@ -204,7 +232,12 @@ class DynamoStore extends AWSServiceMixIn(Store) {
   }
 
   _get(uid) {
-    var params = {'TableName': this._params.table, 'Key': {"uuid": uid}};
+    var params = {
+      'TableName': this._params.table,
+      'Key': {
+        "uuid": uid
+      }
+    };
     return this._client.get(params).promise().then((result) => {
       return Promise.resolve(result.Item);
     });
@@ -213,10 +246,16 @@ class DynamoStore extends AWSServiceMixIn(Store) {
   _incrementAttribute(uid, prop, value) {
     var params = {
       'TableName': this._params.table,
-      'Key': {"uuid": uid},
+      'Key': {
+        "uuid": uid
+      },
       'UpdateExpression': 'ADD #a1 :v1',
-      ExpressionAttributeValues: {':v1': value},
-      ExpressionAttributeNames: {'#a1': prop}
+      ExpressionAttributeValues: {
+        ':v1': value
+      },
+      ExpressionAttributeNames: {
+        '#a1': prop
+      }
     };
     return this._client.update(params).promise();
   }
@@ -224,42 +263,50 @@ class DynamoStore extends AWSServiceMixIn(Store) {
   getARNPolicy(accountId) {
     let region = this._params.region || 'us-east-1';
     return {
-        "Sid": this.constructor.name + this._name,
-        "Effect": "Allow",
-        "Action": [
-            "dynamodb:BatchGetItem",
-            "dynamodb:BatchWriteItem",
-            "dynamodb:DeleteItem",
-            "dynamodb:GetItem",
-            "dynamodb:GetRecords",
-            "dynamodb:GetShardIterator",
-            "dynamodb:PutItem",
-            "dynamodb:Query",
-            "dynamodb:Scan",
-            "dynamodb:UpdateItem"
-        ],
-        "Resource": [
-            'arn:aws:dynamodb:' + region + ':' + accountId + ':table/' + this._params.table
-        ]
+      "Sid": this.constructor.name + this._name,
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:BatchGetItem",
+        "dynamodb:BatchWriteItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:GetItem",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator",
+        "dynamodb:PutItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:UpdateItem"
+      ],
+      "Resource": [
+        'arn:aws:dynamodb:' + region + ':' + accountId + ':table/' + this._params.table
+      ]
     }
   }
 
   install(params) {
-     var dynamodb = new (this._getAWS(params)).DynamoDB();
-     return dynamodb.describeTable({TableName: this._params.table}).promise().catch ( (err) => {
+    var dynamodb = new(this._getAWS(params)).DynamoDB();
+    return dynamodb.describeTable({
+      TableName: this._params.table
+    }).promise().catch((err) => {
       if (err.code === 'ResourceNotFoundException') {
         this._webda.log('INFO', 'Creating table', this._params.table);
         let createTable = this._params.createTableParameters || {
-            ProvisionedThroughput: {},
-            KeySchema: [{AttributeName: 'uuid', KeyType: 'HASH'}],
-            AttributeDefinitions: [{AttributeName: 'uuid', AttributeType: 'S'}]
-          };
+          ProvisionedThroughput: {},
+          KeySchema: [{
+            AttributeName: 'uuid',
+            KeyType: 'HASH'
+          }],
+          AttributeDefinitions: [{
+            AttributeName: 'uuid',
+            AttributeType: 'S'
+          }]
+        };
         createTable.TableName = this._params.table;
         createTable.ProvisionedThroughput.ReadCapacityUnits = createTable.ProvisionedThroughput.ReadCapacityUnits || this._params.tableReadCapacity || 5;
         createTable.ProvisionedThroughput.WriteCapacityUnits = createTable.ProvisionedThroughput.WriteCapacityUnits || this._params.tableWriteCapacity || 5;
         return dynamodb.createTable(createTable).promise();
       }
-     });
+    });
   }
 
   uninstall(params) {
@@ -276,7 +323,9 @@ class DynamoStore extends AWSServiceMixIn(Store) {
   }
 
   __clean() {
-    var params = {'TableName': this._params.table};
+    var params = {
+      'TableName': this._params.table
+    };
     return this._client.scan(params).promise().then((result) => {
       var promises = [];
       for (var i in result.Items) {

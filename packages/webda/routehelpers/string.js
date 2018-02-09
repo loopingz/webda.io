@@ -19,7 +19,9 @@ class StringRouteHelper extends Executor {
   /** @ignore */
   execute(ctx) {
     if (ctx._params.mime) {
-      ctx.writeHead(200, {'Content-Type': ctx._params.mime});
+      ctx.writeHead(200, {
+        'Content-Type': ctx._params.mime
+      });
     }
     if (typeof ctx._params.result != "string") {
       ctx.write(JSON.stringify(ctx._params.result));

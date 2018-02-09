@@ -46,8 +46,7 @@ class Service extends EventEmitter {
    * @param config for the host so you can add your own route here
    * @abstract
    */
-  init(config) {
-  }
+  init(config) {}
 
   /**
    * For future use, while deploying this should be call so the service can create what it needs if necessary
@@ -105,8 +104,7 @@ class Service extends EventEmitter {
    * Return the Modda definition if any
    *
    */
-  static getModda() {
-  }
+  static getModda() {}
 
   getName() {
     return this._name;

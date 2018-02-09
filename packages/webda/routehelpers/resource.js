@@ -22,7 +22,9 @@ class ResourceRouteHelper extends Executor {
         }
         var mime_file = mime.lookup(ctx._params.file);
         if (mime_file) {
-          ctx.writeHead(200, {'Content-Type': mime_file});
+          ctx.writeHead(200, {
+            'Content-Type': mime_file
+          });
         }
         ctx.write(data);
         ctx.end();

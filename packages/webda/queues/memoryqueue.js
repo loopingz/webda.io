@@ -19,7 +19,11 @@ class MemoryQueueService extends QueueService {
 
   sendMessage(params) {
     var uid = uuid.v4();
-    this._queue[uid] = {Body: params, Claimed: 0, ReceiptHandle: uid};
+    this._queue[uid] = {
+      Body: params,
+      Claimed: 0,
+      ReceiptHandle: uid
+    };
     return Promise.resolve();
   }
 
@@ -52,8 +56,7 @@ class MemoryQueueService extends QueueService {
       "documentation": "",
       "logo": "images/icons/memoryqueue.png",
       "configuration": {
-        "default": {
-        }
+        "default": {}
       }
     }
   }

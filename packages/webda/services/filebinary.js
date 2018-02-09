@@ -32,7 +32,14 @@ class FileBinary extends Binary {
     super.initRoutes(config, expose);
     // Will redirect to this URL for direct upload
     let url = this._url + "/upload/data/{hash}";
-    config[url] = {"method": ["PUT"], "executor": this._name, "_method": this.storeBinary, "aws": {"defaultCode": 204}};
+    config[url] = {
+      "method": ["PUT"],
+      "executor": this._name,
+      "_method": this.storeBinary,
+      "aws": {
+        "defaultCode": 204
+      }
+    };
   }
 
   _get(info) {

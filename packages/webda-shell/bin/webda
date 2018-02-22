@@ -1,33 +1,27 @@
 #!/usr/bin/env node
 "use strict";
 var fs = require('fs');
-var child_process = require('child_process');
-const yauzl = require("yauzl");
-const path = require("path");
-const mkdirp = require("mkdirp");
-const rp = require('request-promise');
 const colors = require('colors');
-const readline = require('readline');
-// Should declare each command
-var argv = require('yargs')
-              .alias('d', 'deployment')
-              .alias('o','open')
-              .alias('x', 'devMode')
-              .option('version', {type: 'boolean'})
-              .option('port', {alias:'p', default: 18080})
-              .option('websockets', {alias: 'w', default: false})
-              .argv;
-const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
+const path = require('path');
 
-function getVersion(file) {
-  return require(file + '/package.json').version;
+
+/**
+ * Get Version of a package (version attribute of package.json)
+ *
+ * @param packageName to retrieve version from
+ */
+function getVersion(packageName) {
+  return require(packageName + '/package.json').version;
 }
-global.__webda_shell = __dirname + "/..";
-console.log('web' + "da".yellow + "-shell - v" + getVersion(__webda_shell));
-// Check if local webda is not compatible
+
+/**
+ * Include Webda library
+ *
+ * Resolution order is:
+ *  - local library
+ *  - local folder
+ *  - embedded library
+ */
 if (fs.existsSync("node_modules/webda")) {
   // Local module of webda exists use it
   global.__webda = process.cwd() + '/node_modules/webda';
@@ -41,336 +35,44 @@ if (fs.existsSync("node_modules/webda")) {
   global.__webda = 'webda';
   console.log("Using embedded web" + "da".yellow + " - v" + getVersion(global.__webda));
 }
-var config;
-var server;
 
-config = require(global.__webda_shell + '/handlers/config');
-server = require(global.__webda_shell + '/handlers/http');
+global.__webda_shell = __dirname + "/..";
+console.log('web' + "da".yellow + "-shell - v" + getVersion(__webda_shell));
 
-function help() {
-  let bold = parseInt('033', 8);
-  console.log('\n  USAGE: webda [config|debug|deploy|init|install||serve|launch]\n\n');
-  console.log('  --help                     Display this message and exit\n');
-  console.log('');
-  console.log(' config'.bold.yellow + ': Launch the configuration UI or export a deployment config');
-  console.log(' serviceconfig'.bold.yellow + ': Display the configuration of a service with its deployment');
-  console.log(' init'.bold.yellow + ': Init a sample project for your current version');
-  console.log(' install'.bold.yellow + ': Install the resources for the declared services ( DynamoDB Tables, S3 Buckets )');
-  console.log(' serve'.bold.yellow + ' (DeployConfiguration): Serve current project, can serve with DeployConfiguration');
-  console.log(' deploy'.bold.yellow + ' DeployConfiguration: Deploy current project with DeployConfiguration name');
-  console.log(' worker'.bold.yellow + ': Launch a worker on a queue');
-  console.log(' debug'.bold.yellow + ': Debug current project');
-  console.log(' launch'.bold.yellow + ' ServiceName method arg1 ...: Launch the ServiceName method with arg1 ...');
+
+/**
+ * Search for webda.shell.json override or use standard
+ */
+const Finder = require('fs-finder');
+// Find first shell override
+var files = [];
+if (fs.existsSync('./node_modules')) {
+  files = Finder.from('./node_modules').findFiles('webda.shell.json');
+}
+var consoleService;
+if (files.length) {
+  let cfg = require(files[0]);
+  let dir = path.dirname(files[0]);
+  console.log(cfg.name + ' - v' + getVersion(dir).trim());
+  consoleService = require(path.join(dir, cfg.handler));
+} else {
+  consoleService = require('../console/webda');
 }
 
-if (argv.version) {
-  console.log('webda-shell: v' + getVersion(global.__webda_shell));
-  process.exit(0);
-}
+/**
+ * Commandline parsing
+ */
+var argv = require('yargs');
+argv = consoleService.parser(argv);
 
-if (argv.h || argv.help || argv._.length === 0) {
-  help();
-  process.exit(0);
-}
-
-var webda;
-var server_pid;
-var server_config;
-var deployment;
-
-function unzip(dest_dir, body) {
-  if (!dest_dir.endsWith('/')) {
-    dest_dir += '/';
-  }
-  return new Promise((resolve, reject) => {
-    yauzl.fromBuffer(body, {lazyEntries: true}, function (err, zipfile) {
-      if (err) {
-        return reject(err);
-      }
-      zipfile.readEntry();
-      zipfile.on("end", function () {
-        return resolve();
-      });
-      zipfile.on("entry", function (entry) {
-        if (/\/$/.test(entry.fileName)) {
-          // directory file names end with '/'
-          mkdirp(dest_dir + entry.fileName, function (err) {
-            if (err) {
-              return reject(err);
-            }
-            zipfile.readEntry();
-          });
-        } else {
-          // file entry
-          zipfile.openReadStream(entry, function (err, readStream) {
-            if (err) throw err;
-            // ensure parent directory exists
-            mkdirp(path.dirname(dest_dir + entry.fileName), function (err) {
-              if (err) throw err;
-              readStream.pipe(fs.createWriteStream(dest_dir + entry.fileName));
-              readStream.on("end", function () {
-                zipfile.readEntry();
-              });
-            });
-          });
-        }
-      });
-    });
-  });
-}
-
-if (['undeploy','deploy','install','uninstall'].indexOf(argv._[0]) >= 0) {
-  if (argv.deployment === undefined) {
-    console.log('Need to specify an environment');
-    process.exit(1);
-  }
-  server_config = new config().loadDeploymentConfig(argv.deployment);
-}
-
-function handleCommand(cmd) {
-  switch (cmd) {
-    case 'serve':
-      if (argv.deployment) {
-        // Loading first the configuration
-        console.log("Serve as deployment: " + argv.deployment);
-        server_config = new config().loadDeploymentConfig(argv.deployment);
-      } else {
-        console.log("Serve as development");
-      }
-      webda = new server(server_config);
-      webda._devMode = argv.devMode;
-      if (webda._devMode) {
-        console.log('Dev mode activated : wildcard CORS enabled');
-      }
-      return webda.serve(argv.port, argv.websockets);
-    case 'install':
-      {
-        console.log("Installing deployment: " + argv.deployment);
-        webda = new config();
-        return webda.install(argv.deployment, server_config, argv._.slice(1));
-        /*
-        webda = new config();
-        console.log('Deploying', argv.deployment);
-        return webda.deploy(argv.deployment, argv._.slice(1)).catch((err) => {
-          console.trace(err);
-        });
-        webda = new server(server_config);
-        webda.setHost();
-        let services = webda.getServices();
-        for (var name in services) {
-          if (services[name].install) {
-            console.log('Installing', name);
-            services[name].install();
-          }
-        }
-        return;
-        */
-      }
-    case 'uninstall':
-      {
-        if (argv.deployment) {
-          // Loading first the configuration
-          console.log("Uninstalling deployment: ".red + argv.deployment.red);
-          // Should add a confirmation here with RED letter
-          server_config = new config().loadDeploymentConfig(argv.deployment);
-        }
-        webda = new server(server_config);
-        webda.setHost();
-        let services = webda.getServices();
-        for (var name in services) {
-          if (services[name].uninstall) {
-            console.log("Uninstalling", name);
-            services[name].uninstall();
-          }
-        }
-        process.exit(0);
-      }
-    case 'serviceconfig': {
-      if (argv.deployment) {
-        // Loading first the configuration
-        console.log("Service configuration as deployment: " + argv.deployment);
-        server_config = new config().loadDeploymentConfig(argv.deployment);
-      }
-      webda = new server(server_config);
-      let service_name = argv._[1];
-      let service = webda.getService(argv._[1]);
-      if (!service) {
-        let error = 'The service ' + service_name + ' is missing';
-        console.log(error.red);
-        process.exit(1);
-      }
-      console.log(JSON.stringify(service._params, null, ' '));
-      process.exit(0);
-    }
-    case 'worker':
-    case 'launch':
-      let service_name = argv._[1];
-      if (argv.deployment) {
-        // Loading first the configuration
-        console.log("Should work as deployment: " + argv.deployment);
-        server_config = new config().loadDeploymentConfig(argv.deployment);
-      }
-      webda = new server(server_config);
-      webda.setHost();
-      let service = webda.getService(service_name);
-      let method = argv._[2] || 'work';
-      if (!service) {
-        let error = 'The service ' + service_name + ' is missing';
-        console.log(error.red);
-        process.exit(1);
-      }
-      if (!service[method]) {
-        let error = 'The method ' + method + ' is missing in service ' + service_name;
-        console.log(error.red);
-        process.exit(1);
-      }
-      // Launch the worker with arguments
-      let timestamp = new Date().getTime();
-      let promise = service[method].apply(service, argv._.slice(3));
-      if (promise instanceof Promise) {
-        return promise.catch( (err) => {
-          console.log('An error occured', err);
-        });
-      }
-      return Promise.resolve(promise).then( () => {
-        let seconds = ((new Date().getTime()) - timestamp) / 1000;
-        console.log('Took', Math.ceil(seconds) + 's');
-      });
-    case 'debug':
-      let launchServe = function () {
-        if (server_pid) {
-          console.log("Refresh server");
-          server_pid.kill();
-        } else {
-          console.log("Launch webda serve in debug mode");
-        }
-        let args = [];
-        args.push(__dirname + "/webda");
-        if (argv.deployment) {
-          args.push("-d");
-          args.push(argv.deployment);
-        }
-        args.push("serve");
-        server_pid = require("child_process").spawn('node', args);
-      }
-      var excepts = ["dist", "node_modules", "deployments", "test"];
-      // Set a watcher
-      var timeout;
-      var listener = function (event, filename) {
-        launchServe();
-      }
-      var watchs = fs.readdirSync(".")
-      for (let file in watchs) {
-        let filename = watchs[file];
-        if (filename.indexOf(".") === 0) continue;
-        if (excepts.indexOf(filename) >= 0) continue;
-        if (filename.endsWith(".js")) {
-          fs.watch(filename, {permanent: true}, listener);
-          continue;
-        }
-        if (!fs.existsSync(filename)) {
-          continue;
-        }
-        let stat = fs.statSync(filename);
-        if (stat.isDirectory()) {
-          fs.watch(filename, {permanent: true, resursive: true}, listener);
-        }
-      }
-      launchServe();
-      return;
-    case 'config':
-      if (argv.deployment) {
-        let webda = new config();
-        server_config = webda.loadDeploymentConfig(argv.deployment);
-        // Caching the modules
-        server_config.cachedModules = webda._modules;
-        let json = JSON.stringify(server_config, null, ' ');
-        if (argv._.length > 1) {
-          fs.writeFileSync(argv._[1], json);
-        } else {
-          console.log(json);
-        }
-        return Promise.resolve();
-      }
-      webda = new config();
-      return webda.serve(18181, argv.open);
-    case 'deploy':
-      webda = new config();
-      return webda.deploy(argv.deployment, argv._.slice(1)).catch((err) => {
-        console.log('Error', err);
-      });
-    case 'undeploy':
-      webda = new config();
-      return webda.undeploy(argv.deployment, argv._.slice(1)).catch((err) => {
-        console.log(err);
-      });
-    case 'init':
-      {
-        let target = argv._[1];
-        let webda = require(global.__webda + '/core.js');
-        if (!webda.prototype.getVersion) {
-          console.log('You are using a webda < 0.3.1, you should update');
-          return;
-        }
-        let version = webda.prototype.getVersion();
-        if (!target) {
-          target = '.';
-        }
-        if (!target.startsWith('.') && !target.startsWith('/')) {
-          target = './' + target;
-        }
-        console.log('Init a sample project for webda v' + version + ' to ' + target);
-        let promise = Promise.resolve();
-        if (!fs.existsSync(target)) {
-          promise = new Promise((resolve, reject) => {
-            rl.question('The target folder does not exist, do you want to create it ? Y/N ', (answer) => {
-              if (answer === 'Y' || answer === 'y') {
-                return resolve(mkdirp(target));
-              }
-              rl.close();
-              process.exit(0);
-            });
-          });
-        } else if (fs.readdirSync(target).length) {
-          promise = new Promise((resolve, reject) => {
-            rl.question('The target folder is not empty, do you want to continue ?'.red + ' Y/N ', (answer) => {
-              if (answer === 'Y' || answer === 'y') {
-                return resolve();
-              }
-              rl.close();
-              process.exit(0);
-            });
-          });
-        }
-        return promise.then(() => {
-          return rp({
-            method: 'GET', uri: 'http://webda.io/samples/v' + version + '.zip',
-            resolveWithFullResponse: true, encoding: null
-          })
-        }).then((response) => {
-          return unzip(target, response.body);
-        }).then(() => {
-          console.log('Your project has been initialized with a sample project'.green);
-          if (fs.existsSync('./README.md')) {
-            console.log('\nYou can read the README.md for further instruction'.green);
-          }
-        }).catch((err) => {
-          console.log('There is no sample found for this version of webda, sorry :('.red);
-        }).then(() => {
-          rl.close();
-        });
-      }
-      break;
-    default:
-      help();
-  }
-}
-
-let p = handleCommand(argv._[0]);
-if (p instanceof Promise) {
+let p = consoleService.handleCommand(argv);
+if (p instanceof Promise || p && p.then) {
   p.then( () => {
     process.exit(0);
   }).catch( () => {
     process.exit(1);
   });
+} else {
+  process.exit(0);
 }
+

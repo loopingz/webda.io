@@ -1,0 +1,102 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<dom-module id="webda-workers-selector">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+      }
+      paper-listbox {
+        background-color: transparent;
+      }
+      paper-item iron-icon[icon="delete"] {
+        cursor: pointer;
+        transition: color 0.5s;
+      }
+      paper-button {
+        transition: color 0.5s;
+      }
+      paper-button:hover {
+        color: var(--primary-color);
+      }
+      paper-item iron-icon[icon="delete"]:hover {
+        color: red;
+      }
+    </style>
+    <div>
+      <label>[[labe]]</label>
+      <paper-listbox>
+        <template is="dom-repeat" items="{{selectionObjects}}">
+          <paper-item><iron-icon worker="[[item]]" icon="delete" on-tap="_delete"></iron-icon>[[item._name]]</paper-item>
+        </template>
+      </paper-listbox>
+      <template is="dom-if" if="[[workers.length]]">
+        <webda-worker-selector workers="{{workers}}" selected="{{selectedWorker}}"></webda-worker-selector>
+        <paper-button on-tap="_add" disabled="{{!selectedWorker}}"><iron-icon icon="add"></iron-icon>Add</paper-button>
+      </template>
+    </div>
+  </template>
+
+  <script>
+    (function() {
+      'use strict';
+
+      Polymer({
+        is: 'webda-workers-selector',
+        properties: {
+          includeApi: {
+            type: Boolean
+          },
+          selection: {
+            type: Array,
+            value: []
+          },
+          label: {
+            type: String,
+            value: 'Workers'
+          },
+          selectionObjects: {
+            type: Array,
+            value: []
+          },
+          selectedWorker: {
+            type: Object,
+            value: null
+          }
+        },
+        _delete: function(evt) {
+          let idx = this.selection.indexOf(evt.target.worker);
+          this.splice('selectionObjects', idx, 1);
+          this.splice('selection', idx, 1);
+          this.push('workers', evt.target.worker);
+        },
+        _add: function() {
+          if (this.selectedWorker === this.api) {
+            this.includeApi = false;
+          }
+          this.push('selection', this.selectedWorker._name);
+          this.push('selectionObjects', this.selectedWorker);
+          this.splice('workers', this.workers.indexOf(this.selectedWorker), 1);
+          this.selectedWorker = null;
+        },
+        ready: function() {
+          this.workers = Webda.getWorkers();
+          if (this.includeApi) {
+            this.push('workers', {_name: 'API'});
+          }
+        }
+      });
+    })();
+  </script>
+</dom-module>

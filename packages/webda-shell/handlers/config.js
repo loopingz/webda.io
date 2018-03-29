@@ -7,6 +7,7 @@ const path = require("path");
 const Executor = require(__webda + "/services/executor");
 const Webda = require(__webda + "/core");
 const merge = require('merge');
+const mkdirp = require('mkdirp');
 
 class ConfigurationService extends Executor {
 
@@ -207,6 +208,9 @@ class ` + className + ` extends ` + extendName + ` {
       }
       if (model != null || fs.existsSync(file)) {
         throw 409;
+      }
+      if (file.startsWith('./models')) {
+        mkdirp.sync(path.dirname(file));
       }
       fs.writeFileSync(file, this._getClass(name, ctx.body.extending, ctx.body.templating, models));
       this.save();

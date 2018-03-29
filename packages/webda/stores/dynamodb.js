@@ -320,7 +320,7 @@ class DynamoStore extends AWSServiceMixIn(Store) {
      }
      AWS.config.update({accessKeyId: params.accessKeyId, secretAccessKey: params.secretAccessKey});
      var client = new AWS.DynamoDB.DocumentClient();
-     var params = ""; 
+     var params = "";
      this._webda.log('INFO', {'TableName': this._params.table, 'Key': {"uuid": uid}});
      */
   }
@@ -351,8 +351,8 @@ class DynamoStore extends AWSServiceMixIn(Store) {
           "table": "table-name",
         },
         "widget": {
-          "tag": "webda-store-configurator",
-          "url": "elements/services/webda-store-configurator.html"
+          "tag": "webda-dynamodb-configurator",
+          "url": "elements/services/webda-dynamodb-configurator.html"
         },
         "schema": {
           type: "object",

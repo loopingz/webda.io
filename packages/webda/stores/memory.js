@@ -139,8 +139,7 @@ class MemoryStore extends Store {
         },
         "schema": {
           type: "object",
-          properties: {},
-          required: []
+          properties: {}
         }
       }
     }

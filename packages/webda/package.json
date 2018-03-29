@@ -34,7 +34,7 @@
     "passport-github2": ">=0.1.9",
     "passport-google-oauth": "=0.2.0",
     "passport-twitter": ">=1.0.3",
-    "uri-templates": ">=0.1.7",
+    "uri-templates": ">=0.2.0",
     "uuid": "^3.0.0"
   },
   "files": [

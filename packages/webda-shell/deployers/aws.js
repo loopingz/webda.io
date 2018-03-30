@@ -7,6 +7,10 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
     return super._getAWS(params || this.resources)
   }
 
+  _replaceForAWS(id) {
+    return id.replace(/\//g, '_');
+  }
+
   _createCertificate(domain, forceRegion) {
     let config = JSON.parse(JSON.stringify(this.resources));
     // CloudFront only use certificate in us-east-1 region...
@@ -193,7 +197,9 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
   generateRoleARN(name, assumeRolePolicy, roleName, policyName) {
     let services = this.getServices();
     roleName = roleName || (name + 'Role');
+    roleName = this._replaceForAWS(roleName);
     policyName = policyName || (name + 'Policy');
+    policyName = this._replaceForAWS(policyName);
     let sts = new (this._AWS).STS();
     let iam = new (this._AWS).IAM();
     let roleArn = '';

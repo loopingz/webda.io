@@ -583,12 +583,11 @@ class WebdaConfigurationServer extends WebdaServer {
   installServices(resources) {
     var promise = Promise.resolve();
     let services = this._mockWedba.getServices();
-    //console.log(this.config);
     for (let i in services) {
       let service = services[i];
       promise = promise.then(() => {
         console.log('Installing service ', i);
-        return service.install(resources);
+        return service.install(JSON.parse(JSON.stringify(resources)));
       });
     }
     return promise;
@@ -646,6 +645,8 @@ class WebdaConfigurationServer extends WebdaServer {
         });
       }
       return promise;
+    }).catch( (err) => {
+      console.log('Error', err);
     });
   }
 

@@ -91,7 +91,7 @@ EXPOSE 18080
 RUN mkdir /webda/
 ADD . /webda/
 WORKDIR /webda
-RUN rm -rf node_modules && npm install && npm install webda-shell
+RUN rm -rf node_modules && yarn install && yarn add webda-shell
 `;
     if (!command) {
       command = 'serve';

@@ -24,6 +24,9 @@ class LambdaDeployer extends AWSDeployer {
     this._restApiName = this.resources.restApi;
     this._lambdaFunctionName = this.resources.functionName || this.transformRestApiToFunctionName(this.resources.restApi);
     this._lambdaRole = this.resources.lambdaRole;
+    if (!this.resources.lambdaHandler) {
+      this._lambdaDefaultHandler = true;
+    }
     this._lambdaHandler = this.resources.lambdaHandler || 'entrypoint.handler';
     this._lambdaTimeout = 3;
 
@@ -46,7 +49,7 @@ class LambdaDeployer extends AWSDeployer {
     }
 
     if (this.resources.lambdaMemory) {
-      this._lambdaMemorySize = Number.valueOf(this.resources.lambdaMemory);
+      this._lambdaMemorySize = Number.parseInt(this.resources.lambdaMemory, 10);
     } else {
       // Dont handle less well for now
       this._lambdaMemorySize = 512;

@@ -387,8 +387,11 @@ module.exports = class WebdaConsole {
       case 'debug':
         return this.debug(argv);
       case 'config':
-        return new Promise(() => {
-          this.config(argv);
+        return new Promise((resolve) => {
+          let promise = this.config(argv);
+          if (promise) {
+            resolve(promise);
+          }
         });
       case 'deploy':
         return this.deploy(argv);

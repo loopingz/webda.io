@@ -108,7 +108,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.set('params',params);
           this.validate()
         },
+        ready: function() {
+          this.addEventListener('configuration-updated', (evt) => {
+            this.params = evt.detail.value;
+            this.updateParams();
+          });
+        },
         properties: {
+          params: {
+            type: Object,
+            observer: 'updateParams'
+          },
           mode: {
             type: String,
             value: 'tree',

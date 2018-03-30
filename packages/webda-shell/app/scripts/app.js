@@ -221,7 +221,6 @@ var Webda = {
   }
 
   app.mapServices = function(evt) {
-    console.log(Webda);
     for (var i in app.services) {
       Webda.services[app.services[i]._name] = app.services[i];
       if (app.services[i]._worker) {

@@ -46,8 +46,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           configuration: {
             type: Object,
             value: {source: 'test'},
-            notify: true,
-            observer: '_updateModda'
+            notify: true
           }
         },
         showFull: function() {
@@ -75,7 +74,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 if (this.moddaConfigurator) {
                   this.moddaConfigurator.configuration = this.configuration;
                   this.moddaConfigurator.addEventListener('configuration-changed', (evt) => {
-                    this.configuration = this.moddaConfigurator.configuration;
+                    this.set('configuration', this.moddaConfigurator.configuration);
+                    this.dispatchEvent(new CustomEvent('configuration-updated', { detail: {'value': this.moddaConfigurator.configuration}, bubbles: true, composed: true }));
                   });
                   Polymer.dom(this.$.configurationWidget).appendChild(this.moddaConfigurator);
                 }

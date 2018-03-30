@@ -6,9 +6,11 @@ const ECS_ROLE_POLICY = '{"Version":"2012-10-17","Statement":[{"Effect":"Allow",
 class FargateDeployer extends DockerMixIn(AWSDeployer) {
 
   deploy(args) {
+    // Fallback on us-east-1 if needed
+    this.resources.region = this.resources.FargateRegion || 'us-east-1';
     this._AWS = this._getAWS(this.resources);
-    this._ecr = new (this._getAWS()).ECR();
-    this._ecs = new (this._getAWS()).ECS();
+    this._ecr = new this._AWS.ECR();
+    this._ecs = new this._AWS.ECS();
 
     this._sentContext = false;
     this._maxStep = 2;
@@ -23,10 +25,10 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
       throw Error('Need to define at least a serviceName');
     }
     this.resources.publicIp = this.resources.publicIp || 'ENABLED';
-    this.resources.taskCpu = this.resources.taskCpu || '1024';
+    this.resources.taskCpu = this.resources.taskCpu || '512';
     this.resources.taskMemory = this.resources.taskMemory || '1024';
     this.resources.clusterName = this.resources.clusterName || 'webda-cluster';
-    this.resources.repositoryNamespace = this.resources.repositoryNamespace || this.resources.serviceName;
+    this.resources.repositoryNamespace = this.resources.repositoryNamespace === undefined ? this.resources.serviceName : this.resources.repositoryNamespace;
     this.resources.tasksNumber = this.resources.tasksNumber || 2;
     this.resources.taskDefinition = this.resources.taskDefinition || this.resources.serviceName;
 
@@ -131,8 +133,9 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
 
   _createService() {
     return this._ecs.listServices({cluster: this._cluster.clusterName, launchType: 'FARGATE'}).promise().then( (res) => {
+      let serviceName = this._replaceForAWS(this.resources.serviceName);
       for (let i in res.serviceArns) {
-        if (res.serviceArns[i].split('/')[1] === this.resources.serviceName) {
+        if (res.serviceArns[i].split('/')[1] === serviceName) {
           this._service = res.serviceArns[i];
           break;
         }
@@ -141,7 +144,7 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
         desiredCount: this.resources.tasksNumber,
         taskDefinition: this._taskDefinitionArn,
         cluster: this._cluster.clusterName,
-        serviceName: this.resources.serviceName,
+        serviceName: serviceName,
         launchType: 'FARGATE',
         networkConfiguration: {
           awsvpcConfiguration: {
@@ -170,24 +173,35 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
   _createRepository() {
     let repositories = [];
     this.resources.workers.forEach( (worker) => {
-      repositories.push((this.resources.repositoryNamespace + '/' + worker).toLowerCase());
+      if (this.resources.repositoryNamespace.length > 0) {
+        repositories.push((this.resources.repositoryNamespace + '/' + worker).toLowerCase());
+      } else {
+        repositories.push(worker.toLowerCase());
+      }
     });
     // Might want to use only one repository with tagging to optimize storage
     return this._ecr.describeRepositories({}).promise().then( (res) => {
       res.repositories.forEach( (repo) => {
         let idx = repositories.indexOf(repo.repositoryName);
         if (idx >= 0) {
-          this._workers[repo.repositoryName.split('/')[1]].repository = repo.repositoryUri;
+          if (this._workers[repo.repositoryName]) {
+            this._workers[repo.repositoryName].repository = repo.repositoryUri;
+          } else {
+            this._workers[repo.repositoryName.split('/')[1]].repository = repo.repositoryUri;
+          }
           repositories.splice(idx, 1);
         }
       });
       let promise = Promise.resolve();
       repositories.forEach( (repo) => {
         promise = promise.then( () => {
-          console.log('Create repository', repo);
           return this._ecr.createRepository({repositoryName: repo}).promise().then( (res) => {
             let repo = res.repository;
-            this._workers[repo.repositoryName.split('/')[1]].repository = repo.repositoryUri;
+            if (this._workers[repo.repositoryName]) {
+              this._workers[repo.repositoryName].repository = repo.repositoryUri;
+            } else {
+              this._workers[repo.repositoryName.split('/')[1]].repository = repo.repositoryUri;
+            }
           });
         });
       });
@@ -200,7 +214,7 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
     for (let i in this._workers) {
       let worker = this._workers[i];
       containerDefinitions.push({
-        name: i,
+        name: this._replaceForAWS(i),
         essential: true,
         image: worker.repository,
         logConfiguration: {
@@ -241,6 +255,7 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
   }
 
   _registerTaskDefinition(taskDefinition) {
+    taskDefinition = this._replaceForAWS(taskDefinition);
     return this._ecs.registerTaskDefinition(
       {
         containerDefinitions: this._getWorkersDefinition(),

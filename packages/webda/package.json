@@ -13,7 +13,9 @@
   "scripts": {
     "test": "mocha",
     "run": "node core",
-    "format": "node ./scripts/format.js"
+    "format": "node ./scripts/format.js",
+    "cover": "node_modules/.bin/istanbul cover --report lcovonly --dir ./reports _mocha -- -u exports -R spec",
+    "coverhtml": "node_modules/.bin/istanbul cover --report html --dir ./reports _mocha -- -u exports -R spec"
   },
   "dependencies": {
     "accept-language": "=3.0.15",
@@ -50,6 +52,7 @@
   ],
   "devDependencies": {
     "glob": "^7.1.2",
+    "istanbul": "^0.4.5",
     "js-beautify": "^1.7.5",
     "mocha": ">=2.2.5"
   },

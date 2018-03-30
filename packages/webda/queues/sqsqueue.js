@@ -6,7 +6,7 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
 
   init(config) {
     super.init(config);
-    this.sqs = new(this._getAWS(this._params)).SQS();
+    this.sqs = new (this._getAWS(this._params)).SQS();
     if (!this._params.WaitTimeSeconds) {
       this._params.WaitTimeSeconds = 20;
     }
@@ -65,7 +65,8 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
 
   install(params) {
     let queue = this._getQueueInfosFromUrl();
-    var sqs = new this._getAWS(params).SQS();
+    params.region = queue.region;
+    var sqs = new (this._getAWS(params)).SQS();
     return sqs.getQueueUrl({
       QueueName: queue.name,
       QueueOwnerAWSAccountId: queue.accountId

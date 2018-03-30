@@ -297,6 +297,9 @@ class S3Binary extends AWSServiceMixIn(Binary) {
   }
 
   install(params) {
+    if (this._params.region) {
+      params.region = this._params.region;
+    }
     var s3 = new(this._getAWS(params)).S3();
     return s3.headBucket({
       Bucket: this._params.bucket

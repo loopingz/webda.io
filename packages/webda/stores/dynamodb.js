@@ -284,6 +284,9 @@ class DynamoStore extends AWSServiceMixIn(Store) {
   }
 
   install(params) {
+    if (this._params.region) {
+      params.region = this._params.region;
+    }
     var dynamodb = new(this._getAWS(params)).DynamoDB();
     return dynamodb.describeTable({
       TableName: this._params.table

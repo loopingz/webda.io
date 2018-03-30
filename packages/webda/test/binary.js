@@ -7,7 +7,7 @@ var webda;
 var userStore;
 var binary;
 
-var normal = function(userStore, binary, map) {
+var normal = function(userStore, binary, map, webda) {
   var eventFired = 0;
   var events = ['binaryGet', 'binaryUpdate', 'binaryCreate', 'binaryDelete'];
   for (let evt in events) {
@@ -20,6 +20,8 @@ var normal = function(userStore, binary, map) {
   var user1;
   var user2;
   var user;
+  var ctx;
+  var error;
   return userStore.save({
     "test": "plop"
   }).then(function(user) {
@@ -63,6 +65,24 @@ var normal = function(userStore, binary, map) {
     return binary.getUsageCount(hash);
   }).then(function(value) {
     assert.equal(value, 1);
+    // Try to get images on user1 as user2
+    ctx = webda.newContext({
+      "type": "CRUD",
+      "uuid": "PLOP"
+    });
+    error = false;
+    ctx.session.userId = user2.uuid;
+    let executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/binary/users/" + user1.uuid + "/images/0");
+    return executor.execute(ctx);
+  }).catch(function(err) {
+    error = err;
+  }).then(function() {
+    assert.equal(error, 403);
+    ctx.session.userId = user1.uuid;
+    let executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/binary/users/" + user1.uuid + "/images/0");
+    return executor.execute(ctx);
+  }).then(function() {
+    // We dont check for result as FileBinary will return datas and S3 a redirect
     return userStore.delete(user1.uuid);
   }).then(function() {
     return binary.getUsageCount(hash);
@@ -153,7 +173,7 @@ describe('Binary', function() {
       });
     });
     it('normal', function() {
-      return normal(userStore, binary, 'images');
+      return normal(userStore, binary, 'images', webda);
     });
     it('not-mapped', function() {
       return notMapped(userStore, binary);
@@ -180,7 +200,7 @@ describe('Binary', function() {
         this.skip();
         return;
       }
-      return normal(userStore, binary, 's3images');
+      return normal(userStore, binary, 's3images', webda);
     });
     it('not-mapped', function() {
       if (skipS3) {

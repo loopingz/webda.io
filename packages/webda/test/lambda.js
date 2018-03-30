@@ -16,7 +16,6 @@ describe('Lambda', function() {
   })
   beforeEach(function() {
     webda = new Webda(config);
-    webda.setHost("test.webda.io");
   });
   describe('launch()', function() {
 

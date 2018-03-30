@@ -19,9 +19,9 @@ const OwnerPolicy = Sup => class extends Sup {
   canAct(ctx, action) {
     if (action === 'create') {
       return this.canCreate(ctx);
-    } else if (action === 'update') {
+    } else if (action === 'update' || action === 'attach_binary' || action === 'detach_binary') {
       return this.canUpdate(ctx);
-    } else if (action === 'get') {
+    } else if (action === 'get' || action === 'get_binary') {
       return this.canGet(ctx);
     } else if (action === 'delete') {
       return this.canDelete(ctx);

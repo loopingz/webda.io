@@ -45,7 +45,7 @@ class FileBinary extends Binary {
   _get(info) {
     var path = this._getPath(info.hash, 'data');
     if (!fs.existsSync(path)) {
-      return "";
+      throw 404;
     }
     return fs.createReadStream(path);
   }

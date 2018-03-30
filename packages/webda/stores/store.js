@@ -773,7 +773,7 @@ class Store extends Executor {
   httpCreate(ctx) {
     var object = new this._model(ctx.body);
     object._creationDate = new Date();
-    return object.canCreate(ctx).then((object) => {
+    return object.canAct(ctx, 'create').then((object) => {
       return object.validate(ctx).catch((err) => {
         throw 400;
       });

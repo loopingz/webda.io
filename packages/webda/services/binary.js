@@ -436,22 +436,33 @@ class Binary extends Executor {
       if (object[ctx._params.property] === undefined || object[ctx._params.property][ctx._params.index] === undefined) {
         throw 404;
       }
+      let action = 'unknown';
+      if (ctx._route._http.method == "GET") {
+        action = 'get_binary';
+      } else if (ctx._route._http.method == "DELETE") {
+        action = 'detach_binary';
+      } else if (ctx._route._http.method == "PUT") {
+        action = 'attach_binary';
+      }
+      return object.canAct(ctx, action);
+    }).then( (object) => {
       if (ctx._route._http.method == "GET") {
         var file = object[ctx._params.property][ctx._params.index];
         ctx.writeHead(200, {
           'Content-Type': file.mimetype === undefined ? 'application/octet-steam' : file.mimetype,
           'Content-Length': file.size
         });
-        return new Promise((resolve, reject) => {
-          var readStream = this.get(file);
-          // We replaced all the event handlers with a simple call to readStream.pipe()
-          ctx._stream.on('finish', (src) => {
-            return resolve();
+        return this.get(file).then( (readStream) => {
+          return new Promise((resolve, reject) => {
+            // We replaced all the event handlers with a simple call to readStream.pipe()
+            ctx._stream.on('finish', (src) => {
+              return resolve();
+            });
+            ctx._stream.on('error', (src) => {
+              return reject();
+            });
+            readStream.pipe(ctx._stream);
           });
-          ctx._stream.on('error', (src) => {
-            return reject();
-          });
-          readStream.pipe(ctx._stream);
         });
       } else {
         if (object[ctx._params.property][ctx._params.index].hash !== ctx._params.hash) {

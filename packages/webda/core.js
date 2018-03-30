@@ -317,6 +317,23 @@ class Webda extends EventEmitter {
     return {};
   }
 
+
+  /**
+   * Return a map of services that extends type
+   * @param type The type of implementation
+   * @returns {{}}
+   */
+  getServicesImplementations(type) {
+    let result = {};
+    for (let i in this._webda._services) {
+      // Check if it is a Validator and has Modda
+      if (this._webda._services[i].prototype instanceof type) {
+        result[i] = this._webda._services[i].getModda();
+      }
+    }
+    return result;
+  }
+
   /**
    * Return a map of defined stores
    * @returns {{}}

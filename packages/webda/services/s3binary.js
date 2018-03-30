@@ -144,6 +144,8 @@ class S3Binary extends AWSServiceMixIn(Binary) {
       if (obj === undefined || obj[ctx._params.property] === undefined || obj[ctx._params.property][ctx._params.index] === undefined) {
         throw 404;
       }
+      return obj.canAct(ctx, 'get_binary');
+    }).then((obj) => {
       return this.getRedirectUrlFromObject(obj, ctx._params.property, ctx._params.index, ctx);
     }).then((url) => {
       ctx.writeHead(302, {

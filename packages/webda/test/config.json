@@ -248,6 +248,29 @@
         "secretAccessKey": "LOCAL_SECRET_KEY"
       }
     },
+    "/route/string": {
+      "method": [ "GET" ],
+      "executor": "string",
+      "result": "CodeCoverage"
+    },
+    "/route/string/json": {
+      "method": [ "GET" ],
+      "executor": "string",
+      "result": {
+        "title": "CodeCoverage"
+      },
+      "mime": "application/json"
+    },
+    "/route/resource": {
+      "method": [ "GET" ],
+      "executor": "resource",
+      "file": "./test/Dockerfile.txt"
+    },
+    "/route/inline": {
+      "method": [ "GET" ],
+      "executor": "inline",
+      "callback": "function(ctx) { ctx.write('CodeCoverage'); }"
+    },
     "/webda": {
       "method": [
         "GET",

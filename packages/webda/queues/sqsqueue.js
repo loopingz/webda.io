@@ -64,12 +64,12 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
       if (fail || err.code !== 'AWS.SimpleQueueService.PurgeQueueInProgress') {
         return Promise.reject(err);
       }
-      let delay = err.retryDelay * 1100;
+      let delay = Math.floor(err.retryDelay * 1100);
       console.log('Retry PurgeQueue in ', delay);
       // 10% of margin
       return new Promise( (resolve) => {
         setTimeout(() => {
-          resolve(this._clean(true));
+          resolve(this.__clean(true));
         }, delay);
       });
     });

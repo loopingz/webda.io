@@ -474,7 +474,7 @@ class Webda extends EventEmitter {
     var executor = this.getService(name);
     // If no service is found then check for routehelpers
     if (executor === undefined && this._routehelpers[name] !== undefined) {
-      executor = new this._routehelpers[name](this, name, this._config.parameters);
+      executor = new this._routehelpers[name](this, name, _extend(_extend({}, this._config.parameters), route));
     }
     if (executor === undefined) {
       return;

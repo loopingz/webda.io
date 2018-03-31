@@ -312,7 +312,7 @@ describe('Store', function() {
   var userStore;
   before(function() {
     skipMongo = process.env["WEBDA_MONGO_URL"] === undefined;
-    skipAWS = process.env["WEBDA_AWS_KEY"] === undefined;
+    skipAWS = process.env["WEBDA_AWS_TEST"] === undefined;
     if (skipAWS) {
       console.log("Not running DynamoStore test as no AWS env found");
     }

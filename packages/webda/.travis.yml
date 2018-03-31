@@ -5,6 +5,5 @@ addons:
 node_js:
   - "6"
 script:
-  - npm test
   - npm run cover
   - sonar-scanner

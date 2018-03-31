@@ -42,7 +42,7 @@ var simple = function(queue) {
 }
 
 describe('Queues', function() {
-  var skipAWS = process.env["WEBDA_AWS_KEY"] === undefined;
+  var skipAWS = process.env["WEBDA_AWS_TEST"] === undefined;
   var webda;
 
   beforeEach(function() {

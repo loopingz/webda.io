@@ -214,6 +214,9 @@
         "users": [
           "s3images"
         ]
+      },
+      "expose": {
+        "url": "/s3binary"
       }
     }
   },

@@ -4,12 +4,11 @@ var Webda = require("../core.js");
 var Executor = require("../services/executor.js");
 var config = require("./config.json");
 var webda;
-var resp;
 var skip = false;
 
 describe('Lambda', function() {
   before(function() {
-    skip = process.env["WEBDA_AWS_KEY"] === undefined;
+    skip = process.env["WEBDA_AWS_TEST"] === undefined;
     if (skip) {
       console.log("Not running as no AWS env found");
     }

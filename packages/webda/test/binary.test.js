@@ -7,7 +7,7 @@ var webda;
 var userStore;
 var binary;
 
-var normal = function(userStore, binary, map, webda) {
+var normal = function(userStore, binary, map, webda, exposePath) {
   var eventFired = 0;
   var events = ['binaryGet', 'binaryUpdate', 'binaryCreate', 'binaryDelete'];
   for (let evt in events) {
@@ -72,14 +72,14 @@ var normal = function(userStore, binary, map, webda) {
     });
     error = false;
     ctx.session.userId = user2.uuid;
-    let executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/binary/users/" + user1.uuid + "/images/0");
+    let executor = webda.getExecutor(ctx, "test.webda.io", "GET", exposePath + "/users/" + user1.uuid + "/" + map + "/0");
     return executor.execute(ctx);
   }).catch(function(err) {
     error = err;
   }).then(function() {
     assert.equal(error, 403);
     ctx.session.userId = user1.uuid;
-    let executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/binary/users/" + user1.uuid + "/images/0");
+    let executor = webda.getExecutor(ctx, "test.webda.io", "GET", exposePath + "/users/" + user1.uuid + "/" + map + "/0");
     return executor.execute(ctx);
   }).then(function() {
     // We dont check for result as FileBinary will return datas and S3 a redirect
@@ -154,7 +154,7 @@ describe('Binary', function() {
   var userStore;
   var skipS3;
   before(function() {
-    skipS3 = process.env["WEBDA_AWS_KEY"] === undefined;
+    skipS3 = process.env["WEBDA_AWS_TEST"] === undefined;
     if (skipS3) {
       console.log("Not running S3Binary test as no AWS env found");
     }
@@ -173,7 +173,7 @@ describe('Binary', function() {
       });
     });
     it('normal', function() {
-      return normal(userStore, binary, 'images', webda);
+      return normal(userStore, binary, 'images', webda, '/binary');
     });
     it('not-mapped', function() {
       return notMapped(userStore, binary);
@@ -200,7 +200,7 @@ describe('Binary', function() {
         this.skip();
         return;
       }
-      return normal(userStore, binary, 's3images', webda);
+      return normal(userStore, binary, 's3images', webda, '/s3binary');
     });
     it('not-mapped', function() {
       if (skipS3) {

@@ -24,13 +24,6 @@ class S3Binary extends AWSServiceMixIn(Binary) {
   /** @ignore */
   constructor(webda, name, params) {
     super(webda, name, params);
-    // Used for test purpose
-    if (params.accessKeyId === undefined) {
-      this._params.accessKeyId = params.accessKeyId = process.env["WEBDA_AWS_KEY"];
-    }
-    if (params.secretAccessKey === undefined) {
-      this._params.secretAccessKey = params.secretAccessKey = process.env["WEBDA_AWS_SECRET"];
-    }
     if (params.bucket === undefined) {
       this._createException = "Need to define a bucket,accessKeyId,secretAccessKey at least";
     }
@@ -169,7 +162,7 @@ class S3Binary extends AWSServiceMixIn(Binary) {
       Bucket: this._params.bucket,
       Prefix: this._getPath(hash, '')
     }).promise().then(function(data) {
-      return Promise.resolve(data.Contents.length - 1);
+      return Promise.resolve(data.Contents.length ? data.Contents.length - 1 : 0);
     });
   }
 

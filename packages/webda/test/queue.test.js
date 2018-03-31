@@ -4,14 +4,16 @@ var Webda = require("../core.js");
 var config = require("./config.json");
 
 
-var simple = function(queue) {
+var simple = function(queue, inconsistentSize) {
   var msg;
   return queue.sendMessage({
     'type': 1
   }).then(() => {
     return queue.size();
   }).then((size) => {
-    assert.equal(size, 1);
+    if (!inconsistentSize) {
+      assert.equal(size, 1);
+    }
     return queue.sendMessage({
       'type': 2
     });
@@ -23,13 +25,17 @@ var simple = function(queue) {
   }).then(() => {
     return queue.size();
   }).then((size) => {
-    assert.equal(size, 2);
+    if (!inconsistentSize) {
+      assert.equal(size, 2);
+    }
     return queue.receiveMessage();
   }).then((res) => {
     msg = res;
     return queue.size();
   }).then((size) => {
-    assert.equal(size, 2);
+    if (!inconsistentSize) {
+      assert.equal(size, 2);
+    }
     return queue.deleteMessage(msg[0].ReceiptHandle);
   }).then(() => {
     return queue.receiveMessage();
@@ -68,7 +74,7 @@ describe('Queues', function() {
       }
       // Update timeout to 80000ms as Purge can only be sent once every 60s
       this.timeout(80000);
-      return simple(webda.getService("sqsqueue"));
+      return simple(webda.getService("sqsqueue"), true);
     });
   });
 

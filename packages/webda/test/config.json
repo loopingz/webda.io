@@ -69,6 +69,9 @@
     "DefinedMailer": {
       "type": "Test/Mailer"
     },
+    "TrueMailer": {
+      "type": "Webda/Mailer"
+    },
     "dynamoidents": {
       "inject": "user",
       "check": "user",
@@ -265,6 +268,11 @@
       "method": [ "GET" ],
       "executor": "resource",
       "file": "./test/Dockerfile.txt"
+    },
+    "/route/file": {
+      "method": [ "GET" ],
+      "executor": "file",
+      "file": "./test/data/routehelper.js"
     },
     "/route/inline": {
       "method": [ "GET" ],

@@ -38,4 +38,10 @@ describe("RoutesHelper", function() {
       assert.equal(ctx._body, fs.readFileSync('./test/Dockerfile.txt'));
     });
   })
+  it('File', function() {
+    executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/route/file");
+    return executor.execute(ctx).then( () => {
+      assert.equal(ctx._body, 'CodeCoverage');
+    });
+  })
 });

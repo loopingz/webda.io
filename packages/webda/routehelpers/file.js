@@ -24,8 +24,6 @@ class FileRouteHelper extends Executor {
         include = process.cwd() + '/' + include;
       }
       return require(include)(ctx);
-    } else {
-      return ctx._route.file(ctx);
     }
   }
 }

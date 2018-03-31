@@ -36,7 +36,10 @@ var simple = function(queue, inconsistentSize) {
     if (!inconsistentSize) {
       assert.equal(size, 2);
     }
-    return queue.deleteMessage(msg[0].ReceiptHandle);
+    if (msg.length > 0) {
+      return queue.deleteMessage(msg[0].ReceiptHandle);
+    }
+    return Promise.resolve();
   }).then(() => {
     // Pause for 1s - to verify the repopulation
     return new Promise((resolve, reject) => {

@@ -14,26 +14,26 @@ describe("RoutesHelper", function() {
   });
   it('String', function() {
     executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/route/string");
-    return executor.execute(ctx).then( () => {
+    return executor.execute(ctx).then(() => {
       assert.equal(ctx._body, 'CodeCoverage');
     });
   })
   it('String - Mime', function() {
     executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/route/string/json");
-    return executor.execute(ctx).then( () => {
+    return executor.execute(ctx).then(() => {
       assert.equal(ctx._body, '{"title":"CodeCoverage"}');
       assert.equal(ctx._headers['Content-Type'], 'application/json');
     });
   })
   it('Inline', function() {
     executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/route/inline");
-    return executor.execute(ctx).then( () => {
+    return executor.execute(ctx).then(() => {
       assert.equal(ctx._body, 'CodeCoverage');
     });
   })
   it('Resource', function() {
     executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/route/resource");
-    return executor.execute(ctx).then( () => {
+    return executor.execute(ctx).then(() => {
       assert.equal(ctx._headers['Content-Type'], 'text/plain');
       assert.equal(ctx._body, fs.readFileSync('./test/Dockerfile.txt'));
     });
@@ -41,15 +41,15 @@ describe("RoutesHelper", function() {
   it('Resource - Not found', function() {
     executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/route/resource/notfound");
     let error;
-    return executor.execute(ctx).catch( (err) => {
+    return executor.execute(ctx).catch((err) => {
       error = err;
-    }).then( () => {
+    }).then(() => {
       assert.notEqual(error, undefined);
     });
   })
   it('File', function() {
     executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/route/file");
-    return executor.execute(ctx).then( () => {
+    return executor.execute(ctx).then(() => {
       assert.equal(ctx._body, 'CodeCoverage');
     });
   })

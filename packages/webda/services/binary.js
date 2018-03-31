@@ -445,14 +445,14 @@ class Binary extends Executor {
         action = 'attach_binary';
       }
       return object.canAct(ctx, action);
-    }).then( (object) => {
+    }).then((object) => {
       if (ctx._route._http.method == "GET") {
         var file = object[ctx._params.property][ctx._params.index];
         ctx.writeHead(200, {
           'Content-Type': file.mimetype === undefined ? 'application/octet-steam' : file.mimetype,
           'Content-Length': file.size
         });
-        return this.get(file).then( (readStream) => {
+        return this.get(file).then((readStream) => {
           return new Promise((resolve, reject) => {
             // We replaced all the event handlers with a simple call to readStream.pipe()
             ctx._stream.on('finish', (src) => {

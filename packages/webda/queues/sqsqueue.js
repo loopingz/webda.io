@@ -6,7 +6,7 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
 
   init(config) {
     super.init(config);
-    this.sqs = new (this._getAWS(this._params)).SQS();
+    this.sqs = new(this._getAWS(this._params)).SQS();
     if (!this._params.WaitTimeSeconds) {
       this._params.WaitTimeSeconds = 20;
     }
@@ -60,14 +60,14 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
   __clean(fail) {
     return this.sqs.purgeQueue({
       QueueUrl: this._params.queue
-    }).promise().catch( (err) => {
+    }).promise().catch((err) => {
       if (fail || err.code !== 'AWS.SimpleQueueService.PurgeQueueInProgress') {
         return Promise.reject(err);
       }
       let delay = Math.floor(err.retryDelay * 1100);
       console.log('Retry PurgeQueue in ', delay);
       // 10% of margin
-      return new Promise( (resolve) => {
+      return new Promise((resolve) => {
         setTimeout(() => {
           resolve(this.__clean(true));
         }, delay);
@@ -78,7 +78,7 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
   install(params) {
     let queue = this._getQueueInfosFromUrl();
     params.region = queue.region;
-    var sqs = new (this._getAWS(params)).SQS();
+    var sqs = new(this._getAWS(params)).SQS();
     return sqs.getQueueUrl({
       QueueName: queue.name,
       QueueOwnerAWSAccountId: queue.accountId

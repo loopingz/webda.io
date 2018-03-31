@@ -107,7 +107,8 @@ class LambdaServer extends Webda {
 
     if (executor == null) {
       this.emit('Webda.404', vhost, method, resourcePath, ctx.getCurrentUserId(), body);
-      callback("Bad mapping " + vhost + " - " + method + " " + resourcePath, null);
+      ctx.statusCode = 404;
+      return this.handleLambdaReturn(ctx, callback);
     }
     ctx.init();
 

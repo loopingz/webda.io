@@ -459,7 +459,7 @@ describe('Store', function() {
     });
   });
   describe('MongoStore', function() {
-    afterEach( function() {
+    afterEach(function() {
       identStore = webda.getService("mongoidents");
       userStore = webda.getService("mongousers");
       identStore._client.logout();

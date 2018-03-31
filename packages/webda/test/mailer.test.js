@@ -43,7 +43,10 @@ describe("Mailer", function() {
     assert.equal(lastLevel, undefined);
   })
   it('Known template on send', function() {
-    return mailer.send({template: 'PASSPORT_EMAIL_RECOVERY', from: 'test@webda.io'}).then( () => {
+    return mailer.send({
+      template: 'PASSPORT_EMAIL_RECOVERY',
+      from: 'test@webda.io'
+    }).then(() => {
       assert.notEqual(lastOptions, undefined);
       assert.notEqual(lastOptions.subject, undefined);
       assert.notEqual(lastOptions.html, undefined);
@@ -53,9 +56,12 @@ describe("Mailer", function() {
   it('No transporter', function() {
     mailer._transporter = undefined;
     let error;
-    return mailer.send({template: 'PASSPORT_EMAIL_RECOVERY', from: 'test@webda.io'}).catch( (err) => {
+    return mailer.send({
+      template: 'PASSPORT_EMAIL_RECOVERY',
+      from: 'test@webda.io'
+    }).catch((err) => {
       error = err;
-    }).then( () => {
+    }).then(() => {
       assert.notEqual(error, undefined);
       assert.equal(lastLevel, 'ERROR');
     });

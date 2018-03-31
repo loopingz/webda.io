@@ -29,7 +29,7 @@ glob('!(node_modules)/**/*.js', {
   absolute: true
 }, (er, files) => {
   files.forEach(file => {
-    console.log(`js-beautify ${file}`);return;
+    console.log(`js-beautify ${file}`);
     const data = fs.readFileSync(file, 'utf8');
     const nextData = jsBeautify(data, options);
     fs.writeFileSync(file, nextData, 'utf8');

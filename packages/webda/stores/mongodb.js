@@ -22,7 +22,7 @@ class MongoStore extends Store {
     }
     if (this._params.mongo) {
       // Get the database name from url
-      this._params.mongoDb = this._params.mongo.substr(this._params.mongo.lastIndexOf('/')+1);
+      this._params.mongoDb = this._params.mongo.substr(this._params.mongo.lastIndexOf('/') + 1);
     }
     if (!webda._configurationMode && options.collection === undefined || options.mongo === undefined || this._params.mongoDb === undefined) {
       this._createException = "collection and url must be setup";

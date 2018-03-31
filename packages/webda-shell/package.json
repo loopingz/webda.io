@@ -47,7 +47,8 @@
     "bin/webda",
     "deployers",
     "handlers",
-    "models"
+    "models",
+    "console"
   ],
   "scripts": {
     "start": "bin/webda",

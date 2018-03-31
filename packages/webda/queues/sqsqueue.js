@@ -95,7 +95,7 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
   _getQueueInfosFromUrl() {
     let re = new RegExp(/.*sqs\.(.*)\.amazonaws.com\/([0-9]+)\/(.*)/, 'i');
     let found = re.exec(this._params.queue);
-    if (found.length != 4) {
+    if (!found) {
       throw new Error('SQS Queue URL malformed');
     }
     return {

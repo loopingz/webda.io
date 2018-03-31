@@ -28,6 +28,9 @@ class QueueService extends Service {
   }
 
   _workerReceiveMessage() {
+    if (this._interrupt) {
+      return Promise.resolve();
+    }
     try {
       return this.receiveMessage().then((items) => {
         if (items.length === 0) {
@@ -38,7 +41,7 @@ class QueueService extends Service {
           ((msg) => {
             let event = JSON.parse(msg.Body);
             promise = promise.then(() => {
-              return this.callback(event);
+              return Promise.resolve(this.callback(event));
             }).then(() => {
               return this.deleteMessage(msg.ReceiptHandle);
             });
@@ -63,8 +66,19 @@ class QueueService extends Service {
     this.callback = callback;
     this._workerReceiveMessage();
     return new Promise((resolve, reject) => {
-
+      this._stop = resolve;
     });
+  }
+
+  stop() {
+    if (this._stop) {
+      this._stop();
+    }
+    this._stop = undefined;
+    this._interrupt = true;
+    if (this._timeout) {
+      clearTimeout(this._timeout);
+    }
   }
 
   __clean() {

@@ -55,6 +55,30 @@ describe('Webda', function() {
       assert.equal(webda.getVersion(), '0.5.3');
     });
   });
+  describe('utils', function() {
+    it('toPublicJson', function() {
+      let obj = {
+        _title: "private",
+        title: "public"
+      }
+      webda.isDebug(); // Just for CodeCoverage
+      assert.equal(webda.toPublicJSON(obj)._title, undefined);
+    });
+    it('errors checks', function() {
+      assert.throws(webda.getModel.bind(webda), 'test');
+      assert.throws(webda.getModel.bind(webda, 'Ghost'), Error);
+      assert.equal(webda.getService('Ghost'), undefined);
+      assert.equal(webda.getService(), undefined);
+      assert.equal(webda.getSession(), undefined);
+      webda._currentExecutor = {session: 'test'};
+      assert.equal(webda.getSession(), 'test');
+      assert.notEqual(webda.loadConfiguration('./config.json'), undefined);
+      webda._config.parameters.locales = undefined;
+      assert.equal(webda.getLocales().indexOf("en-GB"), 0);
+      webda._config = undefined;
+      assert.equal(webda.getLocales().indexOf("en-GB"), 0);
+    });
+  });
   describe('getService()', function() {
     it('normal', function() {
       assert.notEqual(null, webda.getService("Authentication"));

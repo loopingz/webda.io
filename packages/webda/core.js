@@ -312,10 +312,7 @@ class Webda extends EventEmitter {
    * @returns {{}}
    */
   getServices() {
-    if (this._config._services) {
-      return this._config._services;
-    }
-    return {};
+    return this._config._services || {};
   }
 
   /**
@@ -355,7 +352,6 @@ class Webda extends EventEmitter {
    * @returns {{}}
    */
   getStores() {
-
     return this.getServicesImplementations(Store);
   }
 
@@ -364,10 +360,7 @@ class Webda extends EventEmitter {
    * @returns {{}}
    */
   getModels() {
-    if (this._config._models !== undefined) {
-      return this._config._models;
-    }
-    return {};
+    return this._config._models || {};
   }
 
   /**
@@ -377,7 +370,7 @@ class Webda extends EventEmitter {
    */
   getModel(name) {
     if (!this._config || !name) {
-      return;
+      throw Error("Undefined model " + name);
     }
     name = name.toLowerCase();
     if (this._config._models !== undefined && this._config._models[name] !== undefined) {

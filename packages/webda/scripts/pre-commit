@@ -20,7 +20,7 @@ then
     fi
     exit 1 # push will not execute
 fi
-exec mocha -t 5000
+exec mocha -t 10000
 exec npm run format
 if git rev-parse --verify HEAD >/dev/null 2>&1
 then

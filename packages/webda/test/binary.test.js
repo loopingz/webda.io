@@ -216,6 +216,13 @@ describe('Binary', function() {
       }
       return update(userStore, binary, 's3images');
     });
+    it('getARN', function() {
+      if (skipS3) {
+        this.skip();
+        return;
+      }
+      assert.equal(binary.getARNPolicy().Resource[0], 'arn:aws:s3:::webda-test');
+    })
   });
   describe('challenge()', function() {
     it('_isValidChallenge', function() {

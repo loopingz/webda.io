@@ -44,9 +44,11 @@ class ShellDeployer extends Deployer {
         "default": {
           "params": {},
           "resources": {
-            "scripts": [
-              {"label": "Listing", "command": "ls", "args": ["-al"]}
-            ]
+            "scripts": [{
+              "label": "Listing",
+              "command": "ls",
+              "args": ["-al"]
+            }]
           },
           "services": {}
         },

@@ -29,8 +29,10 @@ var Webda = {
   app.deployButton = false;
   app.noCurrentComponent = true;
   app.activeDeployment = "";
-  app.resolvedComponent = {parameters: {}};
-  if (window.location.port === '') {  // if production
+  app.resolvedComponent = {
+    parameters: {}
+  };
+  if (window.location.port === '') { // if production
     // Uncomment app.baseURL below and
     // set app.baseURL to '/your-pathname/' if running from folder in production
     // app.baseUrl = '/polymer-starter-kit/';
@@ -47,7 +49,7 @@ var Webda = {
     Webda.models = app.models;
   }
 
-  app.saveCurrentComponent = function () {
+  app.saveCurrentComponent = function() {
     if (app.currentComponent === undefined || app.currentComponent._type === undefined) return;
     app.$.ajax.method = 'PUT';
     app.$.ajax.contentType = 'application/json';
@@ -58,7 +60,7 @@ var Webda = {
       app.$.ajax.url = app.getUrl('/' + app.currentComponent._type.toLowerCase() + 's/' + app.currentComponent._name);
       app.$.ajax.body = app.currentComponent;
     }
-    app.$.ajax.generateRequest().completes.then( () => {
+    app.$.ajax.generateRequest().completes.then(() => {
       // Refresh for now but should be changed
       app.$.toast.text = 'Updated';
       app.$.toast.show();
@@ -73,7 +75,7 @@ var Webda = {
     app.$.newDeployment.open();
   }
 
-  app.newObject = function () {
+  app.newObject = function() {
     if (app.route == "routes") {
       app.$.newRouteDialog.open();
     } else if (app.route == "services") {
@@ -87,43 +89,47 @@ var Webda = {
 
   window.addEventListener('iron-select', (evt) => {
     if (evt.detail &&
-        evt.detail.item &&
-        evt.detail.item.parentElement &&
-        evt.detail.item.parentElement.classList &&
-        evt.detail.item.parentElement.classList.contains('serviceSelector') &&
-        app.deployments) {
+      evt.detail.item &&
+      evt.detail.item.parentElement &&
+      evt.detail.item.parentElement.classList &&
+      evt.detail.item.parentElement.classList.contains('serviceSelector') &&
+      app.deployments) {
       app.currentService = undefined;
-      app.services.forEach( (service) => {
+      app.services.forEach((service) => {
         if (service._name === app.activeService) {
           app.currentService = service;
         }
       });
-      app.resolvedComponent = {parameters: app.getRealConfiguration(app.currentService)};
+      app.resolvedComponent = {
+        parameters: app.getRealConfiguration(app.currentService)
+      };
       console.log(app.resolvedComponent);
     }
     if (evt.detail &&
-        evt.detail.item &&
-        evt.detail.item.parentElement &&
-        evt.detail.item.parentElement.classList &&
-        evt.detail.item.parentElement.classList.contains('deploymentSelector') &&
-        app.deployments) {
+      evt.detail.item &&
+      evt.detail.item.parentElement &&
+      evt.detail.item.parentElement.classList &&
+      evt.detail.item.parentElement.classList.contains('deploymentSelector') &&
+      app.deployments) {
       app.currentDeployment = undefined;
-      app.deployments.forEach( (deployment) => {
+      app.deployments.forEach((deployment) => {
         if (deployment.uuid === app.activeDeployment) {
           app.currentDeployment = deployment;
         }
       });
-      app.resolvedComponent = {parameters: app.getRealConfiguration(app.currentService)};
+      app.resolvedComponent = {
+        parameters: app.getRealConfiguration(app.currentService)
+      };
     }
   });
 
 
-  app.confirmDeleteCurrentComponent = function () {
+  app.confirmDeleteCurrentComponent = function() {
     if (app.currentComponent === undefined || app.currentComponent._type === undefined) return;
     this.$.confirmDeletion.open();
   };
 
-  app.deleteCurrentComponent = function () {
+  app.deleteCurrentComponent = function() {
     if (app.currentComponent === undefined || app.currentComponent._type === undefined) return;
     if (app.currentComponent._type === "Configuration") {
       app.currentComponent.params = {};
@@ -132,13 +138,15 @@ var Webda = {
     this.$.ajax.method = 'DELETE';
     this.$.ajax.contentType = 'application/json';
     if (app.currentComponent._type === "Route") {
-      this.$.ajax.body = {'url': app.currentComponent._name};
+      this.$.ajax.body = {
+        'url': app.currentComponent._name
+      };
       this.$.ajax.url = app.getUrl('/routes');
     } else {
       this.$.ajax.url = app.getUrl('/' + app.currentComponent._type.toLowerCase() + 's/' + app.currentComponent._name);
       this.$.ajax.body = {};
     }
-    this.$.ajax.generateRequest().completes.then( () => {
+    this.$.ajax.generateRequest().completes.then(() => {
       app.currentComponent = undefined;
       app.noCurrentComponent = true;
       this.refresh();
@@ -148,7 +156,7 @@ var Webda = {
     });
   }
 
-  app.onGetDeployments = function (evt) {
+  app.onGetDeployments = function(evt) {
     var deployments = evt.target.lastResponse;
     console.log(deployments);
     if (deployments === undefined) {
@@ -180,12 +188,12 @@ var Webda = {
     return res;
   }
 
-  var jsonFilter = function (key, value) {
+  var jsonFilter = function(key, value) {
     if (key[0] === "_") return;
     if (key[0] === "-") return;
     return value;
   };
-  app.strip = function (obj, recursive) {
+  app.strip = function(obj, recursive) {
     var res = {};
     for (var i in obj) {
       if (!recursive) {
@@ -227,7 +235,7 @@ var Webda = {
         console.log('adding', app.services[i]._name, 'to worker');
         Webda.workers.push(app.services[i]);
       }
-      app.mapServices[app.services[i]._name]=app.services[i];
+      app.mapServices[app.services[i]._name] = app.services[i];
     }
   }
 
@@ -235,12 +243,12 @@ var Webda = {
     return JSON.stringify(obj, jsonFilter, 4).trim();
   }
 
-  app.displayJson = function (json) {
+  app.displayJson = function(json) {
     app.json = json;
     app.$.displayJsonDialog.open();
   }
 
-  app.selectComponent = function( component ) {
+  app.selectComponent = function(component) {
     app.noCurrentComponent = false;
     // Duplicate the original component to be able to modify it
     app.currentComponent = JSON.parse(JSON.stringify(component));
@@ -265,7 +273,9 @@ var Webda = {
   app.onSelectModel = function(evt) {
     var index = app.getAttribute('dataIndex', evt.target);
     var customModels = [];
-    app.models.forEach((item) => {if (!item.builtin) customModels.push(item)})
+    app.models.forEach((item) => {
+      if (!item.builtin) customModels.push(item)
+    })
     if (index !== undefined) {
       app.selectedIndex = index;
       customModels[index]._type = 'Model';
@@ -274,7 +284,9 @@ var Webda = {
     }
   }
   app.onSelectRoute = function(evt) {
-    var validate = jsen({ type: 'string' });
+    var validate = jsen({
+      type: 'string'
+    });
     var index = app.getAttribute('dataIndex', evt.target);
     if (index !== undefined) {
       var route = app.routes[index];
@@ -294,11 +306,11 @@ var Webda = {
     }
   };
 
-  app.setVhost = function (vhost) {
+  app.setVhost = function(vhost) {
     app.currentVhost = vhost;
   }
 
-  app.refresh = function () {
+  app.refresh = function() {
     app.$.routesAjax.generateRequest();
     app.$.deploymentsAjax.generateRequest();
     app.$.servicesAjax.generateRequest();
@@ -307,9 +319,13 @@ var Webda = {
     app.$.modelsAjax.generateRequest();
   }
 
-  app.handleConfig = function (evt) {
-    app.configComponent = {parameters: evt.target.lastResponse};
-    app.resolvedComponent = {parameters: evt.target.lastResponse};
+  app.handleConfig = function(evt) {
+    app.configComponent = {
+      parameters: evt.target.lastResponse
+    };
+    app.resolvedComponent = {
+      parameters: evt.target.lastResponse
+    };
   }
 
 
@@ -328,10 +344,10 @@ var Webda = {
     for (let i in app.moddas) {
       if (!app.moddas[i].configuration.schema) continue;
       try {
-        app.schemas[app.moddas[i].uuid]=true;
+        app.schemas[app.moddas[i].uuid] = true;
         app.ajv.addSchema(app.moddas[i].configuration.schema, app.moddas[i].uuid);
       } catch (ex) {
-        console.log('Error loading modda', app.moddas[i].uuid,app.moddas[i].configuration.schema, ex);
+        console.log('Error loading modda', app.moddas[i].uuid, app.moddas[i].configuration.schema, ex);
       }
     }
 
@@ -359,7 +375,7 @@ var Webda = {
     // Then take the local one
     app._extend(res, params);
     if (params._type === "Service" && app.currentDeployment &&
-                  app.currentDeployment.services && app.currentDeployment.services[params._name]) {
+      app.currentDeployment.services && app.currentDeployment.services[params._name]) {
       res = merge.recursive(true, res, app.currentDeployment.services[params._name]);
     }
     let filtered = {};
@@ -375,8 +391,14 @@ var Webda = {
 
   /*****/
 
-  app.getRouteLabel = function (label) {
-    var labels = {'routes': 'Routes', 'services': 'Services', 'deployments': 'Deployments', 'models': 'Models', 'configuration': 'Configuration'};
+  app.getRouteLabel = function(label) {
+    var labels = {
+      'routes': 'Routes',
+      'services': 'Services',
+      'deployments': 'Deployments',
+      'models': 'Models',
+      'configuration': 'Configuration'
+    };
     return labels[label];
   }
   app.displayInstalledToast = function() {
@@ -404,9 +426,13 @@ var Webda = {
 
     app.connect();
 
-    app.addEventListener('deploy', function (evt) {
+    app.addEventListener('deploy', function(evt) {
       // Reinit deployment infos
-      var deployer = {finished: false, output: [], type: 'aws'};
+      var deployer = {
+        finished: false,
+        output: [],
+        type: 'aws'
+      };
       app.deployAction = "Deploying ...";
       for (let i in app.deployments) {
         if (evt.detail == app.deployments[i]._name) {
@@ -431,8 +457,8 @@ var Webda = {
 
     });
 
-    var fake = ["[1/4] Start to deploy","[2/4] Lambda","[3/4] Gateway","[4/4] Permission", "DONE"]
-    app.fakeOutput = function () {
+    var fake = ["[1/4] Start to deploy", "[2/4] Lambda", "[3/4] Gateway", "[4/4] Permission", "DONE"]
+    app.fakeOutput = function() {
       app.handleServerMessage(fake[app.i]);
       if (app.i < fake.length) {
         app.i++;
@@ -443,25 +469,25 @@ var Webda = {
     window.addEventListener('webda-save-current-component', app.saveCurrentComponent);
 
     // imports are loaded and elements have been registered
-    app.$.newModelDialog.addEventListener('iron-overlay-closed', function (evt) {
+    app.$.newModelDialog.addEventListener('iron-overlay-closed', function(evt) {
       if (!evt.detail.confirmed) return;
       app.refresh();
       app.$.toast.text = 'Model created';
       app.$.toast.show();
     });
-    app.$.newServiceDialog.addEventListener('iron-overlay-closed', function (evt) {
+    app.$.newServiceDialog.addEventListener('iron-overlay-closed', function(evt) {
       if (!evt.detail.confirmed) return;
       app.refresh();
       app.$.toast.text = 'Service created';
       app.$.toast.show();
     });
-    app.$.newRouteDialog.addEventListener('iron-overlay-closed', function (evt) {
+    app.$.newRouteDialog.addEventListener('iron-overlay-closed', function(evt) {
       if (!evt.detail.confirmed) return;
       app.refresh();
       app.$.toast.text = 'Route created';
       app.$.toast.show();
     });
-    app.$.confirmDeletion.addEventListener('iron-overlay-closed', function (evt) {
+    app.$.confirmDeletion.addEventListener('iron-overlay-closed', function(evt) {
       if (evt.detail.confirmed) {
         app.deleteCurrentComponent();
       }
@@ -490,13 +516,16 @@ var Webda = {
     }
   }
 
-  app.createDeploymentGroup = function () {
+  app.createDeploymentGroup = function() {
     app.$.ajax.method = 'POST';
     // Clone default config
-    app.$.ajax.body = {type: 'deployment', uuid: app.newDeploymentGroupName};
+    app.$.ajax.body = {
+      type: 'deployment',
+      uuid: app.newDeploymentGroupName
+    };
     app.$.ajax.url = app.getUrl('/deployments');
     app.$.ajax.contentType = 'application/json';
-    app.$.ajax.generateRequest().completes.then( () => {
+    app.$.ajax.generateRequest().completes.then(() => {
       app.refresh();
       app.$.toast.text = 'Deployment group created';
       app.$.toast.show();

@@ -26,18 +26,20 @@ module.exports = class WebdaConsole {
       dest_dir += '/';
     }
     return new Promise((resolve, reject) => {
-      yauzl.fromBuffer(body, {lazyEntries: true}, function (err, zipfile) {
+      yauzl.fromBuffer(body, {
+        lazyEntries: true
+      }, function(err, zipfile) {
         if (err) {
           return reject(err);
         }
         zipfile.readEntry();
-        zipfile.on("end", function () {
+        zipfile.on("end", function() {
           return resolve();
         });
-        zipfile.on("entry", function (entry) {
+        zipfile.on("entry", function(entry) {
           if (/\/$/.test(entry.fileName)) {
             // directory file names end with '/'
-            mkdirp(dest_dir + entry.fileName, function (err) {
+            mkdirp(dest_dir + entry.fileName, function(err) {
               if (err) {
                 return reject(err);
               }
@@ -45,13 +47,13 @@ module.exports = class WebdaConsole {
             });
           } else {
             // file entry
-            zipfile.openReadStream(entry, function (err, readStream) {
+            zipfile.openReadStream(entry, function(err, readStream) {
               if (err) throw err;
               // ensure parent directory exists
-              mkdirp(path.dirname(dest_dir + entry.fileName), function (err) {
+              mkdirp(path.dirname(dest_dir + entry.fileName), function(err) {
                 if (err) throw err;
                 readStream.pipe(fs.createWriteStream(dest_dir + entry.fileName));
-                readStream.on("end", function () {
+                readStream.on("end", function() {
                   zipfile.readEntry();
                 });
               });
@@ -65,24 +67,24 @@ module.exports = class WebdaConsole {
   static generateLogo() {
     var asciify = require('asciify-image');
     var options = {
-      fit:    'box',
-      width:  20,
+      fit: 'box',
+      width: 20,
       height: 20,
       format: 'array'
     }
-    return asciify(__dirname + '/../ivoryShield.png', options).then(function (asciified) {
+    return asciify(__dirname + '/../ivoryShield.png', options).then(function(asciified) {
       // Print asciified image to console
       fs.writeFileSync(__dirname + '/logoshield.json', JSON.stringify(asciified));
-      asciified.forEach( (line) => {
+      asciified.forEach((line) => {
         console.log(line.join(''));
       });
-    }).catch(function (err) {
+    }).catch(function(err) {
       console.log('err', err);
     });
-    return asciify(__dirname + '/../app/images/logo.png', options).then(function (asciified) {
+    return asciify(__dirname + '/../app/images/logo.png', options).then(function(asciified) {
       // Print asciified image to console
       fs.writeFileSync(__dirname + '/logo.json', JSON.stringify(asciified));
-    }).catch(function (err) {
+    }).catch(function(err) {
       console.log('err', err);
     });
   }
@@ -90,7 +92,7 @@ module.exports = class WebdaConsole {
   static logo(lines) {
     const logoLines = require('./logo.json');
     console.log('');
-    logoLines.forEach( (line, idx) => {
+    logoLines.forEach((line, idx) => {
       line = '  ' + line.join('') + '  ';
       if (idx > 0 && lines.length > (idx - 1)) {
         line = line + lines[idx - 1];
@@ -127,11 +129,19 @@ module.exports = class WebdaConsole {
 
   static parser(argv) {
     return argv.alias('d', 'deployment')
-      .alias('o','open')
+      .alias('o', 'open')
       .alias('x', 'devMode')
-      .option('version', {type: 'boolean'})
-      .option('port', {alias:'p', default: 18080})
-      .option('websockets', {alias: 'w', default: false})
+      .option('version', {
+        type: 'boolean'
+      })
+      .option('port', {
+        alias: 'p',
+        default: 18080
+      })
+      .option('websockets', {
+        alias: 'w',
+        default: false
+      })
       .argv;
   }
 
@@ -219,18 +229,18 @@ module.exports = class WebdaConsole {
     let timestamp = new Date().getTime();
     let promise = service[method].apply(service, argv._.slice(3));
     if (promise instanceof Promise) {
-      return promise.catch( (err) => {
+      return promise.catch((err) => {
         console.log('An error occured', err);
       });
     }
-    return Promise.resolve(promise).then( () => {
+    return Promise.resolve(promise).then(() => {
       let seconds = ((new Date().getTime()) - timestamp) / 1000;
       console.log('Took', Math.ceil(seconds) + 's');
     });
   }
 
   static debug(argv) {
-    let launchServe = function () {
+    let launchServe = function() {
       if (server_pid) {
         console.log("Refresh server");
         server_pid.kill();
@@ -249,7 +259,7 @@ module.exports = class WebdaConsole {
     var excepts = ["dist", "node_modules", "deployments", "test"];
     // Set a watcher
     var timeout;
-    var listener = function (event, filename) {
+    var listener = function(event, filename) {
       launchServe();
     }
     var watchs = fs.readdirSync(".")
@@ -258,7 +268,9 @@ module.exports = class WebdaConsole {
       if (filename.indexOf(".") === 0) continue;
       if (excepts.indexOf(filename) >= 0) continue;
       if (filename.endsWith(".js")) {
-        fs.watch(filename, {permanent: true}, listener);
+        fs.watch(filename, {
+          permanent: true
+        }, listener);
         continue;
       }
       if (!fs.existsSync(filename)) {
@@ -266,7 +278,10 @@ module.exports = class WebdaConsole {
       }
       let stat = fs.statSync(filename);
       if (stat.isDirectory()) {
-        fs.watch(filename, {permanent: true, resursive: true}, listener);
+        fs.watch(filename, {
+          permanent: true,
+          resursive: true
+        }, listener);
       }
     }
     launchServe();
@@ -343,8 +358,10 @@ module.exports = class WebdaConsole {
     }
     return promise.then(() => {
       return rp({
-        method: 'GET', uri: 'http://webda.io/samples/v' + version + '.zip',
-        resolveWithFullResponse: true, encoding: null
+        method: 'GET',
+        uri: 'http://webda.io/samples/v' + version + '.zip',
+        resolveWithFullResponse: true,
+        encoding: null
       })
     }).then((response) => {
       return unzip(target, response.body);
@@ -362,7 +379,7 @@ module.exports = class WebdaConsole {
 
   static handleCommand(argv) {
 
-    if (['undeploy','deploy','install','uninstall'].indexOf(argv._[0]) >= 0) {
+    if (['undeploy', 'deploy', 'install', 'uninstall'].indexOf(argv._[0]) >= 0) {
       if (argv.deployment === undefined) {
         console.log('Need to specify an environment');
         process.exit(1);

@@ -12,10 +12,26 @@ const mkdirp = require('mkdirp');
 class ConfigurationService extends Executor {
 
   init() {
-    this._addRoute('/api/modda', {"method": ["GET"], "executor": this._name, "_method": this.getServices});
-    this._addRoute('/api/models', {"method": ["GET", "POST"], "executor": this._name, "_method": this.crudModels});
-    this._addRoute('/api/models/{name}', {"method": ["GET", "PUT", "DELETE"], "executor": this._name, "_method": this.crudModels});
-    this._addRoute('/api/services', {"method": ["GET"], "executor": this._name, "_method": this.crudService});
+    this._addRoute('/api/modda', {
+      "method": ["GET"],
+      "executor": this._name,
+      "_method": this.getServices
+    });
+    this._addRoute('/api/models', {
+      "method": ["GET", "POST"],
+      "executor": this._name,
+      "_method": this.crudModels
+    });
+    this._addRoute('/api/models/{name}', {
+      "method": ["GET", "PUT", "DELETE"],
+      "executor": this._name,
+      "_method": this.crudModels
+    });
+    this._addRoute('/api/services', {
+      "method": ["GET"],
+      "executor": this._name,
+      "_method": this.crudService
+    });
     this._addRoute('/api/services/{name}', {
       "method": ["PUT", "DELETE", "POST"],
       "executor": this._name,
@@ -26,17 +42,41 @@ class ConfigurationService extends Executor {
       "executor": this._name,
       "_method": this.crudRoute
     });
-    this._addRoute('/api/moddas', {"method": ["GET"], "executor": this._name, "_method": this.getModdas});
-    this._addRoute('/api/deployers', {"method": ["GET"], "executor": this._name, "_method": this.getDeployers});
-    this._addRoute('/api/deployments', {"method": ["GET", "POST"], "executor": this._name, "_method": this.restDeployment});
+    this._addRoute('/api/moddas', {
+      "method": ["GET"],
+      "executor": this._name,
+      "_method": this.getModdas
+    });
+    this._addRoute('/api/deployers', {
+      "method": ["GET"],
+      "executor": this._name,
+      "_method": this.getDeployers
+    });
+    this._addRoute('/api/deployments', {
+      "method": ["GET", "POST"],
+      "executor": this._name,
+      "_method": this.restDeployment
+    });
     this._addRoute('/api/deployments/{name}', {
       "method": ["DELETE", "PUT"],
       "executor": this._name,
       "_method": this.restDeployment
     });
-    this._addRoute('/api/versions', {"method": ["GET"], "executor": this._name, "_method": this.versions});
-    this._addRoute('/api/deploy/{name}', {"method": ["GET"], "executor": this._name, "_method": this.deploy});
-    this._addRoute('/api/global', {"method": ["GET", "PUT"], "executor": this._name, "_method": this.restGlobal});
+    this._addRoute('/api/versions', {
+      "method": ["GET"],
+      "executor": this._name,
+      "_method": this.versions
+    });
+    this._addRoute('/api/deploy/{name}', {
+      "method": ["GET"],
+      "executor": this._name,
+      "_method": this.deploy
+    });
+    this._addRoute('/api/global', {
+      "method": ["GET", "PUT"],
+      "executor": this._name,
+      "_method": this.restGlobal
+    });
     this._addRoute('/api/browse/{path}', {
       "method": ["GET", "PUT", "DELETE"],
       "executor": this._name,
@@ -53,7 +93,10 @@ class ConfigurationService extends Executor {
   }
 
   versions(ctx) {
-    ctx.write({shell: WebdaConfigurationServer.getVersion(), core: WebdaConfigurationServer.getWebdaVersion()});
+    ctx.write({
+      shell: WebdaConfigurationServer.getVersion(),
+      core: WebdaConfigurationServer.getWebdaVersion()
+    });
   }
 
   fileBrowser(ctx, prefix) {
@@ -107,11 +150,17 @@ class ConfigurationService extends Executor {
     var res = {};
     // Add builtin model
     for (let i in this._webda._models) {
-      res[i] = {builtin: true, name: i};
+      res[i] = {
+        builtin: true,
+        name: i
+      };
     }
     // Add custom model
     for (let i in this._config.models) {
-      res[i] = {'src': this._config.models[i], 'name': i};
+      res[i] = {
+        'src': this._config.models[i],
+        'name': i
+      };
     }
     var arrayRes = [];
     for (let i in res) {
@@ -131,8 +180,8 @@ class ConfigurationService extends Executor {
       requireFile = '.' + models[extending];
     }
     let content =
-`"use strict";
-const ` + extendName + ` = require('`+requireFile+`');
+      `"use strict";
+const ` + extendName + ` = require('` + requireFile + `');
 
 class ` + className + ` extends ` + extendName + ` {
   static getActions() {
@@ -140,7 +189,7 @@ class ` + className + ` extends ` + extendName + ` {
   }`;
     if (templating) {
       content +=
-`
+        `
   canAct(ctx, action) {
     // Dont allow anything by default
     // Remove the throw to let it work
@@ -266,7 +315,7 @@ class ` + className + ` extends ` + extendName + ` {
         }
         services.push(service);
       }
-      services.sort(function (a, b) {
+      services.sort(function(a, b) {
         return a._name.localeCompare(b._name);
       });
       ctx.write(services);
@@ -315,7 +364,7 @@ class ` + className + ` extends ` + extendName + ` {
         route._manual = this._config.routes[i] !== undefined;
         routes.push(route);
       }
-      routes.sort(function (a, b) {
+      routes.sort(function(a, b) {
         if (a["_manual"] && !b["_manual"]) {
           return -1;
         } else if (!a["_manual"] && b["_manual"]) {
@@ -369,7 +418,7 @@ class ` + className + ` extends ` + extendName + ` {
           this._depoyments[deployments[i].uuid] = true;
           deployments[i]._name = deployments[i].uuid;
         }
-        deployments.sort(function (a, b) {
+        deployments.sort(function(a, b) {
           return a._name.localeCompare(b._name);
         });
         ctx.write(deployments);
@@ -448,7 +497,7 @@ class WebdaConfigurationServer extends WebdaServer {
   exportJson(o) {
     // Credit to : http://stackoverflow.com/questions/11616630/json-stringify-avoid-typeerror-converting-circular-structure-to-json
     var cache = [];
-    var res = JSON.stringify(o, function (key, value) {
+    var res = JSON.stringify(o, function(key, value) {
       if (key.startsWith("_")) return;
       if (typeof value === 'object' && value !== null) {
         if (cache.indexOf(value) !== -1) {
@@ -501,7 +550,9 @@ class WebdaConfigurationServer extends WebdaServer {
       // We just saved the configuration dont want to reload it
     } else if (fs.existsSync("./webda.config.json")) {
       this._file = "./webda.config.json";
-      this.config = JSON.parse(fs.readFileSync(this._file, {encoding: 'utf8'}));
+      this.config = JSON.parse(fs.readFileSync(this._file, {
+        encoding: 'utf8'
+      }));
       if (!this.config.version) {
         this.config = this.migrateConfig(this.config);
       }
@@ -511,7 +562,10 @@ class WebdaConfigurationServer extends WebdaServer {
       this.config = {};
       this._file = path.resolve("./webda.config.json");
       this.config['version', 1]
-      this.saveHostConfiguration({parameters: {}, services: {}});
+      this.saveHostConfiguration({
+        parameters: {},
+        services: {}
+      });
       return;
     }
     this._mockWedba = new Webda(config);
@@ -637,7 +691,7 @@ class WebdaConfigurationServer extends WebdaServer {
       for (let i in deployment.units) {
         if (selectedUnit && selectedUnit !== deployment.units[i].name) continue;
         // Deploy each unit
-        promise = promise.then( () => {
+        promise = promise.then(() => {
           // Filter by unit name if args
           if (!this._deployers[deployment.units[i].type]) {
             console.log('Cannot deploy unit', deployment.units[i].name, '(', deployment.units[i].type, '): type not found');
@@ -645,11 +699,11 @@ class WebdaConfigurationServer extends WebdaServer {
           }
           console.log('Deploy unit', deployment.units[i].name, '(', deployment.units[i].type, ')');
           return (new this._deployers[deployment.units[i].type](
-              this.computeConfig, srcConfig, deployment, deployment.units[i])).deploy(args);
+            this.computeConfig, srcConfig, deployment, deployment.units[i])).deploy(args);
         });
       }
       return promise;
-    }).catch( (err) => {
+    }).catch((err) => {
       console.log('Error', err);
     });
   }

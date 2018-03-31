@@ -15,10 +15,12 @@ class WebdaServer extends Webda {
     if (req.cookies.webda === undefined) {
       req.cookies.webda = {};
     }
-    var sessionCookie = new SecureCookie({'secret': 'webda-private-key'}, req.cookies.webda).getProxy();
+    var sessionCookie = new SecureCookie({
+      'secret': 'webda-private-key'
+    }, req.cookies.webda).getProxy();
     req.session = sessionCookie;
     // Handle reverse proxy
-    var vhost = ( req.headers.host.match(/:/g) ) ? req.headers.host.slice(0, req.headers.host.indexOf(":")) : req.headers.host
+    var vhost = (req.headers.host.match(/:/g)) ? req.headers.host.slice(0, req.headers.host.indexOf(":")) : req.headers.host
     if (req.hostname !== undefined) {
       vhost = req.hostname;
     }
@@ -85,7 +87,9 @@ class WebdaServer extends Webda {
   }
 
   display404(res) {
-    res.writeHead(404, {'Content-Type': 'text/plain'});
+    res.writeHead(404, {
+      'Content-Type': 'text/plain'
+    });
     res.write("Webda doesn't know this host or mapping");
     res.end();
   }
@@ -145,12 +149,21 @@ class WebdaServer extends Webda {
     var requestLimit = this.getGlobalParams().requestLimit ? this.getGlobalParams().requestLimit : '20mb';
     var app = express();
     app.use(cookieParser());
-    app.use(bodyParser.text({type: 'text/plain'}));
-    app.use(bodyParser.json({limit: requestLimit}));
-    app.use(bodyParser.urlencoded({extended: true}));
+    app.use(bodyParser.text({
+      type: 'text/plain'
+    }));
+    app.use(bodyParser.json({
+      limit: requestLimit
+    }));
+    app.use(bodyParser.urlencoded({
+      extended: true
+    }));
     app.use(upload.array('file'));
     // Will lower the limit soon, we should have a library that handle multipart file
-    app.use(bodyParser.raw({type: '*/*', limit: requestLimit}));
+    app.use(bodyParser.raw({
+      type: '*/*',
+      limit: requestLimit
+    }));
 
     app.set('trust proxy', 'loopback, 10.0.0.0/8');
 
@@ -167,7 +180,6 @@ class WebdaServer extends Webda {
     this.serveIndex(express, app);
     console.log('Server running at http://0.0.0.0:' + port);
   }
-}
-;
+};
 
 module.exports = WebdaServer

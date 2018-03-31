@@ -16,8 +16,10 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
     this._maxStep = 2;
 
     this._workers = {};
-    this.resources.workers.forEach( (worker) => {
-      this._workers[worker.toLowerCase()] = {name: worker};
+    this.resources.workers.forEach((worker) => {
+      this._workers[worker.toLowerCase()] = {
+        name: worker
+      };
     });
 
     // Init the default values
@@ -41,11 +43,11 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
       promise = this._getDefaultVPC();
     }
 
-    return promise.then( () => {
+    return promise.then(() => {
       return this._createLogGroup();
-    }).then( () => {
+    }).then(() => {
       return this._createRepository();
-    }).then( () => {
+    }).then(() => {
       return this.buildDockers();
     }).then(() => {
       if (this.resources.taskRole) {
@@ -65,14 +67,18 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
   _createLogGroup() {
     let cloudwatch = new this._AWS.CloudWatchLogs();
     let name = '/ecs/' + this.resources.taskDefinition;
-    return cloudwatch.describeLogGroups({logGroupNamePrefix: name}).promise().then( (res) => {
-      res.logGroups.forEach( (log) => {
+    return cloudwatch.describeLogGroups({
+      logGroupNamePrefix: name
+    }).promise().then((res) => {
+      res.logGroups.forEach((log) => {
         if (log.logGroupName === name) {
           this._logGroupName = log.arn;
         }
       });
       if (!this._logGroupName) {
-        return cloudwatch.createLogGroup({logGroupName: name}).promise();
+        return cloudwatch.createLogGroup({
+          logGroupName: name
+        }).promise();
       }
       return Promise.resolve();
     });
@@ -107,7 +113,7 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
   }
 
   buildDockers() {
-    let promise = this._ecr.getAuthorizationToken({}).promise().then( (res) => {
+    let promise = this._ecr.getAuthorizationToken({}).promise().then((res) => {
       // Login to the AWS repository
       let creds = Buffer.from(res.authorizationData[0].authorizationToken, 'base64').toString();
       creds = creds.substr(4);
@@ -116,13 +122,13 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
     });
     for (let i in this._workers) {
       let worker = this._workers[i];
-      promise = promise.then( () => {
+      promise = promise.then(() => {
         let cmd = '';
         if (worker.name !== 'API') {
           cmd = 'worker ' + worker.name;
         }
         console.log('Building the image');
-        return this.buildDocker(worker.repository, null, this.getDockerfile(cmd)).then( () => {
+        return this.buildDocker(worker.repository, null, this.getDockerfile(cmd)).then(() => {
           console.log('Pushing the image');
           return this.pushDocker(worker.repository);
         });
@@ -132,7 +138,10 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
   }
 
   _createService() {
-    return this._ecs.listServices({cluster: this._cluster.clusterName, launchType: 'FARGATE'}).promise().then( (res) => {
+    return this._ecs.listServices({
+      cluster: this._cluster.clusterName,
+      launchType: 'FARGATE'
+    }).promise().then((res) => {
       let serviceName = this._replaceForAWS(this.resources.serviceName);
       for (let i in res.serviceArns) {
         if (res.serviceArns[i].split('/')[1] === serviceName) {
@@ -172,7 +181,7 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
 
   _createRepository() {
     let repositories = [];
-    this.resources.workers.forEach( (worker) => {
+    this.resources.workers.forEach((worker) => {
       if (this.resources.repositoryNamespace.length > 0) {
         repositories.push((this.resources.repositoryNamespace + '/' + worker).toLowerCase());
       } else {
@@ -180,8 +189,8 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
       }
     });
     // Might want to use only one repository with tagging to optimize storage
-    return this._ecr.describeRepositories({}).promise().then( (res) => {
-      res.repositories.forEach( (repo) => {
+    return this._ecr.describeRepositories({}).promise().then((res) => {
+      res.repositories.forEach((repo) => {
         let idx = repositories.indexOf(repo.repositoryName);
         if (idx >= 0) {
           if (this._workers[repo.repositoryName]) {
@@ -193,9 +202,11 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
         }
       });
       let promise = Promise.resolve();
-      repositories.forEach( (repo) => {
-        promise = promise.then( () => {
-          return this._ecr.createRepository({repositoryName: repo}).promise().then( (res) => {
+      repositories.forEach((repo) => {
+        promise = promise.then(() => {
+          return this._ecr.createRepository({
+            repositoryName: repo
+          }).promise().then((res) => {
             let repo = res.repository;
             if (this._workers[repo.repositoryName]) {
               this._workers[repo.repositoryName].repository = repo.repositoryUri;
@@ -256,19 +267,17 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
 
   _registerTaskDefinition(taskDefinition) {
     taskDefinition = this._replaceForAWS(taskDefinition);
-    return this._ecs.registerTaskDefinition(
-      {
-        containerDefinitions: this._getWorkersDefinition(),
-        family: taskDefinition,
-        taskRoleArn: this._taskRole,
-        volumes: [],
-        requiresCompatibilities: ['FARGATE'],
-        networkMode: 'awsvpc',
-        cpu: this.resources.taskCpu,
-        memory: this.resources.taskMemory,
-        executionRoleArn: this._taskRole
-      }
-    ).promise().then( (res) => {
+    return this._ecs.registerTaskDefinition({
+      containerDefinitions: this._getWorkersDefinition(),
+      family: taskDefinition,
+      taskRoleArn: this._taskRole,
+      volumes: [],
+      requiresCompatibilities: ['FARGATE'],
+      networkMode: 'awsvpc',
+      cpu: this.resources.taskCpu,
+      memory: this.resources.taskMemory,
+      executionRoleArn: this._taskRole
+    }).promise().then((res) => {
       this._taskDefinitionArn = res.taskDefinition.taskDefinitionArn;
     });
   }
@@ -277,14 +286,16 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
     // Check role ARN for cloudwatch and pull images
     let taskDefinition = this.resources.taskDefinition;
     //taskDefinition = 'webda-demo-fargate'
-    return this._ecs.describeTaskDefinition({taskDefinition: taskDefinition}).promise().then( (res) => {
+    return this._ecs.describeTaskDefinition({
+      taskDefinition: taskDefinition
+    }).promise().then((res) => {
       if (this._needWorkersDefinitionUpdate(res.taskDefinition)) {
         console.log('Need to update the task definition');
         return this._registerTaskDefinition(taskDefinition);
       }
       this._taskDefinitionArn = res.taskDefinition.taskDefinitionArn;
       return Promise.resolve();
-    }).catch( (err) => {
+    }).catch((err) => {
       // Describe throw an error if not found
       console.log('Create task definition', taskDefinition);
       return this._registerTaskDefinition(taskDefinition);
@@ -292,16 +303,20 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
   }
 
   _createCluster() {
-    return this._ecs.listClusters().promise().then( (res) => {
+    return this._ecs.listClusters().promise().then((res) => {
       for (let i in res.clusterArns) {
         if (res.clusterArns[i].endsWith(this.resources.clusterName)) {
-          return this._ecs.describeClusters({clusters: [res.clusterArns[i]]}).promise().then( (res) => {
+          return this._ecs.describeClusters({
+            clusters: [res.clusterArns[i]]
+          }).promise().then((res) => {
             this._cluster = res.clusters[0];
           });
         }
       }
       if (!this._cluster) {
-        return this._ecs.createCluster({clusterName: this.resources.clusterName}).promise().then( (res) => {
+        return this._ecs.createCluster({
+          clusterName: this.resources.clusterName
+        }).promise().then((res) => {
           this._cluster = res.cluster;
         });
       }
@@ -311,16 +326,21 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
   _getDefaultVPC() {
     let vpcFilter;
     this._ec2 = new this._AWS.EC2();
-    return this._ec2.describeVpcs().promise().then( (res) => {
+    return this._ec2.describeVpcs().promise().then((res) => {
       for (let i in res.Vpcs) {
         if (res.Vpcs[i].IsDefault) {
           this._vpc = res.Vpcs[i].VpcId;
           break;
         }
       }
-      vpcFilter = {Filters: [{Name: 'vpc-id', Values: [this._vpc]}]}
+      vpcFilter = {
+        Filters: [{
+          Name: 'vpc-id',
+          Values: [this._vpc]
+        }]
+      }
       return this._ec2.describeSubnets().promise();
-    }).then( (res) => {
+    }).then((res) => {
       this._subnets = [];
       for (let i in res.Subnets) {
         this._subnets.push(res.Subnets[i].SubnetId);

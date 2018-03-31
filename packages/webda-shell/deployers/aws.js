@@ -17,9 +17,9 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
     if (forceRegion) {
       config.region = forceRegion;
     }
-    this._acm = new (this._getAWS(config)).ACM();
+    this._acm = new(this._getAWS(config)).ACM();
 
-    return this._acm.listCertificates({}).promise().then( (res) => {
+    return this._acm.listCertificates({}).promise().then((res) => {
       for (let i in res.CertificateSummaryList) {
         if (res.CertificateSummaryList[i].DomainName === domain && res.CertificateSummaryList[i] !== 'FAILED') {
           this._certifcate = res.CertificateSummaryList[i];
@@ -30,19 +30,19 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
         // Create certificate
         let params = {
           DomainName: domain,
-          DomainValidationOptions: [
-            {
-              DomainName: domain,
-              ValidationDomain: domain
-            }
-          ],
+          DomainValidationOptions: [{
+            DomainName: domain,
+            ValidationDomain: domain
+          }],
           ValidationMethod: 'DNS',
           IdempotencyToken: 'WebdaSSL_' + domain.replace(/[^\w]/g, '_')
         };
-        return this._acm.requestCertificate(params).promise().then( (res) => {
+        return this._acm.requestCertificate(params).promise().then((res) => {
           this._certifcate = res;
           return this._waitFor('Waiting for certificate challenge', (resolve, reject) => {
-            return this._acm.describeCertificate({CertificateArn: this._certifcate.CertificateArn}).promise().then( (res) => {
+            return this._acm.describeCertificate({
+              CertificateArn: this._certifcate.CertificateArn
+            }).promise().then((res) => {
               if (res.Certificate.DomainValidationOptions[0].ResourceRecord) {
                 resolve(res.Certificate)
                 return Promise.resolve(true);
@@ -53,9 +53,11 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
         });
       }
       return Promise.reject();
-    }).then( (cert) => {
-      return this._acm.describeCertificate({CertificateArn: cert.CertificateArn}).promise();
-    }).then( (res) => {
+    }).then((cert) => {
+      return this._acm.describeCertificate({
+        CertificateArn: cert.CertificateArn
+      }).promise();
+    }).then((res) => {
       let cert = res.Certificate;
       if (cert.Status === 'FAILED') {
         return Promise.reject('Certificate validation has failed');
@@ -64,10 +66,12 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
         // On create need to wait
         let record = cert.DomainValidationOptions[0].ResourceRecord;
         console.log('Need to validate certificate', cert.CertificateArn);
-        return this._createDNSEntry(record.Name, 'CNAME', record.Value).then( () => {
+        return this._createDNSEntry(record.Name, 'CNAME', record.Value).then(() => {
           // Waiting for certificate validation
           return this._waitFor('Waiting for certificate validation', (resolve, reject) => {
-            return this._acm.describeCertificate({CertificateArn: cert.CertificateArn}).promise().then( (res) => {
+            return this._acm.describeCertificate({
+              CertificateArn: cert.CertificateArn
+            }).promise().then((res) => {
               if (res.Certificate.Status === 'ISSUED') {
                 resolve(res.Certificate);
                 return Promise.resolve(true);
@@ -90,11 +94,11 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
     if (this._waitLabel) {
       console.log('[' + this._try + '/' + this._maxTry + ']', this._waitLabel);
     }
-    this._waitCall(resolve, reject).then( (val) => {
+    this._waitCall(resolve, reject).then((val) => {
       if (val) return;
       this._try++;
       if (maxRetry > 0) {
-        setTimeout(this._waitForInternal.bind(this, timeout * 2, maxRetry-1, resolve, reject), timeout);
+        setTimeout(this._waitForInternal.bind(this, timeout * 2, maxRetry - 1, resolve, reject), timeout);
       } else {
         reject();
       }
@@ -107,7 +111,7 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
     this._waitLabel = label;
     this._waitCall = call;
     timeout = timeout || 5000;
-    return new Promise( (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       this._waitForInternal(timeout, maxRetry, resolve, reject);
     });
   }
@@ -119,9 +123,9 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
     }
     let targetZone;
     // Find the right zone
-    this._r53 = new (this._getAWS(this.resources)).Route53();
+    this._r53 = new(this._getAWS(this.resources)).Route53();
     // Identify the right zone first
-    return this._r53.listHostedZones().promise().then( (res) => {
+    return this._r53.listHostedZones().promise().then((res) => {
       for (let i in res.HostedZones) {
         let zone = res.HostedZones[i];
         if (domain.endsWith(zone.Name)) {
@@ -141,7 +145,7 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
         StartRecordType: type
       }
       return this._r53.listResourceRecordSets(params).promise();
-    }).then( (res) => {
+    }).then((res) => {
       let targetRecord;
       for (let i in res.ResourceRecordSets) {
         let record = res.ResourceRecordSets[i];
@@ -157,7 +161,9 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
             Action: 'UPSERT',
             ResourceRecordSet: {
               Name: domain,
-              ResourceRecords: [{Value:value}],
+              ResourceRecords: [{
+                Value: value
+              }],
               TTL: 360,
               Type: type
             }
@@ -174,7 +180,7 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
         console.log('Updating record', type, domain, value);
       }
       return this._r53.changeResourceRecordSets(params).promise();
-    }).then( () => {
+    }).then(() => {
       return Promise.resolve();
     });
   }
@@ -200,11 +206,11 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
     roleName = this._replaceForAWS(roleName);
     policyName = policyName || (name + 'Policy');
     policyName = this._replaceForAWS(policyName);
-    let sts = new (this._AWS).STS();
-    let iam = new (this._AWS).IAM();
+    let sts = new(this._AWS).STS();
+    let iam = new(this._AWS).IAM();
     let roleArn = '';
 
-    return sts.getCallerIdentity().promise().then( (id) => {
+    return sts.getCallerIdentity().promise().then((id) => {
       // arn:aws:logs:us-east-1:123456789012:*
       let statements = [];
       this.resources.AWSAccountId = id.Account;
@@ -232,7 +238,9 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
         "Statement": statements
       }
       let policy;
-      return iam.listPolicies({PathPrefix: '/webda/'}).promise().then( (data) => {
+      return iam.listPolicies({
+        PathPrefix: '/webda/'
+      }).promise().then((data) => {
         for (let i in data.Policies) {
           if (data.Policies[i].PolicyName === policyName) {
             policy = data.Policies[i];
@@ -241,27 +249,44 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
         if (!policy) {
           console.log('Creating AWS Policy', policyName);
           // Create the policy has it doesnt not exist
-          return iam.createPolicy({PolicyDocument: JSON.stringify(policyDocument), PolicyName: policyName, Description: 'webda-generated', Path: '/webda/'}).promise().then( (data) => {
+          return iam.createPolicy({
+            PolicyDocument: JSON.stringify(policyDocument),
+            PolicyName: policyName,
+            Description: 'webda-generated',
+            Path: '/webda/'
+          }).promise().then((data) => {
             policy = data.Policy;
           });
         } else {
           // Compare policy with the new one
-          return iam.getPolicyVersion({PolicyArn: policy.Arn, VersionId: policy.DefaultVersionId}).promise().then( (data) => {
+          return iam.getPolicyVersion({
+            PolicyArn: policy.Arn,
+            VersionId: policy.DefaultVersionId
+          }).promise().then((data) => {
             // If nothing changed just continue
             if (decodeURIComponent(data.PolicyVersion.Document) === JSON.stringify(policyDocument)) {
               return Promise.resolve();
             }
             console.log('Update AWS Policy', policyName);
             // Create new version for the policy
-            return iam.createPolicyVersion({PolicyArn: policy.Arn, PolicyDocument: JSON.stringify(policyDocument), SetAsDefault: true}).promise().then( () => {
+            return iam.createPolicyVersion({
+              PolicyArn: policy.Arn,
+              PolicyDocument: JSON.stringify(policyDocument),
+              SetAsDefault: true
+            }).promise().then(() => {
               // Remove old version
-              return iam.deletePolicyVersion({PolicyArn: policy.Arn, VersionId: policy.DefaultVersionId}).promise();
+              return iam.deletePolicyVersion({
+                PolicyArn: policy.Arn,
+                VersionId: policy.DefaultVersionId
+              }).promise();
             });
           })
         }
-      }).then( () => {
+      }).then(() => {
         //
-        return iam.listRoles({PathPrefix: '/webda/'}).promise().then( (data) => {
+        return iam.listRoles({
+          PathPrefix: '/webda/'
+        }).promise().then((data) => {
           let role;
           for (let i in data.Roles) {
             if (data.Roles[i].RoleName === roleName) {
@@ -271,25 +296,35 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
           }
           if (!role) {
             console.log('Creating AWS Role', roleName);
-            return iam.createRole({Description: 'webda-generated', Path: '/webda/', RoleName: roleName, AssumeRolePolicyDocument: assumeRolePolicy}).promise().then( (res) => {
+            return iam.createRole({
+              Description: 'webda-generated',
+              Path: '/webda/',
+              RoleName: roleName,
+              AssumeRolePolicyDocument: assumeRolePolicy
+            }).promise().then((res) => {
               return Promise.resolve(res.Role);
             });
           }
           return Promise.resolve(role);
-        }).then( (role) => {
+        }).then((role) => {
           roleArn = role.Arn;
-          return iam.listAttachedRolePolicies({RoleName: roleName}).promise();
-        }).then( (data) => {
+          return iam.listAttachedRolePolicies({
+            RoleName: roleName
+          }).promise();
+        }).then((data) => {
           for (let i in data.AttachedPolicies) {
             if (data.AttachedPolicies[i].PolicyName === policyName) {
               return Promise.resolve();
             }
           }
           console.log('Attaching AWS Policy', policyName, 'to', roleName);
-          return iam.attachRolePolicy({PolicyArn: policy.Arn, RoleName: roleName}).promise();
+          return iam.attachRolePolicy({
+            PolicyArn: policy.Arn,
+            RoleName: roleName
+          }).promise();
         });
       });
-    }).then ( () => {
+    }).then(() => {
       return Promise.resolve(roleArn);
     });
   }

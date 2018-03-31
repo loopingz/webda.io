@@ -60,6 +60,24 @@ describe('Webda', function() {
       assert.notEqual(null, webda.getService("Authentication"));
     });
   })
+  describe('getModdas()', function() {
+    it('normal', function() {
+      let moddas = webda.getModdas();
+      assert.equal(Object.keys(moddas).length, 13);
+    });
+    it('implementation', function() {
+      const Store = require('../stores/store');
+      let moddas = webda.getModdas(Store);
+      assert.equal(Object.keys(moddas).length, 5);
+    });
+  })
+  describe('getServicesImplementations()', function() {
+    it('normal', function() {
+      const Store = require('../stores/store');
+      let stores = webda.getServicesImplementations(Store);
+      assert.equal(Object.keys(stores).length, 9);
+    });
+  })
   describe('getExecutor()', function() {
     it('Known page', function() {
       executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/");

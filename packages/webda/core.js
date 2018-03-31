@@ -317,6 +317,22 @@ class Webda extends EventEmitter {
     return {};
   }
 
+  /**
+   * Return a map of all known services modda
+   * @param type The type of implementation if null all moddas
+   * @returns {{}}
+   */
+  getModdas(type) {
+    let result = {};
+    for (let i in this._services) {
+      if (!type) {
+        result[i] = this._services[i].getModda();
+      } else if (this._services[i].prototype instanceof type) {
+        result[i] = this._services[i].getModda();
+      }
+    }
+    return result;
+  }
 
   /**
    * Return a map of services that extends type
@@ -325,10 +341,9 @@ class Webda extends EventEmitter {
    */
   getServicesImplementations(type) {
     let result = {};
-    for (let i in this._webda._services) {
-      // Check if it is a Validator and has Modda
-      if (this._webda._services[i].prototype instanceof type) {
-        result[i] = this._webda._services[i].getModda();
+    for (let i in this._config._services) {
+      if (this._config._services[i] instanceof type) {
+        result[i] = this._config._services[i];
       }
     }
     return result;

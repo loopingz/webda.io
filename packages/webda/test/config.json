@@ -70,7 +70,10 @@
       "type": "Test/Mailer"
     },
     "TrueMailer": {
-      "type": "Webda/Mailer"
+      "type": "Webda/Mailer",
+      "config": {
+        "transport": "ses"
+      }
     },
     "dynamoidents": {
       "inject": "user",

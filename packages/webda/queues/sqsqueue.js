@@ -57,10 +57,22 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
     });
   }
 
-  __clean() {
+  __clean(fail) {
     return this.sqs.purgeQueue({
       QueueUrl: this._params.queue
-    }).promise();
+    }).promise().catch( (err) => {
+      if (fail || err.code !== 'AWS.SimpleQueueService.PurgeQueueInProgress') {
+        return Promise.reject(err);
+      }
+      let delay = err.retryDelay * 1100;
+      console.log('Retry PurgeQueue in ', delay);
+      // 10% of margin
+      return new Promise( (resolve) => {
+        setTimeout(() => {
+          resolve(this._clean(true));
+        }, delay);
+      });
+    });
   }
 
   install(params) {

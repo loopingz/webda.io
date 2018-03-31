@@ -66,6 +66,8 @@ describe('Queues', function() {
         this.skip();
         return;
       }
+      // Update timeout to 80000ms as Purge can only be sent once every 60s
+      this.timeout(80000);
       return simple(webda.getService("sqsqueue"));
     });
   });

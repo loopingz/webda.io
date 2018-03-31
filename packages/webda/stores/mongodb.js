@@ -20,7 +20,11 @@ class MongoStore extends Store {
     if (options.mongo === undefined || options.mongo === '') {
       this._params.mongo = options.mongo = process.env["WEBDA_MONGO_URL"];
     }
-    if (!webda._configurationMode && options.collection === undefined || options.mongo === undefined) {
+    if (this._params.mongo) {
+      // Get the database name from url
+      this._params.mongoDb = this._params.mongo.substr(this._params.mongo.lastIndexOf('/')+1);
+    }
+    if (!webda._configurationMode && options.collection === undefined || options.mongo === undefined || this._params.mongoDb === undefined) {
       this._createException = "collection and url must be setup";
     }
   }
@@ -28,11 +32,11 @@ class MongoStore extends Store {
   _connect() {
     if (this._connectPromise === undefined) {
       this._connectPromise = new Promise((resolve, reject) => {
-        MongoClient.connect(this._params.mongo, (err, db) => {
+        MongoClient.connect(this._params.mongo, (err, client) => {
           if (err) {
             return reject(err);
           }
-          this._db = db;
+          this._db = client.db(this._params.mongoDb);
           this._collection = this._db.collection(this._params.collection);
           return resolve();
         });
@@ -169,14 +173,7 @@ class MongoStore extends Store {
 
   __clean() {
     return this._connect().then(() => {
-      return new Promise((resolve, reject) => {
-        this._collection.remove((err, result) => {
-          if (err) {
-            reject(err);
-          }
-          resolve(result);
-        });
-      });
+      return this._collection.deleteMany();
     });
   }
 

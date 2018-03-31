@@ -1,9 +1,14 @@
 language: node_js
+services:
+  - mongodb
 addons:
   sonarcloud:
     organization: "loopingz-github"
 node_js:
   - "6"
+before_script:
+  - sleep 15
+  - mongo mydb_test --eval 'db.createUser({user:"travis",pwd:"test",roles:["readWrite"]});'
 script:
   - npm run cover
   - sonar-scanner

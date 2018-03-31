@@ -37,6 +37,7 @@ var normal = function(userStore, binary, map, webda, exposePath) {
   }).then(function() {
     return userStore.get(user1.uuid);
   }).then(function(user) {
+    user1 = user;
     assert.notEqual(user[map], undefined);
     assert.equal(user[map].length, 1);
     hash = user[map][0].hash;
@@ -83,6 +84,13 @@ var normal = function(userStore, binary, map, webda, exposePath) {
     return executor.execute(ctx);
   }).then(function() {
     // We dont check for result as FileBinary will return datas and S3 a redirect
+    if (fs.existsSync('./downloadTo.tmp')) {
+      fs.unlinkSync('./downloadTo.tmp');
+    }
+    return binary.downloadTo(user1[map][0], './downloadTo.tmp');
+  }).then(function() {
+    // Check the result is the same
+    assert.equal(fs.readFileSync('./downloadTo.tmp').toString(), fs.readFileSync('./test/Dockerfile').toString());
     return userStore.delete(user1.uuid);
   }).then(function() {
     return binary.getUsageCount(hash);
@@ -161,6 +169,20 @@ describe('Binary', function() {
   });
   beforeEach(function() {
     webda = new Webda(config);
+  });
+  describe('Binary', function() {
+    const Binary = require('../services/binary');
+    var service = new Binary();
+
+    it('abstract', function() {
+
+      assert.throws(service.store, Error);
+      assert.throws(service.getUsageCount, Error);
+      assert.throws(service.update, Error);
+      assert.throws(service.delete, Error);
+
+    })
+
   });
   describe('FileBinary', function() {
     beforeEach(function() {

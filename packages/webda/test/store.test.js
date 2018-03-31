@@ -660,5 +660,12 @@ describe('Store', function() {
       assert.equal(clean.arr[1].value, undefined);
       assert.notEqual(clean.arr[2].value, undefined);
     });
+    it('ARN Policy', function() {
+      userStore = webda.getService("dynamousers");
+      userStore._params.region = 'eu-west-1';
+      assert.equal(userStore.getARNPolicy('666').Resource[0], "arn:aws:dynamodb:eu-west-1:666:table/webda-test-users");
+      userStore._params.region = undefined;
+      assert.equal(userStore.getARNPolicy('777').Resource[0], "arn:aws:dynamodb:us-east-1:777:table/webda-test-users");
+    });
   });
 });

@@ -75,8 +75,31 @@ describe('Webda', function() {
       assert.notEqual(webda.loadConfiguration('./config.json'), undefined);
       webda._config.parameters.locales = undefined;
       assert.equal(webda.getLocales().indexOf("en-GB"), 0);
+      webda._config._services = undefined;
+      assert.equal(JSON.stringify(webda.getServices()), "{}");
+      assert.equal(webda.getService('plop'), undefined);
+      webda._config._models = undefined;
+      assert.equal(JSON.stringify(webda.getModels()), "{}");
       webda._config = undefined;
       assert.equal(webda.getLocales().indexOf("en-GB"), 0);
+    });
+    it('context', function() {
+      ctx.init();
+      assert.notEqual(ctx.getWebda(), undefined);
+      ctx.session = undefined;
+      assert.equal(ctx.getCurrentUserId(), undefined);
+      assert.notEqual(ctx.getStream(), undefined);
+      ctx._cookie = undefined;
+      ctx.cookie('test', 'plop');
+      ctx.cookie('test2', 'plop2');
+      assert.equal(ctx._cookie['test'], 'plop');
+      assert.equal(ctx._cookie['test2'], 'plop2');
+      ctx.writeHead(undefined, {test: 'plop'});
+      assert.equal(ctx._headers['test'], 'plop');
+      ctx.setHeader('X-Webda', 'HEAD');
+      assert.equal(ctx._headers['X-Webda'], 'HEAD');
+      ctx.write(400);
+      assert.equal(ctx._body, 400);
     });
   });
   describe('getService()', function() {

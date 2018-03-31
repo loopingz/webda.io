@@ -116,7 +116,7 @@ class Binary extends Executor {
    * @param {String} filepath to save the binary to
    */
   downloadTo(info, filename) {
-    var readStream = this.get(info);
+    var readStream = this._get(info);
     var writeStream = fs.createWriteStream(filename);
     return new Promise((resolve, reject) => {
       writeStream.on('finish', (src) => {
@@ -323,12 +323,6 @@ class Binary extends Executor {
         "executor": this._name,
         "_method": this.httpRoute
       });
-      url = this._params.expose.url + "/download/{store}/{uid}/{property}/{index}/{expire}/{token}";
-      this._addRoute(url, {
-        "method": ["GET"],
-        "executor": this._name,
-        "_method": this.httpDownload
-      });
     }
 
     if (!this._params.expose.restrict.create) {
@@ -360,17 +354,6 @@ class Binary extends Executor {
         "_method": this.httpRoute
       });
     }
-  }
-
-  httpDownload(ctx) {
-    // Verify the token
-    let targetStore = this._verifyMapAndStore(ctx);
-    return targetStore.get(ctx._params.uid).then((object) => {
-      return this.store(targetStore, object, ctx._params.property, this._getFile(ctx), ctx.body).then((object) => {
-        ctx.write(object);
-        return Promise.resolve();
-      });
-    });
   }
 
   httpPost(ctx) {

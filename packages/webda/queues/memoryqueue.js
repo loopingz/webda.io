@@ -19,6 +19,10 @@ class MemoryQueueService extends QueueService {
 
   sendMessage(params) {
     var uid = uuid.v4();
+    // Avoid duplication
+    while (this._queue[uid]) {
+      uid = uuid.v4();
+    }
     this._queue[uid] = {
       Body: params,
       Claimed: 0,

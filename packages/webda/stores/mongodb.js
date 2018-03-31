@@ -36,6 +36,7 @@ class MongoStore extends Store {
           if (err) {
             return reject(err);
           }
+          this._client = client;
           this._db = client.db(this._params.mongoDb);
           this._collection = this._db.collection(this._params.collection);
           return resolve();

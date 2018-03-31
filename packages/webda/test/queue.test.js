@@ -16,6 +16,11 @@ var simple = function(queue) {
       'type': 2
     });
   }).then(() => {
+    // Pause for 1s - to verify the repopulation
+    return new Promise((resolve, reject) => {
+      setTimeout(resolve, 1000);
+    });
+  }).then(() => {
     return queue.size();
   }).then((size) => {
     assert.equal(size, 2);

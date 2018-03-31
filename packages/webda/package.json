@@ -14,8 +14,7 @@
     "test": "mocha -t 20000",
     "run": "node core",
     "format": "node ./scripts/format.js",
-    "cover": "node_modules/.bin/istanbul cover --report lcovonly --dir ./reports _mocha -- -u exports -R spec -t 20000",
-    "coverhtml": "node_modules/.bin/istanbul cover --report html --dir ./reports _mocha -- -u exports -R spec -t 20000"
+    "cover": "node_modules/.bin/istanbul cover --dir ./reports _mocha -- -u exports -R spec -t 20000"
   },
   "dependencies": {
     "accept-language": "=3.0.15",

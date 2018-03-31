@@ -272,6 +272,11 @@
       "executor": "resource",
       "file": "./test/Dockerfile.txt"
     },
+    "/route/resource/notfound": {
+      "method": [ "GET" ],
+      "executor": "resource",
+      "file": "./test/Dockerfile.notfound.txt"
+    },
     "/route/file": {
       "method": [ "GET" ],
       "executor": "file",

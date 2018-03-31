@@ -38,6 +38,15 @@ describe("RoutesHelper", function() {
       assert.equal(ctx._body, fs.readFileSync('./test/Dockerfile.txt'));
     });
   })
+  it('Resource - Not found', function() {
+    executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/route/resource/notfound");
+    let error;
+    return executor.execute(ctx).catch( (err) => {
+      error = err;
+    }).then( () => {
+      assert.notEqual(error, undefined);
+    });
+  })
   it('File', function() {
     executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/route/file");
     return executor.execute(ctx).then( () => {

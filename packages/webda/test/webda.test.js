@@ -77,6 +77,10 @@ describe('Webda', function() {
       let stores = webda.getServicesImplementations(Store);
       assert.equal(Object.keys(stores).length, 9);
     });
+    it('store', function() {
+      const Store = require('../stores/store');
+      assert.equal(Object.keys(webda.getStores()).length, Object.keys(webda.getServicesImplementations(Store)).length);
+    });
   })
   describe('getExecutor()', function() {
     it('Known page', function() {

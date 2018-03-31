@@ -9,6 +9,7 @@ const path = require('path');
 const cookieSerialize = require("cookie").serialize;
 const Context = require("./utils/context");
 const EventEmitter = require('events');
+const Store = require('./stores/store');
 
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
@@ -354,14 +355,8 @@ class Webda extends EventEmitter {
    * @returns {{}}
    */
   getStores() {
-    let res = {}
-    let services = this.getServices();
-    Object.keys(services).forEach( (service) => {
-      if (services[service] instanceof Store) {
-        res[service] = services[service];
-      }
-    });
-    return services;
+
+    return this.getServicesImplementations(Store);
   }
 
   /**

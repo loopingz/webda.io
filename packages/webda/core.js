@@ -634,6 +634,8 @@ class Webda extends EventEmitter {
     // Add models
     this.initModels(this._config);
 
+    this.autoConnectServices();
+
     // Init services
     for (service in this._config._services) {
       if (this._config._services[service].init !== undefined) {
@@ -646,7 +648,30 @@ class Webda extends EventEmitter {
         }
       }
     }
+
     this.emit('Webda.Init.Services', this._config._services);
+  }
+
+
+  _getSetters(obj) {
+    let methods = [];
+    while (obj = Reflect.getPrototypeOf(obj)) {
+      let keys = Reflect.ownKeys(obj).filter(k => k.startsWith('set'))
+      keys.forEach((k) => methods.push(k));
+    }
+    return methods;
+  }
+
+  autoConnectServices() {
+    for (let service in this._config._services) {
+      let setters = this._getSetters(this._config._services[service]);
+      setters.forEach( (setter) => {
+        let targetService = this._config._services[setter.substr(3).toLowerCase()];
+        if (targetService) {
+          this._config._services[service][setter](targetService);
+        }
+      });
+    }
   }
 
   jsonFilter(key, value) {

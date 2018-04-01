@@ -56,20 +56,32 @@ class PassportExecutor extends Executor {
     this._type = "PassportExecutor";
   }
 
+  setIdents(identStore) {
+    this._identsStore = identStore;
+  }
+
+  setUsers(userStore) {
+    this._usersStore = userStore;
+  }
+
   /**
    * @ignore
    * Setup the default routes
    */
   init() {
     let url = this._url = this._params.expose || '/auth';
-    this._identsStore = this.getService(this._params.identStore || 'idents');
-    this._usersStore = this.getService(this._params.userStore || 'users');
+    if (this._params.identStore) {
+      this._identsStore = this.getService(this._params.identStore);
+    }
+    if (this._params.userStore) {
+      this._usersStore = this.getService(this._params.userStore);
+    }
     this._params.passwordRegexp = this._params.passwordRegexp || '.{8,}';
     if (this._params.passwordVerifier) {
       this._passwordVerifier = this.getService(this._params.passwordVerifier);
     }
     if (this._identsStore === undefined || this._usersStore === undefined) {
-      this._initException = "Unresolved dependency on idents and users services";
+      throw Error("Unresolved dependency on idents and users services");
     }
     // List authentication configured
     this._addRoute(url, {
@@ -269,9 +281,8 @@ class PassportExecutor extends Executor {
     }
     var expire = Date.now() + interval;
     if (typeof(uuid) === 'string') {
-      var userStore = this.getService("users");
       // Use the one from config if not specified
-      promise = userStore.get(uuid);
+      promise = this._usersStore.get(uuid);
     } else {
       promise = Promise.resolve(uuid);
     }
@@ -285,23 +296,17 @@ class PassportExecutor extends Executor {
   }
 
   _passwordRecoveryEmail(ctx) {
-    var userStore = this.getService("users");
-    var identStore = this.getService("idents");
-    if (identStore === undefined) {
-      this._webda.log('ERROR', 'Email auth needs an ident store');
-      throw 500;
-    }
-    return identStore.get(ctx._params.email + "_email").then((ident) => {
+    return this._identsStore.get(ctx._params.email + "_email").then((ident) => {
       if (!ident) {
         throw 404;
       }
-      return userStore.get(ident.user);
+      return this._usersStore.get(ident.user);
     }).then((user) => {
       // Dont allow to do too many request
       if (user._lastPasswordRecovery > Date.now() - 3600000 * 4) {
         throw 429;
       }
-      return userStore.update({
+      return this._usersStore.update({
         _lastPasswordRecovery: Date.now()
       }, user.uuid).then(() => {
         return this.sendRecoveryEmail(ctx, user, ctx._params.email);
@@ -321,11 +326,10 @@ class PassportExecutor extends Executor {
   }
 
   _passwordRecovery(ctx) {
-    var userStore = this.getService("users");
     if (ctx.body.password === undefined || ctx.body.login === undefined || ctx.body.token === undefined || ctx.body.expire === undefined) {
       throw 400;
     }
-    return userStore.get(ctx.body.login.toLowerCase()).then((user) => {
+    return this._usersStore.get(ctx.body.login.toLowerCase()).then((user) => {
       if (ctx.body.token !== this.hashPassword(ctx.body.login.toLowerCase() + ctx.body.expire + user.__password)) {
         throw 403;
       }
@@ -334,19 +338,13 @@ class PassportExecutor extends Executor {
       }
       return this._verifyPassword(ctx.body.password);
     }).then(() => {
-      return userStore.update({
+      return this._usersStore.update({
         __password: this.hashPassword(ctx.body.password)
       }, ctx.body.login.toLowerCase());
     });
   }
 
   _handleEmailCallback(ctx) {
-    // Validate an email for an ident based on an url
-    var identStore = this.getService("idents");
-    if (identStore === undefined) {
-      this._webda.log('ERROR', 'Email auth needs an ident store');
-      throw 500;
-    }
     if (ctx._params.token) {
       let validation = ctx._params.token;
       if (validation !== this.generateEmailValidationToken(ctx._params.email)) {
@@ -356,11 +354,11 @@ class PassportExecutor extends Executor {
         return Promise.resolve();
       }
       var uuid = ctx._params.email + "_email";
-      return identStore.get(uuid).then((ident) => {
+      return this._identsStore.get(uuid).then((ident) => {
         if (ident === undefined) {
           throw 404;
         }
-        return identStore.update({
+        return this._identsStore.update({
           validation: new Date()
         }, ident.uuid);
       }).then(() => {

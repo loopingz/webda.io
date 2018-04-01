@@ -2,8 +2,12 @@
 const AWSDeployer = require("./aws");
 const fs = require('fs');
 const crypto = require('crypto');
+const filesize = require('filesize');
 const colors = require('colors');
 const LAMBDA_ROLE_POLICY = '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"lambda.amazonaws.com"},"Action":"sts:AssumeRole"}]}';
+
+// Official 69905067b but Lambda fail before this limit
+const AWS_UPLOAD_MAX = 20971520;
 
 class LambdaDeployer extends AWSDeployer {
 
@@ -24,6 +28,7 @@ class LambdaDeployer extends AWSDeployer {
     this._restApiName = this.resources.restApi;
     this._lambdaFunctionName = this.resources.functionName || this.transformRestApiToFunctionName(this.resources.restApi);
     this._lambdaRole = this.resources.lambdaRole;
+    this._lambdaStorage = this.resources.lambdaStorage;
     if (!this.resources.lambdaHandler) {
       this._lambdaDefaultHandler = true;
     }
@@ -55,7 +60,7 @@ class LambdaDeployer extends AWSDeployer {
       this._lambdaMemorySize = 512;
     }
     this.region = this._AWS.config.region;
-    let zipPath = "dist/" + this._lambdaFunctionName + '.zip';
+    this._zipPath = "dist/" + this._lambdaFunctionName + '.zip';
     this._awsGateway = new this._AWS.APIGateway();
     this._awsLambda = new this._AWS.Lambda();
     this._origin = this.parameters.website;
@@ -85,11 +90,13 @@ class LambdaDeployer extends AWSDeployer {
       });
     }
 
-    promise.then(() => {
-      this._package = fs.readFileSync(zipPath);
+    promise = promise.then(() => {
+      let size = fs.statSync(this._zipPath);
+      this._packageOversize = size.size >= AWS_UPLOAD_MAX;
+      this._package = fs.readFileSync(this._zipPath);
       var hash = crypto.createHash('sha256');
       this._packageHash = hash.update(this._package).digest('base64');
-      console.log("Package dist/" + this._lambdaFunctionName + ".zip (" + this._packageHash + ")");
+      console.log("Package dist/" + this._lambdaFunctionName + ".zip (SHA256: " + this._packageHash + " | Size:" + filesize(size.size) + ")");
     });
 
     if (args[0] === "package") {
@@ -205,6 +212,7 @@ class LambdaDeployer extends AWSDeployer {
 
   createLambdaFunction() {
     this.stepper("Creating Lambda function");
+    // Size limit of Lambda direct upload : 69905067 bytes
     var params = {
       MemorySize: this._lambdaMemorySize,
       Code: {
@@ -218,7 +226,9 @@ class LambdaDeployer extends AWSDeployer {
       'Description': 'Deployed with Webda for API: ' + this._restApiName,
       Publish: true
     };
-    return this._awsLambda.createFunction(params).promise().then((fct) => {
+    return this.addPackageToUpdateFunction(params.Code).then(() => {
+      return this._awsLambda.createFunction(params).promise();
+    }).then((fct) => {
       this._lambdaFunction = fct;
       return Promise.resolve(fct);
     });
@@ -268,14 +278,38 @@ class LambdaDeployer extends AWSDeployer {
     }).promise();
   }
 
+  addPackageToUpdateFunction(params) {
+    if (this._lambdaStorage) {
+      let regexp = "s3://(.+)/(.+)";
+      let res = new RegExp(regexp).exec(this._lambdaStorage);
+      if (res.length < 3) {
+        console.log('Lambda Storage does not match', regexp);
+        process.exit(0);
+      }
+      params.S3Bucket = res[1];
+      params.S3Key = res[2];
+      return this.putFilesOnBucket(params.S3Bucket, [{
+        key: params.S3Key,
+        src: this._zipPath
+      }]);
+    } else if (this._packageOversize) {
+      console.log('Cannot upload Lambda function without a LambdaStorage if package bigger than', AWS_UPLOAD_MAX, 'b');
+      process.exit(0);
+    } else {
+      params.ZipFile = this._package;
+    }
+    return Promise.resolve();
+  }
+
   updateLambdaFunction() {
     this.stepper("Updating Lambda function");
     var params = {
       FunctionName: this._lambdaFunctionName,
-      ZipFile: this._package,
       Publish: true
     };
-    return this._awsLambda.updateFunctionCode(params).promise().then((fct) => {
+    return this.addPackageToUpdateFunction(params).then(() => {
+      return this._awsLambda.updateFunctionCode(params).promise();
+    }).then((fct) => {
       return this.cleanVersions(fct);
     }).then((fct) => {
       var params = {

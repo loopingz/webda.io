@@ -1,5 +1,8 @@
 const Deployer = require('./deployer');
 const AWSServiceMixin = require('webda/services/aws-mixin');
+const mime = require('mime-types');
+const path = require('path');
+const fs = require('fs');
 
 class AWSDeployer extends AWSServiceMixin(Deployer) {
 
@@ -332,6 +335,57 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
   tagResource(resource, tags) {
     // Should add tags to every resource when possible
     // this.resources.AWSTags;
+  }
+
+  createBucket(bucket) {
+    return this._s3.headBucket({
+      Bucket: bucket
+    }).promise().catch((err) => {
+      console.log('headBucket fail');
+      if (err.code === 'Forbidden') {
+        console.log('S3 bucket already exists in another account');
+      } else if (err.code === 'NotFound') {
+        console.log('\tCreating S3 Bucket', bucket);
+        // Setup www permission on it
+        return this._s3.createBucket({
+          Bucket: bucket
+        }).promise();
+      }
+    });
+  }
+
+  putFilesOnBucket(bucket, files) {
+    this._s3 = new(this._getAWS(this.resources)).S3();
+    // Create the bucket
+    return this.createBucket(bucket).then(() => {
+      // Should implement multithread here - cleaning too
+      let promise = Promise.resolve();
+      files.forEach((file) => {
+        let info = {};
+        if (typeof(file) === 'string') {
+          info.src = file;
+          info.key = path.relative(process.cwd(), file);
+        } else if (file.src === undefined || file.key === undefined) {
+          throw Error('Should have src and key defined');
+        } else {
+          info.src = file.src;
+          info.key = file.key;
+        }
+        // Need to have mimetype to serve the content correctly
+        let mimetype = mime.contentType(path.extname(info.src));
+        promise = promise.then(() => {
+          return this._s3.putObject({
+            Bucket: bucket,
+            Body: fs.createReadStream(info.src),
+            Key: info.key,
+            ContentType: mimetype
+          }).promise();
+        }).then(() => {
+          console.log('Uploaded', info.src, 'to', info.key, '(' + mimetype + ')');
+        });
+      });
+      return promise;
+    });
   }
 }
 

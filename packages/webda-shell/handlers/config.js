@@ -675,7 +675,7 @@ class WebdaConfigurationServer extends WebdaServer {
       }
 
       let promise = Promise.resolve();
-      if (!args.length) {
+      if (!args.length || args[0] === 'install') {
         // Normal launch from the console or forked process
         console.log('Installing services');
         promise = this.installServices(deployment.resources).then(() => {
@@ -686,6 +686,9 @@ class WebdaConfigurationServer extends WebdaServer {
       let selectedUnit;
       if (args.length > 0) {
         selectedUnit = args[0];
+        if (selectedUnit === 'install') {
+          return promise;
+        }
         args = args.slice(1);
       }
       for (let i in deployment.units) {

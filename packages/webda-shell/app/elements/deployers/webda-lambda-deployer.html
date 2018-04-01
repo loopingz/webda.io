@@ -24,6 +24,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <paper-input label="REST API Name" value="{{configuration.restApi}}"></paper-input>
       <paper-input label="Lambda Name" value="{{configuration.functionName}}" allowed-pattern="[a-zA-Z0-9-_]" placeholder="[[_toLambdaName(configuration.restApi)]]"></paper-input>
       <paper-input label="Lambda Role" value="{{configuration.lambdaRole}}" placeholder="[[_toLambdaRole(configuration.functionName, configuration.restApi)]]"></paper-input>
+      <paper-input label="Lambda Storage" value="{{configuration.lambdaStorage}}" placeholder="S3 url to store code for your Lambda: s3://mybucket/myfunction ( required if package > 20 M )" pattern="s3://(.+)/(.+)" auto-validate></paper-input>
       <paper-input label="Memory" value="{{configuration.lambdaMemory}}" placeholder="512" type="number" step="64" min="128" max="3008"></paper-input>
       <paper-toggle-button checked="{{configuration.customDomain}}">Create custom domain</paper-toggle-button>
       <div hidden="{{!configuration.customDomain}}">

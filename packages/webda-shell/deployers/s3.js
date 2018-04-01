@@ -3,7 +3,7 @@ const AWSDeployer = require("./aws");
 const fs = require('fs');
 const path = require('path');
 const Finder = require('fs-finder');
-const mime = require('mime-types')
+const mime = require('mime-types');
 
 /**
  *
@@ -332,21 +332,7 @@ class S3Deployer extends AWSDeployer {
     this.bucket = bucket;
     this.source = source;
     console.log('Deploy', source, 'on S3 Bucket', bucket);
-    this._s3 = new(this._getAWS(this.resources)).S3();
-    // Create the bucket
-    return this._s3.headBucket({
-      Bucket: bucket
-    }).promise().catch((err) => {
-      if (err.code === 'Forbidden') {
-        console.log('S3 bucket already exists in another account');
-      } else if (err.code === 'NotFound') {
-        console.log('\tCreating S3 Bucket', bucket);
-        // Setup www permission on it
-        return this._s3.createBucket({
-          Bucket: bucket
-        }).promise();
-      }
-    }).then(() => {
+    return this.createBucket(bucket).then(() => {
       let files = Finder.from(source).findFiles();
       // Should implement multithread here - cleaning too
       let promise = Promise.resolve();

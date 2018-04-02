@@ -252,7 +252,6 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
     }
     // For now let's expected the order to be the same
     // TODO Easy improvement - implement order check
-    let res = false;
     // For each worker definition
     for (let i in newDef) {
       // For each key defined for this worker
@@ -339,7 +338,7 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
           Values: [this._vpc]
         }]
       }
-      return this._ec2.describeSubnets().promise();
+      return this._ec2.describeSubnets(vpcFilter).promise();
     }).then((res) => {
       this._subnets = [];
       for (let i in res.Subnets) {

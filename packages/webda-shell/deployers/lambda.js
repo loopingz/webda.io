@@ -77,10 +77,8 @@ class LambdaDeployer extends AWSDeployer {
       this.resources.lambdaVersionsLimit = 3;
     }
 
-    if (args != undefined) {
-      if (args[0] === "export") {
-        return this.export(args.slice(1));
-      }
+    if (args[0] === "export") {
+      return this.export(args.slice(1));
     }
     console.log("Deploying to " + "AWS".yellow);
 
@@ -125,7 +123,7 @@ class LambdaDeployer extends AWSDeployer {
       accepts: 'application/json',
       stageName: this.deployment.uuid
     };
-    if (args === undefined || args[0] === undefined) {
+    if (args[0] == undefined) {
       params.exportType = 'swagger';
     } else {
       params.exportType = args[0];
@@ -512,7 +510,6 @@ class LambdaDeployer extends AWSDeployer {
           url = current._url;
         }
         let i = url.indexOf("/", 1);
-        let currentPath = url.substr(0, i);
         while (i >= 0) {
           found[url.substr(0, i)] = true;
           i = url.indexOf("/", i + 1);
@@ -541,7 +538,6 @@ class LambdaDeployer extends AWSDeployer {
       // Remove old resources
       for (let i in this.tree) {
         if (found[i]) continue;
-        continue;
         promise = promise.then(() => {
           return this.deleteAwsResource(this.tree[i]);
         });
@@ -581,7 +577,7 @@ class LambdaDeployer extends AWSDeployer {
         return this.createCORSMethod(resource, allowedMethods);
       }
       return Promise.resolve();
-    });;
+    });
   }
 
   deleteAwsResource(remote) {

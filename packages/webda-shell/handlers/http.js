@@ -142,7 +142,6 @@ class WebdaServer extends Webda {
 
   serve(port, websockets) {
     var http = require('http');
-    const path = require('path');
 
     var express = require('express');
     var cookieParser = require('cookie-parser');
@@ -184,6 +183,6 @@ class WebdaServer extends Webda {
     this.serveIndex(express, app);
     this.output('Server running at http://0.0.0.0:' + port);
   }
-};
+}
 
 module.exports = WebdaServer

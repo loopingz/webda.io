@@ -86,7 +86,6 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
               return Promise.resolve(false);
             });
           }, 60000, 10);
-          return Promise.resolve(cert);
         });
       }
       return Promise.resolve(cert);

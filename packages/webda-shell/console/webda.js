@@ -64,7 +64,8 @@
       });
     }
 
-    static generateLogo() {
+    static generateLogo(logo) {
+      // For sample
       var asciify = require('asciify-image');
       var options = {
         fit: 'box',
@@ -72,18 +73,12 @@
         height: 20,
         format: 'array'
       }
-      return asciify(__dirname + '/../ivoryShield.png', options).then(function(asciified) {
+      return asciify(logo, options).then(function(asciified) {
         // Print asciified image to console
-        fs.writeFileSync(__dirname + '/logoshield.json', JSON.stringify(asciified));
+        fs.writeFileSync(logo + '.json', JSON.stringify(asciified));
         asciified.forEach((line) => {
           this.output(line.join(''));
         });
-      }).catch(function(err) {
-        this.output('err', err);
-      });
-      return asciify(__dirname + '/../app/images/logo.png', options).then(function(asciified) {
-        // Print asciified image to console
-        fs.writeFileSync(__dirname + '/logo.json', JSON.stringify(asciified));
       }).catch(function(err) {
         this.output('err', err);
       });
@@ -103,7 +98,6 @@
     }
 
     static help() {
-      let bold = parseInt('033', 8);
       var lines = [];
       lines.push("USAGE: webda [config|debug|deploy|init|install||serve|launch]");
       lines.push('');
@@ -258,7 +252,6 @@
       }
       var excepts = ["dist", "node_modules", "deployments", "test"];
       // Set a watcher
-      var timeout;
       var listener = function(event, filename) {
         launchServe();
       }

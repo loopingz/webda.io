@@ -138,7 +138,7 @@ class ConfigurationService extends Executor {
       if (!fs.existsSync(path)) {
         throw 404;
       }
-      if (stat.isDirectory()) {
+      if (stat !== undefined && stat.isDirectory()) {
         throw 400;
       }
       fs.unlinkSync(path);
@@ -225,10 +225,8 @@ class ` + className + ` extends ` + extendName + ` {
           throw 403;
         }
         ctx.write(fs.readFileSync(models[ctx._params.name].src + '.js').toString());
-        return;
       } else {
         ctx.write(models);
-        return;
       }
       return;
     } else if (ctx._route._http.method === "DELETE") {
@@ -262,8 +260,6 @@ class ` + className + ` extends ` + extendName + ` {
       }
       fs.writeFileSync(file, this._getClass(name, ctx.body.extending, ctx.body.templating, models));
       this.save();
-    } else if (ctx._route._http.method === "PUT") {
-
     }
   }
 
@@ -560,7 +556,7 @@ class WebdaConfigurationServer extends WebdaServer {
       this.output("No file is present, creating webda.config.json");
       this.config = {};
       this._file = path.resolve("./webda.config.json");
-      this.config['version', 1]
+      this.config['version'] = 1;
       this.saveHostConfiguration({
         parameters: {},
         services: {}
@@ -744,7 +740,7 @@ class WebdaConfigurationServer extends WebdaServer {
     var ws = require("nodejs-websocket")
     this.conns = [];
     // Scream server example: "hi" -> "HI!!!"
-    var server = ws.createServer((conn) => {
+    ws.createServer((conn) => {
       this.conns.push(conn);
 
       conn.on("error", (err) => {

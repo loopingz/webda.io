@@ -2,59 +2,43 @@
 var assert = require("assert");
 const Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
 var config = require("./config.json");
+const Utils = require("./utils");
 
-
-var simple = function(queue, inconsistentSize) {
+async function simple(queue, inconsistentSize) {
   var msg;
-  return queue.sendMessage({
+  await queue.sendMessage({
     'type': 1
-  }).then(() => {
-    return queue.size();
-  }).then((size) => {
-    if (!inconsistentSize) {
-      assert.equal(size, 1);
-    }
-    return queue.sendMessage({
-      'type': 2
-    });
-  }).then(() => {
-    // Pause for 1s - to verify the repopulation
-    return new Promise((resolve, reject) => {
-      setTimeout(resolve, 1000);
-    });
-  }).then(() => {
-    return queue.size();
-  }).then((size) => {
-    if (!inconsistentSize) {
-      assert.equal(size, 2);
-    }
-    return queue.receiveMessage();
-  }).then((res) => {
-    msg = res;
-    return queue.size();
-  }).then((size) => {
-    if (!inconsistentSize) {
-      assert.equal(size, 2);
-    }
-    if (msg.length > 0) {
-      return queue.deleteMessage(msg[0].ReceiptHandle);
-    }
-    return Promise.resolve();
-  }).then(() => {
-    // Pause for 1s - to verify the repopulation
-    return new Promise((resolve, reject) => {
-      setTimeout(resolve, 1000);
-    });
-  }).then(() => {
-    return queue.receiveMessage();
-  }).then((msg) => {
-    if (!inconsistentSize) {
-      assert.equal(msg.length, 1);
-    }
-    if (msg.length > 0) {
-      return queue.deleteMessage(msg[0].ReceiptHandle);
-    }
   });
+  let size = await queue.size();
+  if (!inconsistentSize) {
+    assert.equal(size, 1);
+  }
+  await queue.sendMessage({
+    'type': 2
+  });
+  // Pause for 1s - to verify the repopulation
+  await Utils.sleep(1000);
+  size = await queue.size();
+  if (!inconsistentSize) {
+    assert.equal(size, 2);
+  }
+  msg = await queue.receiveMessage();
+  size = await queue.size();
+  if (!inconsistentSize) {
+    assert.equal(size, 2);
+  }
+  if (msg.length > 0) {
+    await queue.deleteMessage(msg[0].ReceiptHandle);
+  }
+  // Pause for 1s - to verify the repopulation
+  await Utils.sleep(1000);
+  msg = await queue.receiveMessage();
+  if (!inconsistentSize) {
+    assert.equal(msg.length, 1);
+  }
+  if (msg.length > 0) {
+    await queue.deleteMessage(msg[0].ReceiptHandle);
+  }
 }
 
 describe('Queues', function() {
@@ -127,15 +111,15 @@ describe('Queues', function() {
         return;
       }
     });
-    it('Basic', function() {
+    it('Basic', async function() {
       if (skipAWS) {
         this.skip();
         return;
       }
-      webda.getService("sqsqueue").__clean();
+      await webda.getService("sqsqueue").__clean();
       // Update timeout to 80000ms as Purge can only be sent once every 60s
       this.timeout(80000);
-      return simple(webda.getService("sqsqueue"), true);
+      return simple(webda.getService("sqsqueue"));
     });
     it('ARN', function() {
       let queue = webda.getService("sqsqueue");

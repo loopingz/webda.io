@@ -28,41 +28,36 @@ class DynamoStore extends AWSServiceMixIn(Store) {
     super.init(config);
   }
 
-  exists(uid) {
+  async exists(uid) {
     // Should use find + limit 1
-    return this._get(uid).then(function(result) {
-      return Promise.resolve(result !== undefined);
-    });
+    return (await this._get(uid)) !== undefined;
   }
 
-  _save(object, uid) {
+  async _save(object, uid) {
     object = this._cleanObject(object);
     // Cannot have empty attribute on DynamoDB need to clean this
     var params = {
       'TableName': this._params.table,
       'Item': object
     };
-    return this._client.put(params).promise().then(function(result) {
-      return Promise.resolve(object);
-    });
+    await this._client.put(params).promise();
+    return object
   }
 
-  _find(request) {
+  async _find(request) {
     var scan = false;
     if (request === {} || request === undefined) {
       request = {};
       scan = true;
     }
     request.TableName = this._params.table;
+    let result;
     if (scan) {
-      return this._client.scan(request).promise().then((result) => {
-        return Promise.resolve(result.Items);
-      });
+      result = await this._client.scan(request).promise();
     } else {
-      return this._client.query(request).promise().then((result) => {
-        return Promise.resolve(result.Items);
-      });
+      result = await this._client.query(request).promise();
     }
+    return result.Items;
   }
 
   _serializeDate(date) {
@@ -92,7 +87,7 @@ class DynamoStore extends AWSServiceMixIn(Store) {
     return res;
   }
 
-  _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
+  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
     var params = {
       'TableName': this._params.table,
       'Key': {
@@ -103,11 +98,23 @@ class DynamoStore extends AWSServiceMixIn(Store) {
     attrs["#" + prop] = prop;
     params.ExpressionAttributeNames = attrs;
     params.UpdateExpression = "REMOVE #" + prop + "[" + index + "]";
-    params.WriteCondition = "attribute_not_exists(#" + prop + "[" + index + "]) AND #" + prop + "[" + index + "]." + itemWriteConditionField + " = " + itemWriteCondition;
-    return this._client.update(params).promise();
+    if (itemWriteCondition) {
+      params.ExpressionAttributeValues = {};
+      params.ExpressionAttributeValues[":condValue"] = itemWriteCondition;
+      attrs["#condName"] = prop;
+      attrs["#field"] = itemWriteConditionField;
+      params.ConditionExpression = "#condName["+index+"].#field = :condValue";
+    }
+    try {
+      await this._client.update(params).promise();
+    } catch (err) {
+      if (err.code === 'ConditionalCheckFailedException') {
+        throw Error('UpdateCondition not met');
+      }
+    }
   }
 
-  _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
+  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
     var params = {
       'TableName': this._params.table,
       'Key': {
@@ -125,10 +132,22 @@ class DynamoStore extends AWSServiceMixIn(Store) {
       attrValues[":" + prop] = [attrValues[":" + prop]];
       attrValues[":empty_list"] = [];
     } else {
+      //attrs["#cond" + prop] += prop + "[" + index + "]." + itemWriteConditionField;
       params.UpdateExpression = "SET #" + prop + "[" + index + "] = :" + prop;
-      params.WriteCondition = "attribute_not_exists(#" + prop + "[" + index + "]) AND #" + prop + "[" + index + "]." + itemWriteConditionField + " = " + itemWriteCondition;
+      if (itemWriteCondition) {
+        attrValues[":condValue"] = itemWriteCondition;
+        attrs["#condName"] = prop;
+        attrs["#field"] = itemWriteConditionField;
+        params.ConditionExpression = "#condName["+index+"].#field = :condValue";
+      }
     }
-    return this._client.update(params).promise();
+    try {
+      await this._client.update(params).promise();
+    } catch (err) {
+      if (err.code === 'ConditionalCheckFailedException') {
+        throw Error('UpdateCondition not met');
+      }
+    }
   }
 
   _getWriteCondition(writeCondition) {
@@ -138,7 +157,7 @@ class DynamoStore extends AWSServiceMixIn(Store) {
     return this._writeConditionField + ' = ' + writeCondition;
   }
 
-  _delete(uid, writeCondition) {
+  async _delete(uid, writeCondition) {
     var params = {
       'TableName': this._params.table,
       'Key': {
@@ -148,12 +167,10 @@ class DynamoStore extends AWSServiceMixIn(Store) {
     if (writeCondition) {
       params.WriteCondition = this._getWriteCondition(writeCondition);
     }
-    return this._client.delete(params).promise().then((result) => {
-      return Promise.resolve(result);
-    });
+    return this._client.delete(params).promise();
   }
 
-  _update(object, uid, writeCondition) {
+  async _update(object, uid, writeCondition) {
     object = this._cleanObject(object);
     var expr = "SET ";
     var sep = "";
@@ -173,7 +190,7 @@ class DynamoStore extends AWSServiceMixIn(Store) {
       i++;
     }
     if (skipUpdate) {
-      return Promise.resolve();
+      return;
     }
     var params = {
       'TableName': this._params.table,
@@ -191,7 +208,7 @@ class DynamoStore extends AWSServiceMixIn(Store) {
     return this._client.update(params).promise();
   }
 
-  _scan(items, paging) {
+  async _scan(items, paging) {
     return new Promise((resolve, reject) => {
       this._client.scan({
         TableName: this._params.table,
@@ -212,7 +229,7 @@ class DynamoStore extends AWSServiceMixIn(Store) {
     });
   }
 
-  getAll(uids) {
+  async getAll(uids) {
     if (!uids) {
       return this._scan([]);
     }
@@ -226,21 +243,18 @@ class DynamoStore extends AWSServiceMixIn(Store) {
         };
       })
     };
-    return this._client.batchGet(params).promise().then((result) => {
-      return Promise.resolve(result.Responses[this._params.table].map(this.initModel, this));
-    });
+    let result = await this._client.batchGet(params).promise();
+    return result.Responses[this._params.table].map(this.initModel, this);
   }
 
-  _get(uid) {
+  async _get(uid) {
     var params = {
       'TableName': this._params.table,
       'Key': {
         "uuid": uid
       }
     };
-    return this._client.get(params).promise().then((result) => {
-      return Promise.resolve(result.Item);
-    });
+    return (await this._client.get(params).promise()).Item;
   }
 
   _incrementAttribute(uid, prop, value) {
@@ -283,7 +297,7 @@ class DynamoStore extends AWSServiceMixIn(Store) {
     }
   }
 
-  install(params) {
+  async install(params) {
     if (this._params.region) {
       params.region = this._params.region;
     }

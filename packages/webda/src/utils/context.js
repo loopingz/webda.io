@@ -134,7 +134,7 @@ class Context {
   /**
    * Get the current user from session
    */
-  getCurrentUser() {
+  async getCurrentUser() {
     let uid = this.getCurrentUserId();
     return this.getService('Users').get(uid);
   }

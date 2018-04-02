@@ -12,57 +12,45 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
     }
   }
 
-  size() {
-    return this.sqs.getQueueAttributes({
+  async size() {
+    let res = await this.sqs.getQueueAttributes({
       AttributeNames: ["ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"],
       QueueUrl: this._params.queue
-    }).promise().then((res) => {
-      return Promise.resolve(parseInt(res['Attributes']['ApproximateNumberOfMessages']) + parseInt(res['Attributes']['ApproximateNumberOfMessagesNotVisible']));
-    });
+    }).promise();
+    return parseInt(res['Attributes']['ApproximateNumberOfMessages']) + parseInt(res['Attributes']['ApproximateNumberOfMessagesNotVisible']);
   }
 
-  sendMessage(params) {
+  async sendMessage(params) {
     var sqsParams = {};
     sqsParams.QueueUrl = this._params.queue;
     sqsParams.MessageBody = JSON.stringify(params);
     return this.sqs.sendMessage(sqsParams).promise();
   }
 
-  receiveMessage() {
+  async receiveMessage() {
     this.queueArg = {
       QueueUrl: this._params.queue,
       WaitTimeSeconds: this._params.WaitTimeSeconds
     };
-    return new Promise((resolve, reject) => {
-      this.sqs.receiveMessage(this.queueArg).promise().then((data) => {
-        if (!data.Messages) {
-          return resolve([]);
-        }
-        return resolve(data.Messages);
-      });
-    });
+    let data = await this.sqs.receiveMessage(this.queueArg).promise();
+    return data.Messages || [];
   }
 
-  deleteMessage(receipt) {
-    return new Promise((resolve, reject) => {
-      this.sqs.deleteMessage({
-        QueueUrl: this._params.queue,
-        ReceiptHandle: receipt
-      }, (err, data) => {
-        if (err) {
-          return reject(err);
-        }
-        resolve(data);
-      });
-    });
+  async deleteMessage(receipt) {
+    return this.sqs.deleteMessage({
+      QueueUrl: this._params.queue,
+      ReceiptHandle: receipt
+    }).promise();
   }
 
-  __clean(fail) {
-    return this.sqs.purgeQueue({
-      QueueUrl: this._params.queue
-    }).promise().catch((err) => {
+  async __clean(fail) {
+    try {
+      await this.sqs.purgeQueue({
+        QueueUrl: this._params.queue
+      }).promise();
+    } catch (err) {
       if (fail || err.code !== 'AWS.SimpleQueueService.PurgeQueueInProgress') {
-        return Promise.reject(err);
+        throw err;
       }
       let delay = Math.floor(err.retryDelay * 1100);
       console.log('Retry PurgeQueue in ', delay);
@@ -72,10 +60,10 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
           resolve(this.__clean(true));
         }, delay);
       });
-    });
+    };
   }
 
-  install(params) {
+  async install(params) {
     let queue = this._getQueueInfosFromUrl();
     params.region = queue.region;
     var sqs = new(this._getAWS(params)).SQS();

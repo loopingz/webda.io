@@ -29,7 +29,7 @@ class MongoStore extends Store {
     }
   }
 
-  _connect() {
+  async _connect() {
     if (this._connectPromise === undefined) {
       this._connectPromise = new Promise((resolve, reject) => {
         MongoClient.connect(this._params.mongo, (err, client) => {
@@ -46,88 +46,86 @@ class MongoStore extends Store {
     return this._connectPromise;
   }
 
-  exists(uid) {
+  async exists(uid) {
     // Should use find + limit 1
-    return this._get(uid).then((result) => {
-      return Promise.resolve(result !== undefined);
-    });
+    return (await this._get(uid)) !== undefined;
   }
 
-  _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
-    return this._connect().then(() => {
-      var params = {
-        '$pull': {}
+  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
+    await this._connect();
+
+    let filter = {
+      _id: uid
+    };
+    if (itemWriteCondition) {
+      filter[prop + "." + index + '.' + itemWriteConditionField] = itemWriteCondition;
+    }
+    let params = {'$unset': {}};
+    params['$unset'][prop + "." + index] = 1;
+    let res = await this._collection.updateOne(filter, params);
+    if (!res.result.n) {
+      throw Error('UpdateCondition not met');
+    }
+    let remove = {'$pull': {}};
+    remove['$pull'][prop] = null;
+    await this._collection.update({_id: uid}, remove);
+  }
+
+  async _incrementAttribute(uid, prop, value) {
+    await this._connect();
+    var params = {
+      '$inc': {}
+    };
+    params['$inc'][prop] = value;
+    return this._collection.updateOne({
+      _id: uid
+    }, params);
+  }
+
+  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField = 'uuid') {
+    // TODO Handle condition
+    await this._connect();
+    let filter = {
+      _id: uid
+    };
+    var params = {};
+    if (index === undefined) {
+      params = {
+        '$push': {}
       };
-      params['$pull'][prop] = {};
-      params['$pull'][prop][itemWriteConditionField] = itemWriteCondition;
-      return this._collection.updateOne({
-        _id: uid
-      }, params);
-    });
-  }
-
-  _incrementAttribute(uid, prop, value) {
-    return this._connect().then(() => {
-      var params = {
-        '$inc': {}
+      params['$push'][prop] = item;
+    } else {
+      params = {
+        '$set': {}
       };
-      params['$inc'][prop] = value;
-      return this._collection.updateOne({
-        _id: uid
-      }, params);
-    });
+      params['$set'][prop + "." + index] = item;
+      filter[prop + "." + index + "." + itemWriteConditionField] = itemWriteCondition;
+    }
+    let res = await this._collection.updateOne(filter, params);
+    if (!res.modifiedCount) {
+      throw Error('UpdateCondition not met');
+    }
   }
 
-  _upsertItemToCollection(uid, prop, item, index, itemUid) {
-    return this._connect().then(() => {
-      var params = {};
-      if (index === undefined) {
-        params = {
-          '$push': {}
-        };
-        params['$push'][prop] = item;
-      } else {
-        params = {
-          '$set': {}
-        };
-        params['$set'][prop + "." + index] = item;
-      }
-      return this._collection.updateOne({
-        _id: uid
-      }, params);
-    });
-  }
-
-  _save(object, uid) {
+  async _save(object, uid) {
     if (object instanceof CoreModel) {
       object = object.toStoredJSON();
     }
     object._id = object.uuid;
-    return this._connect().then(() => {
-      return this._collection.insertOne(object);
-    }).then(() => {
-      return Promise.resolve(object);
-    });
+    await this._connect();
+    await this._collection.insertOne(object);
+    return object;
   }
 
-  _find(request) {
-    return this._connect().then(() => {
-      return new Promise((resolve, reject) => {
-        this._collection.find(request, (err, result) => {
-          if (err) {
-            reject(err);
-          }
-          resolve(result);
-        });
-      });
-    });
+  async _find(request) {
+    await this._connect();
+    return this._collection.find(request);
   }
 
-  _delete(uid, writeCondition) {
-    return this._connect().then(() => {
-      return this._collection.deleteOne({
-        _id: uid
-      });
+  async _delete(uid, writeCondition) {
+    await this._connect();
+    return this._collection.deleteOne({
+      _id: uid
     });
   }
 

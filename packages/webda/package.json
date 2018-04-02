@@ -46,7 +46,7 @@
     "babel-cli": "^6.26.0",
     "babel-preset-es2017": "^6.24.1",
     "glob": "^7.1.2",
-    "istanbul": "^0.4.5",
+    "istanbul": "^1.1.0-alpha.1",
     "js-beautify": "^1.7.5",
     "mocha": ">=2.2.5"
   },

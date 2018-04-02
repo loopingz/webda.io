@@ -2,16 +2,14 @@ const assert = require("assert")
 const Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
 const config = require("./config.json");
 const fs = require("fs");
+const Utils = require("./utils");
 
-var webda;
-var userStore;
-var binary;
 
-var normal = function(userStore, binary, map, webda, exposePath) {
+async function normal(userStore, binary, map, webda, exposePath) {
   var eventFired = 0;
   var events = ['binaryGet', 'binaryUpdate', 'binaryCreate', 'binaryDelete'];
   for (let evt in events) {
-    binary.on(events[evt], function(evt) {
+    binary.on(events[evt], function() {
       eventFired++;
     });
   }
@@ -22,138 +20,98 @@ var normal = function(userStore, binary, map, webda, exposePath) {
   var user;
   var ctx;
   var error;
-  return userStore.save({
+  user1 = await userStore.save({
     "test": "plop"
-  }).then(function(user) {
-    user1 = user;
-    return userStore.save({
-      "test": "plop"
-    });
-  }).then(function(user) {
-    user2 = user;
-    return binary.store(userStore, user1, map, {
-      'path': './test/Dockerfile'
-    }, {});
-  }).then(function() {
-    return userStore.get(user1.uuid);
-  }).then(function(user) {
-    user1 = user;
-    assert.notEqual(user[map], undefined);
-    assert.equal(user[map].length, 1);
-    hash = user[map][0].hash;
-    return binary.getUsageCount(hash);
-  }).then(function(value) {
-    assert.equal(value, 1);
-    return binary.store(userStore, user2, map, {
-      'path': './test/Dockerfile'
-    }, {});
-  }).then(function() {
-    return userStore.get(user2.uuid);
-  }).then(function(userArg) {
-    user = userArg;
-    assert.notEqual(user[map], undefined);
-    assert.equal(user[map].length, 1);
-    assert.equal(user[map][0].constructor.name, 'BinaryMap');
-    hash = user[map][0].hash;
-    return binary.getUsageCount(hash);
-  }).then(function(value) {
-    assert.equal(value, 2);
-    return binary.delete(userStore, user, map, 0);
-  }).then(function() {
-    return userStore.get(user2.uuid);
-  }).then(function(user) {
-    assert.equal(user[map].length, 0);
-    return binary.getUsageCount(hash);
-  }).then(function(value) {
-    assert.equal(value, 1);
-    // Try to get images on user1 as user2
-    ctx = webda.newContext({
-      "type": "CRUD",
-      "uuid": "PLOP"
-    });
-    error = false;
-    ctx.session.userId = user2.uuid;
-    let executor = webda.getExecutor(ctx, "test.webda.io", "GET", exposePath + "/users/" + user1.uuid + "/" + map + "/0");
-    return executor.execute(ctx);
-  }).catch(function(err) {
-    error = err;
-  }).then(function() {
-    assert.equal(error, 403);
-    ctx.session.userId = user1.uuid;
-    let executor = webda.getExecutor(ctx, "test.webda.io", "GET", exposePath + "/users/" + user1.uuid + "/" + map + "/0");
-    return executor.execute(ctx);
-  }).then(function() {
-    // We dont check for result as FileBinary will return datas and S3 a redirect
-    if (fs.existsSync('./downloadTo.tmp')) {
-      fs.unlinkSync('./downloadTo.tmp');
-    }
-    return binary.downloadTo(user1[map][0], './downloadTo.tmp');
-  }).then(function() {
-    // Check the result is the same
-    assert.equal(fs.readFileSync('./downloadTo.tmp').toString(), fs.readFileSync('./test/Dockerfile').toString());
-    return userStore.delete(user1.uuid);
-  }).then(function() {
-    return binary.getUsageCount(hash);
-  }).then(function(value) {
-    assert.equal(value, 0);
-    return Promise.resolve();
   });
+  user2 = await userStore.save({
+    "test": "plop"
+  });
+  await binary.store(userStore, user1, map, {
+    'path': './test/Dockerfile'
+  }, {});
+  user1 = await userStore.get(user1.uuid);
+  assert.notEqual(user1[map], undefined);
+  assert.equal(user1[map].length, 1);
+  hash = user1[map][0].hash;
+  let value = await binary.getUsageCount(hash);
+  assert.equal(value, 1);
+  await binary.store(userStore, user2, map, {
+    'path': './test/Dockerfile'
+  }, {});
+  user = await userStore.get(user2.uuid);
+  assert.notEqual(user[map], undefined);
+  assert.equal(user[map].length, 1);
+  assert.equal(user[map][0].constructor.name, 'BinaryMap');
+  hash = user[map][0].hash;
+  value = await binary.getUsageCount(hash);
+  assert.equal(value, 2);
+  await binary.delete(userStore, user, map, 0);
+  user = await userStore.get(user2.uuid);
+  assert.equal(user[map].length, 0);
+  value = await binary.getUsageCount(hash);
+  assert.equal(value, 1);
+  // Try to get images on user1 as user2
+  ctx = webda.newContext({
+    "type": "CRUD",
+    "uuid": "PLOP"
+  });
+  error = false;
+  ctx.session.userId = user2.uuid;
+  let executor = webda.getExecutor(ctx, "test.webda.io", "GET", exposePath + "/users/" + user1.uuid + "/" + map + "/0");
+  await Utils.throws(executor.execute.bind(executor, ctx), res => res == 403);
+  ctx.session.userId = user1.uuid;
+  executor = webda.getExecutor(ctx, "test.webda.io", "GET", exposePath + "/users/" + user1.uuid + "/" + map + "/0");
+  await executor.execute(ctx);
+  // We dont check for result as FileBinary will return datas and S3 a redirect
+  if (fs.existsSync('./downloadTo.tmp')) {
+    fs.unlinkSync('./downloadTo.tmp');
+  }
+  await binary.downloadTo(user1[map][0], './downloadTo.tmp');
+  // Check the result is the same
+  assert.equal(fs.readFileSync('./downloadTo.tmp').toString(), fs.readFileSync('./test/Dockerfile').toString());
+  await userStore.delete(user1.uuid);
+  value = await binary.getUsageCount(hash);
+  assert.equal(value, 0);
 }
 
-var notMapped = function(userStore, binary) {
+async function notMapped(userStore, binary) {
   var exception = false;
-  return userStore.save({
+  let user1 = await userStore.save({
     "test": "plop"
-  }).then(function(user1) {
-    return binary.store(userStore, user1, 'images2', {
-      'path': './test/Dockerfile'
-    }, {});
-  }).catch(function(err) {
-    exception = true;
-  }).then(function() {
-    assert.equal(exception, true, 'Should have not succeed');
   });
+  await Utils.throws(binary.store.bind(binary, userStore, user1, 'images2', {
+      'path': './test/Dockerfile'
+    }, {}), err => true);
 }
 
-var update = function(userStore, binary, map) {
+async function update(userStore, binary, map) {
   var user1;
   var user;
   let hash;
-  return userStore.save({
+  user1 = await userStore.save({
     "test": "plop"
-  }).then(function(user) {
-    user1 = user;
-    return binary.store(userStore, user1, map, {
-      'path': './test/Dockerfile'
-    }, {});
-  }).then(function() {
-    return userStore.get(user1.uuid);
-  }).then(function(userArg) {
-    user = userArg;
-    assert.notEqual(user[map], undefined);
-    assert.equal(user[map].length, 1);
-    return binary.getUsageCount(user[map][0].hash);
-  }).then(function(value) {
-    assert.equal(value, 1);
-    return binary.update(userStore, user, map, 0, {
-      'path': './test/Dockerfile.txt'
-    }, {});
-  }).then(function() {
-    return userStore.get(user1.uuid);
-  }).then(function(userArg) {
-    user = userArg;
-    assert.notEqual(user[map], undefined);
-    assert.equal(user[map].length, 1);
-    assert.notEqual(hash, user[map][0].hash);
-    assert.equal(user[map][0].mimetype, 'text/plain');
-    assert.equal(user[map][0].name, 'Dockerfile.txt');
-    return binary.getUsageCount(hash);
-  }).then(function(value) {
-    assert.equal(value, 0);
-    return binary.getUsageCount(user[map][0].hash)
-  }).then(function(value) {
-    assert.equal(value, 1);
   });
+  await binary.store(userStore, user1, map, {
+    'path': './test/Dockerfile'
+  }, {});
+  user = await userStore.get(user1.uuid);
+  assert.notEqual(user[map], undefined);
+  assert.equal(user[map].length, 1);
+  let value = await binary.getUsageCount(user[map][0].hash);
+  assert.equal(value, 1);
+  await binary.update(userStore, user, map, 0, {
+    'path': './test/Dockerfile.txt'
+  }, {});
+  user = await userStore.get(user1.uuid);
+  assert.notEqual(user[map], undefined);
+  assert.equal(user[map].length, 1);
+  assert.notEqual(hash, user[map][0].hash);
+  assert.equal(user[map][0].mimetype, 'text/plain');
+  assert.equal(user[map][0].name, 'Dockerfile.txt');
+  value = await binary.getUsageCount(hash);
+  assert.equal(value, 0);
+  value = await binary.getUsageCount(user[map][0].hash)
+  assert.equal(value, 1);
 }
 
 describe('Binary', function() {
@@ -185,14 +143,13 @@ describe('Binary', function() {
 
   });
   describe('FileBinary', function() {
-    beforeEach(function() {
+    beforeEach(async () => {
       userStore = webda.getService("Users");
       binary = webda.getService("binary");
       assert.notEqual(userStore, undefined);
       assert.notEqual(binary, undefined);
-      return userStore.__clean().then(function() {
-        return binary.__clean();
-      });
+      await userStore.__clean();
+      await binary.__clean();
     });
     it('normal', function() {
       return normal(userStore, binary, 'images', webda, '/binary');
@@ -205,7 +162,7 @@ describe('Binary', function() {
     });
   });
   describe('S3Binary', function() {
-    beforeEach(function() {
+    beforeEach(async () => {
       if (skipS3) {
         return;
       }
@@ -213,9 +170,8 @@ describe('Binary', function() {
       binary = webda.getService("s3binary");
       assert.notEqual(userStore, undefined);
       assert.notEqual(binary, undefined);
-      return userStore.__clean().then(function() {
-        return binary.__clean();
-      });
+      await userStore.__clean();
+      await binary.__clean();
     });
     it('normal', function() {
       if (skipS3) {

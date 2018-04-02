@@ -1,7 +1,6 @@
 "use strict";
 var assert = require("assert")
 const Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
-var Executor = Webda.Executor;
 var config = require("./config.json");
 var webda;
 var skip = false;
@@ -20,19 +19,18 @@ describe('Lambda', function() {
 
     var methods = ["GET", "PUT", "POST", "DELETE"];
     for (var i in methods) {
-      it(methods[i], function() {
+      it(methods[i], async function() {
         if (skip) {
           this.skip();
           return;
         }
         var ctx = webda.newContext();
         var executor = webda.getExecutor(ctx, "test.webda.io", methods[i], "/webda");
-        return executor.execute(ctx).then(function() {
-          assert.notEqual(ctx, undefined);
-          assert.equal(ctx.statusCode, 200);
-          assert.equal(ctx._headers['Content-Type'], 'text/plain');
-          assert.equal(ctx._body, methods[i] + ' called');
-        })
+        await executor.execute(ctx);
+        assert.notEqual(ctx, undefined);
+        assert.equal(ctx.statusCode, 200);
+        assert.equal(ctx._headers['Content-Type'], 'text/plain');
+        assert.equal(ctx._body, methods[i] + ' called');
       });
     }
   })

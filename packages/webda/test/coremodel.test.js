@@ -80,7 +80,7 @@ describe('CoreModel', () => {
     });
 
     it('Verify Retrieve', async () => {
-      await identStore.update({
+      await ident.update({
         property: 'plop2'
       }, ident.uuid);
       let res = await ident.refresh();

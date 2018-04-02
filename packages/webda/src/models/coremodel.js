@@ -53,16 +53,15 @@ class CoreModel extends OwnerPolicy(Object) {
    *
    * @throws Error if the object is not coming from a store
    */
-  refresh() {
+  async refresh() {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
-    return this.__store.get(this.uuid).then((obj) => {
-      for (var i in obj) {
-        this[i] = obj[i];
-      }
-      return Promise.resolve(this);
-    });
+    let obj = await this.__store.get(this.uuid);
+    for (var i in obj) {
+      this[i] = obj[i];
+    }
+    return this;
   }
 
   /**
@@ -70,7 +69,7 @@ class CoreModel extends OwnerPolicy(Object) {
    *
    * @throws Error if the object is not coming from a store
    */
-  delete() {
+  async delete() {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
@@ -82,15 +81,14 @@ class CoreModel extends OwnerPolicy(Object) {
    *
    * @throws Error if the object is not coming from a store
    */
-  save() {
+  async save() {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
-    return this.__store.save(this).then((obj) => {
-      for (var i in obj) {
-        this[i] = obj[i];
-      }
-    });
+    let obj = await this.__store.save(this);
+    for (var i in obj) {
+      this[i] = obj[i];
+    }
   }
 
   /**
@@ -98,15 +96,14 @@ class CoreModel extends OwnerPolicy(Object) {
    *
    * @throws Error if the object is not coming from a store
    */
-  update(changes) {
+  async update(changes) {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
-    return this.__store.update(changes, this.uuid).then((obj) => {
-      for (var i in obj) {
-        this[i] = obj[i];
-      }
-    });
+    let obj = await this.__store.update(changes, this.uuid);
+    for (var i in obj) {
+      this[i] = obj[i];
+    }
   }
 
   /**
@@ -117,20 +114,18 @@ class CoreModel extends OwnerPolicy(Object) {
     return;
   }
 
-  validate(ctx, updates) {
-    return new Promise((resolve, reject) => {
-      let schema = this._getSchema();
-      if (!schema) {
-        resolve(true);
-      }
-      if (updates) {
-        this.load(updates);
-      }
-      if (!ctx._webda.validate(this, schema)) {
-        reject(ctx._webda.validationLastErrors());
-      }
-      resolve(true);
-    });
+  async validate(ctx, updates) {
+    let schema = this._getSchema();
+    if (!schema) {
+      return true;
+    }
+    if (updates) {
+      this.load(updates);
+    }
+    if (!ctx._webda.validate(this, schema)) {
+      throw Error(ctx._webda.validationLastErrors());
+    }
+    return true;
   }
 
   generateUid() {

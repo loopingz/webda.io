@@ -70,7 +70,7 @@ class FileStore extends Store {
       }
       res[prop][index] = item;
     }
-    return this._save(res, uid);
+    await this._save(res, uid);
   }
 
   async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {

@@ -19,7 +19,7 @@ module.exports = {
   // Queues
   Queue: require('./queues/queueservice'),
   SQSQueue: require('./queues/sqsqueue'),
-  Queue: require('./queues/memoryqueue'),
+  MemoryQueue: require('./queues/memoryqueue'),
   // Policies
   OwnerPolicy: require('./policies/ownerpolicy'),
   // Models

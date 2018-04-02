@@ -92,6 +92,7 @@ class MemoryStore extends Store {
     res = this._getSync(uid);
     if (index === undefined) {
       if (itemWriteCondition !== undefined && res[prop].length !== itemWriteCondition) {
+        console.log('met', itemWriteCondition, res[prop].length, itemWriteCondition);
         throw Error('UpdateCondition not met');
       }
       if (res[prop] === undefined) {

@@ -1,6 +1,7 @@
 "use strict";
 const assert = require("assert");
 const Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
+const Utils = require("./utils");
 var config = require("./config.json");
 var executor;
 var session;
@@ -9,10 +10,10 @@ var failed = false;
 var webda = new Webda.Core(config);
 var ctx;
 
-describe('Policy', function() {
+describe('Policy', () => {
   var taskStore;
   var userStore;
-  describe('OwnerPolicy', function() {
+  describe('OwnerPolicy', () => {
     beforeEach(function() {
       taskStore = webda.getService("Tasks");
       userStore = webda.getService("Users");
@@ -21,84 +22,54 @@ describe('Policy', function() {
       taskStore.__clean();
       userStore.__clean();
     });
-    it('Create', function() {
+    it('Create', async () => {
       ctx = webda.newContext({});
       executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/tasks");
       assert.notEqual(executor, undefined);
       ctx.body = {
         "name": "Task #1"
       };
-      return executor.execute(ctx).catch((err) => {
-        // Expect 403 as no user is logged
-        failed = true;
-        assert.equal(err, 403);
-        ctx.session.login("fake_user", "fake_ident");
-        ctx.body = {
-          "name": "Task #1"
-        };
-        return executor.execute(ctx);
-      }).then(() => {
-        // Should be ok in that case
-        assert.equal(failed, true);
-        failed = false;
-        task = ctx.body;
-        ctx.session.login("fake_user2", "fake_ident");
-        ctx.body = {};
-        executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/tasks/" + task.uuid);
-        return executor.execute(ctx);
-      }).catch((err) => {
-        // The user is not the right user and no publci flag is set
-        assert.equal(err, 403);
-        failed = true;
-        ctx.session.login("fake_user", "fake_ident");
-        return executor.execute(ctx);
-      }).then(() => {
-        assert.equal(failed, true);
-        failed = false;
-        let result = JSON.parse(ctx._body);
-        assert.equal(result.uuid, task.uuid);
-        ctx.body = {
-          'public': true
-        };
-        executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/tasks/" + task.uuid);
-        return executor.execute(ctx);
-      }).then(() => {
-        ctx.session.login("fake_user2", "fake_ident");
-        executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/tasks/" + task.uuid);
-        return executor.execute(ctx);
-      }).then(() => {
-        // We should be able to get the object now
-        let result = JSON.parse(ctx._body);
-        assert.equal(result.uuid, task.uuid);
-        executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/tasks/" + task.uuid);
-        ctx.body = {
-          'public': false
-        };
-        return executor.execute(ctx);
-      }).catch((err) => {
-        failed = true;
-        assert.equal(err, 403);
-      }).then(() => {
-        assert.equal(failed, true);
-        failed = false;
-        executor = webda.getExecutor(ctx, "test.webda.io", "DELETE", "/tasks/" + task.uuid);
-        ctx.body = {
-          'public': false
-        };
-        return executor.execute(ctx);
-      }).catch((err) => {
-        failed = true;
-        assert.equal(err, 403);
-      }).then(() => {
-        assert.equal(failed, true);
-        failed = false;
-        executor = webda.getExecutor(ctx, "test.webda.io", "DELETE", "/tasks/" + task.uuid);
-        ctx.session.login("fake_user", "fake_ident");
-        ctx.body = {
-          'public': false
-        };
-        return executor.execute(ctx);
-      });
+      await Utils.throws(executor.execute.bind(executor, ctx), res => res == 403);
+      ctx.session.login("fake_user", "fake_ident");
+      ctx.body = {
+        "name": "Task #1"
+      };
+      await executor.execute(ctx);
+      task = ctx.body;
+      ctx.session.login("fake_user2", "fake_ident");
+      ctx.body = {};
+      executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/tasks/" + task.uuid);
+      await Utils.throws(executor.execute.bind(executor, ctx), res => res == 403);
+      ctx.session.login("fake_user", "fake_ident");
+      await executor.execute(ctx);
+      let result = JSON.parse(ctx._body);
+      assert.equal(result.uuid, task.uuid);
+      ctx.body = {
+        'public': true
+      };
+      executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/tasks/" + task.uuid);
+      await executor.execute(ctx);
+      ctx.session.login("fake_user2", "fake_ident");
+      executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/tasks/" + task.uuid);
+      await executor.execute(ctx);
+      result = JSON.parse(ctx._body);
+      assert.equal(result.uuid, task.uuid);
+      executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/tasks/" + task.uuid);
+      ctx.body = {
+        'public': false
+      };
+      await Utils.throws(executor.execute.bind(executor, ctx), res => res == 403);
+      executor = webda.getExecutor(ctx, "test.webda.io", "DELETE", "/tasks/" + task.uuid);
+      ctx.body = {
+        'public': false
+      };
+      await Utils.throws(executor.execute.bind(executor, ctx), res => res == 403);
+      executor = webda.getExecutor(ctx, "test.webda.io", "DELETE", "/tasks/" + task.uuid);
+      ctx.session.login("fake_user", "fake_ident");
+      ctx.body = {
+        'public': false
+      };
+      await executor.execute(ctx);
     });
   });
 });

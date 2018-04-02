@@ -4,19 +4,19 @@ const OwnerPolicy = Sup => class extends Sup {
   /**
    * Return false if can't create
    */
-  canCreate(ctx) {
+  async canCreate(ctx) {
     this.user = ctx.session.getUserId();
     if (!this.user) {
       throw 403;
     }
-    return Promise.resolve(this);
+    return this;
   }
 
   getOwner() {
     return this.user;
   }
 
-  canAct(ctx, action) {
+  async canAct(ctx, action) {
     if (action === 'create') {
       return this.canCreate(ctx);
     } else if (action === 'update' || action === 'attach_binary' || action === 'detach_binary') {
@@ -30,20 +30,20 @@ const OwnerPolicy = Sup => class extends Sup {
   /**
    * Return false if can't update
    */
-  canUpdate(ctx) {
+  async canUpdate(ctx) {
     // Allow to modify itself by default
     if (ctx.session.getUserId() !== this.getOwner() && ctx.session.getUserId() !== this.uuid) {
       throw 403;
     }
-    return Promise.resolve(this);
+    return this;
   }
 
   /**
    * Return false if can't get
    */
-  canGet(ctx) {
+  async canGet(ctx) {
     if (this.public) {
-      return Promise.resolve(this);
+      return this;
     }
     if (ctx.session.getUserId() !== this.getOwner() && ctx.session.getUserId() !== this.uuid) {
       throw 403;
@@ -51,7 +51,7 @@ const OwnerPolicy = Sup => class extends Sup {
     if (!this.getOwner() && ctx.session.getUserId() !== this.uuid) {
       throw 403;
     }
-    return Promise.resolve(this);
+    return this;
   }
 
   /**
@@ -61,7 +61,7 @@ const OwnerPolicy = Sup => class extends Sup {
     if (ctx.session.getUserId() !== this.getOwner() && ctx.session.getUserId() !== this.uuid) {
       throw 403;
     }
-    return Promise.resolve(this);
+    return this;
   }
 }
 

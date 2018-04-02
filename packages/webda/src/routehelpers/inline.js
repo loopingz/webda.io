@@ -13,8 +13,8 @@ const Executor = require("../services/executor.js");
  */
 class InlineRouteHelper extends Executor {
   /** @ignore */
-  execute(ctx) {
-    return Promise.resolve(this._webda.sandbox(ctx, "module.exports = " + ctx._route.callback));
+  async execute(ctx) {
+    return this._webda.sandbox(ctx, "module.exports = " + ctx._route.callback);
   }
 }
 

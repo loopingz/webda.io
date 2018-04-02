@@ -13,11 +13,11 @@ class MemoryQueueService extends QueueService {
     this._params.expire *= 1000;
   }
 
-  size() {
-    return Promise.resolve(Object.keys(this._queue).length);
+  async size() {
+    return Object.keys(this._queue).length;
   }
 
-  sendMessage(params) {
+  async sendMessage(params) {
     var uid = uuid.v4();
     // Avoid duplication
     while (this._queue[uid]) {
@@ -28,10 +28,9 @@ class MemoryQueueService extends QueueService {
       Claimed: 0,
       ReceiptHandle: uid
     };
-    return Promise.resolve();
   }
 
-  receiveMessage() {
+  async receiveMessage() {
     for (var i in this._queue) {
       if (this._queue[i].Claimed < new Date().getTime() - this._params.expire) {
         this._queue[i].Claimed = new Date().getTime();
@@ -41,7 +40,7 @@ class MemoryQueueService extends QueueService {
     return [];
   }
 
-  deleteMessage(receipt) {
+  async deleteMessage(receipt) {
     if (this._queue[receipt]) {
       delete this._queue[receipt];
     }

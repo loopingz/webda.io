@@ -185,48 +185,46 @@ class Store extends Executor {
     });
   }
 
-  upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
+  async upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
     if (itemWriteConditionField === undefined) {
       itemWriteConditionField = 'uuid';
     }
-    return this._upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField).then(() => {
-      return this.emit('Store.PartialUpdate', {
-        'object_id': uid,
-        'store': this,
-        'partial_update': {
-          'addItem': {
-            'value': item,
-            'property': prop,
-            'index': index
-          }
+    await this._upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField);
+    await this.emit('Store.PartialUpdate', {
+      'object_id': uid,
+      'store': this,
+      'partial_update': {
+        'addItem': {
+          'value': item,
+          'property': prop,
+          'index': index
         }
-      });
+      }
     });
   }
 
-  _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
+  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
     throw "AbstractStore has no upsertItemToCollection"
   }
 
-  deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
+  async deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
     if (index === undefined || prop === undefined) {
       throw Error("Invalid Argument");
     }
     if (itemWriteConditionField === undefined) {
       itemWriteConditionField = 'uuid';
     }
-    return this._deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField).then(() => {
-      return this.emit('Store.PartialUpdate', {
-        'object_id': uid,
-        'store': this,
-        'partial_update': {
-          'deleteItem': {
-            'value': index,
-            'property': prop,
-            'index': index
-          }
+    await this._deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField);
+    await this.emit('Store.PartialUpdate', {
+      'object_id': uid,
+      'store': this,
+      'partial_update': {
+        'deleteItem': {
+          'value': index,
+          'property': prop,
+          'index': index
         }
-      });
+      }
     });
   }
 
@@ -744,27 +742,24 @@ class Store extends Executor {
 
   // ADD THE EXECUTOR PART
 
-  httpCreate(ctx) {
+  async httpCreate(ctx) {
     var object = new this._model(ctx.body);
     object._creationDate = new Date();
-    return object.canAct(ctx, 'create').then((object) => {
-      return object.validate(ctx).catch((err) => {
+    await object.canAct(ctx, 'create');
+    try {
+      await object.validate(ctx);
+    } catch (err) {
         throw 400;
-      });
-    }).then(() => {
-      return this.exists(object.uuid);
-    }).then((exists) => {
-      if (exists) {
-        throw 409;
-      }
-      return this.save(object, object.uuid);
-    }).then((new_object) => {
-      ctx.write(new_object);
-      return this.emit('Store.WebCreate', {
-        'values': ctx.body,
-        'object': new_object,
-        'store': this
-      });
+    }
+    if (await this.exists(object.uuid)) {
+      throw 409;
+    }
+    await this.save(object, object.uuid);
+    ctx.write(object);
+    await this.emit('Store.WebCreate', {
+      'values': ctx.body,
+      'object': object,
+      'store': this
     });
   }
 

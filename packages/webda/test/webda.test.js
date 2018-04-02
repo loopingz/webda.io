@@ -72,7 +72,7 @@ describe('Webda', function() {
       assert.equal(webda.getSession(), undefined);
       webda._currentExecutor = {session: 'test'};
       assert.equal(webda.getSession(), 'test');
-      assert.notEqual(webda.loadConfiguration('../test/config.json'), undefined);
+      assert.notEqual(webda.loadConfiguration(__dirname + '/config.json'), undefined);
       webda._config.parameters.locales = undefined;
       assert.equal(webda.getLocales().indexOf("en-GB"), 0);
       webda._config._services = undefined;

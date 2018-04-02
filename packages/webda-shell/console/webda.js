@@ -434,7 +434,7 @@
      * Output
      * @param args for console.log
      */
-    output(...args) {
+    static output(...args) {
       console.log(...args);
     }
   }

@@ -686,26 +686,34 @@ class WebdaConfigurationServer extends WebdaServer {
         }
         args = args.slice(1);
       }
-      for (let i in deployment.units) {
-        if (selectedUnit && selectedUnit !== deployment.units[i].name) continue;
-        // Deploy each unit
-        promise = promise.then(() => {
-          // Filter by unit name if args
-          if (!this._deployers[deployment.units[i].type]) {
-            this.output('Cannot deploy unit', deployment.units[i].name, '(', deployment.units[i].type, '): type not found');
-            return Promise.resolve();
-          }
-          this.output('Deploy unit', deployment.units[i].name, '(', deployment.units[i].type, ')');
-          return (new this._deployers[deployment.units[i].type](
-            this.computeConfig, srcConfig, deployment, deployment.units[i])).deploy(args);
-        });
-      }
+      let units = deployment.units.filter( (unit) => {
+        if (selectedUnit && selectedUnit !== unit.name) return false;
+        if (!this._deployers[unit.type]) {
+          this.output('Cannot deploy unit', unit.name, '(', unit.type, '): type not found');
+          return false;
+        }
+        return true;
+      });
+      promise = promise.then( () => {
+        return Promise.each( units, (unit) => {
+          return this._deployUnit(unit, srcConfig, deployment, args);
+        })
+      });
       return promise;
     }).catch((err) => {
       this.output('Error', err);
     });
   }
 
+  _deployUnit(unit, config, deployment, args) {
+    if (!this._deployers[unit.type]) {
+      this.output('Cannot deploy unit', unit.name, '(', unit.type, '): type not found');
+      return Promise.resolve();
+    }
+    this.output('Deploy unit', unit.name, '(', unit.type, ')');
+    return (new this._deployers[unit.type](
+      this.computeConfig, config, deployment, unit)).deploy(args);
+  }
   undeploy(env, args) {
     return this.getService("deployments").get(env).then((deployment) => {
       if (deployment === undefined) {

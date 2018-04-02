@@ -84,7 +84,7 @@ class LambdaDeployer extends AWSDeployer {
 
     if (args[0] !== "aws-only") {
       promise = promise.then(() => {
-        return this.generatePackage(zipPath);
+        return this.generatePackage(this._zipPath);
       });
     }
 

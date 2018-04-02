@@ -60,7 +60,7 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
           resolve(this.__clean(true));
         }, delay);
       });
-    };
+    }
   }
 
   async install(params) {

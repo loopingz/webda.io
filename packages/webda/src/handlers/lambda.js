@@ -21,7 +21,6 @@ class LambdaServer extends Webda {
    */
   flushHeaders(ctx) {
     var headers = ctx._headers;
-    var session = ctx.session;
     headers['Set-Cookie'] = this.getCookieHeader(ctx);
     this._result = {};
     this._result.headers = headers;
@@ -39,7 +38,7 @@ class LambdaServer extends Webda {
    *
    * @ignore
    */
-  handleRequest(event, context, callback) {
+  handleRequest(event, context , callback) {
     var cookies = {};
     var rawCookie = event.headers.Cookie;
     if (rawCookie) {
@@ -52,20 +51,13 @@ class LambdaServer extends Webda {
     var vhost;
     var i;
 
-    var context = event.context || {};
     var headers = event.headers || {};
     vhost = headers.Host;
     var method = event.httpMethod || 'GET';
-    var resourcePath = event.resource || '/';
     var protocol = headers['CloudFront-Forwarded-Proto'] || 'https';
     var port = headers['X-Forwarded-Port'] || 443;
-    /*
-    // Replace variable in URL for now
-    for (i in event.params.path) {
-      resourcePath = resourcePath.replace("{" + i + "}", event.params.path[i]);
-    }
-    */
-    resourcePath = event.path;
+
+    var resourcePath = event.path;
     // Rebuild query string
     if (event.queryStringParameters) {
       var sep = "?";

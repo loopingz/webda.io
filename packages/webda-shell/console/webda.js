@@ -76,30 +76,30 @@
         // Print asciified image to console
         fs.writeFileSync(__dirname + '/logoshield.json', JSON.stringify(asciified));
         asciified.forEach((line) => {
-          console.log(line.join(''));
+          this.output(line.join(''));
         });
       }).catch(function(err) {
-        console.log('err', err);
+        this.output('err', err);
       });
       return asciify(__dirname + '/../app/images/logo.png', options).then(function(asciified) {
         // Print asciified image to console
         fs.writeFileSync(__dirname + '/logo.json', JSON.stringify(asciified));
       }).catch(function(err) {
-        console.log('err', err);
+        this.output('err', err);
       });
     }
 
     static logo(lines) {
       const logoLines = require('./logo.json');
-      console.log('');
+      this.output('');
       logoLines.forEach((line, idx) => {
         line = '  ' + line.join('') + '  ';
         if (idx > 0 && lines.length > (idx - 1)) {
           line = line + lines[idx - 1];
         }
-        console.log(line);
+        this.output(line);
       });
-      console.log('');
+      this.output('');
     }
 
     static help() {
@@ -122,12 +122,13 @@
         return this.logo(lines);
       } else {
         lines.forEach(line => {
-          console.log(line);
+          this.output(line);
         });
       }
     }
 
-    static parser(argv) {
+    static parser(args) {
+      const argv = require('yargs');
       return argv.alias('d', 'deployment')
         .alias('o', 'open')
         .alias('x', 'devMode')
@@ -141,38 +142,37 @@
         .option('websockets', {
           alias: 'w',
           default: false
-        })
-        .argv;
+        }).parse(args);
     }
 
     static serve(argv) {
       if (argv.deployment) {
         // Loading first the configuration
-        console.log("Serve as deployment: " + argv.deployment);
-        server_config = new config().loadDeploymentConfig(argv.deployment);
+        this.output("Serve as deployment: " + argv.deployment);
+        server_config = this._loadDeploymentConfig(argv.deployment);
       } else {
-        console.log("Serve as development");
+        this.output("Serve as development");
       }
       webda = new server(server_config);
       webda._devMode = argv.devMode;
       if (webda._devMode) {
-        console.log('Dev mode activated : wildcard CORS enabled');
+        this.output('Dev mode activated : wildcard CORS enabled');
       }
       return webda.serve(argv.port, argv.websockets);
     }
 
     static install(argv) {
-      console.log("Installing deployment: " + argv.deployment);
-      webda = new config();
+      this.output("Installing deployment: " + argv.deployment);
+      webda = this._getNewConfig();
       return webda.install(argv.deployment, server_config, argv._.slice(1));
     }
 
     static uninstall(argv) {
       if (argv.deployment) {
         // Loading first the configuration
-        console.log("Uninstalling deployment: ".red + argv.deployment.red);
+        this.output("Uninstalling deployment: ".red + argv.deployment.red);
         // Should add a confirmation here with RED letter
-        server_config = new config().loadDeploymentConfig(argv.deployment);
+        server_config = this._loadDeploymentConfig(argv.deployment);
       }
       webda = new server(server_config);
       webda.setHost();
@@ -180,7 +180,7 @@
       let promises = [];
       for (var name in services) {
         if (services[name].uninstall) {
-          console.log("Uninstalling", name);
+          this.output("Uninstalling", name);
           promises.push(services[name].uninstall());
         }
       }
@@ -190,26 +190,26 @@
     static serviceConfig(argv) {
       if (argv.deployment) {
         // Loading first the configuration
-        console.log("Service configuration as deployment: " + argv.deployment);
-        server_config = new config().loadDeploymentConfig(argv.deployment);
+        this.output("Service configuration as deployment: " + argv.deployment);
+        server_config = this._loadDeploymentConfig(argv.deployment);
       }
       webda = new server(server_config);
       let service_name = argv._[1];
       let service = webda.getService(argv._[1]);
       if (!service) {
         let error = 'The service ' + service_name + ' is missing';
-        console.log(error.red);
+        this.output(error.red);
         process.exit(1);
       }
-      console.log(JSON.stringify(service._params, null, ' '));
+      this.output(JSON.stringify(service._params, null, ' '));
     }
 
     static worker(argv) {
       let service_name = argv._[1];
       if (argv.deployment) {
         // Loading first the configuration
-        console.log("Should work as deployment: " + argv.deployment);
-        server_config = new config().loadDeploymentConfig(argv.deployment);
+        this.output("Should work as deployment: " + argv.deployment);
+        server_config = this._loadDeploymentConfig(argv.deployment);
       }
       webda = new server(server_config);
       webda.setHost();
@@ -217,12 +217,12 @@
       let method = argv._[2] || 'work';
       if (!service) {
         let error = 'The service ' + service_name + ' is missing';
-        console.log(error.red);
+        this.output(error.red);
         process.exit(1);
       }
       if (!service[method]) {
         let error = 'The method ' + method + ' is missing in service ' + service_name;
-        console.log(error.red);
+        this.output(error.red);
         process.exit(1);
       }
       // Launch the worker with arguments
@@ -230,22 +230,22 @@
       let promise = service[method].apply(service, argv._.slice(3));
       if (promise instanceof Promise) {
         return promise.catch((err) => {
-          console.log('An error occured', err);
+          this.output('An error occured', err);
         });
       }
       return Promise.resolve(promise).then(() => {
         let seconds = ((new Date().getTime()) - timestamp) / 1000;
-        console.log('Took', Math.ceil(seconds) + 's');
+        this.output('Took', Math.ceil(seconds) + 's');
       });
     }
 
     static debug(argv) {
       let launchServe = function() {
         if (server_pid) {
-          console.log("Refresh server");
+          this.output("Refresh server");
           server_pid.kill();
         } else {
-          console.log("Launch webda serve in debug mode");
+          this.output("Launch webda serve in debug mode");
         }
         let args = [];
         args.push(__dirname + "/webda");
@@ -287,35 +287,50 @@
       launchServe();
     }
 
+    static _getNewConfig() {
+      let webda = new config();
+      // Transfer the output
+      webda.output = this.output;
+      return webda;
+    }
+
+    static _loadDeploymentConfig(deployment) {
+      let webda = new config();
+      // Transfer the output
+      webda.output = this.output;
+      return webda.loadDeploymentConfig(deployment);
+    }
+
     static config(argv) {
       if (argv.deployment) {
-        let webda = new config();
+        let webda = this._getNewConfig();
         server_config = webda.loadDeploymentConfig(argv.deployment);
+        if (!server_config) return Promise.resolve();
         // Caching the modules
         server_config.cachedModules = webda._modules;
         let json = JSON.stringify(server_config, null, ' ');
         if (argv._.length > 1) {
           fs.writeFileSync(argv._[1], json);
         } else {
-          console.log(json);
+          this.output(json);
         }
         return Promise.resolve();
       }
-      webda = new config();
+      webda = this._getNewConfig();
       return webda.serve(18181, argv.open);
     }
 
     static deploy(argv) {
-      webda = new config();
+      webda = this._getNewConfig();
       return webda.deploy(argv.deployment, argv._.slice(1)).catch((err) => {
-        console.log('Error', err);
+        this.output('Error', err);
       });
     }
 
     static undeploy(argv) {
-      webda = new config();
+      webda = this._getNewConfig();
       return webda.undeploy(argv.deployment, argv._.slice(1)).catch((err) => {
-        console.log(err);
+        this.output(err);
       });
     }
 
@@ -323,7 +338,7 @@
       let target = argv._[1];
       let webda = require(global.__webda + '/core.js');
       if (!webda.prototype.getVersion) {
-        console.log('You are using a webda < 0.3.1, you should update');
+        this.output('You are using a webda < 0.3.1, you should update');
         return;
       }
       let version = webda.prototype.getVersion();
@@ -333,7 +348,7 @@
       if (!target.startsWith('.') && !target.startsWith('/')) {
         target = './' + target;
       }
-      console.log('Init a sample project for webda v' + version + ' to ' + target);
+      this.output('Init a sample project for webda v' + version + ' to ' + target);
       let promise = Promise.resolve();
       if (!fs.existsSync(target)) {
         promise = new Promise((resolve, reject) => {
@@ -366,25 +381,25 @@
       }).then((response) => {
         return unzip(target, response.body);
       }).then(() => {
-        console.log('Your project has been initialized with a sample project'.green);
+        this.output('Your project has been initialized with a sample project'.green);
         if (fs.existsSync('./README.md')) {
-          console.log('\nYou can read the README.md for further instruction'.green);
+          this.output('\nYou can read the README.md for further instruction'.green);
         }
       }).catch((err) => {
-        console.log('There is no sample found for this version of webda, sorry :('.red);
+        this.output('There is no sample found for this version of webda, sorry :('.red);
       }).then(() => {
         rl.close();
       });
     }
 
-    static handleCommand(argv) {
-
+    static handleCommand(args) {
+      let argv = this.parser(args);
       if (['undeploy', 'deploy', 'install', 'uninstall'].indexOf(argv._[0]) >= 0) {
         if (argv.deployment === undefined) {
-          console.log('Need to specify an environment');
+          this.output('Need to specify an environment');
           process.exit(1);
         }
-        server_config = new config().loadDeploymentConfig(argv.deployment);
+        server_config = this._loadDeploymentConfig(argv.deployment);
       }
 
       switch (argv._[0]) {
@@ -419,5 +434,14 @@
         default:
           return this.help();
       }
+    }
+
+
+    /**
+     * Output
+     * @param args for console.log
+     */
+    output(...args) {
+      console.log(...args);
     }
   }

@@ -10,6 +10,10 @@ class WebdaServer extends Webda {
     console.log('REQUEST', ...args);
   }
 
+  output(...args) {
+    console.log(...args);
+  }
+
   handleRequest(req, res, next) {
     // Ensure cookie session
     if (req.cookies.webda === undefined) {
@@ -78,7 +82,7 @@ class WebdaServer extends Webda {
         this.flushHeaders(ctx);
         res.end();
       } else {
-        console.log("ERROR Exception occured : " + JSON.stringify(err), err.stack);
+        this.output("ERROR Exception occured : " + JSON.stringify(err), err.stack);
         res.writeHead(500);
         res.end();
         throw err;
@@ -123,7 +127,7 @@ class WebdaServer extends Webda {
 
   serveStaticWebsite(express, app) {
     if (this.getGlobalParams().website && this.getGlobalParams().website.path) {
-      console.log('Serving static content', this.getGlobalParams().website.path);
+      this.output('Serving static content', this.getGlobalParams().website.path);
       app.use(express.static(this.getGlobalParams().website.path));
     }
   }
@@ -173,12 +177,12 @@ class WebdaServer extends Webda {
     this._http = http.createServer(app).listen(port);
     if (websockets) {
       // Activate websocket
-      console.log('Activating socket.io');
+      this.output('Activating socket.io');
       this._io = require('socket.io')(this._http);
       this.emit('Webda.Init.SocketIO', this._io);
     }
     this.serveIndex(express, app);
-    console.log('Server running at http://0.0.0.0:' + port);
+    this.output('Server running at http://0.0.0.0:' + port);
   }
 };
 

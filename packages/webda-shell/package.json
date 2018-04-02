@@ -36,14 +36,14 @@
     "require-dir": "^0.3.0",
     "run-sequence": "^1.0.2",
     "vulcanize": ">= 1.4.2",
-    "web-component-tester": "^4.0.0"
+    "web-component-tester": "^4.0.0",
+    "istanbul": "^0.4.5"
   },
   "bin": {
     "webda": "./bin/webda"
   },
   "files": [
     "app",
-    "config.js",
     "bin/webda",
     "deployers",
     "handlers",
@@ -52,7 +52,8 @@
   ],
   "scripts": {
     "start": "bin/webda",
-    "format": "node ./scripts/format.js"
+    "format": "node ./scripts/format.js",
+    "cover": "node_modules/.bin/istanbul cover --dir ./reports _mocha -- -u exports -R spec -t 100000"
   },
   "engines": {
     "node": ">=6.10.0"

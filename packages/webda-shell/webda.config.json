@@ -1,0 +1,147 @@
+{
+  "parameters":{
+    "config": "mainFile",
+    "mainParameter": "test"
+  },
+  "services":{
+    "Authentication":{
+      "successRedirect":"http://webda.io/user.html",
+      "failureRedirect":"http://webda.io/index.html?login-error",
+      "providers":{
+        "facebook":{
+          "clientID":"1014747171942039",
+          "clientSecret":"9513345fb2bc4f37d384faec472052d2",
+          "scope":[
+            "email",
+            "public_profile"
+          ]
+        },
+        "email":{
+
+        },
+        "phone":{
+
+        },
+        "twitter":{
+          "consumerKey":"rHNARUBZQHfxpNw2U1A4aJc01",
+          "consumerSecret":"33lrH5kO3Uj91Gn6uLyHZrQ8JxC4ENT0hsvJVHjY5Ci1LiuiI4",
+          "callbackURL":"https://api.webda.io/auth/twitter/callback"
+        },
+        "amazon":{
+          "clientID":"amzn1.application-oa2-client.081b14736c1c4e3baf789e61eee410d0",
+          "clientSecret":"8bb8989deec1cc55cf1a7a56f818c655f3983caa0a4184d81a4e26cef295d556",
+          "scope":"profile"
+        },
+        "google":{
+          "callbackURL":"https://api.webda.io/auth/google/callback",
+          "clientID":"247800352903-agbv6psigdg6j5il54q2pnhj7p107s6l.apps.googleusercontent.com",
+          "clientSecret":"6U9vERKBfUVorJpVvfNLh-Wb",
+          "scope":[
+            "email",
+            "profile"
+          ]
+        },
+        "github":{
+          "clientID":"0548204e287d0eafd143",
+          "clientSecret":"b696da328d86323ad3ec2984ae6e2574b726d082",
+          "scope":"user:email"
+        }
+      }
+    },
+    "Moddas":{
+      "map":{
+        "Users":{
+          "key":"user",
+          "target":"moddas",
+          "fields":"name",
+          "cascade":true
+        }
+      },
+      "expose":{
+
+      },
+      "type":"DynamoStore",
+      "table":"webda.io-moddas"
+    },
+    "Test":{
+      "require":"./services/test.js",
+      "plop":"yop"
+    },
+    "Idents":{
+      "inject":"user",
+      "check":"user",
+      "map":{
+        "Users":{
+          "key":"user",
+          "target":"idents",
+          "fields":"type",
+          "cascade":true
+        }
+      },
+      "expose":{
+        "restrict":{
+          "create":true,
+          "update":true,
+          "get":true
+        }
+      },
+      "type":"DynamoStore",
+      "table":"webda.io-idents"
+    },
+    "Users":{
+      "expose":{
+        "url":"/users",
+        "restrict":{
+          "authentication":true,
+          "create":true
+        }
+      },
+      "type":"DynamoStore",
+      "table":"webda.io-users"
+    }
+  },
+  "routes":{
+    "/simple":{
+      "method":[
+        "GET"
+      ],
+      "executor":"string",
+      "params":{
+        "result":"{echo}",
+        "mime":"text/plain"
+      }
+    },
+    "/cookie/get":{
+      "method":"GET",
+      "executor":"inline",
+      "callback":"function(executor) { var fs=require('fs'); executor.write(fs.readFileSync('/tmp/test',{encoding: 'utf8'}));};",
+      "params":{
+
+      }
+    },
+    "/redirect":{
+      "method":"GET",
+      "executor":"inline",
+      "callback":"function(webda) {\n\twebda.writeHead(302, {'Location': 'https://www.loopingz.com'});\n\t\n\twebda.end();\n};"
+    },
+    "/echo{?code}":{
+      "method":"GET",
+      "executor":"inline",
+      "callback":"function(webda) {\n\twebda.writeHead(200, {'Content-type': 'application/json'});\n\twebda.write(webda._params.code);\n\twebda.end();\n};",
+      "params":{
+        "test":"test"
+      }
+    },
+    "/testor":{
+      "params":{
+
+      },
+      "method":[
+        "GET"
+      ],
+      "executor":"inline",
+      "callback":"function(executor) {\n\texecutor.write('Hello World !');\n}"
+    }
+  },
+  "version": 1
+}

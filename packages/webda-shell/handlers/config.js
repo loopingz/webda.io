@@ -233,7 +233,6 @@ class ` + className + ` extends ` + extendName + ` {
       return;
     } else if (ctx._route._http.method === "DELETE") {
       let name = ctx._params.name;
-      console.log('should DELETE', name, ctx._params);
       if (this._config.models[name]) {
         let file = this._config.models[name];
         if (!file.endsWith('.js')) {
@@ -558,7 +557,7 @@ class WebdaConfigurationServer extends WebdaServer {
       }
     } else {
       // Init a default configuration if needed
-      console.log("No file is present, creating webda.config.json");
+      this.output("No file is present, creating webda.config.json");
       this.config = {};
       this._file = path.resolve("./webda.config.json");
       this.config['version', 1]
@@ -585,7 +584,7 @@ class WebdaConfigurationServer extends WebdaServer {
       this.resolveConfiguration(this.config, deployment);
       return JSON.parse(this.exportJson(this.config));
     } else {
-      console.log("Unknown deployment: " + env);
+      this.output("Unknown deployment: " + env);
     }
   }
 
@@ -609,7 +608,7 @@ class WebdaConfigurationServer extends WebdaServer {
     // Create Lambda role if needed
     return this.getService("deployments").get(env).then((deployment) => {
       if (deployment === undefined) {
-        console.log("Deployment " + env + " unknown");
+        this.output("Deployment " + env + " unknown");
         return Promise.reject();
       }
       this.resolveConfiguration(this.config, deployment);
@@ -631,7 +630,7 @@ class WebdaConfigurationServer extends WebdaServer {
         continue;
       }
       promise = promise.then(() => {
-        console.log('Uninstalling service ' + i);
+        this.output('Uninstalling service ' + i);
         return service.install(this.resources);
       });
     }
@@ -644,7 +643,7 @@ class WebdaConfigurationServer extends WebdaServer {
     for (let i in services) {
       let service = services[i];
       promise = promise.then(() => {
-        console.log('Installing service ', i);
+        this.output('Installing service ', i);
         return service.install(JSON.parse(JSON.stringify(resources)));
       });
     }
@@ -655,7 +654,7 @@ class WebdaConfigurationServer extends WebdaServer {
     return this.getService("deployments").get(env).then((deployment) => {
 
       if (deployment === undefined) {
-        console.log("Deployment " + env + " unknown");
+        this.output("Deployment " + env + " unknown");
         return Promise.resolve();
       }
       // Reload with the resolved configuration
@@ -677,9 +676,9 @@ class WebdaConfigurationServer extends WebdaServer {
       let promise = Promise.resolve();
       if (!args.length || args[0] === 'install') {
         // Normal launch from the console or forked process
-        console.log('Installing services');
+        this.output('Installing services');
         promise = this.installServices(deployment.resources).then(() => {
-          console.log('Deploying', deployment.uuid, 'with', deployment.units.length, 'units');
+          this.output('Deploying', deployment.uuid, 'with', deployment.units.length, 'units');
           return Promise.resolve();
         });
       }
@@ -697,24 +696,24 @@ class WebdaConfigurationServer extends WebdaServer {
         promise = promise.then(() => {
           // Filter by unit name if args
           if (!this._deployers[deployment.units[i].type]) {
-            console.log('Cannot deploy unit', deployment.units[i].name, '(', deployment.units[i].type, '): type not found');
+            this.output('Cannot deploy unit', deployment.units[i].name, '(', deployment.units[i].type, '): type not found');
             return Promise.resolve();
           }
-          console.log('Deploy unit', deployment.units[i].name, '(', deployment.units[i].type, ')');
+          this.output('Deploy unit', deployment.units[i].name, '(', deployment.units[i].type, ')');
           return (new this._deployers[deployment.units[i].type](
             this.computeConfig, srcConfig, deployment, deployment.units[i])).deploy(args);
         });
       }
       return promise;
     }).catch((err) => {
-      console.log('Error', err);
+      this.output('Error', err);
     });
   }
 
   undeploy(env, args) {
     return this.getService("deployments").get(env).then((deployment) => {
       if (deployment === undefined) {
-        console.log("Deployment " + env + " unknown");
+        this.output("Deployment " + env + " unknown");
         return Promise.resolve();
       }
       return new this._deployers[deployment.type](this.computeConfig, deployment).undeploy(args);
@@ -749,7 +748,7 @@ class WebdaConfigurationServer extends WebdaServer {
       this.conns.push(conn);
 
       conn.on("error", (err) => {
-        console.log("Connection error", err);
+        this.output("Connection error", err);
       });
       conn.on("close", (code, reason) => {
         if (this.conns.indexOf(conn) >= 0) {
@@ -765,7 +764,7 @@ class WebdaConfigurationServer extends WebdaServer {
     args.push('-d ' + env);
     args.push("deploy");
 
-    console.log("Forking Webda with: ", args);
+    this.output("Forking Webda with: ", args);
     this.deployChild = require("child_process").spawn('node', args);
     this._deployOutput = [];
 

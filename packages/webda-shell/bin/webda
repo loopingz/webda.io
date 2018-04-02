@@ -62,10 +62,7 @@ if (files.length) {
 /**
  * Commandline parsing
  */
-var argv = require('yargs');
-argv = consoleService.parser(argv);
-
-let p = consoleService.handleCommand(argv);
+let p = consoleService.handleCommand(process.argv.slice(2));
 if (p instanceof Promise || p && p.then) {
   p.then( () => {
     process.exit(0);

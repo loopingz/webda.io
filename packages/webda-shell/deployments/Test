@@ -1,0 +1,14 @@
+{
+ "parameters": {
+  "deploymentParameter": "deploymentTest",
+  "config": "deploymentTestConfig"
+ },
+ "resources": {
+ },
+ "services": {
+ },
+ "uuid": "Test",
+ "units": [],
+ "_type": "deployment",
+ "lastUpdate": "2018-03-30T17:10:21.836Z"
+}

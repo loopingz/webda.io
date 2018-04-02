@@ -119,7 +119,7 @@ describe('Queues', function() {
       await webda.getService("sqsqueue").__clean();
       // Update timeout to 80000ms as Purge can only be sent once every 60s
       this.timeout(80000);
-      return simple(webda.getService("sqsqueue"));
+      return simple(webda.getService("sqsqueue"), true);
     });
     it('ARN', function() {
       let queue = webda.getService("sqsqueue");

@@ -11,10 +11,10 @@
   "repository": "git://github.com/loopingz/webda.git",
   "main": "lib/index.js",
   "scripts": {
-    "test": "mocha -t 100000",
+    "test": "mocha -t 100000 ./test/*.test.js",
     "run": "node core",
     "format": "node ./scripts/format.js",
-    "cover": "node_modules/.bin/istanbul cover --dir ./reports _mocha -- -u exports -R spec -t 100000",
+    "cover": "node_modules/.bin/istanbul cover --dir ./reports _mocha -- -u exports -R spec -t 100000 ./test/*.test.js",
     "build": "babel src/ --out-dir lib/"
   },
   "dependencies": {

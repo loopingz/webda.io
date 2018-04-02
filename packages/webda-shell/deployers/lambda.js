@@ -535,13 +535,7 @@ class LambdaDeployer extends AWSDeployer {
         });
       });
 
-      // Remove old resources
-      for (let i in this.tree) {
-        if (found[i]) continue;
-        promise = promise.then(() => {
-          return this.deleteAwsResource(this.tree[i]);
-        });
-      }
+      // TODO Investigate back for clean API Gateway
       return promise;
     });
   }

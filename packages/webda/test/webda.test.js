@@ -5,6 +5,7 @@ var config = require("./config.json");
 var webda;
 var ctx;
 var executor;
+const Utils = require("./utils");
 
 describe('Webda', function() {
   beforeEach(function() {
@@ -56,6 +57,14 @@ describe('Webda', function() {
     });
   });
   describe('utils', function() {
+    it('LambdaCaller', async function() {
+      // CodeCoverage test
+      const LambdaCaller = new Webda.LambdaCaller('plop', {});
+      assert.throws( () => new Webda.LambdaCaller());
+      new Webda.LambdaCaller('arn', {accessKeyId: 'PLOP'});
+      await Utils.throws(LambdaCaller.execute.bind(LambdaCaller, undefined, true));
+
+    });
     it('toPublicJson', function() {
       let obj = {
         _title: "private",
@@ -82,6 +91,8 @@ describe('Webda', function() {
       assert.equal(JSON.stringify(webda.getModels()), "{}");
       webda._config = undefined;
       assert.equal(webda.getLocales().indexOf("en-GB"), 0);
+      process.env.WEBDA_CONFIG = __dirname + '/config.broken.json';
+      webda = new Webda.Core();
     });
     it('context', function() {
       ctx.init();
@@ -100,6 +111,18 @@ describe('Webda', function() {
       assert.equal(ctx._headers['X-Webda'], 'HEAD');
       ctx.write(400);
       assert.equal(ctx._body, 400);
+      ctx.session = new Webda.SecureCookie({}, "NONE");
+      assert.equal(ctx.session._changed, true);
+      ctx.session = new Webda.SecureCookie({});
+      Object.observe = (obj, callback) => {
+        callback([{name: '_changed'}]);
+        assert.equal(ctx.session._changed, false);
+        callback([{name: 'zzz'}]);
+        assert.equal(ctx.session._changed, true);
+      }
+      ctx.session.getProxy();
+      assert.throws(ctx.session._decrypt.bind(ctx.session, "NONE"));
+      Object.observe = undefined;
     });
   });
   describe('getService()', function() {

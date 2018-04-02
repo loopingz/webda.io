@@ -39,6 +39,12 @@ describe("RoutesHelper", function() {
     executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/route/resource/notfound");
     await Utils.throws(executor.execute.bind(executor, ctx), err => true);
   })
+  it('Resource - No mime', async () => {
+    executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/route/resource/nomime");
+    await executor.execute(ctx);
+    assert.equal(ctx._headers['Content-Type'], 'application/octet-stream');
+    assert.equal(ctx._body, fs.readFileSync('./test/Dockerfile'));
+  })
   it('File', async () => {
     executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/route/file");
     await executor.execute(ctx);

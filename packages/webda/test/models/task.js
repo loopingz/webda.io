@@ -7,6 +7,33 @@ const CoreModel = Webda.CoreModel;
  */
 class Task extends CoreModel {
 
+  static getActions() {
+
+    return {
+      'actionable': {
+        method: 'GET'
+      },
+      'impossible': {
+        method: 'PUT'
+      }
+    };
+  }
+
+  _actionable() {
+
+  }
+
+  _impossible() {
+
+  }
+
+  async canAct(ctx, action) {
+    if ('actionable' === action) {
+      return this;
+    }
+    return super.canAct(ctx, action);
+  }
+
   _getSchema() {
     return "../test/schemas/task.json";
   }

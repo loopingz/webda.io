@@ -26,5 +26,6 @@ module.exports = {
   CoreModel: require('./models/coremodel'),
   Ident: require('./models/ident'),
   // Utils
-  SecureCookie: require('./utils/cookie')
+  SecureCookie: require('./utils/cookie'),
+  LambdaCaller: require('./utils/lambdacaller')
 }

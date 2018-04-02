@@ -21,12 +21,9 @@ class ResourceRouteHelper extends Executor {
         if (err) {
           return reject(err);
         }
-        var mime_file = mime.getType(this._params.file);
-        if (mime_file) {
-          ctx.writeHead(200, {
-            'Content-Type': mime_file
-          });
-        }
+        ctx.writeHead(200, {
+          'Content-Type': mime.getType(this._params.file) || 'application/octet-stream'
+        });
         ctx.write(data);
         ctx.end();
         return resolve();

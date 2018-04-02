@@ -40,6 +40,8 @@ describe('Policy', () => {
       ctx.body = {};
       executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/tasks/" + task.uuid);
       await Utils.throws(executor.execute.bind(executor, ctx), res => res == 403);
+      executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/tasks/" + task.uuid);
+      await Utils.throws(executor.execute.bind(executor, ctx), res => res == 403);
       ctx.session.login("fake_user", "fake_ident");
       await executor.execute(ctx);
       let result = JSON.parse(ctx._body);
@@ -58,6 +60,14 @@ describe('Policy', () => {
       ctx.body = {
         'public': false
       };
+      executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/tasks/" + task.uuid + '/actionable');
+      await executor.execute(ctx);
+      executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/tasks/" + task.uuid + '/impossible');
+      await Utils.throws(executor.execute.bind(executor, ctx), res => res == 403);
+      await Utils.throws(executor.execute.bind(executor, ctx), res => res == 403);
+      ctx = webda.newContext({});
+      await taskStore.save({uuid: 'plop'});
+      executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/tasks/plop");
       await Utils.throws(executor.execute.bind(executor, ctx), res => res == 403);
       executor = webda.getExecutor(ctx, "test.webda.io", "DELETE", "/tasks/" + task.uuid);
       ctx.body = {
@@ -70,6 +80,7 @@ describe('Policy', () => {
         'public': false
       };
       await executor.execute(ctx);
+      ctx.session.logout();
     });
   });
 });

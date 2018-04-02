@@ -26,6 +26,7 @@ const OwnerPolicy = Sup => class extends Sup {
     } else if (action === 'delete') {
       return this.canDelete(ctx);
     }
+    throw 403;
   }
   /**
    * Return false if can't update

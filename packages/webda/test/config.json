@@ -277,6 +277,11 @@
       "executor": "resource",
       "file": "./test/Dockerfile.notfound.txt"
     },
+    "/route/resource/nomime": {
+      "method": [ "GET" ],
+      "executor": "resource",
+      "file": "./test/Dockerfile"
+    },
     "/route/file": {
       "method": [ "GET" ],
       "executor": "file",

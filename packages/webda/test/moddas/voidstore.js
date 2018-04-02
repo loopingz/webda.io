@@ -4,6 +4,14 @@ const Webda = require("../../" + (process.env["WEBDA_TEST_TARGET"] ? process.env
 
 class VoidStore extends Webda.Store {
 
+  constructor(webda, name, params) {
+    super(webda, name, params);
+    if (this._params.brokenConstructor) throw Error();
+  }
+
+  init() {
+    if (this._params.brokenInit) throw Error();
+  }
   exists(uid) {
     return Promise.resolve(true);
   }

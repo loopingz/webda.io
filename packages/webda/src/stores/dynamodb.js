@@ -325,17 +325,16 @@ class DynamoStore extends AWSServiceMixIn(Store) {
      */
   }
 
-  __clean() {
+  async __clean() {
     var params = {
       'TableName': this._params.table
     };
-    return this._client.scan(params).promise().then((result) => {
-      var promises = [];
-      for (var i in result.Items) {
-        promises.push(this._delete(result.Items[i].uuid));
-      }
-      return Promise.all(promises);
-    });
+    let result = await this._client.scan(params).promise();
+    var promises = [];
+    for (var i in result.Items) {
+      promises.push(this._delete(result.Items[i].uuid));
+    }
+    return Promise.all(promises);
   }
 
   static getModda() {

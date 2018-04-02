@@ -271,7 +271,7 @@ class Store extends Executor {
    * @param {String} Uuid to use, if not specified take the object.uuid or generate one if not found
    * @return {Promise} with saved object
    */
-  save(object, uid) {
+  async save(object, uid) {
     /** @ignore */
     if (uid === undefined) {
       uid = object.uuid;
@@ -290,39 +290,27 @@ class Store extends Executor {
     }
     object.lastUpdate = new Date();
     object = this.initModel(object);
-    return this.emit('Store.Save', {
+    await this.emit('Store.Save', {
       'object': object,
       'store': this
-    }).then(() => {
-      // Handle object auto listener
-      if (typeof(object._onSave) === 'function') {
-        return object._onSave();
-      }
-      return Promise.resolve();
-    }).then(() => {
-      return this._save(object, uid);
-    }).then((res) => {
-      object = this.initModel(res);
-      return this.emit('Store.Saved', {
+    });
+    // Handle object auto listener
+    if (typeof(object._onSave) === 'function') {
+      await object._onSave();
+    }
+    let res = await this._save(object, uid);
+    object = this.initModel(res);
+    await this.emit('Store.Saved', {
         'object': object,
         'store': this
-      });
-    }).then(() => {
-      if (typeof(object._onSaved) === 'function') {
-        return object._onSaved();
-      }
-      return Promise.resolve();
-    }).then(() => {
-      if (this._params.map != undefined) {
-        return this.handleMap(object, this._params.map, "created").then(() => {
-          return Promise.resolve(object);
-        }, function(err) {
-          return Promise.reject(err)
-        });
-      } else {
-        return Promise.resolve(object);
-      }
     });
+    if (typeof(object._onSaved) === 'function') {
+      await object._onSaved();
+    }
+    if (this._params.map != undefined) {
+      await this.handleMap(object, this._params.map, "created");
+    }
+    return object;
   }
 
   _save(object, uid) {
@@ -337,73 +325,60 @@ class Store extends Executor {
    * @param {Boolean} reverseMap internal use only, for disable map resolution
    * @return {Promise} with saved object
    */
-  update(object, uid, reverseMap) {
+  async update(object, uid, reverseMap) {
     /** @ignore */
     var saved;
-    return new Promise((resolve, reject) => {
-      var loaded;
-      if (uid == undefined) {
-        uid = object.uuid;
-      }
-      if (reverseMap === undefined) {
-        reverseMap = true;
-      }
-      // Dont allow to update collections from map
-      if (this._reverseMap != undefined && reverseMap) {
-        for (var i in this._reverseMap) {
-          if (object[this._reverseMap[i].property] != undefined) {
-            delete object[this._reverseMap[i].property];
-          }
+    var loaded;
+    if (uid == undefined) {
+      uid = object.uuid;
+    }
+    if (reverseMap === undefined) {
+      reverseMap = true;
+    }
+    // Dont allow to update collections from map
+    if (this._reverseMap != undefined && reverseMap) {
+      for (var i in this._reverseMap) {
+        if (object[this._reverseMap[i].property] != undefined) {
+          delete object[this._reverseMap[i].property];
         }
       }
-      if (Object.keys(object).length === 0) {
-        resolve({});
-      }
-      let writeCondition;
-      if (this._params.lastUpdate) {
-        writeCondition = lastUpdate;
-      }
-      object.lastUpdate = new Date();
-      resolve(this._get(uid).then((load) => {
-        loaded = this.initModel(load);
-        return this.handleMap(loaded, this._params.map, object);
-      }).then(() => {
-        return this.emit('Store.Update', {
-          'object': loaded,
-          'store': this,
-          'update': object
-        });
-      }).then(() => {
-        if (typeof(loaded._onUpdate) === 'function') {
-          return loaded._onUpdate(object);
-        }
-        return Promise.resolve();
-      }).then(() => {
-        return this._update(object, uid, writeCondition).then((res) => {
-          // Return updated
-          for (let i in res) {
-            loaded[i] = res[i];
-          }
-          for (let i in object) {
-            loaded[i] = object[i];
-          }
-          return Promise.resolve(loaded);
-        });
-      }));
-    }).then((result) => {
-      saved = this.initModel(result);
-      return this.emit('Store.Updated', {
-        'object': result,
-        'store': this
-      });
-    }).then(() => {
-      if (typeof(saved._onUpdated) === 'function') {
-        return saved._onUpdated();
-      }
-      return Promise.resolve();
-    }).then(() => {
-      return Promise.resolve(saved);
+    }
+    if (Object.keys(object).length === 0) {
+      return {};
+    }
+    let writeCondition;
+    if (this._params.lastUpdate) {
+      writeCondition = lastUpdate;
+    }
+    object.lastUpdate = new Date();
+    let load = await this._get(uid);
+    loaded = this.initModel(load);
+    await this.handleMap(loaded, this._params.map, object);
+    await this.emit('Store.Update', {
+      'object': loaded,
+      'store': this,
+      'update': object
     });
+    if (typeof(loaded._onUpdate) === 'function') {
+      await loaded._onUpdate(object);
+    }
+    let res = await this._update(object, uid, writeCondition);
+    // Return updated
+    for (let i in res) {
+      loaded[i] = res[i];
+    }
+    for (let i in object) {
+      loaded[i] = object[i];
+    }
+    saved = this.initModel(loaded);
+    await this.emit('Store.Updated', {
+      'object': saved,
+      'store': this
+    });
+    if (typeof(saved._onUpdated) === 'function') {
+      await saved._onUpdated();
+    }
+    return saved;
   }
 
   getMapper(map, uuid) {

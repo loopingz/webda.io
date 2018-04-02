@@ -8,40 +8,39 @@ class MemoryStore extends Store {
     super.init(config);
   }
 
-  exists(uid) {
-    return Promise.resolve(this.storage[uid] !== undefined);
+  async exists(uid) {
+    return this.storage[uid] !== undefined;
   }
 
-  _find(request, offset, limit) {
+  async _find(request, offset, limit) {
     // Need to transfert to Array
-    return Promise.resolve(this.storage);
+    return this.storage;
   }
 
-  _save(object, uid) {
+  async _save(object, uid) {
     uid = uid || object.uuid;
     if (!(object instanceof this._model)) {
       object = this.initModel(object);
     }
     this.storage[uid] = object.toStoredJSON(true);
-    return Promise.resolve(this._getSync(uid));
+    return this._getSync(uid);
   }
 
-  _delete(uid) {
+  async _delete(uid) {
     delete this.storage[uid];
-    return Promise.resolve();
   }
 
-  _update(object, uid) {
+  async _update(object, uid) {
     uid = uid || object.uuid;
     let obj = this._getSync(uid);
     for (let prop in object) {
       obj[prop] = object[prop];
     }
     this.storage[uid] = obj.toStoredJSON(true);
-    return Promise.resolve(this._getSync(uid));
+    return this._getSync(uid);
   }
 
-  getAll(uids) {
+  async getAll(uids) {
     if (!uids) {
       return Object.keys(this.storage).map((key) => {
         return this._getSync(key);
@@ -53,7 +52,7 @@ class MemoryStore extends Store {
         result.push(this._getSync(uids[i]));
       }
     }
-    return Promise.resolve(result);
+    return result;
   }
 
   _getSync(uid) {
@@ -63,17 +62,16 @@ class MemoryStore extends Store {
     return null;
   }
 
-  _get(uid) {
-    if (!this.storage[uid]) return Promise.resolve();
-    return Promise.resolve(this._getSync(uid));
+  async _get(uid) {
+    if (!this.storage[uid]) return;
+    return this._getSync(uid);
   }
 
-  __clean() {
+  async __clean() {
     this.storage = {};
-    return Promise.resolve();
   }
 
-  _incrementAttribute(uid, prop, value) {
+  async _incrementAttribute(uid, prop, value) {
     var res = this.storage[uid];
     if (res === undefined) {
       throw Error("NotFound");
@@ -86,7 +84,7 @@ class MemoryStore extends Store {
     return this._save(res, uid);
   }
 
-  _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
+  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
     var res = this.storage[uid];
     if (res === undefined) {
       throw Error("NotFound");
@@ -110,7 +108,7 @@ class MemoryStore extends Store {
     return this._save(res, uid);
   }
 
-  _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
+  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
     var res = this.storage[uid];
     if (res === undefined) {
       throw Error("NotFound");

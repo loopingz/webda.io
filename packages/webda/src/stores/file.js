@@ -27,7 +27,7 @@ class FileStore extends Store {
     return this._params.folder + '/' + uid;
   }
 
-  exists(uid) {
+  async exists(uid) {
     // existsSync is deprecated might change it
     return Promise.resolve(fs.existsSync(this.file(uid)));
   }
@@ -50,69 +50,65 @@ class FileStore extends Store {
     return Promise.resolve(object);
   }
 
-  _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
-    return this._get(uid).then((res) => {
-      if (res === undefined) {
-        throw Error("NotFound");
+  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
+    let res = await this._get(uid);
+    if (res === undefined) {
+      throw Error("NotFound");
+    }
+    if (index === undefined) {
+      if (itemWriteCondition !== undefined && res[prop].length !== itemWriteCondition) {
+        throw Error('UpdateCondition not met');
       }
-      if (index === undefined) {
-        if (itemWriteCondition !== undefined && res[prop].length !== itemWriteCondition) {
-          throw Error('UpdateCondition not met');
-        }
-        if (res[prop] === undefined) {
-          res[prop] = [item];
-        } else {
-          res[prop].push(item);
-        }
+      if (res[prop] === undefined) {
+        res[prop] = [item];
       } else {
-        if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
-          throw Error('UpdateCondition not met');
-        }
-        res[prop][index] = item;
+        res[prop].push(item);
       }
-      return this._save(res, uid);
-    });
-  }
-
-  _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
-    return this._get(uid).then((res) => {
-      if (res === undefined) {
-        throw Error("NotFound");
-      }
-
+    } else {
       if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
         throw Error('UpdateCondition not met');
       }
-      res[prop].splice(index, 1);
-      return this._save(res, uid);
-    });
+      res[prop][index] = item;
+    }
+    return this._save(res, uid);
   }
 
-  _delete(uid, writeCondition) {
-    return this._get(uid).then((res) => {
-      if (writeCondition && res && res[this._writeConditionField] != writeCondition) {
-        return Promise.reject(Error('UpdateCondition not met'));
-      }
-      if (res) {
-        fs.unlinkSync(this.file(uid));
-      }
-      return Promise.resolve();
-    });
+  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
+    let res = await this._get(uid);
+    if (res === undefined) {
+      throw Error("NotFound");
+    }
+
+    if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
+      throw Error('UpdateCondition not met');
+    }
+    res[prop].splice(index, 1);
+    return this._save(res, uid);
   }
 
-  _update(object, uid, writeCondition) {
-    return this._get(uid).then((stored) => {
-      if (!stored) {
-        return Promise.reject(Error('NotFound'));
-      }
-      if (writeCondition && stored[this._writeConditionField] != writeCondition) {
-        return Promise.reject(Error('UpdateCondition not met'));
-      }
-      for (var prop in object) {
-        stored[prop] = object[prop];
-      }
-      return this._save(stored, uid);
-    });
+  async _delete(uid, writeCondition) {
+    let res = await this._get(uid);
+    if (writeCondition && res && res[this._writeConditionField] != writeCondition) {
+      return Promise.reject(Error('UpdateCondition not met'));
+    }
+    if (res) {
+      fs.unlinkSync(this.file(uid));
+    }
+    return Promise.resolve();
+  }
+
+  async _update(object, uid, writeCondition) {
+    let stored = await this._get(uid);
+    if (!stored) {
+      return Promise.reject(Error('NotFound'));
+    }
+    if (writeCondition && stored[this._writeConditionField] != writeCondition) {
+      return Promise.reject(Error('UpdateCondition not met'));
+    }
+    for (var prop in object) {
+      stored[prop] = object[prop];
+    }
+    return this._save(stored, uid);
   }
 
   getAll(uids) {
@@ -130,34 +126,31 @@ class FileStore extends Store {
     return Promise.all(result);
   }
 
-  _get(uid) {
-    return this.exists(uid).then((res) => {
-      if (res) {
-        let data = fs.readFileSync(this.file(uid));
-        return Promise.resolve(this.initModel(JSON.parse(data.toString())));
-      }
-      return Promise.resolve(undefined);
-    });
+  async _get(uid) {
+    let res = await this.exists(uid);
+    if (res) {
+      let data = fs.readFileSync(this.file(uid));
+      return this.initModel(JSON.parse(data.toString()));
+    }
+    return;
   }
 
-  _incrementAttribute(uid, prop, value) {
-    return this.exists(uid).then((found) => {
-      if (!found) {
-        return Promise.reject(Error('NotFound'));
-      }
-      return this._get(uid);
-    }).then((stored) => {
-      if (stored[prop] === undefined) {
-        stored[prop] = 0;
-      }
-      stored[prop] += value;
-      return this._save(stored, uid);
-    });
+  async _incrementAttribute(uid, prop, value) {
+    let found = this.exists(uid);
+    if (!found) {
+      throw Error('NotFound');
+    }
+    let stored = await this._get(uid);
+    if (stored[prop] === undefined) {
+      stored[prop] = 0;
+    }
+    stored[prop] += value;
+    return this._save(stored, uid);
   }
 
-  __clean() {
+  async __clean() {
     if (!fs.existsSync(this._params.folder)) {
-      return Promise.resolve();
+      return;
     }
     var files = fs.readdirSync(this._params.folder);
     var promises = [];

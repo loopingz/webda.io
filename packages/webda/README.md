@@ -11,13 +11,13 @@
 
 ## Goals
 
-I have servers running for my own personal use for more than 10 years, because i wanted to have few websites and APIs online, but most of the time those servers are sitting and waiting.
+I have servers running for my own personal use for more than 10 years because I wanted to have few websites and APIs online, but most of the time those servers are sitting and waiting.
 
-Then came **Lambda**, really cool feature from AWS, but kind of tricky to turn it into a full webserver. That's one of the target of Webda.
+Then came **Lambda**, really cool feature from AWS, but kind of tricky to turn it into a full webserver. That's one of the targets of Webda.
 
-I was bored also of always recoding the same API again and again with a few customizations for each client. So i wanted a system that leverage up the components system but on both the frontend and backend, the frontend moved a lot lately with JSF to GWT to Angular to ... ? **Polymer** ! Here is my winner, of course it will change but it is a good one i think and really like the WebComponents part, everything was in place to start the composable UI.
+I was bored also of always recoding the same API again and again with a few customizations for each client. So I wanted a system that leverages up the components system but on both the frontend and backend. The frontend moved a lot lately with JSF to GWT to Angular to ... ? **Polymer** ! Here is my winner, of course, it will change but it is a good one I think and I really like the WebComponents part, everything was in place to start the composable UI.
 
-The **webda.config.json** contains the configuration of the app, defining Services, Routes and global configuration, you can consider it as the applicationContext.xml of Spring if you prefer, with Beans=Services
+The **webda.config.json** contains the configuration of the app, defining Services, Routes, and global configuration, you can consider it as the applicationContext.xml of Spring if you prefer, with Beans=Services
 
 ## Quickstart
 
@@ -36,21 +36,21 @@ webda config
 
 You have the configuration UI available, where you can create a service, use a service, or create a custom API resource. You can also manually edit the webda.config.json if you prefer
 
-Below is the manual step with the manual modification, I would recommand to use the configuration UI to modify the webda.config.json
+Below is the manual step with the manual modification, I would recommend to use the configuration UI to modify the webda.config.json
 
 #### Create a new route
 
-We will use the inline RouteHelper here, except the Lambda Route helper, the other are mainly helper for quick and easy test but you should use Service when you can as they are easier to unit test and make code cleaner.
+We will use the inline RouteHelper here, except the Lambda Route helper, the others are mainly helpers for quick and easy tests but you should use `Service` when you can as they are easier to unit test and make code cleaner.
 
 ```javascript
 {
   "*": "demo.webda.io",
   "demo.webda.io": {
-  	...
-  	"/myurl": {
-  	  "type": "inline",
-  	  "callback": "function(ctx) { ctx.write('I am an inline route'); }"
-  	}
+      ...
+      "/myurl": {
+        "type": "inline",
+        "callback": "function(ctx) { ctx.write('I am an inline route'); }"
+      }
   }
 }
 ```
@@ -58,7 +58,7 @@ We will use the inline RouteHelper here, except the Lambda Route helper, the oth
 
 #### Create a new service
 
-We will create a new executor, so we can map some urls directly to the service
+We will create a new executor, so we can map some URLs directly to the service
 
 ```javascript
 const Executor = require('webda/services/executor')
@@ -66,24 +66,24 @@ const Executor = require('webda/services/executor')
 class MyService extends Executor {
 
    init(config) {
-   	 // Let's add our routes here, for Modda the URL should be dynamic
-   	 config['/myservice']={method:["GET", "DELETE"], _method: this.handleRequest, executor: this};
+        // Let's add our routes here, for Modda the URL should be dynamic
+        config['/myservice']={method:["GET", "DELETE"], _method: this.handleRequest, executor: this};
    }
    
    delete(ctx) {
-     // If we dont output anything, then the default result will be a 204
-   }	
+     // If we don't output anything, then the default result will be a 204
+   }    
    
    get(ctx) {
-    // Should output : I am a getter and i've sent an welcome email to you
-	ctx.write(this._params.sentence);
-   	let otherService = this.getService("Mailer");
-   	otherService.send();
+    // Should output : I am a getter and I've sent a welcome email to you
+    ctx.write(this._params.sentence);
+       let otherService = this.getService("Mailer");
+       otherService.send();
    }
    
    handleRequest(ctx) {
      if (ctx._route._http.method === "GET") {
-     	this.get(ctx);
+         this.get(ctx);
      } else {
         this.delete(ctx);
      }
@@ -101,7 +101,7 @@ Here is the corresponding configuration
      ...
      "MyService": {
        require: "./myservice.js",
-       sentence: "I am a getter and i've sent an welcome email to you"
+       sentence: "I am a getter and I've sent a welcome email to you"
      }
      ...
   }
@@ -119,15 +119,15 @@ webda serve
 
 You can call the http://localhost:18080/myservice, and see the nice output
 
-"I am a getter and i've sent an welcome email to you"
+"I am a getter and I've sent a welcome email to you"
 
 And then the http://localhost:18080/myurl
 
-"I am a inline route"
+"I am an inline route"
 
 ## Deploy it to the cloud
 
-First you need to create a deployment, from the configuration UI
+First, you need to create a deployment, from the configuration UI
 
 Then just use the Deploy button on the UI or the webda bin :
 
@@ -135,7 +135,7 @@ Then just use the Deploy button on the UI or the webda bin :
 webda deploy Test
 ```
 
-Your new API is ready to rock !
+Your new API is ready to rock!
 
 Now, go checkout the webcomponents available
 
@@ -147,7 +147,7 @@ True serverless application in a click, we will deploy your code on Lambda, do t
 
 ### Docker
 
-You can also create and publish on Docker choising the deployment configuration you like
+You can also create and publish on Docker choosing the deployment configuration you like
 
 ![image](http://webda.io/images/schemas/docker_deploy.png)
 
@@ -158,14 +158,14 @@ You can also create and publish on Docker choising the deployment configuration 
 
 ## Services
 
-A service is a singleton component that can have access to others services, put some listeners in place, and do it's own logic. It is not supposed to handle direct request from the external world, so therefore doesn't have access to write method for output to the client.
+A service is a singleton component that can have access to others services, put some listeners in place, and do its own logic. It is not supposed to handle direct request from the external world so, therefore, doesn't have access to write method for output to the client.
 
-Service implement the **EventEmitter** of NodeJS so you can emit message to let trap for other business services
+Service implement the **EventEmitter** of NodeJS so you can emit a message to let trap for other business services
 
 ```javascript
 // Add a listener
 getService("Store").on('Store.Save', (evt) => {
-	// Do something
+    // Do something
 });
 
 // Emit a event ( add the context if possible )
@@ -176,21 +176,21 @@ this.emit('Action.Done', {object: this.target, ctx: ctx})
 
 The **executors** are services that handle some routes directly, they have **access to the request body, the session, and can write out content to the client through the context object**. Executors derive from services, that's why the framework only see the element Service.
 
-Executors is a service family that handle the request.
+Executors is a service family that handles the request.
 
 ## Stores
 
-A Store is a executor that handle Creation,Retreive,Update,Delete of an object, it also have basic handling for mapping and cascade delete.
+A Store is an executor that handle Creation, Retrieve, Update, Delete of an object, it also has basic handling for mapping and cascade delete.
 
-You can decide to active the HTTP exposure on a store and then the url GET/POST/PUT/DELETE will be added to your API automatically to the endpoint of your choice
+You can decide to active the HTTP exposure on a store and then the URL GET/POST/PUT/DELETE will be added to your API automatically to the endpoint of your choice
 
-Events are thrown also before and after any operation done by the store to let you interfere with the operation by adding information to the object dynamically or even throwing exception to prevent the operation to happen
+Events are thrown also before and after any operation is done by the store to let you interfere with the operation by adding information to the object dynamically or even throwing an exception to prevent the operation to happen.
 
-To help the development, we have include 3 differents types of stores of NoSQL type
+To help the development, we have included 3 different types of stores of NoSQL type
 
 #### FileDB
 
-Just a simple one that store the object on the filesystem in a folder flatten
+Just a simple one that stores the object on the filesystem in a folder flatten
 
 #### DynamoDB
 
@@ -214,17 +214,17 @@ Store by default use the OwnerPolicy, policies define who has the right to acces
 
 #### OwnerPolicy
 
-By default the OwnerPolicy add your user id to the object you create on the user field. It will then check for GET/UPDATE/DELETE if you are the user that is reference in the field user. If your user has the same uuid as the object it allows you to perform the operation as well.
+By default, the OwnerPolicy add your user id to the object you create in the user field. It will then check for GET/UPDATE/DELETE if you are the user that is referenced in the user field. If your user has the same UUID as the object, then it allows you to perform the operation as well.
 
 
 ## Embedded Services
 
-For now, there is few services
+For now, there are few services
 
 #### Authentication
 
-Allow to login with Facebook, Google, GitHub and email, it is a Executor per say as it exposes some routes.
-It is based on Idents and Users concept, and use 2 stores to save those objects, by default those Store are called "Idents" and "Users"
+Allows to log in with Facebook, Google, GitHub, and email. It is an Executor per say as it exposes some routes.
+It is based on Idents and Users concept, and use 2 stores to save those objects, by default those Stores are called "Idents" and "Users"
 
 #### Mailer
 
@@ -232,9 +232,9 @@ What would be this world without a little bit of spam :) it is a pure service as
 
 #### FileBinary
 
-Expose an API for storing binary on the filesystem, and can expose it as an HTTP service, that will also handle the mapping with a field of any existing object.
+Expose an API for storing binaries on the filesystem, and can expose it as an HTTP service, that will also handle the mapping with a field of an existing object.
 
-The Binary services handle a challenge based on the binary data and a prefix to prevent upload of already stored data on the server, the webda-upload-behavior Polymer component implement it.
+The Binary services handle a challenge based on the binary data and a prefix to prevent upload of already stored data on the server, the webda-upload-behavior Polymer component implements it.
 
 #### S3Binary
 
@@ -242,7 +242,7 @@ The twin brother of the FileBinary, to enable you to do the same thing but in th
 
 ## RouteHelpers
 
-Ther RouteHelpers are more a quick utils to test feature, but are not the best way to build a full application. When you define a manual API Resource, you have the choice between four kind,
+The RouteHelpers are quick utils to test features but are not the best way to build a full application. When you define a manual API Resource, you have the choice between four kinds,
 
 #### File
 
@@ -254,7 +254,7 @@ If you have a small piece of Javascript and don't want to bother creating a file
 
 #### Lambda
 
-You can call a Lambda function directly from here, whereever you decide to host your server, on site or on the cloud
+You can call a Lambda function directly from here, whereever you decide to host your server, on-site or in the cloud
 
 #### String
 
@@ -264,9 +264,9 @@ For demo purpose, mainly as it is only static content served
 
 A Modda is a module defined and available publicly via Webda Marketplace, it allows you to define service that you can reuse in others projects and also use the one offer to you by the community.
 
-You can provider a sample configuration, used when creating a new service based on this Modda. You must also define a configuration schema, so we can precheck that the configuration for your Modda is correct.
+You can provide a sample configuration, used when creating a new service based on this Modda. You must also define a configuration schema, so we can precheck that the configuration for your Modda is correct.
 
-It is recommanded to add some documentation link to a markdown file, so we can also display the documentation to the end user.
+It is recommended to add some documentation link to a markdown file, so we can also display the documentation to the end user.
 
 
 ## Documentation
@@ -275,15 +275,15 @@ You can find the Javascript documentation on github.io
 
 ## Configuration resolution
 
-To ease up the configuration of an application we came up with the follow configuration resolution schema.
+To ease up the configuration of an application we came up with the following configuration resolution schema.
 
-You have the global configuration for the application, that is override by the deployment configuration, that is override by the local element configuration, and finally override by the deployment element configuration.
+You have the global configuration for the application, that is override by the deployment configuration, that is override by the local element configuration, and finally, override by the deployment element configuration.
 
 ![image](http://webda.io/images/schemas/configuration_resolution.png)
 
 ## Configuration UI
 
-Here is some screenshots of the ui
+Here are some screenshots of the UI
 
 #### Routes
 
@@ -310,7 +310,7 @@ The API Gateway limit to only one normal returnCode, so if you return any return
 You can specify the normal return code of a route by adding a configuration for AWS : 
 aws: { defaultCode: 302, headersMap: ['header1', 'header2']}
 
-Here we specify that this route will return 302 by default and will set http headers header1 and header2.
+Here we specify that this route will return 302 by default and will set HTTP headers header1 and header2.
 
 ## Licence
 

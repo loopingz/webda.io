@@ -5,7 +5,7 @@ addons:
   sonarcloud:
     organization: "loopingz-github"
 node_js:
-  - "6"
+  - "8"
 before_script:
   - sleep 15
   - mongo webda-test --eval 'db.createUser({user:"travis",pwd:"test",roles:["readWrite"]});'

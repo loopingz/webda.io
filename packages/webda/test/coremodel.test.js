@@ -1,15 +1,15 @@
 "use strict";
 const assert = require("assert");
-const CoreModel = require('../models/coremodel');
+const Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
+const CoreModel = Webda.CoreModel;
+const Utils = require('./utils')
 const Task = require('./models/task');
-const Webda = require("../core.js");
 const config = require("./config.json");
-var webda = new Webda(config);
+var webda = new Webda.Core(config);
 var ctx = webda.newContext();
-webda = new Webda(config);
 
-describe('CoreModel', function() {
-  it('Verify unsecure constructor', function() {
+describe('CoreModel', () => {
+  it('Verify unsecure constructor', () => {
     let object = new CoreModel({
       _test: 'plop',
       test: 'plop'
@@ -18,7 +18,7 @@ describe('CoreModel', function() {
     assert.equal(object.test, 'plop');
   });
 
-  it('Verify secure constructor', function() {
+  it('Verify secure constructor', () => {
     let object = new CoreModel({
       _test: 'plop',
       test: 'plop',
@@ -26,7 +26,7 @@ describe('CoreModel', function() {
     }, true);
     assert.equal(object._test, 'plop');
     assert.equal(object.test, 'plop');
-    describe('JSON support and fields protection', function() {
+    describe('JSON support and fields protection', () => {
       it('Verify JSON export', function() {
         let exported = JSON.parse(JSON.stringify(object));
         assert.equal(exported.__serverOnly, undefined);
@@ -34,14 +34,14 @@ describe('CoreModel', function() {
         assert.equal(exported.test, 'plop');
       });
 
-      it('Verify JSON stored export', function() {
+      it('Verify JSON stored export', () => {
         let exported = object.toStoredJSON();
         assert.equal(exported.__serverOnly, 'server');
         assert.equal(exported._test, 'plop');
         assert.equal(exported.test, 'plop');
       });
 
-      it('Verify JSON stored export - stringify', function() {
+      it('Verify JSON stored export - stringify', () => {
         let exported = JSON.parse(object.toStoredJSON(true));
         assert.equal(exported.__serverOnly, 'server');
         assert.equal(exported._test, 'plop');
@@ -50,74 +50,57 @@ describe('CoreModel', function() {
     });
   });
 
-  describe('JSON Schema validation', function() {
-    it('Verify bad schema object', function() {
+  describe('JSON Schema validation', () => {
+    it('Verify bad schema object', async () => {
       let failed = false;
       let object = new Task({
         "noname": "Task #1"
       });
-      return object.validate(ctx).catch(() => {
-        failed = true;
-      }).then(() => {
-        assert.equal(failed, true);
-      });
+      await Utils.throws(object.validate(ctx));
     });
 
-    it('Verify good schema object', function() {
-      let failed = false;
+    it('Verify good schema object', async () => {
       let object = new Task({
         "name": "Task #1"
       });
-      return object.validate(ctx).catch(() => {
-        failed = true;
-      }).then(() => {
-        assert.notEqual(failed, true);
-      });
+      await object.validate(ctx);
     });
   });
 
-  describe('Test (C)RUD', function() {
+  describe('Test (C)RUD', () => {
     var ident;
     var identStore = webda.getService("Idents");
-    beforeEach(function() {
+    beforeEach(async () => {
       assert.notEqual(identStore, undefined);
       identStore.__clean();
       ident = {
         property: 'plop'
       };
-      return identStore.save(ident).then((obj) => {
-        ident = obj;
-      });
+      ident = await identStore.save(ident);
     });
 
-    it('Verify Retrieve', function() {
-      return identStore.update({
+    it('Verify Retrieve', async () => {
+      await identStore.update({
         property: 'plop2'
-      }, ident.uuid).then(() => {
-        return ident.refresh();
-      }).then((res) => {
-        assert.equal(res.property, 'plop2');
-        assert.equal(ident.property, 'plop2');
-      });
+      }, ident.uuid);
+      let res = await ident.refresh();
+      assert.equal(res.property, 'plop2');
+      assert.equal(ident.property, 'plop2');
     });
 
-    it('Verify Update', function() {
+    it('Verify Update', async () => {
       ident.property = 'plop2';
       ident.newOne = 'yes';
-      return ident.save().then(() => {
-        return identStore.get(ident.uuid);
-      }).then((retieved) => {
-        assert.equal(retieved.property, 'plop2');
-        assert.equal(retieved.newOne, 'yes');
-      });
+      await ident.save();
+      let retrieved = await identStore.get(ident.uuid);
+      assert.equal(retrieved.property, 'plop2');
+      assert.equal(retrieved.newOne, 'yes');
     });
 
-    it('Verify Delete', function() {
-      return ident.delete().then(() => {
-        return identStore.get(ident.uuid);
-      }).then((retrieved) => {
-        assert.equal(retrieved.__deleted, true);
-      });
+    it('Verify Delete', async () => {
+      await ident.delete();
+      let retrieved = await identStore.get(ident.uuid);
+      assert.equal(retrieved.__deleted, true);
     });
   });
 });

@@ -1,8 +1,7 @@
 "use strict";
+const Webda = require("../../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
 
-const Mailer = require("../../services/service");
-
-class DebugMailer extends Mailer {
+class DebugMailer extends Webda.Service {
   init() {
     this.sent = [];
   }

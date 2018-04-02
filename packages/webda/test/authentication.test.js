@@ -1,15 +1,15 @@
 "use strict";
 var assert = require("assert")
-var Webda = require("../core")
+const Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
 var config = require("./config.json");
-var Ident = require("../models/ident");
+var Ident = require("./models/ident");
 var identStore;
 var userStore;
 var mailer;
 var events;
 var executor;
 var found = false;
-var webda = new Webda(config);
+var webda;
 var ctx;
 var userId;
 
@@ -18,7 +18,7 @@ const validationUrl = /.*\/auth\/email\/callback\?email=([^&]+)&token=([^ ]+)/
 
 describe('Passport', function() {
   before(function() {
-    webda = new Webda(config);
+    webda = new Webda.Core(config);
     userStore = webda.getService("Users")
     userStore.__clean();
     identStore = webda.getService("Idents");

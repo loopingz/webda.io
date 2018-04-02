@@ -1,14 +1,14 @@
-var Webda = require("../core.js");
-var Executor = require("../services/executor.js");
+const Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
+const Executor = Webda.Executor;
 var old_config = require("./config.old.json");
 var old_default_config = require("./config.old-default.json");
-var assert = require("assert");
+const assert = require("assert");
 var webda;
 var ctx;
 
 describe('Webda Configuration Migration', function() {
   it('From v0 to v1', function() {
-    let webda = new Webda(old_config);
+    let webda = new Webda.Core(old_config);
     // All services - DefinedMailer
     assert.equal(Object.keys(webda.getServices()).length, 17);
     // Check locales are moved correctly
@@ -37,7 +37,7 @@ describe('Webda Configuration Migration', function() {
   });
 
   it('From v0 to v1 - with default domain', function() {
-    let webda = new Webda(old_default_config);
+    let webda = new Webda.Core(old_default_config);
     // All services - DefinedMailer
     assert.equal(Object.keys(webda.getServices()).length, 17);
     // Check locales are moved correctly

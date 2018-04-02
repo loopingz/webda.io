@@ -1,6 +1,6 @@
 "use strict";
 var assert = require("assert");
-var Webda = require("../core.js");
+var Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
 var config = require("./config.json");
 
 
@@ -71,7 +71,7 @@ describe('EventService', function() {
   var webda;
 
   beforeEach(function() {
-    webda = new Webda(config);
+    webda = new Webda.Core(config);
   });
 
   it('Basic', function() {

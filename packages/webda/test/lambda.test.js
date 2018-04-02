@@ -1,7 +1,7 @@
 "use strict";
 var assert = require("assert")
-var Webda = require("../core.js");
-var Executor = require("../services/executor.js");
+const Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
+var Executor = Webda.Executor;
 var config = require("./config.json");
 var webda;
 var skip = false;
@@ -14,7 +14,7 @@ describe('Lambda', function() {
     }
   })
   beforeEach(function() {
-    webda = new Webda(config);
+    webda = new Webda.Core(config);
   });
   describe('launch()', function() {
 

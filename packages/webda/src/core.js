@@ -37,7 +37,7 @@ class Webda extends EventEmitter {
     this._routehelpers['file'] = require('./routehelpers/file');
     // real service - modda
     this._services = {};
-    this._services['Webda/Authentication'] = require('./services/passport');
+    this._services['Webda/Authentication'] = require('./services/authentication');
     this._services['Webda/FileStore'] = require('./stores/file');
     this._services['Webda/MemoryStore'] = require('./stores/memory');
     this._services['Webda/MongoStore'] = require('./stores/mongodb');
@@ -256,7 +256,7 @@ class Webda extends EventEmitter {
    * @since 0.4.0
    */
   getVersion() {
-    return JSON.parse(fs.readFileSync(__dirname + '/package.json')).version;
+    return JSON.parse(fs.readFileSync(__dirname + '/../package.json')).version;
   }
 
   /**
@@ -805,6 +805,5 @@ class Webda extends EventEmitter {
     console.log(level, ...args);
   }
 }
-Webda.Service = require("./services/service");
 
 module.exports = Webda;

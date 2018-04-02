@@ -1,11 +1,11 @@
 "use strict";
 
-const CoreModel = require('../../models/coremodel');
+const WebdaIdent = require("../../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js").Ident;
 
 /**
  * @class
  */
-class Ident extends CoreModel {
+class Ident extends WebdaIdent {
 
   static getActions() {
     return {

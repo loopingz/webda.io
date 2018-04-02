@@ -1,6 +1,6 @@
 var assert = require("assert");
-var Webda = require("../core.js");
-var Executor = require("../services/executor.js");
+const Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
+var Executor = Webda.Executor;
 var config = require("./config.json");
 var webda;
 var ctx;
@@ -8,7 +8,7 @@ var executor;
 
 describe('Webda', function() {
   beforeEach(function() {
-    webda = new Webda(config);
+    webda = new Webda.Core(config);
     ctx = webda.newContext();
   });
   describe('getLocales()', function() {
@@ -72,7 +72,7 @@ describe('Webda', function() {
       assert.equal(webda.getSession(), undefined);
       webda._currentExecutor = {session: 'test'};
       assert.equal(webda.getSession(), 'test');
-      assert.notEqual(webda.loadConfiguration('./config.json'), undefined);
+      assert.notEqual(webda.loadConfiguration('../test/config.json'), undefined);
       webda._config.parameters.locales = undefined;
       assert.equal(webda.getLocales().indexOf("en-GB"), 0);
       webda._config._services = undefined;
@@ -113,20 +113,17 @@ describe('Webda', function() {
       assert.equal(Object.keys(moddas).length, 13);
     });
     it('implementation', function() {
-      const Store = require('../stores/store');
-      let moddas = webda.getModdas(Store);
+      let moddas = webda.getModdas(Webda.Store);
       assert.equal(Object.keys(moddas).length, 5);
     });
   })
   describe('getServicesImplementations()', function() {
     it('normal', function() {
-      const Store = require('../stores/store');
-      let stores = webda.getServicesImplementations(Store);
+      let stores = webda.getServicesImplementations(Webda.Store);
       assert.equal(Object.keys(stores).length, 9);
     });
     it('store', function() {
-      const Store = require('../stores/store');
-      assert.equal(Object.keys(webda.getStores()).length, Object.keys(webda.getServicesImplementations(Store)).length);
+      assert.equal(Object.keys(webda.getStores()).length, Object.keys(webda.getServicesImplementations(Webda.Store)).length);
     });
   })
   describe('getExecutor()', function() {

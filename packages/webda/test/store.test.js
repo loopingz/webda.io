@@ -1,6 +1,6 @@
 "use strict";
 var assert = require("assert");
-var Webda = require("../core.js");
+const Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
 var config = require("./config.json");
 const Idents = require("./models/ident");
 var user1;
@@ -321,7 +321,7 @@ describe('Store', function() {
     }
   });
   beforeEach(function() {
-    webda = new Webda(config);
+    webda = new Webda.Core(config);
   });
   describe('FileStore', function() {
     beforeEach(function() {

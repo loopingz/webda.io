@@ -1,7 +1,7 @@
 "use strict";
-var assert = require("assert");
-var Webda = require("../core.js");
-var config = require("./config.json");
+const assert = require("assert");
+const Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
+const config = require("./config.json");
 const fs = require('fs');
 
 describe("RoutesHelper", function() {
@@ -9,7 +9,7 @@ describe("RoutesHelper", function() {
   var ctx;
   var executor;
   beforeEach(function() {
-    webda = new Webda(config);
+    webda = new Webda.Core(config);
     ctx = webda.newContext();
   });
   it('String', function() {

@@ -1,6 +1,6 @@
 "use strict";
-
-const CoreModel = require('../../models/coremodel');
+const Webda = require("../../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
+const CoreModel = Webda.CoreModel;
 
 /**
  * @class
@@ -8,7 +8,7 @@ const CoreModel = require('../../models/coremodel');
 class Task extends CoreModel {
 
   _getSchema() {
-    return "./test/schemas/task.json";
+    return "../test/schemas/task.json";
   }
 
   _onSave() {

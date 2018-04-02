@@ -1,6 +1,6 @@
 "use strict";
 var assert = require("assert");
-var Webda = require("../core.js");
+const Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
 var config = require("./config.json");
 
 
@@ -62,11 +62,11 @@ describe('Queues', function() {
   var webda;
 
   beforeEach(function() {
-    webda = new Webda(config);
+    webda = new Webda.Core(config);
   });
 
   describe('Queue', function() {
-    const Queue = require('../queues/queueservice');
+    const Queue = Webda.Queue;
 
     it('Abstract', function() {
       // Ensure abstract - mainly for code coverage

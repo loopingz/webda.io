@@ -9,7 +9,7 @@
   ],
   "author": "Remi Cattiau <remi@cattiau.com>",
   "repository": "git://github.com/loopingz/webda.git",
-  "main": "immutable",
+  "main": "lib/index.js",
   "scripts": {
     "test": "mocha -t 100000",
     "run": "node core",
@@ -50,6 +50,8 @@
     "utils"
   ],
   "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-es2017": "^6.24.1",
     "glob": "^7.1.2",
     "istanbul": "^0.4.5",
     "js-beautify": "^1.7.5",

@@ -1,5 +1,5 @@
-var assert = require("assert")
-var SecureCookie = require("../utils/cookie.js");
+const assert = require("assert");
+const SecureCookie = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js").SecureCookie;
 
 var crypto = require('crypto'),
   algorithm = 'aes-256-ctr',

@@ -167,22 +167,21 @@ class Store extends Executor {
     throw "AbstractStore has no _incrementAttribute";
   }
 
-  incrementAttribute(uid, prop, value) {
+  async incrementAttribute(uid, prop, value) {
     // If value === 0 no need to update anything
     if (value === 0) {
       return Promise.resolve();
     }
-    return this._incrementAttribute(uid, prop, value).then(() => {
-      return this.emit('Store.PartialUpdate', {
-        'object_id': uid,
-        'store': this,
-        'partial_update': {
-          'increment': {
-            'value': value,
-            'property': prop
-          }
+    await this._incrementAttribute(uid, prop, value);
+    return this.emit('Store.PartialUpdate', {
+      'object_id': uid,
+      'store': this,
+      'partial_update': {
+        'increment': {
+          'value': value,
+          'property': prop
         }
-      });
+      }
     });
   }
 

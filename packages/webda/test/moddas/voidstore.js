@@ -1,8 +1,8 @@
 "use strict";
 
-const Store = require("../../stores/store");
+const Webda = require("../../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
 
-class VoidStore extends Store {
+class VoidStore extends Webda.Store {
 
   exists(uid) {
     return Promise.resolve(true);

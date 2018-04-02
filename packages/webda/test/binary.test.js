@@ -1,7 +1,7 @@
-var assert = require("assert")
-var Webda = require("../core.js");
-var config = require("./config.json");
-var fs = require("fs");
+const assert = require("assert")
+const Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
+const config = require("./config.json");
+const fs = require("fs");
 
 var webda;
 var userStore;
@@ -168,10 +168,10 @@ describe('Binary', function() {
     }
   });
   beforeEach(function() {
-    webda = new Webda(config);
+    webda = new Webda.Core(config);
   });
   describe('Binary', function() {
-    const Binary = require('../services/binary');
+    const Binary = Webda.Binary;
     var service = new Binary();
 
     it('abstract', function() {

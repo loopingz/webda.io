@@ -1,8 +1,7 @@
 "use strict";
 var assert = require("assert");
-var Webda = require("../core.js");
+const Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
 var config = require("./config.json");
-const fs = require('fs');
 
 describe("Mailer", function() {
   var webda;
@@ -13,7 +12,7 @@ describe("Mailer", function() {
   var lastOptions;
   var lastCallback;
   beforeEach(function() {
-    webda = new Webda(config);
+    webda = new Webda.Core(config);
     lastLevel = lastInfo = lastOptions = lastCallback = undefined;
     ctx = webda.newContext();
     mailer = webda.getService('TrueMailer');

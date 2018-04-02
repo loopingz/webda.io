@@ -1,12 +1,12 @@
 "use strict";
-var assert = require("assert");
-var Webda = require("../core.js");
+const assert = require("assert");
+const Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
 var config = require("./config.json");
 var executor;
 var session;
 var task;
 var failed = false;
-var webda = new Webda(config);
+var webda = new Webda.Core(config);
 var ctx;
 
 describe('Policy', function() {

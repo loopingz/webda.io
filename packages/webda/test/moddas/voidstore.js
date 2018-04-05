@@ -1,6 +1,6 @@
 "use strict";
 
-const Webda = require("../../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
+const Webda = require("../../dist/index.js");
 
 class VoidStore extends Webda.Store {
 

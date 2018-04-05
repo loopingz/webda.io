@@ -23,8 +23,8 @@ module.exports = {
   // Policies
   OwnerPolicy: require('./policies/ownerpolicy'),
   // Models
-  CoreModel: require('./models/coremodel'),
-  Ident: require('./models/ident'),
+  CoreModel: require('./models/coremodel').CoreModel,
+  Ident: require('./models/ident').Ident,
   // Utils
   SecureCookie: require('./utils/cookie'),
   LambdaCaller: require('./utils/lambdacaller'),

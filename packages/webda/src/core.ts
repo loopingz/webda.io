@@ -1,15 +1,45 @@
-"use strict";
+import * as uriTemplates from 'uri-templates';
+import * as fs from 'fs';
+import * as vm from 'vm';
+import * as Ajv from 'ajv';
+import * as path from 'path';
+import { serialize as cookieSerialize } from "cookie";
+import * as Context from "./utils/context";
+import * as EventEmitter from 'events';
+import * as Store from './stores/store';
+import { CoreModelDefinition } from "./models/coremodel";
 
-var uriTemplates = require('uri-templates');
-var _extend = require('util')._extend;
-var vm = require('vm');
-var fs = require('fs');
-var Ajv = require('ajv');
-const path = require('path');
-const cookieSerialize = require("cookie").serialize;
-const Context = require("./utils/context");
-const EventEmitter = require('events');
-const Store = require('./stores/store');
+function _extend(a:any, b:any) {
+  if (!a) {
+    a = {};
+  }
+  for (let i in b) {
+    if (!a[i]) {
+      a[i] = b[i];
+    }
+  }
+  return a;
+}
+
+interface Executor {
+  [key: string]: any
+}
+
+interface Service {
+  [key: string]: any
+}
+
+interface Configuration {
+  [key: string]: any
+}
+
+interface ServiceMap {
+  [key: string]: Service
+}
+
+interface ModelsMap {
+  [key: string]: CoreModelDefinition
+}
 
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
@@ -17,6 +47,16 @@ const Store = require('./stores/store');
  * @class Webda
  */
 class Webda extends EventEmitter {
+  _services: ServiceMap
+  _modules: any
+  _config: Configuration
+  _routehelpers: any
+  _models: ModelsMap
+  _vhost: string
+  _ajv: any
+  _ajvSchemas: any
+  _currentExecutor: any
+  _configFile: string
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
    */
@@ -50,8 +90,8 @@ class Webda extends EventEmitter {
     this._services['Webda/SQSQueue'] = require('./queues/sqsqueue');
     // Models
     this._models = {};
-    this._models['Webda/CoreModel'] = require('./models/coremodel');
-    this._models['Webda/Ident'] = require('./models/ident');
+    this._models['Webda/CoreModel'] = require('./models/coremodel').CoreModel;
+    this._models['Webda/Ident'] = require('./models/ident').Ident;
     // Load the configuration
     this._config = this.loadConfiguration(config);
     if (!this._config.version) {
@@ -95,6 +135,30 @@ class Webda extends EventEmitter {
     }
   }
 
+  /**
+   *
+   * @param {Object} executor The executor to expose as executor
+   * @param {String} code to execute
+   */
+  sandbox(executor, code) {
+    var sandbox:Configuration = {
+      // Should be custom console
+      console: console,
+      webda: executor._webda,
+      executor: executor,
+      module: {},
+      require: function (mod) {
+        // We need to add more control here
+        if (mod === 'net') {
+          throw Error('not allowed');
+        }
+        // if the module is okay to load, load it:
+        return require.apply(this, arguments);
+      }
+    };
+    vm.runInNewContext(code, sandbox);
+    return sandbox.module.exports(executor);
+  }
 
   /**
    * Load the module,
@@ -135,49 +199,13 @@ class Webda extends EventEmitter {
   }
 
   /**
-   * Execute a file in sandbox mode
-   *
-   * @param {Object} executor The executor to give to the file
-   * @param {String} path The path of the file to executre
-   */
-  require(executor, path) {
-    var code = fs.readFileSync(require.resolve(path));
-    this.sandbox(executore, code);
-  }
-
-  /**
-   *
-   * @param {Object} executor The executor to expose as executor
-   * @param {String} code to execute
-   */
-  sandbox(executor, code) {
-    var sandbox = {
-      // Should be custom console
-      console: console,
-      webda: executor._webda,
-      executor: executor,
-      module: {},
-      require: function (mod) {
-        // We need to add more control here
-        if (mod === 'net') {
-          throw Error('not allowed');
-        }
-        // if the module is okay to load, load it:
-        return require.apply(this, arguments);
-      }
-    };
-    vm.runInNewContext(code, sandbox);
-    return sandbox.module.exports(executor);
-  }
-
-  /**
    * Load the configuration,
    *
    * @protected
    * @ignore Useless for documentation
    * @param {Object|String}
    */
-  loadConfiguration(config) {
+  loadConfiguration(config:any) : Configuration {
     if (typeof(config) === 'object') {
       return config;
     }
@@ -206,9 +234,9 @@ class Webda extends EventEmitter {
     }
   }
 
-  migrateConfig(config) {
+  migrateConfig(config: Configuration) : Configuration {
     this.log('WARN', 'Old webda.config.json format, trying to migrate');
-    let newConfig = {parameters: {}, services: {}, models: {}, routes: {}, version: 1};
+    let newConfig : Configuration = {parameters: {}, services: {}, models: {}, routes: {}, version: 1};
     let domain;
     if (config['*']) {
       domain = config[config['*']];
@@ -227,23 +255,13 @@ class Webda extends EventEmitter {
     }
     return newConfig;
   }
-  /**
-   * Init a specific vhost and set the context to this vhost
-   *
-   * @protected
-   * @ignore
-   * @deprecated
-   */
-  setHost(vhost) {
-    this.log('WARN', 'vhost is no longer handled');
-  }
 
   /**
    * Get the current session object
    *
    * @returns A session object
    */
-  getSession() {
+  getSession() : any {
     if (this._currentExecutor) {
       return this._currentExecutor.session;
     }
@@ -255,8 +273,8 @@ class Webda extends EventEmitter {
    * @returns package version
    * @since 0.4.0
    */
-  getVersion() {
-    return JSON.parse(fs.readFileSync(__dirname + '/../package.json')).version;
+  getVersion() : string {
+    return JSON.parse(fs.readFileSync(__dirname + '/../package.json').toString()).version;
   }
 
   /**
@@ -264,7 +282,7 @@ class Webda extends EventEmitter {
    *
    * @return The configured locales or "en-GB" if none are defined
    */
-  getLocales() {
+  getLocales() : string[] {
     if (!this._config || !this._config.parameters.locales) {
       return ["en-GB"];
     }
@@ -288,7 +306,7 @@ class Webda extends EventEmitter {
    * @param {String} url of the route can contains dynamic part like {uuid}
    * @param {Object} info the type of executor
    */
-  addRoute(url, info) {
+  addRoute(url, info) : void {
     this._config.routes[url] = info;
   }
 
@@ -311,7 +329,7 @@ class Webda extends EventEmitter {
    * Return a map of defined services
    * @returns {{}}
    */
-  getServices() {
+  getServices() : ServiceMap {
     return this._config._services || {};
   }
 
@@ -337,7 +355,7 @@ class Webda extends EventEmitter {
    * @param type The type of implementation
    * @returns {{}}
    */
-  getServicesImplementations(type) {
+  getServicesImplementations(type) : ServiceMap {
     let result = {};
     for (let i in this._config._services) {
       if (this._config._services[i] instanceof type) {
@@ -351,7 +369,7 @@ class Webda extends EventEmitter {
    * Return a map of defined stores
    * @returns {{}}
    */
-  getStores() {
+  getStores() : ServiceMap {
     return this.getServicesImplementations(Store);
   }
 
@@ -359,7 +377,7 @@ class Webda extends EventEmitter {
    * Return a map of defined models
    * @returns {{}}
    */
-  getModels() {
+  getModels() : ModelsMap {
     return this._config._models || {};
   }
 
@@ -368,7 +386,7 @@ class Webda extends EventEmitter {
    *
    * @param {String} name The model name to retrieve
    */
-  getModel(name) {
+  getModel(name) : any {
     if (!this._config || !name) {
       throw Error("Undefined model " + name);
     }
@@ -385,7 +403,7 @@ class Webda extends EventEmitter {
    * @param method
    * @param url
    */
-  getRouteMethodsFromUrl(url) {
+  getRouteMethodsFromUrl(url) : string[] {
     let config = this._config;
     let methods = [];
     for (let i in config._pathMap) {
@@ -411,7 +429,7 @@ class Webda extends EventEmitter {
    * Get the route from a method / url
    * @private
    */
-  getRouteFromUrl(ctx, config, method, url) {
+  getRouteFromUrl(ctx, config, method, url) : any {
     for (let i in config._pathMap) {
       var routeUrl = config._pathMap[i].url;
       var map = config._pathMap[i].config;
@@ -455,7 +473,7 @@ class Webda extends EventEmitter {
    * @param {String} port Port can be usefull for auto redirection
    * @param {Object} headers The headers of the request
    */
-  getExecutor(ctx, vhost, method, url, protocol, port, headers) {
+  getExecutor(ctx, vhost, method, url, protocol, port, headers) : Executor {
     // Check mapping
     var route = this.getRouteFromUrl(ctx, this._config, method, url);
     if (route === undefined) {
@@ -482,7 +500,7 @@ class Webda extends EventEmitter {
    * @deprecated
    * @returns {String} Current secret
    */
-  getSecret() {
+  getSecret() : string {
     // For now a static config file but should have a rolling service secret
     return this._config.parameters.secret;
   }
@@ -492,7 +510,7 @@ class Webda extends EventEmitter {
    *
    * @returns {String} Current salt
    */
-  getSalt() {
+  getSalt() : string {
     // For now a static config file but should have a rolling service secret
     return this._config.parameters.salt;
   }
@@ -500,7 +518,7 @@ class Webda extends EventEmitter {
   /**
    * @private
    */
-  getServiceWithRoute(ctx, route) {
+  getServiceWithRoute(ctx, route) : Executor {
     var name = route.executor;
     var executor = this.getService(name);
     // If no service is found then check for routehelpers
@@ -518,7 +536,7 @@ class Webda extends EventEmitter {
   /**
    * @private
    */
-  initURITemplates(config) {
+  initURITemplates(config: Configuration) : void {
     // Prepare tbe URI parser
     for (var map in config) {
       if (map.indexOf("{") != -1) {
@@ -531,37 +549,28 @@ class Webda extends EventEmitter {
    * Flush the headers to the response, no more header modification is possible after that
    * @abstract
    */
-  flushHeaders(executor) {
+  flushHeaders(context) : void {
 
   }
 
   /**
    * Flush the entire response to the client
    */
-  flush(executor) {
+  flush(context) : void {
 
   }
 
   /**
    * Return if Webda is in debug mode
    */
-  isDebug() {
+  isDebug() : boolean {
     return false;
-  }
-
-  /**
-   * Handle the 404
-   * @ignore
-   * @protected
-   */
-  handle404() {
-
   }
 
   /**
    * @private
    */
-  extendParams(local, wider) {
+  extendParams(local, wider) : any {
     var params = _extend({}, wider);
     return _extend(params, local);
   }
@@ -570,7 +579,7 @@ class Webda extends EventEmitter {
    * Return the global parameters of a domain
    * @param {String} vhost The domain to retrieve or default if not specified
    */
-  getGlobalParams(vhost) {
+  getGlobalParams(vhost) : any {
     return this._config.parameters || {};
   }
 
@@ -580,7 +589,7 @@ class Webda extends EventEmitter {
    * @ignore
    * @protected
    */
-  getCookieHeader(executor) {
+  getCookieHeader(executor) : string {
     var session = executor.session;
     var params = {'path': '/', 'domain': executor._route._http.host, 'httpOnly': true, secure: false, maxAge: 86400 * 7};
     if (executor._route._http.protocol == "https") {
@@ -608,7 +617,7 @@ class Webda extends EventEmitter {
    * @ignore
    *
    */
-  initServices() {
+  initServices() : void {
     var services = this._config.services;
     if (this._config._services === undefined) {
       this._config._services = {};
@@ -681,16 +690,16 @@ class Webda extends EventEmitter {
   }
 
 
-  _getSetters(obj) {
+  _getSetters(obj) : any[] {
     let methods = [];
     while (obj = Reflect.getPrototypeOf(obj)) {
-      let keys = Reflect.ownKeys(obj).filter(k => k.startsWith('set'))
+      let keys = Reflect.ownKeys(obj).filter(k => k.toString().startsWith('set'))
       keys.forEach((k) => methods.push(k));
     }
     return methods;
   }
 
-  autoConnectServices() {
+  autoConnectServices() : void {
     for (let service in this._config._services) {
       let setters = this._getSetters(this._config._services[service]);
       setters.forEach( (setter) => {
@@ -702,12 +711,12 @@ class Webda extends EventEmitter {
     }
   }
 
-  jsonFilter(key, value) {
+  jsonFilter(key: string, value: any) : any {
     if (key[0] === '_') return undefined;
     return value;
   }
 
-  init() {
+  init() : void {
     if (!this._config.routes) {
       this._config.routes = {};
     }
@@ -730,7 +739,7 @@ class Webda extends EventEmitter {
     this.emit('Webda.Init', this._config);
   }
 
-  initModdas(config) {
+  initModdas(config) : void {
     // Moddas are the custom type of service
     // They are either coming from npm or are direct lambda feature or local with require
     if (config.moddas === undefined) return;
@@ -752,7 +761,7 @@ class Webda extends EventEmitter {
     this.emit('Webda.Init.Moddas');
   }
 
-  initModels(config) {
+  initModels(config) : void {
     if (config._models === undefined) {
       config._models = {};
     }
@@ -783,7 +792,7 @@ class Webda extends EventEmitter {
     this.emit('Webda.Init.Models', config._models);
   }
 
-  comparePath(a, b) {
+  comparePath(a, b) : number {
     // Normal node works with localeCompare but not Lambda...
     // Local compare { to a return: 26 on Lambda
     let bs = b.url.split("/");
@@ -809,8 +818,8 @@ class Webda extends EventEmitter {
    * @param {Object} headers - The request headers if any
    * @return {Object} A new context object to pass along
    */
-  newContext(body, session, stream, files, headers) {
-    return new Context(this, body, session, stream, files, headers);
+  newContext(body, session, stream, files) {
+    return new Context(this, body, session, stream, files);
   }
 
   /**
@@ -820,7 +829,7 @@ class Webda extends EventEmitter {
    * @param {Object} object - The object to export
    * @return {String} The export of the strip object ( removed all attribute with _ )
    */
-  toPublicJSON(object) {
+  toPublicJSON(object) : string {
     return JSON.stringify(object, this.jsonFilter);
   }
 
@@ -829,7 +838,7 @@ class Webda extends EventEmitter {
    * @param level
    * @param args
    */
-  log(level, ...args) {
+  log(level, ...args) : void {
     console.log(level, ...args);
   }
 }

@@ -9,13 +9,14 @@
   ],
   "author": "Remi Cattiau <remi@cattiau.com>",
   "repository": "git://github.com/loopingz/webda.git",
-  "main": "lib/index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "mocha -t 100000 ./test/*.test.js",
+    "build": "tsc",
+    "pretest": "npm run build",
+    "test": "nyc mocha",
     "run": "node core",
     "format": "node ./scripts/format.js",
-    "cover": "node_modules/.bin/istanbul cover --dir ./reports _mocha -- -u exports -R spec -t 100000 ./test/*.test.js",
-    "build": "babel src/ --out-dir lib/"
+    "sonarcover": "node_modules/.bin/remap-istanbul -i reports/coverage-final.json -o src-reports -t lcovonly -b src/"
   },
   "dependencies": {
     "accept-language": "=3.0.15",
@@ -40,15 +41,35 @@
     "uuid": "^3.0.0"
   },
   "files": [
-    "lib"
+    "dist"
   ],
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-preset-es2017": "^6.24.1",
+    "@types/node": "^9.6.2",
     "glob": "^7.1.2",
     "istanbul": "^1.1.0-alpha.1",
     "js-beautify": "^1.7.5",
-    "mocha": ">=2.2.5"
+    "mocha": ">=2.2.5",
+    "nyc": "^11.6.0",
+    "source-map-support": "^0.5.4",
+    "ts-node": "^5.0.1",
+    "typescript": "^2.8.1"
   },
-  "homepage": "https://github.com/loopingz/webda"
+  "nyc": {
+    "extension": [
+      ".ts",
+      ".tsx",
+      ".js"
+    ],
+    "include": [
+      "dist/**/*.js"
+    ],
+    "reporter": [
+      "html",
+      "lcov",
+      "json"
+    ],
+    "report-dir": "./reports",
+    "all": true
+  },
+  "homepage": "https://webda.io"
 }

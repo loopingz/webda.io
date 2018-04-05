@@ -1,6 +1,6 @@
 "use strict";
 var assert = require("assert");
-var Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
+const Webda = require("../dist/index.js");
 var config = require("./config.json");
 
 

@@ -1,6 +1,6 @@
 "use strict";
 var assert = require("assert");
-const Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
+const Webda = require("../dist/index.js");
 var config = require("./config.json");
 const Idents = require("./models/ident");
 const Utils = require("./utils");
@@ -333,7 +333,6 @@ describe('Store', () => {
     var eventFired = 0;
     // Check Store HTTP mapping
     it('HTTP CRUD', async () => {
-      webda.setHost("test.webda.io");
       ctx = webda.newContext({
         "type": "CRUD",
         "uuid": "PLOP"

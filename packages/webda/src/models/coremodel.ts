@@ -1,6 +1,10 @@
 "use strict";
 const uuid = require('uuid');
-const OwnerPolicy = require('../policies/ownerpolicy');
+import { OwnerPolicy } from '../policies/ownerpolicy';
+
+interface CoreModelDefinition {
+  new (raw: any, secure: boolean) : CoreModel
+}
 
 /**
  * First basic model for Ident
@@ -8,8 +12,9 @@ const OwnerPolicy = require('../policies/ownerpolicy');
  *
  * @class
  */
-class CoreModel extends OwnerPolicy(Object) {
+class CoreModel extends OwnerPolicy {
 
+  __store: any
   static getActions() {
     return {};
   }
@@ -21,12 +26,12 @@ class CoreModel extends OwnerPolicy(Object) {
   /**
    * @ignore
    */
-  constructor(raw, secure) {
+  constructor(raw, secure : boolean = false) {
     super();
     this.load(raw, secure);
   }
 
-  load(raw, secure) {
+  load(raw, secure : boolean = false) {
     if (!raw) {
       return;
     }
@@ -156,7 +161,7 @@ class CoreModel extends OwnerPolicy(Object) {
   }
 
   _toJSON(secure) {
-    let obj = {};
+    let obj : any = {};
     for (let i in this) {
       let value = this[i];
       if (!secure) {
@@ -173,4 +178,4 @@ class CoreModel extends OwnerPolicy(Object) {
   }
 }
 
-module.exports = CoreModel;
+export { CoreModel , CoreModelDefinition };

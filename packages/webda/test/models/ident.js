@@ -1,6 +1,6 @@
 "use strict";
 
-const WebdaIdent = require("../../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js").Ident;
+const WebdaIdent = require("../../dist/index.js").Ident;
 
 /**
  * @class

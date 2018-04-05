@@ -1,9 +1,6 @@
 "use strict";
-
-var stores = {};
 const uuid = require('uuid');
 const Executor = require("../services/executor");
-const _extend = require("util")._extend;
 
 /**
  * This class handle NoSQL storage and mapping (duplication) between NoSQL object

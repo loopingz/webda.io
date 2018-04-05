@@ -1,6 +1,9 @@
 "use strict";
 
-const OwnerPolicy = Sup => class extends Sup {
+class OwnerPolicy {
+  user: any
+  public: boolean
+  uuid: string
   /**
    * Return false if can't create
    */
@@ -66,4 +69,4 @@ const OwnerPolicy = Sup => class extends Sup {
   }
 }
 
-module.exports = OwnerPolicy;
+export { OwnerPolicy };

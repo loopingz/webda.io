@@ -1,4 +1,4 @@
-const Webda = require("../" + (process.env["WEBDA_TEST_TARGET"] ? process.env["WEBDA_TEST_TARGET"] : "src") + "/index.js");
+const Webda = require("../dist/index.js");
 const Executor = Webda.Executor;
 var old_config = require("./config.old.json");
 var old_default_config = require("./config.old-default.json");

@@ -3,6 +3,7 @@
   "parameters": {
     "TEST": "Global",
     "region": "us-east-1",
+    "website": ["test.webda.io","test2.webda.io"],
     "locales": [
       "es-ES",
       "en-GB",
@@ -224,6 +225,9 @@
       "expose": {
         "url": "/s3binary"
       }
+    },
+    "brokenService": {
+      "type": "Test/VoidStore"
     }
   },
   "routes": {

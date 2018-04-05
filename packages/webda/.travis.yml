@@ -13,3 +13,11 @@ script:
   - npm run cover
 after_success:
   - sonar-scanner
+before_deploy:
+  - npm run build
+  - WEBDA_TEST_TARGET=lib/ npm run cover
+deploy:
+  provider: npm
+  skip_cleanup: true
+  on:
+    tags: true

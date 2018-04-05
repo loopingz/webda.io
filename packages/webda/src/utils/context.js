@@ -111,6 +111,7 @@ class Context {
       this._webda.flush(this);
       return Promise.resolve();
     });
+    return this._ended;
   }
 
   /**

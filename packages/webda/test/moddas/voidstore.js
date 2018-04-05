@@ -11,7 +11,17 @@ class VoidStore extends Webda.Store {
 
   init() {
     if (this._params.brokenInit) throw Error();
+    this._addRoute("/broken/{type}", "GET", this._brokenRoute);
   }
+
+  _brokenRoute(ctx) {
+    if (ctx._params.type === '401') {
+      throw 401;
+    } else if (ctx._params.type === 'Error') {
+      throw new Error();
+    }
+  }
+
   exists(uid) {
     return Promise.resolve(true);
   }

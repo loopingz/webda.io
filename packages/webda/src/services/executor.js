@@ -25,7 +25,15 @@ class Executor extends Service {
    * @param {String} url of the route can contains dynamic part like {uuid}
    * @param {Object} info the type of executor
    */
-  _addRoute(url, info) {
+  _addRoute(url, methods, executer) {
+    let info;
+    if (typeof(methods) === 'object') {
+      info = methods;
+    } else {
+      info = {};
+      info._method = executer;
+      info.method = methods;
+    }
     info.executor = this._name;
     this._webda.addRoute(url, info);
   }

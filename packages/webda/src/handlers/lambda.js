@@ -1,5 +1,4 @@
 "use strict";
-
 var Webda = require('../core');
 var SecureCookie = require('../utils/cookie');
 var _extend = require("util")._extend;
@@ -21,7 +20,10 @@ class LambdaServer extends Webda {
    */
   flushHeaders(ctx) {
     var headers = ctx._headers;
-    headers['Set-Cookie'] = this.getCookieHeader(ctx);
+    // No route found probably coming from an OPTIONS
+    if (ctx._route) {
+      headers['Set-Cookie'] = this.getCookieHeader(ctx);
+    }
     this._result = {};
     this._result.headers = headers;
     this._result.statusCode = ctx.statusCode;
@@ -39,6 +41,7 @@ class LambdaServer extends Webda {
    * @ignore
    */
   handleRequest(event, context , callback) {
+    this._result = {};
     var cookies = {};
     var rawCookie = event.headers.Cookie;
     if (rawCookie) {
@@ -77,7 +80,7 @@ class LambdaServer extends Webda {
     let origin = headers.Origin || headers.origin;
     // Set predefined headers for CORS
     if (origin) {
-      let website = this.getGlobalParams(vhost).website;
+      let website = this.getGlobalParams().website || "";
       if (Array.isArray(website)) {
         website = website.join(',');
       }
@@ -89,10 +92,16 @@ class LambdaServer extends Webda {
 
     if (method === 'OPTIONS') {
       // Return allow all methods for now
-      ctx.setHeader('Access-Control-Allow-Methods', 'POST,DELETE,OPTIONS,PUT,GET');
-      ctx.end();
-      this.handleLambdaReturn(ctx, callback);
-      return;
+      let routes = this.getRouteMethodsFromUrl(resourcePath);
+      if (routes.length == 0) {
+        ctx.statusCode = 404;
+        return this.handleLambdaReturn(ctx, callback);
+      }
+      routes.push('OPTIONS');
+      ctx.setHeader('Access-Control-Allow-Methods', routes.join(','));
+      return ctx.end().then( () => {
+        return this.handleLambdaReturn(ctx, callback);
+      });
     }
 
     var executor = this.getExecutor(ctx, vhost, method, resourcePath, protocol, port, headers);
@@ -110,7 +119,7 @@ class LambdaServer extends Webda {
       }
       return Promise.resolve();
     }).then(() => {
-      this.handleLambdaReturn(ctx, callback);
+      return this.handleLambdaReturn(ctx, callback);
     }).catch((err) => {
       if (typeof(err) === "number") {
         ctx.statusCode = err;
@@ -119,7 +128,7 @@ class LambdaServer extends Webda {
         this.log('ERROR', err);
         ctx.statusCode = 500;
       }
-      this.handleLambdaReturn(ctx, callback);
+      return this.handleLambdaReturn(ctx, callback);
     });
   }
 
@@ -134,6 +143,7 @@ class LambdaServer extends Webda {
       headers: this._result.headers,
       body: this._result.body
     });
+    return Promise.resolve();
   }
 }
 

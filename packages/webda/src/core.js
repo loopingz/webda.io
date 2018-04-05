@@ -380,6 +380,34 @@ class Webda extends EventEmitter {
   }
 
   /**
+   * Get all method for a specific url
+   * @param config
+   * @param method
+   * @param url
+   */
+  getRouteMethodsFromUrl(url) {
+    let config = this._config;
+    let methods = [];
+    for (let i in config._pathMap) {
+      var routeUrl = config._pathMap[i].url;
+      var map = config._pathMap[i].config;
+
+      if (routeUrl !== url &&
+                (map['_uri-template-parse'] === undefined ||
+                  map['_uri-template-parse'].fromUri(url) === undefined)) {
+        continue;
+      }
+
+      if (Array.isArray(map['method'])) {
+        methods = methods.concat(map['method'])
+      } else {
+        methods.push(map['method']);
+      }
+    }
+    return methods;
+  }
+
+  /**
    * Get the route from a method / url
    * @private
    */

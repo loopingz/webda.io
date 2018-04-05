@@ -27,5 +27,7 @@ module.exports = {
   Ident: require('./models/ident'),
   // Utils
   SecureCookie: require('./utils/cookie'),
-  LambdaCaller: require('./utils/lambdacaller')
+  LambdaCaller: require('./utils/lambdacaller'),
+  // Handler
+  LambdaHandler: require('./handlers/lambda')
 }

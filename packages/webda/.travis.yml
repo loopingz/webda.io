@@ -11,4 +11,5 @@ before_script:
   - mongo webda-test --eval 'db.createUser({user:"travis",pwd:"test",roles:["readWrite"]});'
 script:
   - npm run cover
+after_success:
   - sonar-scanner

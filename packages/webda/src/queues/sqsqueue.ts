@@ -1,8 +1,9 @@
 "use strict";
-const QueueService = require("./queueservice");
-const AWSServiceMixIn = require("../services/aws-mixin");
+import { Queue, AWSMixIn } from "../index";
 
-class SQSQueueService extends AWSServiceMixIn(QueueService) {
+// TODO Readd AWS Mixin
+class SQSQueue extends AWSMixIn(Queue) {
+  sqs: any;
 
   init(config) {
     super.init(config);
@@ -12,7 +13,7 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
     }
   }
 
-  async size() {
+  async size() : Promise<number> {
     let res = await this.sqs.getQueueAttributes({
       AttributeNames: ["ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"],
       QueueUrl: this._params.queue
@@ -21,18 +22,18 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
   }
 
   async sendMessage(params) {
-    var sqsParams = {};
+    var sqsParams : any = {};
     sqsParams.QueueUrl = this._params.queue;
     sqsParams.MessageBody = JSON.stringify(params);
     return this.sqs.sendMessage(sqsParams).promise();
   }
 
   async receiveMessage() {
-    this.queueArg = {
+    let queueArg = {
       QueueUrl: this._params.queue,
       WaitTimeSeconds: this._params.WaitTimeSeconds
     };
-    let data = await this.sqs.receiveMessage(this.queueArg).promise();
+    let data = await this.sqs.receiveMessage(queueArg).promise();
     return data.Messages || [];
   }
 
@@ -43,7 +44,11 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
     }).promise();
   }
 
-  async __clean(fail) {
+  async __clean() {
+    return this.__cleanWithRetry(false);
+  }
+
+  private async __cleanWithRetry(fail) {
     try {
       await this.sqs.purgeQueue({
         QueueUrl: this._params.queue
@@ -57,7 +62,7 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
       // 10% of margin
       return new Promise((resolve) => {
         setTimeout(() => {
-          resolve(this.__clean(true));
+          resolve(this.__cleanWithRetry(true));
         }, delay);
       });
     }
@@ -146,4 +151,4 @@ class SQSQueueService extends AWSServiceMixIn(QueueService) {
 
 }
 
-module.exports = SQSQueueService;
+export { SQSQueue };

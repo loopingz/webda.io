@@ -6,8 +6,8 @@ import * as path from 'path';
 import { serialize as cookieSerialize } from "cookie";
 import { Context } from "./utils/context";
 import * as EventEmitter from 'events';
-import {Store, Service, Executor, SecureCookie, MemoryStore, FileStore, DynamoDBStore, Authentication,
-  CoreModel, Ident, Mailer} from './index';
+import {Store, Service, Executor, SecureCookie, MemoryStore, FileStore, DynamoStore, Authentication,
+  CoreModel, Ident, Mailer, MongoStore, MemoryQueue, SQSQueue} from './index';
 import { CoreModelDefinition } from "./models/coremodel";
 
 const _extend = require('util')._extend;
@@ -65,14 +65,14 @@ class Webda extends EventEmitter {
     this._services['Webda/Authentication'] = Authentication;
     this._services['Webda/FileStore'] = FileStore;
     this._services['Webda/MemoryStore'] = MemoryStore;
-    this._services['Webda/MongoStore'] = require('./stores/mongodb');
-    this._services['Webda/DynamoStore'] = DynamoDBStore;
+    this._services['Webda/MongoStore'] = MongoStore;
+    this._services['Webda/DynamoStore'] = DynamoStore;
     this._services['Webda/FileBinary'] = require('./services/filebinary');
     this._services['Webda/S3Binary'] = require('./services/s3binary');
     this._services['Webda/Mailer'] = Mailer;
     this._services['Webda/AsyncEvents'] = require('./services/asyncevents');
-    this._services['Webda/MemoryQueue'] = require('./queues/memoryqueue');
-    this._services['Webda/SQSQueue'] = require('./queues/sqsqueue');
+    this._services['Webda/MemoryQueue'] = MemoryQueue;
+    this._services['Webda/SQSQueue'] = SQSQueue;
     // Models
     this._models = {};
     this._models['Webda/CoreModel'] = CoreModel;

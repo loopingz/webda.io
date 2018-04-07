@@ -1,23 +1,19 @@
-"use strict";
-const Service = require("../services/service").Service;
+import { Service } from "../index";
 
-class QueueService extends Service {
+class Queue extends Service {
 
-  sendMessage(params) {
-    throw Error("Abstract service");
-  }
+  _timeout:any;
+  _interrupt:boolean;
+  callback: Function;
+  pause: number;
 
-  receiveMessage() {
-    throw Error("Abstract service");
-  }
+  async sendMessage(params:any) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
-  deleteMessage(id) {
-    throw Error("Abstract service");
-  }
+  async receiveMessage() : Promise<any> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
-  size() {
-    throw Error("Abstract service");
-  }
+  async deleteMessage(id:string) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+
+  async size() : Promise<number> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
   async _workerResume() {
     if (this._timeout) {
@@ -66,10 +62,6 @@ class QueueService extends Service {
       clearTimeout(this._timeout);
     }
   }
-
-  __clean() {
-
-  }
 }
 
-module.exports = QueueService;
+export { Queue };

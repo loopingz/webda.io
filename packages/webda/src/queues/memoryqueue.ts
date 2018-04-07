@@ -1,8 +1,14 @@
 "use strict";
-const QueueService = require("./queueservice");
+import { Queue } from "../index";
 const uuid = require('uuid');
 
-class MemoryQueueService extends QueueService {
+interface QueueMap {
+  [key: string]: any;
+}
+
+class MemoryQueue extends Queue {
+
+  _queue: QueueMap;
 
   init(config) {
     super.init(config);
@@ -13,7 +19,7 @@ class MemoryQueueService extends QueueService {
     this._params.expire *= 1000;
   }
 
-  async size() {
+  async size() : Promise<number> {
     return Object.keys(this._queue).length;
   }
 
@@ -46,7 +52,7 @@ class MemoryQueueService extends QueueService {
     }
   }
 
-  __clean() {
+  async __clean() {
     this._queue = {};
   }
 
@@ -65,4 +71,4 @@ class MemoryQueueService extends QueueService {
   }
 }
 
-module.exports = MemoryQueueService
+export { MemoryQueue }

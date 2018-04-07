@@ -1,7 +1,4 @@
-"use strict";
-const Store = require("./store").Store;
-const CoreModel = require("../models/coremodel").CoreModel;
-const AWSServiceMixIn = require("../services/aws-mixin");
+import { Store, CoreModel, AWSMixIn } from '../index';
 
 /**
  * DynamoStore handles the DynamoDB
@@ -13,11 +10,12 @@ const AWSServiceMixIn = require("../services/aws-mixin");
  *   region: ''
  *
  */
-class DynamoStore extends AWSServiceMixIn(Store) {
+class DynamoStore extends AWSMixIn(Store) {
+  _client: any;
+
   /** @ignore */
   constructor(webda, name, params) {
     super(webda, name, params);
-    this._connectPromise = undefined;
     if (params.table === undefined || params.accessKeyId === undefined || params.secretAccessKey === undefined) {
       this._createException = "Need to define a table,accessKeyId,secretAccessKey at least";
     }
@@ -88,7 +86,7 @@ class DynamoStore extends AWSServiceMixIn(Store) {
   }
 
   async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
-    var params = {
+    var params : any = {
       'TableName': this._params.table,
       'Key': {
         "uuid": uid
@@ -115,7 +113,7 @@ class DynamoStore extends AWSServiceMixIn(Store) {
   }
 
   async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
-    var params = {
+    var params : any = {
       'TableName': this._params.table,
       'Key': {
         "uuid": uid
@@ -157,8 +155,8 @@ class DynamoStore extends AWSServiceMixIn(Store) {
     return this._writeConditionField + ' = ' + writeCondition;
   }
 
-  async _delete(uid, writeCondition) {
-    var params = {
+  async _delete(uid, writeCondition = undefined) {
+    var params : any = {
       'TableName': this._params.table,
       'Key': {
         "uuid": uid
@@ -192,7 +190,7 @@ class DynamoStore extends AWSServiceMixIn(Store) {
     if (skipUpdate) {
       return;
     }
-    var params = {
+    var params : any = {
       'TableName': this._params.table,
       'Key': {
         "uuid": uid
@@ -208,7 +206,7 @@ class DynamoStore extends AWSServiceMixIn(Store) {
     return this._client.update(params).promise();
   }
 
-  async _scan(items, paging) {
+  async _scan(items, paging = undefined) {
     return new Promise((resolve, reject) => {
       this._client.scan({
         TableName: this._params.table,
@@ -326,7 +324,7 @@ class DynamoStore extends AWSServiceMixIn(Store) {
     });
   }
 
-  uninstall(params) {
+  async uninstall(params) {
     /* Code sample for later use
      @ignore
      if (params.region !== undefined) {
@@ -387,4 +385,4 @@ class DynamoStore extends AWSServiceMixIn(Store) {
   }
 }
 
-module.exports = DynamoStore;
+export { DynamoStore };

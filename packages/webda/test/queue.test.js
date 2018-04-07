@@ -55,10 +55,10 @@ describe('Queues', function() {
     it('Abstract', function() {
       // Ensure abstract - mainly for code coverage
       let queue = new Queue();
-      assert.throws(queue.sendMessage, Error);
-      assert.throws(queue.size, Error);
-      assert.throws(queue.receiveMessage, Error);
-      assert.throws(queue.deleteMessage, Error);
+      Utils.throws(queue.sendMessage, Error);
+      Utils.throws(queue.size, Error);
+      Utils.throws(queue.receiveMessage, Error);
+      Utils.throws(queue.deleteMessage, Error);
     });
 
     it('Worker', function(done) {

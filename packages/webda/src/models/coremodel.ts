@@ -152,7 +152,7 @@ class CoreModel extends OwnerPolicy {
     return value;
   }
 
-  toStoredJSON(stringify) : any {
+  toStoredJSON(stringify = false) : any {
     let obj = this._toJSON(true);
     obj.__store = undefined;
     if (stringify) {

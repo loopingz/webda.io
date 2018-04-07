@@ -1,5 +1,5 @@
 "use strict";
-const Store = require("./store").Store;
+import { Store } from '../index';
 var fs = require("fs");
 
 
@@ -32,7 +32,7 @@ class FileStore extends Store {
     return Promise.resolve(fs.existsSync(this.file(uid)));
   }
 
-  _find(request) {
+  async _find(request, offset, limit) : Promise<any> {
     var self = this;
     var res = [];
     var path = require('path');
@@ -111,7 +111,7 @@ class FileStore extends Store {
     return this._save(stored, uid);
   }
 
-  getAll(uids) {
+  async getAll(uids) : Promise<any> {
     if (!uids) {
       uids = [];
       var files = fs.readdirSync(this._params.folder);
@@ -198,4 +198,4 @@ class FileStore extends Store {
   }
 }
 
-module.exports = FileStore
+export { FileStore }

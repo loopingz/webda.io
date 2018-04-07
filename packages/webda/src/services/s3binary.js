@@ -2,7 +2,7 @@
 // Load the AWS SDK for Node.js
 const Binary = require("./binary");
 const _extend = require('util')._extend;
-const AWSServiceMixIn = require("./aws-mixin");
+const AWSServiceMixIn = require("./aws-mixin").AWSServiceMixIn;
 
 /**
  * S3Binary handles the storage of binary on a S3 bucket

@@ -36,7 +36,7 @@ import { CoreModelDefinition, CoreModel } from "../models/coremodel";
  *      }
  *   }
  */
-abstract class Store extends Executor {
+class Store extends Executor {
   _reverseMap:any[];
   _cascade:any[];
   _writeConditionField:string;
@@ -155,7 +155,7 @@ abstract class Store extends Executor {
     }
   }
 
-  abstract _incrementAttribute(uid, prop, value);
+  _incrementAttribute(uid, prop, value) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
   async incrementAttribute(uid, prop, value) {
     // If value === 0 no need to update anything
@@ -193,7 +193,7 @@ abstract class Store extends Executor {
     });
   }
 
-  abstract async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField);
+  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
   async deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
     if (index === undefined || prop === undefined) {
@@ -216,7 +216,7 @@ abstract class Store extends Executor {
     });
   }
 
-  abstract _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField);
+  _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
   initMap(map) {
     if (map == undefined || map._init) {
@@ -290,7 +290,7 @@ abstract class Store extends Executor {
     return object;
   }
 
-  abstract _save(object, uid);
+  _save(object, uid) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
   /**
    * Update an object
@@ -332,7 +332,7 @@ abstract class Store extends Executor {
       'update': object
     });
     await loaded._onUpdate(object);
-    let res = await this._update(object, uid, writeCondition);
+    let res : any = await this._update(object, uid, writeCondition);
     // Return updated
     for (let i in res) {
       loaded[i] = res[i];
@@ -538,7 +538,7 @@ abstract class Store extends Executor {
     return Promise.all(promises);
   }
 
-  abstract _update(object, uid, writeCondition?);
+  _update(object, uid, writeCondition?) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
   cascadeDelete(obj: any, uuid:string) {
     // We dont need uuid but Binary store will need it
@@ -607,11 +607,11 @@ abstract class Store extends Executor {
    * @abstract
    * @params {String} uuid of the object
    */
-  abstract exists(uid:string) : Promise<boolean>;
+  async exists(uid:string) : Promise<boolean> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
-  abstract _delete(uid:string, writeCondition?) : Promise<void>;
+  async _delete(uid:string, writeCondition?) : Promise<void> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
-  abstract _get(uid:string) : Promise<any>;
+  async _get(uid:string) : Promise<any> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
   /**
    * Get an object
@@ -619,7 +619,7 @@ abstract class Store extends Executor {
    * @param {Array} uuid to gets if undefined then retrieve the all table
    * @return {Promise} the objects retrieved ( can be [] if not found )
    */
-  abstract getAll(list);
+  async getAll(list) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
   /**
    * Get an object
@@ -642,7 +642,7 @@ abstract class Store extends Executor {
     return object;
   }
 
-  async find(request, offset, limit) {
+  async find(request, offset, limit) : Promise<any> {
     await this.emitSync('Store.Find', {
       'request': request,
       'store': this,
@@ -660,7 +660,7 @@ abstract class Store extends Executor {
     return result;
   }
 
-  abstract _find(request, offset, limit);
+  async _find(request, offset, limit) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
   // ADD THE EXECUTOR PART
 

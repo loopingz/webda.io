@@ -1,6 +1,5 @@
 "use strict";
-const Store = require("./store").Store;
-const CoreModel = require("../models/coremodel").CoreModel;
+import { Store, CoreModel } from '../index';
 
 var MongoClient = require('mongodb').MongoClient;
 
@@ -13,6 +12,11 @@ var MongoClient = require('mongodb').MongoClient;
  *
  */
 class MongoStore extends Store {
+  _connectPromise: Promise<any> = undefined;
+  _client: any;
+  _db: any;
+  _collection: any;
+
   /** @ignore */
   constructor(webda, name, options) {
     super(webda, name, options);
@@ -146,7 +150,7 @@ class MongoStore extends Store {
 
   getAll(uids) {
     return this._connect().then(() => {
-      let params = {};
+      let params : any = {};
       if (uids) {
         params._id = {
           $in: uids
@@ -206,4 +210,4 @@ class MongoStore extends Store {
   }
 }
 
-module.exports = MongoStore;
+export { MongoStore };

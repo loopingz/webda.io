@@ -18,6 +18,7 @@ abstract class Service extends events.EventEmitter {
   _webda: Core;
   _name: string;
   _params: any;
+  _createException: string;
   /**
    *
    *

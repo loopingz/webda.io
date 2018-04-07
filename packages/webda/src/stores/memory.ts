@@ -1,8 +1,11 @@
-"use strict";
-const Store = require("./store").Store;
+import { Store, CoreModel } from '../index';
+
+interface StorageMap {
+  [key: string]: any;
+}
 
 class MemoryStore extends Store {
-
+  storage: StorageMap;
   init(config) {
     this.storage = {};
     super.init(config);
@@ -12,7 +15,7 @@ class MemoryStore extends Store {
     return this.storage[uid] !== undefined;
   }
 
-  async _find(request, offset, limit) {
+  async _find(request, offset, limit) : Promise<any> {
     // Need to transfert to Array
     return this.storage;
   }
@@ -40,7 +43,7 @@ class MemoryStore extends Store {
     return this._getSync(uid);
   }
 
-  async getAll(uids) {
+  async getAll(uids) : Promise<any> {
     if (!uids) {
       return Object.keys(this.storage).map((key) => {
         return this._getSync(key);
@@ -106,7 +109,7 @@ class MemoryStore extends Store {
       }
       res[prop][index] = item;
     }
-    return this._save(res, uid);
+    await this._save(res, uid);
   }
 
   async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
@@ -146,4 +149,4 @@ class MemoryStore extends Store {
 }
 
 
-module.exports = MemoryStore;
+export { MemoryStore };

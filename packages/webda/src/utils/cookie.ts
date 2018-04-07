@@ -1,17 +1,16 @@
-"use strict";
-var crypto = require('crypto');
-var _extend = require('util')._extend;
+import { _extend } from '../core';
+const crypto = require('crypto');
 
 function encrypt(algo, pass, text) {
-  var cipher = crypto.createCipher(algo, pass);
-  var crypted = cipher.update(text, 'utf8', 'hex');
+  let cipher = crypto.createCipher(algo, pass);
+  let crypted = cipher.update(text, 'utf8', 'hex');
   crypted += cipher.final('hex');
   return crypted;
 }
 
 function decrypt(algo, pass, text) {
-  var decipher = crypto.createDecipher(algo, pass);
-  var dec = decipher.update(text, 'hex', 'utf8');
+  let decipher = crypto.createDecipher(algo, pass);
+  let dec = decipher.update(text, 'hex', 'utf8');
   dec += decipher.final('utf8');
   return dec;
 }
@@ -28,6 +27,13 @@ function decrypt(algo, pass, text) {
  * The object use Object.observe if available or try Proxy in other case, so old JS VM won't run it
  */
 class SecureCookie {
+  _algo: string;
+  _secret: string;
+  _changed: boolean;
+  _options: any;
+  _raw: string;
+  userId: string;
+  identUsed: string;
 
   /** @ignore */
   constructor(options, data) {
@@ -56,13 +62,7 @@ class SecureCookie {
 
   getProxy() {
     // Should use Proxy if available
-    if (Object.observe) {
-      Object.observe(this, (changes) => {
-        if (changes[0].name == "_changed") return;
-        this._changed = true;
-      });
-      return this;
-    } else if (Proxy != undefined) {
+    if (Proxy != undefined) {
       // Proxy implementation
       return new Proxy(this, {
         set: (obj, prop, value) => {
@@ -86,7 +86,7 @@ class SecureCookie {
   }
 
   destroy() {
-    for (var prop in this) {
+    for (let prop in this) {
       if (prop[0] === "_") {
         continue;
       }
@@ -116,8 +116,8 @@ class SecureCookie {
   }
 
   toJSON() {
-    var data = {};
-    for (var prop in this) {
+    let data : any = {};
+    for (let prop in this) {
       if (prop[0] === "_") {
         continue;
       }
@@ -138,4 +138,4 @@ class SecureCookie {
   }
 }
 
-module.exports = SecureCookie;
+export { SecureCookie };

@@ -1,5 +1,5 @@
 "use strict";
-const Store = require("./store");
+const Store = require("./store").Store;
 
 class MemoryStore extends Store {
 

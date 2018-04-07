@@ -1,5 +1,5 @@
 "use strict";
-const Service = require("../services/service");
+const Service = require("../services/service").Service;
 
 class QueueService extends Service {
 

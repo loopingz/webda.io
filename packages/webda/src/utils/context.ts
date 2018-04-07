@@ -1,10 +1,39 @@
 "use strict";
 const Writable = require('stream').Writable;
-const _extend = require('util')._extend;
-const CoreModel = require('../models/coremodel');
+import { _extend, Core as Webda, Executor, SecureCookie, CoreModel, Store} from '../index';
 const acceptLanguage = require('accept-language');
 
-class Context {
+interface Map {
+  [key: string]: any
+}
+
+interface HeaderMap {
+  [key: string]: string
+}
+
+interface CookieMap {
+  [key: string]: string
+}
+
+class Context implements Map {
+  _body: any;
+  _headers: HeaderMap;
+  _webda: Webda;
+  statusCode: number;
+  _cookie: CookieMap;
+  headers: HeaderMap;
+  _route: any;
+  _buffered: boolean;
+  session: SecureCookie;
+  _ended: Promise<any> = undefined;
+  _stream: any;
+  _promises: Promise<any>[];
+  _executor: Executor;
+  _flushHeaders: boolean;
+  body: any;
+  _params: any;
+  files: any[];
+  query: any;
 
   /**
    * @private
@@ -83,7 +112,7 @@ class Context {
   }
 
   addAsyncRequest(promise) {
-    this.promises.push(promise);
+    this._promises.push(promise);
   }
 
   /**
@@ -95,7 +124,7 @@ class Context {
   end() {
     /** @ignore */
     if (this._ended) {
-      throw Error("Already ended");
+      return this._ended;
     }
     this._ended = Promise.all(this._promises).then(() => {
       if (this._buffered && this._stream._body !== undefined) {
@@ -136,8 +165,7 @@ class Context {
    * Get the current user from session
    */
   async getCurrentUser() {
-    let uid = this.getCurrentUserId();
-    return this.getService('Users').get(uid);
+    return (<Store> this._webda.getService('Users')).get(this.getCurrentUserId());
   }
 
   /**
@@ -161,7 +189,7 @@ class Context {
    * Get the request locale if found
    */
   getLocale() {
-    var locales = this._webda.getLocales();
+    let locales = this._webda.getLocales();
     acceptLanguage.languages(locales);
     if (this.headers['Accept-Language']) {
       return acceptLanguage.get(this.headers['Accept-Language']);
@@ -202,7 +230,7 @@ class Context {
    * @ignore
    * Used by Webda framework to set the body, session and output stream if known
    */
-  constructor(webda, body, session, stream, files) {
+  constructor(webda, body, session, stream = undefined, files = []) {
     this._webda = webda;
     this.session = session;
     if (session === undefined) {
@@ -215,7 +243,6 @@ class Context {
     this._flushHeaders = false;
     this._body = undefined;
     this.statusCode = 204;
-    this._ended = false;
     this._stream = stream;
     this._buffered = false;
     this._params = {};
@@ -228,7 +255,7 @@ class Context {
   }
 
   init() {
-    this._stream.on('pipe', (src) => {
+    this._stream.on('pipe', () => {
       this._flushHeaders = true;
       this._buffered = true;
       this._webda.flushHeaders(this);
@@ -236,4 +263,4 @@ class Context {
   }
 }
 
-module.exports = Context;
+export { Context };

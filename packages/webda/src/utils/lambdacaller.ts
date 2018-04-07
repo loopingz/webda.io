@@ -2,7 +2,10 @@
 
 class LambdaCaller {
 
-  constructor(arn, config) {
+  _arn: string;
+  AWS: any;
+
+  constructor(arn, config : any = {}) {
     if (arn instanceof Object) {
       config = arn;
       arn = config.arn;
@@ -29,13 +32,13 @@ class LambdaCaller {
     if (!params) {
       params = {};
     }
-    var invocationType;
+    let invocationType;
     if (async === undefined || !async) {
       invocationType = 'RequestResponse';
     } else {
       invocationType = 'Event';
     }
-    var lambda = new this.AWS.Lambda();
+    let lambda = new this.AWS.Lambda();
     params = {
       FunctionName: this._arn,
       ClientContext: null,
@@ -47,4 +50,4 @@ class LambdaCaller {
   }
 }
 
-module.exports = LambdaCaller;
+export { LambdaCaller };

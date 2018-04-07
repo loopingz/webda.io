@@ -1,5 +1,4 @@
-"use strict";
-const Executor = require('../services/executor.js');
+import { Executor, Context } from "../index";
 
 /**
  * Return a static string with a static mime type
@@ -17,7 +16,7 @@ const Executor = require('../services/executor.js');
  */
 class StringRouteHelper extends Executor {
   /** @ignore */
-  execute(ctx) {
+  execute(ctx: Context) : Promise<any> {
     if (this._params.mime) {
       ctx.writeHead(200, {
         'Content-Type': this._params.mime
@@ -33,4 +32,4 @@ class StringRouteHelper extends Executor {
   }
 }
 
-module.exports = StringRouteHelper
+export { StringRouteHelper };

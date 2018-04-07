@@ -1,9 +1,12 @@
 "use strict";
 const uuid = require('uuid');
 import { OwnerPolicy } from '../policies/ownerpolicy';
+import { Context } from '../utils/context';
 
 interface CoreModelDefinition {
   new (raw: any, secure: boolean) : CoreModel
+  new (raw: any) : CoreModel
+  getActions(): any
 }
 
 /**
@@ -14,7 +17,12 @@ interface CoreModelDefinition {
  */
 class CoreModel extends OwnerPolicy {
 
-  __store: any
+  static __ctx: Context;
+  __store: any;
+  _creationDate: Date;
+  lastUpdate: Date;
+  __deleted: boolean;
+
   static getActions() {
     return {};
   }
@@ -58,7 +66,7 @@ class CoreModel extends OwnerPolicy {
    *
    * @throws Error if the object is not coming from a store
    */
-  async refresh() {
+  async refresh() : Promise<CoreModel> {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
@@ -74,7 +82,7 @@ class CoreModel extends OwnerPolicy {
    *
    * @throws Error if the object is not coming from a store
    */
-  async delete() {
+  async delete() : Promise<void> {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
@@ -86,7 +94,7 @@ class CoreModel extends OwnerPolicy {
    *
    * @throws Error if the object is not coming from a store
    */
-  async save() {
+  async save() : Promise<void> {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
@@ -101,7 +109,7 @@ class CoreModel extends OwnerPolicy {
    *
    * @throws Error if the object is not coming from a store
    */
-  async update(changes) {
+  async update(changes) : Promise<void> {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
@@ -115,11 +123,11 @@ class CoreModel extends OwnerPolicy {
    * Return the object schema, if defined any modification done to the object by external source
    * must comply to this schema
    */
-  _getSchema() {
+  _getSchema() : any {
     return;
   }
 
-  async validate(ctx, updates) {
+  async validate(ctx, updates = undefined) : Promise<boolean> {
     let schema = this._getSchema();
     if (!schema) {
       return true;
@@ -133,18 +141,18 @@ class CoreModel extends OwnerPolicy {
     return true;
   }
 
-  generateUid() {
-    return uuid.v4();
+  generateUid() : string {
+    return uuid.v4().toString();
   }
 
-  _jsonFilter(key, value) {
+  _jsonFilter(key, value) : any {
     if (key[0] === '_' && key.length > 1 && key[1] === '_') {
       return undefined;
     }
     return value;
   }
 
-  toStoredJSON(stringify) {
+  toStoredJSON(stringify) : any {
     let obj = this._toJSON(true);
     obj.__store = undefined;
     if (stringify) {
@@ -153,14 +161,14 @@ class CoreModel extends OwnerPolicy {
     return obj;
   }
 
-  _getService(service) {
+  _getService(service) : any {
     if (!this.__store) {
       return undefined;
     }
     return this.__store.getService(service);
   }
 
-  _toJSON(secure) {
+  _toJSON(secure) : any {
     let obj : any = {};
     for (let i in this) {
       let value = this[i];
@@ -173,9 +181,17 @@ class CoreModel extends OwnerPolicy {
     return obj;
   }
 
-  toJSON() {
+  toJSON() : any {
     return this._toJSON(false);
   }
+
+  async _onDelete() {}
+  async _onDeleted() {}
+  async _onGet() {}
+  async _onSave() {}
+  async _onSaved() {}
+  async _onUpdate(updates: any) {}
+  async _onUpdated() {}
 }
 
 export { CoreModel , CoreModelDefinition };

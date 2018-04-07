@@ -1,5 +1,4 @@
-"use strict";
-const Executor = require("../services/executor.js");
+import { Executor, Context } from "../index";
 
 /**
  * Execute a custom JS file, it is almost like a custom Service except that this will not be a singleton
@@ -17,7 +16,7 @@ class FileRouteHelper extends Executor {
   /**
    * @ignore
    */
-  execute(ctx) {
+  execute(ctx : Context) : Promise<any> {
     if (typeof(ctx._route.file) === "string") {
       var include = ctx._route.file;
       if (include.startsWith("./")) {
@@ -28,4 +27,4 @@ class FileRouteHelper extends Executor {
   }
 }
 
-module.exports = FileRouteHelper;
+export { FileRouteHelper };

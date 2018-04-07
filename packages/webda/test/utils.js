@@ -7,7 +7,7 @@ async function assertThrowsAsync(fn, regExp) {
   } catch(e) {
     f = () => {throw e};
   } finally {
-    //assert.throws(f, regExp);
+    assert.throws(f, regExp);
   }
 }
 

@@ -250,6 +250,7 @@ describe('Passport', function() {
       assert.equal(ctx.statusCode, 302);
       assert.equal(ctx._params.code, "blahblah");
       assert.equal(ctx._headers.Location, "https://webda.io/user.html?validation=github");
+      ident = await identStore.get(ident.uuid);
       // The ident must have been created and have a last used
       assert.notEqual(ident.lastUsed, lastUsed);
       lastUsed = ident;

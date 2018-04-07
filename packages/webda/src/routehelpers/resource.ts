@@ -1,5 +1,4 @@
-"use strict";
-const Executor = require('../services/executor.js');
+import { Executor, Context } from "../index";
 const mime = require("mime");
 const fs = require('fs');
 
@@ -15,7 +14,7 @@ const fs = require('fs');
  */
 class ResourceRouteHelper extends Executor {
   /** @ignore */
-  execute(ctx) {
+  execute(ctx : Context) : Promise<any> {
     return new Promise((resolve, reject) => {
       fs.readFile(this._params.file, 'utf8', (err, data) => {
         if (err) {
@@ -32,4 +31,4 @@ class ResourceRouteHelper extends Executor {
   }
 }
 
-module.exports = ResourceRouteHelper
+export { ResourceRouteHelper };

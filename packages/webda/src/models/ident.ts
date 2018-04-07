@@ -11,10 +11,15 @@ class IdentTokens {
  */
 class Ident extends CoreModel {
 
-  type: string
-  uid: string
-  profile: any
-  tokens: IdentTokens
+  type: string;
+  uid: string;
+  profile: any;
+  tokens: IdentTokens;
+  lastUsed: Date;
+  user: string;
+  __new: boolean;
+  _failedLogin: number;
+
   static init(type, uid, accessToken, refreshToken, profile) : Ident {
     var obj = new Ident({});
     obj.type = type.toLowerCase();

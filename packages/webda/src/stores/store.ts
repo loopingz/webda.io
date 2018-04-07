@@ -1,6 +1,7 @@
 "use strict";
 const uuid = require('uuid');
-const Executor = require("../services/executor");
+import { Executor } from '../index';
+import { CoreModelDefinition, CoreModel } from "../models/coremodel";
 
 /**
  * This class handle NoSQL storage and mapping (duplication) between NoSQL object
@@ -35,7 +36,12 @@ const Executor = require("../services/executor");
  *      }
  *   }
  */
-class Store extends Executor {
+abstract class Store extends Executor {
+  _reverseMap:any[];
+  _cascade:any[];
+  _writeConditionField:string;
+  _model: CoreModelDefinition;
+
   /** @ignore */
   constructor(webda, name, options) {
     super(webda, name, options);
@@ -57,11 +63,11 @@ class Store extends Executor {
       this._model = this._webda.getModel("Webda/CoreModel");
     }
     if (this._params.expose) {
-      this.initRoutes(config, this._params.expose);
+      this.initRoutes(this._params.expose);
     }
   }
 
-  initRoutes(config, expose) {
+  initRoutes(expose) {
     if (typeof(expose) == "boolean") {
       expose = {};
       expose.url = "/" + this._name.toLowerCase();
@@ -74,12 +80,7 @@ class Store extends Executor {
     }
     expose.restrict = expose.restrict || {}
     if (!expose.restrict.create) {
-      this._addRoute(expose.url, {
-        "method": ["POST"],
-        "executor": this._name,
-        "expose": expose,
-        "_method": this.httpCreate
-      });
+      this._addRoute(expose.url, ["POST"], this.httpCreate);
     }
     // Dont even create the route that are restricted so we can ease up the test on handler
     let methods = [];
@@ -93,34 +94,28 @@ class Store extends Executor {
       methods.push("DELETE");
     }
     if (methods.length) {
-      this._addRoute(expose.url + "/{uuid}", {
-        "method": methods,
-        "executor": this._name,
-        "expose": expose,
-        "_method": this.httpRoute
-      });
+      this._addRoute(expose.url + "/{uuid}", methods, this.httpRoute);
     }
-    if (this._model && this._model.getActions) {
+    if (this._model) {
       let actions = this._model.getActions();
       Object.keys(actions).forEach((name) => {
-        let action = actions[name];
+        let action : any = actions[name];
         action.name = name;
         if (!action.name) {
-          throw Error('Action needs a name got:', action);
+          throw Error('Action needs a name got:' + action);
         }
         if (!action.method) {
           action.method = ['PUT'];
         }
-        action.executor = this._name;
         if (action.global) {
           // By default will grab the object and then call the action
           if (!action._method) {
             if (!this._model['_' + action.name]) {
               throw Error('Action static method _' + action.name + ' does not exist');
             }
-            action._method = this.httpAction;
+            action._method = this.httpGlobalAction;
           }
-          this._addRoute(expose.url + '/' + action.name, action);
+          this._addRoute(expose.url + '/' + action.name, action.method, action._method);
         } else {
           // By default will grab the object and then call the action
           if (!action._method) {
@@ -129,13 +124,13 @@ class Store extends Executor {
             }
             action._method = this.httpAction;
           }
-          this._addRoute(expose.url + '/{uuid}/' + action.name, action);
+          this._addRoute(expose.url + '/{uuid}/' + action.name, action.method, action._method);
         }
       });
     }
   }
 
-  initModel(object) {
+  initModel(object) : CoreModel {
     // Make sure to send a model object
     if (!(object instanceof this._model)) {
       object = new this._model(object, true);
@@ -160,9 +155,7 @@ class Store extends Executor {
     }
   }
 
-  _incrementAttribute(uid, prop, value) {
-    throw "AbstractStore has no _incrementAttribute";
-  }
+  abstract _incrementAttribute(uid, prop, value);
 
   async incrementAttribute(uid, prop, value) {
     // If value === 0 no need to update anything
@@ -170,7 +163,7 @@ class Store extends Executor {
       return Promise.resolve();
     }
     await this._incrementAttribute(uid, prop, value);
-    return this.emit('Store.PartialUpdate', {
+    return this.emitSync('Store.PartialUpdate', {
       'object_id': uid,
       'store': this,
       'partial_update': {
@@ -187,7 +180,7 @@ class Store extends Executor {
       itemWriteConditionField = 'uuid';
     }
     await this._upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField);
-    await this.emit('Store.PartialUpdate', {
+    await this.emitSync('Store.PartialUpdate', {
       'object_id': uid,
       'store': this,
       'partial_update': {
@@ -200,9 +193,7 @@ class Store extends Executor {
     });
   }
 
-  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
-    throw "AbstractStore has no upsertItemToCollection"
-  }
+  abstract async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField);
 
   async deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
     if (index === undefined || prop === undefined) {
@@ -212,7 +203,7 @@ class Store extends Executor {
       itemWriteConditionField = 'uuid';
     }
     await this._deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField);
-    await this.emit('Store.PartialUpdate', {
+    await this.emitSync('Store.PartialUpdate', {
       'object_id': uid,
       'store': this,
       'partial_update': {
@@ -225,16 +216,14 @@ class Store extends Executor {
     });
   }
 
-  _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
-    throw "AbstractStore has no deleteItemFromCollection"
-  }
+  abstract _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField);
 
   initMap(map) {
     if (map == undefined || map._init) {
       return;
     }
     for (var prop in map) {
-      var reverseStore = this._webda.getService(prop);
+      var reverseStore : Store = <Store> this._webda.getService(prop);
       if (reverseStore === undefined || !(reverseStore instanceof Store)) {
         map[prop]["-onerror"] = "NoStore";
         this._webda.log('WARN', 'Can\'t setup mapping as store "', prop, '" doesn\'t exist');
@@ -266,11 +255,8 @@ class Store extends Executor {
    * @param {String} Uuid to use, if not specified take the object.uuid or generate one if not found
    * @return {Promise} with saved object
    */
-  async save(object, uid) {
+  async save(object, uid = object.uuid) {
     /** @ignore */
-    if (uid === undefined) {
-      uid = object.uuid;
-    }
     if (uid === undefined) {
       uid = this.generateUid();
     }
@@ -285,32 +271,26 @@ class Store extends Executor {
     }
     object.lastUpdate = new Date();
     object = this.initModel(object);
-    await this.emit('Store.Save', {
+    await this.emitSync('Store.Save', {
       'object': object,
       'store': this
     });
     // Handle object auto listener
-    if (typeof(object._onSave) === 'function') {
-      await object._onSave();
-    }
+    await object._onSave();
     let res = await this._save(object, uid);
     object = this.initModel(res);
-    await this.emit('Store.Saved', {
+    await this.emitSync('Store.Saved', {
         'object': object,
         'store': this
     });
-    if (typeof(object._onSaved) === 'function') {
-      await object._onSaved();
-    }
+    await object._onSaved();
     if (this._params.map != undefined) {
       await this.handleMap(object, this._params.map, "created");
     }
     return object;
   }
 
-  _save(object, uid) {
-    throw "AbstractStore has no _save";
-  }
+  abstract _save(object, uid);
 
   /**
    * Update an object
@@ -320,15 +300,12 @@ class Store extends Executor {
    * @param {Boolean} reverseMap internal use only, for disable map resolution
    * @return {Promise} with saved object
    */
-  async update(object, uid, reverseMap) {
+  async update(object : any, uid = undefined, reverseMap = true) {
     /** @ignore */
     var saved;
     var loaded;
     if (uid == undefined) {
       uid = object.uuid;
-    }
-    if (reverseMap === undefined) {
-      reverseMap = true;
     }
     // Dont allow to update collections from map
     if (this._reverseMap != undefined && reverseMap) {
@@ -343,20 +320,18 @@ class Store extends Executor {
     }
     let writeCondition;
     if (this._params.lastUpdate) {
-      writeCondition = lastUpdate;
+      writeCondition = 'lastUpdate';
     }
     object.lastUpdate = new Date();
     let load = await this._get(uid);
     loaded = this.initModel(load);
     await this.handleMap(loaded, this._params.map, object);
-    await this.emit('Store.Update', {
+    await this.emitSync('Store.Update', {
       'object': loaded,
       'store': this,
       'update': object
     });
-    if (typeof(loaded._onUpdate) === 'function') {
-      await loaded._onUpdate(object);
-    }
+    await loaded._onUpdate(object);
     let res = await this._update(object, uid, writeCondition);
     // Return updated
     for (let i in res) {
@@ -366,13 +341,11 @@ class Store extends Executor {
       loaded[i] = object[i];
     }
     saved = this.initModel(loaded);
-    await this.emit('Store.Updated', {
+    await this.emitSync('Store.Updated', {
       'object': saved,
       'store': this
     });
-    if (typeof(saved._onUpdated) === 'function') {
-      await saved._onUpdated();
-    }
+    await saved._onUpdated();
     return saved;
   }
 
@@ -481,7 +454,7 @@ class Store extends Executor {
 
   _handleUpdatedMapMapper(object, map, mapped, store, updates) {
     // Update the mapper
-    var mapper = {};
+    var mapper : any = {};
     mapper.uuid = object.uuid;
     if (map.fields) {
       var fields = map.fields.split(",");
@@ -517,7 +490,7 @@ class Store extends Executor {
 
   _handleCreatedMap(object, map, mapped, store) {
     // Add to the object
-    var mapper = {};
+    var mapper : any = {};
     mapper.uuid = object.uuid;
     // Add info to the mapped
     if (map.fields) {
@@ -529,55 +502,47 @@ class Store extends Executor {
     return store.upsertItemToCollection(mapped.uuid, map.target, mapper);
   }
 
-  _handleMapProperty(store, object, property, updates) {
-    return store.get(object[property.key]).then((mapped) => {
-      if (mapped == undefined) {
-        return Promise.resolve();
-      }
-      if (updates === "created") {
-        return this._handleCreatedMap(object, property, mapped, store);
-      } else if (updates == "deleted") {
-        return this._handleDeletedMap(object, property, mapped, store);
-      } else if (typeof(updates) == "object") {
-        return this._handleUpdatedMap(object, property, mapped, store, updates);
-      } else {
-        return Promise.reject(Error("Unknown handleMap type " + updates));
-      }
-    })
+  async _handleMapProperty(store, object, property, updates) {
+    let mapped = await store.get(object[property.key]);
+    if (mapped == undefined) {
+      return;
+    }
+    if (updates === "created") {
+      return this._handleCreatedMap(object, property, mapped, store);
+    } else if (updates == "deleted") {
+      return this._handleDeletedMap(object, property, mapped, store);
+    } else if (typeof(updates) == "object") {
+      return this._handleUpdatedMap(object, property, mapped, store, updates);
+    } else {
+      return Promise.reject(Error("Unknown handleMap type " + updates));
+    }
   }
 
-  handleMap(object, map, updates) {
-    var promises = [];
+  async handleMap(object, map, updates) : Promise<any[]> {
+    let promises = [];
     if (object === undefined) {
-      return Promise.resolve();
+      return;
     }
-    for (var prop in map) {
+    for (let prop in map) {
       // No mapped property or not in the object
       if (map[prop].key === undefined || object[map[prop].key] === undefined) {
         continue;
       }
-      var store = this.getService(prop);
+      let store : Store = <Store> this.getService(prop);
       // Cant find the store for this collection
       if (store == undefined) {
         continue;
       }
       promises.push(this._handleMapProperty(store, object, map[prop], updates));
     }
-    if (promises.length == 1) {
-      return promises[0];
-    } else if (promises.length > 1) {
-      return Promise.all(promises)
-    } else {
-      return Promise.resolve();
-    }
+    return Promise.all(promises);
   }
 
-  _update(object, uid, writeCondition) {
-    throw "AbstractStore has no _update"
-  }
+  abstract _update(object, uid, writeCondition?);
 
-  cascadeDelete(obj) {
-    return this.delete(obj);
+  cascadeDelete(obj: any, uuid:string) {
+    // We dont need uuid but Binary store will need it
+    return this.delete(obj.uuid);
   }
 
   /**
@@ -587,75 +552,54 @@ class Store extends Executor {
    * @param {Boolean} delete sync even if asyncDelete is active
    * @return {Promise} the deletion promise
    */
-  delete(uid, sync) {
+  async delete(uid, sync = false) {
     /** @ignore */
-    var to_delete;
-    var saved;
-    return new Promise((resolve, reject) => {
-      if (typeof(uid) === 'object') {
-        to_delete = uid;
-        uid = to_delete.uuid;
-        if (uid instanceof this._model) {
-          resolve(to_delete);
-          return;
-        }
+    let to_delete : CoreModel;
+    if (typeof(uid) === 'object') {
+      to_delete = uid;
+      uid = to_delete.uuid;
+      if (!(to_delete instanceof this._model)) {
+        to_delete = this.initModel(await this._get(uid));
       }
-      resolve(this._get(uid));
-    }).then((obj) => {
-      if (obj === undefined) {
-        throw 404;
-      }
-      to_delete = this.initModel(obj);
-      saved = obj;
-      return this.emit('Store.Delete', {
-        'object': obj,
-        'store': this
-      });
-    }).then(() => {
-      if (typeof(to_delete._onDelete) === 'function') {
-        return to_delete._onDelete();
-      }
-      return Promise.resolve();
-    }).then(() => {
-      if (this._params.map != undefined) {
-        return this.handleMap(saved, this._params.map, "deleted");
-      } else {
-        return Promise.resolve();
-      }
-    }).then(() => {
-      if (this._cascade != undefined && to_delete !== undefined) {
-        var promises = [];
-        // Should deactiate the mapping in that case
-        for (var i in this._cascade) {
-          if (typeof(this._cascade[i]) != "object" || to_delete[this._cascade[i].name] == undefined) continue;
-          var targetStore = this.getService(this._cascade[i].store);
-          if (targetStore == undefined) continue;
-          for (var item in to_delete[this._cascade[i].name]) {
-            promises.push(targetStore.cascadeDelete(to_delete[this._cascade[i].name][item], uid));
-          }
-        }
-        return Promise.all(promises);
-      } else {
-        return Promise.resolve();
-      }
-    }).then(() => {
-      if (this._params.asyncDelete && !sync) {
-        return this._update({
-          '__deleted': true
-        }, uid);
-      }
-      return this._delete(uid);
-    }).then(() => {
-      return this.emit('Store.Deleted', {
-        'object': to_delete,
-        'store': this
-      });
-    }).then(() => {
-      if (typeof(to_delete._onDeleted) === 'function') {
-        return to_delete._onDeleted();
-      }
-      return Promise.resolve();
+    } else {
+      to_delete = this.initModel(await this._get(uid));
+    }
+    if (to_delete === undefined) {
+      throw 404;
+    }
+    await this.emitSync('Store.Delete', {
+      'object': to_delete,
+      'store': this
     });
+    await to_delete._onDelete();
+    if (this._params.map != undefined) {
+      await this.handleMap(to_delete, this._params.map, "deleted");
+    }
+    if (this._cascade != undefined && to_delete !== undefined) {
+      var promises = [];
+      // Should deactiate the mapping in that case
+      for (let i in this._cascade) {
+        if (typeof(this._cascade[i]) != "object" || to_delete[this._cascade[i].name] == undefined) continue;
+        var targetStore : Store = this.getTypedService<Store>(this._cascade[i].store);
+        if (targetStore == undefined) continue;
+        for (var item in to_delete[this._cascade[i].name]) {
+          promises.push(targetStore.cascadeDelete(to_delete[this._cascade[i].name][item], to_delete.uuid));
+        }
+      }
+      await Promise.all(promises);
+    }
+    if (this._params.asyncDelete && !sync) {
+      await this._update({
+        '__deleted': true
+      }, uid);
+    } else {
+      await this._delete(uid);
+    }
+    await this.emitSync('Store.Deleted', {
+      'object': to_delete,
+      'store': this
+    });
+    await to_delete._onDeleted();
   }
 
   /**
@@ -663,13 +607,11 @@ class Store extends Executor {
    * @abstract
    * @params {String} uuid of the object
    */
-  exists(uid) {
-    /** @ignore */
-  }
+  abstract exists(uid:string) : Promise<boolean>;
 
-  _delete(uid, writeCondition) {
-    throw "AbstractStore has no _delete";
-  }
+  abstract _delete(uid:string, writeCondition?) : Promise<void>;
+
+  abstract _get(uid:string) : Promise<any>;
 
   /**
    * Get an object
@@ -677,9 +619,7 @@ class Store extends Executor {
    * @param {Array} uuid to gets if undefined then retrieve the all table
    * @return {Promise} the objects retrieved ( can be [] if not found )
    */
-  getAll(list) {
-    throw "AbstractStore has no getAll";
-  }
+  abstract getAll(list);
 
   /**
    * Get an object
@@ -687,55 +627,40 @@ class Store extends Executor {
    * @param {String} uuid to get
    * @return {Promise} the object retrieved ( can be undefined if not found )
    */
-  get(uid) {
+  async get(uid: string) : Promise<CoreModel> {
     /** @ignore */
-    return this._get(uid).then((object) => {
-      if (!object) {
-        return Promise.resolve(undefined);
-      }
-      object = this.initModel(object);
-      return this.emit('Store.Get', {
-        'object': object,
-        'store': this
-      }).then(() => {
-        if (typeof(object._onGet) === 'function') {
-          return object._onGet();
-        }
-        return Promise.resolve();
-      }).then(() => {
-        return Promise.resolve(object);
-      });
+    let object = await this._get(uid);
+    if (!object) {
+      return undefined;
+    }
+    object = this.initModel(object);
+    await this.emitSync('Store.Get', {
+      'object': object,
+      'store': this
     });
+    await object._onGet();
+    return object;
   }
 
-  _get(uid) {
-    throw "AbstractStore has no _get";
-  }
-
-  find(request, offset, limit) {
-    return this.emit('Store.Find', {
+  async find(request, offset, limit) {
+    await this.emitSync('Store.Find', {
       'request': request,
       'store': this,
       'offset': offset,
       'limit': limit
-    }).then(() => {
-      return this._find(request, offset, limit);
-    }).then((result) => {
-      return this.emit('Store.Found', {
-        'request': request,
-        'store': this,
-        'offset': offset,
-        'limit': limit,
-        'results': result
-      }).then(() => {
-        return Promise.resolve(result);
-      });
     });
+    let result = this._find(request, offset, limit);
+    await this.emitSync('Store.Found', {
+      'request': request,
+      'store': this,
+      'offset': offset,
+      'limit': limit,
+      'results': result
+    });
+    return result;
   }
 
-  _find(request, offset, limit) {
-    throw "AbstractStore has no _query";
-  }
+  abstract _find(request, offset, limit);
 
   // ADD THE EXECUTOR PART
 
@@ -753,85 +678,84 @@ class Store extends Executor {
     }
     await this.save(object, object.uuid);
     ctx.write(object);
-    await this.emit('Store.WebCreate', {
+    await this.emitSync('Store.WebCreate', {
       'values': ctx.body,
       'object': object,
       'store': this
     });
   }
 
-  httpAction(ctx) {
-    let action = ctx._route.name;
-    if (ctx._params.uuid) {
-      let object;
-      return this.get(ctx._params.uuid).then((res) => {
-        object = res;
-        if (object === undefined || object.__deleted) {
-          throw 404;
-        }
-        return object.canAct(ctx, action);
-      }).then(() => {
-        return this.emit('Store.Action', {
-          'action': action,
-          'object': object,
-          'store': this,
-          'body': ctx.body,
-          'params': ctx._params
-        });
-      }).then(() => {
-        return object['_' + action](ctx);
-      }).then((res) => {
-        if (res) {
-          ctx.write(res);
-        }
-        return this.emit('Store.Actioned', {
-          'object': object,
-          'store': this
-        });
-      });
-    } else if (ctx._route.global) {
-      return this.emit('Store.Action', {
-        'action': action,
-        'store': this,
-        'body': ctx.body,
-        'params': ctx._params
-      }).then(() => {
-        return this._model['_' + ctx._route.name](ctx);
-      }).then((res) => {
-        if (res) {
-          ctx.write(res);
-        }
-        return this.emit('Store.Actioned', {
-          'action': action,
-          'store': this,
-          'body': ctx.body,
-          'params': ctx._params
-        });
-      });
+  async httpAction(ctx) {
+    let action = ctx._route._http.url.split('/').pop();
+    if (!ctx._params.uuid) {
+      throw 400;
     }
+
+    let object = await this.get(ctx._params.uuid);
+    if (object === undefined || object.__deleted) {
+      throw 404;
+    }
+    await object.canAct(ctx, action);
+    await this.emitSync('Store.Action', {
+      'action': action,
+      'object': object,
+      'store': this,
+      'body': ctx.body,
+      'params': ctx._params
+    });
+    let res = await object['_' + action](ctx);
+    if (res) {
+      ctx.write(res);
+    }
+    await this.emitSync('Store.Actioned', {
+      'action': action,
+      'object': object,
+      'store': this,
+      'body': ctx.body,
+      'params': ctx._params
+    });
   }
 
-  httpUpdate(ctx) {
+  async httpGlobalAction(ctx) {
+    let action = ctx._route._http.url.split('/').pop();
+    await this.emitSync('Store.Action', {
+      'action': action,
+      'store': this,
+      'body': ctx.body,
+      'params': ctx._params
+    });
+    let res = await this._model['_' + action](ctx);
+    if (res) {
+      ctx.write(res);
+    }
+    await this.emitSync('Store.Actioned', {
+      'action': action,
+      'store': this,
+      'body': ctx.body,
+      'params': ctx._params
+    });
+  }
+
+  async httpUpdate(ctx) {
     ctx.body.uuid = ctx._params.uuid;
-    return this.get(ctx._params.uuid).then((object) => {
-      if (!object || object.__deleted) throw 404;
-      return object.canAct(ctx, 'update');
-    }).then((object) => {
-      return object.validate(ctx, ctx.body).catch((err) => {
-        throw 400;
-      });
-    }).then(() => {
-      return this.update(ctx.body, ctx._params.uuid);
-    }).then((object) => {
-      if (object == undefined) {
-        throw 500;
-      }
-      ctx.write(object);
-      return this.emit('Store.WebUpdate', {
-        'updates': ctx.body,
-        'object': object,
-        'store': this
-      });
+    let object = await this.get(ctx._params.uuid);
+    if (!object || object.__deleted) throw 404;
+    await object.canAct(ctx, 'update');
+    try {
+      await object.validate(ctx, ctx.body);
+    } catch (err) {
+      this.log('Object invalid', err);
+      throw 400;
+    }
+    object = await this.update(ctx.body, ctx._params.uuid);
+    if (object == undefined) {
+      throw 500;
+    }
+    ctx.write(object);
+    await this.emitSync('Store.WebUpdate', {
+      'updates': ctx.body,
+      'object': object,
+      'store': this
     });
   }
 
@@ -844,7 +768,7 @@ class Store extends Executor {
         return object.canAct(ctx, 'get');
       }).then((object) => {
         ctx.write(object);
-        return this.emit('Store.WebGet', {
+        return this.emitSync('Store.WebGet', {
           'object': object,
           'store': this
         });
@@ -868,7 +792,7 @@ class Store extends Executor {
         ctx.write({});
         return this.delete(ctx._params.uuid);
       }).then(() => {
-        return this.emit('Store.WebDelete', {
+        return this.emitSync('Store.WebDelete', {
           'object_id': ctx._params.uuid,
           'store': this
         });
@@ -877,10 +801,6 @@ class Store extends Executor {
       return this.httpUpdate(ctx);
     }
   }
-
-  __clean() {
-
-  }
 }
 
-module.exports = Store
+export { Store };

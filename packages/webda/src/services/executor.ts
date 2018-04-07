@@ -1,8 +1,5 @@
 "use strict";
-
-const uuid = require('uuid');
-const crypto = require('crypto');
-const Service = require('./service');
+import { Service, Context } from '../index';
 
 /**
  * An Executor is a Service that is designed to handle HTTP request to it
@@ -23,27 +20,21 @@ class Executor extends Service {
    * Add a route dynamicaly
    *
    * @param {String} url of the route can contains dynamic part like {uuid}
-   * @param {Object} info the type of executor
+   * @param {Array[]} methods
+   * @param {Function} executer Method to execute for this route
    */
-  _addRoute(url, methods, executer) {
-    let info;
-    if (typeof(methods) === 'object') {
-      info = methods;
-    } else {
-      info = {};
-      info._method = executer;
-      info.method = methods;
-    }
+  _addRoute(url: string, methods: string[], executer: Function) {
+    let info : any = {};
+    info._method = executer;
+    info.method = methods;
     info.executor = this._name;
     this._webda.addRoute(url, info);
   }
 
   /**
    * Main method called by the webda framework if the route don't specify a _method
-   *
-   * @abstract
    */
-  execute(ctx) {
+  execute(ctx: Context) : Promise<any> {
     if (typeof(ctx._route._method) === "function") {
       return new Promise((resolve, reject) => {
         resolve(this[ctx._route._method.name](ctx));
@@ -56,19 +47,9 @@ class Executor extends Service {
    * Use this method to enhance the context if needed
    *
    */
-  updateContext(ctx) {
+  updateContext(ctx: Context) {
     ctx.setExecutor(this);
-  }
-
-  /**
-   * Get a service from webda
-   *
-   * @see Webda
-   * @param {String} name of the service
-   */
-  getService(name) {
-    return this._webda.getService(name);
   }
 }
 
-module.exports = Executor
+export { Executor };

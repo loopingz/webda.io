@@ -1,6 +1,6 @@
 "use strict";
-const Store = require("./store");
-const CoreModel = require("../models/coremodel");
+const Store = require("./store").Store;
+const CoreModel = require("../models/coremodel").CoreModel;
 
 var MongoClient = require('mongodb').MongoClient;
 

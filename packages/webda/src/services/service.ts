@@ -1,6 +1,7 @@
 "use strict";
-
-const EventEmitter = require('events');
+import events = require('events');
+import { Core } from '../index';
+declare var global: any;
 
 /**
  * Use this object for representing a service in the application
@@ -12,8 +13,11 @@ const EventEmitter = require('events');
  * @abstract
  * @class Service
  */
-class Service extends EventEmitter {
+abstract class Service extends events.EventEmitter {
 
+  _webda: Core;
+  _name: string;
+  _params: any;
   /**
    *
    *
@@ -22,7 +26,7 @@ class Service extends EventEmitter {
    * @param {String} name - The name of the service
    * @param {Object} params - The parameters block define in the configuration file
    */
-  constructor(webda, name, params) {
+  constructor(webda: Core, name : string, params : any) {
     super();
     this._webda = webda;
     this._name = name;
@@ -46,14 +50,16 @@ class Service extends EventEmitter {
    * @param config for the host so you can add your own route here
    * @abstract
    */
-  init(config) {}
+  init(config) {
+
+  }
 
   /**
    * For future use, while deploying this should be call so the service can create what it needs if necessary
    *
    * @abstract
    */
-  install(params) {
+  install(params) : Promise<any> {
     return Promise.resolve();
   }
 
@@ -62,14 +68,14 @@ class Service extends EventEmitter {
    *
    * @abstract
    */
-  uninstall(params) {
+  uninstall(params) : Promise<any> {
     return Promise.resolve();
   }
 
   /**
    * Emit the event with data and wait for Promise to finish if listener returned a Promise
    */
-  emit(event, data) {
+  emitSync(event, data) : Promise<any[]> {
     var result;
     var promises = [];
     var listeners = this.listeners(event);
@@ -89,15 +95,19 @@ class Service extends EventEmitter {
    * @param queue Name of queue to use, can be undefined, queue name are used to define differents priorities
    */
   onAsync(event, callback, queue) {
-    this._webda.getService('AsyncEvents').bindAsyncListener(this, event, callback, queue);
+    (<any> this._webda.getService('AsyncEvents')).bindAsyncListener(this, event, callback, queue);
   }
 
   /**
    * Return a webda service
    * @param service name to retrieve
    */
-  getService(service) {
+  getService(service : string) : Service {
     return this._webda.getService(service);
+  }
+
+  getTypedService<T extends Service>(service: string) : T {
+    return <T> this.getService(service);
   }
 
   /**
@@ -106,7 +116,7 @@ class Service extends EventEmitter {
    */
   static getModda() {}
 
-  getName() {
+  getName() : string {
     return this._name;
   }
 
@@ -115,7 +125,7 @@ class Service extends EventEmitter {
    *
    * @abstract
    */
-  __clean() {
+  __clean() : Promise<any> {
     if (typeof(global.it) !== 'function') {
       throw Error("Only for test purpose")
     }
@@ -125,9 +135,13 @@ class Service extends EventEmitter {
   /**
    * @private
    */
-  ___cleanData() {
+  ___cleanData() : Promise<any> {
     return Promise.resolve();
+  }
+
+  log(level, ...args) {
+    this._webda.log(level, ...args);
   }
 }
 
-module.exports = Service;
+export { Service };

@@ -4,37 +4,20 @@ import * as vm from 'vm';
 import * as Ajv from 'ajv';
 import * as path from 'path';
 import { serialize as cookieSerialize } from "cookie";
-import * as Context from "./utils/context";
+import { Context } from "./utils/context";
 import * as EventEmitter from 'events';
-import * as Store from './stores/store';
+import {Store, Service, Executor, SecureCookie, MemoryStore, FileStore, DynamoDBStore, Authentication,
+  CoreModel, Ident, Mailer} from './index';
 import { CoreModelDefinition } from "./models/coremodel";
 
-function _extend(a:any, b:any) {
-  if (!a) {
-    a = {};
-  }
-  for (let i in b) {
-    if (!a[i]) {
-      a[i] = b[i];
-    }
-  }
-  return a;
-}
-
-interface Executor {
-  [key: string]: any
-}
-
-interface Service {
-  [key: string]: any
-}
+const _extend = require('util')._extend;
 
 interface Configuration {
   [key: string]: any
 }
 
 interface ServiceMap {
-  [key: string]: Service
+  [key: string]: any
 }
 
 interface ModelsMap {
@@ -47,16 +30,16 @@ interface ModelsMap {
  * @class Webda
  */
 class Webda extends EventEmitter {
-  _services: ServiceMap
-  _modules: any
-  _config: Configuration
-  _routehelpers: any
-  _models: ModelsMap
-  _vhost: string
-  _ajv: any
-  _ajvSchemas: any
-  _currentExecutor: any
-  _configFile: string
+  _services: ServiceMap;
+  _modules: any;
+  _config: Configuration;
+  _routehelpers: any;
+  _models: ModelsMap;
+  _vhost: string;
+  _ajv: any;
+  _ajvSchemas: any;
+  _currentExecutor: any;
+  _configFile: string;
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
    */
@@ -69,29 +52,31 @@ class Webda extends EventEmitter {
     this._ajvSchemas = {};
     // on the spot routehelpers
     this._routehelpers = {};
-    this._routehelpers['debug'] = require('./services/executor');
-    this._routehelpers['lambda'] = require('./routehelpers/lambda');
-    this._routehelpers['inline'] = require('./routehelpers/inline');
-    this._routehelpers['string'] = require('./routehelpers/string');
-    this._routehelpers['resource'] = require('./routehelpers/resource');
-    this._routehelpers['file'] = require('./routehelpers/file');
+    this._routehelpers['debug'] = Executor;
+
+    this._routehelpers['lambda'] = require('./routehelpers/lambda').LambdaRouteHelper;
+    this._routehelpers['inline'] = require('./routehelpers/inline').InlineRouteHelper;
+    this._routehelpers['string'] = require('./routehelpers/string').StringRouteHelper;
+    this._routehelpers['resource'] = require('./routehelpers/resource').ResourceRouteHelper;
+    this._routehelpers['file'] = require('./routehelpers/file').FileRouteHelper;
+
     // real service - modda
     this._services = {};
-    this._services['Webda/Authentication'] = require('./services/authentication');
-    this._services['Webda/FileStore'] = require('./stores/file');
-    this._services['Webda/MemoryStore'] = require('./stores/memory');
+    this._services['Webda/Authentication'] = Authentication;
+    this._services['Webda/FileStore'] = FileStore;
+    this._services['Webda/MemoryStore'] = MemoryStore;
     this._services['Webda/MongoStore'] = require('./stores/mongodb');
-    this._services['Webda/DynamoStore'] = require('./stores/dynamodb');
+    this._services['Webda/DynamoStore'] = DynamoDBStore;
     this._services['Webda/FileBinary'] = require('./services/filebinary');
     this._services['Webda/S3Binary'] = require('./services/s3binary');
-    this._services['Webda/Mailer'] = require('./services/mailer');
+    this._services['Webda/Mailer'] = Mailer;
     this._services['Webda/AsyncEvents'] = require('./services/asyncevents');
     this._services['Webda/MemoryQueue'] = require('./queues/memoryqueue');
     this._services['Webda/SQSQueue'] = require('./queues/sqsqueue');
     // Models
     this._models = {};
-    this._models['Webda/CoreModel'] = require('./models/coremodel').CoreModel;
-    this._models['Webda/Ident'] = require('./models/ident').Ident;
+    this._models['Webda/CoreModel'] = CoreModel;
+    this._models['Webda/Ident'] = Ident;
     // Load the configuration
     this._config = this.loadConfiguration(config);
     if (!this._config.version) {
@@ -296,7 +281,6 @@ class Webda extends EventEmitter {
    * @returns A new session
    */
   getNewSession(data) {
-    const SecureCookie = require("./utils/cookie.js");
     return new SecureCookie({secret: 'WebdaSecret'}, data);
   }
 
@@ -315,7 +299,7 @@ class Webda extends EventEmitter {
    *
    * @param {String} name The service name to retrieve
    */
-  getService(name) {
+  getService(name:string) : Service {
     if (!this._config || !name) {
       return;
     }
@@ -323,6 +307,10 @@ class Webda extends EventEmitter {
     if (this._config._services !== undefined) {
       return this._config._services[name];
     }
+  }
+
+  getTypedService<T extends Service>(service: string) : T {
+    return <T> this.getService(service);
   }
 
   /**
@@ -343,7 +331,7 @@ class Webda extends EventEmitter {
     for (let i in this._services) {
       if (!type) {
         result[i] = this._services[i].getModda();
-      } else if (this._services[i].prototype instanceof type) {
+      } else if ((<any> this._services[i]).prototype instanceof type) {
         result[i] = this._services[i].getModda();
       }
     }
@@ -520,7 +508,7 @@ class Webda extends EventEmitter {
    */
   getServiceWithRoute(ctx, route) : Executor {
     var name = route.executor;
-    var executor = this.getService(name);
+    var executor = <Executor> this.getService(name);
     // If no service is found then check for routehelpers
     if (executor === undefined && this._routehelpers[name] !== undefined) {
       executor = new this._routehelpers[name](this, name, _extend(_extend({}, this._config.parameters), route));
@@ -579,7 +567,7 @@ class Webda extends EventEmitter {
    * Return the global parameters of a domain
    * @param {String} vhost The domain to retrieve or default if not specified
    */
-  getGlobalParams(vhost) : any {
+  getGlobalParams() : any {
     return this._config.parameters || {};
   }
 
@@ -752,7 +740,7 @@ class Webda extends EventEmitter {
       } else if (modda.type == "lambda") {
         // This should start the lambda
         this._services[i] = require('./routehelpers/lambda');
-        this._services[i]._arn = modda.arn;
+        (<any> this._services[i])._arn = modda.arn;
       } else if (modda.type == "npm") {
         // The package should export the default
         this._services[i] = require(modda.package);
@@ -818,7 +806,7 @@ class Webda extends EventEmitter {
    * @param {Object} headers - The request headers if any
    * @return {Object} A new context object to pass along
    */
-  newContext(body, session, stream, files) {
+  newContext(body, session, stream = undefined, files = []) {
     return new Context(this, body, session, stream, files);
   }
 
@@ -843,4 +831,4 @@ class Webda extends EventEmitter {
   }
 }
 
-module.exports = Webda;
+export { Webda, _extend };

@@ -1,5 +1,4 @@
-"use strict"
-const Executor = require("../services/executor.js");
+import { Executor } from "../index";
 
 /**
  * Execute a custom JS code, would recommand to use file instead to avoid polluing the configuration file
@@ -18,4 +17,4 @@ class InlineRouteHelper extends Executor {
   }
 }
 
-module.exports = InlineRouteHelper
+export { InlineRouteHelper };

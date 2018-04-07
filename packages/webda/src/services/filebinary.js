@@ -177,6 +177,7 @@ class FileBinary extends Binary {
   }
 
   cascadeDelete(info, uuid) {
+    console.log('should cascadeDelete', info.hash, '_' + uuid)
     this._cleanUsage(info.hash, '_' + uuid);
   }
 

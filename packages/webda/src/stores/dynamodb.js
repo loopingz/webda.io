@@ -1,5 +1,5 @@
 "use strict";
-const Store = require("./store");
+const Store = require("./store").Store;
 const CoreModel = require("../models/coremodel").CoreModel;
 const AWSServiceMixIn = require("../services/aws-mixin");
 

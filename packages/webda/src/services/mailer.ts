@@ -1,12 +1,18 @@
 "use strict";
-
+import { Service } from '../index';
 var nodemailer = require('nodemailer');
 var ses = require('nodemailer-ses-transport');
-const Service = require("./service");
 const fs = require('fs');
 const Mustache = require('mustache');
 const EmailTemplate = require('email-templates').EmailTemplate
 
+interface IEmailTemplate {
+  render(options: any);
+}
+
+interface TemplatesMap {
+  [key: string]: IEmailTemplate;
+}
 /**
  * A basic Mailer based on the nodemailer module
  *
@@ -18,11 +24,13 @@ const EmailTemplate = require('email-templates').EmailTemplate
  * config: { ... }
  */
 class Mailer extends Service {
+  _transporter: any;
+  _templates: TemplatesMap = {};
   /** @ignore */
   constructor(webda, name, params) {
     super(webda, name, params);
     try {
-      let config = {};
+      let config : any = {};
       Object.assign(config, params.config);
       if (config.transport === 'ses' && !config.SES) {
         let aws = require('aws-sdk');
@@ -38,10 +46,7 @@ class Mailer extends Service {
   }
 
   init() {
-    this._templates = {};
-    if (!this._params.templates) {
-      this._params.templates = "./templates";
-    }
+    this._params.templates = this._params.templates || "./templates";
   }
 
   _getTemplate(name) {
@@ -65,7 +70,7 @@ class Mailer extends Service {
    * @params options Options to pass to the sendMail option of the nodemailer module
    * @params callback to pass to the sendMail
    */
-  send(options, callback) {
+  async send(options, callback = undefined) : Promise<any> {
     if (this._transporter === undefined) {
       this._webda.log('ERROR', 'Cannot send email as no transporter is defined');
       return Promise.reject("Cannot send email as no transporter is defined");
@@ -73,7 +78,6 @@ class Mailer extends Service {
     if (!options.from) {
       options.from = this._params.sender;
     }
-    var promise = Promise.resolve();
     if (options.template) {
       if (!options.replacements) {
         options.replacements = {};
@@ -81,26 +85,21 @@ class Mailer extends Service {
       options.replacements.now = new Date();
       let template = this._getTemplate(options.template);
       if (template) {
-        promise = promise.then(() => {
-          return template.render(options.replacements);
-        }).then((result) => {
-          if (result.subject) {
-            options.subject = result.subject;
-          }
-          if (result.html) {
-            options.html = result.html;
-          }
-          if (result.text) {
-            options.text = result.text;
-          }
-        });
+        let result = await template.render(options.replacements);
+        if (result.subject) {
+          options.subject = result.subject;
+        }
+        if (result.html) {
+          options.html = result.html;
+        }
+        if (result.text) {
+          options.text = result.text;
+        }
       } else {
         throw Error("Unknown mail template");
       }
     }
-    return promise.then(() => {
-      return this._transporter.sendMail(options, callback)
-    });
+    return this._transporter.sendMail(options, callback)
   }
 
   /** @ignore */
@@ -129,4 +128,4 @@ class Mailer extends Service {
   }
 }
 
-module.exports = Mailer
+export { Mailer }

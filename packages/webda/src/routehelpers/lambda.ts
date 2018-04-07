@@ -1,6 +1,4 @@
-"use strict";
-const Executor = require("../services/executor.js");
-const LambdaCaller = require("../utils/lambdacaller.js");
+import { Executor, LambdaCaller, Context } from "../index";
 
 /**
  * Execute a Lambda function and return the result, it is usefull for remote moddas already exposed
@@ -54,7 +52,7 @@ class LambdaRouteHelper extends Executor {
     ctx.end();
   }
 
-  execute(ctx) {
+  execute(ctx : Context) : Promise<any> {
     return new Promise((resolve, reject) => {
       var caller;
       try {
@@ -77,4 +75,4 @@ class LambdaRouteHelper extends Executor {
   }
 }
 
-module.exports = LambdaRouteHelper
+export { LambdaRouteHelper };

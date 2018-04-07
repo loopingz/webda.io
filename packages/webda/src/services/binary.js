@@ -1,6 +1,6 @@
 "use strict";
-const Executor = require("./executor.js");
-const Store = require("../stores/store.js");
+const Executor = require("./executor.js").Executor;
+const Store = require("../stores/store.js").Store;
 const fs = require("fs");
 const path = require("path");
 const mime = require('mime-types');
@@ -101,7 +101,7 @@ class Binary extends Executor {
    * @emits 'binaryGet'
    */
   get(info) {
-    return this.emit('Binary.Get', {
+    return this.emitSync('Binary.Get', {
       'object': info,
       'service': this
     }).then(() => {
@@ -247,14 +247,14 @@ class Binary extends Executor {
       update = updated;
       if (info) {
         this.cascadeDelete(info, object_uid);
-        return this.emit('Binary.Update', {
+        return this.emitSync('Binary.Update', {
           'object': fileObj,
           'old': info,
           'service': this,
           'target': object
         });
       } else {
-        return this.emit('Binary.Create', {
+        return this.emitSync('Binary.Create', {
           'object': fileObj,
           'service': this,
           'target': object
@@ -275,7 +275,7 @@ class Binary extends Executor {
     var update;
     return targetStore.deleteItemFromCollection(object.uuid, property, index, info.hash, 'hash').then((updated) => {
       update = updated;
-      return this.emit('Binary.Delete', {
+      return this.emitSync('Binary.Delete', {
         'object': info,
         'service': this
       });
@@ -318,41 +318,25 @@ class Binary extends Executor {
 
     if (!this._params.expose.restrict.get) {
       url = this._params.expose.url + "/{store}/{uid}/{property}/{index}";
-      this._addRoute(url, {
-        "method": ["GET"],
-        "executor": this._name,
-        "_method": this.httpRoute
-      });
+      this._addRoute(url, ["GET"], this.httpRoute);
     }
 
     if (!this._params.expose.restrict.create) {
       // No need the index to add file
       url = this._params.expose.url + "/{store}/{uid}/{property}";
-      this._addRoute(url, {
-        "method": ["POST"],
-        "executor": this._name,
-        "_method": this.httpPost
-      });
+      this._addRoute(url, ["POST"], this.httpPost);
     }
 
     if (!this._params.expose.restrict.create) {
       // Add file with challenge
       url = this._params.expose.url + "/upload/{store}/{uid}/{property}/{index}";
-      this._addRoute(url, {
-        "method": ["PUT"],
-        "executor": this._name,
-        "_method": this.httpChallenge
-      });
+      this._addRoute(url, ["PUT"], this.httpChallenge);
     }
 
     if (!this._params.expose.restrict.delete) {
       // Need hash to avoid concurrent delete
       url = this._params.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
-      this._addRoute(url, {
-        "method": ["DELETE"],
-        "executor": this._name,
-        "_method": this.httpRoute
-      });
+      this._addRoute(url, ["DELETE"], this.httpRoute);
     }
   }
 

@@ -1,33 +1,73 @@
-module.exports = {
-  Core: require('./core'),
+import { Webda, _extend } from './core';
+import { Service } from './services/service';
+import { Executor } from './services/executor';
+// Policies
+import { OwnerPolicy } from './policies/ownerpolicy';
+// Models
+import { CoreModel } from './models/coremodel';
+import { Ident } from './models/ident';
+import { User } from './models/user';
+// Utils
+import { Context } from './utils/context';
+import { SecureCookie } from './utils/cookie';
+import { LambdaCaller } from './utils/lambdacaller';
+// Handler
+import { LambdaHandler } from './handlers/lambda';
+// Store
+import { Store } from './stores/store';
+// Services
+import { Mailer } from './services/mailer';
+import { Authentication } from './services/authentication';
+
+
+const AsyncEvents = require('./services/asyncevents');
+const AWSMixIn = require('./services/aws-mixin');
+const Binary = require('./services/binary');
+const FileBinary = require('./services/filebinary');
+
+const S3Binary = require('./services/s3binary');
+// Store
+const DynamoDBStore = require('./stores/dynamodb');
+const FileStore = require('./stores/file');
+const MemoryStore = require('./stores/memory');
+const MongoDBStore = require('./stores/mongodb');
+// Queues
+const Queue = require('./queues/queueservice');
+const SQSQueue = require('./queues/sqsqueue');
+const MemoryQueue = require('./queues/memoryqueue');
+
+export {
+  Webda as Core,
+  _extend,
   // Services
-  Service: require('./services/service'),
-  AsyncEvents: require('./services/asyncevents'),
-  AWSMixIn: require('./services/aws-mixin'),
-  Binary: require('./services/binary'),
-  Executor: require('./services/executor'),
-  FileBinary: require('./services/filebinary'),
-  Mailer: require('./services/mailer'),
-  Authentication: require('./services/authentication'),
-  S3Binary: require('./services/s3binary'),
+  Service,
+  Executor,
+  OwnerPolicy,
+  AsyncEvents,
+  AWSMixIn,
+  Binary,
+  FileBinary,
+  Mailer,
+  Authentication,
+  S3Binary,
   // Store
-  Store: require('./stores/store'),
-  DynamoDBStore: require('./stores/dynamodb'),
-  FileStore: require('./stores/file'),
-  MemoryStore: require('./stores/memory'),
-  MongoDBStore: require('./stores/mongodb'),
+  Store,
+  DynamoDBStore,
+  FileStore,
+  MemoryStore,
+  MongoDBStore,
   // Queues
-  Queue: require('./queues/queueservice'),
-  SQSQueue: require('./queues/sqsqueue'),
-  MemoryQueue: require('./queues/memoryqueue'),
-  // Policies
-  OwnerPolicy: require('./policies/ownerpolicy'),
+  Queue,
+  SQSQueue,
+  MemoryQueue,
   // Models
-  CoreModel: require('./models/coremodel').CoreModel,
-  Ident: require('./models/ident').Ident,
+  CoreModel,
+  Ident,
+  User,
   // Utils
-  SecureCookie: require('./utils/cookie'),
-  LambdaCaller: require('./utils/lambdacaller'),
+  SecureCookie,
+  LambdaCaller,
+  Context,
   // Handler
-  LambdaHandler: require('./handlers/lambda')
+  LambdaHandler
 }

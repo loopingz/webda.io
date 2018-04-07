@@ -1,7 +1,5 @@
 "use strict";
-var Webda = require('../core');
-var SecureCookie = require('../utils/cookie');
-var _extend = require("util")._extend;
+import { Core as Webda, SecureCookie } from '../index';
 const cookieParse = require("cookie").parse;
 
 /**
@@ -14,7 +12,7 @@ const cookieParse = require("cookie").parse;
  * @class
  */
 class LambdaServer extends Webda {
-
+  _result: any
   /**
    * @ignore
    */
@@ -42,7 +40,7 @@ class LambdaServer extends Webda {
    */
   handleRequest(event, context , callback) {
     this._result = {};
-    var cookies = {};
+    var cookies : any = {};
     var rawCookie = event.headers.Cookie;
     if (rawCookie) {
       cookies = cookieParse(rawCookie);
@@ -88,7 +86,7 @@ class LambdaServer extends Webda {
         ctx.setHeader('Access-Control-Allow-Origin', origin);
       }
     }
-    ctx.setHeader('Access-Control-Allow-Credentials', true);
+    ctx.setHeader('Access-Control-Allow-Credentials', 'true');
 
     if (method === 'OPTIONS') {
       // Return allow all methods for now
@@ -147,4 +145,4 @@ class LambdaServer extends Webda {
   }
 }
 
-module.exports = LambdaServer
+export { LambdaServer as LambdaHandler }

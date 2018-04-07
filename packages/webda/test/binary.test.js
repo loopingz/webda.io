@@ -134,10 +134,10 @@ describe('Binary', function() {
 
     it('abstract', function() {
 
-      assert.throws(service.store, Error);
-      assert.throws(service.getUsageCount, Error);
-      assert.throws(service.update, Error);
-      assert.throws(service.delete, Error);
+      Utils.throws(service.store, Error);
+      Utils.throws(service.getUsageCount, Error);
+      Utils.throws(service.update, Error);
+      Utils.throws(service.delete, Error);
 
     })
 

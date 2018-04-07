@@ -7,7 +7,7 @@ import { serialize as cookieSerialize } from "cookie";
 import { Context } from "./utils/context";
 import * as EventEmitter from 'events';
 import {Store, Service, Executor, SecureCookie, MemoryStore, FileStore, DynamoStore, Authentication,
-  CoreModel, Ident, Mailer, MongoStore, MemoryQueue, SQSQueue} from './index';
+  CoreModel, Ident, Mailer, MongoStore, MemoryQueue, SQSQueue, EventService, FileBinary, S3Binary} from './index';
 import { CoreModelDefinition } from "./models/coremodel";
 
 const _extend = require('util')._extend;
@@ -67,10 +67,10 @@ class Webda extends EventEmitter {
     this._services['Webda/MemoryStore'] = MemoryStore;
     this._services['Webda/MongoStore'] = MongoStore;
     this._services['Webda/DynamoStore'] = DynamoStore;
-    this._services['Webda/FileBinary'] = require('./services/filebinary');
-    this._services['Webda/S3Binary'] = require('./services/s3binary');
+    this._services['Webda/FileBinary'] = FileBinary;
+    this._services['Webda/S3Binary'] = S3Binary;
     this._services['Webda/Mailer'] = Mailer;
-    this._services['Webda/AsyncEvents'] = require('./services/asyncevents');
+    this._services['Webda/AsyncEvents'] = EventService;
     this._services['Webda/MemoryQueue'] = MemoryQueue;
     this._services['Webda/SQSQueue'] = SQSQueue;
     // Models

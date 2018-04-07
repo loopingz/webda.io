@@ -1,8 +1,6 @@
 "use strict";
 // Load the AWS SDK for Node.js
-const Binary = require("./binary");
-const _extend = require('util')._extend;
-const AWSServiceMixIn = require("./aws-mixin").AWSServiceMixIn;
+import { Binary, AWSMixIn, _extend, Context } from '../index';
 
 /**
  * S3Binary handles the storage of binary on a S3 bucket
@@ -20,7 +18,10 @@ const AWSServiceMixIn = require("./aws-mixin").AWSServiceMixIn;
  *
  * See Binary the general interface
  */
-class S3Binary extends AWSServiceMixIn(Binary) {
+class S3Binary extends AWSMixIn(Binary) {
+  AWS:any;
+  _s3:any;
+
   /** @ignore */
   constructor(webda, name, params) {
     super(webda, name, params);
@@ -35,19 +36,14 @@ class S3Binary extends AWSServiceMixIn(Binary) {
     this._s3 = new this.AWS.S3();
   }
 
-  initRoutes(config, expose) {
-    super.initRoutes(config, expose);
+  initRoutes(config) {
+    super.initRoutes(config);
     // Will use getRedirectUrl so override the default route
     var url = this._url + "/{store}/{uid}/{property}/{index}";
-    this._addRoute(url, {
-      "method": ["GET"],
-      "executor": this._name,
-      "expose": expose,
-      "_method": this.getRedirectUrl
-    });
+    this._addRoute(url, ["GET"], this.getRedirectUrl);
   }
 
-  putRedirectUrl(ctx) {
+  async putRedirectUrl(ctx: Context) : Promise<string> {
     if (ctx.body.hash === undefined) {
       this._webda.log('WARN', 'Request not conform', ctx.body);
       throw 403;
@@ -110,25 +106,21 @@ class S3Binary extends AWSServiceMixIn(Binary) {
     });
   }
 
-  getRedirectUrlFromObject(obj, property, index, context, expire) {
+  async getRedirectUrlFromObject(obj, property, index, context, expire = 30) {
     let info = obj[property][index];
-    var params = {
+    var params : any = {
       Bucket: this._params.bucket,
       Key: this._getPath(info.hash)
     };
-    if (expire === undefined) {
-      expire = 30;
-    }
     params.Expires = expire; // A get should not take more than 30s
-    return this.emit('Binary.Get', {
+    await this.emitSync('Binary.Get', {
       'object': info,
       'service': this,
       'context': context
-    }).then(() => {
-      params.ResponseContentDisposition = "attachment; filename=" + info.name;
-      params.ResponseContentType = info.mimetype;
-      return this.getSignedUrl('getObject', params);
     });
+    params.ResponseContentDisposition = "attachment; filename=" + info.name;
+    params.ResponseContentType = info.mimetype;
+    return this.getSignedUrl('getObject', params);
   }
 
   getRedirectUrl(ctx) {
@@ -198,14 +190,14 @@ class S3Binary extends AWSServiceMixIn(Binary) {
     return false;
   }
 
-  _getPath(hash, postfix) {
+  _getPath(hash, postfix = undefined) {
     if (postfix === undefined) {
       return hash + '/data';
     }
     return hash + '/' + postfix;
   }
 
-  _getUrl(info, ctx) {
+  _getUrl(info, ctx : Context) {
     // Dont return any url if 
     if (!ctx) return;
     return ctx._route._http.protocol + "://" + ctx._route._http.headers.host + this._url + "/upload/data/" + ctx.body.hash;
@@ -223,42 +215,34 @@ class S3Binary extends AWSServiceMixIn(Binary) {
     });
   }
 
-  store(targetStore, object, property, file, metadatas, index) {
-    var self = this;
+  async store(targetStore, object, property, file, metadatas, index = "add") : Promise<any> {
     this._checkMap(targetStore._name, property);
     this._prepareInput(file);
     file = _extend(file, this._getHashes(file.buffer));
-    if (index === undefined) {
-      index = "add";
-    }
-    return this._getS3(file.hash).then((data) => {
-      if (data === undefined) {
-        var metadatas = {};
-        metadatas['x-amz-meta-challenge'] = file.challenge;
-        var s3obj = new this.AWS.S3({
-          params: {
-            Bucket: self._params.bucket,
-            Key: self._getPath(file.hash),
-            "Metadata": metadatas
+    let data = this._getS3(file.hash);
+    if (data === undefined) {
+      let s3metas : any = {};
+      s3metas['x-amz-meta-challenge'] = file.challenge;
+      var s3obj = new this.AWS.S3({
+        params: {
+          Bucket: this._params.bucket,
+          Key: this._getPath(file.hash),
+          "Metadata": s3metas
+        }
+      });
+      await new Promise((resolve, reject) => {
+        s3obj.upload({
+          Body: file.buffer
+        }, function(err, data) {
+          if (err) {
+            return reject(err);
           }
+          return resolve();
         });
-        return new Promise((resolve, reject) => {
-          s3obj.upload({
-            Body: file.buffer
-          }, function(err, data) {
-            if (err) {
-              return reject(err);
-            }
-            return resolve();
-          });
-        });
-      }
-      return Promise.resolve();
-    }).then(() => {
-      return this.putMarker(file.hash, object.uuid, targetStore._name);
-    }).then(() => {
-      return self.updateSuccess(targetStore, object, property, index, file, metadatas);
-    });
+      });
+    }
+    await this.putMarker(file.hash, object.uuid, targetStore._name);
+    return this.updateSuccess(targetStore, object, property, index, file, metadatas);
   }
 
   update(targetStore, object, property, index, file, metadatas) {
@@ -375,4 +359,4 @@ class S3Binary extends AWSServiceMixIn(Binary) {
   }
 }
 
-module.exports = S3Binary;
+export { S3Binary };

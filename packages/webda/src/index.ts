@@ -25,17 +25,16 @@ import { MongoStore } from './stores/mongodb';
 // Services
 import { Mailer } from './services/mailer';
 import { Authentication } from './services/authentication';
+import { EventService } from './services/asyncevents';
+import { Binary } from './services/binary';
+import { FileBinary } from './services/filebinary';
+import { S3Binary } from './services/s3binary';
 
 // Queues
 import { Queue } from './queues/queueservice';
 import { SQSQueue } from './queues/sqsqueue';
 import { MemoryQueue } from './queues/memoryqueue';
 
-
-const AsyncEvents = require('./services/asyncevents');
-const Binary = require('./services/binary');
-const FileBinary = require('./services/filebinary');
-const S3Binary = require('./services/s3binary');
 
 export {
   Webda as Core,
@@ -44,7 +43,7 @@ export {
   Service,
   Executor,
   OwnerPolicy,
-  AsyncEvents,
+  EventService,
   AWSMixIn,
   Binary,
   FileBinary,

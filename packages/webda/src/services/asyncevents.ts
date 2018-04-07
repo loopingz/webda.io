@@ -1,8 +1,12 @@
-"use strict";
-const Service = require("./service").Service;
+import { Service, Queue } from '../index';
 
 class AsyncEvent {
-  constructor(service, type, payload) {
+  service: Service;
+  type: string;
+  payload: any;
+  time: Date;
+
+  constructor(service, type, payload = {}) {
     this.service = service;
     this.type = type;
     this.payload = payload;
@@ -20,7 +24,16 @@ class AsyncEvent {
   }
 }
 
+interface QueueMap {
+  [key: string]: Queue;
+}
+
 class EventService extends Service {
+  _callbacks: any;
+  _queues: QueueMap;
+  _defaultQueue: string;
+  _async: boolean;
+
   /**
    * @ignore
    * Setup the default routes
@@ -35,7 +48,7 @@ class EventService extends Service {
         if (!this._defaultQueue) {
           this._defaultQueue = key;
         }
-        this._queues[key] = this.getService(this._params.queues[key]);
+        this._queues[key] = <Queue> this.getService(this._params.queues[key]);
       });
     }
     this._async = !config.sync;
@@ -95,4 +108,4 @@ class EventService extends Service {
   }
 }
 
-module.exports = EventService;
+export { EventService };

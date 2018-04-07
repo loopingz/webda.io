@@ -1,6 +1,5 @@
 "use strict";
-const Executor = require("./executor.js").Executor;
-const Store = require("../stores/store.js").Store;
+import { Executor, Store, CoreModel, Context } from '../index';
 const fs = require("fs");
 const path = require("path");
 const mime = require('mime-types');
@@ -38,6 +37,8 @@ class BinaryMap {
  */
 class Binary extends Executor {
 
+  _lowercaseMaps: any;
+  _url: string;
   /**
    * When you store a binary to be able to retrieve it you need to store the information into another object
    *
@@ -53,7 +54,7 @@ class Binary extends Executor {
    * @param {Object} metadatas to add to the binary object
    * @emits 'binaryCreate'
    */
-  store(targetStore, object, property, file, metadatas) {
+  async store(targetStore, object, property, file, metadatas, index = 'add') : Promise<any> {
     throw Error("AbstractBinary has no store method");
   }
 
@@ -76,7 +77,7 @@ class Binary extends Executor {
    * @param {Object} metadatas to add to the binary object
    * @emits 'binaryUpdate'
    */
-  update(targetStore, object, property, index, file, metadatas) {
+  update(targetStore, object, property, index, file, metadatas) : Promise<CoreModel>  {
     throw Error("AbstractBinary has no update method");
   }
 
@@ -90,7 +91,7 @@ class Binary extends Executor {
    * @param {Number} index The index of the file to change in the property
    * @emits 'binaryDelete'
    */
-  delete(targetStore, object, property, index) {
+  delete(targetStore, object, property, index) : Promise<CoreModel> {
     throw Error("AbstractBinary has no update method");
   }
 
@@ -100,13 +101,12 @@ class Binary extends Executor {
    * @param {Object} info The reference stored in your target object
    * @emits 'binaryGet'
    */
-  get(info) {
-    return this.emitSync('Binary.Get', {
+  async get(info) {
+    await this.emitSync('Binary.Get', {
       'object': info,
       'service': this
-    }).then(() => {
-      return this._get(info);
-    });
+    })
+    return this._get(info);
   }
 
   /**
@@ -116,7 +116,7 @@ class Binary extends Executor {
    * @param {String} filepath to save the binary to
    */
   downloadTo(info, filename) {
-    var readStream = this._get(info);
+    var readStream : any = this._get(info);
     var writeStream = fs.createWriteStream(filename);
     return new Promise((resolve, reject) => {
       writeStream.on('finish', (src) => {
@@ -142,7 +142,7 @@ class Binary extends Executor {
     }
   }
 
-  _getUrl(info) {
+  _getUrl(info, ctx : Context) {
     return;
   }
 
@@ -184,7 +184,7 @@ class Binary extends Executor {
   }
 
   _getHashes(buffer) {
-    var result = {};
+    var result : any = {};
     // Using MD5 as S3 content verification use md5
     var hash = crypto.createHash('md5');
     var challenge = crypto.createHash('md5');
@@ -292,13 +292,15 @@ class Binary extends Executor {
       file = {};
       file.buffer = req.body;
       file.mimetype = req.headers.contentType;
-      file.size = len(req.body);
+      file.size = req.body.length;
       file.originalname = '';
     }
     return file;
   }
 
   initRoutes(config) {
+    let url;
+
     if (typeof(this._params.expose) == "boolean") {
       this._params.expose = {};
       this._params.expose.url = "/" + this._name.toLowerCase();
@@ -312,9 +314,7 @@ class Binary extends Executor {
     if (this._params.expose.restrict == undefined) {
       this._params.expose.restrict = {}
     }
-    this._url = this._params.expose.url;
-    // Need index to update or get
-    var url;
+    url = this._url = this._params.expose.url;
 
     if (!this._params.expose.restrict.get) {
       url = this._params.expose.url + "/{store}/{uid}/{property}/{index}";
@@ -340,17 +340,14 @@ class Binary extends Executor {
     }
   }
 
-  httpPost(ctx) {
+  async httpPost(ctx: Context) {
     let targetStore = this._verifyMapAndStore(ctx);
-    return targetStore.get(ctx._params.uid).then((object) => {
-      return this.store(targetStore, object, ctx._params.property, this._getFile(ctx), ctx.body).then((object) => {
-        ctx.write(object);
-        return Promise.resolve();
-      });
-    });
+    let object = await targetStore.get(ctx._params.uid);
+    object = await this.store(targetStore, object, ctx._params.property, this._getFile(ctx), ctx.body);
+    ctx.write(object);
   }
 
-  _verifyMapAndStore(ctx) {
+  _verifyMapAndStore(ctx : Context) : Store {
     // To avoid any probleme lowercase everything
     var map = this._params.map[this._lowercaseMaps[ctx._params.store.toLowerCase()]];
     if (map === undefined) {
@@ -362,91 +359,84 @@ class Binary extends Executor {
     if (Array.isArray(map) && map.indexOf(ctx._params.property) == -1) {
       throw 404;
     }
-    var targetStore = this.getService(ctx._params.store);
+    var targetStore : Store = <Store> this.getService(ctx._params.store);
     if (targetStore === undefined) {
       throw 404;
     }
     return targetStore;
   }
 
-  putRedirectUrl(ctx) {
+  async putRedirectUrl(ctx : Context) : Promise<string> {
     // Dont handle the redirect url
     throw 404;
   }
 
-  storeBinary() {
-    return Promise.resolve();
+  async storeBinary(ctx: Context) {
+
   }
 
-  httpChallenge(ctx) {
-    return this.putRedirectUrl(ctx).then((url) => {
-      var base64String = new Buffer(ctx.body.hash, 'hex').toString('base64');
-      ctx.write({
-        url: url,
-        done: !(url !== undefined),
-        md5: base64String
-      });
-      return Promise.resolve();
+  async httpChallenge(ctx : Context) {
+    let url = await this.putRedirectUrl(ctx);
+    let base64String = new Buffer(ctx.body.hash, 'hex').toString('base64');
+    ctx.write({
+      url: url,
+      done: !(url !== undefined),
+      md5: base64String
     });
   }
 
   // Executor side
-  httpRoute(ctx) {
+  async httpRoute(ctx : Context) {
     let targetStore = this._verifyMapAndStore(ctx);
-    return targetStore.get(ctx._params.uid).then((object) => {
-      if (object === undefined) {
-        throw 404;
+    let object = await targetStore.get(ctx._params.uid);
+    if (object === undefined) {
+      throw 404;
+    }
+    if (object[ctx._params.property] !== undefined && typeof(object[ctx._params.property]) !== 'object') {
+      throw 403;
+    }
+    if (object[ctx._params.property] === undefined || object[ctx._params.property][ctx._params.index] === undefined) {
+      throw 404;
+    }
+    let action = 'unknown';
+    if (ctx._route._http.method == "GET") {
+      action = 'get_binary';
+    } else if (ctx._route._http.method == "DELETE") {
+      action = 'detach_binary';
+    } else if (ctx._route._http.method == "PUT") {
+      action = 'attach_binary';
+    }
+    await object.canAct(ctx, action);
+    if (ctx._route._http.method == "GET") {
+      var file = object[ctx._params.property][ctx._params.index];
+      ctx.writeHead(200, {
+        'Content-Type': file.mimetype === undefined ? 'application/octet-steam' : file.mimetype,
+        'Content-Length': file.size
+      });
+      let readStream : any = await this.get(file);
+      await new Promise((resolve, reject) => {
+        // We replaced all the event handlers with a simple call to readStream.pipe()
+        ctx._stream.on('finish', (src) => {
+          return resolve();
+        });
+        ctx._stream.on('error', (src) => {
+          return reject();
+        });
+        readStream.pipe(ctx._stream);
+      });
+    } else {
+      if (object[ctx._params.property][ctx._params.index].hash !== ctx._params.hash) {
+        throw 412;
       }
-      if (object[ctx._params.property] !== undefined && typeof(object[ctx._params.property]) !== 'object') {
-        throw 403;
-      }
-      if (object[ctx._params.property] === undefined || object[ctx._params.property][ctx._params.index] === undefined) {
-        throw 404;
-      }
-      let action = 'unknown';
-      if (ctx._route._http.method == "GET") {
-        action = 'get_binary';
-      } else if (ctx._route._http.method == "DELETE") {
-        action = 'detach_binary';
+      if (ctx._route._http.method == "DELETE") {
+        object = await this.delete(targetStore, object, ctx._params.property, ctx._params.index);
+        ctx.write(object);
       } else if (ctx._route._http.method == "PUT") {
-        action = 'attach_binary';
+        object = await this.update(targetStore, object, ctx._params.property, ctx._params.index, this._getFile(ctx), ctx.body);
+        ctx.write(object);
       }
-      return object.canAct(ctx, action);
-    }).then((object) => {
-      if (ctx._route._http.method == "GET") {
-        var file = object[ctx._params.property][ctx._params.index];
-        ctx.writeHead(200, {
-          'Content-Type': file.mimetype === undefined ? 'application/octet-steam' : file.mimetype,
-          'Content-Length': file.size
-        });
-        return this.get(file).then((readStream) => {
-          return new Promise((resolve, reject) => {
-            // We replaced all the event handlers with a simple call to readStream.pipe()
-            ctx._stream.on('finish', (src) => {
-              return resolve();
-            });
-            ctx._stream.on('error', (src) => {
-              return reject();
-            });
-            readStream.pipe(ctx._stream);
-          });
-        });
-      } else {
-        if (object[ctx._params.property][ctx._params.index].hash !== ctx._params.hash) {
-          throw 412;
-        }
-        if (ctx._route._http.method == "DELETE") {
-          return this.delete(targetStore, object, ctx._params.property, ctx._params.index).then((object) => {
-            ctx.write(object);
-          });
-        } else if (ctx._route._http.method == "PUT") {
-          return this.update(targetStore, object, ctx._params.property, ctx._params.index, this._getFile(ctx), ctx.body).then((object) => {
-            ctx.write(object);
-          });
-        }
-      }
-    });
+    }
   }
 }
 
-module.exports = Binary
+export { Binary }

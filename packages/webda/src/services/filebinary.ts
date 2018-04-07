@@ -1,7 +1,5 @@
-"use strict";
-const Binary = require('./binary');
+import { Binary, _extend, Context } from '../index';
 const fs = require("fs");
-const _extend = require('util')._extend;
 
 /**
  * FileBinary handles the storage of binary on a hard drive
@@ -28,8 +26,8 @@ class FileBinary extends Binary {
     }
   }
 
-  initRoutes(config, expose) {
-    super.initRoutes(config, expose);
+  initRoutes(config) {
+    super.initRoutes(config);
     // Will redirect to this URL for direct upload
     let url = this._url + "/upload/data/{hash}";
     config[url] = {
@@ -50,7 +48,7 @@ class FileBinary extends Binary {
     return fs.createReadStream(path);
   }
 
-  _getPath(hash, postfix) {
+  _getPath(hash, postfix = undefined) {
     if (postfix === undefined) {
       return this._params.folder + hash;
     }
@@ -71,7 +69,7 @@ class FileBinary extends Binary {
    *
    * @ignore
    */
-  putRedirectUrl(ctx) {
+  async putRedirectUrl(ctx : Context) : Promise<string> {
     if (ctx.body.hash === undefined) {
       this._webda.log('WARN', 'Request not conform', ctx.body);
       throw 400;
@@ -81,25 +79,23 @@ class FileBinary extends Binary {
         return Promise.resolve(this.getPutUrl(ctx));
       }
       // If the link is already register just return directly ok
-      return Promise.resolve();
+      return;
     }
     // Get the target object to add the mapping
     let targetStore = this._verifyMapAndStore(ctx);
-    return targetStore.get(ctx._params.uid).then((object) => {
-      return this.updateSuccess(targetStore, object, ctx._params.property, 'add', ctx.body, ctx.body.metadatas);
-    }).then((updated) => {
-      // Need to store the usage of the file
-      if (!fs.existsSync(this._getPath(ctx.body.hash))) {
-        fs.mkdirSync(this._getPath(ctx.body.hash));
-      }
-      this._touch(this._getPath(ctx.body.hash, ctx._params.store + "_" + ctx._params.uid));
-      if (this.challenge(ctx.body.hash, ctx.body.challenge)) {
-        // Return empty as we dont need to upload the data
-        return Promise.resolve();
-      }
-      // Return the url to upload the binary now
-      return Promise.resolve(this.getPutUrl(ctx));
-    });
+    let object = await targetStore.get(ctx._params.uid);
+    let updated = await this.updateSuccess(targetStore, object, ctx._params.property, 'add', ctx.body, ctx.body.metadatas);
+    // Need to store the usage of the file
+    if (!fs.existsSync(this._getPath(ctx.body.hash))) {
+      fs.mkdirSync(this._getPath(ctx.body.hash));
+    }
+    this._touch(this._getPath(ctx.body.hash, ctx._params.store + "_" + ctx._params.uid));
+    if (this.challenge(ctx.body.hash, ctx.body.challenge)) {
+      // Return empty as we dont need to upload the data
+      return;
+    }
+    // Return the url to upload the binary now
+    return this.getPutUrl(ctx);
   }
 
   /**
@@ -110,7 +106,7 @@ class FileBinary extends Binary {
    *
    * @ignore
    */
-  storeBinary(ctx) {
+  async storeBinary(ctx : Context) {
     var result = this._getHashes(ctx.body);
     if (ctx._params.hash !== result.hash) {
       throw 400;
@@ -126,7 +122,6 @@ class FileBinary extends Binary {
     }
     // Save the challenge
     this._touch(this._getPath(result.hash, "_" + result.challenge));
-    return Promise.resolve();
   }
 
   getUsageCount(hash) {
@@ -177,7 +172,6 @@ class FileBinary extends Binary {
   }
 
   cascadeDelete(info, uuid) {
-    console.log('should cascadeDelete', info.hash, '_' + uuid)
     this._cleanUsage(info.hash, '_' + uuid);
   }
 
@@ -191,7 +185,7 @@ class FileBinary extends Binary {
     this._touch(this._getPath(file.hash, targetStore._name + "_" + object.uuid));
   }
 
-  store(targetStore, object, property, file, metadatas) {
+  store(targetStore, object, property, file, metadatas, index = "add") {
     this._checkMap(targetStore._name, property);
     this._prepareInput(file);
     file = _extend(file, this._getHashes(file.buffer));
@@ -260,4 +254,4 @@ class FileBinary extends Binary {
   }
 }
 
-module.exports = FileBinary;
+export { FileBinary };

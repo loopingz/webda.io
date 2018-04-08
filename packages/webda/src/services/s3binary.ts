@@ -57,28 +57,24 @@ class S3Binary extends AWSMixIn(Binary) {
       'ContentMD5': base64String
     };
     // List bucket
-    return this._s3.listObjectsV2({
+    let data = this._s3.listObjectsV2({
       Bucket: this._params.bucket,
       Prefix: this._getPath(ctx.body.hash, '')
-    }).promise().then((data) => {
-      let foundMap = false;
-      let foundData = false;
-      for (let i in data.Contents) {
-        if (data.Contents[i].Key.endsWith('data')) foundData = true;
-        if (data.Contents[i].Key.endsWith(ctx._params.uid)) foundMap = true;
-      }
-      if (foundMap) {
-        if (foundData) return Promise.resolve();
-        return this.getSignedUrl('putObject', params);
-      }
-      return targetStore.get(ctx._params.uid).then((object) => {
-        return this.updateSuccess(targetStore, object, ctx._params.property, 'add', ctx.body, ctx.body.metadatas);
-      }).then((updated) => {
-        return this.putMarker(ctx.body.hash, ctx._params.uid, ctx._params.store);
-      }).then(() => {
-        return this.getSignedUrl('putObject', params);
-      });
-    });
+    }).promise();
+    let foundMap = false;
+    let foundData = false;
+    for (let i in data.Contents) {
+      if (data.Contents[i].Key.endsWith('data')) foundData = true;
+      if (data.Contents[i].Key.endsWith(ctx._params.uid)) foundMap = true;
+    }
+    if (foundMap) {
+      if (foundData) return;
+      return this.getSignedUrl('putObject', params);
+    }
+    let object = await targetStore.get(ctx._params.uid);
+    let updated = await this.updateSuccess(targetStore, object, ctx._params.property, 'add', ctx.body, ctx.body.metadatas);
+    await this.putMarker(ctx.body.hash, ctx._params.uid, ctx._params.store);
+    return this.getSignedUrl('putObject', params);
   }
 
   putMarker(hash, uuid, storeName) {
@@ -94,16 +90,8 @@ class S3Binary extends AWSMixIn(Binary) {
     return s3obj.putObject().promise();
   }
 
-  getSignedUrl(action, params) {
-    return new Promise((resolve, reject) => {
-      let callback = function(err, url) {
-        if (err) {
-          reject(err);
-        }
-        return resolve(url);
-      }
-      this._s3.getSignedUrl(action, params, callback);
-    });
+  async getSignedUrl(action, params) : Promise<string> {
+    return this._s3.getSignedUrl(action, params).promise();
   }
 
   async getRedirectUrlFromObject(obj, property, index, context, expire = 30) {
@@ -123,22 +111,18 @@ class S3Binary extends AWSMixIn(Binary) {
     return this.getSignedUrl('getObject', params);
   }
 
-  getRedirectUrl(ctx) {
+  async getRedirectUrl(ctx) {
     let targetStore = this._verifyMapAndStore(ctx);
-    return targetStore.get(ctx._params.uid).then((obj) => {
-      if (obj === undefined || obj[ctx._params.property] === undefined || obj[ctx._params.property][ctx._params.index] === undefined) {
-        throw 404;
-      }
-      return obj.canAct(ctx, 'get_binary');
-    }).then((obj) => {
-      return this.getRedirectUrlFromObject(obj, ctx._params.property, ctx._params.index, ctx);
-    }).then((url) => {
-      ctx.writeHead(302, {
-        'Location': url
-      });
-      ctx.end();
-      return Promise.resolve();
+    let obj = await targetStore.get(ctx._params.uid);
+    if (obj === undefined || obj[ctx._params.property] === undefined || obj[ctx._params.property][ctx._params.index] === undefined) {
+      throw 404;
+    }
+    await obj.canAct(ctx, 'get_binary');
+    let url = this.getRedirectUrlFromObject(obj, ctx._params.property, ctx._params.index, ctx);
+    ctx.writeHead(302, {
+      'Location': url
     });
+    ctx.end();
   }
 
   _get(info) {
@@ -148,21 +132,20 @@ class S3Binary extends AWSMixIn(Binary) {
     }).createReadStream();
   }
 
-  getUsageCount(hash) {
+  async getUsageCount(hash) : Promise<number> {
     // Not efficient if more than 1000 docs
-    return this._s3.listObjects({
+    let data = await this._s3.listObjects({
       Bucket: this._params.bucket,
       Prefix: this._getPath(hash, '')
-    }).promise().then(function(data) {
-      return Promise.resolve(data.Contents.length ? data.Contents.length - 1 : 0);
-    });
+    }).promise();
+    return data.Contents.length ? data.Contents.length - 1 : 0;
   }
 
   _cleanHash(hash) {
 
   }
 
-  _cleanUsage(hash, uuid) {
+  async _cleanUsage(hash, uuid) {
     // Dont clean data for now
     var params = {
       Bucket: this._params.bucket,
@@ -171,16 +154,14 @@ class S3Binary extends AWSMixIn(Binary) {
     return this._s3.deleteObject(params).promise();
   }
 
-  delete(targetStore, object, property, index) {
-    var hash = object[property][index].hash;
-    return this.deleteSuccess(targetStore, object, property, index).then((update) => {
-      return this._cleanUsage(hash, object.uuid).then(() => {
-        return Promise.resolve(update);
-      });
-    });
+  async delete(targetStore, object, property, index) {
+    let hash = object[property][index].hash;
+    let update = await this.deleteSuccess(targetStore, object, property, index);
+    await this._cleanUsage(hash, object.uuid);
+    return update;
   }
 
-  cascadeDelete(info, uuid) {
+  async cascadeDelete(info, uuid) {
     return this._cleanUsage(info.hash, uuid).catch(function(err) {
       this._webda.log('WARN', 'Cascade delete failed', err);
     });
@@ -203,7 +184,7 @@ class S3Binary extends AWSMixIn(Binary) {
     return ctx._route._http.protocol + "://" + ctx._route._http.headers.host + this._url + "/upload/data/" + ctx.body.hash;
   }
 
-  _getS3(hash) {
+  async _getS3(hash) {
     return this._s3.headObject({
       Bucket: this._params.bucket,
       Key: this._getPath(hash)
@@ -219,7 +200,7 @@ class S3Binary extends AWSMixIn(Binary) {
     this._checkMap(targetStore._name, property);
     this._prepareInput(file);
     file = _extend(file, this._getHashes(file.buffer));
-    let data = this._getS3(file.hash);
+    let data = await this._getS3(file.hash);
     if (data === undefined) {
       let s3metas : any = {};
       s3metas['x-amz-meta-challenge'] = file.challenge;
@@ -230,50 +211,39 @@ class S3Binary extends AWSMixIn(Binary) {
           "Metadata": s3metas
         }
       });
-      await new Promise((resolve, reject) => {
-        s3obj.upload({
-          Body: file.buffer
-        }, function(err, data) {
-          if (err) {
-            return reject(err);
-          }
-          return resolve();
-        });
-      });
+      await s3obj.upload({ Body: file.buffer }).promise();
     }
     await this.putMarker(file.hash, object.uuid, targetStore._name);
     return this.updateSuccess(targetStore, object, property, index, file, metadatas);
   }
 
-  update(targetStore, object, property, index, file, metadatas) {
-    return this._cleanUsage(object[property][index].hash, object.uuid).then(() => {
-      return this.store(targetStore, object, property, file, metadatas, index);
-    });
+  async update(targetStore, object, property, index, file, metadatas) {
+    await this._cleanUsage(object[property][index].hash, object.uuid);
+    return this.store(targetStore, object, property, file, metadatas, index);
   }
 
-  ___cleanData() {
-    return this._s3.listObjectsV2({
+  async ___cleanData() {
+    let data = await this._s3.listObjectsV2({
       Bucket: this._params.bucket
-    }).promise().then((data) => {
-      var params = {
-        Bucket: this._params.bucket,
-        Delete: {
-          Objects: []
-        }
-      };
-      for (var i in data.Contents) {
-        params.Delete.Objects.push({
-          Key: data.Contents[i].Key
-        });
+    }).promise();
+    var params = {
+      Bucket: this._params.bucket,
+      Delete: {
+        Objects: []
       }
-      if (params.Delete.Objects.length === 0) {
-        return Promise.resolve();
-      }
-      return this._s3.deleteObjects(params).promise();
-    });
+    };
+    for (var i in data.Contents) {
+      params.Delete.Objects.push({
+        Key: data.Contents[i].Key
+      });
+    }
+    if (params.Delete.Objects.length === 0) {
+      return;
+    }
+    return this._s3.deleteObjects(params).promise();
   }
 
-  install(params) {
+  async install(params) {
     if (this._params.region) {
       params.region = this._params.region;
     }

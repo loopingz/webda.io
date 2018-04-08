@@ -10,8 +10,9 @@ before_script:
   - sleep 15
   - mongo webda-test --eval 'db.createUser({user:"travis",pwd:"test",roles:["readWrite"]});'
 script:
-  - npm run cover
+  - npm run test
 after_success:
+  - npm run sonarcover
   - sonar-scanner
 before_deploy:
   - npm run build

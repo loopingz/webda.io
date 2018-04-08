@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc",
     "pretest": "npm run build",
-    "test": "nyc mocha",
+    "test": "nyc mocha --timeout=100000",
     "run": "node core",
     "format": "node ./scripts/format.js",
     "sonarcover": "node_modules/.bin/remap-istanbul -i reports/coverage-final.json -o src-reports -t lcovonly -b src/"

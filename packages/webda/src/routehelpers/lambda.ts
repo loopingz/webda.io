@@ -52,26 +52,21 @@ class LambdaRouteHelper extends Executor {
     ctx.end();
   }
 
-  execute(ctx : Context) : Promise<any> {
-    return new Promise((resolve, reject) => {
-      var caller;
-      try {
-        caller = new LambdaCaller(ctx._params);
-      } catch (e) {
-        ctx.writeHead(500, {
-          'Content-Type': 'text/plain'
-        });
-        ctx.end();
-        return reject(e);
-      }
-      caller.execute({
-        '_http': ctx._route._http
-      }).then((data) => {
-        return resolve(this.handleResult(ctx, data.Payload));
-      }).catch((err) => {
-        return reject(err);
+  async execute(ctx : Context) : Promise<any> {
+    var caller;
+    try {
+      caller = new LambdaCaller(ctx._params);
+    } catch (e) {
+      ctx.writeHead(500, {
+        'Content-Type': 'text/plain'
       });
+      ctx.end();
+      throw e;
+    }
+    let data = caller.execute({
+      '_http': ctx._route._http
     });
+    await this.handleResult(ctx, data.Payload);
   }
 }
 

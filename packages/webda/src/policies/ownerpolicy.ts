@@ -61,11 +61,8 @@ class OwnerPolicy {
   /**
    * Return false if can't delete
    */
-  canDelete(ctx) {
-    if (ctx.session.getUserId() !== this.getOwner() && ctx.session.getUserId() !== this.uuid) {
-      throw 403;
-    }
-    return this;
+  async canDelete(ctx) {
+    return this.canUpdate(ctx);
   }
 }
 

@@ -72,7 +72,7 @@ class S3Binary extends AWSMixIn(Binary) {
       return this.getSignedUrl('putObject', params);
     }
     let object = await targetStore.get(ctx._params.uid);
-    let updated = await this.updateSuccess(targetStore, object, ctx._params.property, 'add', ctx.body, ctx.body.metadatas);
+    await this.updateSuccess(targetStore, object, ctx._params.property, 'add', ctx.body, ctx.body.metadatas);
     await this.putMarker(ctx.body.hash, ctx._params.uid, ctx._params.store);
     return this.getSignedUrl('putObject', params);
   }

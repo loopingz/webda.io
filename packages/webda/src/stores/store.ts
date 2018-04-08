@@ -155,7 +155,7 @@ class Store extends Executor {
     }
   }
 
-  _incrementAttribute(uid, prop, value) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async _incrementAttribute(uid, prop, value) : Promise<any> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
   async incrementAttribute(uid, prop, value) {
     // If value === 0 no need to update anything
@@ -193,7 +193,7 @@ class Store extends Executor {
     });
   }
 
-  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) : Promise<any> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
   async deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
     if (index === undefined || prop === undefined) {
@@ -216,7 +216,7 @@ class Store extends Executor {
     });
   }
 
-  _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) : Promise<any> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
   initMap(map) {
     if (map == undefined || map._init) {
@@ -290,7 +290,7 @@ class Store extends Executor {
     return object;
   }
 
-  _save(object, uid) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async _save(object, uid) : Promise<any> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
   /**
    * Update an object
@@ -538,9 +538,9 @@ class Store extends Executor {
     return Promise.all(promises);
   }
 
-  _update(object, uid, writeCondition?) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async _update(object, uid, writeCondition?) : Promise<any> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
 
-  cascadeDelete(obj: any, uuid:string) {
+  async cascadeDelete(obj: any, uuid:string) : Promise<any> {
     // We dont need uuid but Binary store will need it
     return this.delete(obj.uuid);
   }

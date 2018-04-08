@@ -331,7 +331,7 @@ class Webda extends EventEmitter {
     for (let i in this._services) {
       if (!type) {
         result[i] = this._services[i].getModda();
-      } else if ((<any> this._services[i]).prototype instanceof type) {
+      } else if (this._services[i].prototype instanceof type) {
         result[i] = this._services[i].getModda();
       }
     }
@@ -740,7 +740,7 @@ class Webda extends EventEmitter {
       } else if (modda.type == "lambda") {
         // This should start the lambda
         this._services[i] = require('./routehelpers/lambda');
-        (<any> this._services[i])._arn = modda.arn;
+        this._services[i]._arn = modda.arn;
       } else if (modda.type == "npm") {
         // The package should export the default
         this._services[i] = require(modda.package);

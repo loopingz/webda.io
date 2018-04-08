@@ -146,7 +146,7 @@ class Binary extends Executor {
     return;
   }
 
-  _get(info) {
+  _get(info) : ReadableStream {
     return;
   }
 
@@ -314,7 +314,7 @@ class Binary extends Executor {
     if (this._params.expose.restrict == undefined) {
       this._params.expose.restrict = {}
     }
-    url = this._url = this._params.expose.url;
+    this._url = this._params.expose.url;
 
     if (!this._params.expose.restrict.get) {
       url = this._params.expose.url + "/{store}/{uid}/{property}/{index}";

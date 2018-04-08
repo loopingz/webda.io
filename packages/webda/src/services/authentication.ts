@@ -326,7 +326,7 @@ class Authentication extends Executor {
     return mailer.send(mailOptions);
   }
 
-  sendValidationEmail(ctx, email) {
+  async sendValidationEmail(ctx, email) {
     var mailer : Mailer = this.getMailMan();
     let replacements = _extend({}, this._params.providers.email);
     replacements.context = ctx;
@@ -337,7 +337,7 @@ class Authentication extends Executor {
       template: 'PASSPORT_EMAIL_REGISTER',
       replacements: replacements
     };
-    mailer.send(mailOptions);
+    return mailer.send(mailOptions);
   }
 
   hashPassword(pass) {

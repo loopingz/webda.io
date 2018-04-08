@@ -84,7 +84,7 @@ class FileBinary extends Binary {
     // Get the target object to add the mapping
     let targetStore = this._verifyMapAndStore(ctx);
     let object = await targetStore.get(ctx._params.uid);
-    let updated = await this.updateSuccess(targetStore, object, ctx._params.property, 'add', ctx.body, ctx.body.metadatas);
+    await this.updateSuccess(targetStore, object, ctx._params.property, 'add', ctx.body, ctx.body.metadatas);
     // Need to store the usage of the file
     if (!fs.existsSync(this._getPath(ctx.body.hash))) {
       fs.mkdirSync(this._getPath(ctx.body.hash));

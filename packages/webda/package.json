@@ -16,7 +16,7 @@
     "test": "nyc mocha --timeout=100000",
     "run": "node core",
     "format": "node ./scripts/format.js",
-    "sonarcover": "node_modules/.bin/remap-istanbul -i reports/coverage-final.json -o src-reports -t lcovonly -b src/"
+    "sonarcover": "node_modules/.bin/remap-istanbul -i reports/coverage-final.json -o reports/ts-coverage -t lcovonly -b src/"
   },
   "dependencies": {
     "accept-language": "=3.0.15",

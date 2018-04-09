@@ -66,7 +66,7 @@ class LambdaRouteHelper extends Executor {
     let data = await caller.execute({
       '_http': ctx._route._http
     });
-    await this.handleResult(ctx, data.Payload);
+    this.handleResult(ctx, data.Payload);
   }
 }
 

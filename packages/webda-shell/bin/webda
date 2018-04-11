@@ -69,6 +69,9 @@ if (files.length) {
   let dir = path.dirname(files[0]);
   console.log(cfg.name + ' - v' + getVersion(dir).trim());
   consoleService = require(path.join(dir, cfg.handler));
+  if (consoleService.default) {
+    consoleService = consoleService.default;
+  }
 } else {
   consoleService = require(global.__webda_shell + '/lib/console/webda').default;
 }

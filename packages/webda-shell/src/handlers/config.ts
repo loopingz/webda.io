@@ -468,10 +468,15 @@ export class WebdaConfigurationServer extends WebdaServer {
    * @protected
    * @ignore Useless for documentation
    */
-  _loadModule(info) {
-    super._loadModule(info);
+  _loadModule(info, parent) {
+    super._loadModule(info, parent);
     for (let key in info.deployers) {
-      this._deployers[key] = require(info.deployers[key]);
+      let mod = require(path.join(parent, info.deployers[key]));
+      if (mod.default) {
+        this._deployers[key] = mod.default;  
+      } else {
+        this._deployers[key] = mod;
+      }      
     }
   }
 

@@ -1,11 +1,23 @@
-"use strict";
-const AWSDeployer = require("./aws");
-const DockerMixIn = require("./docker-mixin");
+import { AWSDeployer } from './aws';
+import { DockerMixIn } from './docker-mixin';
+import { ECR, ECS, EC2 } from 'aws-sdk';
 const ECS_ROLE_POLICY = '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ecs-tasks.amazonaws.com"},"Action":"sts:AssumeRole"}]}';
 
-class FargateDeployer extends DockerMixIn(AWSDeployer) {
+export class FargateDeployer extends DockerMixIn(AWSDeployer) {
 
-  deploy(args) {
+  _ecr: ECR;
+  _ecs: ECS;
+  _ec2: EC2;
+  _vpc: any;
+  _cluster: any;
+  _workers: any;
+  _subnets: any;
+  _taskRole: string;
+  _service: any;
+  _taskDefinitionArn: string;
+  _logGroupName: string;
+
+  async deploy(args) {
     // Fallback on us-east-1 if needed
     this.resources.region = this.resources.FargateRegion || 'us-east-1';
     this._AWS = this._getAWS(this.resources);
@@ -35,33 +47,24 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
     this.resources.taskDefinition = this.resources.taskDefinition || this.resources.serviceName;
 
     // Split subnets by comma
-    let promise = Promise.resolve();
     if (this.resources.subnets) {
       this._subnets = this.resources.subnets.split(',');
     } else {
       // If no subnets is provided retrieve the default ones
-      promise = this._getDefaultVPC();
+      await this._getDefaultVPC();
     }
 
-    return promise.then(() => {
-      return this._createLogGroup();
-    }).then(() => {
-      return this._createRepository();
-    }).then(() => {
-      return this.buildDockers();
-    }).then(() => {
-      if (this.resources.taskRole) {
-        return Promise.resolve(this.resources.taskRole);
-      }
-      return this.generateRoleARN(this.resources.serviceName, ECS_ROLE_POLICY);
-    }).then((res) => {
-      this._taskRole = res;
-      return this._createTaskDefinition();
-    }).then(() => {
-      return this._createCluster();
-    }).then(() => {
-      return this._createService();
-    });
+    await this._createLogGroup();
+    await this._createRepository();
+    await this.buildDockers();
+    if (!this.resources.taskRole) {
+      this._taskRole = await this.generateRoleARN(this.resources.serviceName, ECS_ROLE_POLICY);
+    } else {
+      this._taskRole = this.resources.taskRole;
+    }
+    await this._createTaskDefinition();
+    await this._createCluster();
+    await this._createService();
   }
 
   _createLogGroup() {
@@ -137,46 +140,45 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
     return promise;
   }
 
-  _createService() {
-    return this._ecs.listServices({
+  private async _createService() {
+    let res = await this._ecs.listServices({
       cluster: this._cluster.clusterName,
       launchType: 'FARGATE'
-    }).promise().then((res) => {
-      let serviceName = this._replaceForAWS(this.resources.serviceName);
-      for (let i in res.serviceArns) {
-        if (res.serviceArns[i].split('/')[1] === serviceName) {
-          this._service = res.serviceArns[i];
-          break;
+    }).promise();
+    let serviceName = this._replaceForAWS(this.resources.serviceName);
+    for (let i in res.serviceArns) {
+      if (res.serviceArns[i].split('/')[1] === serviceName) {
+        this._service = res.serviceArns[i];
+        break;
+      }
+    }
+    let serviceDefinition : any = {
+      desiredCount: this.resources.tasksNumber,
+      taskDefinition: this._taskDefinitionArn,
+      cluster: this._cluster.clusterName,
+      serviceName: serviceName,
+      launchType: 'FARGATE',
+      networkConfiguration: {
+        awsvpcConfiguration: {
+          subnets: this._subnets,
+          assignPublicIp: this.resources.publicIp,
+          securityGroups: []
         }
       }
-      let serviceDefinition = {
-        desiredCount: this.resources.tasksNumber,
-        taskDefinition: this._taskDefinitionArn,
-        cluster: this._cluster.clusterName,
-        serviceName: serviceName,
-        launchType: 'FARGATE',
-        networkConfiguration: {
-          awsvpcConfiguration: {
-            subnets: this._subnets,
-            assignPublicIp: this.resources.publicIp,
-            securityGroups: []
-          }
-        }
-      };
-      if (this.resources.securityGroup) {
-        serviceDefinition.networkConfiguration.awsvpcConfiguration.securityGroups.push(this.resources.securityGroup);
-      }
-      if (!this._service) {
-        // Create the service
-        return this._ecs.createService(serviceDefinition).promise();
-      } else {
-        serviceDefinition.service = serviceDefinition.serviceName;
-        delete serviceDefinition.serviceName;
-        delete serviceDefinition.launchType;
-        // Update the service
-        return this._ecs.updateService(serviceDefinition).promise();
-      }
-    })
+    };
+    if (this.resources.securityGroup) {
+      serviceDefinition.networkConfiguration.awsvpcConfiguration.securityGroups.push(this.resources.securityGroup);
+    }
+    if (!this._service) {
+      // Create the service
+      return this._ecs.createService(serviceDefinition).promise();
+    } else {
+      serviceDefinition.service = serviceDefinition.serviceName;
+      delete serviceDefinition.serviceName;
+      delete serviceDefinition.launchType;
+      // Update the service
+      return this._ecs.updateService(serviceDefinition).promise();
+    }
   }
 
   _createRepository() {
@@ -220,7 +222,7 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
     });
   }
 
-  _getWorkersDefinition() {
+  _getWorkersDefinition() : any[] {
     let containerDefinitions = [];
     for (let i in this._workers) {
       let worker = this._workers[i];
@@ -264,9 +266,9 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
     return false;
   }
 
-  _registerTaskDefinition(taskDefinition) {
+  async _registerTaskDefinition(taskDefinition) {
     taskDefinition = this._replaceForAWS(taskDefinition);
-    return this._ecs.registerTaskDefinition({
+    let params : ECS.RegisterTaskDefinitionRequest = {
       containerDefinitions: this._getWorkersDefinition(),
       family: taskDefinition,
       taskRoleArn: this._taskRole,
@@ -276,9 +278,9 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
       cpu: this.resources.taskCpu,
       memory: this.resources.taskMemory,
       executionRoleArn: this._taskRole
-    }).promise().then((res) => {
-      this._taskDefinitionArn = res.taskDefinition.taskDefinitionArn;
-    });
+    };
+    let res = await this._ecs.registerTaskDefinition(params).promise();
+    this._taskDefinitionArn = res.taskDefinition.taskDefinitionArn;
   }
 
   _createTaskDefinition() {
@@ -377,4 +379,3 @@ class FargateDeployer extends DockerMixIn(AWSDeployer) {
   }
 }
 
-module.exports = FargateDeployer;

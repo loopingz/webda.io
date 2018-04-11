@@ -1,6 +1,14 @@
-const CoreModel = require('webda/models/coremodel');
+import { CoreModel } from 'webda';
 
-class Deployment extends CoreModel {
+export default class Deployment extends CoreModel {
+  params: any;
+  parameters: any;
+  resources: any;
+  services: any;
+  units: any[];
+  _type: string;
+  callback: any;
+
   constructor(raw, secure) {
     super(raw, secure);
     if (this.params) {
@@ -14,6 +22,11 @@ class Deployment extends CoreModel {
     this._type = 'deployment';
     if (this.callback) delete this.callback;
   }
+
+  async canAct(ctx: any, action: string) {
+    console.log(action);
+    return this;
+  }
 }
 
-module.exports = Deployment;
+export { Deployment };

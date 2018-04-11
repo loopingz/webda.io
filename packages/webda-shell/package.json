@@ -1,6 +1,6 @@
 {
   "name": "webda-shell",
-  "version": "0.5.5",
+  "version": "0.9.0",
   "description": "Deploy a Webda app or configure it",
   "keywords": [
     "aws",
@@ -60,7 +60,7 @@
   },
   "dependencies": {
     "archiver": "^1.0.0",
-    "aws-sdk": ">=2.3.0",
+    "aws-sdk": "^2.223.1",
     "body-parser": ">=1.13.3",
     "colors": "^1.1.2",
     "cookie-parser": "^1.4.1",

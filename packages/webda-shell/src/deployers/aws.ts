@@ -1,13 +1,40 @@
-const Deployer = require('./deployer');
-const AWSServiceMixin = require('webda/services/aws-mixin');
+import { AWSMixIn, Service, Core as Webda } from 'webda';
+import { Deployer } from './deployer';
+import { ACM, Route53, S3 } from 'aws-sdk';
+import * as AWS from 'aws-sdk';
 const mime = require('mime-types');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
-class AWSDeployer extends AWSServiceMixin(Deployer) {
+export class AWSDeployer extends Deployer {
+
+  resources: any;
+  _acm: ACM;
+  _certificate: any;
+  _r53: Route53;
+  _s3: S3;
+  _AWS: any;
+  _waitLabel: string;
+  _maxTry: number;
+  _try: number;
+  _waitCall: any;
+
+  protected md5(str : string) : string {
+    return crypto.createHash('md5').update(str).digest('hex');
+  }
 
   _getAWS(params) {
-    return super._getAWS(params || this.resources)
+    params = params || this.resources || {};
+    params.accessKeyId = params.accessKeyId || process.env["AWS_ACCESS_KEY_ID"];
+    params.secretAccessKey = params.secretAccessKey || process.env["AWS_SECRET_ACCESS_KEY"];
+    params.region = params.region || process.env["AWS_DEFAULT_REGION"] || 'us-east-1';
+    AWS.config.update({
+      accessKeyId: params.accessKeyId,
+      secretAccessKey: params.secretAccessKey,
+      region: params.region
+    });
+    return AWS;
   }
 
   _replaceForAWS(id) {
@@ -21,15 +48,14 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
       config.region = forceRegion;
     }
     this._acm = new(this._getAWS(config)).ACM();
-
     return this._acm.listCertificates({}).promise().then((res) => {
       for (let i in res.CertificateSummaryList) {
         if (res.CertificateSummaryList[i].DomainName === domain && res.CertificateSummaryList[i] !== 'FAILED') {
-          this._certifcate = res.CertificateSummaryList[i];
-          return Promise.resolve(this._certifcate);
+          this._certificate = res.CertificateSummaryList[i];
+          return Promise.resolve(this._certificate);
         }
       }
-      if (!this._certifcate) {
+      if (!this._certificate) {
         // Create certificate
         let params = {
           DomainName: domain,
@@ -38,14 +64,14 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
             ValidationDomain: domain
           }],
           ValidationMethod: 'DNS',
-          IdempotencyToken: 'WebdaSSL_' + domain.replace(/[^\w]/g, '_')
+          IdempotencyToken: 'Webda_' + this.md5(domain).substr(0, 26)
         };
         return this._acm.requestCertificate(params).promise().then((res) => {
-          this._certifcate = res;
+          this._certificate = res;
           return this._waitFor('Waiting for certificate challenge', (resolve, reject) => {
             return this._acm.describeCertificate({
-              CertificateArn: this._certifcate.CertificateArn
-            }).promise().then((res) => {
+              CertificateArn: this._certificate.CertificateArn
+            }).promise().then((res : any) => {
               if (res.Certificate.DomainValidationOptions[0].ResourceRecord) {
                 resolve(res.Certificate)
                 return Promise.resolve(true);
@@ -55,12 +81,12 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
           }, 10000, 5);
         });
       }
-      return Promise.reject();
+      throw Error('Delay expired for certificate');
     }).then((cert) => {
       return this._acm.describeCertificate({
         CertificateArn: cert.CertificateArn
       }).promise();
-    }).then((res) => {
+    }).then((res : any) => {
       let cert = res.Certificate;
       if (cert.Status === 'FAILED') {
         return Promise.reject('Certificate validation has failed');
@@ -118,8 +144,8 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
     });
   }
 
-  _createDNSEntry(domain, type, value) {
-    let params;
+  protected async _createDNSEntry(domain, type, value) : Promise<void> {
+    let params : any;
     if (!domain.endsWith('.')) {
       domain = domain + '.';
     }
@@ -127,64 +153,60 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
     // Find the right zone
     this._r53 = new(this._getAWS(this.resources)).Route53();
     // Identify the right zone first
-    return this._r53.listHostedZones().promise().then((res) => {
-      for (let i in res.HostedZones) {
-        let zone = res.HostedZones[i];
-        if (domain.endsWith(zone.Name)) {
-          if (targetZone && targetZone.Name.length > zone.Name.length) {
-            // The previous target zone is closer to the domain
-            continue;
+    let res = await this._r53.listHostedZones().promise();
+    for (let i in res.HostedZones) {
+      let zone = res.HostedZones[i];
+      if (domain.endsWith(zone.Name)) {
+        if (targetZone && targetZone.Name.length > zone.Name.length) {
+          // The previous target zone is closer to the domain
+          continue;
+        }
+        targetZone = zone;
+      }
+    }
+    if (!targetZone) {
+      throw Error('Domain is not handled on AWS');
+    }
+    params = {
+      HostedZoneId: targetZone.Id,
+      StartRecordName: domain,
+      StartRecordType: type
+    }
+    let recordSets = await this._r53.listResourceRecordSets(params).promise();
+    let targetRecord;
+    for (let i in recordSets.ResourceRecordSets) {
+      let record = recordSets.ResourceRecordSets[i];
+      if (record.Type === type && record.Name === domain) {
+        targetRecord = record;
+        break;
+      }
+    }
+    params = {
+      HostedZoneId: targetZone.Id,
+      ChangeBatch: {
+        Changes: [{
+          Action: 'UPSERT',
+          ResourceRecordSet: {
+            Name: domain,
+            ResourceRecords: [{
+              Value: value
+            }],
+            TTL: 360,
+            Type: type
           }
-          targetZone = zone;
-        }
+        }],
+        Comment: 'webda-automated-deploiement'
       }
-      if (!targetZone) {
-        return Promise.reject('Domain is not handled on AWS');
-      }
-      params = {
-        HostedZoneId: targetZone.Id,
-        StartRecordName: domain,
-        StartRecordType: type
-      }
-      return this._r53.listResourceRecordSets(params).promise();
-    }).then((res) => {
-      let targetRecord;
-      for (let i in res.ResourceRecordSets) {
-        let record = res.ResourceRecordSets[i];
-        if (record.Type === type && record.Name === domain) {
-          targetRecord = record;
-          break;
-        }
-      }
-      let params = {
-        HostedZoneId: targetZone.Id,
-        ChangeBatch: {
-          Changes: [{
-            Action: 'UPSERT',
-            ResourceRecordSet: {
-              Name: domain,
-              ResourceRecords: [{
-                Value: value
-              }],
-              TTL: 360,
-              Type: type
-            }
-          }],
-          Comment: 'webda-automated-deploiement'
-        }
-      };
-      if (!targetRecord || targetRecord.ResourceRecords[0].Value !== value) {
-        console.log('Creating record', domain, type, value);
-      } else if (targetRecord.ResourceRecords[0].Value === value) {
-        // Dont do anything the record exist with the right value
-        return Promise.resolve();
-      } else {
-        console.log('Updating record', type, domain, value);
-      }
-      return this._r53.changeResourceRecordSets(params).promise();
-    }).then(() => {
-      return Promise.resolve();
-    });
+    };
+    if (!targetRecord || targetRecord.ResourceRecords[0].Value !== value) {
+      console.log('Creating record', domain, type, value);
+    } else if (targetRecord.ResourceRecords[0].Value === value) {
+      // Dont do anything the record exist with the right value
+      return;
+    } else {
+      console.log('Updating record', type, domain, value);
+    }
+    await this._r53.changeResourceRecordSets(params).promise();
   }
 
   getARNPolicy(accountId, region) {
@@ -202,11 +224,9 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
     }];
   }
 
-  generateRoleARN(name, assumeRolePolicy, roleName, policyName) {
+  generateRoleARN(name, assumeRolePolicy, roleName = name + 'Role', policyName = name + 'Policy') {
     let services = this.getServices();
-    roleName = roleName || (name + 'Role');
     roleName = this._replaceForAWS(roleName);
-    policyName = policyName || (name + 'Policy');
     policyName = this._replaceForAWS(policyName);
     let sts = new(this._AWS).STS();
     let iam = new(this._AWS).IAM();
@@ -336,21 +356,22 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
     // this.resources.AWSTags;
   }
 
-  createBucket(bucket) {
-    return this._s3.headBucket({
-      Bucket: bucket
-    }).promise().catch((err) => {
-      console.log('headBucket fail');
+  async createBucket(bucket) {
+    try {
+      await this._s3.headBucket({
+        Bucket: bucket
+      }).promise();
+    } catch(err) {
       if (err.code === 'Forbidden') {
         console.log('S3 bucket already exists in another account');
       } else if (err.code === 'NotFound') {
         console.log('\tCreating S3 Bucket', bucket);
         // Setup www permission on it
-        return this._s3.createBucket({
+        await this._s3.createBucket({
           Bucket: bucket
         }).promise();
       }
-    });
+    };
   }
 
   putFilesOnBucket(bucket, files) {
@@ -360,7 +381,7 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
       // Should implement multithread here - cleaning too
       let promise = Promise.resolve();
       files.forEach((file) => {
-        let info = {};
+        let info : any = {};
         if (typeof(file) === 'string') {
           info.src = file;
           info.key = path.relative(process.cwd(), file);
@@ -388,4 +409,3 @@ class AWSDeployer extends AWSServiceMixin(Deployer) {
   }
 }
 
-module.exports = AWSDeployer;

@@ -1,95 +1,51 @@
-"use strict";
-const WebdaServer = require("./http");
-const _extend = require("util")._extend;
+import { WebdaServer } from "./http";
+import { Deployment } from "../models/deployment";
+import { Core as Webda, Executor, _extend, Store } from 'webda';
+import { LambdaDeployer } from "../deployers/lambda";
+import { DockerDeployer } from "../deployers/docker";
+import { S3Deployer } from "../deployers/s3";
+import { ShellDeployer } from "../deployers/shell";
+import { FargateDeployer } from "../deployers/fargate";
+import { WeDeployDeployer } from "../deployers/wedeploy";
+
 const fs = require("fs");
 const path = require("path");
 
-const Executor = require(__webda + "/services/executor");
-const Webda = require(__webda + "/core");
 const merge = require('merge');
 const mkdirp = require('mkdirp');
 
-class ConfigurationService extends Executor {
+export class ConfigurationService extends Executor {
+
+  _config:any;
+  _computeConfig: any;
+  _deployments: any;
+  _deploymentStore: Store;
+  _webda: WebdaConfigurationServer;
 
   init() {
-    this._addRoute('/api/modda', {
-      "method": ["GET"],
-      "executor": this._name,
-      "_method": this.getServices
-    });
-    this._addRoute('/api/models', {
-      "method": ["GET", "POST"],
-      "executor": this._name,
-      "_method": this.crudModels
-    });
-    this._addRoute('/api/models/{name}', {
-      "method": ["GET", "PUT", "DELETE"],
-      "executor": this._name,
-      "_method": this.crudModels
-    });
-    this._addRoute('/api/services', {
-      "method": ["GET"],
-      "executor": this._name,
-      "_method": this.crudService
-    });
-    this._addRoute('/api/services/{name}', {
-      "method": ["PUT", "DELETE", "POST"],
-      "executor": this._name,
-      "_method": this.crudService
-    });
-    this._addRoute('/api/routes', {
-      "method": ["GET", "POST", "PUT", "DELETE"],
-      "executor": this._name,
-      "_method": this.crudRoute
-    });
-    this._addRoute('/api/moddas', {
-      "method": ["GET"],
-      "executor": this._name,
-      "_method": this.getModdas
-    });
-    this._addRoute('/api/deployers', {
-      "method": ["GET"],
-      "executor": this._name,
-      "_method": this.getDeployers
-    });
-    this._addRoute('/api/deployments', {
-      "method": ["GET", "POST"],
-      "executor": this._name,
-      "_method": this.restDeployment
-    });
-    this._addRoute('/api/deployments/{name}', {
-      "method": ["DELETE", "PUT"],
-      "executor": this._name,
-      "_method": this.restDeployment
-    });
-    this._addRoute('/api/versions', {
-      "method": ["GET"],
-      "executor": this._name,
-      "_method": this.versions
-    });
-    this._addRoute('/api/deploy/{name}', {
-      "method": ["GET"],
-      "executor": this._name,
-      "_method": this.deploy
-    });
-    this._addRoute('/api/global', {
-      "method": ["GET", "PUT"],
-      "executor": this._name,
-      "_method": this.restGlobal
-    });
-    this._addRoute('/api/browse/{path}', {
-      "method": ["GET", "PUT", "DELETE"],
-      "executor": this._name,
-      "_method": this.fileBrowser,
-      'allowPath': true
-    });
+    this._addRoute('/api/modda', ["GET"], this.getServices);
+    this._addRoute('/api/models', ["GET", "POST"], this.crudModels);
+    this._addRoute('/api/models/{name}', ["GET", "PUT", "DELETE"], this.crudModels);
+    this._addRoute('/api/services', ["GET"], this.crudService);
+    this._addRoute('/api/services/{name}', ["PUT", "DELETE", "POST"], this.crudService);
+    this._addRoute('/api/routes', ["GET", "POST", "PUT", "DELETE"], this.crudRoute);
+    this._addRoute('/api/moddas', ["GET"], this.getModdas);
+    this._addRoute('/api/deployers', ["GET"], this.getDeployers);
+    this._addRoute('/api/deployments', ["GET", "POST"], this.restDeployment);
+    this._addRoute('/api/deployments/{name}', ["DELETE", "PUT"], this.restDeployment);
+    this._addRoute('/api/versions', ["GET"], this.versions);
+    this._addRoute('/api/deploy/{name}', ["GET"], this.deploy);
+    this._addRoute('/api/global', ["GET", "PUT"], this.restGlobal);
+    // Allow path
+    this._addRoute('/api/browse/{path}', ["GET", "PUT", "DELETE"], this.fileBrowser, true);
     this.refresh();
+    this._deploymentStore = <Store> this._webda.getService("deployments");
   }
 
   refresh() {
     this._config = this._webda.config;
     this._computeConfig = this._webda.computeConfig;
-    this._depoyments = {};
+    this._deployments = {};
   }
 
   versions(ctx) {
@@ -278,11 +234,11 @@ class ` + className + ` extends ` + extendName + ` {
 
   getModdas(ctx) {
     var res = [];
-    for (let i in this._webda._mockWedba._services) {
-      if (!this._webda._mockWedba._services[i].getModda) {
+    for (let i in this._webda._mockWebda._services) {
+      if (!this._webda._mockWebda._services[i].getModda) {
         continue;
       }
-      let modda = this._webda._mockWedba._services[i].getModda();
+      let modda = this._webda._mockWebda._services[i].getModda();
       if (modda === undefined) continue;
       res.push(modda);
     }
@@ -290,7 +246,7 @@ class ` + className + ` extends ` + extendName + ` {
   }
 
   getServices(ctx) {
-    ctx.write(this._webda.services);
+    ctx.write(this._webda._mockWebda.getModdas());
   }
 
   deploy(ctx) {
@@ -300,7 +256,7 @@ class ` + className + ` extends ` + extendName + ` {
   crudService(ctx) {
     if (ctx._route._http.method === "GET") {
       var services = [];
-      let servicesBeans = this._webda._mockWedba.getServices();
+      let servicesBeans = this._webda._mockWebda.getServices();
       for (let i in this._config.services) {
         let service = this._config.services[i];
         service._name = i;
@@ -400,44 +356,43 @@ class ` + className + ` extends ` + extendName + ` {
     ctx.write(this._webda.config.parameters);
   }
 
-  updateConfig() {
-    this._config.parameters = ctx.body.parameters;
+  updateGlobal(ctx) {
+    this._webda.config.parameters = ctx.body.parameters;
     this.save();
   }
 
-  restDeployment(ctx) {
+  async restDeployment(ctx) {
     if (ctx._route._http.method == "GET") {
-      return this.getService("deployments").find().then((deployments) => {
-        for (let i in deployments) {
-          // Clone the object for now
-          this._depoyments[deployments[i].uuid] = true;
-          deployments[i]._name = deployments[i].uuid;
-        }
-        deployments.sort(function(a, b) {
-          return a._name.localeCompare(b._name);
-        });
-        ctx.write(deployments);
+      let deployments = await this._deploymentStore.find();
+      for (let i in deployments) {
+        // Clone the object for now
+        this._deployments[deployments[i].uuid] = true;
+        deployments[i]._name = deployments[i].uuid;
+      }
+      deployments.sort(function(a, b) {
+        return a._name.localeCompare(b._name);
       });
+      ctx.write(deployments);
+      return;
     } else if (ctx._route._http.method == "POST") {
-      if (this._depoyments[ctx.body.uuid]) {
+      if (this._deployments[ctx.body.uuid]) {
         throw 409;
       }
-      return this._webda.getService("deployments").save(ctx.body);
+      return this._deploymentStore.save(ctx.body);
     } else if (ctx._route._http.method == "PUT") {
       this.cleanBody(ctx);
-      return this._webda.getService("deployments").update(ctx.body);
+      return this._deploymentStore.update(ctx.body);
     } else if (ctx._route._http.method == "DELETE") {
-      if (!this._depoyments[ctx._params.name] || ctx._params.name === "Global") {
+      if (!this._deployments[ctx._params.name] || ctx._params.name === "Global") {
         throw 409;
       }
-      return this._webda.getService("deployments").delete(ctx._params.name).then(() => {
-        delete this._depoyments[ctx._params.name];
-      });
+      await this._deploymentStore.delete(ctx._params.name);
+      delete this._deployments[ctx._params.name];
     }
   }
 }
 
-var ServerConfig = {
+export var ServerConfig = {
   version: 1,
   parameters: {
     website: {
@@ -464,16 +419,26 @@ var ServerConfig = {
   }
 };
 
-class WebdaConfigurationServer extends WebdaServer {
+export class WebdaConfigurationServer extends WebdaServer {
 
-  constructor(config) {
+  _deployers: any;
+  config: any;
+  _mockWebda: Webda;
+  _file: string;
+  computeConfig: any;
+  resources: any;
+  deployChild: any;
+  conns: any[];
+  _deployOutput: string[];
+
+  constructor(config = undefined) {
     super(config);
     this._deployers = {};
-    this._deployers["WebdaDeployer/Lambda"] = require("../deployers/lambda");
-    this._deployers["WebdaDeployer/Fargate"] = require("../deployers/fargate");
-    this._deployers["WebdaDeployer/S3"] = require("../deployers/s3");
-    this._deployers["WebdaDeployer/Docker"] = require("../deployers/docker");
-    this._deployers["WebdaDeployer/WeDeploy"] = require("../deployers/wedeploy");
+    this._deployers["WebdaDeployer/Lambda"] = LambdaDeployer;
+    this._deployers["WebdaDeployer/Fargate"] = FargateDeployer;
+    this._deployers["WebdaDeployer/S3"] = S3Deployer;
+    this._deployers["WebdaDeployer/Docker"] = DockerDeployer;
+    this._deployers["WebdaDeployer/WeDeploy"] = WeDeployDeployer;
   }
 
   /**
@@ -512,33 +477,32 @@ class WebdaConfigurationServer extends WebdaServer {
     return JSON.stringify(o);
   }
 
-  saveHostConfiguration(config, file) {
+  saveHostConfiguration(config) {
     // Update first the configuration
     this.config = config;
     fs.writeFileSync(this._file, this.exportJson(this.config));
 
     // Need to reload the configuration to resolve it
-    delete this._mockWedba;
+    delete this._mockWebda;
     this.loadMock(JSON.parse(this.exportJson(this.config)));
-    let configurationService = this.getService("configuration");
+    let configurationService = <ConfigurationService> this.getService("configuration");
     if (configurationService) {
       configurationService.refresh();
     }
   }
 
   static getVersion() {
-    return JSON.parse(fs.readFileSync(__dirname + '/../package.json')).version;
+    return JSON.parse(fs.readFileSync(__dirname + '/../../package.json')).version;
   }
 
   static getWebdaVersion() {
-    let webda = require(global.__webda + '/core.js');
-    if (!webda.prototype.getVersion) {
+    if (!Webda.prototype.getVersion) {
       return '< 0.3.1';
     }
-    return webda.prototype.getVersion();
+    return Webda.prototype.getVersion();
   }
 
-  loadMock(config) {
+  loadMock(config = undefined) {
     // Load the Webda core with the desired configuration
 
     if (config !== undefined) {
@@ -559,12 +523,13 @@ class WebdaConfigurationServer extends WebdaServer {
       this.config['version'] = 1;
       this.saveHostConfiguration({
         parameters: {},
-        services: {}
+        services: {},
+        version: 1
       });
       return;
     }
-    this._mockWedba = new Webda(config);
-    this.computeConfig = this._mockWedba._config;
+    this._mockWebda = new Webda(config);
+    this.computeConfig = this._mockWebda._config;
   }
 
   loadConfiguration(config) {
@@ -600,18 +565,17 @@ class WebdaConfigurationServer extends WebdaServer {
     merge.recursive(config.services, deployment.services);
   }
 
-  install(env, server_config, args) {
+  async install(env, server_config, args) {
     // Create Lambda role if needed
-    return this.getService("deployments").get(env).then((deployment) => {
-      if (deployment === undefined) {
-        this.output("Deployment " + env + " unknown");
-        return Promise.reject();
-      }
-      this.resolveConfiguration(this.config, deployment);
-      this.config.cachedModules = this._modules;
-      let srcConfig = this.exportJson(this.config);
-      return new this._deployers[deployment.type](this.computeConfig, srcConfig, deployment).installServices(args);
-    });
+    let deployment : any = await (<Store> this.getService("deployments")).get(env);
+    if (deployment === undefined) {
+      this.output("Deployment " + env + " unknown");
+      throw Error();
+    }
+    this.resolveConfiguration(this.config, deployment);
+    this.config.cachedModules = this._modules;
+    let srcConfig = this.exportJson(this.config);
+    return new this._deployers[deployment.type](this.computeConfig, srcConfig, deployment).installServices(args);
   }
 
   uninstall(env, args, fork) {
@@ -635,7 +599,7 @@ class WebdaConfigurationServer extends WebdaServer {
 
   installServices(resources) {
     var promise = Promise.resolve();
-    let services = this._mockWedba.getServices();
+    let services = this._mockWebda.getServices();
     for (let i in services) {
       let service = services[i];
       promise = promise.then(() => {
@@ -646,90 +610,81 @@ class WebdaConfigurationServer extends WebdaServer {
     return promise;
   }
 
-  deploy(env, args, fork) {
-    return this.getService("deployments").get(env).then((deployment) => {
+  async deploy(env, args, fork) {
+    let deployment : any = await (<Store> this.getService("deployments")).get(env);
 
-      if (deployment === undefined) {
-        this.output("Deployment " + env + " unknown");
-        return Promise.resolve();
-      }
-      // Reload with the resolved configuration
-      this.resolveConfiguration(this.config, deployment);
-      this.config.cachedModules = this._modules;
-      let srcConfig = this.exportJson(this.config);
-      this.loadMock(this.config);
+    if (deployment === undefined) {
+      this.output("Deployment " + env + " unknown");
+      return Promise.resolve();
+    }
+    // Reload with the resolved configuration
+    this.resolveConfiguration(this.config, deployment);
+    this.config.cachedModules = this._modules;
+    let srcConfig = this.exportJson(this.config);
+    this.loadMock(this.config);
 
-      // If launched from the browser we are forking
-      if (fork) {
-        if (this.deployChild) {
-          // Conflict already deploying
-          throw 409;
-        }
-        this.deployFork(env);
-        return Promise.resolve();
+    // If launched from the browser we are forking
+    if (fork) {
+      if (this.deployChild) {
+        // Conflict already deploying
+        throw 409;
       }
+      this.deployFork(env);
+      return;
+    }
 
-      let promise = Promise.resolve();
-      if (!args.length || args[0] === 'install') {
-        // Normal launch from the console or forked process
-        this.output('Installing services');
-        promise = this.installServices(deployment.resources).then(() => {
-          this.output('Deploying', deployment.uuid, 'with', deployment.units.length, 'units');
-          return Promise.resolve();
-        });
+    if (!args.length || args[0] === 'install') {
+      // Normal launch from the console or forked process
+      this.output('Installing services');
+      await this.installServices(deployment.resources);
+    }
+    this.output('Deploying', deployment.uuid, 'with', deployment.units.length, 'units');
+    let selectedUnit;
+    if (args.length > 0) {
+      selectedUnit = args[0];
+      if (selectedUnit === 'install') {
+        return;
       }
-      let selectedUnit;
-      if (args.length > 0) {
-        selectedUnit = args[0];
-        if (selectedUnit === 'install') {
-          return promise;
-        }
-        args = args.slice(1);
+      args = args.slice(1);
+    }
+    let units = deployment.units.filter( (unit) => {
+      if (selectedUnit && selectedUnit !== unit.name) return false;
+      if (!this._deployers[unit.type]) {
+        this.output('Cannot deploy unit', unit.name, '(', unit.type, '): type not found');
+        return false;
       }
-      let units = deployment.units.filter( (unit) => {
-        if (selectedUnit && selectedUnit !== unit.name) return false;
-        if (!this._deployers[unit.type]) {
-          this.output('Cannot deploy unit', unit.name, '(', unit.type, '): type not found');
-          return false;
-        }
-        return true;
-      });
-      promise = promise.then( () => {
-        return Promise.each( units, (unit) => {
-          return this._deployUnit(unit, srcConfig, deployment, args);
-        })
-      });
-      return promise;
-    }).catch((err) => {
-      this.output('Error', err);
+      return true;
     });
+    for (let i in units) {
+      await this._deployUnit(units[i], srcConfig, deployment, args);
+    }
   }
 
-  _deployUnit(unit, config, deployment, args) {
+  async _deployUnit(unit, config, deployment, args) {
     if (!this._deployers[unit.type]) {
       this.output('Cannot deploy unit', unit.name, '(', unit.type, '): type not found');
-      return Promise.resolve();
+      return;
     }
     this.output('Deploy unit', unit.name, '(', unit.type, ')');
     return (new this._deployers[unit.type](
       this.computeConfig, config, deployment, unit)).deploy(args);
   }
-  undeploy(env, args) {
-    return this.getService("deployments").get(env).then((deployment) => {
-      if (deployment === undefined) {
-        this.output("Deployment " + env + " unknown");
-        return Promise.resolve();
-      }
-      return new this._deployers[deployment.type](this.computeConfig, deployment).undeploy(args);
-    });
+  async undeploy(env, args) {
+    let deployment : any = await (<Store> this.getService("deployments")).get(env);
+    if (deployment === undefined) {
+      this.output("Deployment " + env + " unknown");
+      return Promise.resolve();
+    }
+    return new this._deployers[deployment.type](this.computeConfig, deployment).undeploy(args);
   }
 
   serveStaticWebsite(express, app) {
-    app.use(express.static(__dirname + '/../app/'));
+    app.use(express.static(__dirname + '/../../app/'));
   }
 
   serveIndex(express, app) {
-    app.use(express.static(__dirname + '/../app/index.html'));
+    // We are in lib folder
+    app.use(express.static(__dirname + '/../../app/index.html'));
   }
 
   serve(port, openBrowser) {
@@ -769,7 +724,7 @@ class WebdaConfigurationServer extends WebdaServer {
     args.push("deploy");
 
     this.output("Forking Webda with: ", args);
-    this.deployChild = require("child_process").spawn('node', args);
+    this.deployChild  = require("child_process").spawn('node', args);
     this._deployOutput = [];
 
     this.deployChild.stdout.on('data', (data) => {
@@ -799,5 +754,3 @@ class WebdaConfigurationServer extends WebdaServer {
   }
 
 }
-
-module.exports = WebdaConfigurationServer

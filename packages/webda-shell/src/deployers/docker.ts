@@ -1,22 +1,20 @@
-"use strict";
-const Deployer = require("./deployer");
-const DockerMixIn = require("./docker-mixin");
+import { Deployer } from './deployer';
+import { DockerMixIn } from './docker-mixin';
 
-class DockerDeployer extends DockerMixIn(Deployer) {
+export class DockerDeployer extends DockerMixIn(Deployer) {
 
-  deploy(args) {
+  async deploy(args) {
     this._sentContext = false;
     this._maxStep = 3;
     if (!this.resources.tag || !this.resources.push) {
       this._maxStep = 2;
     }
 
-    return this.buildDocker().then(() => {
-      if (!this.resources.tag || !this.resources.push) {
-        return Promise.resolve();
-      }
-      return this.pushDocker();
-    });
+    await this.buildDocker();
+    if (!this.resources.tag || !this.resources.push) {
+      return;
+    }
+    await this.pushDocker();
   }
 
   buildDocker() {
@@ -53,5 +51,3 @@ class DockerDeployer extends DockerMixIn(Deployer) {
     }
   }
 }
-
-module.exports = DockerDeployer;

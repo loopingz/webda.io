@@ -1,7 +1,14 @@
-"use strict";
-const _extend = require("util")._extend;
+import { _extend } from 'webda'
 
-class Deployer {
+export class Deployer {
+
+  _step: number;
+  _maxStep: number;
+  resources: any;
+  parameters: any;
+  config: any;
+  srcConfig: any;
+  deployment: any;
 
   constructor(config, srcConfig, deployment, unitParameters) {
     this._step = 1;
@@ -29,13 +36,9 @@ class Deployer {
     console.log("[" + this._step++ + "/" + this._maxStep + "] " + msg);
   }
 
-  deploy(args) {
-    return Promise.resolve();
-  }
+  async deploy(args) {}
 
-  undeploy(args) {
-    return Promise.resolve();
-  }
+  async undeploy(args) {}
 
   getServices() {
     var res = {};
@@ -51,4 +54,3 @@ class Deployer {
 
 }
 
-module.exports = Deployer;

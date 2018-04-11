@@ -1,10 +1,11 @@
-"use strict";
-var Webda = require(__webda + '/core');
-var SecureCookie = require(__webda + '/utils/cookie');
-var _extend = require("util")._extend;
+import { Core as Webda, SecureCookie, _extend } from 'webda';
 const path = require("path");
 
-class WebdaServer extends Webda {
+export class WebdaServer extends Webda {
+  private _http: any;
+  private _io: any;
+  protected _devMode: boolean;
+  protected _staticIndex: string;
 
   logRequest(...args) {
     console.log('REQUEST', ...args);
@@ -140,7 +141,7 @@ class WebdaServer extends Webda {
     }
   }
 
-  serve(port, websockets) {
+  serve(port, websockets : boolean = false) {
     var http = require('http');
 
     var express = require('express');
@@ -184,5 +185,3 @@ class WebdaServer extends Webda {
     this.output('Server running at http://0.0.0.0:' + port);
   }
 }
-
-module.exports = WebdaServer

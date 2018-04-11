@@ -1,28 +1,26 @@
-"use strict";
-const DockerDeployer = require("./docker");
+import { DockerDeployer } from './docker';
 const fs = require('fs');
 const crypto = require('crypto');
 
-class WeDeployDeployer extends DockerDeployer {
+export class WeDeployDeployer extends DockerDeployer {
 
-  deploy(args) {
+  async deploy(args) : Promise<any> {
     this._sentContext = false;
     if (!this.resources.project || !this.resources.service) {
       console.log('You need to specify both service and project for Wedeploy');
-      return Promise.reject();
+      throw Error('You need to specify both service and project for Wedeploy');
     }
     this._maxStep = 2;
     if (fs.existsSync(this.getDockerfileName())) {
       throw Error('Cannot have a Dockerfile in the directory');
     }
 
-    return this.checkDockerfile().then(() => {
-      return this.wedeploy();
-    }).then(() => {
-      return this.cleanDockerfile();
-    }).catch(() => {
-      return this.cleanDockerfile();
-    });
+    try {
+      await this.checkDockerfile();
+      await this.wedeploy();
+    } finally {
+      await this.cleanDockerfile();
+    }
   }
 
   wedeploy() {
@@ -80,4 +78,3 @@ class WeDeployDeployer extends DockerDeployer {
   }
 }
 
-module.exports = WeDeployDeployer;

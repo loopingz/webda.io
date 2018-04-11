@@ -1,5 +1,5 @@
-"use strict";
-const AWSDeployer = require("./aws");
+import { AWSDeployer } from "./aws";
+import { APIGateway, Lambda } from "aws-sdk";
 const fs = require('fs');
 const crypto = require('crypto');
 const filesize = require('filesize');
@@ -9,13 +9,36 @@ const LAMBDA_ROLE_POLICY = '{"Version":"2012-10-17","Statement":[{"Effect":"Allo
 // Official 69905067b but Lambda fail before this limit
 const AWS_UPLOAD_MAX = 20971520;
 
-class LambdaDeployer extends AWSDeployer {
+export class LambdaDeployer extends AWSDeployer {
+
+  _awsGateway: APIGateway;
+  _awsLambda: Lambda;
+  _restApiName: string;
+  _lambdaTimeout: number;
+  _lambdaStorage: string;
+  _lambdaRole: string;
+  _lambdaFunction: any;
+  _packageHash: string;
+  _lambdaFunctionName: string;
+  _lambdaDefaultHandler: boolean;
+  _lambdaHandler: string;
+  _lambdaMemorySize: number;
+  _packageOversize: boolean;
+  _addOPTIONS: boolean;
+  _addMockCORS:boolean;
+  region: string;
+  _zipPath: string;
+  _origin: string;
+  restApiId: string;
+  tree: any;
+  _progression: number;
+  _package: any;
 
   transformRestApiToFunctionName(name) {
     return name.replace(/[^a-zA-Z0-9_]/g, '-');
   }
 
-  deploy(args) {
+  async deploy(args) {
     this._AWS = this._getAWS(this.resources);
     this._maxStep = 4;
     if (args[0] === "package") {
@@ -35,9 +58,8 @@ class LambdaDeployer extends AWSDeployer {
     this._lambdaHandler = this.resources.lambdaHandler || 'entrypoint.handler';
     this._lambdaTimeout = 3;
 
-    var promise = Promise.resolve();
     if (args[0] !== "package") {
-      promise = this.generateRoleARN(this._restApiName + 'Lambda', LAMBDA_ROLE_POLICY, this._lambdaRole).then((roleArn) => {
+      await this.generateRoleARN(this._restApiName + 'Lambda', LAMBDA_ROLE_POLICY, this._lambdaRole).then((roleArn) => {
         this._lambdaRole = roleArn;
         if (!this._lambdaRole.startsWith("arn:aws")) {
           // Try to get the Role ARN ?
@@ -47,7 +69,7 @@ class LambdaDeployer extends AWSDeployer {
     }
 
     if (this._lambdaFunctionName === undefined) {
-      throw Error("Need to define a Rest API Name at least", this._lambdaFunctionName);
+      throw Error("Need to define a Rest API Name at least" + this._lambdaFunctionName);
     }
     if (this._restApiName === undefined) {
       this._maxStep = 2;
@@ -78,38 +100,31 @@ class LambdaDeployer extends AWSDeployer {
     }
 
     if (args[0] === "export") {
-      return this.export(args.slice(1));
+      await this.export(args.slice(1));
+      return;
     }
-    console.log("Deploying to " + "AWS".yellow);
+    console.log("Deploying to " + colors.yellow("AWS"));
 
     if (args[0] !== "aws-only") {
-      promise = promise.then(() => {
-        return this.generatePackage(this._zipPath);
-      });
+      await this.generatePackage(this._zipPath);
     }
 
-    promise = promise.then(() => {
-      let size = fs.statSync(this._zipPath);
-      this._packageOversize = size.size >= AWS_UPLOAD_MAX;
-      this._package = fs.readFileSync(this._zipPath);
-      var hash = crypto.createHash('sha256');
-      this._packageHash = hash.update(this._package).digest('base64');
-      console.log("Package dist/" + this._lambdaFunctionName + ".zip (SHA256: " + this._packageHash + " | Size:" + filesize(size.size) + ")");
-    });
+    let size = fs.statSync(this._zipPath);
+    this._packageOversize = size.size >= AWS_UPLOAD_MAX;
+    this._package = fs.readFileSync(this._zipPath);
+    var hash = crypto.createHash('sha256');
+    this._packageHash = hash.update(this._package).digest('base64');
+    console.log("Package dist/" + this._lambdaFunctionName + ".zip (SHA256: " + this._packageHash + " | Size:" + filesize(size.size) + ")");
 
     if (args[0] === "package") {
-      return promise;
+      return;
     }
 
-    promise = promise.then(() => {
-      return this.generateLambda();
-    })
+    await this.generateLambda();
     if (args[0] === "lambda" || this._restApiName === undefined) {
-      return promise;
+      return;
     }
-    return promise.then(() => {
-      return this.generateAPIGateway();
-    });
+    await this.generateAPIGateway();
   }
 
   export (args) {
@@ -119,7 +134,7 @@ class LambdaDeployer extends AWSDeployer {
     }
     var exportFile = args[args.length - 1];
     args.pop();
-    var params = {
+    var params : any = {
       accepts: 'application/json',
       stageName: this.deployment.uuid
     };
@@ -187,7 +202,7 @@ class LambdaDeployer extends AWSDeployer {
         }
       }
       if (this._lambdaDefaultHandler) {
-        var entrypoint = require.resolve(global.__webda_shell + "/deployers/aws-entrypoint.js");
+        var entrypoint = require.resolve(__dirname + "/aws-entrypoint.js");
         if (fs.existsSync(entrypoint)) {
           archive.file(entrypoint, {
             name: "entrypoint.js"
@@ -208,14 +223,12 @@ class LambdaDeployer extends AWSDeployer {
     return p;
   }
 
-  createLambdaFunction() {
+  private async createLambdaFunction() {
     this.stepper("Creating Lambda function");
     // Size limit of Lambda direct upload : 69905067 bytes
-    var params = {
+    var params : any = {
       MemorySize: this._lambdaMemorySize,
-      Code: {
-        ZipFile: this._package
-      },
+      Code: {},
       FunctionName: this._lambdaFunctionName,
       Handler: this._lambdaHandler,
       Role: this._lambdaRole,
@@ -224,22 +237,18 @@ class LambdaDeployer extends AWSDeployer {
       'Description': 'Deployed with Webda for API: ' + this._restApiName,
       Publish: true
     };
-    return this.addPackageToUpdateFunction(params.Code).then(() => {
-      return this._awsLambda.createFunction(params).promise();
-    }).then((fct) => {
-      this._lambdaFunction = fct;
-      return Promise.resolve(fct);
-    });
+    await this.addPackageToUpdateFunction(params.Code);
+    this._lambdaFunction = await this._awsLambda.createFunction(params).promise();
   }
 
-  removeLambdaPermission(sid) {
+  private async removeLambdaPermission(sid) {
     return this._awsLambda.removePermission({
       'FunctionName': this._lambdaFunctionName,
       'StatementId': sid
     }).promise();
   }
 
-  addLambdaPermission() {
+  private async addLambdaPermission() {
     console.log("Setting Lambda rights");
     var key = 'Webda' + this.restApiId;
     return this.getLambdaPolicy().then((p) => {
@@ -270,36 +279,36 @@ class LambdaDeployer extends AWSDeployer {
     // "arn:aws:execute-api:us-east-1:my-aws-account-id:my-api-id/my-stage/GET/my-resource-path"
   }
 
-  getLambdaPolicy() {
+  private async getLambdaPolicy() {
     return this._awsLambda.getPolicy({
       FunctionName: this._lambdaFunctionName
     }).promise();
   }
 
-  addPackageToUpdateFunction(params) {
+  async addPackageToUpdateFunction(params) {
     if (this._lambdaStorage) {
       let regexp = "s3://(.+)/(.+)";
       let res = new RegExp(regexp).exec(this._lambdaStorage);
-      if (res.length < 3) {
+      if (!res || res.length < 3) {
         console.log('Lambda Storage does not match', regexp);
         process.exit(0);
       }
       params.S3Bucket = res[1];
       params.S3Key = res[2];
-      return this.putFilesOnBucket(params.S3Bucket, [{
+      await this.putFilesOnBucket(params.S3Bucket, [{
         key: params.S3Key,
         src: this._zipPath
       }]);
+      console.log(params);
     } else if (this._packageOversize) {
       console.log('Cannot upload Lambda function without a LambdaStorage if package bigger than', AWS_UPLOAD_MAX, 'b');
       process.exit(0);
     } else {
       params.ZipFile = this._package;
     }
-    return Promise.resolve();
   }
 
-  updateLambdaFunction() {
+  private async updateLambdaFunction() {
     this.stepper("Updating Lambda function");
     var params = {
       FunctionName: this._lambdaFunctionName,
@@ -358,46 +367,41 @@ class LambdaDeployer extends AWSDeployer {
     });
   }
 
-  generateLambda() {
-    return this._awsLambda.listFunctions().promise().then((fcts) => {
-      for (let i in fcts.Functions) {
-        if (fcts.Functions[i].FunctionName == this._lambdaFunctionName) {
-          this._lambdaFunction = fcts.Functions[i];
-          if (fcts.Functions[i].CodeSha256 == this._packageHash) {
-            this.stepper("Not updating Lambda Function as it has not changed");
-            // No need to update the lambda function
-            return Promise.resolve();
-          }
-          return this.updateLambdaFunction();
+  private async generateLambda() {
+    let fcts = await this._awsLambda.listFunctions().promise();
+    for (let i in fcts.Functions) {
+      if (fcts.Functions[i].FunctionName == this._lambdaFunctionName) {
+        this._lambdaFunction = fcts.Functions[i];
+        if (fcts.Functions[i].CodeSha256 == this._packageHash) {
+          this.stepper("Not updating Lambda Function as it has not changed");
+          // No need to update the lambda function
+          return;
         }
+        return this.updateLambdaFunction();
       }
-      // Could handle paging
-      return this.createLambdaFunction();
-    });
+    }
+    // Could handle paging
+    return this.createLambdaFunction();
   }
 
-  generateAPIGateway() {
+  private async generateAPIGateway() {
     this.stepper("Generating API Gateway");
-    return this.generateAPIGatewayMapping().then(() => {
-      this.stepper("Setting permissions and publish");
-      return this.generateAPIGatewayStage();
-    }).then((deployment) => {
-      return this.addLambdaPermission();
-    }).then(() => {
-      console.log("You can now access to your API to : https://" + this.restApiId + ".execute-api." + this.region + ".amazonaws.com/" + this.deployment.uuid);
-      if (this.resources.customDomain && this.resources.customCertificate) {
-        return this.generateAPIGatewayCustomDomain();
-      }
-      return Promise.resolve();
-    });
+    await this.generateAPIGatewayMapping();
+    this.stepper("Setting permissions and publish");
+    let deployment = await this.generateAPIGatewayStage();
+    await this.addLambdaPermission();
+    console.log("You can now access to your API to : https://" + this.restApiId + ".execute-api." + this.region + ".amazonaws.com/" + this.deployment.uuid);
+    if (this.resources.customDomain && this.resources.customCertificate) {
+      return this.generateAPIGatewayCustomDomain();
+    }
   }
 
-  generateAPIGatewayCustomDomain() {
+  private async generateAPIGatewayCustomDomain() {
     let domain = this.resources.customDomainName || this.resources.restApi;
     let cert;
     // Check custom certificate
     if (!this.resources.customCertificate) {
-      return Promise.resolve();
+      return;
     }
     let endpoint = this.resources.customDomainEndpoint || 'EDGE';
     let region;
@@ -406,51 +410,41 @@ class LambdaDeployer extends AWSDeployer {
       region = 'us-east-1';
     }
     // For EDGE need to be in us-east-1 -> might want to upgrade to both EDGE and REGIONAL
-    return this._createCertificate(domain, region).then((res) => {
-      cert = res;
-      return this._awsGateway.getDomainNames().promise();
-    }).then((res) => {
-      let custom;
-      // Search for the custom domain
-      for (let i in res.items) {
-        if (res.items[i].domainName === domain) {
-          custom = res.items[i];
-        }
+    cert = await this._createCertificate(domain, region);
+    let res = await this._awsGateway.getDomainNames().promise();
+    let custom;
+    // Search for the custom domain
+    for (let i in res.items) {
+      if (res.items[i].domainName === domain) {
+        custom = res.items[i];
       }
-      if (!custom) {
-        let params = {
-          domainName: domain,
-          endpointConfiguration: {
-            types: [endpoint]
-          }
-        };
-        if (endpoint === 'EDGE') {
-          params.certificateArn = cert.CertificateArn;
-        } else {
-          params.regionalCertificateArn = cert.CertificateArn;
+    }
+    if (!custom) {
+      let params : any = {
+        domainName: domain,
+        endpointConfiguration: {
+          types: [endpoint]
         }
-        // Create one
-        console.log('Create API Gateway custom domain', domain);
-        return this._awsGateway.createDomainName(params).promise().then((res) => {
-          custom = res;
-          return this._awsGateway.createBasePathMapping({
-            domainName: domain,
-            restApiId: this.restApiId,
-            basePath: '',
-            stage: this.deployment.uuid
-          }).promise();
-        }).then(() => {
-          return Promise.resolve(custom);
-        });
+      };
+      if (endpoint === 'EDGE') {
+        params.certificateArn = cert.CertificateArn;
+      } else {
+        params.regionalCertificateArn = cert.CertificateArn;
       }
-      // Might want to update from the current one if customDomainEndpoint has changed
-      return Promise.resolve(custom);
-    }).then((distrib) => {
-      return this._createDNSEntry(domain, 'CNAME', distrib.distributionDomainName);
-    });
+      // Create one
+      console.log('Create API Gateway custom domain', domain);
+      custom = await this._awsGateway.createDomainName(params).promise();
+      await this._awsGateway.createBasePathMapping({
+        domainName: domain,
+        restApiId: this.restApiId,
+        basePath: '',
+        stage: this.deployment.uuid
+      }).promise();
+    }
+    await this._createDNSEntry(domain, 'CNAME', custom.distributionDomainName || custom.regionalDomainName);
   }
 
-  generateAPIGatewayStage() {
+  private async generateAPIGatewayStage() {
     console.log("Generating API Gateway Deployment");
     return this._awsGateway.createDeployment({
       restApiId: this.restApiId,
@@ -458,7 +452,7 @@ class LambdaDeployer extends AWSDeployer {
     }).promise();
   }
 
-  getRestApi() {
+  private async getRestApi() {
     return this._awsGateway.getRestApis().promise().then((result) => {
       var resource = null;
       for (var i in result.items) {
@@ -472,7 +466,7 @@ class LambdaDeployer extends AWSDeployer {
     });
   }
 
-  generateAPIGatewayMapping() {
+  private async generateAPIGatewayMapping() {
     console.log("Creating API Gateway Mapping");
     return this.getRestApi().then((result) => {
       if (!result) {
@@ -540,50 +534,43 @@ class LambdaDeployer extends AWSDeployer {
     });
   }
 
-  updateAwsResource(resource, local) {
-    var promise = Promise.resolve();
+  private async updateAwsResource(resource, local) {
     var allowedMethods;
     for (let i in resource.resourceMethods) {
-      promise = promise.then(() => {
-        return this._awsGateway.deleteMethod({
-          'resourceId': resource.id,
-          'restApiId': this.restApiId,
-          'httpMethod': i
-        }).promise();
-      });
+      await this._awsGateway.deleteMethod({
+        'resourceId': resource.id,
+        'restApiId': this.restApiId,
+        'httpMethod': i
+      }).promise();
     }
-    return promise.then(() => {
-      if (this._addOPTIONS) {
-        if (typeof(local.method) == "string") {
-          local.method = [local.method];
-        }
-        local.method.push('OPTIONS');
-      }
+    if (this._addOPTIONS) {
       if (typeof(local.method) == "string") {
-        allowedMethods = local.method;
-        return this.createAWSMethodResource(resource, local, local.method);
-      } else {
-        allowedMethods = local.method.join(",");
-        return this.createAWSMethodsResource(resource, local, local.method);
+        local.method = [local.method];
       }
-    }).then(() => {
-      if (this._addMockCORS) {
-        return this.createCORSMethod(resource, allowedMethods);
-      }
-      return Promise.resolve();
-    });
+      local.method.push('OPTIONS');
+    }
+    if (typeof(local.method) == "string") {
+      allowedMethods = local.method;
+      await this.createAWSMethodResource(resource, local, local.method);
+    } else {
+      allowedMethods = local.method.join(",");
+      await this.createAWSMethodsResource(resource, local, local.method);
+    }
+    if (this._addMockCORS) {
+      await this.createCORSMethod(resource, allowedMethods);
+    }
   }
 
-  deleteAwsResource(remote) {
+  private async deleteAwsResource(remote) {
     return this._awsGateway.deleteResource({
       'resourceId': remote.id,
       'restApiId': this.restApiId
     }).promise();
   }
 
-  createAWSMethodResource(resource, local, method) {
+  private async createAWSMethodResource(resource, local, method) {
     console.log("Creating " + method + " on " + local._url);
-    var params = {
+    var params : any = {
       "authorizationType": "NONE",
       'resourceId': resource.id,
       'httpMethod': method,
@@ -597,21 +584,20 @@ class LambdaDeployer extends AWSDeployer {
       }
       params.requestParameters["method.request.querystring." + local._queryParameters[i]] = false;
     }
-    return this._awsGateway.putMethod(params).promise().then((awsMethod) => {
-      // Integration type : AWS_PROXY
-      var params = {
-        'resourceId': resource.id,
-        'integrationHttpMethod': 'POST',
-        'httpMethod': method,
-        'restApiId': this.restApiId,
-        'type': 'AWS_PROXY'
-      };
-      params.uri = "arn:aws:apigateway:" + this.region + ":lambda:path/2015-03-31/functions/" + this._lambdaFunction.FunctionArn + "/invocations";
-      return this._awsGateway.putIntegration(params).promise();
-    });
+    let awsMethod = await this._awsGateway.putMethod(params).promise();
+    // Integration type : AWS_PROXY
+    var params : any = {
+      'resourceId': resource.id,
+      'integrationHttpMethod': 'POST',
+      'httpMethod': method,
+      'restApiId': this.restApiId,
+      'type': 'AWS_PROXY'
+    };
+    params.uri = "arn:aws:apigateway:" + this.region + ":lambda:path/2015-03-31/functions/" + this._lambdaFunction.FunctionArn + "/invocations";
+    return this._awsGateway.putIntegration(params).promise();
   }
 
-  createCORSMethod(resource, methods) {
+  private createCORSMethod(resource, methods) {
     console.log("Adding OPTIONS method for CORS");
     var responseParameters = {};
     responseParameters['method.response.header.Access-Control-Allow-Headers'] = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'";
@@ -631,7 +617,7 @@ class LambdaDeployer extends AWSDeployer {
       'restApiId': this.restApiId
     };
     return this._awsGateway.putMethod(params).promise().then(() => {
-      var params = {
+      var params : any = {
         'resourceId': resource.id,
         'httpMethod': 'OPTIONS',
         'restApiId': this.restApiId,
@@ -643,7 +629,7 @@ class LambdaDeployer extends AWSDeployer {
       return this._awsGateway.putIntegration(params).promise();
     }).then(() => {
       // AWS ReturnCode
-      var params = {
+      var params : any = {
         'resourceId': resource.id,
         'httpMethod': 'OPTIONS',
         'restApiId': this.restApiId,
@@ -658,7 +644,7 @@ class LambdaDeployer extends AWSDeployer {
       params.responseParameters = map;
       return this._awsGateway.putMethodResponse(params).promise();
     }).then(() => {
-      var params = {
+      var params : any = {
         'resourceId': resource.id,
         'httpMethod': 'OPTIONS',
         'restApiId': this.restApiId,
@@ -671,7 +657,7 @@ class LambdaDeployer extends AWSDeployer {
     });
   }
 
-  createAWSMethodsResource(resource, local, methods) {
+  private createAWSMethodsResource(resource, local, methods) {
     if (!methods.length) {
       return Promise.resolve();
     }
@@ -681,58 +667,50 @@ class LambdaDeployer extends AWSDeployer {
     });
   }
 
-  createAwsResource(local) {
+  private async createAwsResource(local) {
     var i = local._url.indexOf("/", 1);
     var allowedMethods;
     var resource;
-    var promise = new Promise((resolve, reject) => {
-      resolve(this.tree['/']);
-    });
+    let item = this.tree['/'];
     while (i >= 0) {
       let currentPath = local._url.substr(0, i);
-      promise = promise.then((item) => {
-        if (this.tree[currentPath] === undefined) {
-          let pathPart = currentPath.substr(currentPath.lastIndexOf('/') + 1);
-          this.tree[currentPath] = this._awsGateway.createResource({
-            'parentId': item.id,
-            'pathPart': pathPart,
-            'restApiId': this.restApiId
-          }).promise()
-          return this.tree[currentPath];
-        }
-        return Promise.resolve(this.tree[currentPath]);
-      });
+      if (this.tree[currentPath] === undefined) {
+        let pathPart = currentPath.substr(currentPath.lastIndexOf('/') + 1);
+        this.tree[currentPath] = await this._awsGateway.createResource({
+          'parentId': item.id,
+          'pathPart': pathPart,
+          'restApiId': this.restApiId
+        }).promise()
+        item = this.tree[currentPath];
+      } else {
+        item = this.tree[currentPath];
+      }
       i = local._url.indexOf("/", i + 1);
     }
-    return promise.then((parent) => {
-      let pathPart = local._url.substr(local._url.lastIndexOf('/') + 1);
-      let params = {
-        'parentId': parent.id,
-        'pathPart': pathPart,
-        'restApiId': this.restApiId
-      };
-      return this.tree[local._url] = this._awsGateway.createResource(params).promise();
-    }).then((res) => {
-      resource = res;
-      if (this._addOPTIONS) {
-        if (typeof(local.method) == "string") {
-          local.method = [local.method];
-        }
-        local.method.push('OPTIONS');
-      }
+    let pathPart = local._url.substr(local._url.lastIndexOf('/') + 1);
+    let params = {
+      'parentId': item.id,
+      'pathPart': pathPart,
+      'restApiId': this.restApiId
+    };
+    this.tree[local._url] = this._awsGateway.createResource(params).promise();
+    resource = await this.tree[local._url];
+    if (this._addOPTIONS) {
       if (typeof(local.method) == "string") {
-        allowedMethods = local.method;
-        return this.createAWSMethodResource(resource, local, local.method);
-      } else {
-        allowedMethods = local.method.join(",");
-        return this.createAWSMethodsResource(resource, local, local.method);
+        local.method = [local.method];
       }
-    }).then(() => {
-      if (this._addMockCORS) {
-        return this.createCORSMethod(resource, allowedMethods);
-      }
-      return Promise.resolve();
-    });
+      local.method.push('OPTIONS');
+    }
+    if (typeof(local.method) == "string") {
+      allowedMethods = local.method;
+      await this.createAWSMethodResource(resource, local, local.method);
+    } else {
+      allowedMethods = local.method.join(",");
+      await this.createAWSMethodsResource(resource, local, local.method);
+    }
+    if (this._addMockCORS) {
+      await this.createCORSMethod(resource, allowedMethods);
+    }
   }
 
 
@@ -759,4 +737,3 @@ class LambdaDeployer extends AWSDeployer {
   }
 }
 
-module.exports = LambdaDeployer;

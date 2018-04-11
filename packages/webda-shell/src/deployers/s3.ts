@@ -1,5 +1,5 @@
-"use strict";
-const AWSDeployer = require("./aws");
+import { AWSDeployer } from './aws';
+import { S3, CloudFront } from 'aws-sdk';
 const fs = require('fs');
 const path = require('path');
 const Finder = require('fs-finder');
@@ -109,10 +109,14 @@ const mime = require('mime-types');
  }
 
  */
-class S3Deployer extends AWSDeployer {
+export class S3Deployer extends AWSDeployer {
+  bucket: string;
+  _s3: S3;
+  _cloudfront: CloudFront;
+  source: string;
 
-  _createWebsite() {
-    let params = {
+  async _createWebsite() {
+    let params : any = {
       Bucket: this.bucket,
       WebsiteConfiguration: {
         ErrorDocument: {
@@ -123,53 +127,46 @@ class S3Deployer extends AWSDeployer {
         }
       }
     };
-    return this._s3.putBucketWebsite(params).promise().then(() => {
-      // Set the bucket policy
-      let policy = {
-        "Version": "2012-10-17",
-        "Statement": [{
-          "Sid": "PublicReadGetObject",
-          "Effect": "Allow",
-          "Principal": "*",
-          "Action": ["s3:GetObject"],
-          "Resource": ["arn:aws:s3:::" + this.bucket + "/*"]
-        }]
-      };
-      params = {
-        Bucket: this.bucket,
-        Policy: JSON.stringify(policy)
-      };
-      return this._s3.putBucketPolicy(params).promise();
-    }).then(() => {
-      return this._createCloudFront();
-    }).then(() => {
-      if (!this.resources.cloudfront) {
-        // Generate a basic CNAME to s3.
-        return this._createDNSEntry(this.bucket, 'CNAME', this.bucket + '.s3-website-' + this._s3.config.region + '.amazonaws.com');
-      }
-      return Promise.resolve();
-    });
+    await this._s3.putBucketWebsite(params).promise();
+    // Set the bucket policy
+    let policy = {
+      "Version": "2012-10-17",
+      "Statement": [{
+        "Sid": "PublicReadGetObject",
+        "Effect": "Allow",
+        "Principal": "*",
+        "Action": ["s3:GetObject"],
+        "Resource": ["arn:aws:s3:::" + this.bucket + "/*"]
+      }]
+    };
+    params = {
+      Bucket: this.bucket,
+      Policy: JSON.stringify(policy)
+    };
+    await this._s3.putBucketPolicy(params).promise();
+    await this._createCloudFront();
+    if (!this.resources.cloudfront) {
+      // Generate a basic CNAME to s3.
+      await this._createDNSEntry(this.bucket, 'CNAME', this.bucket + '.s3-website-' + this._s3.config.region + '.amazonaws.com');
+    }
   }
 
-  _createCertificate(domain) {
+  async _createCertificate(domain) {
     if (this.resources.certificate) {
       // Have to force region to us-east-1 to be able to us it with cloudfront
-      return super._createCertificate(domain, 'us-east-1').then((cert) => {
-        this._certificate = cert;
-      });
+      this._certificate = await super._createCertificate(domain, 'us-east-1');
     }
-    return Promise.resolve();
   }
 
-  _needCloudFrontUpdate(distrib) {
+  private _needCloudFrontUpdate(distrib) {
     return distrib.DefaultRootObject !== (this.resources.indexDocument || 'index.html') ||
       distrib.PriceClass !== (this.resources.PriceClass || 'PriceClass_100') ||
-      (this.certificate && !distrib.ViewerCertificate);
+      (this._certificate && !distrib.ViewerCertificate);
   }
 
-  _getCloudFrontConfig() {
+  private _getCloudFrontConfig() {
     let viewerPolicy = this.resources.certificate ? 'redirect-to-https' : 'allow-all';
-    let params = {
+    let params : any = {
       DistributionConfig: {
         CallerReference: this.bucket,
         Comment: 'Webda_' + this.bucket,
@@ -253,111 +250,103 @@ class S3Deployer extends AWSDeployer {
     return params;
   }
 
-  _createCloudFront() {
+  private async _createCloudFront() {
     if (!this.resources.cloudfront) {
-      return Promise.resolve();
+      return;
     }
     let cloudfront;
-    let params = {
+    let params : any = {
       MaxItems: '1000'
     };
     this._cloudfront = new(this._getAWS(this.resources)).CloudFront();
-    return this._createCertificate(this.bucket).then(() => {
-      // TODO Handle paginations
-      return this._cloudfront.listDistributions(params).promise();
-    }).then((res) => {
-      for (let i in res.Items) {
-        // Search for current cloudfront
-        if (res.Items[i].DefaultCacheBehavior.TargetOriginId === ("S3-" + this.bucket)) {
-          cloudfront = res.Items[i];
-          if (cloudfront.Status === 'InProgress') {
-            console.log('CloudFront distribution', cloudfront.Id, 'is in progress, skipping');
-            return Promise.resolve();
-          }
-          if (!cloudfront.Enabled) {
-            console.log('CloudFront distribution', cloudfront.Id, 'is in disabled, skipping');
-            return Promise.resolve();
-          }
-          if (this._needCloudFrontUpdate(cloudfront.DistributionConfig)) {
-            console.log('Update CloudFront distribution', cloudfront.Id);
-            return this._cloudfront.updateDistribution(this._getCloudFrontConfig()).promise();
-          }
-          console.log('Invalidate CloudFront distribution', cloudfront.Id);
-          params = {
-            DistributionId: cloudfront.Id,
-            InvalidationBatch: {
-              CallerReference: 'Webda-deployment',
-              Paths: {
-                Quantity: 1,
-                Items: [
-                  '/*'
-                ]
-              }
-            }
-          };
-          return this._cloudfront.createInvalidation(params).promise();
-        }
-      }
-      if (!cloudfront) {
-        return this._cloudfront.createDistribution(this._getCloudFrontConfig()).promise().then((res) => {
-          cloudfront = res;
-          console.log('Create Cloudfront distribution', res.Distribution.Id, ': this take some times on the AWS side before being effective');
-          // Waiting with the waitFor api ?
+    await this._createCertificate(this.bucket);
+    // TODO Handle paginations  
+    let res : CloudFront.ListDistributionsResult = await this._cloudfront.listDistributions(params).promise();
+    for (let i in res.DistributionList.Items) {
+      cloudfront = res.DistributionList.Items[i];
+      // Search for current cloudfront
+      if (cloudfront.DefaultCacheBehavior.TargetOriginId === ("S3-" + this.bucket)) {
+        if (cloudfront.Status === 'InProgress') {
+          console.log('CloudFront distribution', cloudfront.Id, 'is in progress, skipping');
           return Promise.resolve();
-        });
+        }
+        if (!cloudfront.Enabled) {
+          console.log('CloudFront distribution', cloudfront.Id, 'is in disabled, skipping');
+          return Promise.resolve();
+        }
+        if (this._needCloudFrontUpdate(cloudfront.DistributionConfig)) {
+          console.log('Update CloudFront distribution', cloudfront.Id);
+          return this._cloudfront.updateDistribution(this._getCloudFrontConfig()).promise();
+        }
+        console.log('Invalidate CloudFront distribution', cloudfront.Id);
+        params = {
+          DistributionId: cloudfront.Id,
+          InvalidationBatch: {
+            CallerReference: 'Webda-deployment',
+            Paths: {
+              Quantity: 1,
+              Items: [
+                '/*'
+              ]
+            }
+          }
+        };
+        await this._cloudfront.createInvalidation(params).promise();
       }
-    }).then(() => {
-      // Ensure Route53 record set
-      return this._createDNSEntry(this.bucket, 'CNAME', cloudfront.DomainName);
-    });
-  }
-
-  _createDNSEntry(domain, type, value) {
-    if (!this.resources.route53) {
-      return Promise.resolve();
     }
-    return super._createDNSEntry(domain, type, value);
+    if (!cloudfront) {
+      return this._cloudfront.createDistribution(this._getCloudFrontConfig()).promise().then((res) => {
+        cloudfront = res;
+        console.log('Create Cloudfront distribution', res.Distribution.Id, ': this take some times on the AWS side before being effective');
+        // Waiting with the waitFor api ?
+        return Promise.resolve();
+      });
+    }
+    // Ensure Route53 record set
+    await this._createDNSEntry(this.bucket, 'CNAME', cloudfront.DomainName);
   }
 
-  undeploy(args) {
+  async _createDNSEntry(domain, type, value) : Promise<void> {
+    if (!this.resources.route53) {
+      return;
+    }
+    await super._createDNSEntry(domain, type, value);
+  }
+
+  async undeploy(args) {
     // Delete S3
     // Delete Cloudfront
     // Delete certificate
     // Delete Route53
   }
 
-  deploy(args) {
+  async deploy(args) {
+    this._s3 = new(this._getAWS(this.resources)).S3();
     let bucket = this.resources.target;
     let source = path.resolve(this.resources.source);
     this.bucket = bucket;
     this.source = source;
     console.log('Deploy', source, 'on S3 Bucket', bucket);
-    return this.createBucket(bucket).then(() => {
-      let files = Finder.from(source).findFiles();
-      // Should implement multithread here - cleaning too
-      let promise = Promise.resolve();
-      files.forEach((file) => {
-        let key = path.relative(source, file);
-        // Need to have mimetype to serve the content correctly
-        let mimetype = mime.contentType(path.extname(file));
-        promise = promise.then(() => {
-          return this._s3.putObject({
-            Bucket: bucket,
-            Body: fs.createReadStream(file),
-            Key: key,
-            ContentType: mimetype
-          }).promise();
-        }).then(() => {
-          console.log('Uploaded', file, 'to', key, '(' + mimetype + ')');
-        });
-      });
-      return promise;
-    }).then(() => {
-      if (!this.resources.staticWebsite) {
-        return Promise.resolve();
-      }
-      return this._createWebsite();
-    });
+    await this.createBucket(bucket);
+    let files = Finder.from(source).findFiles();
+    // Should implement multithread here - cleaning too
+    for (let i in files) {
+      let file = files[i];
+      let key = path.relative(source, file);
+      // Need to have mimetype to serve the content correctly
+      let mimetype = mime.contentType(path.extname(file));
+      await this._s3.putObject({
+        Bucket: bucket,
+        Body: fs.createReadStream(file),
+        Key: key,
+        ContentType: mimetype
+      }).promise();
+      console.log('Uploaded', file, 'to', key, '(' + mimetype + ')');
+    };
+    if (!this.resources.staticWebsite) {
+      return;
+    }
+    await this._createWebsite();
   }
 
   static getModda() {
@@ -380,4 +369,3 @@ class S3Deployer extends AWSDeployer {
   }
 }
 
-module.exports = S3Deployer;

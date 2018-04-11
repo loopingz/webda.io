@@ -1,6 +1,6 @@
 "use strict";
 const assert = require("assert");
-const Webda = require("../dist/index.js");
+const Webda = require("../lib/index.js");
 const CoreModel = Webda.CoreModel;
 const Utils = require('./utils')
 const Task = require('./models/task');

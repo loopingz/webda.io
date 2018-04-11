@@ -767,6 +767,8 @@ class Webda extends events.EventEmitter {
           let model = require(include);
           if (model.default) {
             config._models[type.toLowerCase()] = model.default;  
+          } else {
+            config._models[type.toLowerCase()] = model;
           }
         }
 
@@ -777,7 +779,7 @@ class Webda extends events.EventEmitter {
       }
     }
     for (let i in this._models) {
-      if (config._models[i]) continue;
+      if (config._models[i.toLowerCase()]) continue;
       config._models[i.toLowerCase()] = this._models[i];
     }
     this.emit('Webda.Init.Models', config._models);

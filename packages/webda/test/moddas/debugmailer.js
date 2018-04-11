@@ -1,5 +1,5 @@
 "use strict";
-const Webda = require("../../dist/index");
+const Webda = require("../../lib/index");
 
 class DebugMailer extends Webda.Service {
   init() {

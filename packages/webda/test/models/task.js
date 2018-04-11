@@ -1,5 +1,5 @@
 "use strict";
-const Webda = require("../../dist/index.js");
+const Webda = require("../../lib/index.js");
 const CoreModel = Webda.CoreModel;
 
 /**
@@ -47,4 +47,4 @@ class Task extends CoreModel {
   }
 }
 
-module.exports = Task
+module.exports = Task;

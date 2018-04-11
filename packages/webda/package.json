@@ -63,7 +63,7 @@
       ".js"
     ],
     "include": [
-      "dist/**/*.js"
+      "lib/**/*.js"
     ],
     "reporter": [
       "html",

@@ -1,4 +1,4 @@
-const Webda = require("../dist/index.js");
+const Webda = require("../lib/index.js");
 const Executor = Webda.Executor;
 var old_config = require("./config.old.json");
 var old_default_config = require("./config.old-default.json");

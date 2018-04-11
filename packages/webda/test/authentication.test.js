@@ -1,6 +1,6 @@
 "use strict";
 var assert = require("assert")
-const Webda = require("../dist/index.js");
+const Webda = require("../lib/index.js");
 var config = require("./config.json");
 var Ident = require("./models/ident");
 var identStore;

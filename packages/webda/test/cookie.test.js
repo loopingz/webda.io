@@ -1,5 +1,5 @@
 const assert = require("assert");
-const SecureCookie = require("../dist/index.js").SecureCookie;
+const SecureCookie = require("../lib/index.js").SecureCookie;
 
 var crypto = require('crypto'),
   algorithm = 'aes-256-ctr',

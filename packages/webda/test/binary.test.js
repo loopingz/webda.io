@@ -1,5 +1,5 @@
 const assert = require("assert")
-const Webda = require("../dist/index.js");
+const Webda = require("../lib/index.js");
 const config = require("./config.json");
 const fs = require("fs");
 const Utils = require("./utils");

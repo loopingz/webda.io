@@ -1,6 +1,6 @@
 "use strict";
 
-const Webda = require("../../dist/index.js");
+const Webda = require("../../lib/index.js");
 
 class VoidStore extends Webda.Store {
 

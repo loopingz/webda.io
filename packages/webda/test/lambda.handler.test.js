@@ -1,6 +1,6 @@
 "use strict";
 var assert = require("assert");
-const Webda = require("../dist/index.js");
+const Webda = require("../lib/index.js");
 var handler;
 var config = require("./config.json");
 var evt;
@@ -10,7 +10,7 @@ var res;
 
 describe('Lambda Handler', function() {
   beforeEach( function () {
-    handler = new Webda.LambdaHandler(config);
+    handler = new Webda.LambdaServer(config);
     evt = {
       headers: {
         Cookie: 'webda=plop;'

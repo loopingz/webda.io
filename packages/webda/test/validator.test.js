@@ -1,6 +1,6 @@
 "use strict";
 const assert = require("assert");
-const Webda = require("../dist/index.js");
+const Webda = require("../lib/index.js");
 var config = require("./config.json");
 var executor;
 var webda = new Webda.Core(config);

@@ -263,9 +263,9 @@ export class S3Deployer extends AWSDeployer {
     // TODO Handle paginations  
     let res : CloudFront.ListDistributionsResult = await this._cloudfront.listDistributions(params).promise();
     for (let i in res.DistributionList.Items) {
-      cloudfront = res.DistributionList.Items[i];
       // Search for current cloudfront
-      if (cloudfront.DefaultCacheBehavior.TargetOriginId === ("S3-" + this.bucket)) {
+      if (res.DistributionList.Items[i].DefaultCacheBehavior.TargetOriginId === ("S3-" + this.bucket)) {
+        cloudfront = res.DistributionList.Items[i];  
         if (cloudfront.Status === 'InProgress') {
           console.log('CloudFront distribution', cloudfront.Id, 'is in progress, skipping');
           return Promise.resolve();
@@ -295,12 +295,8 @@ export class S3Deployer extends AWSDeployer {
       }
     }
     if (!cloudfront) {
-      return this._cloudfront.createDistribution(this._getCloudFrontConfig()).promise().then((res) => {
-        cloudfront = res;
-        console.log('Create Cloudfront distribution', res.Distribution.Id, ': this take some times on the AWS side before being effective');
-        // Waiting with the waitFor api ?
-        return Promise.resolve();
-      });
+      cloudfront = await this._cloudfront.createDistribution(this._getCloudFrontConfig()).promise()
+      console.log('Create Cloudfront distribution', cloudfront.Distribution.Id, ': this take some times on the AWS side before being effective');
     }
     // Ensure Route53 record set
     await this._createDNSEntry(this.bucket, 'CNAME', cloudfront.DomainName);

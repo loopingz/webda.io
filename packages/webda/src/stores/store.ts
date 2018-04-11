@@ -1,7 +1,12 @@
 "use strict";
 const uuid = require('uuid');
-import { Executor } from '../index';
-import { CoreModelDefinition, CoreModel } from "../models/coremodel";
+import {
+  Executor
+} from '../index';
+import {
+  CoreModelDefinition,
+  CoreModel
+} from "../models/coremodel";
 
 /**
  * This class handle NoSQL storage and mapping (duplication) between NoSQL object
@@ -37,9 +42,9 @@ import { CoreModelDefinition, CoreModel } from "../models/coremodel";
  *   }
  */
 class Store extends Executor {
-  _reverseMap:any[];
-  _cascade:any[];
-  _writeConditionField:string;
+  _reverseMap: any[];
+  _cascade: any[];
+  _writeConditionField: string;
   _model: CoreModelDefinition;
 
   /** @ignore */
@@ -99,7 +104,7 @@ class Store extends Executor {
     if (this._model) {
       let actions = this._model.getActions();
       Object.keys(actions).forEach((name) => {
-        let action : any = actions[name];
+        let action: any = actions[name];
         action.name = name;
         if (!action.name) {
           throw Error('Action needs a name got:' + action);
@@ -130,7 +135,7 @@ class Store extends Executor {
     }
   }
 
-  initModel(object) : CoreModel {
+  initModel(object): CoreModel {
     // Make sure to send a model object
     if (!(object instanceof this._model)) {
       object = new this._model(object, true);
@@ -155,7 +160,9 @@ class Store extends Executor {
     }
   }
 
-  async _incrementAttribute(uid, prop, value) : Promise<any> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async _incrementAttribute(uid, prop, value): Promise < any > {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  }
 
   async incrementAttribute(uid, prop, value) {
     // If value === 0 no need to update anything
@@ -193,7 +200,9 @@ class Store extends Executor {
     });
   }
 
-  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) : Promise<any> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField): Promise < any > {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  }
 
   async deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
     if (index === undefined || prop === undefined) {
@@ -216,14 +225,16 @@ class Store extends Executor {
     });
   }
 
-  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) : Promise<any> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField): Promise < any > {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  }
 
   initMap(map) {
     if (map == undefined || map._init) {
       return;
     }
     for (var prop in map) {
-      var reverseStore : Store = <Store> this._webda.getService(prop);
+      var reverseStore: Store = < Store > this._webda.getService(prop);
       if (reverseStore === undefined || !(reverseStore instanceof Store)) {
         map[prop]["-onerror"] = "NoStore";
         this._webda.log('WARN', 'Can\'t setup mapping as store "', prop, '" doesn\'t exist');
@@ -280,8 +291,8 @@ class Store extends Executor {
     let res = await this._save(object, uid);
     object = this.initModel(res);
     await this.emitSync('Store.Saved', {
-        'object': object,
-        'store': this
+      'object': object,
+      'store': this
     });
     await object._onSaved();
     if (this._params.map != undefined) {
@@ -290,7 +301,9 @@ class Store extends Executor {
     return object;
   }
 
-  async _save(object, uid) : Promise<any> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async _save(object, uid): Promise < any > {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  }
 
   /**
    * Update an object
@@ -300,7 +313,7 @@ class Store extends Executor {
    * @param {Boolean} reverseMap internal use only, for disable map resolution
    * @return {Promise} with saved object
    */
-  async update(object : any, uid = undefined, reverseMap = true) {
+  async update(object: any, uid = undefined, reverseMap = true) {
     /** @ignore */
     var saved;
     var loaded;
@@ -332,7 +345,7 @@ class Store extends Executor {
       'update': object
     });
     await loaded._onUpdate(object);
-    let res : any = await this._update(object, uid, writeCondition);
+    let res: any = await this._update(object, uid, writeCondition);
     // Return updated
     for (let i in res) {
       loaded[i] = res[i];
@@ -454,7 +467,7 @@ class Store extends Executor {
 
   _handleUpdatedMapMapper(object, map, mapped, store, updates) {
     // Update the mapper
-    var mapper : any = {};
+    var mapper: any = {};
     mapper.uuid = object.uuid;
     if (map.fields) {
       var fields = map.fields.split(",");
@@ -490,7 +503,7 @@ class Store extends Executor {
 
   _handleCreatedMap(object, map, mapped, store) {
     // Add to the object
-    var mapper : any = {};
+    var mapper: any = {};
     mapper.uuid = object.uuid;
     // Add info to the mapped
     if (map.fields) {
@@ -518,7 +531,7 @@ class Store extends Executor {
     }
   }
 
-  async handleMap(object, map, updates) : Promise<any[]> {
+  async handleMap(object, map, updates): Promise < any[] > {
     let promises = [];
     if (object === undefined) {
       return;
@@ -528,7 +541,7 @@ class Store extends Executor {
       if (map[prop].key === undefined || object[map[prop].key] === undefined) {
         continue;
       }
-      let store : Store = <Store> this.getService(prop);
+      let store: Store = < Store > this.getService(prop);
       // Cant find the store for this collection
       if (store == undefined) {
         continue;
@@ -538,9 +551,11 @@ class Store extends Executor {
     return Promise.all(promises);
   }
 
-  async _update(object, uid, writeCondition?) : Promise<any> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async _update(object, uid, writeCondition ? ): Promise < any > {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  }
 
-  async cascadeDelete(obj: any, uuid:string) : Promise<any> {
+  async cascadeDelete(obj: any, uuid: string): Promise < any > {
     // We dont need uuid but Binary store will need it
     return this.delete(obj.uuid);
   }
@@ -554,7 +569,7 @@ class Store extends Executor {
    */
   async delete(uid, sync = false) {
     /** @ignore */
-    let to_delete : CoreModel;
+    let to_delete: CoreModel;
     if (typeof(uid) === 'object') {
       to_delete = uid;
       uid = to_delete.uuid;
@@ -580,7 +595,7 @@ class Store extends Executor {
       // Should deactiate the mapping in that case
       for (let i in this._cascade) {
         if (typeof(this._cascade[i]) != "object" || to_delete[this._cascade[i].name] == undefined) continue;
-        var targetStore : Store = this.getTypedService<Store>(this._cascade[i].store);
+        var targetStore: Store = this.getTypedService < Store > (this._cascade[i].store);
         if (targetStore == undefined) continue;
         for (var item in to_delete[this._cascade[i].name]) {
           promises.push(targetStore.cascadeDelete(to_delete[this._cascade[i].name][item], to_delete.uuid));
@@ -607,11 +622,17 @@ class Store extends Executor {
    * @abstract
    * @params {String} uuid of the object
    */
-  async exists(uid:string) : Promise<boolean> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async exists(uid: string): Promise < boolean > {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  }
 
-  async _delete(uid:string, writeCondition?) : Promise<void> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async _delete(uid: string, writeCondition ? ): Promise < void > {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  }
 
-  async _get(uid:string) : Promise<any> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async _get(uid: string): Promise < any > {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  }
 
   /**
    * Get an object
@@ -619,7 +640,9 @@ class Store extends Executor {
    * @param {Array} uuid to gets if undefined then retrieve the all table
    * @return {Promise} the objects retrieved ( can be [] if not found )
    */
-  async getAll(list) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async getAll(list) {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  }
 
   /**
    * Get an object
@@ -627,7 +650,7 @@ class Store extends Executor {
    * @param {String} uuid to get
    * @return {Promise} the object retrieved ( can be undefined if not found )
    */
-  async get(uid: string) : Promise<CoreModel> {
+  async get(uid: string): Promise < CoreModel > {
     /** @ignore */
     let object = await this._get(uid);
     if (!object) {
@@ -642,7 +665,7 @@ class Store extends Executor {
     return object;
   }
 
-  async find(request : any = undefined, offset : number = 0, limit : number = undefined) : Promise<any> {
+  async find(request: any = undefined, offset: number = 0, limit: number = undefined): Promise < any > {
     await this.emitSync('Store.Find', {
       'request': request,
       'store': this,
@@ -660,7 +683,9 @@ class Store extends Executor {
     return result;
   }
 
-  async _find(request, offset, limit) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async _find(request, offset, limit) {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  }
 
   // ADD THE EXECUTOR PART
 
@@ -671,7 +696,7 @@ class Store extends Executor {
     try {
       await object.validate(ctx);
     } catch (err) {
-        throw 400;
+      throw 400;
     }
     if (await this.exists(object.uuid)) {
       throw 409;
@@ -803,4 +828,6 @@ class Store extends Executor {
   }
 }
 
-export { Store };
+export {
+  Store
+};

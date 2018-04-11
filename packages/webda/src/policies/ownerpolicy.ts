@@ -66,4 +66,6 @@ class OwnerPolicy {
   }
 }
 
-export { OwnerPolicy };
+export {
+  OwnerPolicy
+};

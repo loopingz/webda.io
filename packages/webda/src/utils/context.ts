@@ -1,6 +1,14 @@
 "use strict";
 const Writable = require('stream').Writable;
-import { _extend, Core as Webda, Executor, SecureCookie, CoreModel, Store, Service} from '../index';
+import {
+  _extend,
+  Core as Webda,
+  Executor,
+  SecureCookie,
+  CoreModel,
+  Store,
+  Service
+} from '../index';
 const acceptLanguage = require('accept-language');
 
 interface Map {
@@ -25,9 +33,9 @@ class Context implements Map {
   _route: any;
   _buffered: boolean;
   session: SecureCookie;
-  _ended: Promise<any> = undefined;
+  _ended: Promise < any > = undefined;
   _stream: any;
-  _promises: Promise<any>[];
+  _promises: Promise < any > [];
   _executor: Executor;
   _flushHeaders: boolean;
   body: any;
@@ -149,7 +157,7 @@ class Context implements Map {
    * @see Webda
    * @param {String} name of the service
    */
-  getService(name) : Service {
+  getService(name): Service {
     return this._webda.getService(name);
   }
 
@@ -165,7 +173,7 @@ class Context implements Map {
    * Get the current user from session
    */
   async getCurrentUser() {
-    return (<Store> this._webda.getService('Users')).get(this.getCurrentUserId());
+    return ( < Store > this._webda.getService('Users')).get(this.getCurrentUserId());
   }
 
   /**
@@ -263,4 +271,9 @@ class Context implements Map {
   }
 }
 
-export { Context, Map, HeaderMap, CookieMap };
+export {
+  Context,
+  Map,
+  HeaderMap,
+  CookieMap
+};

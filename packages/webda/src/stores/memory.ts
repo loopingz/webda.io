@@ -1,4 +1,7 @@
-import { Store, CoreModel } from '../index';
+import {
+  Store,
+  CoreModel
+} from '../index';
 
 interface StorageMap {
   [key: string]: any;
@@ -15,7 +18,7 @@ class MemoryStore extends Store {
     return this.storage[uid] !== undefined;
   }
 
-  async _find(request, offset, limit) : Promise<any> {
+  async _find(request, offset, limit): Promise < any > {
     // Need to transfert to Array
     return this.storage;
   }
@@ -43,7 +46,7 @@ class MemoryStore extends Store {
     return this._getSync(uid);
   }
 
-  async getAll(uids) : Promise<any> {
+  async getAll(uids): Promise < any > {
     if (!uids) {
       return Object.keys(this.storage).map((key) => {
         return this._getSync(key);
@@ -149,4 +152,7 @@ class MemoryStore extends Store {
 }
 
 
-export { MemoryStore, StorageMap };
+export {
+  MemoryStore,
+  StorageMap
+};

@@ -1,4 +1,8 @@
-import { Binary, _extend, Context } from '../index';
+import {
+  Binary,
+  _extend,
+  Context
+} from '../index';
 const fs = require("fs");
 
 /**
@@ -69,7 +73,7 @@ class FileBinary extends Binary {
    *
    * @ignore
    */
-  async putRedirectUrl(ctx : Context) : Promise<string> {
+  async putRedirectUrl(ctx: Context): Promise < string > {
     if (ctx.body.hash === undefined) {
       this._webda.log('WARN', 'Request not conform', ctx.body);
       throw 400;
@@ -106,7 +110,7 @@ class FileBinary extends Binary {
    *
    * @ignore
    */
-  async storeBinary(ctx : Context) {
+  async storeBinary(ctx: Context) {
     var result = this._getHashes(ctx.body);
     if (ctx._params.hash !== result.hash) {
       throw 400;
@@ -254,4 +258,6 @@ class FileBinary extends Binary {
   }
 }
 
-export { FileBinary };
+export {
+  FileBinary
+};

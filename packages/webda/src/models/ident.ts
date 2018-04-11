@@ -1,5 +1,7 @@
 "use strict";
-import { CoreModel } from './coremodel';
+import {
+  CoreModel
+} from './coremodel';
 
 class IdentTokens {
   refresh: string
@@ -20,7 +22,7 @@ class Ident extends CoreModel {
   __new: boolean;
   _failedLogin: number;
 
-  static init(type, uid, accessToken, refreshToken, profile) : Ident {
+  static init(type, uid, accessToken, refreshToken, profile): Ident {
     var obj = new Ident({});
     obj.type = type.toLowerCase();
     obj.uid = uid.toLowerCase();
@@ -41,4 +43,7 @@ class Ident extends CoreModel {
   }
 }
 
-export { Ident, IdentTokens };
+export {
+  Ident,
+  IdentTokens
+};

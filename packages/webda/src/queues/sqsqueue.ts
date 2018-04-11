@@ -1,5 +1,10 @@
 "use strict";
-import { Queue, AWSMixIn, Service, Core as Webda } from "../index";
+import {
+  Queue,
+  AWSMixIn,
+  Service,
+  Core as Webda
+} from "../index";
 
 // TODO Readd AWS Mixin
 class SQSQueue extends AWSMixIn(Queue) {
@@ -13,7 +18,7 @@ class SQSQueue extends AWSMixIn(Queue) {
     }
   }
 
-  async size() : Promise<number> {
+  async size(): Promise < number > {
     let res = await this.sqs.getQueueAttributes({
       AttributeNames: ["ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"],
       QueueUrl: this._params.queue
@@ -22,7 +27,7 @@ class SQSQueue extends AWSMixIn(Queue) {
   }
 
   async sendMessage(params) {
-    var sqsParams : any = {};
+    var sqsParams: any = {};
     sqsParams.QueueUrl = this._params.queue;
     sqsParams.MessageBody = JSON.stringify(params);
     return this.sqs.sendMessage(sqsParams).promise();
@@ -151,4 +156,6 @@ class SQSQueue extends AWSMixIn(Queue) {
 
 }
 
-export { SQSQueue };
+export {
+  SQSQueue
+};

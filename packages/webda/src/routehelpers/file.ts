@@ -1,4 +1,7 @@
-import { Executor, Context } from "../index";
+import {
+  Executor,
+  Context
+} from "../index";
 
 /**
  * Execute a custom JS file, it is almost like a custom Service except that this will not be a singleton
@@ -16,7 +19,7 @@ class FileRouteHelper extends Executor {
   /**
    * @ignore
    */
-  execute(ctx : Context) : Promise<any> {
+  execute(ctx: Context): Promise < any > {
     if (typeof(ctx._route.file) === "string") {
       var include = ctx._route.file;
       if (include.startsWith("./")) {
@@ -27,4 +30,6 @@ class FileRouteHelper extends Executor {
   }
 }
 
-export { FileRouteHelper };
+export {
+  FileRouteHelper
+};

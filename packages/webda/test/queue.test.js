@@ -64,23 +64,31 @@ describe('Queues', function() {
     it('Worker', function(done) {
       let queue = new Queue();
       let seq = 0;
-      queue._webda = {log: () => {
+      queue._webda = {
+        log: () => {
 
-      }};
+        }
+      };
       queue.receiveMessage = () => {
         seq++;
-        switch(seq) {
+        switch (seq) {
           case 1:
             // Test the resume if no messages available
             return Promise.resolve([]);
           case 2:
-            return Promise.resolve([{ReceiptHandle:'msg1', Body: "{\"title\":\"plop\"}"}]);
+            return Promise.resolve([{
+              ReceiptHandle: 'msg1',
+              Body: "{\"title\":\"plop\"}"
+            }]);
           case 3:
             throw Error();
           case 4:
             // An error occured it should double the pause
             assert.equal(queue.pause, 2);
-            return Promise.resolve([{ReceiptHandle:'msg2', Body: "{\"title\":\"plop2\"}"}]);
+            return Promise.resolve([{
+              ReceiptHandle: 'msg2',
+              Body: "{\"title\":\"plop2\"}"
+            }]);
           case 5:
             // Error on callback dont generate a double delay
             assert.equal(queue.pause, 2);
@@ -132,7 +140,7 @@ describe('Queues', function() {
       let error = false;
       try {
         let info = queue._getQueueInfosFromUrl();
-      } catch(ex) {
+      } catch (ex) {
         error = true;
       }
       assert.equal(error, true);

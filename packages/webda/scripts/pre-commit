@@ -20,7 +20,7 @@ then
     fi
     exit 1 # push will not execute
 fi
-exec npm test && npm run format
+exec npm run precommit
 if git rev-parse --verify HEAD >/dev/null 2>&1
 then
 	against=HEAD

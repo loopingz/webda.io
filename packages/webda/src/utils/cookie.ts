@@ -1,4 +1,6 @@
-import { _extend } from '../core';
+import {
+  _extend
+} from '../core';
 const crypto = require('crypto');
 
 function encrypt(algo, pass, text) {
@@ -116,7 +118,7 @@ class SecureCookie {
   }
 
   toJSON() {
-    let data : any = {};
+    let data: any = {};
     for (let prop in this) {
       if (prop[0] === "_") {
         continue;
@@ -138,4 +140,6 @@ class SecureCookie {
   }
 }
 
-export { SecureCookie };
+export {
+  SecureCookie
+};

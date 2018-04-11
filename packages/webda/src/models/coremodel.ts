@@ -1,11 +1,15 @@
 "use strict";
 const uuid = require('uuid');
-import { OwnerPolicy } from '../policies/ownerpolicy';
-import { Context } from '../utils/context';
+import {
+  OwnerPolicy
+} from '../policies/ownerpolicy';
+import {
+  Context
+} from '../utils/context';
 
 interface CoreModelDefinition {
-  new (raw: any, secure: boolean) : CoreModel
-  new (raw: any) : CoreModel
+  new(raw: any, secure: boolean): CoreModel
+  new(raw: any): CoreModel
   getActions(): any
 }
 
@@ -34,12 +38,12 @@ class CoreModel extends OwnerPolicy {
   /**
    * @ignore
    */
-  constructor(raw, secure : boolean = false) {
+  constructor(raw, secure: boolean = false) {
     super();
     this.load(raw, secure);
   }
 
-  load(raw, secure : boolean = false) {
+  load(raw, secure: boolean = false) {
     if (!raw) {
       return;
     }
@@ -66,7 +70,7 @@ class CoreModel extends OwnerPolicy {
    *
    * @throws Error if the object is not coming from a store
    */
-  async refresh() : Promise<CoreModel> {
+  async refresh(): Promise < CoreModel > {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
@@ -82,7 +86,7 @@ class CoreModel extends OwnerPolicy {
    *
    * @throws Error if the object is not coming from a store
    */
-  async delete() : Promise<void> {
+  async delete(): Promise < void > {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
@@ -94,7 +98,7 @@ class CoreModel extends OwnerPolicy {
    *
    * @throws Error if the object is not coming from a store
    */
-  async save() : Promise<void> {
+  async save(): Promise < void > {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
@@ -109,7 +113,7 @@ class CoreModel extends OwnerPolicy {
    *
    * @throws Error if the object is not coming from a store
    */
-  async update(changes) : Promise<void> {
+  async update(changes): Promise < void > {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
@@ -123,11 +127,11 @@ class CoreModel extends OwnerPolicy {
    * Return the object schema, if defined any modification done to the object by external source
    * must comply to this schema
    */
-  _getSchema() : any {
+  _getSchema(): any {
     return;
   }
 
-  async validate(ctx, updates = undefined) : Promise<boolean> {
+  async validate(ctx, updates = undefined): Promise < boolean > {
     let schema = this._getSchema();
     if (!schema) {
       return true;
@@ -141,18 +145,18 @@ class CoreModel extends OwnerPolicy {
     return true;
   }
 
-  generateUid() : string {
+  generateUid(): string {
     return uuid.v4().toString();
   }
 
-  _jsonFilter(key, value) : any {
+  _jsonFilter(key, value): any {
     if (key[0] === '_' && key.length > 1 && key[1] === '_') {
       return undefined;
     }
     return value;
   }
 
-  toStoredJSON(stringify = false) : any {
+  toStoredJSON(stringify = false): any {
     let obj = this._toJSON(true);
     obj.__store = undefined;
     if (stringify) {
@@ -161,15 +165,15 @@ class CoreModel extends OwnerPolicy {
     return obj;
   }
 
-  _getService(service) : any {
+  _getService(service): any {
     if (!this.__store) {
       return undefined;
     }
     return this.__store.getService(service);
   }
 
-  _toJSON(secure) : any {
-    let obj : any = {};
+  _toJSON(secure): any {
+    let obj: any = {};
     for (let i in this) {
       let value = this[i];
       if (!secure) {
@@ -181,7 +185,7 @@ class CoreModel extends OwnerPolicy {
     return obj;
   }
 
-  toJSON() : any {
+  toJSON(): any {
     return this._toJSON(false);
   }
 
@@ -194,4 +198,7 @@ class CoreModel extends OwnerPolicy {
   async _onUpdated() {}
 }
 
-export { CoreModel , CoreModelDefinition };
+export {
+  CoreModel,
+  CoreModelDefinition
+};

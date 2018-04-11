@@ -5,7 +5,7 @@ class LambdaCaller {
   _arn: string;
   AWS: any;
 
-  constructor(arn, config : any = {}) {
+  constructor(arn, config: any = {}) {
     if (arn instanceof Object) {
       config = arn;
       arn = config.arn;
@@ -50,4 +50,6 @@ class LambdaCaller {
   }
 }
 
-export { LambdaCaller };
+export {
+  LambdaCaller
+};

@@ -1,19 +1,29 @@
-import { Service } from "../index";
+import {
+  Service
+} from "../index";
 
 class Queue extends Service {
 
-  _timeout:any;
-  _interrupt:boolean;
+  _timeout: any;
+  _interrupt: boolean;
   callback: Function;
   pause: number;
 
-  async sendMessage(params:any) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async sendMessage(params: any) {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  }
 
-  async receiveMessage() : Promise<any> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async receiveMessage(): Promise < any > {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  }
 
-  async deleteMessage(id:string) { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async deleteMessage(id: string) {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  }
 
-  async size() : Promise<number> { throw Error('Virtual abstract class - concrete only for MixIn usage'); }
+  async size(): Promise < number > {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  }
 
   async _workerResume() {
     if (this._timeout) {
@@ -64,4 +74,6 @@ class Queue extends Service {
   }
 }
 
-export { Queue };
+export {
+  Queue
+};

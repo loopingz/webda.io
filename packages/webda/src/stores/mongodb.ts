@@ -1,5 +1,8 @@
 "use strict";
-import { Store, CoreModel } from '../index';
+import {
+  Store,
+  CoreModel
+} from '../index';
 
 var MongoClient = require('mongodb').MongoClient;
 
@@ -12,7 +15,7 @@ var MongoClient = require('mongodb').MongoClient;
  *
  */
 class MongoStore extends Store {
-  _connectPromise: Promise<any> = undefined;
+  _connectPromise: Promise < any > = undefined;
   _client: any;
   _db: any;
   _collection: any;
@@ -64,15 +67,21 @@ class MongoStore extends Store {
     if (itemWriteCondition) {
       filter[prop + "." + index + '.' + itemWriteConditionField] = itemWriteCondition;
     }
-    let params = {'$unset': {}};
+    let params = {
+      '$unset': {}
+    };
     params['$unset'][prop + "." + index] = 1;
     let res = await this._collection.updateOne(filter, params);
     if (!res.result.n) {
       throw Error('UpdateCondition not met');
     }
-    let remove = {'$pull': {}};
+    let remove = {
+      '$pull': {}
+    };
     remove['$pull'][prop] = null;
-    await this._collection.update({_id: uid}, remove);
+    await this._collection.update({
+      _id: uid
+    }, remove);
   }
 
   async _incrementAttribute(uid, prop, value) {
@@ -150,7 +159,7 @@ class MongoStore extends Store {
 
   getAll(uids) {
     return this._connect().then(() => {
-      let params : any = {};
+      let params: any = {};
       if (uids) {
         params._id = {
           $in: uids
@@ -210,4 +219,6 @@ class MongoStore extends Store {
   }
 }
 
-export { MongoStore };
+export {
+  MongoStore
+};

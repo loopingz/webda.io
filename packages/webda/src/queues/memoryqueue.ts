@@ -1,5 +1,7 @@
 "use strict";
-import { Queue } from "../index";
+import {
+  Queue
+} from "../index";
 const uuid = require('uuid');
 
 interface QueueMap {
@@ -19,7 +21,7 @@ class MemoryQueue extends Queue {
     this._params.expire *= 1000;
   }
 
-  async size() : Promise<number> {
+  async size(): Promise < number > {
     return Object.keys(this._queue).length;
   }
 
@@ -71,4 +73,6 @@ class MemoryQueue extends Queue {
   }
 }
 
-export { MemoryQueue }
+export {
+  MemoryQueue
+}

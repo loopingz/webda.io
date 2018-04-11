@@ -1,5 +1,8 @@
 "use strict";
-import { Store, CoreModel } from '../index';
+import {
+  Store,
+  CoreModel
+} from '../index';
 var fs = require("fs");
 
 
@@ -32,7 +35,7 @@ class FileStore extends Store {
     return Promise.resolve(fs.existsSync(this.file(uid)));
   }
 
-  async _find(request, offset, limit) : Promise<any> {
+  async _find(request, offset, limit): Promise < any > {
     var self = this;
     var res = [];
     var path = require('path');
@@ -111,7 +114,7 @@ class FileStore extends Store {
     return this._save(stored, uid);
   }
 
-  async getAll(uids) : Promise<any> {
+  async getAll(uids): Promise < any > {
     if (!uids) {
       uids = [];
       var files = fs.readdirSync(this._params.folder);
@@ -126,7 +129,7 @@ class FileStore extends Store {
     return Promise.all(result);
   }
 
-  async _get(uid:string) : Promise<any> {
+  async _get(uid: string): Promise < any > {
     let res = await this.exists(uid);
     if (res) {
       let data = fs.readFileSync(this.file(uid));
@@ -198,4 +201,6 @@ class FileStore extends Store {
   }
 }
 
-export { FileStore }
+export {
+  FileStore
+}

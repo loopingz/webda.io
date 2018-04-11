@@ -1,5 +1,8 @@
 "use strict";
-import { Core as Webda, SecureCookie } from '../index';
+import {
+  Core as Webda,
+  SecureCookie
+} from '../index';
 const cookieParse = require("cookie").parse;
 
 /**
@@ -38,9 +41,9 @@ class LambdaServer extends Webda {
    *
    * @ignore
    */
-  handleRequest(event, context , callback) {
+  handleRequest(event, context, callback) {
     this._result = {};
-    var cookies : any = {};
+    var cookies: any = {};
     var rawCookie = event.headers.Cookie;
     if (rawCookie) {
       cookies = cookieParse(rawCookie);
@@ -97,7 +100,7 @@ class LambdaServer extends Webda {
       }
       routes.push('OPTIONS');
       ctx.setHeader('Access-Control-Allow-Methods', routes.join(','));
-      return ctx.end().then( () => {
+      return ctx.end().then(() => {
         return this.handleLambdaReturn(ctx, callback);
       });
     }
@@ -145,4 +148,6 @@ class LambdaServer extends Webda {
   }
 }
 
-export { LambdaServer }
+export {
+  LambdaServer
+}

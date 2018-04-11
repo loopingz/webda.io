@@ -1,7 +1,11 @@
 "use strict";
 import events = require('events');
-import { Core } from '../index';
+import {
+  Core
+} from '../index';
+/* beautify preserve:start */
 declare var global: any;
+/* beautify preserve:end */
 
 /**
  * Use this object for representing a service in the application
@@ -27,7 +31,7 @@ abstract class Service extends events.EventEmitter {
    * @param {String} name - The name of the service
    * @param {Object} params - The parameters block define in the configuration file
    */
-  constructor(webda: Core, name : string, params : any) {
+  constructor(webda: Core, name: string, params: any) {
     super();
     this._webda = webda;
     this._name = name;
@@ -60,7 +64,7 @@ abstract class Service extends events.EventEmitter {
    *
    * @abstract
    */
-  install(params) : Promise<any> {
+  install(params): Promise < any > {
     return Promise.resolve();
   }
 
@@ -69,14 +73,14 @@ abstract class Service extends events.EventEmitter {
    *
    * @abstract
    */
-  uninstall(params) : Promise<any> {
+  uninstall(params): Promise < any > {
     return Promise.resolve();
   }
 
   /**
    * Emit the event with data and wait for Promise to finish if listener returned a Promise
    */
-  emitSync(event, data) : Promise<any[]> {
+  emitSync(event, data): Promise < any[] > {
     var result;
     var promises = [];
     var listeners = this.listeners(event);
@@ -96,19 +100,19 @@ abstract class Service extends events.EventEmitter {
    * @param queue Name of queue to use, can be undefined, queue name are used to define differents priorities
    */
   onAsync(event, callback, queue) {
-    (<any> this._webda.getService('AsyncEvents')).bindAsyncListener(this, event, callback, queue);
+    ( < any > this._webda.getService('AsyncEvents')).bindAsyncListener(this, event, callback, queue);
   }
 
   /**
    * Return a webda service
    * @param service name to retrieve
    */
-  getService(service : string) : Service {
+  getService(service: string): Service {
     return this._webda.getService(service);
   }
 
-  getTypedService<T extends Service>(service: string) : T {
-    return <T> this.getService(service);
+  getTypedService < T extends Service > (service: string): T {
+    return <T > this.getService(service);
   }
 
   /**
@@ -117,7 +121,7 @@ abstract class Service extends events.EventEmitter {
    */
   static getModda() {}
 
-  getName() : string {
+  getName(): string {
     return this._name;
   }
 
@@ -126,7 +130,7 @@ abstract class Service extends events.EventEmitter {
    *
    * @abstract
    */
-  __clean() : Promise<any> {
+  __clean(): Promise < any > {
     if (typeof(global.it) !== 'function') {
       throw Error("Only for test purpose")
     }
@@ -136,7 +140,7 @@ abstract class Service extends events.EventEmitter {
   /**
    * @private
    */
-  ___cleanData() : Promise<any> {
+  ___cleanData(): Promise < any > {
     return Promise.resolve();
   }
 
@@ -145,4 +149,6 @@ abstract class Service extends events.EventEmitter {
   }
 }
 
-export { Service };
+export {
+  Service
+};

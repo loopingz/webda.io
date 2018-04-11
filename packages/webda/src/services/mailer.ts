@@ -1,5 +1,7 @@
 "use strict";
-import { Service } from '../index';
+import {
+  Service
+} from '../index';
 var nodemailer = require('nodemailer');
 var ses = require('nodemailer-ses-transport');
 const fs = require('fs');
@@ -30,7 +32,7 @@ class Mailer extends Service {
   constructor(webda, name, params) {
     super(webda, name, params);
     try {
-      let config : any = {};
+      let config: any = {};
       Object.assign(config, params.config);
       if (config.transport === 'ses' && !config.SES) {
         let aws = require('aws-sdk');
@@ -70,7 +72,7 @@ class Mailer extends Service {
    * @params options Options to pass to the sendMail option of the nodemailer module
    * @params callback to pass to the sendMail
    */
-  async send(options, callback = undefined) : Promise<any> {
+  async send(options, callback = undefined): Promise < any > {
     if (this._transporter === undefined) {
       this._webda.log('ERROR', 'Cannot send email as no transporter is defined');
       return Promise.reject("Cannot send email as no transporter is defined");
@@ -128,4 +130,8 @@ class Mailer extends Service {
   }
 }
 
-export { Mailer,TemplatesMap, IEmailTemplate }
+export {
+  Mailer,
+  TemplatesMap,
+  IEmailTemplate
+}

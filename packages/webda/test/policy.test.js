@@ -22,9 +22,20 @@ describe('Policy', () => {
       await taskStore.__clean();
       await userStore.__clean();
       ctx = webda.newContext({});
-      await taskStore.save({user: "fake_user", uuid:"task_user1", name: "for_schema"});
-      await taskStore.save({user: "fake_user2", uuid:"task_user2"});
-      await taskStore.save({user: "fake_user3", uuid:"task_public", public: true});
+      await taskStore.save({
+        user: "fake_user",
+        uuid: "task_user1",
+        name: "for_schema"
+      });
+      await taskStore.save({
+        user: "fake_user2",
+        uuid: "task_user2"
+      });
+      await taskStore.save({
+        user: "fake_user3",
+        uuid: "task_public",
+        public: true
+      });
     });
     it('POST - not logged', async () => {
       executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/tasks");

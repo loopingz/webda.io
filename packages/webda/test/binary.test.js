@@ -80,8 +80,8 @@ async function notMapped(userStore, binary) {
     "test": "plop"
   });
   await Utils.throws(binary.store.bind(binary, userStore, user1, 'images2', {
-      'path': './test/Dockerfile'
-    }, {}), err => true);
+    'path': './test/Dockerfile'
+  }, {}), err => true);
 }
 
 async function update(userStore, binary, map) {

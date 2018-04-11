@@ -60,8 +60,10 @@ describe('Webda', function() {
     it('LambdaCaller', async function() {
       // CodeCoverage test
       const LambdaCaller = new Webda.LambdaCaller('plop', {});
-      assert.throws( () => new Webda.LambdaCaller());
-      new Webda.LambdaCaller('arn', {accessKeyId: 'PLOP'});
+      assert.throws(() => new Webda.LambdaCaller());
+      new Webda.LambdaCaller('arn', {
+        accessKeyId: 'PLOP'
+      });
       await Utils.throws(LambdaCaller.execute.bind(LambdaCaller, undefined, true));
 
     });
@@ -79,7 +81,9 @@ describe('Webda', function() {
       assert.equal(webda.getService('Ghost'), undefined);
       assert.equal(webda.getService(), undefined);
       assert.equal(webda.getSession(), undefined);
-      webda._currentExecutor = {session: 'test'};
+      webda._currentExecutor = {
+        session: 'test'
+      };
       assert.equal(webda.getSession(), 'test');
       assert.notEqual(webda.loadConfiguration(__dirname + '/config.json'), undefined);
       webda._config.parameters.locales = undefined;
@@ -105,7 +109,9 @@ describe('Webda', function() {
       ctx.cookie('test2', 'plop2');
       assert.equal(ctx._cookie['test'], 'plop');
       assert.equal(ctx._cookie['test2'], 'plop2');
-      ctx.writeHead(undefined, {test: 'plop'});
+      ctx.writeHead(undefined, {
+        test: 'plop'
+      });
       assert.equal(ctx._headers['test'], 'plop');
       ctx.setHeader('X-Webda', 'HEAD');
       assert.equal(ctx._headers['X-Webda'], 'HEAD');
@@ -115,9 +121,13 @@ describe('Webda', function() {
       assert.equal(ctx.session._changed, true);
       ctx.session = new Webda.SecureCookie({});
       Object.observe = (obj, callback) => {
-        callback([{name: '_changed'}]);
+        callback([{
+          name: '_changed'
+        }]);
         assert.equal(ctx.session._changed, false);
-        callback([{name: 'zzz'}]);
+        callback([{
+          name: 'zzz'
+        }]);
         assert.equal(ctx.session._changed, true);
       }
       ctx.session.getProxy();

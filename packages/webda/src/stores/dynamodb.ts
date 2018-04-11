@@ -1,4 +1,10 @@
-import { Store, CoreModel, AWSMixIn, Service, Core as Webda } from '../index';
+import {
+  Store,
+  CoreModel,
+  AWSMixIn,
+  Service,
+  Core as Webda
+} from '../index';
 
 /**
  * DynamoStore handles the DynamoDB
@@ -86,7 +92,7 @@ class DynamoStore extends AWSMixIn(Store) {
   }
 
   async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
-    var params : any = {
+    var params: any = {
       'TableName': this._params.table,
       'Key': {
         "uuid": uid
@@ -101,7 +107,7 @@ class DynamoStore extends AWSMixIn(Store) {
       params.ExpressionAttributeValues[":condValue"] = itemWriteCondition;
       attrs["#condName"] = prop;
       attrs["#field"] = itemWriteConditionField;
-      params.ConditionExpression = "#condName["+index+"].#field = :condValue";
+      params.ConditionExpression = "#condName[" + index + "].#field = :condValue";
     }
     try {
       await this._client.update(params).promise();
@@ -113,7 +119,7 @@ class DynamoStore extends AWSMixIn(Store) {
   }
 
   async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
-    var params : any = {
+    var params: any = {
       'TableName': this._params.table,
       'Key': {
         "uuid": uid
@@ -136,7 +142,7 @@ class DynamoStore extends AWSMixIn(Store) {
         attrValues[":condValue"] = itemWriteCondition;
         attrs["#condName"] = prop;
         attrs["#field"] = itemWriteConditionField;
-        params.ConditionExpression = "#condName["+index+"].#field = :condValue";
+        params.ConditionExpression = "#condName[" + index + "].#field = :condValue";
       }
     }
     try {
@@ -156,7 +162,7 @@ class DynamoStore extends AWSMixIn(Store) {
   }
 
   async _delete(uid, writeCondition = undefined) {
-    var params : any = {
+    var params: any = {
       'TableName': this._params.table,
       'Key': {
         "uuid": uid
@@ -190,7 +196,7 @@ class DynamoStore extends AWSMixIn(Store) {
     if (skipUpdate) {
       return;
     }
-    var params : any = {
+    var params: any = {
       'TableName': this._params.table,
       'Key': {
         "uuid": uid
@@ -385,4 +391,6 @@ class DynamoStore extends AWSMixIn(Store) {
   }
 }
 
-export { DynamoStore };
+export {
+  DynamoStore
+};

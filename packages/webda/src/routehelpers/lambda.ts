@@ -1,4 +1,8 @@
-import { Executor, LambdaCaller, Context } from "../index";
+import {
+  Executor,
+  LambdaCaller,
+  Context
+} from "../index";
 
 /**
  * Execute a Lambda function and return the result, it is usefull for remote moddas already exposed
@@ -52,7 +56,7 @@ class LambdaRouteHelper extends Executor {
     ctx.end();
   }
 
-  async execute(ctx : Context) : Promise<any> {
+  async execute(ctx: Context): Promise < any > {
     var caller;
     try {
       caller = new LambdaCaller(ctx._params);
@@ -70,4 +74,6 @@ class LambdaRouteHelper extends Executor {
   }
 }
 
-export { LambdaRouteHelper };
+export {
+  LambdaRouteHelper
+};

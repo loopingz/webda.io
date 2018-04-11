@@ -1,5 +1,7 @@
 "use strict";
-import { CoreModel } from './coremodel';
+import {
+  CoreModel
+} from './coremodel';
 
 /**
  * First basic model for Ident
@@ -8,8 +10,10 @@ import { CoreModel } from './coremodel';
 class User extends CoreModel {
 
   __password: string;
-  _lastPasswordRecovery: number;	
+  _lastPasswordRecovery: number;
 
 }
 
-export { User };
+export {
+  User
+};

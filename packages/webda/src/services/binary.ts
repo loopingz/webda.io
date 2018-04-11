@@ -1,5 +1,10 @@
 "use strict";
-import { Executor, Store, CoreModel, Context } from '../index';
+import {
+  Executor,
+  Store,
+  CoreModel,
+  Context
+} from '../index';
 const fs = require("fs");
 const path = require("path");
 const mime = require('mime-types');
@@ -54,7 +59,7 @@ class Binary extends Executor {
    * @param {Object} metadatas to add to the binary object
    * @emits 'binaryCreate'
    */
-  async store(targetStore, object, property, file, metadatas, index = 'add') : Promise<any> {
+  async store(targetStore, object, property, file, metadatas, index = 'add'): Promise < any > {
     throw Error("AbstractBinary has no store method");
   }
 
@@ -77,7 +82,7 @@ class Binary extends Executor {
    * @param {Object} metadatas to add to the binary object
    * @emits 'binaryUpdate'
    */
-  update(targetStore, object, property, index, file, metadatas) : Promise<CoreModel>  {
+  update(targetStore, object, property, index, file, metadatas): Promise < CoreModel > {
     throw Error("AbstractBinary has no update method");
   }
 
@@ -91,7 +96,7 @@ class Binary extends Executor {
    * @param {Number} index The index of the file to change in the property
    * @emits 'binaryDelete'
    */
-  delete(targetStore, object, property, index) : Promise<CoreModel> {
+  delete(targetStore, object, property, index): Promise < CoreModel > {
     throw Error("AbstractBinary has no update method");
   }
 
@@ -116,7 +121,7 @@ class Binary extends Executor {
    * @param {String} filepath to save the binary to
    */
   downloadTo(info, filename) {
-    var readStream : any = this._get(info);
+    var readStream: any = this._get(info);
     var writeStream = fs.createWriteStream(filename);
     return new Promise((resolve, reject) => {
       writeStream.on('finish', (src) => {
@@ -142,11 +147,11 @@ class Binary extends Executor {
     }
   }
 
-  _getUrl(info, ctx : Context) {
+  _getUrl(info, ctx: Context) {
     return;
   }
 
-  _get(info) : ReadableStream {
+  _get(info): ReadableStream {
     return;
   }
 
@@ -184,7 +189,7 @@ class Binary extends Executor {
   }
 
   _getHashes(buffer) {
-    var result : any = {};
+    var result: any = {};
     // Using MD5 as S3 content verification use md5
     var hash = crypto.createHash('md5');
     var challenge = crypto.createHash('md5');
@@ -347,7 +352,7 @@ class Binary extends Executor {
     ctx.write(object);
   }
 
-  _verifyMapAndStore(ctx : Context) : Store {
+  _verifyMapAndStore(ctx: Context): Store {
     // To avoid any probleme lowercase everything
     var map = this._params.map[this._lowercaseMaps[ctx._params.store.toLowerCase()]];
     if (map === undefined) {
@@ -359,14 +364,14 @@ class Binary extends Executor {
     if (Array.isArray(map) && map.indexOf(ctx._params.property) == -1) {
       throw 404;
     }
-    var targetStore : Store = <Store> this.getService(ctx._params.store);
+    var targetStore: Store = < Store > this.getService(ctx._params.store);
     if (targetStore === undefined) {
       throw 404;
     }
     return targetStore;
   }
 
-  async putRedirectUrl(ctx : Context) : Promise<string> {
+  async putRedirectUrl(ctx: Context): Promise < string > {
     // Dont handle the redirect url
     throw 404;
   }
@@ -375,7 +380,7 @@ class Binary extends Executor {
 
   }
 
-  async httpChallenge(ctx : Context) {
+  async httpChallenge(ctx: Context) {
     let url = await this.putRedirectUrl(ctx);
     let base64String = new Buffer(ctx.body.hash, 'hex').toString('base64');
     ctx.write({
@@ -386,7 +391,7 @@ class Binary extends Executor {
   }
 
   // Executor side
-  async httpRoute(ctx : Context) {
+  async httpRoute(ctx: Context) {
     let targetStore = this._verifyMapAndStore(ctx);
     let object = await targetStore.get(ctx._params.uid);
     if (object === undefined) {
@@ -413,7 +418,7 @@ class Binary extends Executor {
         'Content-Type': file.mimetype === undefined ? 'application/octet-steam' : file.mimetype,
         'Content-Length': file.size
       });
-      let readStream : any = await this.get(file);
+      let readStream: any = await this.get(file);
       await new Promise((resolve, reject) => {
         // We replaced all the event handlers with a simple call to readStream.pipe()
         ctx._stream.on('finish', (src) => {
@@ -439,4 +444,7 @@ class Binary extends Executor {
   }
 }
 
-export { Binary, BinaryMap }
+export {
+  Binary,
+  BinaryMap
+}

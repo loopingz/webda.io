@@ -1,5 +1,14 @@
 "use strict";
-import { Executor, Ident, _extend, Store, Context, Mailer, Service, User } from "../index"
+import {
+  Executor,
+  Ident,
+  _extend,
+  Store,
+  Context,
+  Mailer,
+  Service,
+  User
+} from "../index"
 var passport = require('passport');
 const crypto = require('crypto');
 
@@ -27,7 +36,7 @@ var Strategies = {
 }
 
 interface PasswordVerifier extends Service {
-  validate(password:string):Promise<void>;
+  validate(password: string): Promise < void > ;
 }
 
 /**
@@ -74,18 +83,18 @@ class Authentication extends Executor {
     let url = this._params.expose || '/auth';
 
     if (this._params.identStore) {
-      this._identsStore = <Store> this.getService(this._params.identStore);
+      this._identsStore = < Store > this.getService(this._params.identStore);
     }
 
     if (this._params.userStore) {
-      this._usersStore = <Store> this.getService(this._params.userStore);
+      this._usersStore = < Store > this.getService(this._params.userStore);
     }
 
     this._params.passwordRecoveryInterval = this._params.passwordRecoveryInterval || 3600000;
     this._params.passwordRegexp = this._params.passwordRegexp || '.{8,}';
 
     if (this._params.passwordVerifier) {
-      this._passwordVerifier = <PasswordVerifier> this.getService(this._params.passwordVerifier);
+      this._passwordVerifier = < PasswordVerifier > this.getService(this._params.passwordVerifier);
     }
 
     if (this._identsStore === undefined || this._usersStore === undefined) {
@@ -162,8 +171,8 @@ class Authentication extends Executor {
     return url + "/callback";
   };
 
-  async handleOAuthReturn(ctx, identArg : any, done) {
-    let ident : Ident = <Ident> await this._identsStore.get(identArg.uuid);
+  async handleOAuthReturn(ctx, identArg: any, done) {
+    let ident: Ident = < Ident > await this._identsStore.get(identArg.uuid);
     if (ident) {
       await this.login(ctx, ident.user, ident);
       await this._identsStore.update({
@@ -206,7 +215,7 @@ class Authentication extends Executor {
     }));
   }
 
-  async registerUser(ctx, datas, user : any = {}) : Promise<any> {
+  async registerUser(ctx, datas, user: any = {}): Promise < any > {
     user.locale = ctx.getLocale();
     await this.emitSync("Register", {
       "user": user,
@@ -235,11 +244,11 @@ class Authentication extends Executor {
   }
 
   async _passwordRecoveryEmail(ctx) {
-    let ident : Ident = <Ident> await this._identsStore.get(ctx._params.email + "_email");
+    let ident: Ident = < Ident > await this._identsStore.get(ctx._params.email + "_email");
     if (!ident) {
       throw 404;
     }
-    let user : User = <User> await this._usersStore.get(ident.user);
+    let user: User = < User > await this._usersStore.get(ident.user);
     // Dont allow to do too many request
     if (user._lastPasswordRecovery > Date.now() - 3600000 * 4) {
       throw 429;
@@ -265,7 +274,7 @@ class Authentication extends Executor {
     if (ctx.body.password === undefined || ctx.body.login === undefined || ctx.body.token === undefined || ctx.body.expire === undefined) {
       throw 400;
     }
-    let user : User = <User> await this._usersStore.get(ctx.body.login.toLowerCase());
+    let user: User = < User > await this._usersStore.get(ctx.body.login.toLowerCase());
     if (ctx.body.token !== this.hashPassword(ctx.body.login.toLowerCase() + ctx.body.expire + user.__password)) {
       throw 403;
     }
@@ -305,7 +314,7 @@ class Authentication extends Executor {
 
   async sendRecoveryEmail(ctx, user, email) {
     let infos = await this.getPasswordRecoveryInfos(user);
-    var mailer : Mailer = this.getMailMan();
+    var mailer: Mailer = this.getMailMan();
     let locale = user.locale;
     if (!locale) {
       locale = ctx.getLocale();
@@ -327,7 +336,7 @@ class Authentication extends Executor {
   }
 
   async sendValidationEmail(ctx, email) {
-    var mailer : Mailer = this.getMailMan();
+    var mailer: Mailer = this.getMailMan();
     let replacements = _extend({}, this._params.providers.email);
     replacements.context = ctx;
     replacements.url = ctx._route._http.root + "/auth/email/callback?email=" + email + "&token=" + this.generateEmailValidationToken(email);
@@ -353,7 +362,7 @@ class Authentication extends Executor {
   }
 
   async login(ctx, user, ident) {
-    var event : any = {};
+    var event: any = {};
     event.userId = user;
     if (typeof(user) == "object") {
       event.userId = user.uuid;
@@ -369,8 +378,8 @@ class Authentication extends Executor {
     return this.emitSync("Login", event);
   }
 
-  getMailMan() : Mailer {
-    return <Mailer> this.getService(this._params.providers.email.mailer ? this._params.providers.email.mailer : "Mailer");
+  getMailMan(): Mailer {
+    return <Mailer > this.getService(this._params.providers.email.mailer ? this._params.providers.email.mailer : "Mailer");
   }
 
   async _handleEmail(ctx) {
@@ -387,15 +396,15 @@ class Authentication extends Executor {
       // Bad configuration ( might want to use other than 500 )
       throw 500;
     }
-    var updates : any = {};
+    var updates: any = {};
     var uuid = ctx.body.login.toLowerCase() + "_email";
-    let ident : Ident = <Ident> await this._identsStore.get(uuid);
+    let ident: Ident = < Ident > await this._identsStore.get(uuid);
     if (ident != undefined && ident.user != undefined) {
       // Register on an known user
       if (ctx._params.register) {
         throw 409;
       }
-      let user : User = <User> await this._usersStore.get(ident.user);
+      let user: User = < User > await this._usersStore.get(ident.user);
       // Check password
       if (user.__password === this.hashPassword(ctx.body.password)) {
         if (ident._failedLogin > 0) {
@@ -440,7 +449,7 @@ class Authentication extends Executor {
         delete ctx.body.register;
         let user = await this.registerUser(ctx, ctx.body, ctx.body)
         user = await this._usersStore.save(user);
-        var newIdent : any = {
+        var newIdent: any = {
           'uuid': uuid,
           'type': 'email',
           'email': email,
@@ -465,10 +474,10 @@ class Authentication extends Executor {
     return this.hashPassword(email + "_" + this._webda.getSecret());
   }
 
-  async _authenticate(ctx : Context) {
+  async _authenticate(ctx: Context) {
     // Handle Logout 
     if (ctx._params.provider == "logout") {
-      await  this.logout(ctx);
+      await this.logout(ctx);
       if (this._params.website) {
         ctx.writeHead(302, {
           'Location': this._params.website
@@ -550,4 +559,7 @@ class Authentication extends Executor {
   }
 }
 
-export { Authentication, PasswordVerifier }
+export {
+  Authentication,
+  PasswordVerifier
+}

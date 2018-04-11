@@ -1,4 +1,7 @@
-import { Service, Queue } from '../index';
+import {
+  Service,
+  Queue
+} from '../index';
 
 class AsyncEvent {
   service: Service;
@@ -48,7 +51,7 @@ class EventService extends Service {
         if (!this._defaultQueue) {
           this._defaultQueue = key;
         }
-        this._queues[key] = <Queue> this.getService(this._params.queues[key]);
+        this._queues[key] = < Queue > this.getService(this._params.queues[key]);
       });
     }
     this._async = !config.sync;
@@ -108,4 +111,7 @@ class EventService extends Service {
   }
 }
 
-export { EventService, QueueMap };
+export {
+  EventService,
+  QueueMap
+};

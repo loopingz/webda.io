@@ -1,5 +1,5 @@
 "use strict";
-import { Store } from '../index';
+import { Store, CoreModel } from '../index';
 var fs = require("fs");
 
 
@@ -126,7 +126,7 @@ class FileStore extends Store {
     return Promise.all(result);
   }
 
-  async _get(uid) {
+  async _get(uid:string) : Promise<any> {
     let res = await this.exists(uid);
     if (res) {
       let data = fs.readFileSync(this.file(uid));

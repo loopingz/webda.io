@@ -8,7 +8,7 @@ interface QueueMap {
 
 class MemoryQueue extends Queue {
 
-  _queue: QueueMap;
+  private _queue: QueueMap;
 
   init(config) {
     super.init(config);

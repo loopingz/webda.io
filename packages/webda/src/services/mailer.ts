@@ -128,4 +128,4 @@ class Mailer extends Service {
   }
 }
 
-export { Mailer }
+export { Mailer,TemplatesMap, IEmailTemplate }

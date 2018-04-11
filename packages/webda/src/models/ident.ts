@@ -41,4 +41,4 @@ class Ident extends CoreModel {
   }
 }
 
-export { Ident };
+export { Ident, IdentTokens };

@@ -5,7 +5,7 @@ import * as Ajv from 'ajv';
 import * as path from 'path';
 import { serialize as cookieSerialize } from "cookie";
 import { Context } from "./utils/context";
-import * as EventEmitter from 'events';
+import * as events from 'events';
 import {Store, Service, Executor, SecureCookie, MemoryStore, FileStore, DynamoStore, Authentication,
   CoreModel, Ident, Mailer, MongoStore, MemoryQueue, SQSQueue, EventService, FileBinary, S3Binary} from './index';
 import { CoreModelDefinition } from "./models/coremodel";
@@ -29,7 +29,7 @@ interface ModelsMap {
  *
  * @class Webda
  */
-class Webda extends EventEmitter {
+class Webda extends events.EventEmitter {
   _services: ServiceMap;
   _modules: any;
   _config: Configuration;
@@ -43,7 +43,7 @@ class Webda extends EventEmitter {
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
    */
-  constructor(config) {
+  constructor(config = undefined) {
     /** @ignore */
     super();
     this._vhost = '';
@@ -190,7 +190,7 @@ class Webda extends EventEmitter {
    * @ignore Useless for documentation
    * @param {Object|String}
    */
-  loadConfiguration(config:any) : Configuration {
+  loadConfiguration(config:any = undefined) : Configuration {
     if (typeof(config) === 'object') {
       return config;
     }
@@ -326,7 +326,7 @@ class Webda extends EventEmitter {
    * @param type The type of implementation if null all moddas
    * @returns {{}}
    */
-  getModdas(type) {
+  getModdas(type = undefined) {
     let result = {};
     for (let i in this._services) {
       if (!type) {
@@ -764,7 +764,10 @@ class Webda extends EventEmitter {
           if (include.startsWith("./")) {
             include = process.cwd() + '/' + include;
           }
-          config._models[type.toLowerCase()] = require(include);
+          let model = require(include);
+          if (model.default) {
+            config._models[type.toLowerCase()] = model.default;  
+          }
         }
 
       } catch (ex) {
@@ -831,4 +834,4 @@ class Webda extends EventEmitter {
   }
 }
 
-export { Webda, _extend };
+export { Webda, _extend, Configuration, ServiceMap, ModelsMap };

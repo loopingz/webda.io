@@ -1,6 +1,6 @@
 "use strict";
 const Writable = require('stream').Writable;
-import { _extend, Core as Webda, Executor, SecureCookie, CoreModel, Store} from '../index';
+import { _extend, Core as Webda, Executor, SecureCookie, CoreModel, Store, Service} from '../index';
 const acceptLanguage = require('accept-language');
 
 interface Map {
@@ -149,7 +149,7 @@ class Context implements Map {
    * @see Webda
    * @param {String} name of the service
    */
-  getService(name) {
+  getService(name) : Service {
     return this._webda.getService(name);
   }
 
@@ -263,4 +263,4 @@ class Context implements Map {
   }
 }
 
-export { Context };
+export { Context, Map, HeaderMap, CookieMap };

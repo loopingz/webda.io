@@ -1,5 +1,5 @@
 "use strict";
-import { Queue, AWSMixIn } from "../index";
+import { Queue, AWSMixIn, Service, Core as Webda } from "../index";
 
 // TODO Readd AWS Mixin
 class SQSQueue extends AWSMixIn(Queue) {

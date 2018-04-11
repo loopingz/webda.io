@@ -1,6 +1,6 @@
 "use strict";
 // Load the AWS SDK for Node.js
-import { Binary, AWSMixIn, _extend, Context } from '../index';
+import { Binary, AWSMixIn, _extend, Context, Service, Core as Webda } from '../index';
 
 /**
  * S3Binary handles the storage of binary on a S3 bucket

@@ -23,11 +23,12 @@ class Executor extends Service {
    * @param {Array[]} methods
    * @param {Function} executer Method to execute for this route
    */
-  _addRoute(url: string, methods: string[], executer: Function) {
+  _addRoute(url: string, methods: string[], executer: Function, allowPath: boolean = false) {
     let info : any = {};
     info._method = executer;
     info.method = methods;
     info.executor = this._name;
+    info.allowPath = allowPath;
     this._webda.addRoute(url, info);
   }
 

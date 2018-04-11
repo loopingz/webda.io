@@ -1,4 +1,4 @@
-import { Store, CoreModel, AWSMixIn } from '../index';
+import { Store, CoreModel, AWSMixIn, Service, Core as Webda } from '../index';
 
 /**
  * DynamoStore handles the DynamoDB

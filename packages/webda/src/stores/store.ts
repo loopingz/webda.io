@@ -642,7 +642,7 @@ class Store extends Executor {
     return object;
   }
 
-  async find(request, offset, limit) : Promise<any> {
+  async find(request : any = undefined, offset : number = 0, limit : number = undefined) : Promise<any> {
     await this.emitSync('Store.Find', {
       'request': request,
       'store': this,

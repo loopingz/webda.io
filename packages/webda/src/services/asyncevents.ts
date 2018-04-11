@@ -108,4 +108,4 @@ class EventService extends Service {
   }
 }
 
-export { EventService };
+export { EventService, QueueMap };

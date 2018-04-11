@@ -13,7 +13,7 @@ import { Context } from './utils/context';
 import { SecureCookie } from './utils/cookie';
 import { LambdaCaller } from './utils/lambdacaller';
 // Handler
-import { LambdaHandler } from './handlers/lambda';
+import { LambdaServer } from './handlers/lambda';
 // Store
 import { Store } from './stores/store';
 
@@ -69,5 +69,5 @@ export {
   LambdaCaller,
   Context,
   // Handler
-  LambdaHandler
+  LambdaServer
 }

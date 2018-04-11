@@ -439,4 +439,4 @@ class Binary extends Executor {
   }
 }
 
-export { Binary }
+export { Binary, BinaryMap }

@@ -145,4 +145,4 @@ class LambdaServer extends Webda {
   }
 }
 
-export { LambdaServer as LambdaHandler }
+export { LambdaServer }

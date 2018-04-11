@@ -1,4 +1,4 @@
-import { Service } from '../index';
+import { Service, Core as Webda } from '../index';
 const AWS = require('aws-sdk');
 
 type Constructor<T extends Service> = new(...args: any[]) => T;
@@ -20,4 +20,4 @@ function AWSMixIn<T extends Constructor<Service>>(Base: T) {
     }
 }
 
-export { AWSMixIn };
+export { AWSMixIn, Constructor };

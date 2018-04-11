@@ -149,4 +149,4 @@ class MemoryStore extends Store {
 }
 
 
-export { MemoryStore };
+export { MemoryStore, StorageMap };

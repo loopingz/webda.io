@@ -141,7 +141,7 @@ class Webda extends events.EventEmitter {
       this.log('DEBUG', 'Found modules', files);
       files.forEach((file) => {
         let info = require(file);
-        this._loadModule(info);
+        this._loadModule(info, path.dirname(file));
       });
     }
   }
@@ -177,13 +177,24 @@ class Webda extends events.EventEmitter {
    * @protected
    * @ignore Useless for documentation
    */
-  _loadModule(info) {
+  _loadModule(info, parent) {
     for (let key in info.services) {
-      this._services[key] = require(info.services[key]);
+      let mod = require(path.join(parent, info.services[key]));
+      if (mod.default) {
+        this._services[key] = mod.default;
+      } else {
+        this._services[key] = mod;
+      }
       this._modules.services[key] = info.services[key];
+      this.log('DEBUG', 'Adding to _services', key, this._services[key]);
     }
     for (let key in info.models) {
-      this._models[key] = require(info.models[key]);
+      let mod = require(path.join(parent, info.models[key]));
+      if (mod.default) {
+        this._models[key] = mod.default;
+      } else {
+        this._models[key] = mod;
+      }
       this._modules.models[key] = info.models[key];
     }
   }

@@ -17,7 +17,7 @@ declare var global: any;
  * @abstract
  * @class Service
  */
-abstract class Service extends events.EventEmitter {
+class Service extends events.EventEmitter {
 
   _webda: Core;
   _name: string;

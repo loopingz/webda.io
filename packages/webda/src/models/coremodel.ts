@@ -8,9 +8,9 @@ import {
 } from '../utils/context';
 
 interface CoreModelDefinition {
-  new(raw: any, secure: boolean): CoreModel
-  new(raw: any): CoreModel
-  getActions(): any
+  new(raw: any, secure: boolean): CoreModel;
+  new(raw: any): CoreModel;
+  getActions(): any;
 }
 
 /**

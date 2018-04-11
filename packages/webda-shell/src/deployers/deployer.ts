@@ -1,4 +1,6 @@
-import { _extend } from 'webda'
+import {
+  _extend
+} from 'webda'
 
 export class Deployer {
 
@@ -53,4 +55,3 @@ export class Deployer {
   }
 
 }
-

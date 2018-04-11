@@ -1,10 +1,12 @@
-import { DockerDeployer } from './docker';
+import {
+  DockerDeployer
+} from './docker';
 const fs = require('fs');
 const crypto = require('crypto');
 
 export class WeDeployDeployer extends DockerDeployer {
 
-  async deploy(args) : Promise<any> {
+  async deploy(args): Promise < any > {
     this._sentContext = false;
     if (!this.resources.project || !this.resources.service) {
       console.log('You need to specify both service and project for Wedeploy');
@@ -77,4 +79,3 @@ export class WeDeployDeployer extends DockerDeployer {
     }
   }
 }
-

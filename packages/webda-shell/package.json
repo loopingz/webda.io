@@ -37,7 +37,12 @@
     "run-sequence": "^1.0.2",
     "vulcanize": ">= 1.4.2",
     "web-component-tester": "^4.0.0",
-    "istanbul": "^0.4.5"
+    "istanbul": "^1.1.0-alpha.1",
+    "mocha": ">=2.2.5",
+    "nyc": "^11.6.0",
+    "source-map-support": "^0.5.4",
+    "ts-node": "^5.0.1",
+    "typescript": "^2.8.1"
   },
   "bin": {
     "webda": "./bin/webda"
@@ -51,9 +56,13 @@
     "console"
   ],
   "scripts": {
-    "start": "bin/webda",
+    "build": "tsc",
+    "pretest": "npm run build",
+    "test": "nyc mocha --timeout=100000",
+    "run": "node core",
     "format": "node ./scripts/format.js",
-    "cover": "node_modules/.bin/istanbul cover --dir ./reports _mocha -- -u exports -R spec -t 100000"
+    "start": "bin/webda",
+    "precommit": "npm run format && npm run test"
   },
   "engines": {
     "node": ">=6.10.0"
@@ -80,5 +89,22 @@
     "webda": "=0.5.5",
     "yargs": "^7.1.0",
     "yauzl": "^2.7.0"
+  },
+  "nyc": {
+    "extension": [
+      ".ts",
+      ".tsx",
+      ".js"
+    ],
+    "include": [
+      "lib/**/*.js"
+    ],
+    "reporter": [
+      "html",
+      "lcov",
+      "json"
+    ],
+    "report-dir": "./reports",
+    "all": true
   }
 }

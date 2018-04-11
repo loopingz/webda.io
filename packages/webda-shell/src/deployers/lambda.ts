@@ -1,5 +1,10 @@
-import { AWSDeployer } from "./aws";
-import { APIGateway, Lambda } from "aws-sdk";
+import {
+  AWSDeployer
+} from "./aws";
+import {
+  APIGateway,
+  Lambda
+} from "aws-sdk";
 const fs = require('fs');
 const crypto = require('crypto');
 const filesize = require('filesize');
@@ -25,7 +30,7 @@ export class LambdaDeployer extends AWSDeployer {
   _lambdaMemorySize: number;
   _packageOversize: boolean;
   _addOPTIONS: boolean;
-  _addMockCORS:boolean;
+  _addMockCORS: boolean;
   region: string;
   _zipPath: string;
   _origin: string;
@@ -134,7 +139,7 @@ export class LambdaDeployer extends AWSDeployer {
     }
     var exportFile = args[args.length - 1];
     args.pop();
-    var params : any = {
+    var params: any = {
       accepts: 'application/json',
       stageName: this.deployment.uuid
     };
@@ -226,7 +231,7 @@ export class LambdaDeployer extends AWSDeployer {
   private async createLambdaFunction() {
     this.stepper("Creating Lambda function");
     // Size limit of Lambda direct upload : 69905067 bytes
-    var params : any = {
+    var params: any = {
       MemorySize: this._lambdaMemorySize,
       Code: {},
       FunctionName: this._lambdaFunctionName,
@@ -420,7 +425,7 @@ export class LambdaDeployer extends AWSDeployer {
       }
     }
     if (!custom) {
-      let params : any = {
+      let params: any = {
         domainName: domain,
         endpointConfiguration: {
           types: [endpoint]
@@ -570,7 +575,7 @@ export class LambdaDeployer extends AWSDeployer {
 
   private async createAWSMethodResource(resource, local, method) {
     console.log("Creating " + method + " on " + local._url);
-    var params : any = {
+    var params: any = {
       "authorizationType": "NONE",
       'resourceId': resource.id,
       'httpMethod': method,
@@ -586,7 +591,7 @@ export class LambdaDeployer extends AWSDeployer {
     }
     let awsMethod = await this._awsGateway.putMethod(params).promise();
     // Integration type : AWS_PROXY
-    var params : any = {
+    var params: any = {
       'resourceId': resource.id,
       'integrationHttpMethod': 'POST',
       'httpMethod': method,
@@ -617,7 +622,7 @@ export class LambdaDeployer extends AWSDeployer {
       'restApiId': this.restApiId
     };
     return this._awsGateway.putMethod(params).promise().then(() => {
-      var params : any = {
+      var params: any = {
         'resourceId': resource.id,
         'httpMethod': 'OPTIONS',
         'restApiId': this.restApiId,
@@ -629,7 +634,7 @@ export class LambdaDeployer extends AWSDeployer {
       return this._awsGateway.putIntegration(params).promise();
     }).then(() => {
       // AWS ReturnCode
-      var params : any = {
+      var params: any = {
         'resourceId': resource.id,
         'httpMethod': 'OPTIONS',
         'restApiId': this.restApiId,
@@ -644,7 +649,7 @@ export class LambdaDeployer extends AWSDeployer {
       params.responseParameters = map;
       return this._awsGateway.putMethodResponse(params).promise();
     }).then(() => {
-      var params : any = {
+      var params: any = {
         'resourceId': resource.id,
         'httpMethod': 'OPTIONS',
         'restApiId': this.restApiId,
@@ -736,4 +741,3 @@ export class LambdaDeployer extends AWSDeployer {
     }
   }
 }
-

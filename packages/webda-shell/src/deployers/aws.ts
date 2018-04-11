@@ -1,6 +1,16 @@
-import { AWSMixIn, Service, Core as Webda } from 'webda';
-import { Deployer } from './deployer';
-import { ACM, Route53, S3 } from 'aws-sdk';
+import {
+  AWSMixIn,
+  Service,
+  Core as Webda
+} from 'webda';
+import {
+  Deployer
+} from './deployer';
+import {
+  ACM,
+  Route53,
+  S3
+} from 'aws-sdk';
 import * as AWS from 'aws-sdk';
 const mime = require('mime-types');
 const path = require('path');
@@ -20,7 +30,7 @@ export class AWSDeployer extends Deployer {
   _try: number;
   _waitCall: any;
 
-  protected md5(str : string) : string {
+  protected md5(str: string): string {
     return crypto.createHash('md5').update(str).digest('hex');
   }
 
@@ -71,7 +81,7 @@ export class AWSDeployer extends Deployer {
           return this._waitFor('Waiting for certificate challenge', (resolve, reject) => {
             return this._acm.describeCertificate({
               CertificateArn: this._certificate.CertificateArn
-            }).promise().then((res : any) => {
+            }).promise().then((res: any) => {
               if (res.Certificate.DomainValidationOptions[0].ResourceRecord) {
                 resolve(res.Certificate)
                 return Promise.resolve(true);
@@ -86,7 +96,7 @@ export class AWSDeployer extends Deployer {
       return this._acm.describeCertificate({
         CertificateArn: cert.CertificateArn
       }).promise();
-    }).then((res : any) => {
+    }).then((res: any) => {
       let cert = res.Certificate;
       if (cert.Status === 'FAILED') {
         return Promise.reject('Certificate validation has failed');
@@ -144,8 +154,8 @@ export class AWSDeployer extends Deployer {
     });
   }
 
-  protected async _createDNSEntry(domain, type, value) : Promise<void> {
-    let params : any;
+  protected async _createDNSEntry(domain, type, value): Promise < void > {
+    let params: any;
     if (!domain.endsWith('.')) {
       domain = domain + '.';
     }
@@ -361,7 +371,7 @@ export class AWSDeployer extends Deployer {
       await this._s3.headBucket({
         Bucket: bucket
       }).promise();
-    } catch(err) {
+    } catch (err) {
       if (err.code === 'Forbidden') {
         console.log('S3 bucket already exists in another account');
       } else if (err.code === 'NotFound') {
@@ -381,7 +391,7 @@ export class AWSDeployer extends Deployer {
       // Should implement multithread here - cleaning too
       let promise = Promise.resolve();
       files.forEach((file) => {
-        let info : any = {};
+        let info: any = {};
         if (typeof(file) === 'string') {
           info.src = file;
           info.key = path.relative(process.cwd(), file);
@@ -408,4 +418,3 @@ export class AWSDeployer extends Deployer {
     });
   }
 }
-

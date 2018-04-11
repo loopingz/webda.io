@@ -1,6 +1,14 @@
-import { AWSDeployer } from './aws';
-import { DockerMixIn } from './docker-mixin';
-import { ECR, ECS, EC2 } from 'aws-sdk';
+import {
+  AWSDeployer
+} from './aws';
+import {
+  DockerMixIn
+} from './docker-mixin';
+import {
+  ECR,
+  ECS,
+  EC2
+} from 'aws-sdk';
 const ECS_ROLE_POLICY = '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ecs-tasks.amazonaws.com"},"Action":"sts:AssumeRole"}]}';
 
 export class FargateDeployer extends DockerMixIn(AWSDeployer) {
@@ -152,7 +160,7 @@ export class FargateDeployer extends DockerMixIn(AWSDeployer) {
         break;
       }
     }
-    let serviceDefinition : any = {
+    let serviceDefinition: any = {
       desiredCount: this.resources.tasksNumber,
       taskDefinition: this._taskDefinitionArn,
       cluster: this._cluster.clusterName,
@@ -222,7 +230,7 @@ export class FargateDeployer extends DockerMixIn(AWSDeployer) {
     });
   }
 
-  _getWorkersDefinition() : any[] {
+  _getWorkersDefinition(): any[] {
     let containerDefinitions = [];
     for (let i in this._workers) {
       let worker = this._workers[i];
@@ -268,7 +276,7 @@ export class FargateDeployer extends DockerMixIn(AWSDeployer) {
 
   async _registerTaskDefinition(taskDefinition) {
     taskDefinition = this._replaceForAWS(taskDefinition);
-    let params : ECS.RegisterTaskDefinitionRequest = {
+    let params: ECS.RegisterTaskDefinitionRequest = {
       containerDefinitions: this._getWorkersDefinition(),
       family: taskDefinition,
       taskRoleArn: this._taskRole,
@@ -378,4 +386,3 @@ export class FargateDeployer extends DockerMixIn(AWSDeployer) {
     }
   }
 }
-

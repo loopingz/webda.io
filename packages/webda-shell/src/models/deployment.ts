@@ -1,4 +1,6 @@
-import { CoreModel } from 'webda';
+import {
+  CoreModel
+} from 'webda';
 
 export default class Deployment extends CoreModel {
   params: any;
@@ -29,4 +31,6 @@ export default class Deployment extends CoreModel {
   }
 }
 
-export { Deployment };
+export {
+  Deployment
+};

@@ -1,5 +1,9 @@
-import { Deployer } from './deployer';
-import { DockerMixIn } from './docker-mixin';
+import {
+  Deployer
+} from './deployer';
+import {
+  DockerMixIn
+} from './docker-mixin';
 
 export class DockerDeployer extends DockerMixIn(Deployer) {
 

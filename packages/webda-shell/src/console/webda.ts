@@ -1,6 +1,10 @@
 "use strict";
-import { WebdaConfigurationServer } from '../handlers/config';
-import { WebdaServer } from '../handlers/http';
+import {
+  WebdaConfigurationServer
+} from '../handlers/config';
+import {
+  WebdaServer
+} from '../handlers/http';
 import * as colors from 'colors';
 const fs = require("fs");
 
@@ -85,7 +89,7 @@ export default class WebdaConsole {
   }
 
   static logo(lines) {
-    const logoLines = require('./logo.json');
+    const logoLines = require('../../logo.json');
     this.output('');
     logoLines.forEach((line, idx) => {
       line = '  ' + line.join('') + '  ';
@@ -116,7 +120,7 @@ export default class WebdaConsole {
     lines.push(this.bold(' worker') + ': Launch a worker on a queue');
     lines.push(this.bold(' debug') + ': Debug current project');
     lines.push(this.bold(' launch') + ' ServiceName method arg1 ...: Launch the ServiceName method with arg1 ...');
-    if ((<any> process.stdout).columns > 130) {
+    if (( < any > process.stdout).columns > 130) {
       return this.logo(lines);
     } else {
       lines.forEach(line => {

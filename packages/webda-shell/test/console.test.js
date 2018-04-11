@@ -3,7 +3,7 @@ global.__webda = 'webda';
 const colors = require('colors');
 
 const assert = require("assert");
-const consoleService = require('../console/webda');
+const consoleService = require('../lib/console/webda').default;
 const argv = require('yargs');
 const fs = require('fs');
 
@@ -25,7 +25,7 @@ function checkTestDeploymentConfig(config) {
 }
 
 describe('Console', () => {
-  beforeEach( () => {
+  beforeEach(() => {
     output = "";
   })
   it('help', () => {
@@ -36,7 +36,7 @@ describe('Console', () => {
     consoleService.help = () => {
       fallback = true;
     };
-    return commandLine("bouzouf").then( () => {
+    return commandLine("bouzouf").then(() => {
       assert.equal(fallback, true);
     });
   });

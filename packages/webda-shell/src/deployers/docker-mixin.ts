@@ -1,9 +1,11 @@
 const spawn = require('child_process').spawn;
-import { Deployer } from './deployer';
+import {
+  Deployer
+} from './deployer';
 
-type Constructor<T extends Deployer> = new(...args: any[]) => T;
+type Constructor < T extends Deployer > = new(...args: any[]) => T;
 
-function DockerMixIn<T extends Constructor<Deployer>>(Base: T) {
+function DockerMixIn < T extends Constructor < Deployer >> (Base: T) {
   return class extends Base {
     _sentContext: boolean;
 
@@ -114,4 +116,7 @@ function DockerMixIn<T extends Constructor<Deployer>>(Base: T) {
   }
 }
 
-export { DockerMixIn, Constructor };
+export {
+  DockerMixIn,
+  Constructor
+};

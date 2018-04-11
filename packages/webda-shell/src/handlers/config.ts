@@ -1,12 +1,33 @@
-import { WebdaServer } from "./http";
-import { Deployment } from "../models/deployment";
-import { Core as Webda, Executor, _extend, Store } from 'webda';
-import { LambdaDeployer } from "../deployers/lambda";
-import { DockerDeployer } from "../deployers/docker";
-import { S3Deployer } from "../deployers/s3";
-import { ShellDeployer } from "../deployers/shell";
-import { FargateDeployer } from "../deployers/fargate";
-import { WeDeployDeployer } from "../deployers/wedeploy";
+import {
+  WebdaServer
+} from "./http";
+import {
+  Deployment
+} from "../models/deployment";
+import {
+  Core as Webda,
+  Executor,
+  _extend,
+  Store
+} from 'webda';
+import {
+  LambdaDeployer
+} from "../deployers/lambda";
+import {
+  DockerDeployer
+} from "../deployers/docker";
+import {
+  S3Deployer
+} from "../deployers/s3";
+import {
+  ShellDeployer
+} from "../deployers/shell";
+import {
+  FargateDeployer
+} from "../deployers/fargate";
+import {
+  WeDeployDeployer
+} from "../deployers/wedeploy";
 
 const fs = require("fs");
 const path = require("path");
@@ -16,7 +37,7 @@ const mkdirp = require('mkdirp');
 
 export class ConfigurationService extends Executor {
 
-  _config:any;
+  _config: any;
   _computeConfig: any;
   _deployments: any;
   _deploymentStore: Store;
@@ -39,7 +60,7 @@ export class ConfigurationService extends Executor {
     // Allow path
     this._addRoute('/api/browse/{path}', ["GET", "PUT", "DELETE"], this.fileBrowser, true);
     this.refresh();
-    this._deploymentStore = <Store> this._webda.getService("deployments");
+    this._deploymentStore = < Store > this._webda.getService("deployments");
   }
 
   refresh() {
@@ -485,7 +506,7 @@ export class WebdaConfigurationServer extends WebdaServer {
     // Need to reload the configuration to resolve it
     delete this._mockWebda;
     this.loadMock(JSON.parse(this.exportJson(this.config)));
-    let configurationService = <ConfigurationService> this.getService("configuration");
+    let configurationService = < ConfigurationService > this.getService("configuration");
     if (configurationService) {
       configurationService.refresh();
     }
@@ -567,7 +588,7 @@ export class WebdaConfigurationServer extends WebdaServer {
 
   async install(env, server_config, args) {
     // Create Lambda role if needed
-    let deployment : any = await (<Store> this.getService("deployments")).get(env);
+    let deployment: any = await ( < Store > this.getService("deployments")).get(env);
     if (deployment === undefined) {
       this.output("Deployment " + env + " unknown");
       throw Error();
@@ -611,7 +632,7 @@ export class WebdaConfigurationServer extends WebdaServer {
   }
 
   async deploy(env, args, fork) {
-    let deployment : any = await (<Store> this.getService("deployments")).get(env);
+    let deployment: any = await ( < Store > this.getService("deployments")).get(env);
 
     if (deployment === undefined) {
       this.output("Deployment " + env + " unknown");
@@ -647,7 +668,7 @@ export class WebdaConfigurationServer extends WebdaServer {
       }
       args = args.slice(1);
     }
-    let units = deployment.units.filter( (unit) => {
+    let units = deployment.units.filter((unit) => {
       if (selectedUnit && selectedUnit !== unit.name) return false;
       if (!this._deployers[unit.type]) {
         this.output('Cannot deploy unit', unit.name, '(', unit.type, '): type not found');
@@ -670,7 +691,7 @@ export class WebdaConfigurationServer extends WebdaServer {
       this.computeConfig, config, deployment, unit)).deploy(args);
   }
   async undeploy(env, args) {
-    let deployment : any = await (<Store> this.getService("deployments")).get(env);
+    let deployment: any = await ( < Store > this.getService("deployments")).get(env);
     if (deployment === undefined) {
       this.output("Deployment " + env + " unknown");
       return Promise.resolve();
@@ -724,7 +745,7 @@ export class WebdaConfigurationServer extends WebdaServer {
     args.push("deploy");
 
     this.output("Forking Webda with: ", args);
-    this.deployChild  = require("child_process").spawn('node', args);
+    this.deployChild = require("child_process").spawn('node', args);
     this._deployOutput = [];
 
     this.deployChild.stdout.on('data', (data) => {

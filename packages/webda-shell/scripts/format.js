@@ -25,11 +25,10 @@ const options = {
   operator_position: 'before-newline'
 };
 
-glob('!(node_modules)/**/*.js', {
+glob('!(node_modules|app)/**/*.[t|j]s', {
   absolute: true
 }, (er, files) => {
   files.forEach(file => {
-    if (file.indexOf('bower_components') >= 0) return;
     console.log(`js-beautify ${file}`);
     const data = fs.readFileSync(file, 'utf8');
     const nextData = jsBeautify(data, options);

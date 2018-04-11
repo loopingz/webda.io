@@ -1,5 +1,10 @@
-import { AWSDeployer } from './aws';
-import { S3, CloudFront } from 'aws-sdk';
+import {
+  AWSDeployer
+} from './aws';
+import {
+  S3,
+  CloudFront
+} from 'aws-sdk';
 const fs = require('fs');
 const path = require('path');
 const Finder = require('fs-finder');
@@ -116,7 +121,7 @@ export class S3Deployer extends AWSDeployer {
   source: string;
 
   async _createWebsite() {
-    let params : any = {
+    let params: any = {
       Bucket: this.bucket,
       WebsiteConfiguration: {
         ErrorDocument: {
@@ -166,7 +171,7 @@ export class S3Deployer extends AWSDeployer {
 
   private _getCloudFrontConfig() {
     let viewerPolicy = this.resources.certificate ? 'redirect-to-https' : 'allow-all';
-    let params : any = {
+    let params: any = {
       DistributionConfig: {
         CallerReference: this.bucket,
         Comment: 'Webda_' + this.bucket,
@@ -255,17 +260,17 @@ export class S3Deployer extends AWSDeployer {
       return;
     }
     let cloudfront;
-    let params : any = {
+    let params: any = {
       MaxItems: '1000'
     };
     this._cloudfront = new(this._getAWS(this.resources)).CloudFront();
     await this._createCertificate(this.bucket);
     // TODO Handle paginations  
-    let res : CloudFront.ListDistributionsResult = await this._cloudfront.listDistributions(params).promise();
+    let res: CloudFront.ListDistributionsResult = await this._cloudfront.listDistributions(params).promise();
     for (let i in res.DistributionList.Items) {
       // Search for current cloudfront
       if (res.DistributionList.Items[i].DefaultCacheBehavior.TargetOriginId === ("S3-" + this.bucket)) {
-        cloudfront = res.DistributionList.Items[i];  
+        cloudfront = res.DistributionList.Items[i];
         if (cloudfront.Status === 'InProgress') {
           console.log('CloudFront distribution', cloudfront.Id, 'is in progress, skipping');
           return Promise.resolve();
@@ -302,7 +307,7 @@ export class S3Deployer extends AWSDeployer {
     await this._createDNSEntry(this.bucket, 'CNAME', cloudfront.DomainName);
   }
 
-  async _createDNSEntry(domain, type, value) : Promise<void> {
+  async _createDNSEntry(domain, type, value): Promise < void > {
     if (!this.resources.route53) {
       return;
     }
@@ -364,4 +369,3 @@ export class S3Deployer extends AWSDeployer {
     }
   }
 }
-

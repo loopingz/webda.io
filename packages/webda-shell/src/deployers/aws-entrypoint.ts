@@ -1,5 +1,7 @@
 "use strict";
-import { LambdaServer } from 'webda';
+import {
+  LambdaServer
+} from 'webda';
 var lambda = new LambdaServer();
 
 exports.handler = function(event, context, callback) {

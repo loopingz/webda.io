@@ -1,5 +1,9 @@
-import { Deployer } from './deployer';
-import { DockerMixIn } from './docker-mixin';
+import {
+  Deployer
+} from './deployer';
+import {
+  DockerMixIn
+} from './docker-mixin';
 const fs = require('fs');
 const crypto = require('crypto');
 const spawn = require('child_process').spawn;
@@ -56,4 +60,3 @@ export class ShellDeployer extends DockerMixIn(Deployer) {
     }
   }
 }
-

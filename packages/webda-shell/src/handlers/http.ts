@@ -1,4 +1,8 @@
-import { Core as Webda, SecureCookie, _extend } from 'webda';
+import {
+  Core as Webda,
+  SecureCookie,
+  _extend
+} from 'webda';
 const path = require("path");
 
 export class WebdaServer extends Webda {
@@ -141,7 +145,7 @@ export class WebdaServer extends Webda {
     }
   }
 
-  serve(port, websockets : boolean = false) {
+  serve(port, websockets: boolean = false) {
     var http = require('http');
 
     var express = require('express');

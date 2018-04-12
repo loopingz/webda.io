@@ -18,11 +18,6 @@ var webda;
 var server_config;
 var server_pid;
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
 export default class WebdaConsole {
 
   static unzip(dest_dir, body) {
@@ -335,7 +330,7 @@ export default class WebdaConsole {
     });
   }
 
-  static init(argv) {
+  static async init(argv) {
     let target = argv._[1];
     let webda = WebdaServer;
     if (!webda.prototype.getVersion) {
@@ -350,6 +345,10 @@ export default class WebdaConsole {
       target = './' + target;
     }
     this.output('Init a sample project for webda v' + version + ' to ' + target);
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
     let promise = Promise.resolve();
     if (!fs.existsSync(target)) {
       promise = new Promise((resolve, reject) => {

@@ -2,7 +2,7 @@
 /**
  * Created by loopingz on 20/04/2017.
  */
-const Service = require("webda/services/service");
+const Service = require("webda").Service;
 
 class TestService extends Service {
 

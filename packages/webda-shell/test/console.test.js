@@ -1,14 +1,9 @@
 "use strict";
-global.__webda = 'webda';
-const colors = require('colors');
-
 const assert = require("assert");
-const consoleService = require('../lib/console/webda').default;
-const argv = require('yargs');
+var consoleService = require('../lib/console/webda').default;
 const fs = require('fs');
 
 var output = "";
-
 
 consoleService.output = function(...args) {
   output += args.join(' ');
@@ -27,7 +22,7 @@ function checkTestDeploymentConfig(config) {
 describe('Console', () => {
   beforeEach(() => {
     output = "";
-  })
+  });
   it('help', () => {
     return commandLine("help");
   });

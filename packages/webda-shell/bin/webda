@@ -83,7 +83,8 @@ let p = consoleService.handleCommand(process.argv.slice(2));
 if (p instanceof Promise || p && p.then) {
   p.then( () => {
     process.exit(0);
-  }).catch( () => {
+  }).catch( (err) => {
+    console.log(err);
     process.exit(1);
   });
 } else {

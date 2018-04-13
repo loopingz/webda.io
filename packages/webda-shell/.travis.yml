@@ -12,6 +12,7 @@ script:
 - npm run test
 before_deploy:
 - npm run build
+- npm install -g bower
 - bower install
 deploy:
   provider: npm

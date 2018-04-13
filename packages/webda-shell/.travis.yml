@@ -1,15 +1,13 @@
 language: node_js
 addons:
   sonarcloud:
-    organization: "loopingz-github"
+    organization: loopingz-github
 node_js:
-  - "6"
-script:
-  - npm run test
-after_success:
-  - sonar-scanner
+- '6'
 script:
 - npm run test
+after_success:
+- sonar-scanner
 before_deploy:
 - npm run build
 - npm install -g bower
@@ -22,4 +20,4 @@ deploy:
   on:
     tags: true
   api_key:
-    secure: Jb74gFsRjTSANPrMdFEWkhgV4dLhK/sQQusjSHUGtn+mCYa6bZo1OuLZtxsuxhHjhUoaWVaGkN09L8fyMwOciJGqZN2uhLx+nMRHDyVf7lUBeTxO/GHxyqBFAN7hGg8AkcODCMqRv8gfUfo0cGYMGe3v18cIdi6RDzg7KcrUmk7P0TByfH0PYqUaHl2As/QG0rRKsXZTv9xXilxiXYhrDkIAl0jFq5W+7BSCwh0it4Ce1dewOAcDx5Q1fEXJWi4ceRxTQg7lXFnovf8uN+6yFhPxhODjgy80gFDww9wT62v1JAvuStgGE4MnHkjFZ5egNlZ03NxP4UZfB/4osnipGTZHsp/D5thrP9SECEGIvSsbLZhR0v2+7VRSW/TgyI/GtOvkioOB0UTvOC00NkxcELonno/19WU3STpGhDVwyBxYBd2y3zuKx7obAxk8aYb8MjdVD1AKNwU96uh9bpGJM1Kx3f0Kx0XKXkwRNLgtTGWqnSLC8ssl4ameoVjEIr4qlkVS0yIak6386Ui8mlLk/NrP4cQhrkOT2ELI6JH73ek1+Aw8n3y5IUAriV08pnQ5WSFN4QP6rqY/EXNdICCA2ReyE/OxYgtr17GuiauBwtaxyHUGttUOuk2yWLDTHHUik4Gqi2jK+Dc2EmNTItYd//q6RbSgbjdWPkNcmOmz5ZU=
+    secure: C3ptKWGX5Q8FshLZeBe6KoIJXjgD+kr7RnGpmHDCXaXMOQjZ7QWxX49V8uIBD6d6oCl9BcGlSR+BwiRD/JpJxXjDDj+twXdQUw1Y9NhA5JSQkk8yEnOKHQ70k5XGt5O6Sg+SCHQoL7JyLN6UMR9KIJIJfw41m5DI42O9ENgsLEjFaIPciATe/QJeUPYI26qtVEOoXAgtzGxvvFC6DENAjvndk3nFid5aG65iKiwyLkYxlVwkBjIPxMDeCVKYUubKDSyLge5gZe72PNxA5c9XTuAO2SL9rUhc43ucsFPJsragWApdhu+T/uKqzBIDJ5ezOKe3w7yIf9gBi7CN1YYM755fTOTnWKQdEklrzVPuFyHoCDIdjFM2UvZ4t7TuQgo4wOBhmEZORWWxnwBbKU6lw5cUf9Esvs5p/nBoJNoHdbQgkQ4pD1ChiIzGnitd4o47+xw6vAnr5qkDOqZc9DskgHmqhQa8je+auGNBn6Nw0CvpYXU5L6ZLOA0iluVg9KW5efLbTdNbCw6571ABRpO8yfsTzG8MXqgPsK+rwlu92G0FTSl7TvKI2uL/yjDR2Y0QOcHqX6AERRn0VgqjLPUFh8SqaIWDlwkevgMj+bYBweGIcK12ykKiQueprtHMoRmy8B8gsm6omEIYJjXfA/7PNWw7NYO1woKC9Lf1Jki4UH0=

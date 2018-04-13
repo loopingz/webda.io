@@ -381,7 +381,7 @@ export class AWSDeployer extends Deployer {
           Bucket: bucket
         }).promise();
       }
-    };
+    }
   }
 
   putFilesOnBucket(bucket, files) {

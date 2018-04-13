@@ -14,7 +14,6 @@ export class ShellDeployer extends DockerMixIn(Deployer) {
       return;
     }
     this._maxStep = this.resources.scripts.length;
-    var promise = Promise.resolve();
     for (let i in this.resources.scripts) {
       let script = this.resources.scripts[i];
       if (!script.args) {

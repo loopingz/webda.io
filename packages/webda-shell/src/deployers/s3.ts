@@ -265,7 +265,7 @@ export class S3Deployer extends AWSDeployer {
     };
     this._cloudfront = new(this._getAWS(this.resources)).CloudFront();
     await this._createCertificate(this.bucket);
-    // TODO Handle paginations  
+    // TODO Handle paginations
     let res: CloudFront.ListDistributionsResult = await this._cloudfront.listDistributions(params).promise();
     for (let i in res.DistributionList.Items) {
       // Search for current cloudfront
@@ -343,7 +343,7 @@ export class S3Deployer extends AWSDeployer {
         ContentType: mimetype
       }).promise();
       console.log('Uploaded', file, 'to', key, '(' + mimetype + ')');
-    };
+    }
     if (!this.resources.staticWebsite) {
       return;
     }

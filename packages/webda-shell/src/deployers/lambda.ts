@@ -393,7 +393,7 @@ export class LambdaDeployer extends AWSDeployer {
     this.stepper("Generating API Gateway");
     await this.generateAPIGatewayMapping();
     this.stepper("Setting permissions and publish");
-    let deployment = await this.generateAPIGatewayStage();
+    await this.generateAPIGatewayStage();
     await this.addLambdaPermission();
     console.log("You can now access to your API to : https://" + this.restApiId + ".execute-api." + this.region + ".amazonaws.com/" + this.deployment.uuid);
     if (this.resources.customDomain && this.resources.customCertificate) {
@@ -589,9 +589,9 @@ export class LambdaDeployer extends AWSDeployer {
       }
       params.requestParameters["method.request.querystring." + local._queryParameters[i]] = false;
     }
-    let awsMethod = await this._awsGateway.putMethod(params).promise();
+    await this._awsGateway.putMethod(params).promise();
     // Integration type : AWS_PROXY
-    var params: any = {
+    params = {
       'resourceId': resource.id,
       'integrationHttpMethod': 'POST',
       'httpMethod': method,

@@ -52,7 +52,8 @@
   "files": [
     "app",
     "bin/webda",
-    "lib"
+    "lib",
+    "logo.json"
   ],
   "scripts": {
     "build": "tsc",
@@ -70,7 +71,7 @@
     "archiver": "^1.0.0",
     "aws-sdk": "^2.223.1",
     "body-parser": ">=1.13.3",
-    "colors": "^1.1.2",
+    "colors": "^1.2.1",
     "cookie-parser": "^1.4.1",
     "express": "^4.13.4",
     "express-session": ">=1.11.3",

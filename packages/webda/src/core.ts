@@ -120,10 +120,20 @@ class Webda extends events.EventEmitter {
   _loadModules() {
     if (this._config.cachedModules) {
       for (let key in this._config.cachedModules.services) {
-        this._services[key] = require(this._config.cachedModules.services[key]);
+        let serviceConstructor = require(this._config.cachedModules.services[key]);
+        if (serviceConstructor.default) {
+          this._services[key] = serviceConstructor.default;
+        } else {
+          this._services[key] = serviceConstructor;
+        }
       }
       for (let key in this._config.cachedModules.models) {
-        this._models[key] = require(this._config.cachedModules.models[key]);
+        let model = require(this._config.cachedModules.models[key]);
+        if (model.default) {
+          this._models[key] = model.default;
+        } else {
+          this._models[key] = model;
+        }
       }
       return;
     }
@@ -789,7 +799,12 @@ class Webda extends events.EventEmitter {
       let modda = config.moddas[i];
       if (modda.type == "local") {
         // Add the required type
-        this._services[i] = require(modda.require);
+        let serviceConstructor: any = require(modda.require);
+        if (serviceConstructor.default) {
+          this._services[i] = serviceConstructor.default;
+        } else {
+          this._services[i] = serviceConstructor;
+        }
       } else if (modda.type == "lambda") {
         // This should start the lambda
         this._services[i] = require('./routehelpers/lambda');

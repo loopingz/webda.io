@@ -13,10 +13,64 @@ const yauzl = require("yauzl");
 const path = require("path");
 const mkdirp = require("mkdirp");
 const rp = require('request-promise');
+const glob = require('glob');
 
 var webda;
 var server_config;
 var server_pid;
+
+class ModuleLoader {
+  _loaded: string[] = [];
+  services: any = {};
+  models: any = {};
+
+  loadModuleFile(path: string) {
+    let absolutePath = process.cwd() + '/' + path;
+    if (this._loaded.indexOf(absolutePath) >= 0) {
+      return;
+    }
+    this._loaded.push(absolutePath);
+    let mod = require(absolutePath);
+    if (!mod) {
+      return;
+    }
+    if (mod.default) {
+      mod = mod.default;
+    }
+    // Check if it is a service
+    if (mod.getModda) {
+      let modda = mod.getModda();
+      if (!modda || !modda.uuid) {
+        return;
+      }
+      this.services[modda.uuid] = path;
+    }
+  }
+
+  static getPackagesLocations(): string[] {
+    let includes;
+    if (fs.existsSync(process.cwd() + '/package.json')) {
+      includes = require(process.cwd() + '/package.json').files;
+    }
+    return includes || ['lib/**/*.js'];
+  }
+
+  load() {
+    ModuleLoader.getPackagesLocations().map((path) => {
+      if (fs.existsSync(path) && fs.lstatSync(path).isDirectory()) {
+        path += "/**/*.js";
+      }
+      glob.sync(path).map(this.loadModuleFile.bind(this));
+    });
+  }
+
+  write() {
+    fs.writeFileSync('./webda.module.json', JSON.stringify({
+      services: this.services,
+      models: this.models
+    }, null, ' '));
+  }
+}
 
 export default class WebdaConsole {
 
@@ -100,6 +154,21 @@ export default class WebdaConsole {
     return colors.bold(colors.yellow(str));
   }
 
+
+  static getPackagesLocations(): string[] {
+    let includes;
+    if (fs.existsSync(process.cwd() + '/package.json')) {
+      includes = require(process.cwd() + '/package.json').files;
+    }
+    return includes || ['lib/**/*.js'];
+  }
+
+  static generateModule() {
+    let module = new ModuleLoader();
+    module.load();
+    module.write();
+  }
+
   static help() {
     var lines = [];
     lines.push("USAGE: webda [config|debug|deploy|init|install||serve|launch]");
@@ -109,6 +178,7 @@ export default class WebdaConsole {
     lines.push(this.bold(' config') + ': Launch the configuration UI or export a deployment config');
     lines.push(this.bold(' serviceconfig') + ': Display the configuration of a service with its deployment');
     lines.push(this.bold(' init') + ': Init a sample project for your current version');
+    lines.push(this.bold(' module') + ': Generate a module definition based on the script scan');
     lines.push(this.bold(' install') + ': Install the resources for the declared services ( DynamoDB Tables, S3 Buckets )');
     lines.push(this.bold(' serve') + ' (DeployConfiguration): Serve current project, can serve with DeployConfiguration');
     lines.push(this.bold(' deploy') + ' DeployConfiguration: Deploy current project with DeployConfiguration name');
@@ -209,7 +279,6 @@ export default class WebdaConsole {
       server_config = this._loadDeploymentConfig(argv.deployment);
     }
     webda = new WebdaServer(server_config);
-    webda.setHost();
     let service = webda.getService(service_name);
     let method = argv._[2] || 'work';
     if (!service) {
@@ -431,6 +500,8 @@ export default class WebdaConsole {
         return this.undeploy(argv);
       case 'init':
         return this.init(argv);
+      case 'module':
+        return this.generateModule();
       default:
         return this.help();
     }

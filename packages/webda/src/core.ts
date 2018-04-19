@@ -903,7 +903,7 @@ class Webda extends events.EventEmitter {
    * @param args
    */
   log(level, ...args): void {
-    console.log(level, ...args);
+    console.log('[' + level + ']', ...args);
   }
 }
 

@@ -120,7 +120,11 @@ class Webda extends events.EventEmitter {
   _loadModules() {
     if (this._config.cachedModules) {
       for (let key in this._config.cachedModules.services) {
-        let serviceConstructor = require(this._config.cachedModules.services[key]);
+        let servicePath = this._config.cachedModules.services[key];
+        if (servicePath.startsWith('.')) {
+          servicePath = process.cwd() + '/' + servicePath;
+        }
+        let serviceConstructor = require(servicePath);
         if (serviceConstructor.default) {
           this._services[key] = serviceConstructor.default;
         } else {
@@ -128,7 +132,11 @@ class Webda extends events.EventEmitter {
         }
       }
       for (let key in this._config.cachedModules.models) {
-        let model = require(this._config.cachedModules.models[key]);
+        let modelPath = this._config.cachedModules.models[key];
+        if (modelPath.startsWith('.')) {
+          modelPath = process.cwd() + '/' + modelPath;
+        }
+        let model = require(modelPath);
         if (model.default) {
           this._models[key] = model.default;
         } else {
@@ -198,7 +206,7 @@ class Webda extends events.EventEmitter {
       } else {
         this._services[key] = mod;
       }
-      this._modules.services[key] = path.relative(process.cwd(), path.join(parent, info.services[key]));
+      this._modules.services[key] = './' + path.relative(process.cwd(), path.join(parent, info.services[key]));
     }
     for (let key in info.models) {
       let mod = require(path.join(parent, info.models[key]));
@@ -207,7 +215,7 @@ class Webda extends events.EventEmitter {
       } else {
         this._models[key] = mod;
       }
-      this._modules.models[key] = path.relative(process.cwd(), path.join(parent, info.models[key]));
+      this._modules.models[key] = './' + path.relative(process.cwd(), path.join(parent, info.models[key]));
     }
   }
 

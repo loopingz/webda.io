@@ -87,6 +87,7 @@ function DockerMixIn < T extends Constructor < Deployer >> (Base: T) {
 
 
     getDockerfile(command, logfile = undefined) {
+      var version = require(__dirname + '/../../package.json').version;
       var dockerfile = `
   FROM node:latest
   MAINTAINER docker@webda.io
@@ -95,8 +96,8 @@ function DockerMixIn < T extends Constructor < Deployer >> (Base: T) {
   RUN mkdir /webda/
   ADD . /webda/
   WORKDIR /webda
-  RUN rm -rf node_modules && yarn install && yarn add webda-shell
-  `;
+  RUN rm -rf node_modules && yarn install && yarn add webda-shell@`;
+      dockerfile += version + '\n';
       if (!command) {
         command = 'serve';
       }

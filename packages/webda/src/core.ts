@@ -198,7 +198,7 @@ class Webda extends events.EventEmitter {
       } else {
         this._services[key] = mod;
       }
-      this._modules.services[key] = path.join(parent, info.services[key]);
+      this._modules.services[key] = path.relative(process.cwd(), path.join(parent, info.services[key]));
     }
     for (let key in info.models) {
       let mod = require(path.join(parent, info.models[key]));
@@ -207,7 +207,7 @@ class Webda extends events.EventEmitter {
       } else {
         this._models[key] = mod;
       }
-      this._modules.models[key] = path.join(parent, info.models[key]);
+      this._modules.models[key] = path.relative(process.cwd(), path.join(parent, info.models[key]));
     }
   }
 

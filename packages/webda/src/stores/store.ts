@@ -696,6 +696,7 @@ class Store extends Executor {
     try {
       await object.validate(ctx);
     } catch (err) {
+      this.log('WARN', 'Object is not valid', err);
       throw 400;
     }
     if (await this.exists(object.uuid)) {

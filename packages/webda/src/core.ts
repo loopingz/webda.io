@@ -705,6 +705,9 @@ class Webda extends events.EventEmitter {
               include = process.cwd() + '/' + include;
             }
             serviceConstructor = require(include);
+            if (serviceConstructor.default) {
+              serviceConstructor = serviceConstructor.default;
+            }
           } else {
             serviceConstructor = include;
           }

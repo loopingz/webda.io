@@ -25,7 +25,11 @@ class FileRouteHelper extends Executor {
       if (include.startsWith("./")) {
         include = process.cwd() + '/' + include;
       }
-      return require(include)(ctx);
+      let fct = require(include);
+      if (fct.default) {
+        fct = fct.default;
+      }
+      return fct(ctx);
     }
   }
 }

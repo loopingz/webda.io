@@ -28,7 +28,7 @@ class LambdaCaller {
     this._arn = arn;
   }
 
-  async execute(params, async) {
+  async execute(params, async = false) {
     if (!params) {
       params = {};
     }

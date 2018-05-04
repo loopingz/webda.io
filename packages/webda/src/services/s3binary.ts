@@ -97,8 +97,8 @@ class S3Binary extends AWSMixIn(Binary) {
     return s3obj.putObject().promise();
   }
 
-  async getSignedUrl(action, params): Promise < string > {
-    return this._s3.getSignedUrl(action, params).promise();
+  getSignedUrl(action, params): string {
+    return this._s3.getSignedUrl(action, params);
   }
 
   async getRedirectUrlFromObject(obj, property, index, context, expire = 30) {
@@ -125,7 +125,7 @@ class S3Binary extends AWSMixIn(Binary) {
       throw 404;
     }
     await obj.canAct(ctx, 'get_binary');
-    let url = this.getRedirectUrlFromObject(obj, ctx._params.property, ctx._params.index, ctx);
+    let url = await this.getRedirectUrlFromObject(obj, ctx._params.property, ctx._params.index, ctx);
     ctx.writeHead(302, {
       'Location': url
     });

@@ -162,7 +162,7 @@ export class LambdaDeployer extends AWSDeployer {
     });
   }
 
-  generatePackage(zipPath) {
+  async generatePackage(zipPath) {
     this.stepper("Creating package");
     var archiver = require('archiver');
     if (!fs.existsSync("dist")) {
@@ -177,12 +177,22 @@ export class LambdaDeployer extends AWSDeployer {
     }
     // Should load the ignore from a file
     var toPacks = [];
-    var files = fs.readdirSync('.');
+
+    var files;
+    let packageFile = process.cwd() + '/package.json';
+    if (fs.existsSync(packageFile)) {
+      files = require(packageFile).files;
+    }
+    files = files || fs.readdirSync('.');
     for (let i in files) {
       var name = files[i];
       if (name.startsWith(".")) continue;
       if (ignores.indexOf(name) >= 0) continue;
       toPacks.push(name);
+    }
+    // Ensure dependencies
+    if (toPacks.indexOf('node_modules') < 0) {
+      toPacks.push('node_modules');
     }
     var output = fs.createWriteStream(zipPath);
     var archive = archiver('zip');
@@ -222,7 +232,7 @@ export class LambdaDeployer extends AWSDeployer {
       }
       archive.append(this.srcConfig, {
         name: "webda.config.json"
-      })
+      });
       archive.finalize();
     });
     return p;

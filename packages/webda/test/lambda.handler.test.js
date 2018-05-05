@@ -78,8 +78,19 @@ describe('Lambda Handler', function() {
   });
   it('handleRequest origin', function() {
     evt.headers.Origin = 'test.webda.io';
+    let wait = false;
+    handler.on('Webda.Result', () => {
+      return new Promise((resolve, reject) => {
+        // Delay 100ms to ensure it waited
+        setTimeout(() => {
+          wait = true;
+          resolve();
+        }, 100);
+      });
+    })
     return handler.handleRequest(evt, context, callback).then(() => {
       assert.equal(res.headers['Access-Control-Allow-Origin'], evt.headers.Origin);
+      assert.equal(wait, true);
     });
   });
 });

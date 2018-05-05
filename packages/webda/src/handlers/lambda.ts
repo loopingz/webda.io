@@ -41,7 +41,7 @@ class LambdaServer extends Webda {
    *
    * @ignore
    */
-  handleRequest(event, context, callback) {
+  async handleRequest(event, context, callback) {
     this._result = {};
     var cookies: any = {};
     var rawCookie = event.headers.Cookie;
@@ -76,7 +76,7 @@ class LambdaServer extends Webda {
     var body = JSON.parse(event.body);
     var ctx = this.newContext(body, session);
     // Debug mode
-    this.emit('Webda.Request', vhost, method, resourcePath, ctx.getCurrentUserId(), body);
+    await this.emitSync('Webda.Request', vhost, method, resourcePath, ctx.getCurrentUserId(), body);
 
     let origin = headers.Origin || headers.origin;
     // Set predefined headers for CORS
@@ -100,9 +100,8 @@ class LambdaServer extends Webda {
       }
       routes.push('OPTIONS');
       ctx.setHeader('Access-Control-Allow-Methods', routes.join(','));
-      return ctx.end().then(() => {
-        return this.handleLambdaReturn(ctx, callback);
-      });
+      await ctx.end();
+      return this.handleLambdaReturn(ctx, callback);
     }
 
     var executor = this.getExecutor(ctx, vhost, method, resourcePath, protocol, port, headers);
@@ -113,15 +112,13 @@ class LambdaServer extends Webda {
       return this.handleLambdaReturn(ctx, callback);
     }
     ctx.init();
-
-    return Promise.resolve(executor.execute(ctx)).then(() => {
+    try {
+      await executor.execute(ctx);
       if (!ctx._ended) {
         return ctx.end();
       }
-      return Promise.resolve();
-    }).then(() => {
       return this.handleLambdaReturn(ctx, callback);
-    }).catch((err) => {
+    } catch (err) {
       if (typeof(err) === "number") {
         ctx.statusCode = err;
         this.flushHeaders(ctx);
@@ -130,21 +127,20 @@ class LambdaServer extends Webda {
         ctx.statusCode = 500;
       }
       return this.handleLambdaReturn(ctx, callback);
-    });
+    }
   }
 
-  handleLambdaReturn(ctx, callback) {
+  async handleLambdaReturn(ctx, callback) {
     // Override when it comes for express component
     if (ctx.statusCode) {
       this._result.code = ctx.statusCode;
     }
-    this.emit('Webda.Result', ctx, this._result);
+    await this.emitSync('Webda.Result', ctx, this._result);
     callback(null, {
       statusCode: ctx.statusCode,
       headers: this._result.headers,
       body: this._result.body
     });
-    return Promise.resolve();
   }
 }
 

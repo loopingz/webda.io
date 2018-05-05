@@ -919,6 +919,22 @@ class Webda extends events.EventEmitter {
   }
 
   /**
+   * Emit the event with data and wait for Promise to finish if listener returned a Promise
+   */
+  emitSync(event, ...data): Promise < any[] > {
+    var result;
+    var promises = [];
+    var listeners = this.listeners(event);
+    for (var i in listeners) {
+      result = listeners[i](...data);
+      if (result instanceof Promise) {
+        promises.push(result);
+      }
+    }
+    return Promise.all(promises);
+  }
+
+  /**
    * Logs
    * @param level
    * @param args

@@ -56,6 +56,16 @@ import {
 import {
   MongoStore
 } from './stores/mongodb';
+// Loggers
+import {
+  Logger
+} from './loggers/logger';
+import {
+  MemoryLogger
+} from './loggers/memorylogger';
+import {
+  ConsoleLogger
+} from './loggers/consolelogger';
 
 // Services
 import {
@@ -122,5 +132,8 @@ export {
   LambdaCaller,
   Context,
   // Handler
-  LambdaServer
+  LambdaServer,
+  Logger,
+  MemoryLogger,
+  ConsoleLogger
 }

@@ -27,7 +27,10 @@ import {
   SQSQueue,
   EventService,
   FileBinary,
-  S3Binary
+  S3Binary,
+  Logger,
+  ConsoleLogger,
+  MemoryLogger
 } from './index';
 import {
   CoreModelDefinition
@@ -63,6 +66,8 @@ class Webda extends events.EventEmitter {
   _ajvSchemas: any;
   _currentExecutor: any;
   _configFile: string;
+  _loggers: Logger[] = [];
+
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
    */
@@ -96,6 +101,8 @@ class Webda extends events.EventEmitter {
     this._services['Webda/AsyncEvents'] = EventService;
     this._services['Webda/MemoryQueue'] = MemoryQueue;
     this._services['Webda/SQSQueue'] = SQSQueue;
+    this._services['Webda/MemoryLogger'] = MemoryLogger;
+    this._services['Webda/ConsoleLogger'] = ConsoleLogger;
     // Models
     this._models = {};
     this._models['Webda/CoreModel'] = CoreModel;
@@ -725,6 +732,9 @@ class Webda extends events.EventEmitter {
       delete params.require;
       try {
         this._config._services[service.toLowerCase()] = new serviceConstructor(this, service, params);
+        if (this._config._services[service.toLowerCase()] instanceof Logger) {
+          this._loggers.push(this._config._services[service.toLowerCase()]);
+        }
       } catch (err) {
         this.log('ERROR', 'Cannot create service', service, err);
         this._config.services[service]._createException = err;
@@ -914,7 +924,9 @@ class Webda extends events.EventEmitter {
    * @param args
    */
   log(level, ...args): void {
-    console.log('[' + level + ']', ...args);
+    this._loggers.map((logger : Logger) => {
+      logger.log(level, ...args);
+    })
   }
 }
 
@@ -923,5 +935,6 @@ export {
   _extend,
   Configuration,
   ServiceMap,
-  ModelsMap
+  ModelsMap,
+  Logger
 };

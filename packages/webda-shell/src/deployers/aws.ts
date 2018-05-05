@@ -38,10 +38,12 @@ export class AWSDeployer extends Deployer {
     params = params || this.resources || {};
     params.accessKeyId = params.accessKeyId || process.env["AWS_ACCESS_KEY_ID"];
     params.secretAccessKey = params.secretAccessKey || process.env["AWS_SECRET_ACCESS_KEY"];
+    params.sessionToken = params.sessionToken || process.env["AWS_SESSION_TOKEN"];
     params.region = params.region || process.env["AWS_DEFAULT_REGION"] || 'us-east-1';
     AWS.config.update({
       accessKeyId: params.accessKeyId,
       secretAccessKey: params.secretAccessKey,
+      sessionToken: params.sessionToken,
       region: params.region
     });
     return AWS;

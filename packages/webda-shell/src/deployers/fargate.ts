@@ -123,29 +123,24 @@ export class FargateDeployer extends DockerMixIn(AWSDeployer) {
     return statements;
   }
 
-  buildDockers() {
-    let promise = this._ecr.getAuthorizationToken({}).promise().then((res) => {
-      // Login to the AWS repository
-      let creds = Buffer.from(res.authorizationData[0].authorizationToken, 'base64').toString();
-      creds = creds.substr(4);
-      let repo = res.authorizationData[0].proxyEndpoint;
-      return this.execute('docker', ['login', '--username', 'AWS', '--password-stdin', repo], this.out.bind(this), this.out.bind(this), creds);
-    });
+  async buildDockers() {
+    let res = await this._ecr.getAuthorizationToken({}).promise();
+    // Login to the AWS repository
+    let creds = Buffer.from(res.authorizationData[0].authorizationToken, 'base64').toString();
+    creds = creds.split(':')[1];
+    let repo = res.authorizationData[0].proxyEndpoint;
+    await this.execute('docker', ['login', '--username', 'AWS', '--password-stdin', repo], this.out.bind(this), this.out.bind(this), creds);
     for (let i in this._workers) {
       let worker = this._workers[i];
-      promise = promise.then(() => {
-        let cmd = '';
-        if (worker.name !== 'API') {
-          cmd = 'worker ' + worker.name;
-        }
-        console.log('Building the image');
-        return this.buildDocker(worker.repository, null, this.getDockerfile(cmd)).then(() => {
-          console.log('Pushing the image');
-          return this.pushDocker(worker.repository);
-        });
-      })
+      let cmd = '';
+      if (worker.name !== 'API') {
+        cmd = 'worker ' + worker.name;
+      }
+      console.log('Building the image');
+      await this.buildDocker(worker.repository, null, this.getDockerfile(cmd));
+      console.log('Pushing the image');
+      await this.pushDocker(worker.repository);
     }
-    return promise;
   }
 
   private async _createService() {

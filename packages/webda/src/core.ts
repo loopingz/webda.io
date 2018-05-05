@@ -935,6 +935,5 @@ export {
   _extend,
   Configuration,
   ServiceMap,
-  ModelsMap,
-  Logger
+  ModelsMap
 };

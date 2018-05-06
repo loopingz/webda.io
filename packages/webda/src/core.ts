@@ -42,25 +42,17 @@ interface Configuration {
   [key: string]: any
 }
 
-interface ServiceMap {
-  [key: string]: any
-}
-
-interface ModelsMap {
-  [key: string]: CoreModelDefinition
-}
-
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
  *
  * @class Webda
  */
 class Webda extends events.EventEmitter {
-  _services: ServiceMap;
+  _services: Map<string, Service> = new Map();
   _modules: any;
   _config: Configuration;
   _routehelpers: any;
-  _models: ModelsMap;
+  _models: Map<string, CoreModelDefinition> = new Map();
   _vhost: string;
   _ajv: any;
   _ajvSchemas: any;
@@ -89,7 +81,6 @@ class Webda extends events.EventEmitter {
     this._routehelpers['file'] = require('./routehelpers/file').FileRouteHelper;
 
     // real service - modda
-    this._services = {};
     this._services['Webda/Authentication'] = Authentication;
     this._services['Webda/FileStore'] = FileStore;
     this._services['Webda/MemoryStore'] = MemoryStore;
@@ -104,7 +95,6 @@ class Webda extends events.EventEmitter {
     this._services['Webda/MemoryLogger'] = MemoryLogger;
     this._services['Webda/ConsoleLogger'] = ConsoleLogger;
     // Models
-    this._models = {};
     this._models['Webda/CoreModel'] = CoreModel;
     this._models['Webda/Ident'] = Ident;
     // Load the configuration
@@ -389,7 +379,7 @@ class Webda extends events.EventEmitter {
    * Return a map of defined services
    * @returns {{}}
    */
-  getServices(): ServiceMap {
+  getServices(): Map<string, Service> {
     return this._config._services || {};
   }
 
@@ -415,8 +405,8 @@ class Webda extends events.EventEmitter {
    * @param type The type of implementation
    * @returns {{}}
    */
-  getServicesImplementations(type): ServiceMap {
-    let result = {};
+  getServicesImplementations(type): Map<string, Service> {
+    let result = new Map();
     for (let i in this._config._services) {
       if (this._config._services[i] instanceof type) {
         result[i] = this._config._services[i];
@@ -429,7 +419,7 @@ class Webda extends events.EventEmitter {
    * Return a map of defined stores
    * @returns {{}}
    */
-  getStores(): ServiceMap {
+  getStores(): Map<string, Service> {
     return this.getServicesImplementations(Store);
   }
 
@@ -437,7 +427,7 @@ class Webda extends events.EventEmitter {
    * Return a map of defined models
    * @returns {{}}
    */
-  getModels(): ModelsMap {
+  getModels(): Map<string, CoreModelDefinition> {
     return this._config._models || {};
   }
 
@@ -949,7 +939,5 @@ class Webda extends events.EventEmitter {
 export {
   Webda,
   _extend,
-  Configuration,
-  ServiceMap,
-  ModelsMap
+  Configuration
 };

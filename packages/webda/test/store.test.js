@@ -42,7 +42,7 @@ async function mapper(identStore, userStore) {
       eventFired++;
     });
   }
-
+  assert.equal(await userStore.get(), undefined);
   user1 = (await userStore.save({
     'name': 'test'
   })).uuid;

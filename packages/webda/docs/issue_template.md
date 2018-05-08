@@ -1,4 +1,4 @@
-## Exected behavior
+## Expected behavior
 
 ## Actual behavior
 

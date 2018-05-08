@@ -652,6 +652,9 @@ class Store extends Executor {
    */
   async get(uid: string): Promise < CoreModel > {
     /** @ignore */
+    if (!uid) {
+      return undefined;
+    }
     let object = await this._get(uid);
     if (!object) {
       return undefined;

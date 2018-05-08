@@ -173,6 +173,9 @@ class Context implements Map {
    * Get the current user from session
    */
   async getCurrentUser() {
+    if (!this.getCurrentUserId()) {
+      return undefined;
+    }
     return ( < Store > this._webda.getService('Users')).get(this.getCurrentUserId());
   }
 

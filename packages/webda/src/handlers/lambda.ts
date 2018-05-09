@@ -42,6 +42,7 @@ class LambdaServer extends Webda {
    * @ignore
    */
   async handleRequest(event, context, callback) {
+    context.callbackWaitsForEmptyEventLoop = (this._config.parameters && this._config.parameters.waitForEmptyEventLoop) || false;
     this._result = {};
     var cookies: any = {};
     var rawCookie = event.headers.Cookie;
@@ -136,7 +137,7 @@ class LambdaServer extends Webda {
       this._result.code = ctx.statusCode;
     }
     await this.emitSync('Webda.Result', ctx, this._result);
-    callback(null, {
+    return callback(null, {
       statusCode: ctx.statusCode,
       headers: this._result.headers,
       body: this._result.body

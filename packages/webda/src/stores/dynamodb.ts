@@ -22,14 +22,10 @@ class DynamoStore extends AWSMixIn(Store) {
   /** @ignore */
   constructor(webda, name, params) {
     super(webda, name, params);
-    if (params.table === undefined || params.accessKeyId === undefined || params.secretAccessKey === undefined) {
-      this._createException = "Need to define a table,accessKeyId,secretAccessKey at least";
+    if (params.table === undefined) {
+      throw new Error("Need to define a table,accessKeyId,secretAccessKey at least");
     }
     this._client = new(this._getAWS(params)).DynamoDB.DocumentClient();
-  }
-
-  init(config) {
-    super.init(config);
   }
 
   async exists(uid) {

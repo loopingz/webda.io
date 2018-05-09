@@ -33,7 +33,7 @@ class S3Binary extends AWSMixIn(Binary) {
   constructor(webda, name, params) {
     super(webda, name, params);
     if (params.bucket === undefined) {
-      this._createException = "Need to define a bucket,accessKeyId,secretAccessKey at least";
+      throw new Error("Need to define a bucket at least");
     }
     this.AWS = this._getAWS(params);
   }

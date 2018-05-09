@@ -115,7 +115,7 @@ class LambdaServer extends Webda {
     try {
       await executor.execute(ctx);
       if (!ctx._ended) {
-        return ctx.end();
+        await ctx.end();
       }
       return this.handleLambdaReturn(ctx, callback);
     } catch (err) {

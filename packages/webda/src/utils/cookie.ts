@@ -1,21 +1,7 @@
 import {
   _extend
 } from '../core';
-const crypto = require('crypto');
-
-function encrypt(algo, pass, text) {
-  let cipher = crypto.createCipher(algo, pass);
-  let crypted = cipher.update(text, 'utf8', 'hex');
-  crypted += cipher.final('hex');
-  return crypted;
-}
-
-function decrypt(algo, pass, text) {
-  let decipher = crypto.createDecipher(algo, pass);
-  let dec = decipher.update(text, 'hex', 'utf8');
-  dec += decipher.final('utf8');
-  return dec;
-}
+import * as jwt from 'jsonwebtoken';
 
 /**
  * Object that handle the session
@@ -36,6 +22,8 @@ class SecureCookie {
   _raw: string;
   userId: string;
   identUsed: string;
+  // Expiration date
+  exp: number;
 
   /** @ignore */
   constructor(options, data) {
@@ -50,12 +38,9 @@ class SecureCookie {
     if (typeof(data) === "string") {
       this._raw = data;
       try {
-        _extend(this, this._decrypt(data));
+        _extend(this, jwt.verify(data, this._secret));
       } catch (err) {
-        // Reinit the session as we cannot read the cookie
-        // Might pass webda to get more context
-        console.log("CANT DECRYPT:", data);
-        this._changed = true;
+        // We ignore bad cookies
       }
     } else {
       _extend(this, data);
@@ -109,14 +94,6 @@ class SecureCookie {
     delete this.userId;
   }
 
-  _decrypt(data) {
-    try {
-      return JSON.parse(decrypt(this._algo, this._secret, data));
-    } catch (err) {
-      throw new Error("Bad SecureCookie");
-    }
-  }
-
   toJSON() {
     let data: any = {};
     for (let prop in this) {
@@ -130,7 +107,9 @@ class SecureCookie {
 
   save() {
     if (this.needSave()) {
-      return encrypt(this._algo, this._secret, JSON.stringify(this));
+      this.exp = Math.floor(Date.now() / 1000) + (24 * 30 * 3600);
+      // Transform the cookie to a plain object
+      return jwt.sign(JSON.parse(JSON.stringify(this)), this._secret);
     }
     return this._raw;
   }

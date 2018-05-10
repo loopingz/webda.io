@@ -117,8 +117,6 @@ describe('Webda', function() {
       assert.equal(ctx._headers['X-Webda'], 'HEAD');
       ctx.write(400);
       assert.equal(ctx._body, 400);
-      ctx.session = new Webda.SecureCookie({}, "NONE");
-      assert.equal(ctx.session._changed, true);
       ctx.session = new Webda.SecureCookie({});
       Object.observe = (obj, callback) => {
         callback([{
@@ -131,7 +129,6 @@ describe('Webda', function() {
         assert.equal(ctx.session._changed, true);
       }
       ctx.session.getProxy();
-      assert.throws(ctx.session._decrypt.bind(ctx.session, "NONE"));
       Object.observe = undefined;
     });
   });

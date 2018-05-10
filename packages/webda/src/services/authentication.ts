@@ -120,6 +120,10 @@ class Authentication extends Executor {
     this._addRoute(url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}", ["GET"], this._callback);
   }
 
+  addProvider(name, strategy, config) {
+    Strategies[name] = strategy;
+    this._params.providers[name] = config;
+  }
 
   _callback(ctx) {
     var providerConfig = this._params.providers[ctx._params.provider];

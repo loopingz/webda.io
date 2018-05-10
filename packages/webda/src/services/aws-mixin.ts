@@ -22,7 +22,6 @@ function AWSMixIn < T extends Constructor < Service >> (Base: T) {
         update.sessionToken = params.sessionToken;
         update.secretAccessKey = params.secretAccessKey;
       }
-      console.log('Update AWS with', update);
       AWS.config.update(update);
       return AWS;
     }

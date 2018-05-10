@@ -27,7 +27,7 @@ import {
 } from './models/user';
 // Utils
 import {
-  Context
+  Context, ClientInfo
 } from './utils/context';
 import {
   SecureCookie
@@ -131,6 +131,7 @@ export {
   SecureCookie,
   LambdaCaller,
   Context,
+  ClientInfo,
   // Handler
   LambdaServer,
   Logger,

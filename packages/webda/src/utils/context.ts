@@ -11,25 +11,22 @@ import {
 } from '../index';
 const acceptLanguage = require('accept-language');
 
-interface Map {
-  [key: string]: any
+
+class ClientInfo extends Map<string, any> {
+  ip: string;
+  userAgent: string;
+  locale: string;
+  referer: string;
 }
 
-interface HeaderMap {
-  [key: string]: string
-}
-
-interface CookieMap {
-  [key: string]: string
-}
-
-class Context implements Map {
+class Context extends Map<string, any> {
+  clientInfo: ClientInfo;
   _body: any;
-  _headers: HeaderMap;
+  _headers: Map<string, string>;
   _webda: Webda;
   statusCode: number;
-  _cookie: CookieMap;
-  headers: HeaderMap;
+  _cookie: Map<string, string>;
+  headers: Map<string, string>;
   _route: any;
   _buffered: boolean;
   session: SecureCookie;
@@ -114,7 +111,7 @@ class Context implements Map {
   cookie(param, value) {
     /** @ignore */
     if (this._cookie === undefined) {
-      this._cookie = {};
+      this._cookie = new Map();
     }
     this._cookie[param] = value;
   }
@@ -242,6 +239,8 @@ class Context implements Map {
    * Used by Webda framework to set the body, session and output stream if known
    */
   constructor(webda, body, session, stream = undefined, files = []) {
+    super();
+    this.clientInfo = new ClientInfo();
     this._webda = webda;
     this.session = session;
     if (session === undefined) {
@@ -250,14 +249,14 @@ class Context implements Map {
     this.body = body;
     this.files = files;
     this._promises = [];
-    this._headers = {};
+    this._headers = new Map();
     this._flushHeaders = false;
     this._body = undefined;
     this.statusCode = 204;
     this._stream = stream;
     this._buffered = false;
     this._params = {};
-    this.headers = {};
+    this.headers = new Map();
     if (stream === undefined) {
       this._stream = new Writable();
       this._stream._body = [];
@@ -276,7 +275,5 @@ class Context implements Map {
 
 export {
   Context,
-  Map,
-  HeaderMap,
-  CookieMap
+  ClientInfo
 };

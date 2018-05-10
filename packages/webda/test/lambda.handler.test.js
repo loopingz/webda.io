@@ -15,6 +15,11 @@ describe('Lambda Handler', function() {
       headers: {
         Cookie: 'webda=plop;'
       },
+      requestContext: {
+        identity: {
+
+        }
+      },
       path: "/route/string",
       body: JSON.stringify({
 

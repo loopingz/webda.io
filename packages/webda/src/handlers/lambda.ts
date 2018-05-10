@@ -1,7 +1,8 @@
 "use strict";
 import {
   Core as Webda,
-  SecureCookie
+  SecureCookie,
+  ClientInfo
 } from '../index';
 const cookieParse = require("cookie").parse;
 
@@ -34,6 +35,14 @@ class LambdaServer extends Webda {
     if (ctx._body !== undefined) {
       this._result.body = ctx._body;
     }
+  }
+
+  getClientInfo(reqCtx) {
+    let res = new ClientInfo();
+    res.ip = reqCtx.identity.sourceIp;
+    res.userAgent = reqCtx.identity.userAgent;
+    res.set('lambdaRequestContext', reqCtx);
+    return res;
   }
 
   /**
@@ -76,6 +85,12 @@ class LambdaServer extends Webda {
     //
     var body = JSON.parse(event.body);
     var ctx = this.newContext(body, session);
+    // TODO Get all client info
+    // event['requestContext']['identity']['sourceIp']
+    ctx.clientInfo = this.getClientInfo(event.requestContext);
+    ctx.clientInfo.locale = headers['CloudFront-Forwarded-Proto'];
+    ctx.clientInfo.referer = headers['Referer'];
+
     // Debug mode
     await this.emitSync('Webda.Request', vhost, method, resourcePath, ctx.getCurrentUserId(), body);
 

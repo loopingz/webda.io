@@ -4,7 +4,7 @@ var config = require("./config.json");
 var webda;
 
 describe('Webda', function() {
-  beforeEach(function () {
+  beforeEach(function() {
     webda = new Webda.Core(config);
   });
 

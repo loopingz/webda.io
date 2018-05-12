@@ -14,7 +14,7 @@ function AWSMixIn < T extends Constructor < Service >> (Base: T) {
       params.secretAccessKey = params.secretAccessKey || process.env["AWS_SECRET_ACCESS_KEY"];
       params.sessionToken = params.sessionToken || process.env["AWS_SESSION_TOKEN"];
       params.region = params.region || process.env["AWS_DEFAULT_REGION"] || 'us-east-1';
-      let update : any = {
+      let update: any = {
         region: params.region
       };
       if (params.accessKeyId) {

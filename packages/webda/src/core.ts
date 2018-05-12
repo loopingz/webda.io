@@ -48,11 +48,13 @@ interface Configuration {
  * @class Webda
  */
 class Webda extends events.EventEmitter {
-  _services: Map<string, Service> = new Map();
+  _services: Map < string,
+  Service > = new Map();
   _modules: any;
   _config: Configuration;
   _routehelpers: any;
-  _models: Map<string, CoreModelDefinition> = new Map();
+  _models: Map < string,
+  CoreModelDefinition > = new Map();
   _vhost: string;
   _ajv: any;
   _ajvSchemas: any;
@@ -379,7 +381,8 @@ class Webda extends events.EventEmitter {
    * Return a map of defined services
    * @returns {{}}
    */
-  getServices(): Map<string, Service> {
+  getServices(): Map < string,
+  Service > {
     return this._config._services || {};
   }
 
@@ -405,7 +408,8 @@ class Webda extends events.EventEmitter {
    * @param type The type of implementation
    * @returns {{}}
    */
-  getServicesImplementations(type): Map<string, Service> {
+  getServicesImplementations(type): Map < string,
+  Service > {
     let result = new Map();
     for (let i in this._config._services) {
       if (this._config._services[i] instanceof type) {
@@ -419,7 +423,8 @@ class Webda extends events.EventEmitter {
    * Return a map of defined stores
    * @returns {{}}
    */
-  getStores(): Map<string, Service> {
+  getStores(): Map < string,
+  Service > {
     return this.getServicesImplementations(Store);
   }
 
@@ -427,7 +432,8 @@ class Webda extends events.EventEmitter {
    * Return a map of defined models
    * @returns {{}}
    */
-  getModels(): Map<string, CoreModelDefinition> {
+  getModels(): Map < string,
+  CoreModelDefinition > {
     return this._config._models || {};
   }
 
@@ -930,7 +936,7 @@ class Webda extends events.EventEmitter {
    * @param args
    */
   log(level, ...args): void {
-    this._loggers.map((logger : Logger) => {
+    this._loggers.map((logger: Logger) => {
       logger.log(level, ...args);
     })
   }

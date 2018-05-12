@@ -1,8 +1,10 @@
-import { Logger } from '../index';
+import {
+  Logger
+} from '../index';
 
 interface LogEntry {
   level: string,
-  args: any[]
+    args: any[]
 }
 
 class MemoryLogger extends Logger {
@@ -14,14 +16,17 @@ class MemoryLogger extends Logger {
     this._maxItems = this._params.maxItems || 1000;
   }
 
-  _log(level, ...args) : void {
+  _log(level, ...args): void {
     if (this._logs.length >= this._maxItems) {
       this._logs.shift();
     }
-    this._logs.push({"level": level, "args": args});
+    this._logs.push({
+      "level": level,
+      "args": args
+    });
   }
 
-  getLogs() : LogEntry[] {
+  getLogs(): LogEntry[] {
     return this._logs;
   }
 
@@ -55,4 +60,7 @@ class MemoryLogger extends Logger {
   }
 }
 
-export { MemoryLogger, LogEntry };
+export {
+  MemoryLogger,
+  LogEntry
+};

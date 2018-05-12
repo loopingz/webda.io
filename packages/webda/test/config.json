@@ -28,15 +28,15 @@
     "MemoryLogger": {
       "type": "Webda/MemoryLogger",
       "maxItems": 3,
-      "levels": "TEST, TEST2",
-      "level": "TEST2"
+      "logLevels": "TEST, TEST2",
+      "logLevel": "TEST2"
     },
     "ConsoleLogger": {
       "type": "Webda/ConsoleLogger"
     },
     "ConsoleTestLogger": {
       "type": "Webda/ConsoleLogger",
-      "levels": "TEST"
+      "logLevels": "TEST"
     },
     "AsyncEvents": {
       "type": "AsyncEvents",

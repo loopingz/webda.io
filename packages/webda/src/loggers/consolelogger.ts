@@ -8,7 +8,7 @@ class ConsoleLogger extends Logger {
 
   _log(level, ...args): void {
     this._count++;
-    console.log('[' + level + ']', args);
+    console.log('[' + level + ']', ...args);
   }
 
   getCount() {
@@ -26,11 +26,11 @@ class ConsoleLogger extends Logger {
         "schema": {
           type: "object",
           properties: {
-            "level": {
+            "logLevel": {
               type: "string",
               value: "INFO"
             },
-            "levels": {
+            "logLevels": {
               type: "string",
               value: "ERROR,WARN,CONSOLE,INFO,DEBUG"
             }

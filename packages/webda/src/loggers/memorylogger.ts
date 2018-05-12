@@ -45,11 +45,11 @@ class MemoryLogger extends Logger {
               type: "number",
               value: 1000
             },
-            "level": {
+            "logLevel": {
               type: "string",
               value: "INFO"
             },
-            "levels": {
+            "logLevels": {
               type: "string",
               value: "ERROR,WARN,CONSOLE,INFO,DEBUG"
             }

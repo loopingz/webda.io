@@ -7,9 +7,17 @@ abstract class Logger extends Service {
   protected _levels: string[];
   protected _level: number;
 
+  getDefaultLogLevels() {
+    return process.env['WEBDA_LOG_LEVELS'] || this._params.logLevels || "ERROR,WARN,CONSOLE,INFO,DEBUG";
+  }
+
+  getDefaultLogLevel() {
+    return process.env['WEBDA_LOG_LEVEL'] || this._params.logLevel || 'INFO';
+  }
+
   init(params) {
-    this._levels = (this._params.levels || this._params.logLevels || "ERROR,WARN,CONSOLE,INFO,DEBUG").split(',').map((lvl) => lvl.trim());
-    this._level = this._levels.indexOf(this._params.level || this._params.logLevel || 'INFO');
+    this._levels = (this.getDefaultLogLevels()).split(',').map((lvl) => lvl.trim());
+    this._level = this._levels.indexOf(this.getDefaultLogLevel());
     if (this._level < 0) {
       this._level = 0;
     }

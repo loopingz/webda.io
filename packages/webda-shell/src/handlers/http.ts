@@ -12,11 +12,11 @@ export class WebdaServer extends Webda {
   protected _staticIndex: string;
 
   logRequest(...args) {
-    console.log('REQUEST', ...args);
+    this.log('REQUEST', ...args);
   }
 
   output(...args) {
-    console.log(...args);
+    this.log('CONSOLE', ...args);
   }
 
   handleRequest(req, res, next) {

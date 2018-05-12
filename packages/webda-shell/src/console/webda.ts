@@ -5,6 +5,9 @@ import {
 import {
   WebdaServer
 } from '../handlers/http';
+import {
+  ConsoleLogger
+} from 'webda';
 import * as colors from 'colors';
 const fs = require("fs");
 
@@ -73,6 +76,8 @@ class ModuleLoader {
 }
 
 export default class WebdaConsole {
+
+  static logger: ConsoleLogger = new ConsoleLogger(undefined, 'ConsoleLogger', {});
 
   static unzip(dest_dir, body) {
     if (!dest_dir.endsWith('/')) {
@@ -199,6 +204,9 @@ export default class WebdaConsole {
     return argv.alias('d', 'deployment')
       .alias('o', 'open')
       .alias('x', 'devMode')
+      .option('log-level', {
+        default: 'INFO'
+      })
       .option('version', {
         type: 'boolean'
       })
@@ -220,6 +228,7 @@ export default class WebdaConsole {
     } else {
       this.output("Serve as development");
     }
+    // server_config.parameters.logLevel = server_config.parameters.logLevel || argv['log-level'];
     webda = new WebdaServer(server_config);
     webda._devMode = argv.devMode;
     if (webda._devMode) {
@@ -274,7 +283,7 @@ export default class WebdaConsole {
   static worker(argv) {
     let service_name = argv._[1];
     if (argv.deployment) {
-      // Loading first the configuration
+      // Loading first the configuration{As}
       this.output("Should work as deployment: " + argv.deployment);
       server_config = this._loadDeploymentConfig(argv.deployment);
     }
@@ -461,8 +470,19 @@ export default class WebdaConsole {
     });
   }
 
+  static initLogger(argv) {
+    if (argv['logLevels']) {
+      process.env['WEBDA_LOG_LEVELS'] = argv['logLevels'];
+    }
+    if (argv['logLevel']) {
+      process.env['WEBDA_LOG_LEVEL'] = argv['logLevel'];
+    }
+    this.logger.init({});
+  }
+
   static handleCommand(args) {
     let argv = this.parser(args);
+    this.initLogger(argv);
     if (['undeploy', 'deploy', 'install', 'uninstall'].indexOf(argv._[0]) >= 0) {
       if (argv.deployment === undefined) {
         this.output('Need to specify an environment');
@@ -508,14 +528,11 @@ export default class WebdaConsole {
   }
 
   static output(...args) {
-    this.log('console', ...args);
+    WebdaConsole.log('CONSOLE', ...args);
   }
 
-  /**
-   * Output
-   * @param args for console.log
-   */
-  static log(level, ...args) {
-    console.log(...args);
+  static log(level: string, ...args) {
+    this.logger.log(level, ...args);
   }
+
 }

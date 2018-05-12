@@ -28,7 +28,7 @@
     "MemoryLogger": {
       "type": "Webda/MemoryLogger",
       "maxItems": 3,
-      "levels": "TEST,TEST2",
+      "levels": "TEST, TEST2",
       "level": "TEST2"
     },
     "ConsoleLogger": {

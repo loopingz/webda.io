@@ -12,21 +12,24 @@ import {
 const acceptLanguage = require('accept-language');
 
 
-class ClientInfo extends Map<string, any> {
+class ClientInfo extends Map < string, any > {
   ip: string;
   userAgent: string;
   locale: string;
   referer: string;
 }
 
-class Context extends Map<string, any> {
+class Context extends Map < string, any > {
   clientInfo: ClientInfo;
   _body: any;
-  _headers: Map<string, string>;
+  _headers: Map < string,
+  string > ;
   _webda: Webda;
   statusCode: number;
-  _cookie: Map<string, string>;
-  headers: Map<string, string>;
+  _cookie: Map < string,
+  string > ;
+  headers: Map < string,
+  string > ;
   _route: any;
   _buffered: boolean;
   session: SecureCookie;

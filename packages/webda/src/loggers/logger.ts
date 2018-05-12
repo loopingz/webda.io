@@ -8,7 +8,7 @@ abstract class Logger extends Service {
   protected _level: number;
 
   init(params) {
-    this._levels = (this._params.levels || this._params.logLevels || "ERROR,WARN,CONSOLE,INFO,DEBUG").split(',');
+    this._levels = (this._params.levels || this._params.logLevels || "ERROR,WARN,CONSOLE,INFO,DEBUG").split(',').map((lvl) => lvl.trim());
     this._level = this._levels.indexOf(this._params.level || this._params.logLevel || 'INFO');
     if (this._level < 0) {
       this._level = 0;

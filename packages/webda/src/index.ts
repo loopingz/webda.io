@@ -27,7 +27,8 @@ import {
 } from './models/user';
 // Utils
 import {
-  Context, ClientInfo
+  Context,
+  ClientInfo
 } from './utils/context';
 import {
   SecureCookie

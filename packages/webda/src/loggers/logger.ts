@@ -4,8 +4,8 @@ import {
 
 abstract class Logger extends Service {
 
-  protected _levels: string[];
-  protected _level: number;
+  protected _levels: string[] = ['ERROR', 'WARN'];
+  protected _level: number = 1;
 
   getDefaultLogLevels() {
     return process.env['WEBDA_LOG_LEVELS'] || this._params.logLevels || "ERROR,WARN,CONSOLE,INFO,DEBUG";
@@ -16,7 +16,7 @@ abstract class Logger extends Service {
   }
 
   init(params) {
-    this._levels = (this.getDefaultLogLevels()).split(',').map((lvl) => lvl.trim());
+    this._levels = this.getDefaultLogLevels().split(',').map((lvl) => lvl.trim());
     this._level = this._levels.indexOf(this.getDefaultLogLevel());
     if (this._level < 0) {
       this._level = 0;

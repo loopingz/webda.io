@@ -936,7 +936,7 @@ class Webda extends events.EventEmitter {
    * @param args
    */
   log(level, ...args): void {
-    this._loggers.map((logger: Logger) => {
+    this._loggers.forEach((logger: Logger) => {
       logger.log(level, ...args);
     })
   }

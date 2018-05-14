@@ -123,6 +123,10 @@ class Context extends Map < string, any > {
     this._promises.push(promise);
   }
 
+  isEnded() {
+    return this._ended;
+  }
+
   /**
    * Flush the request
    *

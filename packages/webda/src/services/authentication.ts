@@ -421,6 +421,10 @@ class Authentication extends Executor {
         await this.login(ctx, ident.user, ident);
         ctx.write(user);
       } else {
+        await this.emitSync("LoginFailed", {
+          user,
+          ctx
+        });
         if (ident._failedLogin === undefined) {
           ident._failedLogin = 0;
         }
@@ -428,7 +432,10 @@ class Authentication extends Executor {
         updates._lastFailedLogin = new Date();
         // Swalow exeception issue to double check !
         await this._identsStore.update(updates, ident.uuid);
-        throw 403;
+        // Allows to auto redirect user to a oauth if needed
+        if (!ctx.isEnded()) {
+          throw 403;
+        }
       }
     } else {
       // TODO Handle add of email on authenticated user

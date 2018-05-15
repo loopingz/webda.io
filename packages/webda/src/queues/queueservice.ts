@@ -63,7 +63,9 @@ class Queue extends Service {
   async worker(callback) {
     this.pause = 1;
     this.callback = callback;
-    this._workerReceiveMessage();
+    while (!this._interrupt) {
+      await this._workerReceiveMessage();
+    }
   }
 
   stop() {

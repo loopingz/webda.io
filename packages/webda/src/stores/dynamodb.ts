@@ -79,7 +79,7 @@ class DynamoStore extends AWSMixIn(Store) {
       res = {};
     }
     for (let i in object) {
-      if (object[i] === '') {
+      if (object[i] === '' || i.startsWith('__')) {
         continue
       }
       res[i] = this._cleanObject(object[i]);

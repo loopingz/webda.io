@@ -83,7 +83,15 @@ class LambdaServer extends Webda {
       }
     }
     //
-    var body = JSON.parse(event.body);
+    var body = event.body;
+    try {
+      // Try to interpret as JSON by default
+      body = JSON.parse(event.body);
+    } catch (err) {
+      if (headers['Content-Type'] === 'application/json') {  
+          throw err;
+      }
+    }
     var ctx = this.newContext(body, session);
     // TODO Get all client info
     // event['requestContext']['identity']['sourceIp']

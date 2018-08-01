@@ -51,6 +51,24 @@ class LambdaServer extends Webda {
    * @ignore
    */
   async handleRequest(event, context, callback) {
+    // Manual launch of webda
+    if (event.command === 'launch' && event.service && event.method) {
+      console.log('will launch');
+      let args = event.args || [];
+      this.log('INFO', 'Executing', event.method, 'on', event.service, 'with', args);
+      let service = this.getService(event.service);
+      if (!service) {
+        this.log('ERROR', 'Cannot find', event.service);
+        return;
+      }
+      if (typeof(service[event.method]) !== 'function') {
+        this.log('ERROR', 'Cannot find method', event.method, 'on', event.service);
+        return;
+      }
+      service[event.method](...args);
+      this.log('INFO', 'Finished');
+      return;
+    }
     context.callbackWaitsForEmptyEventLoop = (this._config.parameters && this._config.parameters.waitForEmptyEventLoop) || false;
     this._result = {};
     var cookies: any = {};
@@ -88,8 +106,8 @@ class LambdaServer extends Webda {
       // Try to interpret as JSON by default
       body = JSON.parse(event.body);
     } catch (err) {
-      if (headers['Content-Type'] === 'application/json') {  
-          throw err;
+      if (headers['Content-Type'] === 'application/json') {
+        throw err;
       }
     }
     var ctx = this.newContext(body, session);
@@ -97,12 +115,13 @@ class LambdaServer extends Webda {
     // event['requestContext']['identity']['sourceIp']
     ctx.clientInfo = this.getClientInfo(event.requestContext);
     ctx.clientInfo.locale = headers['CloudFront-Forwarded-Proto'];
-    ctx.clientInfo.referer = headers['Referer'];
+    ctx.clientInfo.referer = headers['Referer'] || headers.referer;
 
     // Debug mode
     await this.emitSync('Webda.Request', vhost, method, resourcePath, ctx.getCurrentUserId(), body);
 
-    let origin = headers.Origin || headers.origin;
+    // Fallback on reference as Origin is not always set by Edge
+    let origin = headers.Origin || headers.origin || ctx.clientInfo.referer;
     // Set predefined headers for CORS
     if (origin) {
       let website = this.getGlobalParams().website || "";
@@ -111,6 +130,11 @@ class LambdaServer extends Webda {
       }
       if (website.indexOf(origin) >= 0 || website === '*') {
         ctx.setHeader('Access-Control-Allow-Origin', origin);
+      } else {
+        // Prevent CSRF
+        this.log('INFO', 'CSRF denied from', origin);
+        ctx.statusCode = 401;
+        return this.handleLambdaReturn(ctx, callback);
       }
     }
     ctx.setHeader('Access-Control-Allow-Credentials', 'true');

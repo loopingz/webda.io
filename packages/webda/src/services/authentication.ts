@@ -7,7 +7,8 @@ import {
   Context,
   Mailer,
   Service,
-  User
+  User,
+  Core
 } from "../index"
 var passport = require('passport');
 const crypto = require('crypto');
@@ -64,8 +65,18 @@ class Authentication extends Executor {
   _identsStore: Store;
   _usersStore: Store;
   _passwordVerifier: PasswordVerifier;
+  _aliases: Map < String,
+  String > = new Map();
   // TODO refactor
   _oauth1: any;
+
+  constructor(webda: Core, name: string, params: any) {
+    super(webda, name, params);
+
+    this._params.identStore = this._params.identStore || 'idents';
+    this._params.userStore = this._params.userStore || 'users';
+    this._params.providers = this._params.providers || {};
+  }
 
   setIdents(identStore) {
     this._identsStore = identStore;
@@ -126,16 +137,19 @@ class Authentication extends Executor {
   }
 
   _callback(ctx) {
+    this.log('TRACE', 'Callback from OAuth called');
     var providerConfig = this._params.providers[ctx._params.provider];
     if (!providerConfig) {
       throw 404;
     }
     return new Promise((resolve, reject) => {
-      var done = function(result) {
+      var done = function(result, test) {
+        this.log('TRACE', 'Callback from OAuth done', result, test);
         resolve();
       };
-      this.setupOAuth(ctx, providerConfig);
-      passport.authenticate(ctx._params.provider, {
+      this.setupOAuth(ctx, providerConfig, ctx._params.provider);
+      this.log('TRACE', 'OAuth Setup authenticate', this._getProviderName(ctx._params.provider));
+      passport.authenticate(this._getProviderName(ctx._params.provider), {
         successRedirect: this._params.successRedirect,
         failureRedirect: this._params.failureRedirect
       }, done)(ctx, ctx, done);
@@ -167,8 +181,10 @@ class Authentication extends Executor {
     if (this._params.providers[ctx._params.provider].callbackURL) {
       return this._params.providers[ctx._params.provider].callbackURL;
     }
+    let host = ctx._route._http.headers.host || ctx._route._http.host;
     // TODO Issue with specified port for now
-    var url = ctx._route._http.protocol + "://" + ctx._route._http.host + ctx._route._http.url;
+    var url = ctx._route._http.protocol + "://" + host + ctx._route._http.url;
+
     if (url.endsWith("/callback")) {
       return url;
     }
@@ -176,6 +192,7 @@ class Authentication extends Executor {
   };
 
   async handleOAuthReturn(ctx, identArg: any, done) {
+    this.log('TRACE', 'Handle OAuth return', identArg);
     let ident: Ident = < Ident > await this._identsStore.get(identArg.uuid);
     if (ident) {
       await this.login(ctx, ident.user, ident);
@@ -204,6 +221,7 @@ class Authentication extends Executor {
     await this._identsStore.save(ident);
     ident.__new = true;
     await this.login(ctx, user, ident);
+    this.log('TRACE', 'Logged in normally should redirect to', this._params.successRedirect);
     ctx.writeHead(302, {
       'Location': this._params.successRedirect + '?validation=' + ctx._params.provider,
       'X-Webda-Authentication': 'success'
@@ -212,11 +230,16 @@ class Authentication extends Executor {
     done(ident);
   }
 
-  setupOAuth(ctx, config) {
+  setupOAuth(ctx, config, name: string) {
     config.callbackURL = this.getCallbackUrl(ctx);
-    passport.use(new Strategies[ctx._params.provider].strategy(config, (accessToken, refreshToken, profile, done) => {
+    let strategy = new Strategies[ctx._params.provider].strategy(config, (accessToken, refreshToken, profile, done) => {
+      this.log('TRACE', 'OAuth return is', ctx._params.provider, profile.id, accessToken, refreshToken, profile);
       this.handleOAuthReturn(ctx, Ident.init(ctx._params.provider, profile.id, accessToken, refreshToken, profile._json), done);
-    }));
+    });
+    if (strategy.name !== name) {
+      this._aliases[name] = strategy.name;
+    }
+    passport.use(strategy);
   }
 
   async registerUser(ctx, datas, user: any = {}): Promise < any > {
@@ -485,6 +508,13 @@ class Authentication extends Executor {
     return this.hashPassword(email + "_" + this._webda.getSecret());
   }
 
+  _getProviderName(name: string) {
+    if (this._aliases[name]) {
+      return this._aliases[name];
+    }
+    return name;
+  }
+
   async _authenticate(ctx: Context) {
     // Handle Logout 
     if (ctx._params.provider == "logout") {
@@ -499,8 +529,8 @@ class Authentication extends Executor {
     var providerConfig = this._params.providers[ctx._params.provider];
     if (providerConfig) {
       if (!Strategies[ctx._params.provider].promise) {
-        this.setupOAuth(ctx, providerConfig);
-        return passport.authenticate(ctx._params.provider, {
+        this.setupOAuth(ctx, providerConfig, ctx._params.provider);
+        return passport.authenticate(this._getProviderName(ctx._params.provider), {
           'scope': providerConfig.scope
         })(ctx, ctx);
       }

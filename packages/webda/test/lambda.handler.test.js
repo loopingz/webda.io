@@ -32,14 +32,14 @@ describe('Lambda Handler', function() {
   });
 
   it('handleRequest custom launch', function() {
-      return handler.handleRequest({
-        command: 'launch',
-        service: 'DefinedMailer',
-        method: 'send',
-        args: ['test']
-      }, context, callback).then(() => {
-          assert.equal(handler.getService('DefinedMailer').sent[0], 'test');
-      });
+    return handler.handleRequest({
+      command: 'launch',
+      service: 'DefinedMailer',
+      method: 'send',
+      args: ['test']
+    }, context, callback).then(() => {
+      assert.equal(handler.getService('DefinedMailer').sent[0], 'test');
+    });
   });
   it('handleRequest custom launch - bad service', function() {
     return handler.handleRequest({

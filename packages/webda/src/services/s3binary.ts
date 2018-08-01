@@ -56,6 +56,8 @@ class S3Binary extends AWSMixIn(Binary) {
       throw 403;
     }
     let targetStore = this._verifyMapAndStore(ctx);
+    let object: any = await targetStore.get(ctx._params.uid);
+    await object.canAct('attach_binary');
     var base64String = new Buffer(ctx.body.hash, 'hex').toString('base64');
     var params = {
       Bucket: this._params.bucket,
@@ -78,7 +80,6 @@ class S3Binary extends AWSMixIn(Binary) {
       if (foundData) return;
       return this.getSignedUrl('putObject', params);
     }
-    let object = await targetStore.get(ctx._params.uid);
     await this.updateSuccess(targetStore, object, ctx._params.property, 'add', ctx.body, ctx.body.metadatas);
     await this.putMarker(ctx.body.hash, ctx._params.uid, ctx._params.store);
     return this.getSignedUrl('putObject', params);

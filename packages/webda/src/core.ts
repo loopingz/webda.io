@@ -748,7 +748,7 @@ class Webda extends events.EventEmitter {
           this._config._services[service].init(this._config);
         } catch (err) {
           this._config._services[service]._initException = err;
-          this.log('ERROR', "Init service " + service + " failed");
+          this.log('ERROR', "Init service " + service + " failed", err);
           this.log('TRACE', err.stack);
         }
       }

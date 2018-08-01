@@ -53,7 +53,6 @@ class LambdaServer extends Webda {
   async handleRequest(event, context, callback) {
     // Manual launch of webda
     if (event.command === 'launch' && event.service && event.method) {
-      console.log('will launch');
       let args = event.args || [];
       this.log('INFO', 'Executing', event.method, 'on', event.service, 'with', args);
       let service = this.getService(event.service);

@@ -8,7 +8,7 @@ type Constructor < T extends Service > = new(...args: any[]) => T;
 
 function AWSMixIn < T extends Constructor < Service >> (Base: T) {
   return class extends Base {
-    _getAWS(params) {
+    _getAWS(params = undefined) {
       params = params || this._params || {};
       if (!params.accessKeyId) {
         params.accessKeyId = process.env["AWS_ACCESS_KEY_ID"];

@@ -65,8 +65,8 @@ class Authentication extends Executor {
   _identsStore: Store < Ident > ;
   _usersStore: Store < User > ;
   _passwordVerifier: PasswordVerifier;
-  _aliases: Map < String,
-  String > = new Map();
+  _aliases: Map < string,
+  string > = new Map();
   // TODO refactor
   _oauth1: any;
 
@@ -193,7 +193,7 @@ class Authentication extends Executor {
 
   async handleOAuthReturn(ctx, identArg: any, done) {
     this.log('TRACE', 'Handle OAuth return', identArg);
-    let ident: Ident = < Ident > await this._identsStore.get(identArg.uuid);
+    let ident: Ident = await this._identsStore.get(identArg.uuid);
     if (ident) {
       await this.login(ctx, ident.user, ident);
       await this._identsStore.update({
@@ -271,11 +271,11 @@ class Authentication extends Executor {
   }
 
   async _passwordRecoveryEmail(ctx) {
-    let ident: Ident = < Ident > await this._identsStore.get(ctx._params.email + "_email");
+    let ident: Ident = await this._identsStore.get(ctx._params.email + "_email");
     if (!ident) {
       throw 404;
     }
-    let user: User = < User > await this._usersStore.get(ident.user);
+    let user: User = await this._usersStore.get(ident.user);
     // Dont allow to do too many request
     if (user._lastPasswordRecovery > Date.now() - 3600000 * 4) {
       throw 429;
@@ -301,7 +301,7 @@ class Authentication extends Executor {
     if (ctx.body.password === undefined || ctx.body.login === undefined || ctx.body.token === undefined || ctx.body.expire === undefined) {
       throw 400;
     }
-    let user: User = < User > await this._usersStore.get(ctx.body.login.toLowerCase());
+    let user: User = await this._usersStore.get(ctx.body.login.toLowerCase());
     if (ctx.body.token !== this.hashPassword(ctx.body.login.toLowerCase() + ctx.body.expire + user.__password)) {
       throw 403;
     }
@@ -425,13 +425,13 @@ class Authentication extends Executor {
     }
     var updates: any = {};
     var uuid = ctx.body.login.toLowerCase() + "_email";
-    let ident: Ident = < Ident > await this._identsStore.get(uuid);
+    let ident: Ident = await this._identsStore.get(uuid);
     if (ident != undefined && ident.user != undefined) {
       // Register on an known user
       if (ctx._params.register) {
         throw 409;
       }
-      let user: User = < User > await this._usersStore.get(ident.user);
+      let user: User = await this._usersStore.get(ident.user);
       // Check password
       if (user.__password === this.hashPassword(ctx.body.password)) {
         if (ident._failedLogin > 0) {

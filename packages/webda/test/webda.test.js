@@ -137,6 +137,30 @@ describe('Webda', function() {
       assert.notEqual(null, webda.getService("Authentication"));
     });
   })
+  describe('checkCSRF()', function() {
+    it('string', function() {
+      assert.equal(Webda.Core.checkCSRF('http://localhost:18181', 'localhost:18181'), true);
+      assert.equal(Webda.Core.checkCSRF('http://localhost:18182', 'localhost:18181'), false);
+      assert.equal(Webda.Core.checkCSRF('http://localhost2:18181', 'localhost:18181'), false);
+    });
+    it('array', function() {
+      assert.equal(Webda.Core.checkCSRF('http://localhost:18181', ['localhost2:18181', 'localhost:18181']), true);
+      assert.equal(Webda.Core.checkCSRF('http://localhost2:18181', ['localhost2:18181', 'localhost:18181']), true);
+      assert.equal(Webda.Core.checkCSRF('http://localhost:18182', ['localhost2:18181', 'localhost:18181']), false);
+      assert.equal(Webda.Core.checkCSRF('http://localhost3:18181', ['localhost2:18181', 'localhost:18181']), false);
+    });
+    it('object', function() {
+      assert.equal(Webda.Core.checkCSRF('http://localhost:18181', {
+        url: 'localhost:18181'
+      }), true);
+      assert.equal(Webda.Core.checkCSRF('http://localhost2:18181', {
+        url: 'localhost:18181'
+      }), false);
+      assert.equal(Webda.Core.checkCSRF('http://localhost:18182', {
+        url: 'localhost:18181'
+      }), false);
+    });
+  });
   describe('getModdas()', function() {
     it('normal', function() {
       let moddas = webda.getModdas();

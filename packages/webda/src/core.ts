@@ -951,12 +951,12 @@ class Webda extends events.EventEmitter {
   }
 
   static checkCSRF(origin, website): boolean {
-    if (Array.isArray(website)) {
-      // Do nothing now
-    } else if (typeof(website) === 'object') {
-      website = [website.url];
-    } else {
-      website = [website];
+    if (!Array.isArray(website)) {
+      if (typeof(website) === 'object') {
+        website = [website.url];
+      } else {
+        website = [website];
+      }
     }
     let parsed = url.parse(origin);
     if (website.indexOf(parsed.host) >= 0 || website === '*') {

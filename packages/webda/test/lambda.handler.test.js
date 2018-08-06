@@ -111,7 +111,7 @@ describe('Lambda Handler', function() {
     });
   });
   it('handleRequest origin', function() {
-    evt.headers.Origin = 'test.webda.io';
+    evt.headers.Origin = 'https://test.webda.io';
     let wait = false;
     handler.on('Webda.Result', () => {
       return new Promise((resolve, reject) => {
@@ -128,19 +128,19 @@ describe('Lambda Handler', function() {
     });
   });
   it('handleRequest origin - csrf', function() {
-    evt.headers.Origin = 'test3.webda.io';
+    evt.headers.Origin = 'https://test3.webda.io';
     return handler.handleRequest(evt, context, callback).then(() => {
       assert.equal(res.statusCode, 401);
     });
   });
   it('handleRequest referer - csrf', function() {
-    evt.headers.Referer = 'test3.webda.io';
+    evt.headers.Referer = 'https://test3.webda.io';
     return handler.handleRequest(evt, context, callback).then(() => {
       assert.equal(res.statusCode, 401);
     });
   });
   it('handleRequest referer - good cors', function() {
-    evt.headers.Referer = 'test.webda.io';
+    evt.headers.Referer = 'https://test.webda.io';
     return handler.handleRequest(evt, context, callback).then(() => {
       assert.equal(res.headers['Access-Control-Allow-Origin'], evt.headers.Referer);
     });

@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as vm from 'vm';
 import * as Ajv from 'ajv';
 import * as path from 'path';
+import * as url from 'url';
 import {
   serialize as cookieSerialize
 } from "cookie";
@@ -947,6 +948,21 @@ class Webda extends events.EventEmitter {
     this._loggers.forEach((logger: Logger) => {
       logger.log(level, ...args);
     })
+  }
+
+  static checkCSRF(origin, website): boolean {
+    if (Array.isArray(website)) {
+      // Do nothing now
+    } else if (typeof(website) === 'object') {
+      website = [website.url];
+    } else {
+      website = [website];
+    }
+    let parsed = url.parse(origin);
+    if (website.indexOf(parsed.host) >= 0 || website === '*') {
+      return true;
+    }
+    return false;
   }
 }
 

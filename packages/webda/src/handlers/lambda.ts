@@ -124,11 +124,7 @@ class LambdaServer extends Webda {
     let origin = headers.Origin || headers.origin || ctx.clientInfo.referer;
     // Set predefined headers for CORS
     if (origin) {
-      let website = this.getGlobalParams().website || "";
-      if (Array.isArray(website)) {
-        website = website.join(',');
-      }
-      if (website.indexOf(origin) >= 0 || website === '*') {
+      if (Webda.checkCSRF(origin, this.getGlobalParams().website || "")) {
         ctx.setHeader('Access-Control-Allow-Origin', origin);
       } else {
         // Prevent CSRF
@@ -136,6 +132,10 @@ class LambdaServer extends Webda {
         ctx.statusCode = 401;
         return this.handleLambdaReturn(ctx, callback);
       }
+    }
+    if (protocol === 'https') {
+      // Add the HSTS header
+      ctx.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     }
     ctx.setHeader('Access-Control-Allow-Credentials', 'true');
 

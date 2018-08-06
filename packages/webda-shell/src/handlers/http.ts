@@ -56,11 +56,7 @@ export class WebdaServer extends Webda {
     let origin = req.headers.Origin || req.headers.origin || req.headers.Referer;
     // Set predefined headers for CORS
     if (origin) {
-      let website = this.getGlobalParams().website || "";
-      if (Array.isArray(website)) {
-        website = website.join(',');
-      }
-      if (website.indexOf(origin) >= 0 || website === '*') {
+      if (Webda.checkCSRF(origin, this.getGlobalParams().website || "")) {
         res.setHeader('Access-Control-Allow-Origin', origin);
       } else {
         // Prevent CSRF
@@ -69,6 +65,10 @@ export class WebdaServer extends Webda {
         res.end();
         return;
       }
+    }
+    if (protocol === 'https') {
+      // Add the HSTS header
+      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     }
     if (req.method == "OPTIONS") {
       // Add correct headers for X-scripting

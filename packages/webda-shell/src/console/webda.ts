@@ -159,15 +159,6 @@ export default class WebdaConsole {
     return colors.bold(colors.yellow(str));
   }
 
-
-  static getPackagesLocations(): string[] {
-    let includes;
-    if (fs.existsSync(process.cwd() + '/package.json')) {
-      includes = require(process.cwd() + '/package.json').files;
-    }
-    return includes || ['lib/**/*.js'];
-  }
-
   static generateModule() {
     let module = new ModuleLoader();
     module.load();

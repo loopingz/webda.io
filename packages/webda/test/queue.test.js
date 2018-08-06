@@ -45,8 +45,9 @@ describe('Queues', function() {
   var skipAWS = process.env["WEBDA_AWS_TEST"] === undefined;
   var webda;
 
-  beforeEach(function() {
+  beforeEach(async () => {
     webda = new Webda.Core(config);
+    await webda.waitForInit();
   });
 
   describe('Queue', function() {

@@ -7,11 +7,11 @@ interface StorageMap {
   [key: string]: any;
 }
 
-class MemoryStore extends Store {
+class MemoryStore < T extends CoreModel > extends Store < T > {
   storage: StorageMap;
-  init(config) {
+  async init(config): Promise < void > {
     this.storage = {};
-    super.init(config);
+    return super.init(config);
   }
 
   async exists(uid) {

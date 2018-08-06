@@ -60,6 +60,7 @@ class Webda extends events.EventEmitter {
   _ajvSchemas: any;
   _currentExecutor: any;
   _configFile: string;
+  _initPromise: Promise < void > ;
   _loggers: Logger[] = [];
 
   /**
@@ -107,7 +108,11 @@ class Webda extends events.EventEmitter {
     // Load modules
     this._loadModules();
 
-    this.init();
+    this._initPromise = this.init();
+  }
+
+  waitForInit() {
+    return this._initPromise;
   }
 
   /**
@@ -679,7 +684,7 @@ class Webda extends events.EventEmitter {
    * @ignore
    *
    */
-  initServices(): void {
+  async initServices(): Promise < void > {
     var services = this._config.services;
     if (this._config._services === undefined) {
       this._config._services = {};
@@ -687,6 +692,7 @@ class Webda extends events.EventEmitter {
     if (services === undefined) {
       return;
     }
+
     let service;
     // Construct services
     for (service in services) {
@@ -736,8 +742,6 @@ class Webda extends events.EventEmitter {
         this._config.services[service]._createException = err;
       }
     }
-    // Add models
-    this.initModels(this._config);
 
     this.autoConnectServices();
 
@@ -745,7 +749,8 @@ class Webda extends events.EventEmitter {
     for (service in this._config._services) {
       if (this._config._services[service].init !== undefined) {
         try {
-          this._config._services[service].init(this._config);
+          // TODO Define parralel initialization
+          await this._config._services[service].init(this._config);
         } catch (err) {
           this._config._services[service]._initException = err;
           this.log('ERROR', "Init service " + service + " failed", err);
@@ -784,14 +789,17 @@ class Webda extends events.EventEmitter {
     return value;
   }
 
-  init(): void {
+  async init(): Promise < void > {
     if (!this._config.routes) {
       this._config.routes = {};
     }
     this.initModdas(this._config);
 
+    // Add models
+    this.initModels(this._config);
+
     if (this._config.services !== undefined) {
-      this.initServices();
+      await this.initServices();
     }
     this.initURITemplates(this._config.routes);
 

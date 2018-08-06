@@ -7,6 +7,7 @@ import {
   SecureCookie,
   CoreModel,
   Store,
+  User,
   Service
 } from '../index';
 const acceptLanguage = require('accept-language');
@@ -176,11 +177,11 @@ class Context extends Map < string, any > {
   /**
    * Get the current user from session
    */
-  async getCurrentUser() {
+  async getCurrentUser(): Promise < User > {
     if (!this.getCurrentUserId()) {
       return undefined;
     }
-    return ( < Store > this._webda.getService('Users')).get(this.getCurrentUserId());
+    return ( < Store < User > > this._webda.getService('Users')).get(this.getCurrentUserId());
   }
 
   /**

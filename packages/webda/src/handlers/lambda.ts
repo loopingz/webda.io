@@ -51,6 +51,7 @@ class LambdaServer extends Webda {
    * @ignore
    */
   async handleRequest(event, context, callback) {
+    await this._initPromise;
     // Manual launch of webda
     if (event.command === 'launch' && event.service && event.method) {
       let args = event.args || [];

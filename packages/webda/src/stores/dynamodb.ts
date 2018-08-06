@@ -1,7 +1,7 @@
 import {
   Store,
   CoreModel,
-  AWSMixIn,
+  GetAWS,
   Service,
   Core as Webda
 } from '../index';
@@ -16,7 +16,7 @@ import {
  *   region: ''
  *
  */
-class DynamoStore extends AWSMixIn(Store) {
+class DynamoStore < T extends CoreModel > extends Store < T > {
   _client: any;
 
   /** @ignore */
@@ -25,7 +25,7 @@ class DynamoStore extends AWSMixIn(Store) {
     if (params.table === undefined) {
       throw new Error("Need to define a table,accessKeyId,secretAccessKey at least");
     }
-    this._client = new(this._getAWS(params)).DynamoDB.DocumentClient();
+    this._client = new(GetAWS(params)).DynamoDB.DocumentClient();
   }
 
   async exists(uid) {
@@ -79,7 +79,7 @@ class DynamoStore extends AWSMixIn(Store) {
       res = {};
     }
     for (let i in object) {
-      if (object[i] === '' || i.startsWith('__')) {
+      if (object[i] === '' || i.startsWith('__store')) {
         continue
       }
       res[i] = this._cleanObject(object[i]);
@@ -301,7 +301,7 @@ class DynamoStore extends AWSMixIn(Store) {
     if (this._params.region) {
       params.region = this._params.region;
     }
-    var dynamodb = new(this._getAWS(params)).DynamoDB();
+    var dynamodb = new(GetAWS(params)).DynamoDB();
     return dynamodb.describeTable({
       TableName: this._params.table
     }).promise().catch((err) => {

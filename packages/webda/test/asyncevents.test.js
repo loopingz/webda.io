@@ -58,8 +58,9 @@ async function simple(webda) {
 describe('EventService', () => {
   var webda;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     webda = new Webda.Core(config);
+    await webda.waitForInit();
   });
 
   it('Basic', () => {

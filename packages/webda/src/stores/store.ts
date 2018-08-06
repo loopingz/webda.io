@@ -41,7 +41,7 @@ import {
  *      }
  *   }
  */
-class Store extends Executor {
+class Store < T extends CoreModel > extends Executor {
   _reverseMap: any[];
   _cascade: any[];
   _writeConditionField: string;
@@ -54,10 +54,6 @@ class Store extends Executor {
     this._reverseMap = [];
     this._cascade = [];
     this._writeConditionField = "lastUpdate";
-  }
-
-  init(config) {
-    this.initMap(this._params.map);
     let model = this._params.model;
     if (!model) {
       model = "Webda/CoreModel";
@@ -67,6 +63,11 @@ class Store extends Executor {
       this._webda.log('WARN', 'Bad model', model, 'fallback to CoreModel');
       this._model = this._webda.getModel("Webda/CoreModel");
     }
+  }
+
+  async init(config): Promise < void > {
+    this.initMap(this._params.map);
+
     if (this._params.expose) {
       this.initRoutes(this._params.expose);
     }
@@ -135,7 +136,7 @@ class Store extends Executor {
     }
   }
 
-  initModel(object): CoreModel {
+  initModel(object): T {
     // Make sure to send a model object
     if (!(object instanceof this._model)) {
       object = new this._model(object, true);
@@ -234,7 +235,7 @@ class Store extends Executor {
       return;
     }
     for (var prop in map) {
-      var reverseStore: Store = < Store > this._webda.getService(prop);
+      var reverseStore: Store < CoreModel > = < Store < CoreModel > > this._webda.getService(prop);
       if (reverseStore === undefined || !(reverseStore instanceof Store)) {
         map[prop]["-onerror"] = "NoStore";
         this._webda.log('WARN', 'Can\'t setup mapping as store "', prop, '" doesn\'t exist');
@@ -541,7 +542,7 @@ class Store extends Executor {
       if (map[prop].key === undefined || object[map[prop].key] === undefined) {
         continue;
       }
-      let store: Store = < Store > this.getService(prop);
+      let store: Store < CoreModel > = < Store < CoreModel > > this.getService(prop);
       // Cant find the store for this collection
       if (store == undefined) {
         continue;
@@ -569,7 +570,7 @@ class Store extends Executor {
    */
   async delete(uid, sync = false) {
     /** @ignore */
-    let to_delete: CoreModel;
+    let to_delete: T;
     if (typeof(uid) === 'object') {
       to_delete = uid;
       uid = to_delete.uuid;
@@ -595,7 +596,7 @@ class Store extends Executor {
       // Should deactiate the mapping in that case
       for (let i in this._cascade) {
         if (typeof(this._cascade[i]) != "object" || to_delete[this._cascade[i].name] == undefined) continue;
-        var targetStore: Store = this.getTypedService < Store > (this._cascade[i].store);
+        var targetStore: Store < CoreModel > = this.getTypedService < Store < CoreModel > > (this._cascade[i].store);
         if (targetStore == undefined) continue;
         for (var item in to_delete[this._cascade[i].name]) {
           promises.push(targetStore.cascadeDelete(to_delete[this._cascade[i].name][item], to_delete.uuid));
@@ -650,7 +651,7 @@ class Store extends Executor {
    * @param {String} uuid to get
    * @return {Promise} the object retrieved ( can be undefined if not found )
    */
-  async get(uid: string): Promise < CoreModel > {
+  async get(uid: string): Promise < T > {
     /** @ignore */
     if (!uid) {
       return undefined;

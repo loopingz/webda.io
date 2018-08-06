@@ -11,8 +11,9 @@ describe("Mailer", function() {
   var lastInfo;
   var lastOptions;
   var lastCallback;
-  beforeEach(function() {
+  beforeEach(async () => {
     webda = new Webda.Core(config);
+    await webda.waitForInit();
     lastLevel = lastInfo = lastOptions = lastCallback = undefined;
     ctx = webda.newContext();
     mailer = webda.getService('TrueMailer');

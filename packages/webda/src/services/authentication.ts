@@ -62,8 +62,8 @@ interface PasswordVerifier extends Service {
  */
 class Authentication extends Executor {
   /** @ignore */
-  _identsStore: Store;
-  _usersStore: Store;
+  _identsStore: Store < Ident > ;
+  _usersStore: Store < User > ;
   _passwordVerifier: PasswordVerifier;
   _aliases: Map < String,
   String > = new Map();
@@ -94,11 +94,11 @@ class Authentication extends Executor {
     let url = this._params.expose || '/auth';
 
     if (this._params.identStore) {
-      this._identsStore = < Store > this.getService(this._params.identStore);
+      this._identsStore = < Store < Ident > > this.getService(this._params.identStore);
     }
 
     if (this._params.userStore) {
-      this._usersStore = < Store > this.getService(this._params.userStore);
+      this._usersStore = < Store < User > > this.getService(this._params.userStore);
     }
 
     this._params.passwordRecoveryInterval = this._params.passwordRecoveryInterval || 3600000;

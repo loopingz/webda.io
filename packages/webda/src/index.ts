@@ -9,7 +9,8 @@ import {
   Executor
 } from './services/executor';
 import {
-  AWSMixIn
+  AWSMixIn,
+  GetAWS
 } from './services/aws-mixin';
 // Policies
 import {
@@ -109,6 +110,7 @@ export {
   OwnerPolicy,
   EventService,
   AWSMixIn,
+  GetAWS,
   Binary,
   FileBinary,
   Mailer,

@@ -352,7 +352,7 @@ class Binary extends Executor {
     ctx.write(object);
   }
 
-  _verifyMapAndStore(ctx: Context): Store {
+  _verifyMapAndStore(ctx: Context): Store < CoreModel > {
     // To avoid any probleme lowercase everything
     var map = this._params.map[this._lowercaseMaps[ctx._params.store.toLowerCase()]];
     if (map === undefined) {
@@ -364,7 +364,7 @@ class Binary extends Executor {
     if (Array.isArray(map) && map.indexOf(ctx._params.property) == -1) {
       throw 404;
     }
-    var targetStore: Store = < Store > this.getService(ctx._params.store);
+    var targetStore: Store < CoreModel > = < Store < CoreModel > > this.getService(ctx._params.store);
     if (targetStore === undefined) {
       throw 404;
     }

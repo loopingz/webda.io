@@ -6,7 +6,7 @@ class ConsoleLogger extends Logger {
 
   protected _count: number = 0;
 
-  _log(level, ...args): void {
+  _log(level, ...args: any[]): void {
     this._count++;
     console.log('[' + level + ']', ...args);
   }

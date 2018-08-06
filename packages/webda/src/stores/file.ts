@@ -17,7 +17,7 @@ var fs = require("fs");
  *  folder: to store to
  *
  */
-class FileStore extends Store {
+class FileStore < T extends CoreModel > extends Store < T > {
   /** @ignore */
   constructor(webda, name, options) {
     super(webda, name, options);

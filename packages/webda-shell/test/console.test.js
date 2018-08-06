@@ -14,6 +14,7 @@ function commandLine(line) {
 }
 
 function checkTestDeploymentConfig(config) {
+  assert.notEqual(config, undefined);
   assert.equal(config.parameters.mainParameter, 'test');
   assert.equal(config.parameters.deploymentParameter, 'deploymentTest');
   assert.equal(config.parameters.config, 'deploymentTestConfig');

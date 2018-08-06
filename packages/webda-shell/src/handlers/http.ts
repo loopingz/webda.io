@@ -1,6 +1,7 @@
 import {
   Core as Webda,
   SecureCookie,
+  ClientInfo,
   _extend
 } from 'webda';
 const path = require("path");
@@ -17,6 +18,13 @@ export class WebdaServer extends Webda {
 
   output(...args) {
     this.log('CONSOLE', ...args);
+  }
+
+  getClientInfo(req): ClientInfo {
+    let res = new ClientInfo();
+    res.ip = req.connection.remoteAddress;
+    res.userAgent = req.headers['user-agent'];
+    return res;
   }
 
   handleRequest(req, res, next) {
@@ -44,6 +52,24 @@ export class WebdaServer extends Webda {
     // Setup the right session cookie
     //req.session.cookie.domain = vhost;
 
+    // Fallback on reference as Origin is not always set by Edge
+    let origin = req.headers.Origin || req.headers.origin || req.headers.Referer;
+    // Set predefined headers for CORS
+    if (origin) {
+      let website = this.getGlobalParams().website || "";
+      if (Array.isArray(website)) {
+        website = website.join(',');
+      }
+      if (website.indexOf(origin) >= 0 || website === '*') {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      } else {
+        // Prevent CSRF
+        this.log('INFO', 'CSRF denied from', origin);
+        res.writeHead(401);
+        res.end();
+        return;
+      }
+    }
     if (req.method == "OPTIONS") {
       // Add correct headers for X-scripting
       if (req.headers['x-forwarded-server'] === undefined) {
@@ -61,6 +87,9 @@ export class WebdaServer extends Webda {
       return;
     }
     var ctx = this.newContext(req.body, req.session, res, req.files);
+    ctx.clientInfo = this.getClientInfo(req);
+    ctx.clientInfo.locale = req.headers['CloudFront-Forwarded-Proto'];
+    ctx.clientInfo.referer = req.headers['Referer'];
     this.emit('Webda.Request', vhost, req.method, req.url, ctx.getCurrentUserId(), req.body);
     var executor = this.getExecutor(ctx, vhost, req.method, req.url, protocol, req.port, req.headers);
 

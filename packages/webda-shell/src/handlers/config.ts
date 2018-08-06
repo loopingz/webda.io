@@ -8,7 +8,8 @@ import {
   Core as Webda,
   Executor,
   _extend,
-  Store
+  Store,
+  CoreModel
 } from 'webda';
 import {
   LambdaDeployer
@@ -40,7 +41,7 @@ export class ConfigurationService extends Executor {
   _config: any;
   _computeConfig: any;
   _deployments: any;
-  _deploymentStore: Store;
+  _deploymentStore: Store < CoreModel > ;
   _webda: WebdaConfigurationServer;
 
   init() {
@@ -60,7 +61,7 @@ export class ConfigurationService extends Executor {
     // Allow path
     this._addRoute('/api/browse/{path}', ["GET", "PUT", "DELETE"], this.fileBrowser, true);
     this.refresh();
-    this._deploymentStore = < Store > this._webda.getService("deployments");
+    this._deploymentStore = < Store < CoreModel > > this._webda.getService("deployments");
   }
 
   refresh() {
@@ -593,7 +594,7 @@ export class WebdaConfigurationServer extends WebdaServer {
 
   async install(env, server_config, args) {
     // Create Lambda role if needed
-    let deployment: any = await ( < Store > this.getService("deployments")).get(env);
+    let deployment: any = await ( < Store < CoreModel > > this.getService("deployments")).get(env);
     if (deployment === undefined) {
       this.output("Deployment " + env + " unknown");
       throw Error();
@@ -637,7 +638,7 @@ export class WebdaConfigurationServer extends WebdaServer {
   }
 
   async deploy(env, args, fork) {
-    let deployment: any = await ( < Store > this.getService("deployments")).get(env);
+    let deployment: any = await ( < Store < CoreModel > > this.getService("deployments")).get(env);
 
     if (deployment === undefined) {
       this.output("Deployment " + env + " unknown");
@@ -696,7 +697,7 @@ export class WebdaConfigurationServer extends WebdaServer {
       this.computeConfig, config, deployment, unit)).deploy(args);
   }
   async undeploy(env, args) {
-    let deployment: any = await ( < Store > this.getService("deployments")).get(env);
+    let deployment: any = await ( < Store < CoreModel > > this.getService("deployments")).get(env);
     if (deployment === undefined) {
       this.output("Deployment " + env + " unknown");
       return Promise.resolve();

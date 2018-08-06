@@ -220,7 +220,7 @@ export default class WebdaConsole {
       }).parse(args);
   }
 
-  static serve(argv) {
+  static async serve(argv) {
     if (argv.deployment) {
       // Loading first the configuration
       this.output("Serve as deployment: " + argv.deployment);
@@ -230,6 +230,7 @@ export default class WebdaConsole {
     }
     // server_config.parameters.logLevel = server_config.parameters.logLevel || argv['log-level'];
     webda = new WebdaServer(server_config);
+    await webda.waitForInit();
     webda._devMode = argv.devMode;
     if (webda._devMode) {
       this.output('Dev mode activated : wildcard CORS enabled');
@@ -237,13 +238,13 @@ export default class WebdaConsole {
     return webda.serve(argv.port, argv.websockets);
   }
 
-  static install(argv) {
+  static async install(argv) {
     this.output("Installing deployment: " + argv.deployment);
-    webda = this._getNewConfig();
+    webda = await this._getNewConfig();
     return webda.install(argv.deployment, server_config, argv._.slice(1));
   }
 
-  static uninstall(argv) {
+  static async uninstall(argv) {
     if (argv.deployment) {
       // Loading first the configuration
       this.output(colors.red("Uninstalling deployment: ") + argv.deployment.red);
@@ -252,6 +253,7 @@ export default class WebdaConsole {
     }
     webda = new WebdaServer(server_config);
     webda.setHost();
+    await webda.waitForInit();
     let services = webda.getServices();
     let promises = [];
     for (var name in services) {
@@ -280,7 +282,7 @@ export default class WebdaConsole {
     this.output(JSON.stringify(service._params, null, ' '));
   }
 
-  static worker(argv) {
+  static async worker(argv) {
     let service_name = argv._[1];
     if (argv.deployment) {
       // Loading first the configuration{As}
@@ -288,6 +290,7 @@ export default class WebdaConsole {
       server_config = this._loadDeploymentConfig(argv.deployment);
     }
     webda = new WebdaServer(server_config);
+    await webda.waitForInit();
     let service = webda.getService(service_name);
     let method = argv._[2] || 'work';
     if (!service) {
@@ -361,10 +364,11 @@ export default class WebdaConsole {
     launchServe();
   }
 
-  static _getNewConfig() {
+  static async _getNewConfig() {
     let webda = new WebdaConfigurationServer();
     // Transfer the output
     webda.output = this.output;
+    await webda.waitForInit();
     return webda;
   }
 
@@ -375,9 +379,9 @@ export default class WebdaConsole {
     return webda.loadDeploymentConfig(deployment);
   }
 
-  static config(argv) {
+  static async config(argv) {
     if (argv.deployment) {
-      let webda = this._getNewConfig();
+      let webda = await this._getNewConfig();
       server_config = webda.loadDeploymentConfig(argv.deployment);
       if (!server_config) return Promise.resolve();
       // Caching the modules
@@ -390,19 +394,19 @@ export default class WebdaConsole {
       }
       return Promise.resolve();
     }
-    webda = this._getNewConfig();
+    webda = await this._getNewConfig();
     return webda.serve(18181, argv.open);
   }
 
-  static deploy(argv) {
-    webda = this._getNewConfig();
+  static async deploy(argv) {
+    webda = await this._getNewConfig();
     return webda.deploy(argv.deployment, argv._.slice(1)).catch((err) => {
       this.output('Error', err);
     });
   }
 
-  static undeploy(argv) {
-    webda = this._getNewConfig();
+  static async undeploy(argv) {
+    webda = await this._getNewConfig();
     return webda.undeploy(argv.deployment, argv._.slice(1)).catch((err) => {
       this.output(err);
     });
@@ -488,7 +492,13 @@ export default class WebdaConsole {
         this.output('Need to specify an environment');
         process.exit(1);
       }
+    }
+
+    if (argv.deployment) {
       server_config = this._loadDeploymentConfig(argv.deployment);
+      if (!server_config) {
+        return;
+      }
     }
 
     switch (argv._[0]) {

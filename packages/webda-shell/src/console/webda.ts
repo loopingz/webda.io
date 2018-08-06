@@ -63,7 +63,7 @@ class ModuleLoader {
       if (fs.existsSync(path) && fs.lstatSync(path).isDirectory()) {
         path += "/**/*.js";
       }
-      glob.sync(path).map(this.loadModuleFile.bind(this));
+      glob.sync(path).forEach(this.loadModuleFile.bind(this));
     });
   }
 

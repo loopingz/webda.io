@@ -88,7 +88,9 @@ import {
 import {
   S3Binary
 } from './services/s3binary';
-
+import {
+  ResourceService
+} from './services/resource';
 // Queues
 import {
   Queue
@@ -109,6 +111,7 @@ export {
   Executor,
   OwnerPolicy,
   EventService,
+  ResourceService,
   AWSMixIn,
   GetAWS,
   Binary,

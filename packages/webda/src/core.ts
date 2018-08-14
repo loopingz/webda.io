@@ -27,6 +27,7 @@ import {
   MemoryQueue,
   SQSQueue,
   EventService,
+  ResourceService,
   FileBinary,
   S3Binary,
   Logger,
@@ -94,6 +95,7 @@ class Webda extends events.EventEmitter {
     this._services['Webda/S3Binary'] = S3Binary;
     this._services['Webda/Mailer'] = Mailer;
     this._services['Webda/AsyncEvents'] = EventService;
+    this._services['Webda/ResourceService'] = ResourceService;
     this._services['Webda/MemoryQueue'] = MemoryQueue;
     this._services['Webda/SQSQueue'] = SQSQueue;
     this._services['Webda/MemoryLogger'] = MemoryLogger;

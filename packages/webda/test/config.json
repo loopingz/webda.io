@@ -38,6 +38,14 @@
       "type": "Webda/ConsoleLogger",
       "logLevels": "TEST"
     },
+    "ResourceService": {
+      "type": "Webda/ResourceService",
+      "folder": "test"
+    },
+    "ModelsResource": {
+      "type": "Webda/ResourceService",
+      "url": "templates"
+    },
     "AsyncEvents": {
       "type": "AsyncEvents",
       "queues": {

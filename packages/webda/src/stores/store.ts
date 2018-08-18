@@ -46,6 +46,7 @@ class Store < T extends CoreModel > extends Executor {
   _cascade: any[];
   _writeConditionField: string;
   _model: CoreModelDefinition;
+  _exposeUrl: string;
 
   /** @ignore */
   constructor(webda, name, options) {
@@ -99,6 +100,7 @@ class Store < T extends CoreModel > extends Executor {
     if (!expose.restrict.delete) {
       methods.push("DELETE");
     }
+    this._exposeUrl = expose.url;
     if (methods.length) {
       this._addRoute(expose.url + "/{uuid}", methods, this.httpRoute);
     }
@@ -134,6 +136,10 @@ class Store < T extends CoreModel > extends Executor {
         }
       });
     }
+  }
+
+  getUrl(): string {
+    return this._exposeUrl;
   }
 
   initModel(object): T {

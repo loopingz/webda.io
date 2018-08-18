@@ -375,6 +375,9 @@ describe('Store', () => {
       eventFired++;
       assert.equal(eventFired, 3);
     });
+    it('Get URL', () => {
+      assert.equal(webda.getService('dynamousers').getUrl(), '/users');
+    });
   });
   describe('MongoStore', () => {
     afterEach(() => {

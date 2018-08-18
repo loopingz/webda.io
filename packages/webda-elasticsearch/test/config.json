@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "parameters": {
+  },
+  "moddas": {
+  },
+  "models": {
+  },
+  "services": {
+    "MemoryStore": {
+      "type": "Webda/MemoryStore"
+    },
+    "ESService": {
+      "type": "Webda/ElasticSearchService",
+      "server": "localhost:9200",
+      "indexes": {
+        "articles": {
+          "store": "MemoryStore",
+          "url": "/articles/search"
+        }
+      }
+    }
+  },
+  "routes": {
+  }
+}

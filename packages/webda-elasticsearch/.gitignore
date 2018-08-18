@@ -1,0 +1,4 @@
+node_modules
+lib
+webda.module.json
+yarn.lock

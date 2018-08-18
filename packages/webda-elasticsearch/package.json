@@ -1,0 +1,32 @@
+{
+  "name": "webda-module",
+  "version": "1.0.0",
+  "description": "Default empty module for webda",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda-module.git"
+  },
+  "keywords": [
+    "webda"
+  ],
+  "files": [
+    "lib",
+    "webda.module.json",
+    "package.json"
+  ],
+  "author": "loopingz",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/loopingz/webda-module/issues"
+  },
+  "homepage": "https://github.com/loopingz/webda-module#readme",
+  "dependencies": {
+    "@types/node": "^10.7.0",
+    "elasticsearch": "^15.1.1",
+    "webda": "^0.9.8"
+  }
+}

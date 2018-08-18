@@ -2,3 +2,4 @@ node_modules
 lib
 webda.module.json
 yarn.lock
+package-lock.json

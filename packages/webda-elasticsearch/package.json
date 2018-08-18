@@ -4,7 +4,12 @@
   "description": "Webda ElasticSearch implementation",
   "main": "lib/index.js",
   "scripts": {
-    "test": "npm test"
+    "build": "tsc",
+    "pretest": "npm run build",
+    "test": "nyc mocha --timeout=100000",
+    "run": "node core",
+    "format": "node ./scripts/format.js",
+    "precommit": "npm run format && npm run test"
   },
   "repository": {
     "type": "git",
@@ -28,5 +33,34 @@
     "@types/node": "^10.7.0",
     "elasticsearch": "^15.1.1",
     "webda": "^0.9.8"
+  },
+  "devDependencies": {
+    "@types/node": "^9.6.2",
+    "glob": "^7.1.2",
+    "istanbul": "^1.1.0-alpha.1",
+    "js-beautify": "^1.7.5",
+    "mocha": ">=2.2.5",
+    "nyc": "^11.6.0",
+    "remap-istanbul": "^0.11.0",
+    "source-map-support": "^0.5.4",
+    "ts-node": "^5.0.1",
+    "typescript": "^2.8.1"
+  },
+  "nyc": {
+    "extension": [
+      ".ts",
+      ".tsx",
+      ".js"
+    ],
+    "include": [
+      "lib/**/*.js"
+    ],
+    "reporter": [
+      "html",
+      "lcov",
+      "json"
+    ],
+    "report-dir": "./reports",
+    "all": true
   }
 }

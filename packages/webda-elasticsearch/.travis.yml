@@ -1,0 +1,25 @@
+language: node_js
+services:
+- elasticsearch
+addons:
+  sonarcloud:
+    organization: loopingz-github
+node_js:
+- '8'
+before_script:
+- sleep 15
+script:
+- npm run test
+after_success:
+- sonar-scanner
+before_deploy:
+- npm run build
+deploy:
+  provider: npm
+  email: rcattiau@loopingz.com
+  skip_cleanup: true
+  tag: next
+  on:
+    tags: true
+  api_key:
+    secure: Jb74gFsRjTSANPrMdFEWkhgV4dLhK/sQQusjSHUGtn+mCYa6bZo1OuLZtxsuxhHjhUoaWVaGkN09L8fyMwOciJGqZN2uhLx+nMRHDyVf7lUBeTxO/GHxyqBFAN7hGg8AkcODCMqRv8gfUfo0cGYMGe3v18cIdi6RDzg7KcrUmk7P0TByfH0PYqUaHl2As/QG0rRKsXZTv9xXilxiXYhrDkIAl0jFq5W+7BSCwh0it4Ce1dewOAcDx5Q1fEXJWi4ceRxTQg7lXFnovf8uN+6yFhPxhODjgy80gFDww9wT62v1JAvuStgGE4MnHkjFZ5egNlZ03NxP4UZfB/4osnipGTZHsp/D5thrP9SECEGIvSsbLZhR0v2+7VRSW/TgyI/GtOvkioOB0UTvOC00NkxcELonno/19WU3STpGhDVwyBxYBd2y3zuKx7obAxk8aYb8MjdVD1AKNwU96uh9bpGJM1Kx3f0Kx0XKXkwRNLgtTGWqnSLC8ssl4ameoVjEIr4qlkVS0yIak6386Ui8mlLk/NrP4cQhrkOT2ELI6JH73ek1+Aw8n3y5IUAriV08pnQ5WSFN4QP6rqY/EXNdICCA2ReyE/OxYgtr17GuiauBwtaxyHUGttUOuk2yWLDTHHUik4Gqi2jK+Dc2EmNTItYd//q6RbSgbjdWPkNcmOmz5ZU=

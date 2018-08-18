@@ -1,14 +1,14 @@
 {
-  "name": "webda-module",
+  "name": "webda-elasticsearch",
   "version": "1.0.0",
-  "description": "Default empty module for webda",
+  "description": "Webda ElasticSearch implementation",
   "main": "lib/index.js",
   "scripts": {
     "test": "npm test"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/loopingz/webda-module.git"
+    "url": "git+https://github.com/loopingz/webda-elasticsearch.git"
   },
   "keywords": [
     "webda"
@@ -21,9 +21,9 @@
   "author": "loopingz",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/loopingz/webda-module/issues"
+    "url": "https://github.com/loopingz/webda-elasticsearch/issues"
   },
-  "homepage": "https://github.com/loopingz/webda-module#readme",
+  "homepage": "https://github.com/loopingz/webda-elasticsearch#readme",
   "dependencies": {
     "@types/node": "^10.7.0",
     "elasticsearch": "^15.1.1",

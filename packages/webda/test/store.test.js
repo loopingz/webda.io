@@ -432,6 +432,8 @@ describe('Store', () => {
       userStore = webda.getService("mongousers");
       assert.notEqual(identStore, undefined);
       assert.notEqual(userStore, undefined);
+      identStore.setTest();
+      userStore.setTest();
       await identStore.__clean();
       await userStore.__clean();
     });

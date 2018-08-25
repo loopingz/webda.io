@@ -27,19 +27,26 @@ class MongoStore < T extends CoreModel > extends Store < T > {
     if (options.mongo === undefined || options.mongo === '') {
       this._params.mongo = options.mongo = process.env["WEBDA_MONGO_URL"];
     }
+    this._params.mongoOptions = this._params.mongoOptions || {};
     if (this._params.mongo) {
       // Get the database name from url
       this._params.mongoDb = this._params.mongo.substr(this._params.mongo.lastIndexOf('/') + 1);
+      this._params.mongoOptions.useNewUrlParser = true;
     }
     if (!webda._configurationMode && options.collection === undefined || options.mongo === undefined || this._params.mongoDb === undefined) {
       this._createException = "collection and url must be setup";
     }
   }
 
+  setTest(active: boolean = true) {
+    this._params.mongoOptions.j = active;
+    this._connectPromise = undefined;
+  }
+
   async _connect() {
     if (this._connectPromise === undefined) {
       this._connectPromise = new Promise((resolve, reject) => {
-        MongoClient.connect(this._params.mongo, (err, client) => {
+        MongoClient.connect(this._params.mongo, this._params.mongoOptions, (err, client) => {
           if (err) {
             return reject(err);
           }

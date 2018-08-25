@@ -167,7 +167,27 @@ class Store < T extends CoreModel > extends Executor {
     }
   }
 
-  async _incrementAttribute(uid, prop, value): Promise < any > {
+  isMapped(property: string): boolean {
+    if (property === undefined) {
+      return false;
+    }
+    if (!this._params.map) {
+      return false;
+    }
+    let map = this._params.map;
+    for (let prop in map) {
+      // No mapped property or not in the object
+      if (map[prop].key === undefined) {
+        continue;
+      }
+      if (map[prop].fields.split(',').indexOf(property) >= 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  async _incrementAttribute(uid, prop, value, updateDate: Date): Promise < any > {
     throw Error('Virtual abstract class - concrete only for MixIn usage');
   }
 
@@ -176,7 +196,9 @@ class Store < T extends CoreModel > extends Executor {
     if (value === 0) {
       return Promise.resolve();
     }
-    await this._incrementAttribute(uid, prop, value);
+    let updateDate = new Date();
+    await this._incrementAttribute(uid, prop, value, updateDate);
+    await this._handleMapFromPartial(uid, updateDate, prop);
     return this.emitSync('Store.PartialUpdate', {
       'object_id': uid,
       'store': this,
@@ -193,7 +215,9 @@ class Store < T extends CoreModel > extends Executor {
     if (itemWriteConditionField === undefined) {
       itemWriteConditionField = 'uuid';
     }
-    await this._upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField);
+    let updateDate = new Date();
+    await this._upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate);
+    await this._handleMapFromPartial(uid, updateDate);
     await this.emitSync('Store.PartialUpdate', {
       'object_id': uid,
       'store': this,
@@ -207,7 +231,21 @@ class Store < T extends CoreModel > extends Executor {
     });
   }
 
-  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField): Promise < any > {
+  async _handleMapFromPartial(uid: string, updateDate: Date, prop: string = undefined) {
+    if (this.isMapped('lastUpdate') || this.isMapped(prop)) {
+      // Not optimal need to reload the object
+      let object = await this._get(uid);
+      let updates = {
+        lastUpdate: updateDate
+      };
+      if (this.isMapped(prop)) {
+        updates[prop] = object.prop;
+      }
+      await this.handleMap(object, this._params.map, updates);
+    }
+  }
+
+  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date): Promise < any > {
     throw Error('Virtual abstract class - concrete only for MixIn usage');
   }
 
@@ -218,7 +256,9 @@ class Store < T extends CoreModel > extends Executor {
     if (itemWriteConditionField === undefined) {
       itemWriteConditionField = 'uuid';
     }
-    await this._deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField);
+    let updateDate = new Date();
+    await this._deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate);
+    await this._handleMapFromPartial(uid, updateDate);
     await this.emitSync('Store.PartialUpdate', {
       'object_id': uid,
       'store': this,
@@ -232,7 +272,7 @@ class Store < T extends CoreModel > extends Executor {
     });
   }
 
-  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField): Promise < any > {
+  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date): Promise < any > {
     throw Error('Virtual abstract class - concrete only for MixIn usage');
   }
 
@@ -320,7 +360,7 @@ class Store < T extends CoreModel > extends Executor {
    * @param {Boolean} reverseMap internal use only, for disable map resolution
    * @return {Promise} with saved object
    */
-  async update(object: any, uid = undefined, reverseMap = true) {
+  async update(object: any, uid: string = undefined, reverseMap = true) {
     /** @ignore */
     var saved;
     var loaded;

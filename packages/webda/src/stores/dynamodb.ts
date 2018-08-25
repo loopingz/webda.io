@@ -87,7 +87,7 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
     return res;
   }
 
-  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
+  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     var params: any = {
       'TableName': this._params.table,
       'Key': {
@@ -96,10 +96,13 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
     };
     var attrs = {};
     attrs["#" + prop] = prop;
+    attrs["#lastUpdate"] = "lastUpdate";
     params.ExpressionAttributeNames = attrs;
-    params.UpdateExpression = "REMOVE #" + prop + "[" + index + "]";
+    params.ExpressionAttributeValues = {
+      ':lastUpdate': this._serializeDate(updateDate)
+    };
+    params.UpdateExpression = "REMOVE #" + prop + "[" + index + "] SET #lastUpdate = :lastUpdate";
     if (itemWriteCondition) {
-      params.ExpressionAttributeValues = {};
       params.ExpressionAttributeValues[":condValue"] = itemWriteCondition;
       attrs["#condName"] = prop;
       attrs["#field"] = itemWriteConditionField;
@@ -114,7 +117,7 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
     }
   }
 
-  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
+  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     var params: any = {
       'TableName': this._params.table,
       'Key': {
@@ -124,16 +127,18 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
     var attrValues = {};
     var attrs = {};
     attrs["#" + prop] = prop;
+    attrs["#lastUpdate"] = 'lastUpdate';
     attrValues[":" + prop] = this._cleanObject(item);
+    attrValues[":lastUpdate"] = this._serializeDate(updateDate);
     params.ExpressionAttributeValues = attrValues;
     params.ExpressionAttributeNames = attrs;
     if (index === undefined) {
-      params.UpdateExpression = "SET #" + prop + "= list_append(if_not_exists (#" + prop + ", :empty_list),:" + prop + ")";
+      params.UpdateExpression = "SET #" + prop + "= list_append(if_not_exists (#" + prop + ", :empty_list),:" + prop + "), #lastUpdate = :lastUpdate";
       attrValues[":" + prop] = [attrValues[":" + prop]];
       attrValues[":empty_list"] = [];
     } else {
       //attrs["#cond" + prop] += prop + "[" + index + "]." + itemWriteConditionField;
-      params.UpdateExpression = "SET #" + prop + "[" + index + "] = :" + prop;
+      params.UpdateExpression = "SET #" + prop + "[" + index + "] = :" + prop + ", #lastUpdate = :lastUpdate";
       if (itemWriteCondition) {
         attrValues[":condValue"] = itemWriteCondition;
         attrs["#condName"] = prop;
@@ -257,18 +262,20 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
     return (await this._client.get(params).promise()).Item;
   }
 
-  _incrementAttribute(uid, prop, value) {
+  _incrementAttribute(uid, prop, value, updateDate: Date) {
     var params = {
       'TableName': this._params.table,
       'Key': {
         "uuid": uid
       },
-      'UpdateExpression': 'ADD #a1 :v1',
+      'UpdateExpression': 'SET #a2 = :v2 ADD #a1 :v1',
       ExpressionAttributeValues: {
-        ':v1': value
+        ':v1': value,
+        ':v2': this._serializeDate(updateDate)
       },
       ExpressionAttributeNames: {
-        '#a1': prop
+        '#a1': prop,
+        '#a2': 'lastUpdate'
       }
     };
     return this._client.update(params).promise();

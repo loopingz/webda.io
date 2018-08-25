@@ -11,6 +11,9 @@ var ident2;
 var executor;
 var ctx;
 
+function assertLastUpdateNotEqual(d1, d2, msg) {
+  assert.notEqual(d1, d2, msg);
+}
 async function getAll(identStore, userStore) {
   var user1;
   var user3;
@@ -59,6 +62,29 @@ async function mapper(identStore, userStore) {
   assert.notEqual(user, undefined);
   assert.notEqual(user.idents, undefined);
   assert.equal(user.idents.length, 1);
+  let lastUpdate = user.idents[0].lastUpdate;
+  await Utils.sleep(10);
+  await identStore.incrementAttribute(ident1.uuid, 'counter', 1);
+  await user.refresh();
+  assert.notEqual(user.idents[0].lastUpdate.length, 0);
+  assertLastUpdateNotEqual(user.idents[0].lastUpdate, lastUpdate, 'lastUpdate on a map after incrementAttribute');
+  lastUpdate = user.idents[0].lastUpdate;
+  await Utils.sleep(10);
+  await identStore.upsertItemToCollection(ident1.uuid, 'actions', {
+    uuid: 'action_1',
+    type: 'plop',
+    date: new Date()
+  });
+  await user.refresh();
+  assert.notEqual(user.idents[0].lastUpdate.length, 0);
+  assertLastUpdateNotEqual(user.idents[0].lastUpdate, lastUpdate, 'lastUpdate on a map after upsertItemToCollection');
+  lastUpdate = user.idents[0].lastUpdate;
+  await Utils.sleep(10);
+  await identStore.deleteItemFromCollection(ident1.uuid, 'actions', 0, 'plop', 'type');
+  await user.refresh();
+  assert.notEqual(user.idents[0].lastUpdate.length, 0);
+  assertLastUpdateNotEqual(user.idents[0].lastUpdate, lastUpdate, 'lastUpdate on a map after deleteItemFromCollection');
+
   ident2 = await identStore.save({
     "type": "google",
     "user": user.uuid
@@ -162,13 +188,20 @@ async function collection(identStore) {
   await ident.refresh();
   assert.equal(ident.actions.length, 2);
   assert.equal(ident.actions[0].type, 'plop2');
+  let lastUpdate = ident.lastUpdate;
+  await Utils.sleep(10);
   await identStore.upsertItemToCollection(ident.uuid, 'actions', {
     uuid: 'action_1',
     type: 'plop',
     date: new Date()
   }, 0, 'plop2', 'type');
-  await identStore.deleteItemFromCollection(ident.uuid, 'actions', 0, 'plop', 'type');
   await ident.refresh();
+  assertLastUpdateNotEqual(ident.lastUpdate, lastUpdate, 'lastUpdate after upsertItemToColletion failed');
+  lastUpdate = ident.lastUpdate;
+  await Utils.sleep(10);
+  await identStore.deleteItemFromCollection(ident.uuid, 'actions', 0, 'plop', 'type');
+  ident = await identStore.get(ident.uuid);
+  assertLastUpdateNotEqual(ident.lastUpdate, lastUpdate, 'lastUpdate after deleteItemToColletion failed');
   assert.notEqual(ident.actions, undefined);
   assert.equal(ident.actions.length, 1);
   assert.equal(ident.actions[0].type, 'plop');
@@ -222,8 +255,11 @@ async function crud(identStore, userStore) {
   getter = await identStore.get(object.uuid);
   assert.equal(eventFired, 2);
   assert.equal(getter.test, "plop2");
+  await Utils.sleep(10);
   await identStore.incrementAttribute(ident1.uuid, 'counter', 1);
   let ident = await identStore.get(ident1.uuid);
+  // Verify lastUpdate is updated too
+  assertLastUpdateNotEqual(ident.lastUpdate, ident1.lastUpdate, 'lastUpdate after incrementAttribute failed');
   assert.equal(ident.counter, 1);
   await identStore.incrementAttribute(ident1.uuid, 'counter', 3);
   ident1 = await identStore.get(ident1.uuid);

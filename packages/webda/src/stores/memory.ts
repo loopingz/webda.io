@@ -77,7 +77,7 @@ class MemoryStore < T extends CoreModel > extends Store < T > {
     this.storage = {};
   }
 
-  async _incrementAttribute(uid, prop, value) {
+  async _incrementAttribute(uid, prop, value, updateDate: Date) {
     var res = this.storage[uid];
     if (res === undefined) {
       throw Error("NotFound");
@@ -86,11 +86,12 @@ class MemoryStore < T extends CoreModel > extends Store < T > {
     if (!res[prop]) {
       res[prop] = 0;
     }
+    res.lastUpdate = updateDate;
     res[prop] += value;
     return this._save(res, uid);
   }
 
-  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
+  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     var res = this.storage[uid];
     if (res === undefined) {
       throw Error("NotFound");
@@ -112,10 +113,11 @@ class MemoryStore < T extends CoreModel > extends Store < T > {
       }
       res[prop][index] = item;
     }
+    res.lastUpdate = updateDate;
     await this._save(res, uid);
   }
 
-  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
+  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     var res = this.storage[uid];
     if (res === undefined) {
       throw Error("NotFound");
@@ -125,6 +127,7 @@ class MemoryStore < T extends CoreModel > extends Store < T > {
       throw Error('UpdateCondition not met');
     }
     res[prop].splice(index, 1);
+    res.lastUpdate = updateDate;
     return this._save(res, uid);
   }
 

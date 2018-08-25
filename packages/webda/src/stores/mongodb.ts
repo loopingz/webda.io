@@ -58,7 +58,7 @@ class MongoStore < T extends CoreModel > extends Store < T > {
     return (await this._get(uid)) !== undefined;
   }
 
-  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
+  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     await this._connect();
 
     let filter = {
@@ -68,7 +68,10 @@ class MongoStore < T extends CoreModel > extends Store < T > {
       filter[prop + "." + index + '.' + itemWriteConditionField] = itemWriteCondition;
     }
     let params = {
-      '$unset': {}
+      '$unset': {},
+      '$set': {
+        'lastUpdate': updateDate
+      }
     };
     params['$unset'][prop + "." + index] = 1;
     let res = await this._collection.updateOne(filter, params);
@@ -76,7 +79,10 @@ class MongoStore < T extends CoreModel > extends Store < T > {
       throw Error('UpdateCondition not met');
     }
     let remove = {
-      '$pull': {}
+      '$pull': {},
+      '$set': {
+        'lastUpdate': updateDate
+      }
     };
     remove['$pull'][prop] = null;
     await this._collection.update({
@@ -84,10 +90,13 @@ class MongoStore < T extends CoreModel > extends Store < T > {
     }, remove);
   }
 
-  async _incrementAttribute(uid, prop, value) {
+  async _incrementAttribute(uid, prop, value, updateDate: Date) {
     await this._connect();
     var params = {
-      '$inc': {}
+      '$inc': {},
+      '$set': {
+        'lastUpdate': updateDate
+      }
     };
     params['$inc'][prop] = value;
     return this._collection.updateOne({
@@ -95,8 +104,7 @@ class MongoStore < T extends CoreModel > extends Store < T > {
     }, params);
   }
 
-  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField = 'uuid') {
-    // TODO Handle condition
+  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField = 'uuid', updateDate: Date) {
     await this._connect();
     let filter = {
       _id: uid
@@ -104,12 +112,17 @@ class MongoStore < T extends CoreModel > extends Store < T > {
     var params = {};
     if (index === undefined) {
       params = {
-        '$push': {}
+        '$push': {},
+        '$set': {
+          'lastUpdate': updateDate.toString()
+        }
       };
       params['$push'][prop] = item;
     } else {
       params = {
-        '$set': {}
+        '$set': {
+          'lastUpdate': updateDate
+        }
       };
       params['$set'][prop + "." + index] = item;
       filter[prop + "." + index + "." + itemWriteConditionField] = itemWriteCondition;
@@ -183,10 +196,9 @@ class MongoStore < T extends CoreModel > extends Store < T > {
     });
   }
 
-  __clean() {
-    return this._connect().then(() => {
-      return this._collection.deleteMany();
-    });
+  async __clean() {
+    await this._connect();
+    await this._collection.deleteMany();
   }
 
   static getModda() {

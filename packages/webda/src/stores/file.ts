@@ -53,7 +53,7 @@ class FileStore < T extends CoreModel > extends Store < T > {
     return Promise.resolve(object);
   }
 
-  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField) {
+  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     let res = await this._get(uid);
     if (res === undefined) {
       throw Error("NotFound");
@@ -73,10 +73,11 @@ class FileStore < T extends CoreModel > extends Store < T > {
       }
       res[prop][index] = item;
     }
+    res.lastUpdate = updateDate;
     await this._save(res, uid);
   }
 
-  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
+  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     let res = await this._get(uid);
     if (res === undefined) {
       throw Error("NotFound");
@@ -86,6 +87,7 @@ class FileStore < T extends CoreModel > extends Store < T > {
       throw Error('UpdateCondition not met');
     }
     res[prop].splice(index, 1);
+    res.lastUpdate = updateDate;
     return this._save(res, uid);
   }
 
@@ -138,7 +140,7 @@ class FileStore < T extends CoreModel > extends Store < T > {
     return;
   }
 
-  async _incrementAttribute(uid, prop, value) {
+  async _incrementAttribute(uid, prop, value, updateDate: Date) {
     let found = this.exists(uid);
     if (!found) {
       throw Error('NotFound');
@@ -147,6 +149,7 @@ class FileStore < T extends CoreModel > extends Store < T > {
     if (stored[prop] === undefined) {
       stored[prop] = 0;
     }
+    stored.lastUpdate = updateDate;
     stored[prop] += value;
     return this._save(stored, uid);
   }

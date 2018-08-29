@@ -230,7 +230,7 @@ class Binary extends Executor {
     return false;
   }
 
-  updateSuccess(targetStore, object, property, index, file, metadatas) {
+  async updateSuccess(targetStore, object, property, index, file, metadatas) {
     var fileObj = {};
     fileObj['metadatas'] = metadatas;
     fileObj['name'] = file.originalname;
@@ -242,6 +242,11 @@ class Binary extends Executor {
     var info;
     var update;
     var promise;
+    await this.emitSync('Binary.UploadSuccess', {
+      'object': fileObj,
+      'service': this,
+      'target': object
+    });
     if (index == "add") {
       promise = targetStore.upsertItemToCollection(object.uuid, property, fileObj);
     } else {

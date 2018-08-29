@@ -143,8 +143,8 @@ class Authentication extends Executor {
       throw 404;
     }
     return new Promise((resolve, reject) => {
-      var done = function(result, test) {
-        this.log('TRACE', 'Callback from OAuth done', result, test);
+      var done = (err, user, info) => {
+        this.log('TRACE', 'Callback from OAuth done', err, user, info);
         resolve();
       };
       this.setupOAuth(ctx, providerConfig, ctx._params.provider);
@@ -519,9 +519,9 @@ class Authentication extends Executor {
     // Handle Logout 
     if (ctx._params.provider == "logout") {
       await this.logout(ctx);
-      if (this._params.website) {
+      if (this._params.logoutRedirect) {
         ctx.writeHead(302, {
-          'Location': this._params.website
+          'Location': this._params.logoutRedirect
         });
       }
       throw 204;

@@ -57,7 +57,7 @@ class S3Binary extends AWSMixIn(Binary) {
     }
     let targetStore = this._verifyMapAndStore(ctx);
     let object: any = await targetStore.get(ctx._params.uid);
-    await object.canAct('attach_binary');
+    await object.canAct(ctx, 'attach_binary');
     var base64String = new Buffer(ctx.body.hash, 'hex').toString('base64');
     var params = {
       Bucket: this._params.bucket,

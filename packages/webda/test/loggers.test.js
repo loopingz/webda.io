@@ -32,7 +32,7 @@ describe('Webda', function() {
       webda.log('TEST', 'Plop', 'Test');
       webda.log('TEST', 'Plop2', 'Test');
       webda.log('WARN', 'Warn', 'Test');
-      assert.equal(webda.getService('ConsoleTestLogger').getCount(), 2);
+      assert.equal(webda.getService('ConsoleTestLogger').getCount(), 3);
       assert.equal(webda.getService('ConsoleLogger').getCount(), 1);
     })
   })

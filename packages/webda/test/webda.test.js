@@ -139,11 +139,14 @@ describe('Webda', function() {
   })
   describe('checkCSRF()', function() {
     it('string', function() {
+      assert.equal(Webda.Core.checkCSRF('http://localhost:18181', 'http://localhost:18181'), true);
+      assert.equal(Webda.Core.checkCSRF('http://localhost:18181', 'https://localhost:18181'), false);
       assert.equal(Webda.Core.checkCSRF('http://localhost:18181', 'localhost:18181'), true);
       assert.equal(Webda.Core.checkCSRF('http://localhost:18182', 'localhost:18181'), false);
       assert.equal(Webda.Core.checkCSRF('http://localhost2:18181', 'localhost:18181'), false);
     });
     it('array', function() {
+      assert.equal(Webda.Core.checkCSRF('http://localhost:18181', ['http://localhost2:18181', 'http://localhost:18181']), true);
       assert.equal(Webda.Core.checkCSRF('http://localhost:18181', ['localhost2:18181', 'localhost:18181']), true);
       assert.equal(Webda.Core.checkCSRF('http://localhost2:18181', ['localhost2:18181', 'localhost:18181']), true);
       assert.equal(Webda.Core.checkCSRF('http://localhost:18182', ['localhost2:18181', 'localhost:18181']), false);

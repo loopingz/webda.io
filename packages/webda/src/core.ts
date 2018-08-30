@@ -961,7 +961,8 @@ class Webda extends events.EventEmitter {
       }
     }
     let parsed = url.parse(origin);
-    if (website.indexOf(parsed.host) >= 0 || website === '*') {
+    // Host match or complete match
+    if (website.indexOf(parsed.host) >= 0 || website.indexOf(origin) >= 0 || website === '*') {
       return true;
     }
     return false;

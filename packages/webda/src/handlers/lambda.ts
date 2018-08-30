@@ -114,7 +114,7 @@ class LambdaServer extends Webda {
     // TODO Get all client info
     // event['requestContext']['identity']['sourceIp']
     ctx.clientInfo = this.getClientInfo(event.requestContext);
-    ctx.clientInfo.locale = headers['CloudFront-Forwarded-Proto'];
+    ctx.clientInfo.locale = headers['Accept-Language'];
     ctx.clientInfo.referer = headers['Referer'] || headers.referer;
 
     // Debug mode

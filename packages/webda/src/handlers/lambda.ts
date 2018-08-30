@@ -138,6 +138,7 @@ class LambdaServer extends Webda {
       ctx.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     }
     ctx.setHeader('Access-Control-Allow-Credentials', 'true');
+    ctx.setHeader('Access-Control-Allow-Headers', 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token')
 
     if (method === 'OPTIONS') {
       // Return allow all methods for now

@@ -418,7 +418,7 @@ export var ServerConfig = {
   version: 1,
   parameters: {
     website: {
-      url: 'localhost',
+      url: 'localhost:18181',
       path: 'app/',
       index: 'index.html'
     }
@@ -714,7 +714,7 @@ export class WebdaConfigurationServer extends WebdaServer {
     app.use(express.static(__dirname + '/../../app/index.html'));
   }
 
-  serve(port, openBrowser) {
+  async serve(port, openBrowser) {
     // This is the configuration server
     super.serve(port);
     this.websocket(port + 1);
@@ -722,6 +722,7 @@ export class WebdaConfigurationServer extends WebdaServer {
       var open = require('open');
       open("http://localhost:" + port);
     }
+    return new Promise( () => {});
   }
 
   websocket(port) {

@@ -174,7 +174,7 @@ export class WebdaServer extends Webda {
     }
   }
 
-  serve(port, websockets: boolean = false) {
+  async serve(port, websockets: boolean = false) : Promise<Object> {
     var http = require('http');
 
     var express = require('express');
@@ -216,5 +216,6 @@ export class WebdaServer extends Webda {
     }
     this.serveIndex(express, app);
     this.output('Server running at http://0.0.0.0:' + port);
+    return new Promise( () => {});
   }
 }

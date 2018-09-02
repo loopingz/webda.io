@@ -386,7 +386,7 @@ export default class WebdaConsole {
       return Promise.resolve();
     }
     webda = await this._getNewConfig();
-    return webda.serve(18181, argv.open);
+    await webda.serve(18181, argv.open);
   }
 
   static async deploy(argv) {

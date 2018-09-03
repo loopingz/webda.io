@@ -91,6 +91,9 @@ import {
 import {
   ResourceService
 } from './services/resource';
+import {
+  ConfigurationProvider, ConfigurationService
+} from "./services/configuration";
 // Queues
 import {
   Queue
@@ -119,6 +122,8 @@ export {
   Mailer,
   Authentication,
   S3Binary,
+  ConfigurationProvider,
+  ConfigurationService,
   // Store
   Store,
   DynamoStore,

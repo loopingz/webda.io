@@ -26,6 +26,7 @@
     "cookie": ">=0.2.3",
     "email-templates": "^2.7.1",
     "fs-finder": "^1.8.1",
+    "jsonpath": "^1.0.0",
     "jsonwebtoken": "^8.2.1",
     "mime": ">=2.0.3",
     "mime-types": "^2.1.11",

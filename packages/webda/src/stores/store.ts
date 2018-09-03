@@ -1,7 +1,7 @@
 "use strict";
 const uuid = require('uuid');
 import {
-  Executor
+  Executor, ConfigurationProvider
 } from '../index';
 import {
   CoreModelDefinition,
@@ -41,7 +41,7 @@ import {
  *      }
  *   }
  */
-class Store < T extends CoreModel > extends Executor {
+class Store < T extends CoreModel > extends Executor implements ConfigurationProvider {
   _reverseMap: any[];
   _cascade: any[];
   _writeConditionField: string;
@@ -689,6 +689,23 @@ class Store < T extends CoreModel > extends Executor {
    */
   async getAll(list) {
     throw Error('Virtual abstract class - concrete only for MixIn usage');
+  }
+
+  /**
+   * Provide a way to store configuration in store
+   * @param {string} id
+   * @returns {Promise<Map<string, any>>}
+   */
+  async getConfiguration(id: string) : Promise<Map<string, any>> {
+    let object = await this._get(id);
+    let result = new Map<string, any>();
+    for (let i in object) {
+      if (i === 'uuid' || i === 'lastUpdate' || i.startsWith('_')) {
+        continue;
+      }
+      result[i] = object[i];
+    }
+    return result;
   }
 
   /**

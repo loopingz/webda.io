@@ -7,6 +7,10 @@ var ctx;
 var executor;
 const Utils = require("./utils");
 
+function assertInitError(service, msg) {
+  assert.equal(webda.getService(service)._initException.message.indexOf(msg) >= 0, true);
+}
+
 describe('Webda', function() {
   beforeEach(function() {
     webda = new Webda.Core(config);
@@ -97,6 +101,10 @@ describe('Webda', function() {
       assert.equal(webda.getLocales().indexOf("en-GB"), 0);
       process.env.WEBDA_CONFIG = __dirname + '/config.broken.json';
       webda = new Webda.Core();
+      assertInitError('ConfigurationService', 'Need a source for');
+      assertInitError('ConfigurationServiceBadSource', 'Need a valid service');
+      assertInitError('ConfigurationServiceBadSourceNoId', 'Need a valid source');
+      assertInitError('ConfigurationServiceBadSourceWithId', 'is not implementing ConfigurationProvider interface');
     });
     it('context', function() {
       ctx.init();
@@ -167,7 +175,7 @@ describe('Webda', function() {
   describe('getModdas()', function() {
     it('normal', function() {
       let moddas = webda.getModdas();
-      assert.equal(Object.keys(moddas).length, 16);
+      assert.equal(Object.keys(moddas).length, 17);
     });
     it('implementation', function() {
       let moddas = webda.getModdas(Webda.Store);
@@ -255,5 +263,20 @@ describe('Webda', function() {
       assert.equal(ctx._params.provider, undefined);
 
     });
+  });
+  describe('reinitServices', function() {
+    it('updateConfiguration', async function() {
+      let service = webda.getService('Authentication');
+      assert.equal(service._params.providers.email.text, '');
+      assert.equal(service._params.providers.email.mailer, 'DefinedMailer');
+      await webda.reinitServices({'Authentication.providers.email.text': 'New Text'});
+      let newService = webda.getService('Authentication');
+      assert.notEqual(service, newService, 'Service should have been rotated completely');
+      assert.equal(newService._params.providers.email.text, 'New Text');
+      assert.equal(newService._params.providers.email.mailer, 'DefinedMailer');
+      await Utils.throws(webda.reinitServices.bind(webda, {'Bouzouf.plop': 'Testor'}), Error);
+      // Service should not have been refresh as we try to create a new service
+      assert.equal(newService, webda.getService('Authentication'));
+    })
   });
 });

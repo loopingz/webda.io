@@ -15,8 +15,26 @@
     },
     "requireServiceMissing": {
       "require": "./test/voidstores"
+    },
+    "ConfigurationService": {
+      "type": "ConfigurationService"
+    },
+    "ConfigurationServiceBadSource": {
+      "type": "ConfigurationService",
+      "source": "fakeService"
+    },
+    "ConfigurationServiceBadSourceNoId": {
+      "type": "ConfigurationService",
+      "source": "MemoryLogger"
+    },
+    "ConfigurationServiceBadSourceWithId": {
+      "type": "ConfigurationService",
+      "source": "MemoryLogger:id"
+    },
+    "MemoryLogger": {
+      "type": "Webda/MemoryLogger",
+      "maxItems": 1
     }
-
   },
   "models": {
     "CoreModel": ""

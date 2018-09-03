@@ -32,11 +32,13 @@ import {
   S3Binary,
   Logger,
   ConsoleLogger,
-  MemoryLogger
+  MemoryLogger,
+  ConfigurationService
 } from './index';
 import {
   CoreModelDefinition
 } from "./models/coremodel";
+import * as jsonpath from 'jsonpath';
 
 const _extend = require('util')._extend;
 
@@ -100,6 +102,7 @@ class Webda extends events.EventEmitter {
     this._services['Webda/SQSQueue'] = SQSQueue;
     this._services['Webda/MemoryLogger'] = MemoryLogger;
     this._services['Webda/ConsoleLogger'] = ConsoleLogger;
+    this._services['Webda/ConfigurationService'] = ConfigurationService;
     // Models
     this._models['Webda/CoreModel'] = CoreModel;
     this._models['Webda/Ident'] = Ident;
@@ -681,6 +684,21 @@ class Webda extends events.EventEmitter {
     // Expiracy at one week - should configure it
     var res = cookieSerialize('webda', session.save(), params);
     return res;
+  }
+
+  async reinitServices(updates : Map<string, any>): Promise < void > {
+    let configuration = JSON.parse(JSON.stringify(this._config.services));
+    for (let service in updates) {
+      jsonpath.value(configuration, service, updates[service]);
+    }
+    if (JSON.stringify(Object.keys(configuration)) !== JSON.stringify(Object.keys(this._config.services))) {
+      this.log('ERROR', 'Configuration update cannot modify services');
+      return this._initPromise;
+    }
+    this._config.services = configuration;
+    this._initPromise = this.initServices()
+    // We reinit everything
+    return this._initPromise;
   }
 
   /**

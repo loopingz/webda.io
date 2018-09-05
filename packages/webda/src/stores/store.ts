@@ -60,10 +60,6 @@ class Store < T extends CoreModel > extends Executor implements ConfigurationPro
       model = "Webda/CoreModel";
     }
     this._model = this._webda.getModel(model);
-    if (!this._model) {
-      this._webda.log('WARN', 'Bad model', model, 'fallback to CoreModel');
-      this._model = this._webda.getModel("Webda/CoreModel");
-    }
   }
 
   async init(config): Promise < void > {
@@ -698,6 +694,9 @@ class Store < T extends CoreModel > extends Executor implements ConfigurationPro
    */
   async getConfiguration(id: string) : Promise<Map<string, any>> {
     let object = await this._get(id);
+    if (!object) {
+      return undefined;
+    }
     let result = new Map<string, any>();
     for (let i in object) {
       if (i === 'uuid' || i === 'lastUpdate' || i.startsWith('_')) {

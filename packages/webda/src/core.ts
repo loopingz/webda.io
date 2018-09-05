@@ -686,7 +686,7 @@ class Webda extends events.EventEmitter {
     return res;
   }
 
-  async reinitServices(updates : Map<string, any>): Promise < void > {
+  async reinitServices(updates : Map<string, any>, requester : string[]): Promise < void > {
     let configuration = JSON.parse(JSON.stringify(this._config.services));
     for (let service in updates) {
       jsonpath.value(configuration, service, updates[service]);
@@ -696,7 +696,7 @@ class Webda extends events.EventEmitter {
       return this._initPromise;
     }
     this._config.services = configuration;
-    this._initPromise = this.initServices()
+    this._initPromise = this.initServices(requester);
     // We reinit everything
     return this._initPromise;
   }
@@ -705,7 +705,7 @@ class Webda extends events.EventEmitter {
    * @ignore
    *
    */
-  async initServices(): Promise < void > {
+  async initServices(excludes : string[] = []): Promise < void > {
     var services = this._config.services;
     if (this._config._services === undefined) {
       this._config._services = {};
@@ -717,6 +717,9 @@ class Webda extends events.EventEmitter {
     let service;
     // Construct services
     for (service in services) {
+      if (excludes.indexOf(service) >= 0) {
+        continue;
+      }
       var type = services[service].type;
       if (type === undefined) {
         type = service;

@@ -8,7 +8,9 @@ var executor;
 const Utils = require("./utils");
 
 function assertInitError(service, msg) {
-  assert.equal(webda.getService(service)._initException.message.indexOf(msg) >= 0, true);
+  let serviceBean = webda.getService(service);
+  assert.notEqual(serviceBean._initException, undefined, `${service} should have failed init with ${msg}`);
+  assert.equal(serviceBean._initException.message.indexOf(msg) >= 0, true);
 }
 
 describe('Webda', function() {
@@ -57,7 +59,7 @@ describe('Webda', function() {
   });
   describe('getVersion()', function() {
     it('current', function() {
-      assert.equal(webda.getVersion(), '0.9.10');
+      assert.equal(webda.getVersion(), '0.9.11');
     });
   });
   describe('utils', function() {
@@ -79,7 +81,7 @@ describe('Webda', function() {
       webda.isDebug(); // Just for CodeCoverage
       assert.equal(webda.toPublicJSON(obj)._title, undefined);
     });
-    it('errors checks', function() {
+    it('errors checks', async function() {
       assert.throws(webda.getModel.bind(webda), 'test');
       assert.throws(webda.getModel.bind(webda, 'Ghost'), Error);
       assert.equal(webda.getService('Ghost'), undefined);
@@ -101,6 +103,7 @@ describe('Webda', function() {
       assert.equal(webda.getLocales().indexOf("en-GB"), 0);
       process.env.WEBDA_CONFIG = __dirname + '/config.broken.json';
       webda = new Webda.Core();
+      await webda.waitForInit();
       assertInitError('ConfigurationService', 'Need a source for');
       assertInitError('ConfigurationServiceBadSource', 'Need a valid service');
       assertInitError('ConfigurationServiceBadSourceNoId', 'Need a valid source');

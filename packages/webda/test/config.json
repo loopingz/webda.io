@@ -32,11 +32,13 @@
       "logLevel": "TEST2"
     },
     "ConsoleLogger": {
-      "type": "Webda/ConsoleLogger"
+      "type": "Webda/ConsoleLogger",
+      "logLevel": "INFO"
     },
     "ConsoleTestLogger": {
       "type": "Webda/ConsoleLogger",
-      "logLevels": "TEST"
+      "logLevels": "TEST",
+      "logLevel": "TEST"
     },
     "ResourceService": {
       "type": "Webda/ResourceService",

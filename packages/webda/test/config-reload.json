@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "parameters": {
+    "TEST": "Global",
+    "region": "us-east-1",
+    "website": ["test.webda.io","test2.webda.io"],
+    "locales": [
+      "es-ES",
+      "en-GB",
+      "fr-FR"
+    ]
+  },
+  "moddas": {
+    "Test/Mailer": {
+      "type": "local",
+      "require": "../test/moddas/debugmailer"
+    },
+    "Test/VoidStore": {
+      "type": "local",
+      "require": "../test/moddas/voidstore"
+    }
+  },
+  "models": {
+    "WebdaTest/Task": "../test/models/task",
+    "WebdaTest/Ident": "../test/models/ident"
+  },
+  "services": {
+    "Authentication": {
+      "successRedirect": "https://webda.io/user.html",
+      "failureRedirect": "/login-error",
+      "providers": {
+        "facebook": {},
+        "email": {
+          "from": "",
+          "subject": "",
+          "html": "",
+          "text": "",
+          "mailer": "DefinedMailer",
+          "postValidation": false
+        },
+        "phone": {},
+        "twitter": {},
+        "google": {},
+        "github": {}
+      }
+    },
+    "DefinedMailer": {
+      "type": "Test/Mailer"
+    },
+    "Users": {
+      "expose": {
+        "url": "/users"
+      },
+      "type": "FileStore",
+      "folder": "./test/data/users"
+    },
+    "ConfigurationStore": {
+      "type": "FileStore",
+      "folder": "./test/data/configuration"
+    },
+    "ConfigurationService": {
+      "source": "ConfigurationStore:test",
+      "checkInterval": 2,
+      "default": {
+        "Authentication.providers.email.text": "Test"
+      }
+    }
+  }
+}

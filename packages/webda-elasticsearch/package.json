@@ -32,7 +32,7 @@
   "dependencies": {
     "@types/node": "^10.7.0",
     "elasticsearch": "^15.1.1",
-    "webda": "^0.9.8"
+    "webda": "^0.9.10"
   },
   "devDependencies": {
     "@types/node": "^9.6.2",

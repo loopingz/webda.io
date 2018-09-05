@@ -4,7 +4,7 @@
   "description": "Webda ElasticSearch implementation",
   "main": "lib/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && webda module",
     "pretest": "npm run build",
     "test": "nyc mocha --timeout=100000",
     "run": "node core",
@@ -44,7 +44,8 @@
     "remap-istanbul": "^0.11.0",
     "source-map-support": "^0.5.4",
     "ts-node": "^5.0.1",
-    "typescript": "^2.8.1"
+    "typescript": "^2.8.1",
+    "webda-shell": "^0.9.10"
   },
   "nyc": {
     "extension": [

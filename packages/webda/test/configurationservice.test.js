@@ -13,6 +13,7 @@ describe('ConfigurationService', function() {
   });
   afterEach(async function() {
     await (webda.getService('ConfigurationStore').__clean());
+    webda.getService('ConfigurationService').stop();
   });
   it('initial load', async function() {
     assert.equal(webda._config.services.Authentication.providers.email.text, 'Test');
@@ -28,14 +29,14 @@ describe('ConfigurationService', function() {
     await Utils.sleep(2100);
     assert.equal(webda._config.services.Authentication.providers.email.text, 'Plop');
     assert.equal(webda._config.services.Authentication.providers.email.mailer, 'DefinedMailer');
-    assert.equal(service, webda.getService('ConfigurationService'));
-    assert.equal(store, webda.getService('ConfigurationStore'));
-    assert.notEqual(otherService, webda.getService('Users'));
+    assert.equal(service, webda.getService('ConfigurationService'), "ConfigurationService service should not change");
+    assert.equal(store, webda.getService('ConfigurationStore'), "ConfigurationStore service should not change");
+    assert.notEqual(otherService, webda.getService('Users'), "Users service should change");
     otherService = webda.getService('Users');
     await Utils.sleep(2100);
-    assert.equal(service, webda.getService('ConfigurationService'));
-    assert.equal(store, webda.getService('ConfigurationStore'));
+    assert.equal(service, webda.getService('ConfigurationService'), "ConfigurationService service should not change");
+    assert.equal(store, webda.getService('ConfigurationStore'), "ConfigurationStore service should not change");
     // Should not reupdate as config as not changed
-    assert.equal(otherService, webda.getService('Users'));
+    assert.equal(otherService, webda.getService('Users'), "Users service should not change");
   });
 });

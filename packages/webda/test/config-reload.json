@@ -34,7 +34,7 @@
           "from": "",
           "subject": "",
           "html": "",
-          "text": "",
+          "text": "Test",
           "mailer": "DefinedMailer",
           "postValidation": false
         },

@@ -14,6 +14,7 @@ export default class ConfigurationService extends Service {
   protected _nextCheck: number;
   protected _sourceService: any;
   protected _sourceId: string;
+  private _interval: number;
 
   async init() {
 
@@ -37,8 +38,13 @@ export default class ConfigurationService extends Service {
     if (!this._sourceService.getConfiguration) {
       throw new Error(`Service ${source[0]} is not implementing ConfigurationProvider interface`);
     }
-    await this._checkUpdate(this._params.default);
-    setInterval(this._checkUpdate.bind(this), 1000);
+    this._configuration = JSON.stringify(this._params.default);
+    await this._checkUpdate();
+    this._interval = setInterval(this._checkUpdate.bind(this), 1000);
+  }
+
+  stop() {
+    clearInterval(this._interval);
   }
 
   reinit(config : any) {
@@ -49,14 +55,14 @@ export default class ConfigurationService extends Service {
     return this._sourceService.getConfiguration(this._sourceId);
   }
 
-  async _checkUpdate(defaultValues) {
+  async _checkUpdate() {
     if (this._nextCheck > new Date().getTime()) return;
     this.log('DEBUG', 'Refreshing configuration');
-    let newConfig = (await this._loadConfiguration()) || defaultValues;
+    let newConfig = (await this._loadConfiguration()) || this._params.default;
     if (JSON.stringify(newConfig) !== this._configuration) {
       this.log('DEBUG', 'Apply new configuration');
       this._configuration = JSON.stringify(newConfig);
-      this._webda.reinitServices(newConfig, [<string> this._name, <string> this._sourceService._name]);
+      this._webda.reinitServices(newConfig, [<string> this._name.toLowerCase(), <string> this._sourceService._name.toLowerCase()]);
     }
     this._updateNextCheck();
     this.log('DEBUG', 'Next configuration refresh in', this._params.checkInterval, 's');

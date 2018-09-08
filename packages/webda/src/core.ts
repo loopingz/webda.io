@@ -717,7 +717,7 @@ class Webda extends events.EventEmitter {
     let service;
     // Construct services
     for (service in services) {
-      if (excludes.indexOf(service) >= 0) {
+      if (excludes.indexOf(service.toLowerCase()) >= 0) {
         continue;
       }
       var type = services[service].type;
@@ -771,6 +771,9 @@ class Webda extends events.EventEmitter {
 
     // Init services
     for (service in this._config._services) {
+      if (excludes.indexOf(service) >= 0) {
+        continue;
+      }
       if (this._config._services[service].init !== undefined) {
         try {
           // TODO Define parralel initialization

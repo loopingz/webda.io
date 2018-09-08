@@ -96,6 +96,9 @@ import {
 import {
   ConfigurationProvider, ConfigurationService
 } from "./services/configuration";
+import {
+  AwsSecretsManager
+} from "./services/secretsmanager";
 // Queues
 import {
   Queue
@@ -126,6 +129,7 @@ export {
   S3Binary,
   ConfigurationProvider,
   ConfigurationService,
+  AwsSecretsManager,
   // Store
   Store,
   DynamoStore,

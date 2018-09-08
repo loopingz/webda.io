@@ -179,7 +179,7 @@ describe('Webda', function() {
   describe('getModdas()', function() {
     it('normal', function() {
       let moddas = webda.getModdas();
-      assert.equal(Object.keys(moddas).length, 18);
+      assert.equal(Object.keys(moddas).length, 19);
     });
     it('implementation', function() {
       let moddas = webda.getModdas(Webda.Store);

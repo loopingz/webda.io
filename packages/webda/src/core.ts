@@ -28,6 +28,7 @@ import {
   SQSQueue,
   EventService,
   ResourceService,
+  AwsSecretsManager,
   FileBinary,
   S3Binary,
   Logger,
@@ -105,6 +106,7 @@ class Webda extends events.EventEmitter {
     this._services['Webda/ConsoleLogger'] = ConsoleLogger;
     this._services['Webda/CloudWatchLogger'] = CloudWatchLogger;
     this._services['Webda/ConfigurationService'] = ConfigurationService;
+    this._services['Webda/AwsSecretsManager'] = AwsSecretsManager;
     // Models
     this._models['Webda/CoreModel'] = CoreModel;
     this._models['Webda/Ident'] = Ident;

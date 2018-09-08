@@ -212,6 +212,9 @@
       "folder": "./test/data/idents",
       "validator": "IdentValidator"
     },
+    "AwsSecretsManager": {
+
+    },
     "Users": {
       "expose": {
         "url": "/users"

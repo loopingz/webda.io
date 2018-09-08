@@ -22,7 +22,7 @@
   "dependencies": {
     "accept-language": "=3.0.15",
     "ajv": ">=5.2.3",
-    "aws-sdk": ">=2.24.0",
+    "aws-sdk": "^2.311.0",
     "cookie": ">=0.2.3",
     "email-templates": "^2.7.1",
     "fs-finder": "^1.8.1",

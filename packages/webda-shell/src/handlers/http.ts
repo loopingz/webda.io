@@ -24,10 +24,14 @@ export class WebdaServer extends Webda {
     let res = new ClientInfo();
     res.ip = req.connection.remoteAddress;
     res.userAgent = req.headers['user-agent'];
+    res.locale = req.headers['Accept-Language'];
+    res.referer = req.headers['Referer'];
     return res;
   }
 
-  handleRequest(req, res, next) {
+  async handleRequest(req, res, next) {
+    // Wait for Webda to be ready
+    await this.waitForInit();
     // Ensure cookie session
     if (req.cookies.webda === undefined) {
       req.cookies.webda = {};
@@ -88,8 +92,6 @@ export class WebdaServer extends Webda {
     }
     var ctx = this.newContext(req.body, req.session, res, req.files);
     ctx.clientInfo = this.getClientInfo(req);
-    ctx.clientInfo.locale = req.headers['CloudFront-Forwarded-Proto'];
-    ctx.clientInfo.referer = req.headers['Referer'];
     this.emit('Webda.Request', vhost, req.method, req.url, ctx.getCurrentUserId(), req.body);
     var executor = this.getExecutor(ctx, vhost, req.method, req.url, protocol, req.port, req.headers);
 

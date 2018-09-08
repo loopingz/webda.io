@@ -149,12 +149,12 @@ describe('Queues', function() {
   });
 
   describe('MemoryQueue', function() {
-    it('Basic', function() {
+    it('Basic', async function() {
       let queue = webda.getService('memoryqueue');
       // For coverage
       assert.equal(queue._params.expire, 1000);
       queue._params.expire = undefined;
-      queue.init();
+      await queue.init();
       assert.equal(queue._params.expire, 30000);
       queue._params.expire = 1000;
       queue.__clean();

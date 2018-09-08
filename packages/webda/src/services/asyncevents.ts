@@ -41,7 +41,7 @@ class EventService extends Service {
    * @ignore
    * Setup the default routes
    */
-  init(config) {
+  async init(config): Promise < void > {
     this._callbacks = {};
     this._queues = {};
     this._defaultQueue = '';

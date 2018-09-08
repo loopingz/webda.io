@@ -38,8 +38,8 @@ class S3Binary extends AWSMixIn(Binary) {
     this.AWS = this._getAWS(params);
   }
 
-  init(config) {
-    super.init(config);
+  async init(config): Promise < void > {
+    await super.init(config);
     this._s3 = new this.AWS.S3();
   }
 

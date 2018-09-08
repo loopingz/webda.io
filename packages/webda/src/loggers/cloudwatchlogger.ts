@@ -21,7 +21,7 @@ class CloudWatchLogger extends AWSMixIn(FakeLogger) {
   _cloudwatch: any;
   _bufferedLogs: any[] = [];
 
-  async init(params) {
+  async init(params): Promise < void > {
     await super.init(params);
     this._logGroupName = this._params.logGroupName;
     if (!this._logGroupName) {

@@ -140,7 +140,7 @@ class Binary extends Executor {
   }
 
   /** @ignore */
-  init(config) {
+  async init(config): Promise < void > {
     this.initMap(this._params.map);
     if (this._params.expose) {
       this.initRoutes(config);

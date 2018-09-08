@@ -55,7 +55,7 @@ class Service extends events.EventEmitter {
    * @param config for the host so you can add your own route here
    * @abstract
    */
-  init(config) {
+  async init(config): Promise < void > {
 
   }
 

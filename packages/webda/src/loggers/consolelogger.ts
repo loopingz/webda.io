@@ -6,8 +6,8 @@ class ConsoleLogger extends Logger {
 
   protected _count: number = 0;
 
-  init(params) {
-    super.init(params);
+  async init(params): Promise < void > {
+    await super.init(params);
     if (this._levels.indexOf('CONSOLE') < 0) {
       this._levels.unshift('CONSOLE');
       this._level++;

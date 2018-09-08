@@ -47,7 +47,7 @@ class Mailer extends Service {
     }
   }
 
-  init() {
+  async init(): Promise < void > {
     this._params.templates = this._params.templates || "./templates";
   }
 

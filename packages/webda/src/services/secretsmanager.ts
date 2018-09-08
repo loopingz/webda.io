@@ -9,8 +9,8 @@ export default class AwsSecretsManager extends AWSMixIn(Service) implements Conf
 
   _client: any;
 
-  init(params) {
-    super.init(params);
+  async init(params): Promise < void > {
+    await super.init(params);
     this._client = new(this._getAWS(this._params)).SecretsManager();
   }
 
@@ -42,7 +42,7 @@ export default class AwsSecretsManager extends AWSMixIn(Service) implements Conf
   }
 
   async put(id: string, value: any) {
-    let res = await this._client.putSecretValue({
+    await this._client.putSecretValue({
       SecretId: id,
       SecretString: JSON.stringify(value)
     }).promise();

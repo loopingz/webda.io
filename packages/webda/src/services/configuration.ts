@@ -64,7 +64,7 @@ export default class ConfigurationService extends Service {
     if (JSON.stringify(newConfig) !== this._configuration) {
       this.log('DEBUG', 'Apply new configuration');
       this._configuration = JSON.stringify(newConfig);
-      this._webda.reinitServices(newConfig, [ < string > this._name.toLowerCase(), < string > this._sourceService._name.toLowerCase()]);
+      this._webda.reinitServices(newConfig, [this._name.toLowerCase(), this._sourceService._name.toLowerCase()]);
     }
     this._updateNextCheck();
     this.log('DEBUG', 'Next configuration refresh in', this._params.checkInterval, 's');

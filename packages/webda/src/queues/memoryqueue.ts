@@ -12,8 +12,8 @@ class MemoryQueue extends Queue {
 
   private _queue: QueueMap;
 
-  init(config) {
-    super.init(config);
+  async init(config): Promise < void > {
+    await super.init(config);
     this._queue = {};
     if (!this._params.expire) {
       this._params.expire = 30;

@@ -9,7 +9,7 @@ export default class ResourceService extends Executor {
 
   _resolved: string;
 
-  init() {
+  async init(): Promise < void > {
     this._params.url = this._params.url || 'resources';
     if (!this._params.url.startsWith('/')) {
       this._params.url = '/' + this._params.url;

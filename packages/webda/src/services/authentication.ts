@@ -90,7 +90,7 @@ class Authentication extends Executor {
    * @ignore
    * Setup the default routes
    */
-  init() {
+  async init(): Promise < void > {
     let url = this._params.expose || '/auth';
 
     if (this._params.identStore) {

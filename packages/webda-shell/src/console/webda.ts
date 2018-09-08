@@ -59,7 +59,7 @@ class ModuleLoader {
   }
 
   load() {
-    ModuleLoader.getPackagesLocations().map((path) => {
+    ModuleLoader.getPackagesLocations().forEach((path) => {
       if (fs.existsSync(path) && fs.lstatSync(path).isDirectory()) {
         path += "/**/*.js";
       }

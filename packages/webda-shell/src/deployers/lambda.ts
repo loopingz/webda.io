@@ -132,7 +132,7 @@ export class LambdaDeployer extends AWSDeployer {
     await this.generateAPIGateway();
   }
 
-  export (args) {
+  async export (args) {
     if (args.length == 0) {
       console.log("Please specify the output file");
       return;
@@ -154,12 +154,10 @@ export class LambdaDeployer extends AWSDeployer {
       }
     }
     console.log("Exporting " + params.exportType + " to " + exportFile);
-    return this.getRestApi().then((api) => {
-      params.restApiId = this.restApiId;
-      return this._awsGateway.getExport(params).promise().then((exportJson) => {
-        fs.writeFileSync(exportFile, exportJson.body);
-      });
-    });
+    await this.getRestApi();
+    params.restApiId = this.restApiId;
+    let exportJson = await this._awsGateway.getExport(params).promise();
+    fs.writeFileSync(exportFile, exportJson.body);
   }
 
   async generatePackage(zipPath) {
@@ -329,22 +327,19 @@ export class LambdaDeployer extends AWSDeployer {
       FunctionName: this._lambdaFunctionName,
       Publish: true
     };
-    return this.addPackageToUpdateFunction(params).then(() => {
-      return this._awsLambda.updateFunctionCode(params).promise();
-    }).then((fct) => {
-      return this.cleanVersions(fct);
-    }).then((fct) => {
-      var params = {
-        MemorySize: this._lambdaMemorySize,
-        FunctionName: this._lambdaFunctionName,
-        Handler: this._lambdaHandler,
-        Role: this._lambdaRole,
-        Runtime: 'nodejs6.10',
-        Timeout: this._lambdaTimeout,
-        Description: 'Deployed with Webda for API: ' + this._restApiName
-      };
-      return this._awsLambda.updateFunctionConfiguration(params).promise();
-    });
+    await this.addPackageToUpdateFunction(params);
+    let fct = await this._awsLambda.updateFunctionCode(params).promise();
+    await this.cleanVersions(fct);
+    var updateConfigurationParams = {
+      MemorySize: this._lambdaMemorySize,
+      FunctionName: this._lambdaFunctionName,
+      Handler: this._lambdaHandler,
+      Role: this._lambdaRole,
+      Runtime: 'nodejs8.10',
+      Timeout: this._lambdaTimeout,
+      Description: 'Deployed with Webda for API: ' + this._restApiName
+    };
+    await this._awsLambda.updateFunctionConfiguration(updateConfigurationParams).promise();
   }
 
   cleanVersions(fct) {

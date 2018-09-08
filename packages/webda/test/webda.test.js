@@ -108,6 +108,7 @@ describe('Webda', function() {
       assertInitError('ConfigurationServiceBadSource', 'Need a valid service');
       assertInitError('ConfigurationServiceBadSourceNoId', 'Need a valid source');
       assertInitError('ConfigurationServiceBadSourceWithId', 'is not implementing ConfigurationProvider interface');
+      assertInitError('CloudWatchLogger', 'Require a log group');
     });
     it('context', function() {
       ctx.init();
@@ -178,7 +179,7 @@ describe('Webda', function() {
   describe('getModdas()', function() {
     it('normal', function() {
       let moddas = webda.getModdas();
-      assert.equal(Object.keys(moddas).length, 17);
+      assert.equal(Object.keys(moddas).length, 18);
     });
     it('implementation', function() {
       let moddas = webda.getModdas(Webda.Store);

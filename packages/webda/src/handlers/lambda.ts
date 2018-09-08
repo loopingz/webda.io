@@ -156,7 +156,7 @@ class LambdaServer extends Webda {
     var executor = this.getExecutor(ctx, vhost, method, resourcePath, protocol, port, headers);
 
     if (executor == null) {
-      this.emit('Webda.404', vhost, method, resourcePath, ctx.getCurrentUserId(), body);
+      this.emitSync('Webda.404', vhost, method, resourcePath, ctx.getCurrentUserId(), body);
       ctx.statusCode = 404;
       return this.handleLambdaReturn(ctx, callback);
     }

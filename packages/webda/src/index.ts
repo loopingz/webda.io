@@ -68,7 +68,9 @@ import {
 import {
   ConsoleLogger
 } from './loggers/consolelogger';
-
+import {
+  CloudWatchLogger
+} from './loggers/cloudwatchlogger';
 // Services
 import {
   Mailer
@@ -147,5 +149,6 @@ export {
   LambdaServer,
   Logger,
   MemoryLogger,
-  ConsoleLogger
+  ConsoleLogger,
+  CloudWatchLogger
 }

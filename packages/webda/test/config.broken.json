@@ -31,6 +31,7 @@
       "type": "ConfigurationService",
       "source": "MemoryLogger:id"
     },
+    "CloudWatchLogger": {},
     "MemoryLogger": {
       "type": "Webda/MemoryLogger",
       "maxItems": 1

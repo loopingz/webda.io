@@ -33,6 +33,7 @@ import {
   Logger,
   ConsoleLogger,
   MemoryLogger,
+  CloudWatchLogger,
   ConfigurationService
 } from './index';
 import {
@@ -102,6 +103,7 @@ class Webda extends events.EventEmitter {
     this._services['Webda/SQSQueue'] = SQSQueue;
     this._services['Webda/MemoryLogger'] = MemoryLogger;
     this._services['Webda/ConsoleLogger'] = ConsoleLogger;
+    this._services['Webda/CloudWatchLogger'] = CloudWatchLogger;
     this._services['Webda/ConfigurationService'] = ConfigurationService;
     // Models
     this._models['Webda/CoreModel'] = CoreModel;

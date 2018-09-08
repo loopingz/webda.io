@@ -690,7 +690,7 @@ class Webda extends events.EventEmitter {
     return res;
   }
 
-  async reinitServices(updates : Map<string, any>, requester : string[]): Promise < void > {
+  async reinitServices(updates: Map < string, any > , requester: string[]): Promise < void > {
     let configuration = JSON.parse(JSON.stringify(this._config.services));
     for (let service in updates) {
       jsonpath.value(configuration, service, updates[service]);
@@ -709,7 +709,7 @@ class Webda extends events.EventEmitter {
    * @ignore
    *
    */
-  async initServices(excludes : string[] = []): Promise < void > {
+  async initServices(excludes: string[] = []): Promise < void > {
     var services = this._config.services;
     if (this._config._services === undefined) {
       this._config._services = {};

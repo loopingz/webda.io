@@ -94,7 +94,8 @@ import {
   ResourceService
 } from './services/resource';
 import {
-  ConfigurationProvider, ConfigurationService
+  ConfigurationProvider,
+  ConfigurationService
 } from "./services/configuration";
 import {
   AwsSecretsManager

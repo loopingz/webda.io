@@ -273,12 +273,16 @@ describe('Webda', function() {
       let service = webda.getService('Authentication');
       assert.equal(service._params.providers.email.text, '');
       assert.equal(service._params.providers.email.mailer, 'DefinedMailer');
-      await webda.reinitServices({'Authentication.providers.email.text': 'New Text'});
+      await webda.reinitServices({
+        'Authentication.providers.email.text': 'New Text'
+      });
       let newService = webda.getService('Authentication');
       assert.notEqual(service, newService, 'Service should have been rotated completely');
       assert.equal(newService._params.providers.email.text, 'New Text');
       assert.equal(newService._params.providers.email.mailer, 'DefinedMailer');
-      await Utils.throws(webda.reinitServices.bind(webda, {'Bouzouf.plop': 'Testor'}), Error);
+      await Utils.throws(webda.reinitServices.bind(webda, {
+        'Bouzouf.plop': 'Testor'
+      }), Error);
       // Service should not have been refresh as we try to create a new service
       assert.equal(newService, webda.getService('Authentication'));
     })

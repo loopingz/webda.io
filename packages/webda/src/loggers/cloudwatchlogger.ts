@@ -1,5 +1,8 @@
 import {
-  Logger, AWSMixIn, Core as Webda, Service
+  Logger,
+  AWSMixIn,
+  Core as Webda,
+  Service
 } from '../index';
 import * as uuid from 'uuid';
 
@@ -25,8 +28,10 @@ class CloudWatchLogger extends AWSMixIn(FakeLogger) {
       throw Error('Require a log group');
     }
     this._logStreamName = this._params.logStreamNamePrefix + uuid.v4();
-    this._cloudwatch = new (this._getAWS(this._params)).CloudWatchLogs();
-    let res = await this._cloudwatch.describeLogGroups({logGroupNamePrefix: this._logGroupName}).promise();
+    this._cloudwatch = new(this._getAWS(this._params)).CloudWatchLogs();
+    let res = await this._cloudwatch.describeLogGroups({
+      logGroupNamePrefix: this._logGroupName
+    }).promise();
     if (!res.logGroups.length) {
       await this._cloudwatch.createLogGroup({
         logGroupName: this._logGroupName,
@@ -41,7 +46,7 @@ class CloudWatchLogger extends AWSMixIn(FakeLogger) {
     this._webda.on('Webda.Result', this.sendLogs.bind(this));
   }
 
-  async sendLogs(copy : boolean = false) : Promise<void> {
+  async sendLogs(copy: boolean = false): Promise < void > {
     if (!this._bufferedLogs.length) {
       return;
     }
@@ -67,7 +72,10 @@ class CloudWatchLogger extends AWSMixIn(FakeLogger) {
 
   _log(level, ...args): void {
     let msg = `[${level}] ` + args.join(' ');
-    this._bufferedLogs.push({message: msg, timestamp: new Date().getTime()});
+    this._bufferedLogs.push({
+      message: msg,
+      timestamp: new Date().getTime()
+    });
     if (this._params.singlePush) {
       this.sendLogs(true);
     }
@@ -115,4 +123,6 @@ class CloudWatchLogger extends AWSMixIn(FakeLogger) {
   }
 }
 
-export { CloudWatchLogger };
+export {
+  CloudWatchLogger
+};

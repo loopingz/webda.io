@@ -1,7 +1,8 @@
 "use strict";
 const uuid = require('uuid');
 import {
-  Executor, ConfigurationProvider
+  Executor,
+  ConfigurationProvider
 } from '../index';
 import {
   CoreModelDefinition,
@@ -692,12 +693,14 @@ class Store < T extends CoreModel > extends Executor implements ConfigurationPro
    * @param {string} id
    * @returns {Promise<Map<string, any>>}
    */
-  async getConfiguration(id: string) : Promise<Map<string, any>> {
+  async getConfiguration(id: string): Promise < Map < string,
+  any >> {
     let object = await this._get(id);
     if (!object) {
       return undefined;
     }
-    let result = new Map<string, any>();
+    let result = new Map < string,
+      any > ();
     for (let i in object) {
       if (i === 'uuid' || i === 'lastUpdate' || i.startsWith('_')) {
         continue;

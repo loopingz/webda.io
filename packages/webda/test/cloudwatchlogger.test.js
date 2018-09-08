@@ -10,7 +10,9 @@ describe('Webda', function() {
   before(async function() {
     webda = new Webda.Core(config);
     await webda.waitForInit();
-    await webda.getService('CloudWatchLogger')._cloudwatch.deleteLogGroup({logGroupName: 'webda-test'}).promise();
+    await webda.getService('CloudWatchLogger')._cloudwatch.deleteLogGroup({
+      logGroupName: 'webda-test'
+    }).promise();
   });
   describe('CloudWatchLog()', function() {
     it('cloudwatch', async function() {
@@ -27,7 +29,9 @@ describe('Webda', function() {
       webda.log('TEST2', 'Plop 4', 'Test');
       await webda.emitSync('Webda.Result');
       let logger = webda.getService('CloudWatchLogger');
-      let res = await logger._cloudwatch.describeLogStreams({logGroupName: 'webda-test'}).promise();
+      let res = await logger._cloudwatch.describeLogStreams({
+        logGroupName: 'webda-test'
+      }).promise();
       assert.equal(res.logStreams.length, 1);
       assert.notEqual(res.logStreams[0].lastEventTimestamp, undefined);
     });
@@ -44,7 +48,9 @@ describe('Webda', function() {
       webda.log('TEST', 'Plop 0', 'Test');
       webda.log('TEST2', 'Plop 1', 'Test');
       await Utils.sleep(1000);
-      let res = await logger._cloudwatch.describeLogStreams({logGroupName: 'webda-test'}).promise();
+      let res = await logger._cloudwatch.describeLogStreams({
+        logGroupName: 'webda-test'
+      }).promise();
       assert.equal(res.logStreams.length, 2);
       assert.notEqual(res.logStreams[0].lastEventTimestamp, undefined);
       assert.notEqual(res.logStreams[1].lastEventTimestamp, undefined);
@@ -52,7 +58,9 @@ describe('Webda', function() {
       webda.log('TEST2', 'Plop 3', 'Test');
       webda.log('TEST2', 'Plop 4', 'Test');
       await webda.emitSync('Webda.Result');
-      res = await logger._cloudwatch.describeLogStreams({logGroupName: 'webda-test'}).promise();
+      res = await logger._cloudwatch.describeLogStreams({
+        logGroupName: 'webda-test'
+      }).promise();
       assert.equal(res.logStreams.length, 2);
     })
   })

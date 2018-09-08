@@ -1,4 +1,9 @@
-import { Service, ConfigurationProvider, AWSMixIn, Core as Webda } from '../index';
+import {
+  Service,
+  ConfigurationProvider,
+  AWSMixIn,
+  Core as Webda
+} from '../index';
 
 export default class AwsSecretsManager extends AWSMixIn(Service) implements ConfigurationProvider {
 
@@ -6,10 +11,11 @@ export default class AwsSecretsManager extends AWSMixIn(Service) implements Conf
 
   init(params) {
     super.init(params);
-    this._client = new (this._getAWS(this._params)).SecretsManager();
+    this._client = new(this._getAWS(this._params)).SecretsManager();
   }
 
-  async getConfiguration(id: string) : Promise<Map<string, any>> {
+  async getConfiguration(id: string): Promise < Map < string,
+  any >> {
     return this.get(id);
   }
 
@@ -43,9 +49,13 @@ export default class AwsSecretsManager extends AWSMixIn(Service) implements Conf
   }
 
   async get(id: string) {
-    let res = await this._client.getSecretValue({SecretId: id}).promise();
+    let res = await this._client.getSecretValue({
+      SecretId: id
+    }).promise();
     return JSON.parse(res.SecretString);
   }
 }
 
-export { AwsSecretsManager };
+export {
+  AwsSecretsManager
+};

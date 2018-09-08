@@ -1,7 +1,9 @@
-import { Service } from '../index';
+import {
+  Service
+} from '../index';
 
 interface ConfigurationProvider {
-  getConfiguration(id: string): Promise<Map<string, any>>;
+  getConfiguration(id: string): Promise < Map < string, any >> ;
 }
 
 /**
@@ -47,11 +49,11 @@ export default class ConfigurationService extends Service {
     clearInterval(this._interval);
   }
 
-  reinit(config : any) {
+  reinit(config: any) {
     // Need to prevent any reinit
   }
 
-  async  _loadConfiguration() : Promise<Map<string, any>> {
+  async _loadConfiguration(): Promise < Map < string, any >> {
     return this._sourceService.getConfiguration(this._sourceId);
   }
 
@@ -62,7 +64,7 @@ export default class ConfigurationService extends Service {
     if (JSON.stringify(newConfig) !== this._configuration) {
       this.log('DEBUG', 'Apply new configuration');
       this._configuration = JSON.stringify(newConfig);
-      this._webda.reinitServices(newConfig, [<string> this._name.toLowerCase(), <string> this._sourceService._name.toLowerCase()]);
+      this._webda.reinitServices(newConfig, [ < string > this._name.toLowerCase(), < string > this._sourceService._name.toLowerCase()]);
     }
     this._updateNextCheck();
     this.log('DEBUG', 'Next configuration refresh in', this._params.checkInterval, 's');
@@ -73,4 +75,7 @@ export default class ConfigurationService extends Service {
   }
 }
 
-export { ConfigurationProvider, ConfigurationService};
+export {
+  ConfigurationProvider,
+  ConfigurationService
+};

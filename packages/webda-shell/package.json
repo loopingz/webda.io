@@ -33,18 +33,18 @@
     "gulp-uglify": "^1.2.0",
     "gulp-useref": "^2.1.0",
     "gulp-vulcanize": "^6.0.0",
+    "istanbul": "^1.1.0-alpha.1",
     "js-beautify": "^1.7.5",
     "merge-stream": "^1.0.0",
-    "require-dir": "^0.3.0",
-    "run-sequence": "^1.0.2",
-    "vulcanize": ">= 1.4.2",
-    "web-component-tester": "^4.0.0",
-    "istanbul": "^1.1.0-alpha.1",
     "mocha": ">=2.2.5",
     "nyc": "^11.6.0",
+    "require-dir": "^0.3.0",
+    "run-sequence": "^1.0.2",
     "source-map-support": "^0.5.4",
     "ts-node": "^5.0.1",
-    "typescript": "^2.8.1"
+    "typescript": "^2.8.1",
+    "vulcanize": ">= 1.4.2",
+    "web-component-tester": "^4.0.0"
   },
   "bin": {
     "webda": "./bin/webda"

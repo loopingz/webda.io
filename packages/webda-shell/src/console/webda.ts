@@ -404,65 +404,7 @@ export default class WebdaConsole {
   }
 
   static async init(argv) {
-    let target = argv._[1];
-    let webda = WebdaServer;
-    if (!webda.prototype.getVersion) {
-      this.output('You are using a webda < 0.3.1, you should update');
-      return;
-    }
-    let version = webda.prototype.getVersion();
-    if (!target) {
-      target = '.';
-    }
-    if (!target.startsWith('.') && !target.startsWith('/')) {
-      target = './' + target;
-    }
-    this.output('Init a sample project for webda v' + version + ' to ' + target);
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-    let promise = Promise.resolve();
-    if (!fs.existsSync(target)) {
-      promise = new Promise((resolve, reject) => {
-        rl.question('The target folder does not exist, do you want to create it ? Y/N ', (answer) => {
-          if (answer === 'Y' || answer === 'y') {
-            return resolve(mkdirp(target));
-          }
-          rl.close();
-          process.exit(0);
-        });
-      });
-    } else if (fs.readdirSync(target).length) {
-      promise = new Promise((resolve, reject) => {
-        rl.question(colors.red('The target folder is not empty, do you want to continue ?') + ' Y/N ', (answer) => {
-          if (answer === 'Y' || answer === 'y') {
-            return resolve();
-          }
-          rl.close();
-          process.exit(0);
-        });
-      });
-    }
-    return promise.then(() => {
-      return rp({
-        method: 'GET',
-        uri: 'http://webda.io/samples/v' + version + '.zip',
-        resolveWithFullResponse: true,
-        encoding: null
-      })
-    }).then((response) => {
-      return WebdaConsole.unzip(target, response.body);
-    }).then(() => {
-      this.output(colors.green('Your project has been initialized with a sample project'));
-      if (fs.existsSync('./README.md')) {
-        this.output(colors.green('\nYou can read the README.md for further instruction'));
-      }
-    }).catch((err) => {
-      this.output(colors.red('There is no sample found for this version of webda, sorry :('));
-    }).then(() => {
-      rl.close();
-    });
+    require('child_process').spawnSync("yo", ["webda"], { stdio: 'inherit' });
   }
 
   static initLogger(argv) {

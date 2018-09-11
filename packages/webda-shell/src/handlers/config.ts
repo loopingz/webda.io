@@ -44,7 +44,7 @@ export class ConfigurationService extends Executor {
   _deploymentStore: Store < CoreModel > ;
   _webda: WebdaConfigurationServer;
 
-  init() {
+  async init() {
     this._addRoute('/api/modda', ["GET"], this.getServices);
     this._addRoute('/api/models', ["GET", "POST"], this.crudModels);
     this._addRoute('/api/models/{name}', ["GET", "PUT", "DELETE"], this.crudModels);

@@ -2,6 +2,7 @@ const spawn = require('child_process').spawn;
 import {
   Deployer
 } from './deployer';
+import * as fs from 'fs';
 
 type Constructor < T extends Deployer > = new(...args: any[]) => T;
 
@@ -87,17 +88,18 @@ function DockerMixIn < T extends Constructor < Deployer >> (Base: T) {
 
 
     getDockerfile(command, logfile = undefined) {
-      var version = require(__dirname + '/../../package.json').version;
+      var cwd = process.cwd();
+      var packageInfo = require(cwd + '/package.json');
       var dockerfile = `
   FROM node:latest
   MAINTAINER docker@webda.io
   EXPOSE 18080
 
-  RUN mkdir /webda/
-  ADD . /webda/
+  RUN mkdir -p /webda/deployments
+  ADD package.json /webda/
   WORKDIR /webda
-  RUN rm -rf node_modules && yarn install && yarn add webda-shell@`;
-      dockerfile += version + '\n';
+  RUN yarn install && yarn add webda-shell@0.9.10\n`;
+      //dockerfile += packageInfo.version + '\n';
       if (!command) {
         command = 'serve';
       }
@@ -106,6 +108,17 @@ function DockerMixIn < T extends Constructor < Deployer >> (Base: T) {
       } else {
         logfile = '';
       }
+      dockerfile += 'ADD webda.config.json /webda/\n';
+      dockerfile += 'COPY deployments /webda/deployments/\n';
+      let includes = packageInfo.files || ['lib'];
+      console.log(includes);
+      includes.forEach( (path) => {
+        if (fs.lstatSync( cwd + '/' + path).isDirectory()) {
+          path += '/';
+          dockerfile += `RUN mkdir /webda/${path}\n`;
+        }
+        dockerfile += `ADD ${path} /webda/${path}\n`;
+      });
       if (this.deployment && this.deployment.uuid) {
         // Export deployment
         dockerfile += 'RUN node_modules/.bin/webda -d ' + this.deployment.uuid + ' config webda.config.json\n';

@@ -403,8 +403,8 @@ export default class WebdaConsole {
     });
   }
 
-  static async init(argv) {
-    require('child_process').spawnSync("yo", ["webda"], { stdio: 'inherit' });
+  static async init(argv = ["webda"]) {
+    require('child_process').spawnSync("yo", argv, { stdio: 'inherit' });
   }
 
   static initLogger(argv) {
@@ -462,7 +462,7 @@ export default class WebdaConsole {
       case 'undeploy':
         return this.undeploy(argv);
       case 'init':
-        return this.init(argv);
+        return this.init();
       case 'module':
         return this.generateModule();
       default:

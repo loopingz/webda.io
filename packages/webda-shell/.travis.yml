@@ -12,6 +12,7 @@ before_deploy:
 - npm run build
 - npm install -g bower
 - bower install
+- cp -r node_modules/xterm/dist app/bower_components/xterm
 deploy:
   provider: npm
   email: rcattiau@loopingz.com

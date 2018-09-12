@@ -427,6 +427,7 @@ var Webda = {
     app.connect();
 
     app.addEventListener('deploy', function(evt) {
+      app.$.deploymentProgress.clear();
       // Reinit deployment infos
       var deployer = {
         finished: false,
@@ -507,6 +508,7 @@ var Webda = {
       app.deployAction = groups[3];
     }
 
+    app.$.deploymentProgress.append(data);
     // Store output
     app.push('deployStepper.output', data);
     if (data == "DONE") {

@@ -35,32 +35,32 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       #logo img {
           border-radius: 13px;
           border: 3px solid #73AD21;
-      } 
-
-      .active #logo img, .active #schema {
-        animation-name: homeCycle; 
-        animation-duration:5s; 
-        animation-direction:alternate; 
-        animation-iteration-count:infinite; 
-        box-sizing: border-box;
-        -webkit-animation-name: homeCycle; 
-        -webkit-animation-duration:5s; 
-        -webkit-animation-direction:alternate; 
-        -webkit-animation-iteration-count:infinite; 
       }
 
-      @keyframes homeCycle 
-      {
-          0% {border-color:#ff9900;} 
-          33% {border-color:#7ebf6a;} 
-          66% {border-color:#3f51b5;} 
-      } 
+      .active #logo img, .active #schema {
+        animation-name: homeCycle;
+        animation-duration:5s;
+        animation-direction:alternate;
+        animation-iteration-count:infinite;
+        box-sizing: border-box;
+        -webkit-animation-name: homeCycle;
+        -webkit-animation-duration:5s;
+        -webkit-animation-direction:alternate;
+        -webkit-animation-iteration-count:infinite;
+      }
 
-      @-webkit-keyframes homeCycle 
-      { 
-          0% {border-color:#ff9900;} 
-          33% {border-color:#7ebf6a;} 
-          66% {border-color:#3f51b5;} 
+      @keyframes homeCycle
+      {
+          0% {border-color:#ff9900;}
+          33% {border-color:#7ebf6a;}
+          66% {border-color:#3f51b5;}
+      }
+
+      @-webkit-keyframes homeCycle
+      {
+          0% {border-color:#ff9900;}
+          33% {border-color:#7ebf6a;}
+          66% {border-color:#3f51b5;}
       }
 
       #content {
@@ -69,7 +69,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       #logo {
-        margin-top: -48px;
+        margin-top: -0px;
         position: absolute;
         right: 40px;
       }
@@ -96,36 +96,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       #schema div.active {
-        animation-name: activeCycle; 
-        animation-duration:2s; 
-        animation-direction:alternate; 
-        animation-iteration-count:infinite; 
-        -webkit-animation-name: activeCycle; 
-        -webkit-animation-duration:2s; 
-        -webkit-animation-direction:alternate; 
-        -webkit-animation-iteration-count:infinite; 
+        animation-name: activeCycle;
+        animation-duration:2s;
+        animation-direction:alternate;
+        animation-iteration-count:infinite;
+        -webkit-animation-name: activeCycle;
+        -webkit-animation-duration:2s;
+        -webkit-animation-direction:alternate;
+        -webkit-animation-iteration-count:infinite;
 
       }
 
 
-      @keyframes activeCycle 
+      @keyframes activeCycle
       {
           0% {
             -webkit-filter: grayscale(75%); /* Chrome, Safari, Opera */
             filter: grayscale(75%);
-          } 
+          }
           50% {
             -webkit-filter: grayscale(90%); /* Chrome, Safari, Opera */
             filter: grayscale(90%);
-          } 
-      } 
+          }
+      }
 
-      @-webkit-keyframes activeCycle 
-      { 
+      @-webkit-keyframes activeCycle
+      {
           0% {
             -webkit-filter: grayscale(75%); /* Chrome, Safari, Opera */
             filter: grayscale(75%);
-          } 
+          }
           50% {
             -webkit-filter: grayscale(90%); /* Chrome, Safari, Opera */
             filter: grayscale(90%);
@@ -141,19 +141,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       }
 
-      pre {
-        background-color: #fafafa;
+      #terminalContainer {
+        background-color: #000;
         left: 0px;
         right: 0px;
-        top: 252px;
+        top: 122px;
         bottom: 56px;
         padding-bottom: 0px;
         border: 0px solid #fafafa;
         margin: 0px;
         position: absolute;
         z-index: -1;
-        line-height: 10px;
-        overflow: scroll;
+        padding: 5px;
+      }
+
+      #terminal {
+        width: 100%;
+        height: calc(100% - 10px);
       }
 
       .buttons {
@@ -166,12 +170,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
     <style include="paper-dialog-shared-styles"></style>
+    <link rel="stylesheet" href="../../bower_components/xterm/xterm.css" />
     <div id="content">
       <template is="dom-if" if="[[action]]">
-        <h2>[[action]]</h2>  
+        <h2>[[action]]</h2>
       </template>
       <template is="dom-if" if="[[!action]]">
-        <h2>Deploying ...</h2>  
+        <h2>Deploying ...</h2>
       </template>
         <iron-pages attr-for-selected="data-type" selected="[[stepper.type]]">
             <section data-type="aws">
@@ -181,17 +186,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 <div class="step"><img src="../../images/steps/aws_3.png" /></div>
                 <div class="step"><img src="../../images/steps/aws_4.png" /></div>
               </div>
-            </section>  
+            </section>
             <section data-type="docker">
               <div class="step"></div><div class="step"></div>
             </section>
         </iron-pages>
       <div id="logo"><img src="../../images/touch/icon-96x96.png" /></div>
-      <pre>
-      <template is="dom-repeat" items="[[stepper.output]]">
-        {{item}}
-      </template>
-      </pre>
+      <div id="terminalContainer"><div id="terminal"></div></div>
       <div class="buttons">
         <paper-button dialog-dismiss>Cancel</paper-button>
         <paper-button disabled="[[!stepper.finished]]" dialog-confirm>Ok</paper-button>
@@ -201,14 +202,59 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <script>
     (function() {
       'use strict';
+      function proposeGeometry(term) {
+        if (!term.element.parentElement) {
+          return null;
+        }
+        var parentElementStyle = window.getComputedStyle(term.element.parentElement);
+        var parentElementHeight = parseInt(parentElementStyle.getPropertyValue('height'));
+        var parentElementWidth = Math.max(0, parseInt(parentElementStyle.getPropertyValue('width')));
+        var elementStyle = window.getComputedStyle(term.element);
+        var elementPadding = {
+          top: parseInt(elementStyle.getPropertyValue('padding-top')),
+          bottom: parseInt(elementStyle.getPropertyValue('padding-bottom')),
+          right: parseInt(elementStyle.getPropertyValue('padding-right')),
+          left: parseInt(elementStyle.getPropertyValue('padding-left'))
+        };
+        var elementPaddingVer = elementPadding.top + elementPadding.bottom;
+        var elementPaddingHor = elementPadding.right + elementPadding.left;
+        var availableHeight = parentElementHeight - elementPaddingVer;
+        var availableWidth = parentElementWidth - elementPaddingHor - term._core.viewport.scrollBarWidth;
+        term._core.renderer.dimensions.actualCellWidth = term._core.renderer.dimensions.actualCellWidth || 500;
+        term._core.renderer.dimensions.actualCellHeight = term._core.renderer.dimensions.actualCellHeight || 600;
+        if (!term._core.renderer.dimensions.actualCellWidth || !term._core.renderer.dimensions.actualCellHeight) {
+          return null;
+        }
+        var geometry = {
+          cols: Math.floor(availableWidth / term._core.renderer.dimensions.actualCellWidth),
+          rows: Math.floor(availableHeight / term._core.renderer.dimensions.actualCellHeight)
+        };
+        return geometry;
+      }
+      function fit(term) {
+        var geometry = proposeGeometry(term);
+        if (geometry) {
+          if (term.rows !== geometry.rows || term.cols !== geometry.cols) {
+            term._core.renderer.clear();
+            term.resize(geometry.cols, geometry.rows);
+          }
+        }
+      }
+
       Polymer({
         is: 'deployment-progress-dialog',
         behaviors: [Polymer.PaperDialogBehavior],
-        observers: [
-          'updateOutput(stepper.output[0])',
-        ],
-        updateOutput: function() {
-          console.log("updateOutput");
+        observers: [],
+        clear: function() {
+          if (this._xterm) {
+            this._xterm.clear();
+          }
+        },
+        append: function(output) {
+          if (this._xterm) {
+            fit(this._xterm);
+            output.split('\n').forEach((line) => {this._xterm.writeln(line)});
+          }
         },
         stepUpdate: function() {
           if (this.current > this.stepper.max) {
@@ -224,6 +270,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           if (!el) return;
           el.classList.add('active');
           el.classList.remove('step');
+        },
+        attached: function() {
+          console.log('connected Callback');
+          this._xterm = new Terminal();
+          this._xterm.open(this.$.terminal);
+          fit(this._xterm);
+          this._xterm.setOption('fontSize', 12);
         },
         ready: function () {
           this.$.content.classList.add('active');

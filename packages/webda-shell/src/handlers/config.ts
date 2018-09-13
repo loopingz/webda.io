@@ -747,11 +747,12 @@ export class WebdaConfigurationServer extends WebdaServer {
 
   deployFork(env) {
     var args = [];
-    args.push('-d');
-    args.push(env);
+    args.push('webda');
+    args.push('-d ' + env);
     args.push("deploy");
 
-    this.deployChild = require("child_process").spawn('webda', args);
+    this.output("Forking Webda with: ", args);
+    this.deployChild = require("child_process").spawn('node', args);
     this._deployOutput = [];
 
     this.deployChild.stdout.on('data', (data) => {

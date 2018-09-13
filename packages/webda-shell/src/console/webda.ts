@@ -221,7 +221,7 @@ export default class WebdaConsole {
     }
     // server_config.parameters.logLevel = server_config.parameters.logLevel || argv['log-level'];
     webda = new WebdaServer(server_config);
-    await webda.waitForInit();
+    await webda.init();
     webda._devMode = argv.devMode;
     if (webda._devMode) {
       this.output('Dev mode activated : wildcard CORS enabled');
@@ -244,7 +244,7 @@ export default class WebdaConsole {
     }
     webda = new WebdaServer(server_config);
     webda.setHost();
-    await webda.waitForInit();
+    await webda.init();
     let services = webda.getServices();
     let promises = [];
     for (var name in services) {
@@ -281,7 +281,7 @@ export default class WebdaConsole {
       server_config = this._loadDeploymentConfig(argv.deployment);
     }
     webda = new WebdaServer(server_config);
-    await webda.waitForInit();
+    await webda.init();
     let service = webda.getService(service_name);
     let method = argv._[2] || 'work';
     if (!service) {
@@ -359,14 +359,11 @@ export default class WebdaConsole {
     let webda = new WebdaConfigurationServer();
     // Transfer the output
     webda.output = this.output;
-    await webda.waitForInit();
     return webda;
   }
 
   static _loadDeploymentConfig(deployment) {
     let webda = new WebdaConfigurationServer();
-    // Transfer the output
-    webda.output = this.output;
     return webda.loadDeploymentConfig(deployment);
   }
 
@@ -407,19 +404,20 @@ export default class WebdaConsole {
     require('child_process').spawnSync("yo", argv, { stdio: 'inherit' });
   }
 
-  static initLogger(argv) {
+  static async initLogger(argv) {
     if (argv['logLevels']) {
       process.env['WEBDA_LOG_LEVELS'] = argv['logLevels'];
     }
     if (argv['logLevel']) {
       process.env['WEBDA_LOG_LEVEL'] = argv['logLevel'];
     }
-    this.logger.init({});
+    this.logger.normalizeParams();
+    await this.logger.init();
   }
 
-  static handleCommand(args) {
+  static async handleCommand(args) {
     let argv = this.parser(args);
-    this.initLogger(argv);
+    await this.initLogger(argv);
     if (['undeploy', 'deploy', 'install', 'uninstall'].indexOf(argv._[0]) >= 0) {
       if (argv.deployment === undefined) {
         this.output('Need to specify an environment');

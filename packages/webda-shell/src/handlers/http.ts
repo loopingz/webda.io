@@ -31,7 +31,7 @@ export class WebdaServer extends Webda {
 
   async handleRequest(req, res, next) {
     // Wait for Webda to be ready
-    await this.waitForInit();
+    await this.init();
     // Ensure cookie session
     if (req.cookies.webda === undefined) {
       req.cookies.webda = {};

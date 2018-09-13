@@ -56,6 +56,7 @@ interface Configuration {
 class Webda extends events.EventEmitter {
   _services: Map < string,
   Service > = new Map();
+  _init: boolean = false;
   _modules: any;
   _config: Configuration;
   _routehelpers: any;
@@ -69,6 +70,7 @@ class Webda extends events.EventEmitter {
   _initPromise: Promise < void > ;
   _loggers: Logger[] = [];
   _initTime: number;
+  _logger: ConsoleLogger;
 
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
@@ -77,20 +79,10 @@ class Webda extends events.EventEmitter {
     /** @ignore */
     super();
     this._initTime = new Date().getTime();
-    /*
-    try {
-      throw new Error();
-    } catch (err) {
-      console.log(this._initTime, err);
-    }*/
-    if (process.env['WEBDA_INIT_TRACE']) {
-      let logger = new ConsoleLogger(this, 'coreLogger', {logLevel: 'TRACE', logLevels: 'ERROR,WARN,INFO,DEBUG,TRACE'});
-      console.log(this.constructor.name, 'setting TRACE logger as WEBDA_INIT_TRACE is set', logger._initTime);
-      this._loggers.push(logger);
-    } else {
-      let logger = new ConsoleLogger(this, 'coreLogger', {logLevel: 'WARN', logLevels: 'ERROR,WARN,INFO,DEBUG,TRACE'});
-      this._loggers.push(logger);
-    }
+    this._logger = new ConsoleLogger(this, 'coreLogger', {logLevel: 'WARN', logLevels: 'ERROR,WARN,INFO,DEBUG,TRACE'});
+    // We enforce this normalization
+    this._logger.normalizeParams();
+    this._loggers.push(this._logger);
     this._vhost = '';
     // Schema validations
     this._ajv = Ajv();
@@ -138,6 +130,10 @@ class Webda extends events.EventEmitter {
   }
 
   async init() {
+    if (this._init) {
+      return;
+    }
+    this._init = true;
     // Init services
     let service;
     for (service in this._config._services) {
@@ -834,12 +830,10 @@ class Webda extends events.EventEmitter {
   }
 
   autoConnectServices(): void {
+    // TODO Leverage decorators instead of setter name
     for (let service in this._config._services) {
       let serviceBean = this._config._services[service];
-      serviceBean.normalizeParams();
-      if (serviceBean instanceof Executor) {
-        serviceBean.initRoutes();
-      }
+      serviceBean.resolve();
       let setters = this._getSetters(serviceBean);
       setters.forEach((setter) => {
         let targetService = this._config._services[setter.substr(3).toLowerCase()];
@@ -885,6 +879,11 @@ class Webda extends events.EventEmitter {
     this.emit('Webda.Init', this._config);
   }
 
+  /**
+   * Not usefull anymore
+   * @deprecated
+   * @param config
+   */
   initModdas(config): void {
     // Moddas are the custom type of service
     // They are either coming from npm or are direct lambda feature or local with require

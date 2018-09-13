@@ -62,6 +62,14 @@ class Executor extends Service {
   initRoutes() {
 
   }
+
+  /**
+   *
+   */
+  resolve() {
+    super.resolve();
+    this.initRoutes();
+  }
 }
 
 export {

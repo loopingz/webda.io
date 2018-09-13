@@ -40,6 +40,10 @@ class Service extends events.EventEmitter {
     this._params = params;
   }
 
+  resolve() {
+    this.normalizeParams();
+  }
+
   /**
    * Convert an object to JSON using the Webda json filter
    *

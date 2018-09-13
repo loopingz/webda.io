@@ -47,7 +47,7 @@ describe('Queues', function() {
 
   beforeEach(async () => {
     webda = new Webda.Core(config);
-    await webda.waitForInit();
+    await webda.init();
   });
 
   describe('Queue', function() {

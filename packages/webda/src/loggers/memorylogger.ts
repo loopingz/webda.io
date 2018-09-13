@@ -11,8 +11,8 @@ class MemoryLogger extends Logger {
   _logs: LogEntry[] = [];
   _maxItems: number;
 
-  async init(params): Promise < void > {
-    await super.init(params);
+  normalizeParams() {
+    super.normalizeParams();
     this._maxItems = this._params.maxItems || 1000;
   }
 

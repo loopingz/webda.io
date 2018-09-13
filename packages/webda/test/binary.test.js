@@ -125,8 +125,9 @@ describe('Binary', function() {
       console.log("Not running S3Binary test as no AWS env found");
     }
   });
-  beforeEach(function() {
+  beforeEach(async function() {
     webda = new Webda.Core(config);
+    await webda.init();
   });
   describe('Binary', function() {
     const Binary = Webda.Binary;

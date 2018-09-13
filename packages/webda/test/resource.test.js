@@ -12,8 +12,9 @@ describe('ResourceService', () => {
   var webda;
   var resource;
   var resourceModel;
-  beforeEach(() => {
+  beforeEach(async () => {
     webda = new Webda.Core(config);
+    await webda.init();
     resource = webda.getService('ResourceService');
     resourceModel = webda.getService('ModelsResource');
     ctx = webda.newContext();

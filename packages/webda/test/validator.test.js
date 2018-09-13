@@ -10,6 +10,9 @@ const Utils = require("./utils");
 describe('Validator', function() {
   var taskStore;
   var userStore;
+  before( async () => {
+    await webda.init();
+  });
   describe('JSON Schema', function() {
     beforeEach(async () => {
       taskStore = webda.getService("Tasks");

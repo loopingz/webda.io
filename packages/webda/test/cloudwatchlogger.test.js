@@ -8,8 +8,12 @@ const Utils = require("./utils");
 describe('Webda', function() {
 
   before(async function() {
+    if (skipAWS) {
+      this.skip();
+      return;
+    }
     webda = new Webda.Core(config);
-    await webda.waitForInit();
+    await webda.init();
     await webda.getService('CloudWatchLogger')._cloudwatch.deleteLogGroup({
       logGroupName: 'webda-test'
     }).promise();
@@ -21,7 +25,7 @@ describe('Webda', function() {
         return;
       }
       webda = new Webda.Core(config);
-      await webda.waitForInit();
+      await webda.init();
       webda.log('TEST', 'Plop 0', 'Test');
       webda.log('TEST2', 'Plop 1', 'Test');
       webda.log('TEST2', 'Plop 2', 'Test');
@@ -43,7 +47,7 @@ describe('Webda', function() {
       // Update config to use the stepper
       config.services.CloudWatchLogger.singlePush = true;
       webda = new Webda.Core(config);
-      await webda.waitForInit();
+      await webda.init();
       let logger = webda.getService('CloudWatchLogger');
       webda.log('TEST', 'Plop 0', 'Test');
       webda.log('TEST2', 'Plop 1', 'Test');

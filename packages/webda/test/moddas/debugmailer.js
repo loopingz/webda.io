@@ -2,7 +2,8 @@
 const Webda = require("../../lib/index");
 
 class DebugMailer extends Webda.Service {
-  init() {
+  constructor(webda, name, params) {
+    super(webda, name, params);
     this.sent = [];
   }
 

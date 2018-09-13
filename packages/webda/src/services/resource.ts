@@ -9,7 +9,7 @@ export default class ResourceService extends Executor {
 
   _resolved: string;
 
-  async init(): Promise < void > {
+  normalizeParams() {
     this._params.url = this._params.url || 'resources';
     if (!this._params.url.startsWith('/')) {
       this._params.url = '/' + this._params.url;
@@ -17,11 +17,15 @@ export default class ResourceService extends Executor {
     if (!this._params.url.endsWith('/')) {
       this._params.url += '/';
     }
+
     this._params.folder = this._params.folder || ('.' + this._params.url);
     if (!this._params.folder.endsWith('/')) {
       this._params.folder += '/';
     }
     this._resolved = path.resolve(this._params.folder) + '/';
+  }
+
+  initRoutes() {
     this._addRoute(this._params.url, ['GET'], this._serve);
     this._addRoute(this._params.url + '{resource}', ['GET'], this._serve, true);
   }

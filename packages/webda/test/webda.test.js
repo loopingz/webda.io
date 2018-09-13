@@ -59,7 +59,7 @@ describe('Webda', function() {
   });
   describe('getVersion()', function() {
     it('current', function() {
-      assert.equal(webda.getVersion(), '0.9.11');
+      assert.equal(webda.getVersion(), '0.9.12');
     });
   });
   describe('utils', function() {
@@ -103,7 +103,7 @@ describe('Webda', function() {
       assert.equal(webda.getLocales().indexOf("en-GB"), 0);
       process.env.WEBDA_CONFIG = __dirname + '/config.broken.json';
       webda = new Webda.Core();
-      await webda.waitForInit();
+      await webda.init();
       assertInitError('ConfigurationService', 'Need a source for');
       assertInitError('ConfigurationServiceBadSource', 'Need a valid service');
       assertInitError('ConfigurationServiceBadSourceNoId', 'Need a valid source');
@@ -273,18 +273,15 @@ describe('Webda', function() {
       let service = webda.getService('Authentication');
       assert.equal(service._params.providers.email.text, '');
       assert.equal(service._params.providers.email.mailer, 'DefinedMailer');
-      await webda.reinitServices({
+      await webda.reinit({
         'Authentication.providers.email.text': 'New Text'
       });
       let newService = webda.getService('Authentication');
-      assert.notEqual(service, newService, 'Service should have been rotated completely');
       assert.equal(newService._params.providers.email.text, 'New Text');
       assert.equal(newService._params.providers.email.mailer, 'DefinedMailer');
-      await Utils.throws(webda.reinitServices.bind(webda, {
+      await Utils.throws(webda.reinit.bind(webda, {
         'Bouzouf.plop': 'Testor'
       }), Error);
-      // Service should not have been refresh as we try to create a new service
-      assert.equal(newService, webda.getService('Authentication'));
     })
   });
 });

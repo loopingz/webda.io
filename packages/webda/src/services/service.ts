@@ -23,6 +23,7 @@ class Service extends events.EventEmitter {
   _name: string;
   _params: any;
   _createException: string;
+  _initTime: number;
   /**
    *
    *
@@ -33,6 +34,7 @@ class Service extends events.EventEmitter {
    */
   constructor(webda: Core, name: string, params: any) {
     super();
+    this._initTime = new Date().getTime();
     this._webda = webda;
     this._name = name;
     this._params = params;
@@ -55,8 +57,21 @@ class Service extends events.EventEmitter {
    * @param config for the host so you can add your own route here
    * @abstract
    */
-  async init(config): Promise < void > {
+  async init(): Promise < void > {
 
+  }
+
+  /**
+   * Handle cleaning of params
+   */
+  normalizeParams() {
+
+  }
+
+  async reinit(config): Promise < void > {
+    this._params = config;
+    this.normalizeParams();
+    this.init();
   }
 
   /**

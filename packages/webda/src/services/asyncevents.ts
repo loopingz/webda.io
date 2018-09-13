@@ -32,19 +32,16 @@ interface QueueMap {
 }
 
 class EventService extends Service {
-  _callbacks: any;
-  _queues: QueueMap;
-  _defaultQueue: string;
+  _callbacks: any = {};
+  _queues: QueueMap = {};
+  _defaultQueue: string = '';
   _async: boolean;
 
   /**
    * @ignore
    * Setup the default routes
    */
-  async init(config): Promise < void > {
-    this._callbacks = {};
-    this._queues = {};
-    this._defaultQueue = '';
+  async init(): Promise < void > {
     if (this._params.queues) {
       Object.keys(this._params.queues).forEach((key) => {
         // Define default as first queue
@@ -54,7 +51,7 @@ class EventService extends Service {
         this._queues[key] = < Queue > this.getService(this._params.queues[key]);
       });
     }
-    this._async = !config.sync;
+    this._async = !this._params.sync;
     // Check we have at least one queue to handle asynchronous
     if (this._async && Object.keys(this._queues).length < 1) {
       this._webda.log('ERROR', 'Need at least one queue for async to be ready', this._params);

@@ -9,8 +9,8 @@ export default class AwsSecretsManager extends AWSMixIn(Service) implements Conf
 
   _client: any;
 
-  async init(params): Promise < void > {
-    await super.init(params);
+  async init(): Promise < void > {
+    await super.init();
     this._client = new(this._getAWS(this._params)).SecretsManager();
   }
 

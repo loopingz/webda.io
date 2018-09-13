@@ -9,8 +9,9 @@ describe("RoutesHelper", function() {
   var webda;
   var ctx;
   var executor;
-  beforeEach(function() {
+  beforeEach(async function() {
     webda = new Webda.Core(config);
+    await webda.init();
     ctx = webda.newContext();
   });
   it('String', async () => {

@@ -42,6 +42,10 @@ class BinaryMap {
  */
 class Binary extends Executor {
 
+  constructor(webda, name, params : any = {}) {
+    super(webda, name, params);
+  }
+
   _lowercaseMaps: any;
   _url: string;
   /**
@@ -140,11 +144,8 @@ class Binary extends Executor {
   }
 
   /** @ignore */
-  async init(config): Promise < void > {
+  async init(): Promise < void > {
     this.initMap(this._params.map);
-    if (this._params.expose) {
-      this.initRoutes(config);
-    }
   }
 
   _getUrl(info, ctx: Context) {
@@ -308,9 +309,11 @@ class Binary extends Executor {
     return file;
   }
 
-  initRoutes(config) {
+  initRoutes() {
     let url;
-
+    if (!this._params.expose) {
+      return;
+    }
     if (typeof(this._params.expose) == "boolean") {
       this._params.expose = {};
       this._params.expose.url = "/" + this._name.toLowerCase();

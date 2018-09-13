@@ -43,18 +43,14 @@ import {
  *   }
  */
 class Store < T extends CoreModel > extends Executor implements ConfigurationProvider {
-  _reverseMap: any[];
-  _cascade: any[];
+  _reverseMap: any[] = [];
+  _cascade: any[] = [];
   _writeConditionField: string;
   _model: CoreModelDefinition;
   _exposeUrl: string;
 
   /** @ignore */
-  constructor(webda, name, options) {
-    super(webda, name, options);
-    this._name = name;
-    this._reverseMap = [];
-    this._cascade = [];
+  normalizeParams() {
     this._writeConditionField = "lastUpdate";
     let model = this._params.model;
     if (!model) {
@@ -63,15 +59,17 @@ class Store < T extends CoreModel > extends Executor implements ConfigurationPro
     this._model = this._webda.getModel(model);
   }
 
-  async init(config): Promise < void > {
+  async init(): Promise < void > {
+    this.normalizeParams();
     this.initMap(this._params.map);
-
-    if (this._params.expose) {
-      this.initRoutes(this._params.expose);
-    }
   }
 
-  initRoutes(expose) {
+  initRoutes() {
+    this.normalizeParams();
+    if (!this._params.expose) {
+      return;
+    }
+    let expose = this._params.expose;
     if (typeof(expose) == "boolean") {
       expose = {};
       expose.url = "/" + this._name.toLowerCase();
@@ -148,7 +146,6 @@ class Store < T extends CoreModel > extends Executor implements ConfigurationPro
     for (var i in this._reverseMap) {
       for (var j in object[this._reverseMap[i].property]) {
         object[this._reverseMap[i].property][j] = this._reverseMap[i].store.initModel(object[this._reverseMap[i].property][j]);
-
       }
     }
     return object;
@@ -281,7 +278,7 @@ class Store < T extends CoreModel > extends Executor implements ConfigurationPro
       var reverseStore: Store < CoreModel > = < Store < CoreModel > > this._webda.getService(prop);
       if (reverseStore === undefined || !(reverseStore instanceof Store)) {
         map[prop]["-onerror"] = "NoStore";
-        this._webda.log('WARN', 'Can\'t setup mapping as store "', prop, '" doesn\'t exist');
+        this.log('WARN', 'Can\'t setup mapping as store "', prop, '" doesn\'t exist');
         continue;
       }
       var cascade = undefined;
@@ -765,7 +762,7 @@ class Store < T extends CoreModel > extends Executor implements ConfigurationPro
     try {
       await object.validate(ctx);
     } catch (err) {
-      this.log('WARN', 'Object is not valid', err);
+      this.log('DEBUG', 'Object is not valid', err);
       throw 400;
     }
     if (await this.exists(object.uuid)) {

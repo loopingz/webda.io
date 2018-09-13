@@ -38,13 +38,13 @@ class S3Binary extends AWSMixIn(Binary) {
     this.AWS = this._getAWS(params);
   }
 
-  async init(config): Promise < void > {
-    await super.init(config);
+  async init(): Promise < void > {
+    await super.init();
     this._s3 = new this.AWS.S3();
   }
 
-  initRoutes(config) {
-    super.initRoutes(config);
+  initRoutes() {
+    super.initRoutes();
     // Will use getRedirectUrl so override the default route
     var url = this._url + "/{store}/{uid}/{property}/{index}";
     this._addRoute(url, ["GET"], this.getRedirectUrl);

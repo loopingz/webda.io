@@ -296,8 +296,9 @@ describe('Store', () => {
       console.log("Not running MongoStore test as no MONGO env found");
     }
   });
-  beforeEach(() => {
+  beforeEach(async () => {
     webda = new Webda.Core(config);
+    await webda.init();
   });
   describe('FileStore', () => {
     beforeEach(() => {

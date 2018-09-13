@@ -8,10 +8,10 @@ interface StorageMap {
 }
 
 class MemoryStore < T extends CoreModel > extends Store < T > {
-  storage: StorageMap;
-  async init(config): Promise < void > {
-    this.storage = {};
-    return super.init(config);
+  storage: StorageMap = {};
+
+  async init(): Promise < void > {
+    return super.init();
   }
 
   async exists(uid) {
@@ -138,7 +138,7 @@ class MemoryStore < T extends CoreModel > extends Store < T > {
       "description": "Implements a simple in memory store",
       "webcomponents": [],
       "documentation": "",
-      "logo": "images/placeholders/memorystore.png",
+      "logo": "images/icons/memorystore.png",
       "configuration": {
         "default": {},
         "widget": {

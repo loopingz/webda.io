@@ -1,7 +1,8 @@
 "use strict";
 import {
   Service,
-  Context
+  Context,
+  Core
 } from '../index';
 
 /**
@@ -53,6 +54,13 @@ class Executor extends Service {
    */
   updateContext(ctx: Context) {
     ctx.setExecutor(this);
+  }
+
+  /**
+   * Init the routes
+   */
+  initRoutes() {
+
   }
 }
 

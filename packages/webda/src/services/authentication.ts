@@ -78,6 +78,26 @@ class Authentication extends Executor {
     this._params.providers = this._params.providers || {};
   }
 
+  initRoutes() {
+    // ROUTES
+    let url = this._params.expose || '/auth';
+    // List authentication configured
+    this._addRoute(url, ["GET", "DELETE"], this._listAuthentications);
+    // Get the current user
+    this._addRoute(url + "/me", ["GET"], this._getMe);
+    if (this._params.providers.email) {
+      // Add static for email for now, if set before it should have priority
+      this._addRoute(url + "/email", ["POST"], this._handleEmail);
+      this._addRoute(url + "/email/callback{?email,token}", ["GET"], this._handleEmailCallback);
+      this._addRoute(url + "/email/passwordRecovery", ["POST"], this._passwordRecovery);
+      this._addRoute(url + "/email/{email}/recover", ["GET"], this._passwordRecoveryEmail);
+    }
+    // Handle the lost password here
+    url += '/{provider}';
+    this._addRoute(url, ["GET"], this._authenticate);
+    this._addRoute(url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}", ["GET"], this._callback);
+  }
+
   setIdents(identStore) {
     this._identsStore = identStore;
   }
@@ -91,7 +111,6 @@ class Authentication extends Executor {
    * Setup the default routes
    */
   async init(): Promise < void > {
-    let url = this._params.expose || '/auth';
 
     if (this._params.identStore) {
       this._identsStore = < Store < Ident > > this.getService(this._params.identStore);
@@ -111,24 +130,6 @@ class Authentication extends Executor {
     if (this._identsStore === undefined || this._usersStore === undefined) {
       throw Error("Unresolved dependency on idents and users services");
     }
-
-    // ROUTES
-
-    // List authentication configured
-    this._addRoute(url, ["GET", "DELETE"], this._listAuthentications);
-    // Get the current user
-    this._addRoute(url + "/me", ["GET"], this._getMe);
-    if (this._params.providers.email) {
-      // Add static for email for now, if set before it should have priority
-      this._addRoute(url + "/email", ["POST"], this._handleEmail);
-      this._addRoute(url + "/email/callback{?email,token}", ["GET"], this._handleEmailCallback);
-      this._addRoute(url + "/email/passwordRecovery", ["POST"], this._passwordRecovery);
-      this._addRoute(url + "/email/{email}/recover", ["GET"], this._passwordRecoveryEmail);
-    }
-    // Handle the lost password here
-    url += '/{provider}';
-    this._addRoute(url, ["GET"], this._authenticate);
-    this._addRoute(url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}", ["GET"], this._callback);
   }
 
   addProvider(name, strategy, config) {

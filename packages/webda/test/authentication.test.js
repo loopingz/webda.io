@@ -17,8 +17,9 @@ const Utils = require("./utils");
 const validationUrl = /.*\/auth\/email\/callback\?email=([^&]+)&token=([^ ]+)/
 
 describe('Passport', function() {
-  before(function() {
+  before(async function() {
     webda = new Webda.Core(config);
+    await webda.init();
     userStore = webda.getService("Users")
     userStore.__clean();
     identStore = webda.getService("Idents");

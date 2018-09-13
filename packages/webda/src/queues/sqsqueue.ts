@@ -10,8 +10,8 @@ import {
 class SQSQueue extends AWSMixIn(Queue) {
   sqs: any;
 
-  async init(config): Promise < void > {
-    await super.init(config);
+  async init(): Promise < void > {
+    await super.init();
     this.sqs = new(this._getAWS(this._params)).SQS();
     if (!this._params.WaitTimeSeconds) {
       this._params.WaitTimeSeconds = 20;

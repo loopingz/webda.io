@@ -15,12 +15,12 @@ abstract class Logger extends Service {
     return process.env['WEBDA_LOG_LEVEL'] || this._params.logLevel || 'INFO';
   }
 
-  async init(params): Promise < void > {
+  normalizeParams() {
     this._levels = this.getDefaultLogLevels().split(',').map((lvl) => lvl.trim());
     this._level = this._levels.indexOf(this.getDefaultLogLevel());
     if (this._level < 0) {
       this._level = 0;
-      this._log('ERROR', 'Log level', this.getDefaultLogLevel(), 'does not exist');
+      this._log('ERROR', 'Log level', this.getDefaultLogLevel(), 'does not exist', this.getDefaultLogLevels());
     }
   }
 

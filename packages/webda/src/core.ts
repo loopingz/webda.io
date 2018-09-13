@@ -68,6 +68,7 @@ class Webda extends events.EventEmitter {
   _configFile: string;
   _initPromise: Promise < void > ;
   _loggers: Logger[] = [];
+  _initTime: number;
 
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
@@ -75,6 +76,21 @@ class Webda extends events.EventEmitter {
   constructor(config = undefined) {
     /** @ignore */
     super();
+    this._initTime = new Date().getTime();
+    /*
+    try {
+      throw new Error();
+    } catch (err) {
+      console.log(this._initTime, err);
+    }*/
+    if (process.env['WEBDA_INIT_TRACE']) {
+      let logger = new ConsoleLogger(this, 'coreLogger', {logLevel: 'TRACE', logLevels: 'ERROR,WARN,INFO,DEBUG,TRACE'});
+      console.log(this.constructor.name, 'setting TRACE logger as WEBDA_INIT_TRACE is set', logger._initTime);
+      this._loggers.push(logger);
+    } else {
+      let logger = new ConsoleLogger(this, 'coreLogger', {logLevel: 'WARN', logLevels: 'ERROR,WARN,INFO,DEBUG,TRACE'});
+      this._loggers.push(logger);
+    }
     this._vhost = '';
     // Schema validations
     this._ajv = Ajv();
@@ -118,11 +134,27 @@ class Webda extends events.EventEmitter {
     // Load modules
     this._loadModules();
 
-    this._initPromise = this.init();
+    this.initStatics();
   }
 
-  waitForInit() {
-    return this._initPromise;
+  async init() {
+    // Init services
+    let service;
+    for (service in this._config._services) {
+      if (this._config._services[service].init !== undefined) {
+        try {
+          // TODO Define parralel initialization
+          this.log('TRACE', 'Initializing service', service);
+          await this._config._services[service].init();
+        } catch (err) {
+          this._config._services[service]._initException = err;
+          this.log('ERROR', "Init service " + service + " failed", err);
+          this.log('TRACE', err.stack);
+        }
+      }
+    }
+
+    this.emit('Webda.Init.Services', this._config._services);
   }
 
   /**
@@ -690,7 +722,7 @@ class Webda extends events.EventEmitter {
     return res;
   }
 
-  async reinitServices(updates: Map < string, any > , requester: string[]): Promise < void > {
+  async reinit(updates: Map < string, any >): Promise < void > {
     let configuration = JSON.parse(JSON.stringify(this._config.services));
     for (let service in updates) {
       jsonpath.value(configuration, service, updates[service]);
@@ -700,16 +732,30 @@ class Webda extends events.EventEmitter {
       return this._initPromise;
     }
     this._config.services = configuration;
-    this._initPromise = this.initServices(requester);
-    // We reinit everything
-    return this._initPromise;
+    for (let service in this._config._services) {
+      try {
+        // TODO Define parralel initialization
+        this.log('TRACE', 'Re-Initializing service', service);
+        let serviceBean = this._config._services[service];
+        await serviceBean.reinit(this.getServiceParams(serviceBean._name));
+      } catch (err) {
+        this._config._services[service]._reinitException = err;
+        this.log('ERROR', "Re-Init service " + service + " failed", err);
+        this.log('TRACE', err.stack);
+      }
+    }
   }
 
+  getServiceParams(service : string) : any {
+    var params = this.extendParams(this._config.services[service], this._config.parameters);
+    delete params.require;
+    return params;
+  }
   /**
    * @ignore
    *
    */
-  async initServices(excludes: string[] = []): Promise < void > {
+  createServices(excludes: string[] = []): Promise < void > {
     var services = this._config.services;
     if (this._config._services === undefined) {
       this._config._services = {};
@@ -758,10 +804,10 @@ class Webda extends events.EventEmitter {
         this.log('ERROR', 'No constructor found for service ' + service);
         continue;
       }
-      var params = this.extendParams(services[service], this._config.parameters);
-      delete params.require;
+
       try {
-        this._config._services[service.toLowerCase()] = new serviceConstructor(this, service, params);
+        this.log('TRACE', 'Constructing service', service);
+        this._config._services[service.toLowerCase()] = new serviceConstructor(this, service, this.getServiceParams(service));
         if (this._config._services[service.toLowerCase()] instanceof Logger) {
           this._loggers.push(this._config._services[service.toLowerCase()]);
         }
@@ -773,25 +819,9 @@ class Webda extends events.EventEmitter {
 
     this.autoConnectServices();
 
-    // Init services
-    for (service in this._config._services) {
-      if (excludes.indexOf(service) >= 0) {
-        continue;
-      }
-      if (this._config._services[service].init !== undefined) {
-        try {
-          // TODO Define parralel initialization
-          await this._config._services[service].init(this._config);
-        } catch (err) {
-          this._config._services[service]._initException = err;
-          this.log('ERROR', "Init service " + service + " failed", err);
-          this.log('TRACE', err.stack);
-        }
-      }
-    }
-
-    this.emit('Webda.Init.Services', this._config._services);
+    this.emit('Webda.Create.Services', this._config._services);
   }
+
 
 
   _getSetters(obj): any[] {
@@ -805,11 +835,16 @@ class Webda extends events.EventEmitter {
 
   autoConnectServices(): void {
     for (let service in this._config._services) {
-      let setters = this._getSetters(this._config._services[service]);
+      let serviceBean = this._config._services[service];
+      serviceBean.normalizeParams();
+      if (serviceBean instanceof Executor) {
+        serviceBean.initRoutes();
+      }
+      let setters = this._getSetters(serviceBean);
       setters.forEach((setter) => {
         let targetService = this._config._services[setter.substr(3).toLowerCase()];
         if (targetService) {
-          this._config._services[service][setter](targetService);
+          serviceBean[setter](targetService);
         }
       });
     }
@@ -820,7 +855,8 @@ class Webda extends events.EventEmitter {
     return value;
   }
 
-  async init(): Promise < void > {
+  initStatics() {
+
     if (!this._config.routes) {
       this._config.routes = {};
     }
@@ -830,7 +866,7 @@ class Webda extends events.EventEmitter {
     this.initModels(this._config);
 
     if (this._config.services !== undefined) {
-      await this.initServices();
+      this.createServices();
     }
     this.initURITemplates(this._config.routes);
 

@@ -13,7 +13,7 @@ describe('AwsSecretsManager', function() {
       return;
     }
     webda = new Webda.Core(config);
-    await webda.waitForInit();
+    await webda.init();
     secrets = webda.getService('AwsSecretsManager');
     assert.notEqual(secrets, undefined);
     try {

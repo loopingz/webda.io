@@ -7,12 +7,16 @@ var executor;
 var session;
 var task;
 var failed = false;
-var webda = new Webda.Core(config);
+var webda;
 var ctx;
 
 describe('Policy', () => {
   var taskStore;
   var userStore;
+  before(async () => {
+    webda = new Webda.Core(config);
+    await webda.init();
+  });
   describe('OwnerPolicy', () => {
     beforeEach(async function() {
       taskStore = webda.getService("Tasks");

@@ -48,11 +48,10 @@
       "type": "Test/Mailer"
     },
     "Users": {
-      "expose": {
-        "url": "/users"
-      },
-      "type": "FileStore",
-      "folder": "./test/data/users"
+      "type": "MemoryStore"
+    },
+    "Idents": {
+      "type": "MemoryStore"
     },
     "ConfigurationStore": {
       "type": "FileStore",

@@ -44,7 +44,7 @@ export class ConfigurationService extends Executor {
   _deploymentStore: Store < CoreModel > ;
   _webda: WebdaConfigurationServer;
 
-  async init() {
+  initRoutes() {
     this._addRoute('/api/modda', ["GET"], this.getServices);
     this._addRoute('/api/models', ["GET", "POST"], this.crudModels);
     this._addRoute('/api/models/{name}', ["GET", "PUT", "DELETE"], this.crudModels);
@@ -722,7 +722,7 @@ export class WebdaConfigurationServer extends WebdaServer {
       var open = require('open');
       open("http://localhost:" + port);
     }
-    return new Promise( () => {});
+    return new Promise(() => {});
   }
 
   websocket(port) {

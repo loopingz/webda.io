@@ -696,6 +696,7 @@ export class WebdaConfigurationServer extends WebdaServer {
     return (new this._deployers[unit.type](
       this.computeConfig, config, deployment, unit)).deploy(args);
   }
+
   async undeploy(env, args) {
     let deployment: any = await ( < Store < CoreModel > > this.getService("deployments")).get(env);
     if (deployment === undefined) {
@@ -747,12 +748,11 @@ export class WebdaConfigurationServer extends WebdaServer {
 
   deployFork(env) {
     var args = [];
-    args.push('webda');
-    args.push('-d ' + env);
+    args.push('-d');
+    args.push(env);
     args.push("deploy");
 
-    this.output("Forking Webda with: ", args);
-    this.deployChild = require("child_process").spawn('node', args);
+    this.deployChild = require("child_process").spawn('webda', args);
     this._deployOutput = [];
 
     this.deployChild.stdout.on('data', (data) => {

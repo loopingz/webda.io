@@ -326,6 +326,7 @@ export default class WebdaConsole {
         args.push("-d");
         args.push(argv.deployment);
       }
+      args.push("--devMode");
       args.push("serve");
       server_pid = require("child_process").spawn('webda', args);
     }

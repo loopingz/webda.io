@@ -132,7 +132,8 @@ export class LambdaDeployer extends AWSDeployer {
     await this.generateAPIGateway();
   }
 
-  async export (args) {
+  async
+  export (args) {
     if (args.length == 0) {
       console.log("Please specify the output file");
       return;

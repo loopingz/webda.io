@@ -9,7 +9,10 @@ import {
   ConsoleLogger
 } from 'webda';
 import * as colors from 'colors';
-import {Transform, Writable} from "stream";
+import {
+  Transform,
+  Writable
+} from "stream";
 const fs = require("fs");
 
 const yauzl = require("yauzl");
@@ -375,7 +378,7 @@ export default class WebdaConsole {
       });
     }
     launchServe();
-    return new Promise( () => {} );
+    return new Promise(() => {});
   }
 
   static async _getNewConfig() {
@@ -424,7 +427,9 @@ export default class WebdaConsole {
   }
 
   static async init(argv = ["webda"]) {
-    require('child_process').spawnSync("yo", argv, { stdio: 'inherit' });
+    require('child_process').spawnSync("yo", argv, {
+      stdio: 'inherit'
+    });
   }
 
   static async initLogger(argv) {
@@ -496,11 +501,11 @@ export default class WebdaConsole {
     }
   }
 
-  static async typescriptCompile(watch : boolean = false, stream : Transform = undefined) {
+  static async typescriptCompile(watch: boolean = false, stream: Transform = undefined) {
     if (fs.existsSync('./tsconfig.json')) {
       this.output('Launch typescript compiler');
       let args = [];
-      let options : any = {};
+      let options: any = {};
       if (watch) {
         args.push('--watch');
         if (stream) {
@@ -511,8 +516,8 @@ export default class WebdaConsole {
       if (stream) {
         tsc_compile.stdout.pipe(stream).pipe(process.stdout);
       }
-      return new Promise( (resolve, reject) => {
-        tsc_compile.on('exit', function (code, signal) {
+      return new Promise((resolve, reject) => {
+        tsc_compile.on('exit', function(code, signal) {
           if (!code) {
             resolve();
             return;

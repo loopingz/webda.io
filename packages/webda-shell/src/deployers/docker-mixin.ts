@@ -113,8 +113,8 @@ function DockerMixIn < T extends Constructor < Deployer >> (Base: T) {
       dockerfile += 'COPY deployments /webda/deployments/\n';
       let includes = packageInfo.files || ['lib'];
       console.log(includes);
-      includes.forEach( (path) => {
-        if (fs.lstatSync( cwd + '/' + path).isDirectory()) {
+      includes.forEach((path) => {
+        if (fs.lstatSync(cwd + '/' + path).isDirectory()) {
           path += '/';
           dockerfile += `RUN mkdir /webda/${path}\n`;
         }

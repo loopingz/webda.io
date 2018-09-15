@@ -105,7 +105,7 @@ export class LambdaDeployer extends AWSDeployer {
     }
 
     if (args[0] === "export") {
-      await this.export(args.slice(1));
+      await this.exportLambda(args.slice(1));
       return;
     }
     console.log("Deploying to " + colors.yellow("AWS"));
@@ -132,8 +132,7 @@ export class LambdaDeployer extends AWSDeployer {
     await this.generateAPIGateway();
   }
 
-  async
-  export (args) {
+  async exportLambda (args) {
     if (args.length == 0) {
       console.log("Please specify the output file");
       return;

@@ -10,14 +10,11 @@ import {
 } from 'webda';
 import * as colors from 'colors';
 import {Transform, Writable} from "stream";
-import WritableStream = NodeJS.WritableStream;
 const fs = require("fs");
 
-const readline = require('readline');
 const yauzl = require("yauzl");
 const path = require("path");
 const mkdirp = require("mkdirp");
-const rp = require('request-promise');
 const glob = require('glob');
 
 var webda;
@@ -378,7 +375,7 @@ export default class WebdaConsole {
       });
     }
     launchServe();
-    return new Promise( (resolve, reject) => {} );
+    return new Promise( () => {} );
   }
 
   static async _getNewConfig() {

@@ -3,7 +3,7 @@ addons:
   sonarcloud:
     organization: loopingz-github
 node_js:
-- '6'
+- '8'
 script:
 - npm run test
 after_success:

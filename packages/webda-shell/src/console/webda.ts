@@ -198,6 +198,9 @@ export default class WebdaConsole {
       .option('log-level', {
         default: 'INFO'
       })
+      .option('no-compile', {
+        type: 'boolean'
+      })
       .option('version', {
         type: 'boolean'
       })
@@ -317,13 +320,12 @@ export default class WebdaConsole {
         this.output("Launch webda serve in debug mode");
       }
       let args = [];
-      args.push(__dirname + "/webda");
       if (argv.deployment) {
         args.push("-d");
         args.push(argv.deployment);
       }
       args.push("serve");
-      server_pid = require("child_process").spawn('node', args);
+      server_pid = require("child_process").spawn('webda', args);
     }
     var excepts = ["dist", "node_modules", "deployments", "test"];
     // Set a watcher
@@ -432,6 +434,11 @@ export default class WebdaConsole {
       }
     }
 
+    // Compile typescript if needed
+    if (['debug', 'init', 'serviceconfig'].indexOf(argv._[0]) < 0 && !argv.noCompile) {
+      await this.typescriptCompile();
+    }
+
     switch (argv._[0]) {
       case 'serve':
         return new Promise(() => {
@@ -465,6 +472,22 @@ export default class WebdaConsole {
         return this.generateModule();
       default:
         return this.help();
+    }
+  }
+
+  static async typescriptCompile() {
+    if (fs.existsSync('./tsconfig.json')) {
+      this.output('Launch typescript compiler');
+      let tsc_compile = require("child_process").spawn('tsc', []);
+      return new Promise( (resolve, reject) => {
+        tsc_compile.on('exit', function (code, signal) {
+          if (!code) {
+            resolve();
+            return;
+          }
+          reject(code);
+        });
+      })
     }
   }
 

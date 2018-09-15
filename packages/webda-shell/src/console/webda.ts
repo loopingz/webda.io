@@ -340,9 +340,9 @@ export default class WebdaConsole {
             callback();
             return;
           }
-          if (info.match(/\d{2}:\d{2}:\d{2}/)) {
+          if (info.substring(0, 8).match(/\d{2}:\d{2}:\d{2}/)) {
             // Simulate the colors , typescript compiler detect it is not on a tty
-            if (info.match(/Found \d{1,} error/)) {
+            if (info.match(/Found [1-9]\d* error/)) {
               this.push('[' + colors.gray(info.substring(0, 11)) + '] ' + colors.red(info.substring(14)));
             } else {
               this.push('[' + colors.gray(info.substring(0, 11)) + '] ' + info.substring(14));
@@ -384,12 +384,15 @@ export default class WebdaConsole {
   static async _getNewConfig() {
     let webda = new WebdaConfigurationServer();
     // Transfer the output
-    webda.output = this.output;
+    webda._logger = this.logger;
+    webda._loggers = [this.logger];
     return webda;
   }
 
   static _loadDeploymentConfig(deployment) {
     let webda = new WebdaConfigurationServer();
+    webda._logger = this.logger;
+    webda._loggers = [this.logger];
     return webda.loadDeploymentConfig(deployment);
   }
 

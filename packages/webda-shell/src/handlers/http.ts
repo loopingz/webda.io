@@ -2,6 +2,7 @@ import {
   Core as Webda,
   SecureCookie,
   ClientInfo,
+  MemoryLogger,
   _extend
 } from 'webda';
 const path = require("path");

@@ -153,10 +153,6 @@ export class WebdaServer extends Webda {
     res.end();
   }
 
-  getSecret() {
-    return 'webda-private-key';
-  }
-
   handleStaticIndexRequest(req, res, next) {
     res.sendFile(this._staticIndex);
   }

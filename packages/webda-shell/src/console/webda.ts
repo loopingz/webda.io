@@ -9,6 +9,8 @@ import {
   ConsoleLogger
 } from 'webda';
 import * as colors from 'colors';
+import {Transform, Writable} from "stream";
+import WritableStream = NodeJS.WritableStream;
 const fs = require("fs");
 
 const readline = require('readline');
@@ -312,14 +314,14 @@ export default class WebdaConsole {
   }
 
   static debug(argv) {
-    let launchServe = function() {
+    let launchServe = () => {
       if (server_pid) {
-        this.output("Refresh server");
+        this.output('[' + colors.grey(new Date().toLocaleTimeString()) + ']', "Refresh web" + colors.yellow("da") + " server");
         server_pid.kill();
       } else {
-        this.output("Launch webda serve in debug mode");
+        this.output('[' + colors.grey(new Date().toLocaleTimeString()) + ']', "Launch web" + colors.yellow("da") + " serve in debug mode");
       }
-      let args = [];
+      let args = ['--noCompile'];
       if (argv.deployment) {
         args.push("-d");
         args.push(argv.deployment);
@@ -327,34 +329,55 @@ export default class WebdaConsole {
       args.push("serve");
       server_pid = require("child_process").spawn('webda', args);
     }
-    var excepts = ["dist", "node_modules", "deployments", "test"];
-    // Set a watcher
-    var listener = function(event, filename) {
-      launchServe();
-    }
-    var watchs = fs.readdirSync(".")
-    for (let file in watchs) {
-      let filename = watchs[file];
-      if (filename.indexOf(".") === 0) continue;
-      if (excepts.indexOf(filename) >= 0) continue;
-      if (filename.endsWith(".js")) {
-        fs.watch(filename, {
-          permanent: true
-        }, listener);
-        continue;
+
+    // Typescript mode -> launch compiler and update after compile is finished
+    if (fs.existsSync('./tsconfig.json')) {
+      let transform = new Transform({
+        transform(chunk, encoding, callback) {
+          let info = chunk.toString().trim() + '\n';
+          if (info.length < 4) {
+            callback();
+            return;
+          }
+          if (info.match(/\d{2}:\d{2}:\d{2}/)) {
+            // Simulate the colors , typescript compiler detect it is not on a tty
+            if (info.match(/Found \d{1,} error/)) {
+              this.push('[' + colors.gray(info.substring(0, 11)) + '] ' + colors.red(info.substring(14)));
+            } else {
+              this.push('[' + colors.gray(info.substring(0, 11)) + '] ' + info.substring(14));
+              if (info.indexOf('Found 0 errors. Watching for file changes.') >= 0) {
+                launchServe();
+              }
+            }
+          } else {
+            this.push(info);
+          }
+          callback();
+        }
+      });
+      this.typescriptCompile(true, transform);
+    } else {
+      // Traditional js
+      var listener = (event, filename) => {
+        // Dont reload unless it is a true code changes
+        // Limitation: It wont reload if resources are changed
+        if (filename.endsWith('.js')) {
+          launchServe();
+        }
       }
-      if (!fs.existsSync(filename)) {
-        continue;
-      }
-      let stat = fs.statSync(filename);
-      if (stat.isDirectory()) {
-        fs.watch(filename, {
-          permanent: true,
-          resursive: true
-        }, listener);
-      }
+      // glob files
+      ModuleLoader.getPackagesLocations().forEach((path) => {
+        if (fs.existsSync(path) && fs.lstatSync(path).isDirectory()) {
+          // Linux limitation, the recursive does not work
+          fs.watch(path, {
+            permanent: true,
+            resursive: true
+          }, listener);
+        }
+      });
     }
     launchServe();
+    return new Promise( (resolve, reject) => {} );
   }
 
   static async _getNewConfig() {
@@ -475,10 +498,21 @@ export default class WebdaConsole {
     }
   }
 
-  static async typescriptCompile() {
+  static async typescriptCompile(watch : boolean = false, stream : Transform = undefined) {
     if (fs.existsSync('./tsconfig.json')) {
       this.output('Launch typescript compiler');
-      let tsc_compile = require("child_process").spawn('tsc', []);
+      let args = [];
+      let options : any = {};
+      if (watch) {
+        args.push('--watch');
+        if (stream) {
+          //options.stdio = ['pipe', stream, process.stderr];
+        }
+      }
+      let tsc_compile = require("child_process").spawn('tsc', args, options);
+      if (stream) {
+        tsc_compile.stdout.pipe(stream).pipe(process.stdout);
+      }
       return new Promise( (resolve, reject) => {
         tsc_compile.on('exit', function (code, signal) {
           if (!code) {

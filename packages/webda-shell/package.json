@@ -28,6 +28,7 @@
     "ts-node": "^5.0.1",
     "typescript": "^2.8.1",
     "vulcanize": ">= 1.4.2",
+    "xterm": "^3.7.0",
     "web-component-tester": "^4.0.0"
   },
   "bin": {
@@ -74,8 +75,8 @@
     "socket.io": "^2.0.3",
     "webda": "~0.9.12",
     "yargs": "^7.1.0",
-    "yeoman-environment": "^2.0.0",
-    "yauzl": "^2.7.0"
+    "yauzl": "^2.7.0",
+    "yeoman-environment": "^2.0.0"
   },
   "nyc": {
     "extension": [

@@ -9,7 +9,8 @@ export default class ElasticSearchService extends Executor {
   _asyncCount: number = 0;
   _refreshMode: string = 'false';
 
-  init() {
+  resolve() {
+    super.resolve();
     this._client = new elasticsearch.Client({
       host: this._params.server
     });

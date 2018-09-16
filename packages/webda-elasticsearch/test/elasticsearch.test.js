@@ -22,7 +22,7 @@ async function assertThrows(fn, regExp) {
 describe('Webda', function() {
   beforeEach(async function() {
     webda = new Webda.Core(config);
-    await webda.waitForInit();
+    await webda.init();
     memoryStore = webda.getService('MemoryStore');
     elastic = webda.getService('ESService');
     elastic.setRefreshMode('wait_for');

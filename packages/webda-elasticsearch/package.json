@@ -32,7 +32,7 @@
   "dependencies": {
     "@types/node": "^10.7.0",
     "elasticsearch": "^15.1.1",
-    "webda": "^0.9.10"
+    "webda": "^0.9.12"
   },
   "devDependencies": {
     "@types/node": "^9.6.2",
@@ -45,7 +45,7 @@
     "source-map-support": "^0.5.4",
     "ts-node": "^5.0.1",
     "typescript": "^2.8.1",
-    "webda-shell": "^0.9.10"
+    "webda-shell": "^0.9.12"
   },
   "nyc": {
     "extension": [

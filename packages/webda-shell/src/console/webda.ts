@@ -515,14 +515,14 @@ export default class WebdaConsole {
 
   static async typescriptCompile(watch: boolean = false, stream: Transform = undefined) {
     if (fs.existsSync('./tsconfig.json')) {
-      this.output('Launch typescript compiler');
+      this.output('Typescript compilation');
       let args = [];
       let options: any = {};
+      if (!stream) {
+        options.stdio = ['pipe', process.stdout, process.stderr];
+      }
       if (watch) {
         args.push('--watch');
-        if (stream) {
-          //options.stdio = ['pipe', stream, process.stderr];
-        }
       }
       let tsc_compile = require("child_process").spawn('tsc', args, options);
       if (stream) {
@@ -534,7 +534,7 @@ export default class WebdaConsole {
             resolve();
             return;
           }
-          reject(code);
+          process.exit(code);
         });
       })
     }

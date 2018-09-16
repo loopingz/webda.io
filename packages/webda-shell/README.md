@@ -12,7 +12,6 @@ Check our video presentation on [Youtube](https://www.youtube.com/playlist?list=
 
 ## Install
 
-
 ```
 npm install -g webda-shell
 ```
@@ -29,7 +28,7 @@ You'll get the configuration UI for your project
 
 ```
 # To avoid opening browser
-webda config --serve
+webda config --no-open
 
 # Display the configuration for a specific deployment
 webda config -d deploymentName
@@ -60,18 +59,22 @@ webda -d deploymentName serve
 webda debug
 ```
 
-It will serve the project on port 18080 and restart the server on any changes made on the folder files
+You can debug with a specific deployment configuration by adding the deployment name
 
-As for serve you can also specify the deployment name to use
+```
+webda -d deploymentName debug
+```
+
+
+It will serve the project on port 18080 and restart the server on any changes made on the folder files
+If the project has a tsconfig.json, then `webda debug` will launch the typescript compiler and restart server everytime the compilation process finishes with success.
 
 
 #### Deploy
 
 First you need to create a deployment, from the configuration UI
 
-Prior to version 0.4, the deployment is specified as an argument right after deploy argument
-
-Then just use the Deploy button on the UI or the webda bin :
+Then just use the Deploy button on the UI or with webda client :
 
 ```
 webda -d deploymentName deploy
@@ -110,7 +113,7 @@ Here is some screenshots of the ui, it is accessible once the webda config is ru
 
 ## Requirements
 
-Node.js >= 5.0.0
+Node.js >= 8.0.0
 
 ## Licence
 

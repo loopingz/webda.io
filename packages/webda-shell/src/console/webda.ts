@@ -429,11 +429,18 @@ export default class WebdaConsole {
     });
   }
 
-  static async init(generatorName: string = 'webda', generatorInclude: string = undefined) {
+  static async init(argv, generatorName: string = 'webda') {
+    if (argv._.length > 1) {
+      generatorName = argv._[1];
+    }
+    let generatorAction = 'app';
+    // Cannot start with :
+    if (generatorName.indexOf(':') > 0) {
+      generatorAction = generatorName.split(':')[1];
+    }
     const yeoman = require('yeoman-environment');
     const env = yeoman.createEnv();
-    generatorInclude = generatorInclude || `generator-${generatorName}/generators/app/index.js`;
-    env.register(require.resolve(generatorInclude), generatorName);
+    env.register(require.resolve(`generator-${generatorName}/generators/${generatorAction}/index.js`), generatorName);
     await new Promise((resolve, reject) => {
       env.run(generatorName, (err) => {
         if (err) {
@@ -505,7 +512,7 @@ export default class WebdaConsole {
       case 'undeploy':
         return this.undeploy(argv);
       case 'init':
-        return this.init();
+        return this.init(argv);
       case 'module':
         return this.generateModule();
       default:

@@ -429,9 +429,18 @@ export default class WebdaConsole {
     });
   }
 
-  static async init(argv = ["webda"]) {
-    require('child_process').spawnSync("yo", argv, {
-      stdio: 'inherit'
+  static async init(generatorName: string = 'webda', generatorInclude: string = undefined) {
+    const yeoman = require('yeoman-environment');
+    const env = yeoman.createEnv();
+    generatorInclude = generatorInclude || `generator-${generatorName}/generators/app/index.js`;
+    env.register(require.resolve(generatorInclude), generatorName);
+    await new Promise((resolve, reject) => {
+      env.run(generatorName, (err) => {
+        if (err) {
+          reject(err);
+        }
+        resolve();
+      });
     });
   }
 

@@ -61,6 +61,7 @@
     "express-session": ">=1.11.3",
     "filesize": "^3.6.1",
     "fs-finder": "^1.8.1",
+    "generator-webda": ">=0.9.1",
     "glob": "^7.1.2",
     "merge": "^1.2.0",
     "mime-types": ">=2.1.4",
@@ -73,6 +74,7 @@
     "socket.io": "^2.0.3",
     "webda": "~0.9.12",
     "yargs": "^7.1.0",
+    "yeoman-environment": "^2.0.0",
     "yauzl": "^2.7.0"
   },
   "nyc": {

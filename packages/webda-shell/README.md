@@ -1,4 +1,4 @@
-![](http://webda.io/images/touch/icon-128x128.png)
+<img src="https://webda.io/images/webda.svg" width="128px" />
 
 # webda-shell
 

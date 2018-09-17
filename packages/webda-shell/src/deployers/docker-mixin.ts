@@ -99,7 +99,7 @@ function DockerMixIn < T extends Constructor < Deployer >> (Base: T) {
   RUN mkdir -p /webda/deployments
   ADD package.json /webda/
   WORKDIR /webda
-  RUN yarn install && yarn add webda-shell@\n`;
+  RUN yarn install && yarn add webda-shell@`;
       dockerfile += version + '\n';
       if (!command) {
         command = 'serve';

@@ -56,7 +56,7 @@ interface Configuration {
 class Webda extends events.EventEmitter {
   _services: Map < string,
   Service > = new Map();
-  _init: boolean = false;
+  _init: Promise<void>;
   _modules: any;
   _config: Configuration;
   _routehelpers: any;
@@ -131,26 +131,30 @@ class Webda extends events.EventEmitter {
 
   async init() {
     if (this._init) {
-      return;
+      return this._init;
     }
-    this._init = true;
-    // Init services
-    let service;
-    for (service in this._config._services) {
-      if (this._config._services[service].init !== undefined) {
-        try {
-          // TODO Define parralel initialization
-          this.log('TRACE', 'Initializing service', service);
-          await this._config._services[service].init();
-        } catch (err) {
-          this._config._services[service]._initException = err;
-          this.log('ERROR', "Init service " + service + " failed", err);
-          this.log('TRACE', err.stack);
+    this.log('TRACE', 'Create Webda init promise');
+    this._init = new Promise( async (resolve) => {
+      // Init services
+      let service;
+      for (service in this._config._services) {
+        if (this._config._services[service].init !== undefined) {
+          try {
+            // TODO Define parralel initialization
+            this.log('TRACE', 'Initializing service', service);
+            await this._config._services[service].init();
+          } catch (err) {
+            this._config._services[service]._initException = err;
+            this.log('ERROR', "Init service " + service + " failed", err);
+            this.log('TRACE', err.stack);
+          }
         }
       }
-    }
 
-    this.emit('Webda.Init.Services', this._config._services);
+      this.emit('Webda.Init.Services', this._config._services);
+      resolve();
+    });
+    return this._init;
   }
 
   /**

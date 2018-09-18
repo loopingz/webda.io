@@ -1,6 +1,6 @@
 {
   "name": "webda",
-  "version": "0.9.12",
+  "version": "0.10.0",
   "description": "Expose API with Lambda",
   "keywords": [
     "aws",

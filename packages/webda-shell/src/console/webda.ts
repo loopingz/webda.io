@@ -401,8 +401,8 @@ export default class WebdaConsole {
           }, listener);
         }
       });
+      launchServe();
     }
-    launchServe();
     return new Promise(() => {});
   }
 

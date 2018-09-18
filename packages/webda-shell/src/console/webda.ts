@@ -314,6 +314,11 @@ export default class WebdaConsole {
   }
 
   static debug(argv) {
+    process.on('SIGINT', function() {
+      if (server_pid) {
+        server_pid.kill();
+      }
+    });
     let launchServe = () => {
       if (server_pid) {
         this.output('[' + colors.grey(new Date().toLocaleTimeString()) + ']', "Refresh web" + colors.yellow("da") + " server");
@@ -326,9 +331,27 @@ export default class WebdaConsole {
         args.push("-d");
         args.push(argv.deployment);
       }
-      args.push("--devMode");
       args.push("serve");
+      if (argv.logLevel) {
+        args.push("--logLevel");
+        args.push(argv.logLevel);
+      }
+      if (argv.logLevels) {
+        args.push("--logLevels");
+        args.push(argv.logLevels);
+      }
+      args.push("--devMode");
+      let addTime = new Transform({
+        transform(chunk, encoding, callback) {
+          chunk.toString().split('\n').forEach((line) => {
+            if (line.length < 4) return;
+            this.push('[' + colors.grey(new Date().toLocaleTimeString()) + '] ' + line.trim() + '\n');
+          });
+          callback();
+        }
+      });
       server_pid = require("child_process").spawn('webda', args);
+      server_pid.stdout.pipe(addTime).pipe(process.stdout);
     }
 
     // Typescript mode -> launch compiler and update after compile is finished
@@ -340,12 +363,14 @@ export default class WebdaConsole {
             callback();
             return;
           }
-          if (info.substring(0, 8).match(/\d{2}:\d{2}:\d{2}/)) {
+          if (info.substring(0, 8).match(/\d{1,2}:\d{2}:\d{2}/)) {
+            // Might generate issue with some localization
+            let offset = 2 - info.indexOf(':');
             // Simulate the colors , typescript compiler detect it is not on a tty
             if (info.match(/Found [1-9]\d* error/)) {
-              this.push('[' + colors.gray(info.substring(0, 11)) + '] ' + colors.red(info.substring(14)));
+              this.push('[' + colors.gray(info.substring(0, 11-offset)) + '] ' + colors.red(info.substring(14-offset)));
             } else {
-              this.push('[' + colors.gray(info.substring(0, 11)) + '] ' + info.substring(14));
+              this.push('[' + colors.gray(info.substring(0, 11-offset)) + '] ' + info.substring(14-offset));
               if (info.indexOf('Found 0 errors. Watching for file changes.') >= 0) {
                 launchServe();
               }

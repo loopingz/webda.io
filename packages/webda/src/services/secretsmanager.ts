@@ -54,6 +54,20 @@ export default class AwsSecretsManager extends AWSMixIn(Service) implements Conf
     }).promise();
     return JSON.parse(res.SecretString);
   }
+
+  getARNPolicy(accountId) {
+    let region = this._params.region || 'us-east-1';
+    return {
+      "Sid": this.constructor.name + this._name,
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:*"
+      ],
+      "Resource": [
+        'arn:aws:secretsmanager:' + region + ':' + accountId + ':secret:*'
+      ]
+    }
+  }
 }
 
 export {

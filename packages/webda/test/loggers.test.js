@@ -6,7 +6,7 @@ var webda;
 describe('Webda', function() {
   beforeEach(async function() {
     webda = new Webda.Core(config);
-});
+  });
 
   describe('log()', function() {
     it('memory', function() {

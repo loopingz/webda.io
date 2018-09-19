@@ -42,7 +42,7 @@ class BinaryMap {
  */
 class Binary extends Executor {
 
-  constructor(webda, name, params : any = {}) {
+  constructor(webda, name, params: any = {}) {
     super(webda, name, params);
   }
 

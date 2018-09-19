@@ -56,7 +56,7 @@ interface Configuration {
 class Webda extends events.EventEmitter {
   _services: Map < string,
   Service > = new Map();
-  _init: Promise<void>;
+  _init: Promise < void > ;
   _modules: any;
   _config: Configuration;
   _routehelpers: any;
@@ -79,7 +79,10 @@ class Webda extends events.EventEmitter {
     /** @ignore */
     super();
     this._initTime = new Date().getTime();
-    this._logger = new ConsoleLogger(this, 'coreLogger', {logLevel: 'WARN', logLevels: 'ERROR,WARN,INFO,DEBUG,TRACE'});
+    this._logger = new ConsoleLogger(this, 'coreLogger', {
+      logLevel: 'WARN',
+      logLevels: 'ERROR,WARN,INFO,DEBUG,TRACE'
+    });
     // We enforce this normalization
     this._logger.normalizeParams();
     this._loggers.push(this._logger);
@@ -134,7 +137,7 @@ class Webda extends events.EventEmitter {
       return this._init;
     }
     this.log('TRACE', 'Create Webda init promise');
-    this._init = new Promise( async (resolve) => {
+    this._init = new Promise(async (resolve) => {
       // Init services
       let service;
       for (service in this._config._services) {
@@ -722,7 +725,7 @@ class Webda extends events.EventEmitter {
     return res;
   }
 
-  async reinit(updates: Map < string, any >): Promise < void > {
+  async reinit(updates: Map < string, any > ): Promise < void > {
     let configuration = JSON.parse(JSON.stringify(this._config.services));
     for (let service in updates) {
       jsonpath.value(configuration, service, updates[service]);
@@ -746,7 +749,7 @@ class Webda extends events.EventEmitter {
     }
   }
 
-  getServiceParams(service : string) : any {
+  getServiceParams(service: string): any {
     var params = this.extendParams(this._config.services[service], this._config.parameters);
     delete params.require;
     return params;

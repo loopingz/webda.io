@@ -81,6 +81,20 @@ class CloudWatchLogger extends AWSMixIn(FakeLogger) {
     }
   }
 
+  getARNPolicy(accountId) {
+    let region = this._params.region || 'us-east-1';
+    return {
+      "Sid": this.constructor.name + this._name,
+      "Effect": "Allow",
+      "Action": [
+        "logs:*"
+      ],
+      "Resource": [
+        'arn:aws:logs:' + region + ':' + accountId + ':log-group:' + this._params.logGroupName,
+        'arn:aws:logs:' + region + ':' + accountId + ':log-group:' + this._params.logGroupName + ':*:*'
+      ]
+    }
+  }
 
   static getModda() {
     return {

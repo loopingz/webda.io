@@ -49,7 +49,7 @@ export default class ConfigurationService extends Service {
     clearInterval(this._interval);
   }
 
-  async reinit(config: any) : Promise<void> {
+  async reinit(config: any): Promise < void > {
     // Need to prevent any reinit
   }
 

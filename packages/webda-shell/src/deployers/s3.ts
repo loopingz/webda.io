@@ -263,7 +263,9 @@ export class S3Deployer extends AWSDeployer {
     let params: any = {
       MaxItems: '1000'
     };
-    this._cloudfront = new(this._getAWS(this.resources)).CloudFront({apiVersion: '2018-06-18'});
+    this._cloudfront = new(this._getAWS(this.resources)).CloudFront({
+      apiVersion: '2018-06-18'
+    });
     await this._createCertificate(this.bucket);
     // TODO Handle paginations
     let res: CloudFront.ListDistributionsResult = await this._cloudfront.listDistributions(params).promise();
@@ -279,7 +281,9 @@ export class S3Deployer extends AWSDeployer {
           console.log('CloudFront distribution', cloudfront.Id, 'is in disabled, skipping');
           return Promise.resolve();
         }
-        let distributionConfig = await this._cloudfront.getDistributionConfig({Id: cloudfront.Id}).promise();
+        let distributionConfig = await this._cloudfront.getDistributionConfig({
+          Id: cloudfront.Id
+        }).promise();
         if (this._needCloudFrontUpdate(distributionConfig)) {
           console.log('Update CloudFront distribution', cloudfront.Id);
           return this._cloudfront.updateDistribution(this._getCloudFrontConfig()).promise();

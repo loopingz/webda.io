@@ -368,9 +368,9 @@ export default class WebdaConsole {
             let offset = 2 - info.indexOf(':');
             // Simulate the colors , typescript compiler detect it is not on a tty
             if (info.match(/Found [1-9]\d* error/)) {
-              this.push('[' + colors.gray(info.substring(0, 11-offset)) + '] ' + colors.red(info.substring(14-offset)));
+              this.push('[' + colors.gray(info.substring(0, 11 - offset)) + '] ' + colors.red(info.substring(14 - offset)));
             } else {
-              this.push('[' + colors.gray(info.substring(0, 11-offset)) + '] ' + info.substring(14-offset));
+              this.push('[' + colors.gray(info.substring(0, 11 - offset)) + '] ' + info.substring(14 - offset));
               if (info.indexOf('Found 0 errors. Watching for file changes.') >= 0) {
                 launchServe();
               }

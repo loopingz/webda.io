@@ -48,8 +48,8 @@ export class WeDeployDeployer extends DockerDeployer {
     if (this.resources.worker !== 'API') {
       cmd = 'worker ' + this.resources.worker;
     }
-    return new Promise((resolve, reject) => {
-      fs.writeFileSync(this.getDockerfileName(), this.getDockerfile(cmd));
+    return new Promise(async (resolve, reject) => {
+      fs.writeFileSync(this.getDockerfileName(), await this.getDockerfile(cmd));
       resolve();
     });
   }

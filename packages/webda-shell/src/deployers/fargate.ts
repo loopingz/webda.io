@@ -137,7 +137,7 @@ export class FargateDeployer extends DockerMixIn(AWSDeployer) {
         cmd = 'worker ' + worker.name;
       }
       console.log('Building the image');
-      await this.buildDocker(worker.repository, null, this.getDockerfile(cmd));
+      await this.buildDocker(worker.repository, null, await this.getDockerfile(cmd));
       console.log('Pushing the image');
       await this.pushDocker(worker.repository);
     }

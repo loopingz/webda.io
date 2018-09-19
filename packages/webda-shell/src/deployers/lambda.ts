@@ -132,7 +132,7 @@ export class LambdaDeployer extends AWSDeployer {
     await this.generateAPIGateway();
   }
 
-  async exportLambda (args) {
+  async exportLambda(args) {
     if (args.length == 0) {
       console.log("Please specify the output file");
       return;
@@ -312,7 +312,6 @@ export class LambdaDeployer extends AWSDeployer {
         key: params.S3Key,
         src: this._zipPath
       }]);
-      console.log(params);
     } else if (this._packageOversize) {
       console.log('Cannot upload Lambda function without a LambdaStorage if package bigger than', AWS_UPLOAD_MAX, 'b');
       process.exit(0);

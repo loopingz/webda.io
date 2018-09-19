@@ -21,13 +21,13 @@ export class DockerDeployer extends DockerMixIn(Deployer) {
     await this.pushDocker();
   }
 
-  buildDocker() {
+  async buildDocker() {
     this.stepper("Building Docker image");
     let cmd = '';
     if (this.resources.worker !== 'API') {
       cmd = 'worker ' + this.resources.worker;
     }
-    return super.buildDocker(this.resources.tag, this.resources.Dockerfile, this.getDockerfile(cmd));
+    return super.buildDocker(this.resources.tag, this.resources.Dockerfile, await this.getDockerfile(cmd));
   }
 
   pushDocker() {

@@ -5,7 +5,10 @@ const fs = require('fs');
 const webda = require('webda');
 
 function commandLine(line) {
-  consoleService.logger = new webda.MemoryLogger(consoleService, 'MemoryLogger', {logLevels: 'CONSOLE,ERROR,WARN,INFO,DEBUG,TRACE', logLevel: 'WARN'});
+  consoleService.logger = new webda.MemoryLogger(consoleService, 'MemoryLogger', {
+    logLevels: 'CONSOLE,ERROR,WARN,INFO,DEBUG,TRACE',
+    logLevel: 'WARN'
+  });
   return Promise.resolve(consoleService.handleCommand(line.split(' ')));
 }
 

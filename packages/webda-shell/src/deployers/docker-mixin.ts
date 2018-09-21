@@ -134,8 +134,9 @@ function DockerMixIn < T extends Constructor < Deployer >> (Base: T) {
     async getDockerfileWebdaShell() {
       let dockerfile = '';
       var shellPackageInfo = require(__dirname + '/../../package.json');
-      shellPackageInfo.files.push('node_modules');
-      shellPackageInfo.files.push('package.json');
+      let includes = shellPackageInfo.files.slice(0);
+      includes.push('node_modules');
+      includes.push('package.json');
       // Get git rev
       let tag = shellPackageInfo.version;
       if (fs.existsSync(__dirname + '/../../.git') && !process.env['WEBDA_SHELL_DEPLOY_VERSION']) {
@@ -143,8 +144,7 @@ function DockerMixIn < T extends Constructor < Deployer >> (Base: T) {
         if (shellPackageInfo.version !== tag) {
           console.log('Untagged version of webda-shell, copying itself');
           // Copy webda-shell into build directory
-          this.copyWebdaShellToDist(shellPackageInfo.files);
-          let includes = shellPackageInfo.files || ['lib'];
+          this.copyWebdaShellToDist(includes);
           includes.forEach((path) => {
             if (path === 'app') {
               return;

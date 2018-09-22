@@ -166,7 +166,7 @@ function DockerMixIn < T extends Constructor < Deployer >> (Base: T) {
       if (process.env['WEBDA_SHELL_DEPLOY_VERSION']) {
         tag = process.env['WEBDA_SHELL_DEPLOY_VERSION'];
       }
-      return `RUN yarn install webda-shell@${tag}`;
+      return `RUN yarn add webda-shell@${tag}\n`;
     }
 
     async getDockerfile(command, logfile = undefined) {

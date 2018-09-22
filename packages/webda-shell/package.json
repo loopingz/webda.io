@@ -28,8 +28,8 @@
     "ts-node": "^5.0.1",
     "typescript": "^2.8.1",
     "vulcanize": ">= 1.4.2",
-    "xterm": "^3.7.0",
-    "web-component-tester": "^4.0.0"
+    "web-component-tester": "^4.0.0",
+    "xterm": "^3.7.0"
   },
   "bin": {
     "webda": "./bin/webda"
@@ -56,7 +56,7 @@
     "archiver": "^1.0.0",
     "aws-sdk": "^2.223.1",
     "body-parser": ">=1.13.3",
-    "colors": "^1.2.1",
+    "colors": "^1.3.2",
     "cookie-parser": "^1.4.1",
     "express": "^4.13.4",
     "express-session": ">=1.11.3",

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 "use strict";
 var fs = require('fs');
-const colors = require('colors');
+const colors = require('colors'); // Used for console output: DO NOT REMOVE
 const path = require('path');
 
 

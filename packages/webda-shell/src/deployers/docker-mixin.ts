@@ -104,10 +104,6 @@ function DockerMixIn < T extends Constructor < Deployer >> (Base: T) {
       let source = path.resolve(__dirname + '/../../');
       let includes = files || ['lib'];
       includes.forEach((includePath) => {
-        if (includePath === 'app') {
-          // Skip the wui
-          return;
-        }
         let fullpath = __dirname + '/../../' + includePath;
         if (fs.lstatSync(fullpath).isDirectory()) {
           fullpath += '/**'
@@ -134,21 +130,16 @@ function DockerMixIn < T extends Constructor < Deployer >> (Base: T) {
     async getDockerfileWebdaShell() {
       let dockerfile = '';
       var shellPackageInfo = require(__dirname + '/../../package.json');
-      let includes = shellPackageInfo.files.slice(0);
-      includes.push('node_modules');
-      includes.push('package.json');
       // Get git rev
       let tag = shellPackageInfo.version;
       if (fs.existsSync(__dirname + '/../../.git') && !process.env['WEBDA_SHELL_DEPLOY_VERSION']) {
         tag = require('child_process').execSync('git describe --dirty --tag');
         if (shellPackageInfo.version !== tag) {
+          let includes = ['node_modules', 'package.json', 'lib', 'bin/webda'];
           console.log('Untagged version of webda-shell, copying itself');
           // Copy webda-shell into build directory
           this.copyWebdaShellToDist(includes);
           includes.forEach((path) => {
-            if (path === 'app') {
-              return;
-            }
             let fullpath = './dist/webda-shell/' + path;
             if (fs.lstatSync(fullpath).isDirectory()) {
               path += '/';

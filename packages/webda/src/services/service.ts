@@ -1,7 +1,9 @@
 "use strict";
 import events = require('events');
 import {
-  Core
+  Core,
+  AWSEventHandlerMixIn,
+  LambdaServer
 } from '../index';
 /* beautify preserve:start */
 declare var global: any;
@@ -62,7 +64,10 @@ class Service extends events.EventEmitter {
    * @abstract
    */
   async init(): Promise < void > {
-
+    // In case of Lambda handler register automatically
+    if (this._webda instanceof LambdaServer && this['isAWSEventHandled'] && this['handleAWSEvent']) {
+      this._webda.registerAWSEventsHandler(this);
+    }
   }
 
   /**

@@ -16,7 +16,6 @@ describe('Lambda', function() {
     webda = new Webda.Core(config);
   });
   describe('launch()', function() {
-
     var methods = ["GET", "PUT", "POST", "DELETE"];
     for (var i in methods) {
       it(methods[i], async function() {
@@ -33,5 +32,5 @@ describe('Lambda', function() {
         assert.equal(ctx._body, methods[i] + ' called');
       });
     }
-  })
+  });
 });

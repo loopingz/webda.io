@@ -39,7 +39,8 @@ import {
 } from './utils/lambdacaller';
 // Handler
 import {
-  LambdaServer
+  LambdaServer,
+  AWSEventHandlerMixIn
 } from './handlers/lambda';
 // Store
 import {
@@ -151,6 +152,7 @@ export {
   Context,
   ClientInfo,
   // Handler
+  AWSEventHandlerMixIn,
   LambdaServer,
   Logger,
   MemoryLogger,

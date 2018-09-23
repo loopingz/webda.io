@@ -2,9 +2,26 @@
 import {
   Core as Webda,
   SecureCookie,
-  ClientInfo
+  ClientInfo,
+  Service
 } from '../index';
+import {
+  Constructor,
+  GetAWS
+} from "../services/aws-mixin";
 const cookieParse = require("cookie").parse;
+
+function AWSEventHandlerMixIn < T extends Constructor < Service >> (Base: T) {
+  return class extends Base {
+    isAWSEventHandled(source: string, event: any) {
+      return false;
+    }
+
+    async handleAWSEvent(source: string, event: any) {
+      return;
+    }
+  }
+}
 
 /**
  * The Lambda entrypoint for Webda
@@ -16,7 +33,9 @@ const cookieParse = require("cookie").parse;
  * @class
  */
 class LambdaServer extends Webda {
-  _result: any
+  _result: any;
+  _awsEventsHandlers: any[] = [];
+
   /**
    * @ignore
    */
@@ -45,6 +64,41 @@ class LambdaServer extends Webda {
     return res;
   }
 
+  registerAWSEventsHandler(service: Service) {
+    if (this._awsEventsHandlers.indexOf(service) < 0) {
+      this._awsEventsHandlers.push(service);
+    }
+  }
+
+  private async handleAWSEvent(source, events) {
+    return Promise.all(this._awsEventsHandlers.map(async (handler) => {
+      if (handler.isAWSEventHandled(source, events)) {
+        await handler.handleAWSEvent(source, events);
+      }
+    }));
+  }
+
+  handleAWSEvents(events, callback) {
+    if (events.Records) {
+      let source = events.Records[0].eventSource;
+      return this.handleAWSEvent(source, events);
+    } else if (events.invocationId && events.records) {
+      return this.handleAWSEvent('aws:kinesis', events);
+    } else if (events['detail-type'] && events.detail && events.resources) {
+      return this.handleAWSEvent('aws:scheduled-event', events);
+    } else if (events.awslogs) {
+      return this.handleAWSEvent('aws:cloudwatch-logs', events);
+    } else if (events['CodePipeline.job']) {
+      return this.handleAWSEvent('aws:codepipeline', events);
+    } else if (events.identityPoolId) {
+      return this.handleAWSEvent('aws:cognito', events);
+    } else if (events.configRuleId) {
+      return this.handleAWSEvent('aws:config', events);
+    } else if (events.jobDefinition || events.jobId) {
+      return this.handleAWSEvent('aws:batch', events);
+    }
+  }
+
   /**
    * Need to unit test this part, with sample of data coming from the API Gateway
    *
@@ -52,6 +106,11 @@ class LambdaServer extends Webda {
    */
   async handleRequest(event, context, callback) {
     await this.init();
+    // Handle AWS event
+    if (await this.handleAWSEvents(event, callback)) {
+      this.log('INFO', 'Handled AWS event', event);
+      return;
+    }
     // Manual launch of webda
     if (event.command === 'launch' && event.service && event.method) {
       let args = event.args || [];
@@ -194,5 +253,6 @@ class LambdaServer extends Webda {
 }
 
 export {
-  LambdaServer
+  LambdaServer,
+  AWSEventHandlerMixIn
 }

@@ -18,6 +18,10 @@
     "Test/VoidStore": {
       "type": "local",
       "require": "../test/moddas/voidstore"
+    },
+    "Test/AWSEvents": {
+      "type": "local",
+      "require": "../test/moddas/awsevents"
     }
   },
   "models": {
@@ -254,6 +258,9 @@
     },
     "brokenService": {
       "type": "Test/VoidStore"
+    },
+    "awsEvents": {
+      "type": "Test/AWSEvents"
     }
   },
   "routes": {

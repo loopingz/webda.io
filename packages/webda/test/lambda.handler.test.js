@@ -3,10 +3,12 @@ var assert = require("assert");
 const Webda = require("../lib/index.js");
 var handler;
 var config = require("./config.json");
+const fs = require('fs');
 var evt;
 var context;
 var callback;
 var res;
+
 
 describe('Lambda Handler', function() {
   beforeEach(function() {
@@ -143,6 +145,31 @@ describe('Lambda Handler', function() {
     evt.headers.Referer = 'https://test.webda.io';
     return handler.handleRequest(evt, context, callback).then(() => {
       assert.equal(res.headers['Access-Control-Allow-Origin'], evt.headers.Referer);
+    });
+  });
+
+  describe('aws events', function() {
+    let service;
+    beforeEach(function() {
+      console.log('aws events - beforeEach');
+      handler = new Webda.LambdaServer(config);
+      service = handler.getService('awsEvents');
+      context = {};
+      callback = (err, result) => {
+        res = result;
+      };
+    });
+    let files = fs.readdirSync(__dirname + '/aws-events');
+    files.forEach((file) => {
+      it('check ' + file, async function() {
+        let event = JSON.parse(fs.readFileSync(__dirname + '/aws-events/' + file));
+        await handler.handleRequest(event, context, callback);
+        if (file === 'api-gateway-aws-proxy.json') {
+          assert.equal(service.getEvents().length, 0, 'API Gateway should go throught the normal request handling');
+          return;
+        }
+        assert.notEqual(service.getEvents().length, 0, 'Should have get some events:' + JSON.stringify(event));
+      });
     });
   });
 });

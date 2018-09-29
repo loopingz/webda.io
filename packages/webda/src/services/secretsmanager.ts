@@ -68,6 +68,25 @@ export default class AwsSecretsManager extends AWSMixIn(Service) implements Conf
       ]
     }
   }
+
+
+  static getModda() {
+    return {
+      "uuid": "Webda/SecretsManager",
+      "label": "SecretsManager",
+      "description": "Implements AWS SecretsManager",
+      "webcomponents": [],
+      "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
+      "logo": "images/icons/s3.png",
+      "configuration": {
+        "default": {},
+        "schema": {
+          type: "object",
+          properties: {}
+        }
+      }
+    }
+  }
 }
 
 export {

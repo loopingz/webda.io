@@ -99,7 +99,7 @@ class Store < T extends CoreModel > extends Executor implements ConfigurationPro
     if (methods.length) {
       this._addRoute(expose.url + "/{uuid}", methods, this.httpRoute);
     }
-    if (this._model) {
+    if (this._model && this._model.getActions) {
       let actions = this._model.getActions();
       Object.keys(actions).forEach((name) => {
         let action: any = actions[name];

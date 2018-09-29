@@ -43,76 +43,66 @@ describe('Lambda Handler', function() {
       assert.equal(handler.getService('DefinedMailer').sent[0], 'test');
     });
   });
-  it('handleRequest custom launch - bad service', function() {
-    return handler.handleRequest({
+  it('handleRequest custom launch - bad service', async function() {
+    await handler.handleRequest({
       command: 'launch',
       service: 'DefinedMailers',
       method: 'send',
       args: ['test']
-    }, context, callback).then(() => {
-      assert.equal(handler.getService('DefinedMailer').sent.length, 0);
     });
+    assert.equal(handler.getService('DefinedMailer').sent.length, 0);
   });
-  it('handleRequest custom launch - bad method', function() {
-    return handler.handleRequest({
+  it('handleRequest custom launch - bad method', async function() {
+    await handler.handleRequest({
       command: 'launch',
       service: 'DefinedMailer',
       method: 'sends'
-    }, context, callback).then(() => {
-      assert.equal(handler.getService('DefinedMailer').sent.length, 0);
     });
+    assert.equal(handler.getService('DefinedMailer').sent.length, 0);
   });
-  it('handleRequest known route', function() {
-    return handler.handleRequest(evt, context, callback).then(() => {
-      assert.equal(res.body, 'CodeCoverage');
-    });
+  it('handleRequest known route', async function() {
+    let res = await handler.handleRequest(evt, context);
+    assert.equal(res.body, 'CodeCoverage');
   });
-  it('handleRequest unknown route', function() {
+  it('handleRequest unknown route', async function() {
     evt.path = "/route/unknown";
     delete evt.headers.Cookie;
-    return handler.handleRequest(evt, context, callback).then(() => {
-      assert.equal(res.statusCode, 404);
-    });
+    let res = await handler.handleRequest(evt, context);
+    assert.equal(res.statusCode, 404);
   });
 
-  it('handleRequest service throw 401', function() {
+  it('handleRequest service throw 401', async function() {
     evt.path = "/broken/401";
-    return handler.handleRequest(evt, context, callback).then(() => {
-      assert.equal(res.statusCode, 401);
-    });
+    let res = await handler.handleRequest(evt, context);
+    assert.equal(res.statusCode, 401);
   });
 
-  it('handleRequest service throw Error', function() {
+  it('handleRequest service throw Error', async function() {
     evt.path = "/broken/Error";
-    return handler.handleRequest(evt, context, callback).then(() => {
-      assert.equal(res.statusCode, 500);
-    });
+    let res = await handler.handleRequest(evt, context);
+    assert.equal(res.statusCode, 500);
   });
 
-  it('handleRequest OPTIONS', function() {
+  it('handleRequest OPTIONS', async function() {
     evt.httpMethod = "OPTIONS";
-    return handler.handleRequest(evt, context, callback).then(() => {
-      assert.equal(res.statusCode, 204);
-      assert.equal(res.headers['Access-Control-Allow-Methods'], 'GET,OPTIONS');
-    });
+    let res = await handler.handleRequest(evt, context);
+    assert.equal(res.statusCode, 204);
+    assert.equal(res.headers['Access-Control-Allow-Methods'], 'GET,OPTIONS');
   });
-  it('handleRequest OPTIONS with 404', function() {
+  it('handleRequest OPTIONS with 404', async function() {
     evt.path = "/route/unknown";
     evt.httpMethod = "OPTIONS";
-    return handler.handleRequest(evt, context, callback).then(() => {
-      assert.equal(res.statusCode, 404);
-    });
+    let res = await handler.handleRequest(evt, context);
+    assert.equal(res.statusCode, 404);
   });
-  it('handleRequest query param', function() {
+  it('handleRequest query param', async function() {
     // TODO Check parameter retrieval
     evt.queryStringParameters = {
       test: 'plop'
     };
-    return handler.handleRequest(evt, context, callback).then(() => {
-
-    });
+    await handler.handleRequest(evt, context);
   });
-  it('handleRequest origin', function() {
+  it('handleRequest origin', async function() {
     evt.headers.Origin = 'https://test.webda.io';
     let wait = false;
     handler.on('Webda.Result', () => {
@@ -124,28 +114,24 @@ describe('Lambda Handler', function() {
         }, 100);
       });
     })
-    return handler.handleRequest(evt, context, callback).then(() => {
-      assert.equal(res.headers['Access-Control-Allow-Origin'], evt.headers.Origin);
-      assert.equal(wait, true);
-    });
+    let res = await handler.handleRequest(evt, context);
+    assert.equal(res.headers['Access-Control-Allow-Origin'], evt.headers.Origin);
+    assert.equal(wait, true);
   });
-  it('handleRequest origin - csrf', function() {
+  it('handleRequest origin - csrf', async function() {
     evt.headers.Origin = 'https://test3.webda.io';
-    return handler.handleRequest(evt, context, callback).then(() => {
-      assert.equal(res.statusCode, 401);
-    });
+    let res = await handler.handleRequest(evt, context);
+    assert.equal(res.statusCode, 401);
   });
-  it('handleRequest referer - csrf', function() {
+  it('handleRequest referer - csrf', async function() {
     evt.headers.Referer = 'https://test3.webda.io';
-    return handler.handleRequest(evt, context, callback).then(() => {
-      assert.equal(res.statusCode, 401);
-    });
+    let res = await handler.handleRequest(evt, context);
+    assert.equal(res.statusCode, 401);
   });
-  it('handleRequest referer - good cors', function() {
+  it('handleRequest referer - good cors', async function() {
     evt.headers.Referer = 'https://test.webda.io';
-    return handler.handleRequest(evt, context, callback).then(() => {
-      assert.equal(res.headers['Access-Control-Allow-Origin'], evt.headers.Referer);
-    });
+    let res = await handler.handleRequest(evt, context);
+    assert.equal(res.headers['Access-Control-Allow-Origin'], evt.headers.Referer);
   });
 
   describe('aws events', function() {

@@ -71,32 +71,43 @@ class LambdaServer extends Webda {
   }
 
   private async handleAWSEvent(source, events) {
-    return Promise.all(this._awsEventsHandlers.map(async (handler) => {
+    for (let i in this._awsEventsHandlers) {
+      let handler = this._awsEventsHandlers[i];
       if (handler.isAWSEventHandled(source, events)) {
         await handler.handleAWSEvent(source, events);
       }
-    }));
+    }
   }
 
-  handleAWSEvents(events, callback) {
+  async handleAWSEvents(events) {
+    let found = false;
     if (events.Records) {
       let source = events.Records[0].eventSource;
-      return this.handleAWSEvent(source, events);
+      await this.handleAWSEvent(source, events);
+      found = true;
     } else if (events.invocationId && events.records) {
-      return this.handleAWSEvent('aws:kinesis', events);
+      await this.handleAWSEvent('aws:kinesis', events);
+      found = true;
     } else if (events['detail-type'] && events.detail && events.resources) {
-      return this.handleAWSEvent('aws:scheduled-event', events);
+      await this.handleAWSEvent('aws:scheduled-event', events);
+      found = true;
     } else if (events.awslogs) {
-      return this.handleAWSEvent('aws:cloudwatch-logs', events);
+      await this.handleAWSEvent('aws:cloudwatch-logs', events);
+      found = true;
     } else if (events['CodePipeline.job']) {
-      return this.handleAWSEvent('aws:codepipeline', events);
+      await this.handleAWSEvent('aws:codepipeline', events);
+      found = true;
     } else if (events.identityPoolId) {
-      return this.handleAWSEvent('aws:cognito', events);
+      await this.handleAWSEvent('aws:cognito', events);
+      found = true;
     } else if (events.configRuleId) {
-      return this.handleAWSEvent('aws:config', events);
+      await this.handleAWSEvent('aws:config', events);
+      found = true;
     } else if (events.jobDefinition || events.jobId) {
-      return this.handleAWSEvent('aws:batch', events);
+      await this.handleAWSEvent('aws:batch', events);
+      found = true;
     }
+    return found;
   }
 
   /**
@@ -104,10 +115,10 @@ class LambdaServer extends Webda {
    *
    * @ignore
    */
-  async handleRequest(event, context, callback) {
+  async handleRequest(event, context) {
     await this.init();
     // Handle AWS event
-    if (await this.handleAWSEvents(event, callback)) {
+    if (await this.handleAWSEvents(event)) {
       this.log('INFO', 'Handled AWS event', event);
       return;
     }
@@ -189,7 +200,7 @@ class LambdaServer extends Webda {
         // Prevent CSRF
         this.log('INFO', 'CSRF denied from', origin);
         ctx.statusCode = 401;
-        return this.handleLambdaReturn(ctx, callback);
+        return this.handleLambdaReturn(ctx);
       }
     }
     if (protocol === 'https') {
@@ -204,12 +215,12 @@ class LambdaServer extends Webda {
       let routes = this.getRouteMethodsFromUrl(resourcePath);
       if (routes.length == 0) {
         ctx.statusCode = 404;
-        return this.handleLambdaReturn(ctx, callback);
+        return this.handleLambdaReturn(ctx);
       }
       routes.push('OPTIONS');
       ctx.setHeader('Access-Control-Allow-Methods', routes.join(','));
       await ctx.end();
-      return this.handleLambdaReturn(ctx, callback);
+      return this.handleLambdaReturn(ctx);
     }
 
     var executor = this.getExecutor(ctx, vhost, method, resourcePath, protocol, port, headers);
@@ -217,7 +228,7 @@ class LambdaServer extends Webda {
     if (executor == null) {
       this.emitSync('Webda.404', vhost, method, resourcePath, ctx.getCurrentUserId(), body);
       ctx.statusCode = 404;
-      return this.handleLambdaReturn(ctx, callback);
+      return this.handleLambdaReturn(ctx);
     }
     ctx.init();
     try {
@@ -225,7 +236,7 @@ class LambdaServer extends Webda {
       if (!ctx._ended) {
         await ctx.end();
       }
-      return this.handleLambdaReturn(ctx, callback);
+      return this.handleLambdaReturn(ctx);
     } catch (err) {
       if (typeof(err) === "number") {
         ctx.statusCode = err;
@@ -234,21 +245,21 @@ class LambdaServer extends Webda {
         this.log('ERROR', err);
         ctx.statusCode = 500;
       }
-      return this.handleLambdaReturn(ctx, callback);
+      return this.handleLambdaReturn(ctx);
     }
   }
 
-  async handleLambdaReturn(ctx, callback) {
+  async handleLambdaReturn(ctx) {
     // Override when it comes for express component
     if (ctx.statusCode) {
       this._result.code = ctx.statusCode;
     }
     await this.emitSync('Webda.Result', ctx, this._result);
-    return callback(null, {
+    return {
       statusCode: ctx.statusCode,
       headers: this._result.headers,
       body: this._result.body
-    });
+    };
   }
 }
 

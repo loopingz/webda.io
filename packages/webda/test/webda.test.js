@@ -59,7 +59,7 @@ describe('Webda', function() {
   });
   describe('getVersion()', function() {
     it('current', function() {
-      assert.equal(webda.getVersion(), '0.10.1');
+      assert.equal(webda.getVersion(), '0.10.2');
     });
   });
   describe('utils', function() {

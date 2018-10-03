@@ -1,6 +1,6 @@
 {
   "name": "webda-elasticsearch",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Webda ElasticSearch implementation",
   "main": "lib/index.js",
   "scripts": {

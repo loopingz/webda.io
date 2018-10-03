@@ -45,7 +45,7 @@
     "source-map-support": "^0.5.4",
     "ts-node": "^5.0.1",
     "typescript": "^2.8.1",
-    "webda-shell": "^0.9.12"
+    "webda-shell": ">=0.9.12"
   },
   "nyc": {
     "extension": [

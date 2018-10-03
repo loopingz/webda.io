@@ -400,7 +400,7 @@ export default class WebdaConsole {
       ModuleLoader.getPackagesLocations().forEach((path) => {
         if (fs.existsSync(path) && fs.lstatSync(path).isDirectory()) {
           // Linux limitation, the recursive does not work
-          fs.watch(path, <Object> {
+          fs.watch(path, < Object > {
             resursive: true
           }, listener);
         }
@@ -440,7 +440,10 @@ export default class WebdaConsole {
     if (fs.existsSync('/.webda-wui/wui')) {
       fs.mkdirSync('/.webda-wui/wui');
     }
-    let versions = await rp({uri: this.getLastWUIVersionURL(), json: true});
+    let versions = await rp({
+      uri: this.getLastWUIVersionURL(),
+      json: true
+    });
     let currentVersion = this.getVersion();
     let wui;
     for (let i in versions) {
@@ -448,23 +451,27 @@ export default class WebdaConsole {
       if (version.version === 'latest' || semver.lt(currentVersion, version.version)) {
         // Last available
         wui = version;
+        break;
       }
     }
     if (!wui) {
       this.log('ERROR', 'No valid WUI found');
       return;
     }
-    console.log('Got', wui);
     let versionFile = process.env.HOME + '/.webda-wui/version.json';
-    let currentWui = {hash: ''};
+    let currentWui = {
+      hash: ''
+    };
     if (fs.existsSync(versionFile)) {
       currentWui = JSON.parse(fs.readFileSync(versionFile).toString());
     }
     if (currentWui.hash !== wui.hash) {
       this.log('INFO', 'Update Web UI');
       let fsTest = fs.createWriteStream(process.env.HOME + '/.webda-wui/test.zip');
-      await new Promise( (resolve, reject) => {
-        let unzipStream = unzip.Extract({ path: process.env.HOME + '/.webda-wui/wui' });
+      await new Promise((resolve, reject) => {
+        let unzipStream = unzip.Extract({
+          path: process.env.HOME + '/.webda-wui/wui'
+        });
         unzipStream.on('close', resolve);
         https.get(wui.url, (res) => res.pipe(unzipStream));
       });

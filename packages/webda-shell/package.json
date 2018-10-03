@@ -35,7 +35,6 @@
     "webda": "./bin/webda"
   },
   "files": [
-    "app",
     "bin/webda",
     "lib",
     "logo.json"
@@ -72,7 +71,9 @@
     "open": "0.0.5",
     "request": "^2.81.0",
     "request-promise": "^4.2.0",
+    "semver": "^5.5.1",
     "socket.io": "^2.0.3",
+    "unzip": "^0.1.11",
     "webda": "^0.10.0",
     "yargs": "^7.1.0",
     "yauzl": "^2.7.0",

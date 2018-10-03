@@ -12,13 +12,18 @@ import * as colors from 'colors';
 import {
   Transform,
   Writable
-} from "stream";
-const fs = require("fs");
+} from 'stream';
+import * as fs from 'fs';
 
-const yauzl = require("yauzl");
-const path = require("path");
-const mkdirp = require("mkdirp");
-const glob = require('glob');
+import * as yauzl from 'yauzl';
+import * as path from 'path';
+import * as mkdirp from 'mkdirp';
+import * as glob from 'glob';
+
+import * as rp from 'request-promise';
+import * as semver from 'semver';
+import * as https from 'https';
+import * as unzip from 'unzip';
 
 var webda;
 var server_config;
@@ -395,8 +400,7 @@ export default class WebdaConsole {
       ModuleLoader.getPackagesLocations().forEach((path) => {
         if (fs.existsSync(path) && fs.lstatSync(path).isDirectory()) {
           // Linux limitation, the recursive does not work
-          fs.watch(path, {
-            permanent: true,
+          fs.watch(path, <Object> {
             resursive: true
           }, listener);
         }
@@ -421,7 +425,60 @@ export default class WebdaConsole {
     return webda.loadDeploymentConfig(deployment);
   }
 
+  static getLastWUIVersionURL() {
+    return 'https://webda.io/wuis/wuis.json';
+  }
+
+  static getVersion() {
+    return JSON.parse(fs.readFileSync(__dirname + '/../../package.json').toString()).version;
+  }
+
+  static async getLastWUIVersion() {
+    if (fs.existsSync('/.webda-wui/')) {
+      fs.mkdirSync('/.webda-wui/');
+    }
+    if (fs.existsSync('/.webda-wui/wui')) {
+      fs.mkdirSync('/.webda-wui/wui');
+    }
+    let versions = await rp({uri: this.getLastWUIVersionURL(), json: true});
+    let currentVersion = this.getVersion();
+    let wui;
+    for (let i in versions) {
+      let version = versions[i];
+      if (version.version === 'latest' || semver.lt(currentVersion, version.version)) {
+        // Last available
+        wui = version;
+      }
+    }
+    if (!wui) {
+      this.log('ERROR', 'No valid WUI found');
+      return;
+    }
+    console.log('Got', wui);
+    let versionFile = process.env.HOME + '/.webda-wui/version.json';
+    let currentWui = {hash: ''};
+    if (fs.existsSync(versionFile)) {
+      currentWui = JSON.parse(fs.readFileSync(versionFile).toString());
+    }
+    if (currentWui.hash !== wui.hash) {
+      this.log('INFO', 'Update Web UI');
+      let fsTest = fs.createWriteStream(process.env.HOME + '/.webda-wui/test.zip');
+      await new Promise( (resolve, reject) => {
+        let unzipStream = unzip.Extract({ path: process.env.HOME + '/.webda-wui/wui' });
+        unzipStream.on('close', resolve);
+        https.get(wui.url, (res) => res.pipe(unzipStream));
+      });
+      fs.writeFileSync(versionFile, JSON.stringify(wui, undefined, 2));
+      this.log('INFO', 'Web UI Updated');
+    }
+  }
+
   static async config(argv) {
+    try {
+      await this.getLastWUIVersion();
+    } catch (err) {
+      this.log('ERROR', 'Cannot get latest version of Web UI', err);
+    }
     if (argv.deployment) {
       let webda = await this._getNewConfig();
       server_config = webda.loadDeploymentConfig(argv.deployment);

@@ -57,11 +57,15 @@ if (!Promise.each) {
 /**
  * Search for webda.shell.json override or use standard
  */
-const Finder = require('fs-finder');
+
 // Find first shell override
 var files = [];
-if (fs.existsSync('./node_modules')) {
-  files = Finder.from('./node_modules').findFiles('webda.shell.json');
+
+if (process.argv.indexOf('--no-override') < 0) {
+  const Finder = require('fs-finder');
+  if (fs.existsSync('./node_modules')) {
+    files = Finder.from('./node_modules').findFiles('webda.shell.json');
+  }
 }
 var consoleService;
 if (files.length) {

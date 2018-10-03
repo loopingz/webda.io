@@ -72,7 +72,9 @@ export class FargateDeployer extends DockerMixIn(AWSDeployer) {
     }
     await this._createTaskDefinition();
     await this._createCluster();
-    await this._createService();
+    if (!this.resources.noService) {
+      await this._createService();
+    }
   }
 
   _createLogGroup() {

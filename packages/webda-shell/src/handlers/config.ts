@@ -30,11 +30,11 @@ import {
   WeDeployDeployer
 } from "../deployers/wedeploy";
 
-const fs = require("fs");
-const path = require("path");
+import * as fs from "fs";
+import * as path from "path";
 
-const merge = require('merge');
-const mkdirp = require('mkdirp');
+import * as merge from 'merge';
+import * as mkdirp from 'mkdirp';
 
 export class ConfigurationService extends Executor {
 
@@ -519,7 +519,7 @@ export class WebdaConfigurationServer extends WebdaServer {
   }
 
   static getVersion() {
-    return JSON.parse(fs.readFileSync(__dirname + '/../../package.json')).version;
+    return JSON.parse(fs.readFileSync(__dirname + '/../../package.json').toString()).version;
   }
 
   static getWebdaVersion() {
@@ -567,7 +567,7 @@ export class WebdaConfigurationServer extends WebdaServer {
   loadDeploymentConfig(env) {
     var name = './deployments/' + env;
     if (fs.existsSync(name)) {
-      let deployment = JSON.parse(fs.readFileSync(name));
+      let deployment = JSON.parse(fs.readFileSync(name).toString());
       this.config = super.loadConfiguration();
       this.resolveConfiguration(this.config, deployment);
       return JSON.parse(this.exportJson(this.config));
@@ -707,12 +707,11 @@ export class WebdaConfigurationServer extends WebdaServer {
   }
 
   serveStaticWebsite(express, app) {
-    app.use(express.static(__dirname + '/../../app/'));
+    app.use(express.static(process.env.HOME + '/.webda-wui/wui/'));
   }
 
   serveIndex(express, app) {
-    // We are in lib folder
-    app.use(express.static(__dirname + '/../../app/index.html'));
+    app.use(express.static(process.env.HOME + '/.webda-wui/wui/index.html'));
   }
 
   async serve(port, openBrowser) {

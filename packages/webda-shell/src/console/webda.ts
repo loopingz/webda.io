@@ -433,6 +433,10 @@ export default class WebdaConsole {
     return JSON.parse(fs.readFileSync(__dirname + '/../../package.json').toString()).version;
   }
 
+  static getBarLabel() {
+    return '{action}: '+ colors.yellow('{bar}') + ' {percentage}%';
+  }
+
   static async getLastWUIVersion() {
     if (fs.existsSync('/.webda-wui/')) {
       fs.mkdirSync('/.webda-wui/');
@@ -466,17 +470,39 @@ export default class WebdaConsole {
       currentWui = JSON.parse(fs.readFileSync(versionFile).toString());
     }
     if (currentWui.hash !== wui.hash) {
-      this.log('INFO', 'Update Web UI');
-      let fsTest = fs.createWriteStream(process.env.HOME + '/.webda-wui/test.zip');
+      const _cliProgress = require('cli-progress');
+      const bar1 = new _cliProgress.Bar({format: this.getBarLabel()}, _cliProgress.Presets.shades_classic);
+      // Add cli_progress here
+      bar1.start(wui.size, 0, {action: 'Downloading WUI'});
+      let dataLength = 0;
+      let fsTest = fs.createWriteStream(process.env.HOME + '/.webda-wui/package.zip');
       await new Promise((resolve, reject) => {
-        let unzipStream = unzip.Extract({
-          path: process.env.HOME + '/.webda-wui/wui'
+        https.get(wui.url, (res) => {
+          res.pipe(fsTest);
+          res.on('data', function (chunk) {
+            dataLength += chunk.length;
+            bar1.update(dataLength);
+          })
         });
-        unzipStream.on('close', resolve);
-        https.get(wui.url, (res) => res.pipe(unzipStream));
+        fsTest.on('close', () => {
+          dataLength = 0;
+          bar1.update(dataLength, {action: 'Extracting WUI'});
+          let src = fs.createReadStream(process.env.HOME + '/.webda-wui/package.zip');
+          src.on('data', function(chunk) {
+            dataLength += chunk.length;
+            bar1.update(dataLength);
+          })
+          let unzipStream = unzip.Extract({
+            path: process.env.HOME + '/.webda-wui/wui'
+          });
+          src.pipe(unzipStream);
+          unzipStream.on('close', () => {
+            bar1.stop();
+            resolve();
+          });
+        })
       });
       fs.writeFileSync(versionFile, JSON.stringify(wui, undefined, 2));
-      this.log('INFO', 'Web UI Updated');
     }
   }
 

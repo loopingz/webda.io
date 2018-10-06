@@ -11,7 +11,10 @@
     "juicy-jsoneditor": "~1.0.5",
     "jsen": "~0.6.1",
     "juicy-ace-editor": "~1.1.1",
-    "ajv": "~4.0.0"
+    "ajv": "~4.0.0",
+    "iron-icons": "PolymerElements/iron-icons#^1.0.0",
+    "iron-pages": "PolymerElements/iron-pages#^1.0.0",
+    "iron-ajax": "PolymerElements/iron-ajax#^1.0.0"
   },
   "devDependencies": {
     "web-component-tester": "^4.0.0"

@@ -735,7 +735,10 @@ export class WebdaConfigurationServer extends WebdaServer {
       this.conns.push(conn);
 
       conn.on("error", (err) => {
-        this.output("Connection error", err);
+        if (err.code === 'ECONNRESET') {
+          return;
+        }
+        this.output("Connection error", err.code);
       });
       conn.on("close", (code, reason) => {
         if (this.conns.indexOf(conn) >= 0) {

@@ -16,7 +16,7 @@ export default class ConfigurationService extends Service {
   protected _nextCheck: number;
   protected _sourceService: any;
   protected _sourceId: string;
-  private _interval: number;
+  private _interval: NodeJS.Timer;
 
   async init() {
 

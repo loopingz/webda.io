@@ -449,7 +449,7 @@ class Binary extends Executor {
     let base64String = new Buffer(ctx.body.hash, 'hex').toString('base64');
     ctx.write({
       url: url,
-      done: !(url !== undefined),
+      done: url === undefined,
       md5: base64String
     });
   }

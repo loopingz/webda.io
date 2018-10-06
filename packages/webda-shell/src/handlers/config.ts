@@ -451,10 +451,12 @@ export class WebdaConfigurationServer extends WebdaServer {
   resources: any;
   deployChild: any;
   conns: any[];
+  _wui: string;
   _deployOutput: string[];
 
-  constructor(config = undefined) {
+  constructor(wui: string, config = undefined) {
     super(config);
+    this._wui = wui;
     this._deployers = {};
     this._deployers["WebdaDeployer/Lambda"] = LambdaDeployer;
     this._deployers["WebdaDeployer/Fargate"] = FargateDeployer;
@@ -707,11 +709,11 @@ export class WebdaConfigurationServer extends WebdaServer {
   }
 
   serveStaticWebsite(express, app) {
-    app.use(express.static(process.env.HOME + '/.webda-wui/wui/'));
+    app.use(express.static(process.env.HOME + `/.webda-wui/${this._wui}/`));
   }
 
   serveIndex(express, app) {
-    app.use(express.static(process.env.HOME + '/.webda-wui/wui/index.html'));
+    app.use(express.static(process.env.HOME + `/.webda-wui/${this._wui}/index.html`));
   }
 
   async serve(port, openBrowser) {

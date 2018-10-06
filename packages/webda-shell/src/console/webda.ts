@@ -411,7 +411,7 @@ export default class WebdaConsole {
   }
 
   static async _getNewConfig() {
-    let webda = new WebdaConfigurationServer();
+    let webda = new WebdaConfigurationServer(this.getWUIName());
     // Transfer the output
     webda._logger = this.logger;
     webda._loggers = [this.logger];
@@ -419,7 +419,7 @@ export default class WebdaConsole {
   }
 
   static _loadDeploymentConfig(deployment) {
-    let webda = new WebdaConfigurationServer();
+    let webda = new WebdaConfigurationServer(this.getWUIName());
     webda._logger = this.logger;
     webda._loggers = [this.logger];
     return webda.loadDeploymentConfig(deployment);
@@ -437,12 +437,18 @@ export default class WebdaConsole {
     return '{action}: ' + colors.yellow('{bar}') + ' {percentage}%';
   }
 
+  static getWUIName(): string {
+    return 'webda';
+  }
+
   static async getLastWUIVersion() {
-    if (fs.existsSync('/.webda-wui/')) {
-      fs.mkdirSync('/.webda-wui/');
+
+    if (!fs.existsSync(process.env.HOME + '/.webda-wui/')) {
+      fs.mkdirSync(process.env.HOME + '/.webda-wui/');
     }
-    if (fs.existsSync('/.webda-wui/wui')) {
-      fs.mkdirSync('/.webda-wui/wui');
+    let path = process.env.HOME + '/.webda-wui/' + this.getWUIName();
+    if (!fs.existsSync(path)) {
+      fs.mkdirSync(path);
     }
     let versions = await rp({
       uri: this.getLastWUIVersionURL(),
@@ -462,13 +468,10 @@ export default class WebdaConsole {
       this.log('ERROR', 'No valid WUI found');
       return;
     }
-    let versionFile = process.env.HOME + '/.webda-wui/version.json';
+    let versionFile = path + '/version.json';
     let currentWui = {
       hash: ''
     };
-    if (!fs.existsSync(process.env.HOME + '/.webda-wui')) {
-      fs.mkdirSync(process.env.HOME + '/.webda-wui');
-    }
     if (fs.existsSync(versionFile)) {
       currentWui = JSON.parse(fs.readFileSync(versionFile).toString());
     }
@@ -482,7 +485,7 @@ export default class WebdaConsole {
         action: 'Downloading WUI'
       });
       let dataLength = 0;
-      let fsTest = fs.createWriteStream(process.env.HOME + '/.webda-wui/package.zip');
+      let fsTest = fs.createWriteStream(path + '/package.zip');
       await new Promise((resolve, reject) => {
         https.get(wui.url, (res) => {
           res.pipe(fsTest);
@@ -496,13 +499,13 @@ export default class WebdaConsole {
           bar1.update(dataLength, {
             action: 'Extracting WUI'
           });
-          let src = fs.createReadStream(process.env.HOME + '/.webda-wui/package.zip');
+          let src = fs.createReadStream(path + '/package.zip');
           src.on('data', function(chunk) {
             dataLength += chunk.length;
             bar1.update(dataLength);
           })
           let unzipStream = unzip.Extract({
-            path: process.env.HOME + '/.webda-wui/wui'
+            path
           });
           src.pipe(unzipStream);
           unzipStream.on('close', () => {

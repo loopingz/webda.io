@@ -434,7 +434,7 @@ export default class WebdaConsole {
   }
 
   static getBarLabel() {
-    return '{action}: '+ colors.yellow('{bar}') + ' {percentage}%';
+    return '{action}: ' + colors.yellow('{bar}') + ' {percentage}%';
   }
 
   static async getLastWUIVersion() {
@@ -466,27 +466,36 @@ export default class WebdaConsole {
     let currentWui = {
       hash: ''
     };
+    if (!fs.existsSync(process.env.HOME + '/.webda-wui')) {
+      fs.mkdirSync(process.env.HOME + '/.webda-wui');
+    }
     if (fs.existsSync(versionFile)) {
       currentWui = JSON.parse(fs.readFileSync(versionFile).toString());
     }
     if (currentWui.hash !== wui.hash) {
       const _cliProgress = require('cli-progress');
-      const bar1 = new _cliProgress.Bar({format: this.getBarLabel()}, _cliProgress.Presets.shades_classic);
+      const bar1 = new _cliProgress.Bar({
+        format: this.getBarLabel()
+      }, _cliProgress.Presets.shades_classic);
       // Add cli_progress here
-      bar1.start(wui.size, 0, {action: 'Downloading WUI'});
+      bar1.start(wui.size, 0, {
+        action: 'Downloading WUI'
+      });
       let dataLength = 0;
       let fsTest = fs.createWriteStream(process.env.HOME + '/.webda-wui/package.zip');
       await new Promise((resolve, reject) => {
         https.get(wui.url, (res) => {
           res.pipe(fsTest);
-          res.on('data', function (chunk) {
+          res.on('data', function(chunk) {
             dataLength += chunk.length;
             bar1.update(dataLength);
           })
         });
         fsTest.on('close', () => {
           dataLength = 0;
-          bar1.update(dataLength, {action: 'Extracting WUI'});
+          bar1.update(dataLength, {
+            action: 'Extracting WUI'
+          });
           let src = fs.createReadStream(process.env.HOME + '/.webda-wui/package.zip');
           src.on('data', function(chunk) {
             dataLength += chunk.length;

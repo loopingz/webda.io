@@ -34,7 +34,18 @@ class FileBinary extends Binary {
     super.initRoutes();
     // Will redirect to this URL for direct upload
     let url = this._url + "/upload/data/{hash}";
-    this._addRoute(url, ['PUT'], this.storeBinary);
+    this._addRoute(url, ['PUT'], this.storeBinary, {
+      put: {
+        description: 'Add a binary to an object after challenge',
+        summary: 'Add a binary',
+        responses: {
+          '204': '',
+          '400': "Wrong hash",
+          '404': 'Object does not exist or attachment does not exist',
+          '412': 'Provided hash does not match'
+        }
+      }
+    });
   }
 
   _get(info) {

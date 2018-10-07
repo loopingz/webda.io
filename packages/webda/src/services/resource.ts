@@ -26,8 +26,28 @@ export default class ResourceService extends Executor {
   }
 
   initRoutes() {
-    this._addRoute(this._params.url, ['GET'], this._serve);
-    this._addRoute(this._params.url + '{resource}', ['GET'], this._serve, true);
+    this._addRoute(this._params.url, ['GET'], this._serve, {
+      get: {
+        description: 'Get resources',
+        summary: 'Get file',
+        responses: {
+          '200': '',
+          '401': 'Illegal resource',
+          '404': 'File not found'
+        }
+      }
+    });
+    this._addRoute(this._params.url + '{resource}', ['GET'], this._serve, {
+      get: {
+        description: 'Get resources',
+        summary: 'Get file',
+        responses: {
+          '200': '',
+          '401': 'Illegal resource',
+          '404': 'File not found'
+        }
+      }
+    }, true);
   }
 
   _serve(ctx) {

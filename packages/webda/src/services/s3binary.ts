@@ -47,7 +47,18 @@ class S3Binary extends AWSMixIn(Binary) {
     super.initRoutes();
     // Will use getRedirectUrl so override the default route
     var url = this._url + "/{store}/{uid}/{property}/{index}";
-    this._addRoute(url, ["GET"], this.getRedirectUrl);
+    this._addRoute(url, ["GET"], this.getRedirectUrl, {
+      get: {
+        description: 'Download a binary linked to an object',
+        summary: 'Download a binary',
+        responses: {
+          '302': 'Redirect to download url',
+          '403': "You don't have permissions",
+          '404': 'Object does not exist or attachment does not exist',
+          '412': 'Provided hash does not match'
+        }
+      }
+    });
   }
 
   async putRedirectUrl(ctx: Context): Promise < string > {

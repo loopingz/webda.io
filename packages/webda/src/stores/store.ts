@@ -82,7 +82,22 @@ class Store < T extends CoreModel > extends Executor implements ConfigurationPro
     }
     expose.restrict = expose.restrict || {}
     if (!expose.restrict.create) {
-      this._addRoute(expose.url, ["POST"], this.httpCreate);
+      this._addRoute(expose.url, ["POST"], this.httpCreate, {
+        model: this._model.name,
+        post: {
+          description: `The way to create a new ${this._model.name} model`,
+          summary: 'Create a new ' + this._model.name,
+          model: this._model.name,
+          responses: {
+            '200': {
+              model: this._model.name
+            },
+            '400': 'Object is invalid',
+            '403': "You don't have permissions",
+            '409': 'Object already exists'
+          }
+        }
+      });
     }
     // Dont even create the route that are restricted so we can ease up the test on handler
     let methods = [];
@@ -97,7 +112,44 @@ class Store < T extends CoreModel > extends Executor implements ConfigurationPro
     }
     this._exposeUrl = expose.url;
     if (methods.length) {
-      this._addRoute(expose.url + "/{uuid}", methods, this.httpRoute);
+      this._addRoute(expose.url + "/{uuid}", methods, this.httpRoute, {
+        model: this._model.name,
+        get: {
+          description: `Retrieve ${this._model.name} model if permissions allow`,
+          summary: 'Retrieve a ' + this._model.name,
+          responses: {
+            '200': {
+              model: this._model.name
+            },
+            '400': 'Object is invalid',
+            '403': "You don't have permissions",
+            '404': 'Unknown object'
+          }
+        },
+        put: {
+          description: `Update a new ${this._model.name} if the permissions allow`,
+          summary: 'Update a ' + this._model.name,
+          model: this._model.name,
+          responses: {
+            '200': {
+              model: this._model.name
+            },
+            '400': 'Object is invalid',
+            '403': "You don't have permissions",
+            '404': 'Unknown object'
+          }
+        },
+        delete: {
+          description: `Delete ${this._model.name} if the permissions allow`,
+          summary: 'Delete a ' + this._model.name,
+          model: this._model.name,
+          responses: {
+            '204': '',
+            '403': "You don't have permissions",
+            '404': 'Unknown object'
+          }
+        }
+      });
     }
     if (this._model && this._model.getActions) {
       let actions = this._model.getActions();
@@ -118,7 +170,7 @@ class Store < T extends CoreModel > extends Executor implements ConfigurationPro
             }
             action._method = this.httpGlobalAction;
           }
-          this._addRoute(expose.url + '/' + action.name, action.method, action._method);
+          this._addRoute(expose.url + '/' + action.name, action.method, action._method, action.swagger);
         } else {
           // By default will grab the object and then call the action
           if (!action._method) {
@@ -127,7 +179,7 @@ class Store < T extends CoreModel > extends Executor implements ConfigurationPro
             }
             action._method = this.httpAction;
           }
-          this._addRoute(expose.url + '/{uuid}/' + action.name, action.method, action._method);
+          this._addRoute(expose.url + '/{uuid}/' + action.name, action.method, action._method, action.swagger);
         }
       });
     }

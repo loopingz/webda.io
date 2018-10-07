@@ -331,25 +331,73 @@ class Binary extends Executor {
 
     if (!this._params.expose.restrict.get) {
       url = this._params.expose.url + "/{store}/{uid}/{property}/{index}";
-      this._addRoute(url, ["GET"], this.httpRoute);
+      this._addRoute(url, ["GET"], this.httpRoute, {
+        get: {
+          description: 'Download a binary linked to an object',
+          summary: 'Download a binary',
+          responses: {
+            '200': 'Binary stream',
+            '403': "You don't have permissions",
+            '404': 'Object does not exist or attachment does not exist',
+            '412': 'Provided hash does not match'
+          }
+        }
+      });
     }
 
     if (!this._params.expose.restrict.create) {
       // No need the index to add file
       url = this._params.expose.url + "/{store}/{uid}/{property}";
-      this._addRoute(url, ["POST"], this.httpPost);
+      this._addRoute(url, ["POST"], this.httpPost, {
+        post: {
+          description: 'Add a binary linked to an object',
+          summary: 'Add a binary',
+          responses: {
+            '200': {
+              schema: {
+                type: 'object'
+              }
+            },
+            '403': "You don't have permissions",
+            '404': 'Object does not exist or attachment does not exist',
+            '412': 'Provided hash does not match'
+          }
+        }
+      });
     }
 
     if (!this._params.expose.restrict.create) {
       // Add file with challenge
       url = this._params.expose.url + "/upload/{store}/{uid}/{property}/{index}";
-      this._addRoute(url, ["PUT"], this.httpChallenge);
+      this._addRoute(url, ["PUT"], this.httpChallenge, {
+        put: {
+          description: 'Add a binary to an object after challenge',
+          summary: 'Add a binary',
+          responses: {
+            '204': '',
+            '403': "You don't have permissions",
+            '404': 'Object does not exist or attachment does not exist',
+            '412': 'Provided hash does not match'
+          }
+        }
+      });
     }
 
     if (!this._params.expose.restrict.delete) {
       // Need hash to avoid concurrent delete
       url = this._params.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
-      this._addRoute(url, ["DELETE"], this.httpRoute);
+      this._addRoute(url, ["DELETE"], this.httpRoute, {
+        delete: {
+          description: 'Delete a binary linked to an object',
+          summary: 'Delete a binary',
+          responses: {
+            '204': '',
+            '403': "You don't have permissions",
+            '404': 'Object does not exist or attachment does not exist',
+            '412': 'Provided hash does not match'
+          }
+        }
+      });
     }
   }
 

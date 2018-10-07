@@ -82,20 +82,106 @@ class Authentication extends Executor {
     // ROUTES
     let url = this._params.expose || '/auth';
     // List authentication configured
-    this._addRoute(url, ["GET", "DELETE"], this._listAuthentications);
+    this._addRoute(url, ["GET", "DELETE"], this._listAuthentications, {
+      get: {
+        description: 'Retrieve the list of available authentication',
+        summary: 'Get available auths',
+        responses: {
+          '200': {
+            'description': 'List of authentication',
+            schema: {
+              type: 'array',
+              items: {
+                type: 'string'
+              }
+            }
+          }
+        }
+      },
+      delete: {
+        description: 'Logout current user',
+        summary: 'Logout',
+        responses: {
+          '200': {
+            schema: {
+              type: 'string'
+            }
+          }
+        }
+      }
+    });
     // Get the current user
-    this._addRoute(url + "/me", ["GET"], this._getMe);
+    this._addRoute(url + "/me", ["GET"], this._getMe, {
+      get: {
+        description: 'Retrieve the current user from the session',
+        summary: 'Get current user'
+      }
+    });
     if (this._params.providers.email) {
       // Add static for email for now, if set before it should have priority
-      this._addRoute(url + "/email", ["POST"], this._handleEmail);
-      this._addRoute(url + "/email/callback{?email,token}", ["GET"], this._handleEmailCallback);
-      this._addRoute(url + "/email/passwordRecovery", ["POST"], this._passwordRecovery);
-      this._addRoute(url + "/email/{email}/recover", ["GET"], this._passwordRecoveryEmail);
+      this._addRoute(url + "/email", ["POST"], this._handleEmail, {
+        post: {
+          description: 'Authenticate with an email and password',
+          summary: 'Authenticate with email'
+        }
+      });
+      this._addRoute(url + "/email/callback{?email,token}", ["GET"], this._handleEmailCallback, {
+        hidden: true
+      });
+      this._addRoute(url + "/email/passwordRecovery", ["POST"], this._passwordRecovery, {
+        post: {
+          description: 'Reinit the password if we have the right token, expire',
+          summary: 'Reinit password',
+          schema: {
+            type: 'object',
+            properties: {
+              token: {
+                type: 'string'
+              },
+              expire: {
+                type: 'number'
+              },
+              password: {
+                type: 'string'
+              },
+              login: {
+                type: 'string'
+              }
+            }
+          },
+          responses: {
+            '204': '',
+            '403': 'Wrong Token'
+          }
+        }
+      });
+      this._addRoute(url + "/email/{email}/recover", ["GET"], this._passwordRecoveryEmail, {
+        get: {
+          description: 'The password reset process will be start',
+          summary: 'Start password recovery',
+          responses: {
+            '204': '',
+            '404': 'Email does not exist',
+            '429': 'Recovery has been initiated in the last 4 hours'
+          }
+        }
+      });
     }
     // Handle the lost password here
     url += '/{provider}';
-    this._addRoute(url, ["GET"], this._authenticate);
-    this._addRoute(url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}", ["GET"], this._callback);
+    this._addRoute(url, ["GET"], this._authenticate, {
+      get: {
+        description: 'Authenticate with a configured OAuth provider',
+        summary: 'Authenticate with OAuth',
+        responses: {
+          '302': 'Redirect to OAuth provider',
+          '404': 'Provider does not exist'
+        }
+      }
+    });
+    this._addRoute(url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}", ["GET"], this._callback, {
+      hidden: true
+    });
   }
 
   setIdents(identStore) {

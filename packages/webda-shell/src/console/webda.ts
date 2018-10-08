@@ -25,6 +25,8 @@ import * as semver from 'semver';
 import * as https from 'https';
 import * as unzip from 'unzip';
 
+import * as YAML from 'yamljs';
+
 var webda;
 var server_config;
 var server_pid;
@@ -410,7 +412,7 @@ export default class WebdaConsole {
     return new Promise(() => {});
   }
 
-  static async _getNewConfig() {
+  static async _getNewConfig(): Promise < WebdaConfigurationServer > {
     let webda = new WebdaConfigurationServer(this.getWUIName());
     // Transfer the output
     webda._logger = this.logger;
@@ -642,8 +644,23 @@ export default class WebdaConsole {
         return this.init(argv);
       case 'module':
         return this.generateModule();
+      case 'swagger':
+        return this.generateSwagger(argv);
       default:
         return this.help();
+    }
+  }
+
+  static async generateSwagger(argv) {
+    webda = await this._getNewConfig();
+    let swagger = await webda.exportSwagger(argv.deployment);
+    let name = argv._[1] || './swagger.json';
+    if (name.endsWith('.json')) {
+      fs.writeFileSync(name, JSON.stringify(swagger, undefined, 2));
+    } else if (name.endsWith('.yaml') || name.endsWith('.yml')) {
+      fs.writeFileSync(name, YAML.stringify(swagger, 1000, 2));
+    } else {
+      this.log('ERROR', 'Unknown format');
     }
   }
 

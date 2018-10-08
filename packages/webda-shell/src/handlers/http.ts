@@ -61,7 +61,7 @@ export class WebdaServer extends Webda {
     let origin = req.headers.Origin || req.headers.origin || req.headers.Referer;
     // Set predefined headers for CORS
     if (origin) {
-      if (Webda.checkCSRF(origin, this.getGlobalParams().website || "") || this._devMode) {
+      if (this._devMode || this.checkCSRF(origin)) {
         res.setHeader('Access-Control-Allow-Origin', origin);
       } else {
         // Prevent CSRF

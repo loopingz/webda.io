@@ -35,6 +35,7 @@ import * as path from "path";
 
 import * as merge from 'merge';
 import * as mkdirp from 'mkdirp';
+import * as deepmerge from 'deepmerge';
 
 export class ConfigurationService extends Executor {
 
@@ -59,7 +60,9 @@ export class ConfigurationService extends Executor {
     this._addRoute('/api/deploy/{name}', ["GET"], this.deploy);
     this._addRoute('/api/global', ["GET", "PUT"], this.restGlobal);
     // Allow path
-    this._addRoute('/api/browse/{path}', ["GET", "PUT", "DELETE"], this.fileBrowser, true);
+    this._addRoute('/api/browse/{path}', ["GET", "PUT", "DELETE"], this.fileBrowser, {
+      hidden: true
+    }, true);
     this.refresh();
     this._deploymentStore = < Store < CoreModel > > this._webda.getService("deployments");
   }
@@ -367,6 +370,173 @@ class ` + className + ` extends ` + extendName + ` {
     this.save();
   }
 
+  exportSwagger(deployment: string = undefined): Object {
+    let packageInfo = JSON.parse(fs.readFileSync(process.cwd() + '/package.json').toString());
+    let swagger2 = deepmerge({
+      swagger: '2.0',
+      info: {
+        description: packageInfo.description,
+        version: packageInfo.version,
+        title: packageInfo.title,
+        termsOfService: packageInfo.termsOfService,
+        contact: packageInfo.author,
+        license: packageInfo.license
+      },
+      schemes: ['https'],
+      basePath: '/',
+      definitions: {
+        Object: {
+          type: 'object'
+        }
+      },
+      paths: {},
+      tags: [],
+    }, this._webda._mockWebda._config.swagger);
+    let tags = {};
+    this._getModels().forEach((model) => {
+      let desc = {
+        type: 'object'
+      };
+      let schema = new(this._webda._mockWebda.getModel(model.name))()._getSchema();
+      if (schema) {
+        schema = JSON.parse(fs.readFileSync(schema).toString());
+        for (let i in schema.definitions) {
+          swagger2.definitions[i] = schema.definitions[i];
+        }
+        delete schema.definitions;
+        desc = schema;
+      }
+      swagger2.definitions[model.name.split('/').pop()] = desc;
+    });
+    for (let i in this._computeConfig.routes) {
+      let route = this._computeConfig.routes[i];
+      if (!route.swagger) {
+        route.swagger = {
+          methods: {}
+        };
+      }
+      if (route.swagger.hidden) {
+        continue;
+      }
+      let urlParameters = [];
+      if (i.indexOf('{?') >= 0) {
+        urlParameters = i.substring(i.indexOf('{?') + 2, i.length - 1).split(',');
+        i = i.substr(0, i.indexOf('{?'));
+      }
+      swagger2.paths[i] = {};
+      if (!Array.isArray(route.method)) {
+        route.method = [route.method];
+      }
+      if (route['_uri-template-parse']) {
+        swagger2.paths[i].parameters = [];
+        route['_uri-template-parse'].varNames.forEach(varName => {
+          if (urlParameters.indexOf(varName) >= 0) {
+            let name = varName;
+            if (name.startsWith('*')) {
+              name = name.substr(1);
+            }
+            swagger2.paths[i].parameters.push({
+              name: varName,
+              in: 'query',
+              required: !varName.startsWith('*'),
+              type: "string"
+            })
+            return;
+          }
+          swagger2.paths[i].parameters.push({
+            name: varName,
+            in: 'path',
+            required: true,
+            type: "string"
+          })
+        });
+      }
+      route.method.forEach(method => {
+        let responses;
+        let schema;
+        let description;
+        let summary;
+        let operationId;
+        if (route.swagger[method.toLowerCase()]) {
+          responses = route.swagger[method.toLowerCase()].responses;
+          schema = route.swagger[method.toLowerCase()].schema;
+          description = route.swagger[method.toLowerCase()].description;
+          summary = route.swagger[method.toLowerCase()].summary;
+          operationId = route.swagger[method.toLowerCase()].operationId;
+        }
+        schema = schema || {
+          '$ref': '#/definitions/' + (route.swagger.model || 'Object')
+        }
+        responses = responses || {
+          200: {
+            description: 'Operation success'
+          }
+        };
+        for (let i in responses) {
+          if (typeof(responses[i]) === 'string') {
+            responses[i] = {
+              description: responses[i]
+            };
+          }
+          if (!responses[i].schema && responses[i].model) {
+            responses[i].schema = {
+              '$ref': '#/definitions/' + responses[i].model
+            }
+            delete responses[i].model;
+          }
+          let code = parseInt(i);
+          if (code < 300 && code >= 200 && !responses[i].description) {
+            responses[i].description = 'Operation success';
+          }
+        }
+        let desc: any = {
+          tags: route.swagger.tags || [route.executor],
+          responses: responses,
+          description,
+          summary,
+          operationId
+        }
+        if (method.toLowerCase().startsWith('p')) {
+          desc.parameters = [{ in: 'body',
+            name: 'body',
+            description: '',
+            required: true,
+            schema: schema
+          }];
+        }
+        swagger2.paths[i][method.toLowerCase()] = desc;
+      });
+      if (route.swagger.tags) {
+        route.swagger.tags.forEach(tag => {
+          if (!tags[tag]) {
+            tags[tag] = true;
+            swagger2.tags.push({
+              name: tag
+            });
+          }
+        })
+      }
+      if (!tags[route.executor] && !route.swagger.tags) {
+        tags[route.executor] = true;
+        swagger2.tags.push({
+          name: route.executor
+        });
+      }
+    }
+    swagger2.tags.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+    let paths = {};
+    Object.keys(swagger2.paths).sort().forEach(i => paths[i] = swagger2.paths[i]);
+    swagger2.paths = paths;
+    // Allow deployment override
+    if (deployment) {
+      let swag = JSON.parse(fs.readFileSync('./deployments/' + deployment).toString()).swagger;
+      if (swag) {
+        swagger2 = deepmerge(swagger2, swag);
+      }
+    }
+    return swagger2;
+  }
+
   restGlobal(ctx) {
     if (ctx._route._http.method === "GET") {
       return this.getGlobal(ctx);
@@ -481,6 +651,10 @@ export class WebdaConfigurationServer extends WebdaServer {
         this._deployers[key] = mod;
       }
     }
+  }
+
+  async exportSwagger(deployment: string = undefined): Promise < Object > {
+    return this.getTypedService < ConfigurationService > ('configuration').exportSwagger(deployment);
   }
 
   exportJson(o) {

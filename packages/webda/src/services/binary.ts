@@ -328,12 +328,16 @@ class Binary extends Executor {
       this._params.expose.restrict = {}
     }
     this._url = this._params.expose.url;
+    let name = this._name;
+    if (name === 'Binary') {
+      name = '';
+    }
 
     if (!this._params.expose.restrict.get) {
       url = this._params.expose.url + "/{store}/{uid}/{property}/{index}";
       this._addRoute(url, ["GET"], this.httpRoute, {
         get: {
-          operationId: `getBinary`,
+          operationId: `get${name}Binary`,
           description: 'Download a binary linked to an object',
           summary: 'Download a binary',
           responses: {
@@ -351,7 +355,7 @@ class Binary extends Executor {
       url = this._params.expose.url + "/{store}/{uid}/{property}";
       this._addRoute(url, ["POST"], this.httpPost, {
         post: {
-          operationId: `addBinary`,
+          operationId: `add${name}Binary`,
           description: 'Add a binary linked to an object',
           summary: 'Add a binary',
           responses: {
@@ -373,7 +377,7 @@ class Binary extends Executor {
       url = this._params.expose.url + "/upload/{store}/{uid}/{property}/{index}";
       this._addRoute(url, ["PUT"], this.httpChallenge, {
         put: {
-          operationId: `putBinary`,
+          operationId: `put${name}Binary`,
           description: 'Add a binary to an object after challenge',
           summary: 'Add a binary',
           responses: {
@@ -391,7 +395,7 @@ class Binary extends Executor {
       url = this._params.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
       this._addRoute(url, ["DELETE"], this.httpRoute, {
         delete: {
-          operationId: `deleteBinary`,
+          operationId: `delete${name}Binary`,
           description: 'Delete a binary linked to an object',
           summary: 'Delete a binary',
           responses: {

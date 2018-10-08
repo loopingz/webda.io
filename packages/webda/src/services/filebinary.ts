@@ -34,9 +34,10 @@ class FileBinary extends Binary {
     super.initRoutes();
     // Will redirect to this URL for direct upload
     let url = this._url + "/upload/data/{hash}";
+    let name = this._name === 'Binary' ? '' : this._name;
     this._addRoute(url, ['PUT'], this.storeBinary, {
       put: {
-        operationId: `putBinary`,
+        operationId: `put${name}Binary`,
         description: 'Add a binary to an object after challenge',
         summary: 'Add a binary',
         responses: {

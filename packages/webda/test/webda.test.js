@@ -150,28 +150,35 @@ describe('Webda', function() {
     });
   })
   describe('checkCSRF()', function() {
+    it('csrfRegExp', function() {
+      assert.equal(webda.checkCSRF('https://accounts.google.fr', 'http://localhost:18181'), true);
+      assert.equal(webda.checkCSRF('https://accounts.google.com', 'http://localhost:18181'), true);
+      assert.equal(webda.checkCSRF('https://accounts.google.fr.loopingz.com', 'http://localhost:18181'), false);
+      assert.equal(webda.checkCSRF('https://www.facebook.com', 'http://localhost:18181'), true);
+      assert.equal(webda.checkCSRF('https://www.facebook.com.eu', 'http://localhost:18181'), false);
+    });
     it('string', function() {
-      assert.equal(Webda.Core.checkCSRF('http://localhost:18181', 'http://localhost:18181'), true);
-      assert.equal(Webda.Core.checkCSRF('http://localhost:18181', 'https://localhost:18181'), false);
-      assert.equal(Webda.Core.checkCSRF('http://localhost:18181', 'localhost:18181'), true);
-      assert.equal(Webda.Core.checkCSRF('http://localhost:18182', 'localhost:18181'), false);
-      assert.equal(Webda.Core.checkCSRF('http://localhost2:18181', 'localhost:18181'), false);
+      assert.equal(webda.checkCSRF('http://localhost:18181', 'http://localhost:18181'), true);
+      assert.equal(webda.checkCSRF('http://localhost:18181', 'https://localhost:18181'), false);
+      assert.equal(webda.checkCSRF('http://localhost:18181', 'localhost:18181'), true);
+      assert.equal(webda.checkCSRF('http://localhost:18182', 'localhost:18181'), false);
+      assert.equal(webda.checkCSRF('http://localhost2:18181', 'localhost:18181'), false);
     });
     it('array', function() {
-      assert.equal(Webda.Core.checkCSRF('http://localhost:18181', ['http://localhost2:18181', 'http://localhost:18181']), true);
-      assert.equal(Webda.Core.checkCSRF('http://localhost:18181', ['localhost2:18181', 'localhost:18181']), true);
-      assert.equal(Webda.Core.checkCSRF('http://localhost2:18181', ['localhost2:18181', 'localhost:18181']), true);
-      assert.equal(Webda.Core.checkCSRF('http://localhost:18182', ['localhost2:18181', 'localhost:18181']), false);
-      assert.equal(Webda.Core.checkCSRF('http://localhost3:18181', ['localhost2:18181', 'localhost:18181']), false);
+      assert.equal(webda.checkCSRF('http://localhost:18181', ['http://localhost2:18181', 'http://localhost:18181']), true);
+      assert.equal(webda.checkCSRF('http://localhost:18181', ['localhost2:18181', 'localhost:18181']), true);
+      assert.equal(webda.checkCSRF('http://localhost2:18181', ['localhost2:18181', 'localhost:18181']), true);
+      assert.equal(webda.checkCSRF('http://localhost:18182', ['localhost2:18181', 'localhost:18181']), false);
+      assert.equal(webda.checkCSRF('http://localhost3:18181', ['localhost2:18181', 'localhost:18181']), false);
     });
     it('object', function() {
-      assert.equal(Webda.Core.checkCSRF('http://localhost:18181', {
+      assert.equal(webda.checkCSRF('http://localhost:18181', {
         url: 'localhost:18181'
       }), true);
-      assert.equal(Webda.Core.checkCSRF('http://localhost2:18181', {
+      assert.equal(webda.checkCSRF('http://localhost2:18181', {
         url: 'localhost:18181'
       }), false);
-      assert.equal(Webda.Core.checkCSRF('http://localhost:18182', {
+      assert.equal(webda.checkCSRF('http://localhost:18182', {
         url: 'localhost:18181'
       }), false);
     });

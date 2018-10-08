@@ -1022,7 +1022,16 @@ class Webda extends events.EventEmitter {
     })
   }
 
-  static checkCSRF(origin, website): boolean {
+  /**
+   * Verify if an origin is allowed to do request on the API
+   *
+   * @param origin to check
+   * @param website @deprecated
+   */
+  checkCSRF(origin, website = undefined): boolean {
+    if (!website) {
+      website = this.getGlobalParams().website || "";
+    }
     if (!Array.isArray(website)) {
       if (typeof(website) === 'object') {
         website = [website.url];
@@ -1031,6 +1040,18 @@ class Webda extends events.EventEmitter {
       }
     }
     let parsed = url.parse(origin);
+    let origins = this.getGlobalParams().csrfOrigins || [];
+    for (let i in origins) {
+      if (!origins[i].endsWith('$')) {
+        origins[i] += '$';
+      }
+      if (!origins[i].startsWith('^')) {
+        origins[i] = '^' + origins[i];
+      }
+      if (parsed.host.match(new RegExp(origins[i]))) {
+        return true;
+      }
+    }
     // Host match or complete match
     if (website.indexOf(parsed.host) >= 0 || website.indexOf(origin) >= 0 || website === '*') {
       return true;

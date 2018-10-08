@@ -194,7 +194,7 @@ class LambdaServer extends Webda {
     let origin = headers.Origin || headers.origin || ctx.clientInfo.referer;
     // Set predefined headers for CORS
     if (origin) {
-      if (Webda.checkCSRF(origin, this.getGlobalParams().website || "")) {
+      if (this.checkCSRF(origin)) {
         ctx.setHeader('Access-Control-Allow-Origin', origin);
       } else {
         // Prevent CSRF

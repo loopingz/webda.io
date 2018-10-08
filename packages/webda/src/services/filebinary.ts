@@ -38,8 +38,8 @@ class FileBinary extends Binary {
     this._addRoute(url, ['PUT'], this.storeBinary, {
       put: {
         operationId: `put${name}Binary`,
-        description: 'Add a binary to an object after challenge',
-        summary: 'Add a binary',
+        description: 'Upload a binary to an object after challenge',
+        summary: 'Upload a binary',
         responses: {
           '204': '',
           '400': "Wrong hash",

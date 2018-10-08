@@ -30,6 +30,7 @@ export default class ResourceService extends Executor {
       get: {
         description: 'Get resources',
         summary: 'Get file',
+        operationId: 'getResource',
         responses: {
           '200': '',
           '401': 'Illegal resource',
@@ -41,6 +42,7 @@ export default class ResourceService extends Executor {
       get: {
         description: 'Get resources',
         summary: 'Get file',
+        operationId: 'getResources',
         responses: {
           '200': '',
           '401': 'Illegal resource',

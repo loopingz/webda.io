@@ -88,6 +88,7 @@ class Store < T extends CoreModel > extends Executor implements ConfigurationPro
           description: `The way to create a new ${this._model.name} model`,
           summary: 'Create a new ' + this._model.name,
           model: this._model.name,
+          operationId: `create${this._model.name}`,
           responses: {
             '200': {
               model: this._model.name
@@ -117,6 +118,7 @@ class Store < T extends CoreModel > extends Executor implements ConfigurationPro
         get: {
           description: `Retrieve ${this._model.name} model if permissions allow`,
           summary: 'Retrieve a ' + this._model.name,
+          operationId: `get${this._model.name}`,
           responses: {
             '200': {
               model: this._model.name
@@ -130,6 +132,7 @@ class Store < T extends CoreModel > extends Executor implements ConfigurationPro
           description: `Update a new ${this._model.name} if the permissions allow`,
           summary: 'Update a ' + this._model.name,
           model: this._model.name,
+          operationId: `updatet${this._model.name}`,
           responses: {
             '200': {
               model: this._model.name
@@ -140,6 +143,7 @@ class Store < T extends CoreModel > extends Executor implements ConfigurationPro
           }
         },
         delete: {
+          operationId: `delete${this._model.name}`,
           description: `Delete ${this._model.name} if the permissions allow`,
           summary: 'Delete a ' + this._model.name,
           model: this._model.name,

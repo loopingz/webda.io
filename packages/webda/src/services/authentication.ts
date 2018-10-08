@@ -86,6 +86,7 @@ class Authentication extends Executor {
       get: {
         description: 'Retrieve the list of available authentication',
         summary: 'Get available auths',
+        operationId: `getAuthenticationMethods`,
         responses: {
           '200': {
             'description': 'List of authentication',
@@ -101,6 +102,7 @@ class Authentication extends Executor {
       delete: {
         description: 'Logout current user',
         summary: 'Logout',
+        operationId: `logout`,
         responses: {
           '200': {
             schema: {
@@ -114,7 +116,8 @@ class Authentication extends Executor {
     this._addRoute(url + "/me", ["GET"], this._getMe, {
       get: {
         description: 'Retrieve the current user from the session',
-        summary: 'Get current user'
+        summary: 'Get current user',
+        operationId: 'getCurrentUser',
       }
     });
     if (this._params.providers.email) {
@@ -122,7 +125,8 @@ class Authentication extends Executor {
       this._addRoute(url + "/email", ["POST"], this._handleEmail, {
         post: {
           description: 'Authenticate with an email and password',
-          summary: 'Authenticate with email'
+          summary: 'Authenticate with email',
+          operationId: `authWithEmail`,
         }
       });
       this._addRoute(url + "/email/callback{?email,token}", ["GET"], this._handleEmailCallback, {
@@ -132,6 +136,7 @@ class Authentication extends Executor {
         post: {
           description: 'Reinit the password if we have the right token, expire',
           summary: 'Reinit password',
+          operationId: 'reinitPassword',
           schema: {
             type: 'object',
             properties: {
@@ -159,6 +164,7 @@ class Authentication extends Executor {
         get: {
           description: 'The password reset process will be start',
           summary: 'Start password recovery',
+          operationId: 'startEmailRecovery',
           responses: {
             '204': '',
             '404': 'Email does not exist',
@@ -173,6 +179,7 @@ class Authentication extends Executor {
       get: {
         description: 'Authenticate with a configured OAuth provider',
         summary: 'Authenticate with OAuth',
+        operationId: 'oauthWith',
         responses: {
           '302': 'Redirect to OAuth provider',
           '404': 'Provider does not exist'

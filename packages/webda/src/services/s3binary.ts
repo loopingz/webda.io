@@ -51,6 +51,7 @@ class S3Binary extends AWSMixIn(Binary) {
       get: {
         description: 'Download a binary linked to an object',
         summary: 'Download a binary',
+        operationId: `getBinary`,
         responses: {
           '302': 'Redirect to download url',
           '403': "You don't have permissions",

@@ -36,6 +36,7 @@ class FileBinary extends Binary {
     let url = this._url + "/upload/data/{hash}";
     this._addRoute(url, ['PUT'], this.storeBinary, {
       put: {
+        operationId: `putBinary`,
         description: 'Add a binary to an object after challenge',
         summary: 'Add a binary',
         responses: {

@@ -333,6 +333,7 @@ class Binary extends Executor {
       url = this._params.expose.url + "/{store}/{uid}/{property}/{index}";
       this._addRoute(url, ["GET"], this.httpRoute, {
         get: {
+          operationId: `getBinary`,
           description: 'Download a binary linked to an object',
           summary: 'Download a binary',
           responses: {
@@ -350,6 +351,7 @@ class Binary extends Executor {
       url = this._params.expose.url + "/{store}/{uid}/{property}";
       this._addRoute(url, ["POST"], this.httpPost, {
         post: {
+          operationId: `addBinary`,
           description: 'Add a binary linked to an object',
           summary: 'Add a binary',
           responses: {
@@ -371,6 +373,7 @@ class Binary extends Executor {
       url = this._params.expose.url + "/upload/{store}/{uid}/{property}/{index}";
       this._addRoute(url, ["PUT"], this.httpChallenge, {
         put: {
+          operationId: `putBinary`,
           description: 'Add a binary to an object after challenge',
           summary: 'Add a binary',
           responses: {
@@ -388,6 +391,7 @@ class Binary extends Executor {
       url = this._params.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
       this._addRoute(url, ["DELETE"], this.httpRoute, {
         delete: {
+          operationId: `deleteBinary`,
           description: 'Delete a binary linked to an object',
           summary: 'Delete a binary',
           responses: {

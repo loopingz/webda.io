@@ -737,7 +737,7 @@ class Store < T extends CoreModel > extends Executor implements ConfigurationPro
    * @param {Array} uuid to gets if undefined then retrieve the all table
    * @return {Promise} the objects retrieved ( can be [] if not found )
    */
-  async getAll(list) {
+  async getAll(list = undefined) : Promise<T[]> {
     throw Error('Virtual abstract class - concrete only for MixIn usage');
   }
 

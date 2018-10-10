@@ -217,6 +217,35 @@ class S3Binary extends AWSMixIn(Binary) {
     });
   }
 
+  getObject(key: string, bucket: string = undefined) {
+    bucket = bucket || this._params.bucket;
+    var s3obj = new this.AWS.S3({
+      params: {
+        Bucket: bucket,
+        Key: key
+      }
+    });
+    console.log({
+      Bucket: bucket,
+      Key: key
+    })
+    return s3obj.getObject().createReadStream();
+  }
+
+  async putObject(key: string, body: Buffer | Blob | String | ReadableStream, metadatas = {}, bucket: string = undefined) {
+    bucket = bucket || this._params.bucket;
+    var s3obj = new this.AWS.S3({
+      params: {
+        Bucket: bucket,
+        Key: key,
+        "Metadata": metadatas
+      }
+    });
+    await s3obj.upload({
+      Body: body
+    }).promise();
+  }
+
   async store(targetStore, object, property, file, metadatas, index = "add"): Promise < any > {
     this._checkMap(targetStore._name, property);
     this._prepareInput(file);

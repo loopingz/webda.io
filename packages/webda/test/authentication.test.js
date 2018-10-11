@@ -253,18 +253,20 @@ describe('Passport', function() {
       assert.equal(ctx._headers.Location, "https://webda.io/user.html?validation=github");
       ident = await identStore.get(ident.uuid);
       // The ident must have been created and have a last used
-      assert.notEqual(ident.lastUsed, lastUsed);
-      lastUsed = ident;
+      assert.notEqual(ident._lastUsed, lastUsed);
+      lastUsed = ident._lastUsed;
       // Set by the store
-      assert.notEqual(ident.lastUpdate, undefined);
+      assert.notEqual(ident._lastUpdate, undefined);
       // Login + Register
       assert.equal(events, 2);
       events = 0;
       assert.equal(ctx.session.isLogged(), true);
+      await Utils.sleep(50);
       await executor.handleOAuthReturn(ctx, ident, done);
+      await ident.refresh();
       assert.equal(events, 1); // Only Login
-      assert.notEqual(ident.lastUsed, lastUsed);
-      let user = await userStore.get(ident.user);
+      assert.notEqual(ident._lastUsed, lastUsed);
+      let user = await userStore.get(ident._user);
       events = 0;
       assert.equal(user.idents.length, 1); // Only one github login
       assert.equal(user.idents[0].uuid, "test_github"); // Only one github login

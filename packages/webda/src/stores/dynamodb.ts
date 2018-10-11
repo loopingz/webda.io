@@ -30,14 +30,7 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
   }
 
   async _save(object, uid) {
-    object = this._cleanObject(object);
-    // Cannot have empty attribute on DynamoDB need to clean this
-    var params = {
-      TableName: this._params.table,
-      Item: object
-    };
-    await this._client.put(params).promise();
-    return object;
+    return this._update(object, uid);
   }
 
   async _find(request) {
@@ -203,7 +196,7 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
     return this._client.delete(params).promise();
   }
 
-  async _update(object, uid, writeCondition) {
+  async _patch(object, uid, writeCondition) {
     object = this._cleanObject(object);
     var expr = "SET ";
     var sep = "";
@@ -239,6 +232,19 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
       params.WriteCondition = this._getWriteCondition(writeCondition);
     }
     return this._client.update(params).promise();
+  }
+
+  async _update(object: object, uid: string, writeCondition = undefined) {
+    object = this._cleanObject(object);
+    var params: any = {
+      TableName: this._params.table,
+      Item: object
+    };
+    // The Write Condition checks the value before writing
+    if (writeCondition) {
+      params.WriteCondition = this._getWriteCondition(writeCondition);
+    }
+    return this._client.put(params).promise();
   }
 
   async _scan(items, paging = undefined) {
@@ -404,7 +410,10 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
     for (var i in result.Items) {
       promises.push(this._delete(result.Items[i].uuid));
     }
-    return Promise.all(promises);
+    await Promise.all(promises);
+    if (this._params.index) {
+      await this.save({}, "index");
+    }
   }
 
   static getModda() {

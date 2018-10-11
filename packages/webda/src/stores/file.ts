@@ -129,7 +129,7 @@ class FileStore<T extends CoreModel> extends Store<T> {
     return Promise.resolve();
   }
 
-  async _update(object, uid, writeCondition) {
+  async _patch(object, uid, writeCondition) {
     let stored = await this._get(uid);
     if (!stored) {
       return Promise.reject(Error("NotFound"));
@@ -141,6 +141,17 @@ class FileStore<T extends CoreModel> extends Store<T> {
       stored[prop] = object[prop];
     }
     return this._save(stored, uid);
+  }
+
+  async _update(object, uid, writeCondition = undefined) {
+    let stored = await this._get(uid);
+    if (!stored) {
+      return Promise.reject(Error("NotFound"));
+    }
+    if (writeCondition && stored[this._writeConditionField] != writeCondition) {
+      return Promise.reject(Error("UpdateCondition not met"));
+    }
+    return this._save(new CoreModel(object, true), uid);
   }
 
   async getAll(uids): Promise<any> {
@@ -200,7 +211,10 @@ class FileStore<T extends CoreModel> extends Store<T> {
         })
       );
     }
-    return Promise.all(promises);
+    await Promise.all(promises);
+    if (this._params.index) {
+      await this.save({}, "index");
+    }
   }
 
   static getModda() {

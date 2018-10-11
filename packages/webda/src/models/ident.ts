@@ -12,10 +12,10 @@ class IdentTokens {
 class Ident extends CoreModel {
   type: string;
   uid: string;
-  profile: any;
-  tokens: IdentTokens;
-  lastUsed: Date;
-  user: string;
+  __profile: any;
+  __tokens: IdentTokens;
+  _lastUsed: Date;
+  _user: string;
   __new: boolean;
   _failedLogin: number;
 
@@ -24,19 +24,19 @@ class Ident extends CoreModel {
     obj.type = type.toLowerCase();
     obj.uid = uid.toLowerCase();
     obj.uuid = obj.uid + "_" + obj.type;
-    obj.profile = profile;
-    obj.tokens = new IdentTokens();
-    obj.tokens.refresh = refreshToken;
-    obj.tokens.access = accessToken;
+    obj.__profile = profile;
+    obj.__tokens = new IdentTokens();
+    obj.__tokens.refresh = refreshToken;
+    obj.__tokens.access = accessToken;
     return obj;
   }
 
   getUser() {
-    return this.user;
+    return this._user;
   }
 
   setUser(user) {
-    this.user = user;
+    this._user = user;
   }
 }
 

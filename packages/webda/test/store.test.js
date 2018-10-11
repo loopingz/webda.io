@@ -62,6 +62,10 @@ async function mapper(identStore, userStore) {
   assert.notEqual(user, undefined);
   assert.notEqual(user.idents, undefined);
   assert.equal(user.idents.length, 1);
+  // Retrieve index to verify it is in it too
+  let index = await identStore.get('index');
+  assert.notEqual(index[ident1.uuid], undefined);
+  assert.equal(index[ident1.uuid].type, 'facebook');
   let lastUpdate = user.idents[0].lastUpdate;
   await Utils.sleep(10);
   await identStore.incrementAttribute(ident1.uuid, 'counter', 1);
@@ -92,14 +96,24 @@ async function mapper(identStore, userStore) {
   // Add a second ident and check it is on the user aswell
   user = await userStore.get(user1);
   assert.equal(user.idents.length, 2);
+
+  // Check index
+  await index.refresh();
+  assert.notEqual(index[ident2.uuid], undefined);
+
   ident2.type = 'google2';
   // Update ident2 to check mapper update
-  let res = await identStore.update({
+  let res = await identStore.patch({
     'uuid': ident2.uuid,
     'type': 'google2'
   });
   assert.equal(res.type, 'google2');
   assert.equal(res.user, user1);
+
+  // Check index
+  await index.refresh();
+  assert.equal(index[ident2.uuid].type, 'google2');
+
   user = await userStore.get(user1);
   assert.equal(user.idents.length, 2);
   assert.equal(user.idents[1].type, "google2");
@@ -114,7 +128,7 @@ async function mapper(identStore, userStore) {
   });
   user2 = user.uuid;
   // Move ident2 from user1 to user2
-  await identStore.update({
+  await identStore.patch({
     'user': user.uuid,
     'uuid': ident2.uuid
   });
@@ -141,11 +155,17 @@ async function mapper(identStore, userStore) {
   await userStore.delete(user2);
   let ident = await identStore.get(ident2.uuid);
   assert.equal(ident.__deleted, true);
-  assert.equal(eventFired, 13);
+
+  // Check index
+  await index.refresh();
+  assert.equal(index[ident2.uuid], '');
+  assert.equal(index[ident1.uuid], '');
+
+  assert.equal(eventFired, 17);
   await identStore.delete(ident2.uuid, true);
   ident = await identStore.get(ident2.uuid);
   assert.equal(ident, undefined);
-  assert.equal(eventFired, 15);
+  assert.equal(eventFired, 19);
 }
 
 async function collection(identStore) {
@@ -301,13 +321,13 @@ describe('Store', () => {
     await webda.init();
   });
   describe('FileStore', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       identStore = webda.getService("Idents");
       userStore = webda.getService("Users");
       assert.notEqual(identStore, undefined);
       assert.notEqual(userStore, undefined);
-      identStore.__clean();
-      userStore.__clean();
+      await identStore.__clean();
+      await userStore.__clean();
     });
     it('Basic CRUD', () => {
       return crud(identStore, userStore);
@@ -370,6 +390,8 @@ describe('Store', () => {
     var eventFired = 0;
     // Check Store HTTP mapping
     it('HTTP CRUD', async () => {
+      userStore = webda.getService("Users");
+      await userStore.__clean();
       ctx = webda.newContext({
         "type": "CRUD",
         "uuid": "PLOP"
@@ -391,14 +413,40 @@ describe('Store', () => {
       // Verify the none overide of UUID
       ctx.body = {
         "type": "CRUD2",
-        "uuid": "PLOP2"
+        "additional": "field",
+        "uuid": "PLOP2",
+        "user": "fake_user"
       };
       executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/users/PLOP");
       await executor.execute(ctx);
       let user = await userStore.get("PLOP");
       assert.equal(user.uuid, "PLOP");
       assert.equal(user.type, "CRUD2");
+      assert.equal(user.additional, "field");
+      assert.equal(user.user, "fake_user");
       ctx._body = undefined;
+      // Check PATH
+      ctx.body = {
+        "type": "CRUD3",
+        "uuid": "PLOP2",
+        "_testor": "_ should not be update by client"
+      };
+      executor = webda.getExecutor(ctx, "test.webda.io", "PATCH", "/users/PLOP");
+      await executor.execute(ctx);
+      user = await userStore.get("PLOP");
+      assert.equal(user.uuid, "PLOP");
+      assert.equal(user.type, "CRUD3");
+      assert.equal(user.additional, "field");
+      assert.equal(user._testor, undefined);
+
+      executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/users/PLOP");
+      await executor.execute(ctx);
+      user = await userStore.get("PLOP");
+      assert.equal(user.uuid, "PLOP");
+      assert.equal(user.type, "CRUD3");
+      assert.equal(user.additional, undefined);
+      assert.equal(user._testor, undefined);
+
       await webda.getExecutor(ctx, "test.webda.io", "DELETE", "/users/PLOP").execute(ctx);
       eventFired = 0;
       executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/users/PLOP");

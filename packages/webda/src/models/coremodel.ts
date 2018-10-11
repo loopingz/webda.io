@@ -20,6 +20,7 @@ class CoreModel extends OwnerPolicy {
   __store: any;
   _creationDate: Date;
   lastUpdate: Date;
+  _lastUpdate: Date;
   __deleted: boolean;
 
   static getActions() {

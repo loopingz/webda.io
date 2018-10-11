@@ -27,16 +27,16 @@ describe('Policy', () => {
       await userStore.__clean();
       ctx = webda.newContext({});
       await taskStore.save({
-        user: "fake_user",
+        _user: "fake_user",
         uuid: "task_user1",
         name: "for_schema"
       });
       await taskStore.save({
-        user: "fake_user2",
+        _user: "fake_user2",
         uuid: "task_user2"
       });
       await taskStore.save({
-        user: "fake_user3",
+        _user: "fake_user3",
         uuid: "task_public",
         public: true
       });

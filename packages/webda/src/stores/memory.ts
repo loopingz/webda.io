@@ -33,13 +33,18 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
     delete this.storage[uid];
   }
 
-  async _update(object, uid) {
+  async _patch(object, uid) {
     uid = uid || object.uuid;
     let obj = this._getSync(uid);
     for (let prop in object) {
       obj[prop] = object[prop];
     }
     this.storage[uid] = obj.toStoredJSON(true);
+    return this._getSync(uid);
+  }
+
+  async _update(object, uid) {
+    await this._save(object, uid);
     return this._getSync(uid);
   }
 
@@ -72,6 +77,9 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
 
   async __clean() {
     this.storage = {};
+    if (this._params.index) {
+      await this.save({}, "index");
+    }
   }
 
   async _incrementAttribute(uid, prop, value, updateDate: Date) {

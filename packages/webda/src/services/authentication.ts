@@ -311,13 +311,10 @@ class Authentication extends Executor {
     this.log("TRACE", "Handle OAuth return", identArg);
     let ident: Ident = await this._identsStore.get(identArg.uuid);
     if (ident) {
-      await this.login(ctx, ident.user, ident);
-      await this._identsStore.update(
-        {
-          lastUsed: new Date()
-        },
-        ident.uuid
-      );
+      await this.login(ctx, ident._user, ident);
+      await this._identsStore.patch({
+        '_lastUsed': new Date()
+      }, ident.uuid);
       ctx.writeHead(302, {
         Location:
           this._params.successRedirect + "?validation=" + ctx._params.provider,
@@ -336,8 +333,8 @@ class Authentication extends Executor {
     }
     // Work directly on ident argument
     ident = identArg;
-    ident.user = user.uuid;
-    ident.lastUsed = new Date();
+    ident._user = user.uuid;
+    ident._lastUsed = new Date();
     await this._identsStore.save(ident);
     ident.__new = true;
     await this.login(ctx, user, ident);
@@ -426,17 +423,23 @@ class Authentication extends Executor {
     if (!ident) {
       throw 404;
     }
-    let user: User = await this._usersStore.get(ident.user);
+    let user: User = await this._usersStore.get(ident._user);
     // Dont allow to do too many request
     if (user._lastPasswordRecovery > Date.now() - 3600000 * 4) {
       throw 429;
     }
+<<<<<<< HEAD
     await this._usersStore.update(
       {
         _lastPasswordRecovery: Date.now()
       },
       user.uuid
     );
+=======
+    await this._usersStore.patch({
+      _lastPasswordRecovery: Date.now()
+    }, user.uuid);
+>>>>>>> Move all server variable to _
     await this.sendRecoveryEmail(ctx, user, ctx._params.email);
   }
 
@@ -473,12 +476,18 @@ class Authentication extends Executor {
       throw 410;
     }
     await this._verifyPassword(ctx.body.password);
+<<<<<<< HEAD
     await this._usersStore.update(
       {
         __password: this.hashPassword(ctx.body.password)
       },
       ctx.body.login.toLowerCase()
     );
+=======
+    await this._usersStore.patch({
+      __password: this.hashPassword(ctx.body.password)
+    }, ctx.body.login.toLowerCase());
+>>>>>>> Move all server variable to _
   }
 
   async _handleEmailCallback(ctx) {
@@ -497,12 +506,18 @@ class Authentication extends Executor {
     if (ident === undefined) {
       throw 404;
     }
+<<<<<<< HEAD
     await this._identsStore.update(
       {
         validation: new Date()
       },
       ident.uuid
     );
+=======
+    await this._identsStore.patch({
+      validation: new Date()
+    }, ident.uuid);
+>>>>>>> Move all server variable to _
     ctx.writeHead(302, {
       Location:
         this._params.successRedirect + "?validation=" + ctx._params.provider,
@@ -608,12 +623,12 @@ class Authentication extends Executor {
     var updates: any = {};
     var uuid = ctx.body.login.toLowerCase() + "_email";
     let ident: Ident = await this._identsStore.get(uuid);
-    if (ident != undefined && ident.user != undefined) {
+    if (ident != undefined && ident._user != undefined) {
       // Register on an known user
       if (ctx._params.register) {
         throw 409;
       }
-      let user: User = await this._usersStore.get(ident.user);
+      let user: User = await this._usersStore.get(ident._user);
       // Check password
       if (user.__password === this.hashPassword(ctx.body.password)) {
         if (ident._failedLogin > 0) {
@@ -622,8 +637,8 @@ class Authentication extends Executor {
         updates._lastUsed = new Date();
         updates._failedLogin = 0;
 
-        await this._identsStore.update(updates, ident.uuid);
-        await this.login(ctx, ident.user, ident);
+        await this._identsStore.patch(updates, ident.uuid);
+        await this.login(ctx, ident._user, ident);
         ctx.write(user);
       } else {
         await this.emitSync("LoginFailed", {
@@ -636,7 +651,7 @@ class Authentication extends Executor {
         updates._failedLogin = ident._failedLogin++;
         updates._lastFailedLogin = new Date();
         // Swalow exeception issue to double check !
-        await this._identsStore.update(updates, ident.uuid);
+        await this._identsStore.patch(updates, ident.uuid);
         // Allows to auto redirect user to a oauth if needed
         if (!ctx.isEnded()) {
           throw 403;
@@ -669,10 +684,17 @@ class Authentication extends Executor {
         let user = await this.registerUser(ctx, ctx.body, ctx.body);
         user = await this._usersStore.save(user);
         var newIdent: any = {
+<<<<<<< HEAD
           uuid: uuid,
           type: "email",
           email: email,
           user: user.uuid
+=======
+          'uuid': uuid,
+          'type': 'email',
+          '_email': email,
+          '_user': user.uuid
+>>>>>>> Move all server variable to _
         };
         if (validation) {
           newIdent.validation = validation;

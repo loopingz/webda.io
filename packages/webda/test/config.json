@@ -185,6 +185,7 @@
           "cascade": true
         }
       },
+      "index": ["type", "lastUpdate"],
       "asyncDelete": true,
       "expose": {
         "url": "/memory/idents"
@@ -207,6 +208,7 @@
           "cascade": true
         }
       },
+      "index": ["type", "lastUpdate"],
       "asyncDelete": true,
       "expose": {
         "restrict": {

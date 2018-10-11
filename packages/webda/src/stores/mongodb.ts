@@ -193,7 +193,21 @@ class MongoStore<T extends CoreModel> extends Store<T> {
     });
   }
 
-  _update(object, uid, writeCondition) {
+  async _patch(object, uid, writeCondition) {
+    console.log('_patch');
+    return this._connect().then(() => {
+      console.log('Update with patch', uid, object);
+      return this._collection.updateOne({
+        _id: uid
+      }, {
+        '$set': object
+      });
+    }).then((result) => {
+      return Promise.resolve(object);
+    });
+  }
+
+  async _update(object, uid, writeCondition) {
     if (object instanceof CoreModel) {
       object = object.toStoredJSON();
     }
@@ -247,6 +261,9 @@ class MongoStore<T extends CoreModel> extends Store<T> {
   async __clean() {
     await this._connect();
     await this._collection.deleteMany();
+    if (this._params.index) {
+      await this.save({}, 'index');
+    }
   }
 
   static getModda() {

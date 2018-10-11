@@ -1,22 +1,22 @@
 "use strict";
 
 class OwnerPolicy {
-  user: any;
+  _user: any;
   public: boolean;
   uuid: string;
   /**
    * Return false if can't create
    */
   async canCreate(ctx) {
-    this.user = ctx.session.getUserId();
-    if (!this.user) {
+    this._user = ctx.session.getUserId();
+    if (!this._user) {
       throw 403;
     }
     return this;
   }
 
   getOwner() {
-    return this.user;
+    return this._user;
   }
 
   async canAct(ctx, action) {

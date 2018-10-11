@@ -61,6 +61,11 @@ class Store<T extends CoreModel> extends Executor
   async init(): Promise<void> {
     this.normalizeParams();
     this.initMap(this._params.map);
+    if (this._params.index && !(await this.exists('index'))) {
+      await this.save({
+        uuid: 'index'
+      });
+    }
   }
 
   initRoutes() {
@@ -103,6 +108,7 @@ class Store<T extends CoreModel> extends Executor
     let methods = [];
     if (!expose.restrict.update) {
       methods.push("PUT");
+      methods.push("PATCH");
     }
     if (!expose.restrict.get) {
       methods.push("GET");
@@ -130,10 +136,8 @@ class Store<T extends CoreModel> extends Executor
           }
         },
         put: {
-          description: `Update a new ${
-            this._model.name
-          } if the permissions allow`,
-          summary: "Update a " + this._model.name,
+          description: `Update a ${this._model.name} if the permissions allow`,
+          summary: 'Update a ' + this._model.name,
           model: this._model.name,
           operationId: `updatet${this._model.name}`,
           responses: {
@@ -143,6 +147,18 @@ class Store<T extends CoreModel> extends Executor
             "400": "Object is invalid",
             "403": "You don't have permissions",
             "404": "Unknown object"
+          }
+        },
+        patch: {
+          description: `Patch a ${this._model.name} if the permissions allow`,
+          summary: 'Patch a ' + this._model.name,
+          model: this._model.name,
+          operationId: `updatet${this._model.name}`,
+          responses: {
+            '204': '',
+            '400': 'Object is invalid',
+            '403': "You don't have permissions",
+            '404': 'Unknown object'
           }
         },
         delete: {
@@ -313,16 +329,22 @@ class Store<T extends CoreModel> extends Executor
     });
   }
 
+<<<<<<< HEAD
   async _handleMapFromPartial(
     uid: string,
     updateDate: Date,
     prop: string = undefined
   ) {
     if (this.isMapped("lastUpdate") || this.isMapped(prop)) {
+=======
+  async _handleMapFromPartial(uid: string, updateDate: Date, prop: string = undefined) {
+    if (this.isMapped('lastUpdate') || this.isMapped(prop) || this.isMapped('_lastUpdate')) {
+>>>>>>> Move all server variable to _
       // Not optimal need to reload the object
       let object = await this._get(uid);
       let updates = {
-        lastUpdate: updateDate
+        lastUpdate: updateDate,
+        _lastUpdate: updateDate
       };
       if (this.isMapped(prop)) {
         updates[prop] = object.prop;
@@ -441,14 +463,13 @@ class Store<T extends CoreModel> extends Executor
     }
     if (object.uuid === undefined || object.uuid !== uid) {
       object.uuid = uid;
-      object._creationDate = new Date();
     }
     for (var i in this._reverseMap) {
       if (object[this._reverseMap[i].property] === undefined) {
         object[this._reverseMap[i].property] = [];
       }
     }
-    object.lastUpdate = new Date();
+    object._creationDate = object._lastUpdate = object.lastUpdate = new Date();
     object = this.initModel(object);
     await this.emitSync("Store.Save", {
       object: object,
@@ -466,11 +487,24 @@ class Store<T extends CoreModel> extends Executor
     if (this._params.map != undefined) {
       await this.handleMap(object, this._params.map, "created");
     }
+    // Handle index
+    if (this._params.index && object.uuid !== 'index' && object.uuid) {
+      await this.handleIndex(object, 'created');
+    }
     return object;
   }
 
+<<<<<<< HEAD
   async _save(object, uid): Promise<any> {
     throw Error("Virtual abstract class - concrete only for MixIn usage");
+=======
+  async _save(object: CoreModel, uid: string): Promise < any > {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+>>>>>>> Move all server variable to _
+  }
+
+  async patch(object: any, uid: string = undefined, reverseMap = true) {
+    return this.update(object, uid, reverseMap, true);
   }
 
   /**
@@ -481,7 +515,7 @@ class Store<T extends CoreModel> extends Executor
    * @param {Boolean} reverseMap internal use only, for disable map resolution
    * @return {Promise} with saved object
    */
-  async update(object: any, uid: string = undefined, reverseMap = true) {
+  async update(object: any, uid: string = undefined, reverseMap = true, partial = false) {
     /** @ignore */
     var saved;
     var loaded;
@@ -503,17 +537,34 @@ class Store<T extends CoreModel> extends Executor
     if (this._params.lastUpdate) {
       writeCondition = "lastUpdate";
     }
-    object.lastUpdate = new Date();
+    object.lastUpdate = object._lastUpdate = new Date();
     let load = await this._get(uid);
     loaded = this.initModel(load);
     await this.handleMap(loaded, this._params.map, object);
+<<<<<<< HEAD
     await this.emitSync("Store.Update", {
       object: loaded,
       store: this,
       update: object
+=======
+    // Handle index
+    if (this._params.index && loaded.uuid !== 'index' && loaded.uuid) {
+      await this.handleIndex(loaded, object);
+    }
+    await this.emitSync('Store.Update', {
+      'object': loaded,
+      'store': this,
+      'update': object
+>>>>>>> Move all server variable to _
     });
     await loaded._onUpdate(object);
-    let res: any = await this._update(object, uid, writeCondition);
+    let res: any;
+    if (partial) {
+      await this._patch(object, uid, writeCondition);
+      res = object;
+    } else {
+      res = await this._update(object, uid, writeCondition);
+    }
     // Return updated
     for (let i in res) {
       loaded[i] = res[i];
@@ -722,7 +773,39 @@ class Store<T extends CoreModel> extends Executor
     }
   }
 
+<<<<<<< HEAD
   async handleMap(object, map, updates): Promise<any[]> {
+=======
+  async handleIndex(object: CoreModel, updates: object | string) {
+    let mapUpdates = {};
+    if (typeof(updates) === 'object') {
+      let toUpdate = false;
+      for (let i in updates) {
+        if (this._params.index.indexOf(i) >= 0) {
+          toUpdate = true;
+        }
+      }
+      if (!toUpdate) {
+        return;
+      }
+    } else if (updates === 'deleted') {
+      mapUpdates[object.uuid] = '';
+      await this._patch(mapUpdates, 'index');
+      return;
+    } else if (updates === 'created') {
+      updates = object;
+    }
+    let mapper = {};
+    this._params.index.forEach((id) => {
+      mapper[id] = updates[id];
+    });
+    mapUpdates[object.uuid] = mapper;
+    mapUpdates['_lastUpdate'] = new Date();
+    await this._patch(mapUpdates, 'index');
+  }
+
+  async handleMap(object, map, updates): Promise < any[] > {
+>>>>>>> Move all server variable to _
     let promises = [];
     if (object === undefined) {
       return;
@@ -742,8 +825,17 @@ class Store<T extends CoreModel> extends Executor
     return Promise.all(promises);
   }
 
+<<<<<<< HEAD
   async _update(object, uid, writeCondition?): Promise<any> {
     throw Error("Virtual abstract class - concrete only for MixIn usage");
+=======
+  async _patch(object: any, uid: string, writeCondition ? ): Promise < any > {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  }
+
+  async _update(object: CoreModel, uid: string, writeCondition ? ): Promise < any > {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+>>>>>>> Move all server variable to _
   }
 
   async cascadeDelete(obj: any, uuid: string): Promise<any> {
@@ -781,6 +873,10 @@ class Store<T extends CoreModel> extends Executor
     if (this._params.map != undefined) {
       await this.handleMap(to_delete, this._params.map, "deleted");
     }
+    // Handle index
+    if (this._params.index && to_delete.uuid !== 'index' && to_delete.uuid) {
+      await this.handleIndex(to_delete, "deleted");
+    }
     if (this._cascade != undefined && to_delete !== undefined) {
       var promises = [];
       // Should deactiate the mapping in that case
@@ -806,12 +902,18 @@ class Store<T extends CoreModel> extends Executor
       await Promise.all(promises);
     }
     if (this._params.asyncDelete && !sync) {
+<<<<<<< HEAD
       await this._update(
         {
           __deleted: true
         },
         uid
       );
+=======
+      await this._patch({
+        '__deleted': true
+      }, uid);
+>>>>>>> Move all server variable to _
     } else {
       await this._delete(uid);
     }
@@ -845,8 +947,13 @@ class Store<T extends CoreModel> extends Executor
    * @param {Array} uuid to gets if undefined then retrieve the all table
    * @return {Promise} the objects retrieved ( can be [] if not found )
    */
+<<<<<<< HEAD
   async getAll(list = undefined): Promise<T[]> {
     throw Error("Virtual abstract class - concrete only for MixIn usage");
+=======
+  async getAll(list = undefined): Promise < T[] > {
+    throw Error('Virtual abstract class - concrete only for MixIn usage');
+>>>>>>> Move all server variable to _
   }
 
   /**
@@ -1005,9 +1112,25 @@ class Store<T extends CoreModel> extends Executor
       this.log("Object invalid", err);
       throw 400;
     }
-    object = await this.update(ctx.body, ctx._params.uuid);
-    if (object == undefined) {
-      throw 500;
+    if (ctx._route._http.method === "PATCH") {
+      let updateObject: any = new this._model(ctx.body);
+      await this.patch(updateObject, ctx._params.uuid);
+      object = undefined;
+    } else {
+      let updateObject: any = new this._model(ctx.body);
+      // Copy back the _ attributes
+      for (let i in object) {
+        if (i.startsWith('_')) {
+          updateObject[i] = object[i];
+        }
+      }
+      // Copy back the mappers
+      for (var i in this._reverseMap) {
+        updateObject[this._reverseMap[i].property] = object[this._reverseMap[i].property];
+      }
+
+      // Add mappers back to
+      object = await this.update(updateObject, ctx._params.uuid);
     }
     ctx.write(object);
     await this.emitSync("Store.WebUpdate", {
@@ -1050,7 +1173,7 @@ class Store<T extends CoreModel> extends Executor
         object_id: ctx._params.uuid,
         store: this
       });
-    } else if (ctx._route._http.method == "PUT") {
+    } else if (ctx._route._http.method === "PUT" || ctx._route._http.method === "PATCH") {
       return this.httpUpdate(ctx);
     }
   }

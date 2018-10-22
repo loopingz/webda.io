@@ -1,34 +1,29 @@
 "use strict";
 const Webda = require("../../lib/index.js");
 const CoreModel = Webda.CoreModel;
+const Context = Webda.Context;
 
 /**
  * @class
  */
 class Task extends CoreModel {
-
   static getActions() {
-
     return {
-      'actionable': {
-        method: 'GET'
+      actionable: {
+        method: "GET"
       },
-      'impossible': {
-        method: 'PUT'
+      impossible: {
+        method: "PUT"
       }
     };
   }
 
-  _actionable() {
+  _actionable() {}
 
-  }
-
-  _impossible() {
-
-  }
+  _impossible() {}
 
   async canAct(ctx, action) {
-    if ('actionable' === action) {
+    if ("actionable" === action) {
       return this;
     }
     return super.canAct(ctx, action);
@@ -44,6 +39,14 @@ class Task extends CoreModel {
 
   _onSaved() {
     this._autoListener = 2;
+  }
+
+  toJSON() {
+    // Context should be available to the toJSON
+    if (Context.get()) {
+      this._gotContext = true;
+    }
+    return super.toJSON();
   }
 }
 

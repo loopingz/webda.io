@@ -1,5 +1,5 @@
 "use strict";
-const Writable = require('stream').Writable;
+const Writable = require("stream").Writable;
 import {
   _extend,
   Core as Webda,
@@ -9,40 +9,37 @@ import {
   Store,
   User,
   Service
-} from '../index';
-const acceptLanguage = require('accept-language');
+} from "../index";
+const acceptLanguage = require("accept-language");
 
-
-class ClientInfo extends Map < string, any > {
+class ClientInfo extends Map<string, any> {
   ip: string;
   userAgent: string;
   locale: string;
   referer: string;
 }
 
-class Context extends Map < string, any > {
+class Context extends Map<string, any> {
   clientInfo: ClientInfo;
   _body: any;
-  _headers: Map < string,
-  string > ;
+  _headers: Map<string, string>;
   _webda: Webda;
   statusCode: number;
-  _cookie: Map < string,
-  string > ;
-  headers: Map < string,
-  string > ;
+  _cookie: Map<string, string>;
+  headers: Map<string, string>;
   _route: any;
   _buffered: boolean;
   session: SecureCookie;
-  _ended: Promise < any > = undefined;
+  _ended: Promise<any> = undefined;
   _stream: any;
-  _promises: Promise < any > [];
+  _promises: Promise<any>[];
   _executor: Executor;
   _flushHeaders: boolean;
   body: any;
   _params: any;
   files: any[];
   query: any;
+  static current;
 
   /**
    * @private
@@ -57,6 +54,10 @@ class Context extends Map < string, any > {
     return true;
   }
 
+  static get() {
+    return this.current;
+  }
+
   /**
    * Write data to the client
    *
@@ -64,15 +65,19 @@ class Context extends Map < string, any > {
    * @param ...args any arguments to pass to the toPublicJSON method
    */
   write(output) {
-    if (typeof(output) == "object" && !(output instanceof Buffer)) {
-      this._headers['Content-type'] = 'application/json';
-      CoreModel.__ctx = this;
-      this._body = JSON.stringify(output);
-      CoreModel.__ctx = undefined;
+    if (typeof output === "object" && !(output instanceof Buffer)) {
+      this._headers["Content-type"] = "application/json";
+      // TODO Remove CoreModel.__ctx in 0.11
+      CoreModel.__ctx = Context.current = this;
+      try {
+        this._body = JSON.stringify(output);
+      } finally {
+        CoreModel.__ctx = Context.current = undefined;
+      }
       return;
-    } else if (typeof(output) == "string") {
+    } else if (typeof output == "string") {
       if (this._body == undefined) {
-        this._body = '';
+        this._body = "";
       }
       this._body += output;
       return;
@@ -80,7 +85,6 @@ class Context extends Map < string, any > {
       this._body = output;
     }
   }
-
 
   /**
    * Set a header value
@@ -177,11 +181,13 @@ class Context extends Map < string, any > {
   /**
    * Get the current user from session
    */
-  async getCurrentUser(): Promise < User > {
+  async getCurrentUser(): Promise<User> {
     if (!this.getCurrentUserId()) {
       return undefined;
     }
-    return ( < Store < User > > this._webda.getService('Users')).get(this.getCurrentUserId());
+    return (<Store<User>>this._webda.getService("Users")).get(
+      this.getCurrentUserId()
+    );
   }
 
   /**
@@ -207,8 +213,8 @@ class Context extends Map < string, any > {
   getLocale() {
     let locales = this._webda.getLocales();
     acceptLanguage.languages(locales);
-    if (this.headers['Accept-Language']) {
-      return acceptLanguage.get(this.headers['Accept-Language']);
+    if (this.headers["Accept-Language"]) {
+      return acceptLanguage.get(this.headers["Accept-Language"]);
     }
     return locales[0];
   }
@@ -238,9 +244,7 @@ class Context extends Map < string, any > {
    * @ignore
    * Used for compatibility with express module
    */
-  logIn() {
-
-  }
+  logIn() {}
 
   /**
    * @ignore
@@ -273,7 +277,7 @@ class Context extends Map < string, any > {
   }
 
   init() {
-    this._stream.on('pipe', () => {
+    this._stream.on("pipe", () => {
       this._flushHeaders = true;
       this._buffered = true;
       this._webda.flushHeaders(this);
@@ -281,7 +285,4 @@ class Context extends Map < string, any > {
   }
 }
 
-export {
-  Context,
-  ClientInfo
-};
+export { Context, ClientInfo };

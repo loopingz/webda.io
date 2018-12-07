@@ -29,7 +29,7 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
     return (await this._get(uid)) !== undefined;
   }
 
-  async _save(object, uid) {
+  async _save(object, uid = object.uuid) {
     return this._update(object, uid);
   }
 
@@ -76,6 +76,31 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
     return res;
   }
 
+  async _removeAttribute(uuid: string, attribute: string) {
+    var params: any = {
+      TableName: this._params.table,
+      Key: {
+        uuid
+      }
+    };
+    var attrs = {};
+    attrs["#" + attribute] = attribute;
+    attrs["#lastUpdate"] = "_lastUpdate";
+    params.ExpressionAttributeNames = attrs;
+    params.ExpressionAttributeValues = {
+      ":lastUpdate": this._serializeDate(new Date())
+    };
+    params.UpdateExpression =
+      "REMOVE #" + attribute + " SET #lastUpdate = :lastUpdate";
+    try {
+      await this._client.update(params).promise();
+    } catch (err) {
+      if (err.code === "ConditionalCheckFailedException") {
+        throw Error("UpdateCondition not met");
+      }
+    }
+  }
+
   async _deleteItemFromCollection(
     uid,
     prop,
@@ -92,7 +117,7 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
     };
     var attrs = {};
     attrs["#" + prop] = prop;
-    attrs["#lastUpdate"] = "lastUpdate";
+    attrs["#lastUpdate"] = "_lastUpdate";
     params.ExpressionAttributeNames = attrs;
     params.ExpressionAttributeValues = {
       ":lastUpdate": this._serializeDate(updateDate)
@@ -133,7 +158,7 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
     var attrValues = {};
     var attrs = {};
     attrs["#" + prop] = prop;
-    attrs["#lastUpdate"] = "lastUpdate";
+    attrs["#lastUpdate"] = "_lastUpdate";
     attrValues[":" + prop] = this._cleanObject(item);
     attrValues[":lastUpdate"] = this._serializeDate(updateDate);
     params.ExpressionAttributeValues = attrValues;
@@ -234,8 +259,9 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
     return this._client.update(params).promise();
   }
 
-  async _update(object: object, uid: string, writeCondition = undefined) {
+  async _update(object: any, uid: string, writeCondition = undefined) {
     object = this._cleanObject(object);
+    object.uuid = uid;
     var params: any = {
       TableName: this._params.table,
       Item: object
@@ -244,7 +270,8 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
     if (writeCondition) {
       params.WriteCondition = this._getWriteCondition(writeCondition);
     }
-    return this._client.put(params).promise();
+    let result = await this._client.put(params).promise();
+    return object;
   }
 
   async _scan(items, paging = undefined) {
@@ -283,6 +310,7 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
         return {
           uuid: value
         };
+        return { uuid: value };
       })
     };
     let result = await this._client.batchGet(params).promise();
@@ -312,7 +340,7 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
       },
       ExpressionAttributeNames: {
         "#a1": prop,
-        "#a2": "lastUpdate"
+        "#a2": "_lastUpdate"
       }
     };
     return this._client.update(params).promise();
@@ -412,7 +440,7 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
     }
     await Promise.all(promises);
     if (this._params.index) {
-      await this.save({}, "index");
+      await this.save({ _lastUpdate: new Date(), uuid: "index" }, "index");
     }
   }
 

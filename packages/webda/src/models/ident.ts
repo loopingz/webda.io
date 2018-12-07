@@ -20,7 +20,7 @@ class Ident extends CoreModel {
   _failedLogin: number;
 
   static init(type, uid, accessToken, refreshToken, profile): Ident {
-    var obj = new Ident({});
+    var obj = new Ident();
     obj.type = type.toLowerCase();
     obj.uid = uid.toLowerCase();
     obj.uuid = obj.uid + "_" + obj.type;

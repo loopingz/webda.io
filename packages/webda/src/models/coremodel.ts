@@ -4,8 +4,7 @@ import { OwnerPolicy } from "../policies/ownerpolicy";
 import { Context } from "../utils/context";
 
 interface CoreModelDefinition {
-  new (raw: any, secure: boolean): CoreModel;
-  new (raw: any): CoreModel;
+  new (): CoreModel;
   getActions(): any;
 }
 
@@ -31,20 +30,12 @@ class CoreModel extends OwnerPolicy {
     return {};
   }
 
-  /**
-   * @ignore
-   */
-  constructor(raw, secure: boolean = false) {
-    super();
-    this.load(raw, secure);
-  }
-
   load(raw, secure: boolean = false) {
     if (!raw) {
       return;
     }
     if (!raw.uuid) {
-      raw.uuid = this.generateUid();
+      raw.uuid = this.generateUid(raw);
     }
     for (let prop in raw) {
       if (!secure && prop[0] === "_") {
@@ -71,8 +62,15 @@ class CoreModel extends OwnerPolicy {
       throw Error("No store linked to this object");
     }
     let obj = await this.__store.get(this.uuid);
-    for (var i in obj) {
-      this[i] = obj[i];
+    if (obj) {
+      for (let i in obj) {
+        this[i] = obj[i];
+      }
+      for (let i in this) {
+        if (obj[i] !== this[i]) {
+          this[i] = undefined;
+        }
+      }
     }
     return this;
   }
@@ -141,7 +139,7 @@ class CoreModel extends OwnerPolicy {
     return true;
   }
 
-  generateUid(): string {
+  generateUid(object: any = undefined): string {
     return uuid.v4().toString();
   }
 

@@ -86,8 +86,14 @@ class FileStore<T extends CoreModel> extends Store<T> {
       }
       res[prop][index] = item;
     }
-    res.lastUpdate = updateDate;
+    res._lastUpdate = updateDate;
     await this._save(res, uid);
+  }
+
+  async _removeAttribute(uuid: string, attribute: string) {
+    let res = await this._get(uuid);
+    delete res[attribute];
+    await this._save(res, uuid);
   }
 
   async _deleteItemFromCollection(
@@ -110,7 +116,7 @@ class FileStore<T extends CoreModel> extends Store<T> {
       throw Error("UpdateCondition not met");
     }
     res[prop].splice(index, 1);
-    res.lastUpdate = updateDate;
+    res._lastUpdate = updateDate;
     return this._save(res, uid);
   }
 
@@ -151,7 +157,9 @@ class FileStore<T extends CoreModel> extends Store<T> {
     if (writeCondition && stored[this._writeConditionField] != writeCondition) {
       return Promise.reject(Error("UpdateCondition not met"));
     }
-    return this._save(new CoreModel(object, true), uid);
+    let coreModel = new CoreModel();
+    coreModel.load(object, true);
+    return this._save(coreModel, uid);
   }
 
   async getAll(uids): Promise<any> {
@@ -187,7 +195,7 @@ class FileStore<T extends CoreModel> extends Store<T> {
     if (stored[prop] === undefined) {
       stored[prop] = 0;
     }
-    stored.lastUpdate = updateDate;
+    stored._lastUpdate = updateDate;
     stored[prop] += value;
     return this._save(stored, uid);
   }

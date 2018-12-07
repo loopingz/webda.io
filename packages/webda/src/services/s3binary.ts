@@ -296,10 +296,6 @@ class S3Binary extends AWSMixIn(Binary) {
         Key: key
       }
     });
-    console.log({
-      Bucket: bucket,
-      Key: key
-    });
     return s3obj.getObject().createReadStream();
   }
 

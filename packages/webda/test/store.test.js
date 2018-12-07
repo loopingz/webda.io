@@ -18,13 +18,13 @@ async function getAll(identStore, userStore) {
   var user1;
   var user3;
   user1 = await userStore.save({
-    'name': 'test1'
-  })
+    name: "test1"
+  });
   await userStore.save({
-    'name': 'test2'
+    name: "test2"
   });
   user3 = await userStore.save({
-    'name': 'test3'
+    name: "test3"
   });
   let users = await userStore.getAll();
   assert.equal(users.length, 3);
@@ -39,7 +39,17 @@ async function getAll(identStore, userStore) {
 
 async function mapper(identStore, userStore) {
   var eventFired = 0;
-  var events = ['Store.Save', 'Store.Saved', 'Store.Get', 'Store.Delete', 'Store.Deleted', 'Store.Update', 'Store.Updated', 'Store.Find', 'Store.Found'];
+  var events = [
+    "Store.Save",
+    "Store.Saved",
+    "Store.Get",
+    "Store.Delete",
+    "Store.Deleted",
+    "Store.Update",
+    "Store.Updated",
+    "Store.Find",
+    "Store.Found"
+  ];
   for (let evt in events) {
     identStore.on(events[evt], function(evt) {
       eventFired++;
@@ -47,15 +57,15 @@ async function mapper(identStore, userStore) {
   }
   assert.equal(await userStore.get(), undefined);
   user1 = (await userStore.save({
-    'name': 'test'
+    name: "test"
   })).uuid;
   let user = await userStore.get(user1);
   // Save a user and add an ident
   assert.notEqual(user, undefined);
   user1 = user.uuid;
   ident1 = await identStore.save({
-    "type": "facebook",
-    "user": user.uuid
+    type: "facebook",
+    _user: user.uuid
   });
   user = await userStore.get(user1);
   // Verify the ident is on the user
@@ -63,35 +73,53 @@ async function mapper(identStore, userStore) {
   assert.notEqual(user.idents, undefined);
   assert.equal(user.idents.length, 1);
   // Retrieve index to verify it is in it too
-  let index = await identStore.get('index');
+  let index = await identStore.get("index");
   assert.notEqual(index[ident1.uuid], undefined);
-  assert.equal(index[ident1.uuid].type, 'facebook');
-  let lastUpdate = user.idents[0].lastUpdate;
+  assert.equal(index[ident1.uuid].type, "facebook");
+  let lastUpdate = user.idents[0]._lastUpdate;
   await Utils.sleep(10);
-  await identStore.incrementAttribute(ident1.uuid, 'counter', 1);
+  await identStore.incrementAttribute(ident1.uuid, "counter", 1);
   await user.refresh();
-  assert.notEqual(user.idents[0].lastUpdate.length, 0);
-  assertLastUpdateNotEqual(user.idents[0].lastUpdate, lastUpdate, 'lastUpdate on a map after incrementAttribute');
-  lastUpdate = user.idents[0].lastUpdate;
+  assert.notEqual(user.idents[0]._lastUpdate.length, 0);
+  assertLastUpdateNotEqual(
+    user.idents[0]._lastUpdate,
+    lastUpdate,
+    "lastUpdate on a map after incrementAttribute"
+  );
+  lastUpdate = user.idents[0]._lastUpdate;
   await Utils.sleep(10);
-  await identStore.upsertItemToCollection(ident1.uuid, 'actions', {
-    uuid: 'action_1',
-    type: 'plop',
+  await identStore.upsertItemToCollection(ident1.uuid, "actions", {
+    uuid: "action_1",
+    type: "plop",
     date: new Date()
   });
   await user.refresh();
-  assert.notEqual(user.idents[0].lastUpdate.length, 0);
-  assertLastUpdateNotEqual(user.idents[0].lastUpdate, lastUpdate, 'lastUpdate on a map after upsertItemToCollection');
-  lastUpdate = user.idents[0].lastUpdate;
+  assert.notEqual(user.idents[0]._lastUpdate.length, 0);
+  assertLastUpdateNotEqual(
+    user.idents[0]._lastUpdate,
+    lastUpdate,
+    "lastUpdate on a map after upsertItemToCollection"
+  );
+  lastUpdate = user.idents[0]._lastUpdate;
   await Utils.sleep(10);
-  await identStore.deleteItemFromCollection(ident1.uuid, 'actions', 0, 'plop', 'type');
+  await identStore.deleteItemFromCollection(
+    ident1.uuid,
+    "actions",
+    0,
+    "plop",
+    "type"
+  );
   await user.refresh();
-  assert.notEqual(user.idents[0].lastUpdate.length, 0);
-  assertLastUpdateNotEqual(user.idents[0].lastUpdate, lastUpdate, 'lastUpdate on a map after deleteItemFromCollection');
+  assert.notEqual(user.idents[0]._lastUpdate.length, 0);
+  assertLastUpdateNotEqual(
+    user.idents[0]._lastUpdate,
+    lastUpdate,
+    "lastUpdate on a map after deleteItemFromCollection"
+  );
 
   ident2 = await identStore.save({
-    "type": "google",
-    "user": user.uuid
+    type: "google",
+    _user: user.uuid
   });
   // Add a second ident and check it is on the user aswell
   user = await userStore.get(user1);
@@ -101,18 +129,18 @@ async function mapper(identStore, userStore) {
   await index.refresh();
   assert.notEqual(index[ident2.uuid], undefined);
 
-  ident2.type = 'google2';
+  ident2.type = "google2";
   // Update ident2 to check mapper update
   let res = await identStore.patch({
-    'uuid': ident2.uuid,
-    'type': 'google2'
+    uuid: ident2.uuid,
+    type: "google2"
   });
-  assert.equal(res.type, 'google2');
-  assert.equal(res.user, user1);
+  assert.equal(res.type, "google2");
+  assert.equal(res._user, user1);
 
   // Check index
   await index.refresh();
-  assert.equal(index[ident2.uuid].type, 'google2');
+  assert.equal(index[ident2.uuid].type, "google2");
 
   user = await userStore.get(user1);
   assert.equal(user.idents.length, 2);
@@ -124,13 +152,13 @@ async function mapper(identStore, userStore) {
   assert.equal(user.idents[0].type, "google2");
   // Add a second user to play
   user = await userStore.save({
-    "name": "test2"
+    name: "test2"
   });
   user2 = user.uuid;
   // Move ident2 from user1 to user2
   await identStore.patch({
-    'user': user.uuid,
-    'uuid': ident2.uuid
+    _user: user.uuid,
+    uuid: ident2.uuid
   });
   // Check user1 has no more ident
   user = await userStore.get(user1);
@@ -140,9 +168,12 @@ async function mapper(identStore, userStore) {
   assert.equal(user.idents.length, 1);
   assert.equal(user.idents[0].type, "google2");
   // Verify you cannot update a collection from update
-  await userStore.update({
-    "idents": []
-  }, user2);
+  await userStore.update(
+    {
+      idents: []
+    },
+    user2
+  );
   user = await userStore.get(user2);
   assert.equal(user.idents.length, 1);
   assert.equal(user.idents[0].type, "google2");
@@ -158,8 +189,9 @@ async function mapper(identStore, userStore) {
 
   // Check index
   await index.refresh();
-  assert.equal(index[ident2.uuid], '');
-  assert.equal(index[ident1.uuid], '');
+  console.log(index);
+  assert.equal(index[ident2.uuid], undefined);
+  assert.equal(index[ident1.uuid], undefined);
 
   assert.equal(eventFired, 17);
   await identStore.delete(ident2.uuid, true);
@@ -171,66 +203,122 @@ async function mapper(identStore, userStore) {
 async function collection(identStore) {
   var ident;
   ident = await identStore.save({
-    'test': 'plop'
+    test: "plop"
   });
-  await identStore.upsertItemToCollection(ident.uuid, 'actions', {
-    uuid: 'action_1',
-    type: 'plop',
+  await identStore.upsertItemToCollection(ident.uuid, "actions", {
+    uuid: "action_1",
+    type: "plop",
     date: new Date()
   });
   await ident.refresh();
   assert.notEqual(ident.actions, undefined);
   assert.equal(ident.actions.length, 1);
-  await identStore.upsertItemToCollection(ident.uuid, 'actions', {
-    uuid: 'action_2',
-    type: 'plop',
+  await identStore.upsertItemToCollection(ident.uuid, "actions", {
+    uuid: "action_2",
+    type: "plop",
     date: new Date()
   });
   await ident.refresh();
   assert.notEqual(ident.actions, undefined);
   assert.equal(ident.actions.length, 2);
-  await identStore.upsertItemToCollection(ident.uuid, 'actions', {
-    uuid: 'action_1',
-    type: 'plop2',
-    date: new Date()
-  }, 0);
+  await identStore.upsertItemToCollection(
+    ident.uuid,
+    "actions",
+    {
+      uuid: "action_1",
+      type: "plop2",
+      date: new Date()
+    },
+    0
+  );
   await ident.refresh();
   assert.notEqual(ident.actions, undefined);
   assert.equal(ident.actions.length, 2);
-  assert.equal(ident.actions[0].type, 'plop2');
-  assert.equal(ident.actions[0].uuid, 'action_1');
-  await Utils.throws(identStore.upsertItemToCollection.bind(identStore, ident.uuid, 'actions', {
-    uuid: 'action_1',
-    type: 'plop2',
-    date: new Date()
-  }, 0, 'plop', 'type'), err => true);
-  await Utils.throws(identStore.deleteItemFromCollection.bind(identStore, ident.uuid, 'actions', 0, 'action_2'), err => true);
+  assert.equal(ident.actions[0].type, "plop2");
+  assert.equal(ident.actions[0].uuid, "action_1");
+  await Utils.throws(
+    identStore.upsertItemToCollection.bind(
+      identStore,
+      ident.uuid,
+      "actions",
+      {
+        uuid: "action_1",
+        type: "plop2",
+        date: new Date()
+      },
+      0,
+      "plop",
+      "type"
+    ),
+    err => true
+  );
+  await Utils.throws(
+    identStore.deleteItemFromCollection.bind(
+      identStore,
+      ident.uuid,
+      "actions",
+      0,
+      "action_2"
+    ),
+    err => true
+  );
   await ident.refresh();
   assert.equal(ident.actions.length, 2);
-  assert.equal(ident.actions[0].type, 'plop2');
-  let lastUpdate = ident.lastUpdate;
+  assert.equal(ident.actions[0].type, "plop2");
+  let lastUpdate = ident._lastUpdate;
   await Utils.sleep(10);
-  await identStore.upsertItemToCollection(ident.uuid, 'actions', {
-    uuid: 'action_1',
-    type: 'plop',
-    date: new Date()
-  }, 0, 'plop2', 'type');
+  await identStore.upsertItemToCollection(
+    ident.uuid,
+    "actions",
+    {
+      uuid: "action_1",
+      type: "plop",
+      date: new Date()
+    },
+    0,
+    "plop2",
+    "type"
+  );
   await ident.refresh();
-  assertLastUpdateNotEqual(ident.lastUpdate, lastUpdate, 'lastUpdate after upsertItemToColletion failed');
-  lastUpdate = ident.lastUpdate;
+  assertLastUpdateNotEqual(
+    ident._lastUpdate,
+    lastUpdate,
+    "lastUpdate after upsertItemToColletion failed"
+  );
+  lastUpdate = ident._lastUpdate;
   await Utils.sleep(10);
-  await identStore.deleteItemFromCollection(ident.uuid, 'actions', 0, 'plop', 'type');
+  await identStore.deleteItemFromCollection(
+    ident.uuid,
+    "actions",
+    0,
+    "plop",
+    "type"
+  );
   ident = await identStore.get(ident.uuid);
-  assertLastUpdateNotEqual(ident.lastUpdate, lastUpdate, 'lastUpdate after deleteItemToColletion failed');
+  assertLastUpdateNotEqual(
+    ident._lastUpdate,
+    lastUpdate,
+    "lastUpdate after deleteItemToColletion failed"
+  );
   assert.notEqual(ident.actions, undefined);
   assert.equal(ident.actions.length, 1);
-  assert.equal(ident.actions[0].type, 'plop');
-  assert.equal(ident.actions[0].uuid, 'action_2');
+  assert.equal(ident.actions[0].type, "plop");
+  assert.equal(ident.actions[0].uuid, "action_2");
 }
 
 async function crud(identStore, userStore) {
   var eventFired = 0;
-  var events = ['Store.Save', 'Store.Saved', 'Store.Get', 'Store.Delete', 'Store.Deleted', 'Store.Update', 'Store.Updated', 'Store.Find', 'Store.Found'];
+  var events = [
+    "Store.Save",
+    "Store.Saved",
+    "Store.Get",
+    "Store.Delete",
+    "Store.Deleted",
+    "Store.Update",
+    "Store.Updated",
+    "Store.Find",
+    "Store.Found"
+  ];
   for (let evt in events) {
     identStore.on(events[evt], function(evt) {
       eventFired++;
@@ -238,14 +326,14 @@ async function crud(identStore, userStore) {
   }
   // Check CREATE - READ
   let ident1 = await identStore.save({
-    "test": "plop",
-    'cool': '',
-    'lastUsed': new Date(),
-    'arr': [],
-    'details': {
-      'plop': 'plop1',
-      'clean': undefined,
-      'yop': 'pouf'
+    test: "plop",
+    cool: "",
+    lastUsed: new Date(),
+    arr: [],
+    details: {
+      plop: "plop1",
+      clean: undefined,
+      yop: "pouf"
     }
   });
   assert.equal(eventFired, 2);
@@ -256,14 +344,14 @@ async function crud(identStore, userStore) {
   eventFired = 0;
   assert.notEqual(getter, undefined);
   assert.notEqual(getter.lastUsed, undefined);
-  assert.notEqual(getter.lastUpdate, undefined);
+  assert.notEqual(getter._lastUpdate, undefined);
   assert.equal(getter.uuid, ident1.uuid);
   assert.equal(getter.test, ident1.test);
 
   // Check UPDATE
-  getter.test = "plop2"
+  getter.test = "plop2";
   getter.details.plop = "plop2";
-  getter.details.blank = '';
+  getter.details.blank = "";
   getter.details.bouzouf = undefined;
   getter.empty = [];
   let object = await identStore.update(getter);
@@ -276,15 +364,19 @@ async function crud(identStore, userStore) {
   assert.equal(eventFired, 2);
   assert.equal(getter.test, "plop2");
   await Utils.sleep(10);
-  await identStore.incrementAttribute(ident1.uuid, 'counter', 1);
+  await identStore.incrementAttribute(ident1.uuid, "counter", 1);
   let ident = await identStore.get(ident1.uuid);
   // Verify lastUpdate is updated too
-  assertLastUpdateNotEqual(ident.lastUpdate, ident1.lastUpdate, 'lastUpdate after incrementAttribute failed');
+  assertLastUpdateNotEqual(
+    ident._lastUpdate,
+    ident1._lastUpdate,
+    "lastUpdate after incrementAttribute failed"
+  );
   assert.equal(ident.counter, 1);
-  await identStore.incrementAttribute(ident1.uuid, 'counter', 3);
+  await identStore.incrementAttribute(ident1.uuid, "counter", 3);
   ident1 = await identStore.get(ident1.uuid);
   assert.equal(ident1.counter, 4);
-  await identStore.incrementAttribute(ident1.uuid, 'counter', -6);
+  await identStore.incrementAttribute(ident1.uuid, "counter", -6);
   let res = await identStore.exists(ident1.uuid);
   assert.equal(res, true);
   ident1 = await identStore.get(ident1.uuid);
@@ -298,11 +390,11 @@ async function crud(identStore, userStore) {
   assert.equal(ident, undefined);
   res = await identStore.exists(ident1.uuid);
   assert.equal(res, false);
-};
+}
 
 var skipAWS = true;
 var skipMongo = true;
-describe('Store', () => {
+describe("Store", () => {
   var webda;
   var identStore;
   var userStore;
@@ -320,7 +412,7 @@ describe('Store', () => {
     webda = new Webda.Core(config);
     await webda.init();
   });
-  describe('FileStore', () => {
+  describe("FileStore", () => {
     beforeEach(async () => {
       identStore = webda.getService("Idents");
       userStore = webda.getService("Users");
@@ -329,93 +421,116 @@ describe('Store', () => {
       await identStore.__clean();
       await userStore.__clean();
     });
-    it('Basic CRUD', () => {
+    it("Basic CRUD", () => {
       return crud(identStore, userStore);
     });
-    it('Collection CRUD', () => {
+    it("Collection CRUD", () => {
       return collection(identStore);
     });
-    it('Mapper', () => {
+    it("Mapper", () => {
       return mapper(identStore, userStore);
     });
-    it('GetAll / Scan', () => {
+    it("GetAll / Scan", () => {
       return getAll(identStore, userStore);
     });
 
-    it('Model actions', async () => {
+    it("Model actions", async () => {
       let eventFired = 0;
-      identStore.on('Store.Action', (evt) => {
+      identStore.on("Store.Action", evt => {
         eventFired++;
       });
-      identStore.on('Store.Actioned', (evt) => {
+      identStore.on("Store.Actioned", evt => {
         eventFired++;
       });
       ctx = webda.newContext({
-        "type": "CRUD",
-        "uuid": "PLOP"
+        type: "CRUD",
+        uuid: "PLOP"
       });
-      executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/idents/coucou/plop");
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "PUT",
+        "/idents/coucou/plop"
+      );
       assert.notEqual(executor, undefined);
-      await Utils.throws(executor.execute.bind(executor, ctx), err => err == 404);
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        err => err == 404
+      );
       await identStore.save({
-        uuid: 'coucou'
+        uuid: "coucou"
       });
       await executor.execute(ctx);
       // Our fake action is pushing true to _plop
       assert.equal(JSON.parse(ctx._body)._plop, true);
       assert.equal(eventFired, 2);
-      assert.notEqual(webda.getExecutor(ctx, "test.webda.io", "POST", "/idents/coucou/yop"), null);
-      assert.notEqual(webda.getExecutor(ctx, "test.webda.io", "GET", "/idents/coucou/yop"), null);
+      assert.notEqual(
+        webda.getExecutor(ctx, "test.webda.io", "POST", "/idents/coucou/yop"),
+        null
+      );
+      assert.notEqual(
+        webda.getExecutor(ctx, "test.webda.io", "GET", "/idents/coucou/yop"),
+        null
+      );
     });
 
-    it('Model static actions', async () => {
+    it("Model static actions", async () => {
       let eventFired = 0;
-      identStore.on('Store.Action', (evt) => {
+      identStore.on("Store.Action", evt => {
         eventFired++;
       });
       ctx = webda.newContext({
-        "type": "CRUD",
-        "uuid": "PLOP"
+        type: "CRUD",
+        uuid: "PLOP"
       });
-      executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/idents/index");
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "GET",
+        "/idents/index"
+      );
       assert.notEqual(executor, undefined);
       await executor.execute(ctx);
       // Our fake index action is just outputing 'indexer'
-      assert.equal(ctx._body, 'indexer');
+      assert.equal(ctx._body, "indexer");
       assert.equal(eventFired, 1);
     });
-
   });
-  describe('Store', () => {
+  describe("Store", () => {
     var eventFired = 0;
     // Check Store HTTP mapping
-    it('HTTP CRUD', async () => {
+    it("HTTP CRUD", async () => {
       userStore = webda.getService("Users");
       await userStore.__clean();
       ctx = webda.newContext({
-        "type": "CRUD",
-        "uuid": "PLOP"
+        type: "CRUD",
+        uuid: "PLOP"
       });
       ctx.session.login("fake_user", "fake_ident");
       executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/users");
       assert.notEqual(executor, undefined);
       await executor.execute(ctx);
       ctx.body = undefined;
-      await webda.getExecutor(ctx, "test.webda.io", "GET", "/users/PLOP").execute(ctx);
+      await webda
+        .getExecutor(ctx, "test.webda.io", "GET", "/users/PLOP")
+        .execute(ctx);
       assert.notEqual(ctx._body, undefined);
-      assert.equal(ctx._body.indexOf("lastUpdate") >= 0, true);
+      assert.equal(ctx._body.indexOf("_lastUpdate") >= 0, true);
       ctx.body = {
-        "type": "CRUD2",
-        "uuid": "PLOP"
+        type: "CRUD2",
+        uuid: "PLOP"
       };
       executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/users");
-      await Utils.throws(executor.execute.bind(executor, ctx), err => err == 409);
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        err => err == 409
+      );
       // Verify the none overide of UUID
       ctx.body = {
-        "type": "CRUD2",
-        "additional": "field",
-        "uuid": "PLOP2",
-        "user": "fake_user"
+        type: "CRUD2",
+        additional: "field",
+        uuid: "PLOP2",
+        user: "fake_user"
       };
       executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/users/PLOP");
       await executor.execute(ctx);
@@ -427,11 +542,16 @@ describe('Store', () => {
       ctx._body = undefined;
       // Check PATH
       ctx.body = {
-        "type": "CRUD3",
-        "uuid": "PLOP2",
-        "_testor": "_ should not be update by client"
+        type: "CRUD3",
+        uuid: "PLOP2",
+        _testor: "_ should not be update by client"
       };
-      executor = webda.getExecutor(ctx, "test.webda.io", "PATCH", "/users/PLOP");
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "PATCH",
+        "/users/PLOP"
+      );
       await executor.execute(ctx);
       user = await userStore.get("PLOP");
       assert.equal(user.uuid, "PLOP");
@@ -447,24 +567,40 @@ describe('Store', () => {
       assert.equal(user.additional, undefined);
       assert.equal(user._testor, undefined);
 
-      await webda.getExecutor(ctx, "test.webda.io", "DELETE", "/users/PLOP").execute(ctx);
+      await webda
+        .getExecutor(ctx, "test.webda.io", "DELETE", "/users/PLOP")
+        .execute(ctx);
       eventFired = 0;
       executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/users/PLOP");
-      await Utils.throws(executor.execute.bind(executor, ctx), err => err == 404);
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        err => err == 404
+      );
       eventFired++;
-      executor = webda.getExecutor(ctx, "test.webda.io", "DELETE", "/users/PLOP");
-      await Utils.throws(executor.execute.bind(executor, ctx), err => err == 404);
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "DELETE",
+        "/users/PLOP"
+      );
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        err => err == 404
+      );
       eventFired++;
       executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/users/PLOP");
-      await Utils.throws(executor.execute.bind(executor, ctx), err => err == 404);
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        err => err == 404
+      );
       eventFired++;
       assert.equal(eventFired, 3);
     });
-    it('Get URL', () => {
-      assert.equal(webda.getService('dynamousers').getUrl(), '/users');
+    it("Get URL", () => {
+      assert.equal(webda.getService("dynamousers").getUrl(), "/users");
     });
   });
-  describe('MongoStore', () => {
+  describe("MongoStore", () => {
     afterEach(() => {
       identStore = webda.getService("mongoidents");
       userStore = webda.getService("mongousers");
@@ -486,28 +622,28 @@ describe('Store', () => {
       await identStore.__clean();
       await userStore.__clean();
     });
-    it('Basic CRUD', function() {
+    it("Basic CRUD", function() {
       if (skipMongo) {
         this.skip();
         return;
       }
       return crud(identStore, userStore);
     });
-    it('Collection CRUD', function() {
+    it("Collection CRUD", function() {
       if (skipMongo) {
         this.skip();
         return;
       }
       return collection(identStore);
     });
-    it('Mapper', function() {
+    it("Mapper", function() {
       if (skipMongo) {
         this.skip();
         return;
       }
       return mapper(identStore, userStore);
     });
-    it('GetAll / Scan', function() {
+    it("GetAll / Scan", function() {
       if (skipMongo) {
         this.skip();
         return;
@@ -515,7 +651,7 @@ describe('Store', () => {
       return getAll(identStore, userStore);
     });
   });
-  describe('MemoryStore', () => {
+  describe("MemoryStore", () => {
     var failed = false;
     beforeEach(async () => {
       identStore = webda.getService("memoryidents");
@@ -525,36 +661,60 @@ describe('Store', () => {
       await identStore.__clean();
       await userStore.__clean();
     });
-    it('Basic CRUD', () => {
+    it("Basic CRUD", () => {
       return crud(identStore, userStore);
     });
-    it('Collection CRUD', () => {
+    it("Collection CRUD", () => {
       return collection(identStore);
     });
-    it('Mapper', () => {
+    it("Mapper", () => {
       return mapper(identStore, userStore);
     });
-    it('GetAll / Scan', () => {
+    it("GetAll / Scan", () => {
       return getAll(identStore, userStore);
     });
-    it('asyncDeleteHttp', async () => {
+    it("asyncDeleteHttp", async () => {
       await identStore.save({
-        uuid: 'toDelete',
-        test: 'ok'
+        uuid: "toDelete",
+        test: "ok"
       });
-      await identStore.delete('toDelete');
-      executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/memory/idents/toDelete");
+      await identStore.delete("toDelete");
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "GET",
+        "/memory/idents/toDelete"
+      );
       assert.notEqual(executor, undefined);
-      await Utils.throws(executor.execute.bind(executor, ctx), err => err == 404);
-      executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/memory/idents/toDelete");
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        err => err == 404
+      );
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "PUT",
+        "/memory/idents/toDelete"
+      );
       assert.notEqual(executor, undefined);
-      await Utils.throws(executor.execute.bind(executor, ctx), err => err == 404);
-      executor = webda.getExecutor(ctx, "test.webda.io", "DELETE", "/memory/idents/toDelete");
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        err => err == 404
+      );
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "DELETE",
+        "/memory/idents/toDelete"
+      );
       assert.notEqual(executor, undefined);
-      await Utils.throws(executor.execute.bind(executor, ctx), err => err == 404);
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        err => err == 404
+      );
     });
   });
-  describe('DynamoStore', () => {
+  describe("DynamoStore", () => {
     beforeEach(async () => {
       if (skipAWS) {
         return;
@@ -567,69 +727,78 @@ describe('Store', () => {
       await identStore.__clean();
       await userStore.__clean();
     });
-    it('Basic CRUD', function() {
+    it("Basic CRUD", function() {
       if (skipAWS) {
         this.skip();
         return;
       }
       return crud(identStore, userStore);
     });
-    it('Collection CRUD', function() {
+    it("Collection CRUD", function() {
       if (skipAWS) {
         this.skip();
         return;
       }
       return collection(identStore);
     });
-    it('Mapper', function() {
+    it("Mapper", function() {
       if (skipAWS) {
         this.skip();
         return;
       }
       return mapper(identStore, userStore);
     });
-    it('GetAll / Scan', function() {
+    it("GetAll / Scan", function() {
       if (skipAWS) {
         this.skip();
         return;
       }
       return getAll(identStore, userStore);
     });
-    it('Date handling', async function() {
+    it("Date handling", async function() {
       if (skipAWS) {
         this.skip();
         return;
       }
       await userStore.save({
-        "uuid": "testUpdate",
-        "subobject": {
-          "empty": "",
-          "t": {
-            "plop": ""
+        uuid: "testUpdate",
+        subobject: {
+          empty: "",
+          t: {
+            plop: ""
           },
-          "date": new Date()
+          date: new Date()
         }
       });
       let user = await userStore.get("testUpdate");
       assert.notEqual(user.date, {});
     });
-    it('Body cleaning', () => {
+    it("Body cleaning", () => {
       //var parse = require("./data/to_clean.json");
       userStore = webda.getService("dynamousers");
-      let clean = userStore._cleanObject(new Idents({
-        arr: [{
-          value: '',
-          test: 'oki'
-        }, {
-          value: ''
-        }, {
-          value: 'Test'
-        }],
-        sub: {
-          value: ''
+      let ident = new Idents();
+      ident.load(
+        {
+          arr: [
+            {
+              value: "",
+              test: "oki"
+            },
+            {
+              value: ""
+            },
+            {
+              value: "Test"
+            }
+          ],
+          sub: {
+            value: ""
+          },
+          __store: userStore
         },
-        __store: userStore
-      }, true));
+        true
+      );
+      let clean = userStore._cleanObject(ident);
       assert.equal(clean.sub.value, undefined);
       assert.equal(clean.__store, undefined);
       assert.equal(clean.arr instanceof Array, true);
@@ -637,12 +806,18 @@ describe('Store', () => {
       assert.equal(clean.arr[1].value, undefined);
       assert.notEqual(clean.arr[2].value, undefined);
     });
-    it('ARN Policy', () => {
+    it("ARN Policy", () => {
       userStore = webda.getService("dynamousers");
-      userStore._params.region = 'eu-west-1';
-      assert.equal(userStore.getARNPolicy('666').Resource[0], "arn:aws:dynamodb:eu-west-1:666:table/webda-test-users");
+      userStore._params.region = "eu-west-1";
+      assert.equal(
+        userStore.getARNPolicy("666").Resource[0],
+        "arn:aws:dynamodb:eu-west-1:666:table/webda-test-users"
+      );
       userStore._params.region = undefined;
-      assert.equal(userStore.getARNPolicy('777').Resource[0], "arn:aws:dynamodb:us-east-1:777:table/webda-test-users");
+      assert.equal(
+        userStore.getARNPolicy("777").Resource[0],
+        "arn:aws:dynamodb:us-east-1:777:table/webda-test-users"
+      );
     });
   });
 });

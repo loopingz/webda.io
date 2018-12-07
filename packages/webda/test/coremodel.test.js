@@ -9,8 +9,9 @@ var webda = new Webda.Core(config);
 var ctx = webda.newContext();
 
 describe("CoreModel", () => {
-  it("Verify unsecure constructor", () => {
-    let object = new CoreModel({
+  it("Verify unsecure loaded", () => {
+    let object = new CoreModel();
+    object.load({
       _test: "plop",
       test: "plop"
     });
@@ -19,7 +20,8 @@ describe("CoreModel", () => {
   });
 
   it("Verify secure constructor", () => {
-    let object = new CoreModel(
+    let object = new CoreModel();
+    object.load(
       {
         _test: "plop",
         test: "plop",
@@ -65,14 +67,16 @@ describe("CoreModel", () => {
   describe("JSON Schema validation", () => {
     it("Verify bad schema object", async () => {
       let failed = false;
-      let object = new Task({
+      let object = new Task();
+      object.load({
         noname: "Task #1"
       });
       await Utils.throws(object.validate(ctx));
     });
 
     it("Verify good schema object", async () => {
-      let object = new Task({
+      let object = new Task();
+      object.load({
         name: "Task #1"
       });
       await object.validate(ctx);
@@ -84,7 +88,7 @@ describe("CoreModel", () => {
     var identStore = webda.getService("Idents");
     beforeEach(async () => {
       assert.notEqual(identStore, undefined);
-      identStore.__clean();
+      await identStore.__clean();
       ident = {
         property: "plop"
       };

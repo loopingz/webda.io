@@ -3,16 +3,9 @@
   "parameters": {
     "TEST": "Global",
     "region": "us-east-1",
-    "website": ["test.webda.io","test2.webda.io"],
-    "csrfOrigins": [
-      "^accounts\\.google\\.\\w{2,}$",
-      "www\\.facebook\\.com"
-    ],
-    "locales": [
-      "es-ES",
-      "en-GB",
-      "fr-FR"
-    ]
+    "website": ["test.webda.io", "test2.webda.io"],
+    "csrfOrigins": ["^accounts\\.google\\.\\w{2,}$", "www\\.facebook\\.com"],
+    "locales": ["es-ES", "en-GB", "fr-FR"]
   },
   "moddas": {
     "Test/Mailer": {
@@ -108,16 +101,15 @@
       }
     },
     "dynamoidents": {
-      "inject": "user",
-      "check": "user",
       "map": {
         "dynamousers": {
-          "key": "user",
+          "key": "_user",
           "target": "idents",
-          "fields": "type,lastUpdate",
+          "fields": "type,_lastUpdate",
           "cascade": true
         }
       },
+      "index": ["type", "_lastUpdate"],
       "expose": {
         "restrict": {
           "create": true,
@@ -143,17 +135,16 @@
       "table": "webda-test-users"
     },
     "mongoidents": {
-      "inject": "user",
-      "check": "user",
       "asyncDelete": true,
       "map": {
         "mongousers": {
-          "key": "user",
+          "key": "_user",
           "target": "idents",
-          "fields": "type,lastUpdate",
+          "fields": "type,_lastUpdate",
           "cascade": true
         }
       },
+      "index": ["type", "_lastUpdate"],
       "expose": {
         "restrict": {
           "create": true,
@@ -179,13 +170,13 @@
     "MemoryIdents": {
       "map": {
         "MemoryUsers": {
-          "key": "user",
+          "key": "_user",
           "target": "idents",
-          "fields": "type,lastUpdate",
+          "fields": "type,_lastUpdate",
           "cascade": true
         }
       },
-      "index": ["type", "lastUpdate"],
+      "index": ["type", "_lastUpdate"],
       "asyncDelete": true,
       "expose": {
         "url": "/memory/idents"
@@ -202,13 +193,13 @@
     "Idents": {
       "map": {
         "Users": {
-          "key": "user",
+          "key": "_user",
           "target": "idents",
-          "fields": "type,lastUpdate",
+          "fields": "type,_lastUpdate",
           "cascade": true
         }
       },
-      "index": ["type", "lastUpdate"],
+      "index": ["type", "_lastUpdate"],
       "asyncDelete": true,
       "expose": {
         "restrict": {
@@ -222,9 +213,7 @@
       "folder": "./test/data/idents",
       "validator": "IdentValidator"
     },
-    "AwsSecretsManager": {
-
-    },
+    "AwsSecretsManager": {},
     "Users": {
       "expose": {
         "url": "/users"
@@ -242,9 +231,7 @@
       "type": "FileBinary",
       "folder": "./test/data/binaries",
       "map": {
-        "users": [
-          "images"
-        ]
+        "users": ["images"]
       },
       "expose": {
         "url": "/binary"
@@ -254,9 +241,7 @@
       "type": "S3Binary",
       "bucket": "webda-test",
       "map": {
-        "users": [
-          "s3images"
-        ]
+        "users": ["s3images"]
       },
       "expose": {
         "url": "/s3binary"
@@ -287,10 +272,7 @@
       }
     },
     "/": {
-      "method": [
-        "GET",
-        "POST"
-      ],
+      "method": ["GET", "POST"],
       "executor": "debug",
       "params": {
         "accessKeyId": "LOCAL_ACCESS_KEY",
@@ -298,12 +280,12 @@
       }
     },
     "/route/string": {
-      "method": [ "GET" ],
+      "method": ["GET"],
       "executor": "string",
       "result": "CodeCoverage"
     },
     "/route/string/json": {
-      "method": [ "GET" ],
+      "method": ["GET"],
       "executor": "string",
       "result": {
         "title": "CodeCoverage"
@@ -311,37 +293,32 @@
       "mime": "application/json"
     },
     "/route/resource": {
-      "method": [ "GET" ],
+      "method": ["GET"],
       "executor": "resource",
       "file": "./test/Dockerfile.txt"
     },
     "/route/resource/notfound": {
-      "method": [ "GET" ],
+      "method": ["GET"],
       "executor": "resource",
       "file": "./test/Dockerfile.notfound.txt"
     },
     "/route/resource/nomime": {
-      "method": [ "GET" ],
+      "method": ["GET"],
       "executor": "resource",
       "file": "./test/Dockerfile"
     },
     "/route/file": {
-      "method": [ "GET" ],
+      "method": ["GET"],
       "executor": "file",
       "file": "./test/data/routehelper.js"
     },
     "/route/inline": {
-      "method": [ "GET" ],
+      "method": ["GET"],
       "executor": "inline",
       "callback": "function(ctx) { ctx.write('CodeCoverage'); }"
     },
     "/webda": {
-      "method": [
-        "GET",
-        "POST",
-        "DELETE",
-        "PUT"
-      ],
+      "method": ["GET", "POST", "DELETE", "PUT"],
       "executor": "lambda",
       "params": {
         "region": "us-west-2",

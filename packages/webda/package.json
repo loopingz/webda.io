@@ -1,6 +1,6 @@
 {
   "name": "webda",
-  "version": "0.10.6",
+  "version": "0.11.0",
   "description": "Expose API with Lambda",
   "keywords": [
     "aws",
@@ -16,8 +16,8 @@
     "pretest": "npm run build",
     "test": "nyc mocha --timeout=100000",
     "run": "node core",
-    "format": "node ./scripts/format.js",
-    "precommit": "npm run format && npm run test"
+    "format": "",
+    "precommit": "npm run test"
   },
   "dependencies": {
     "accept-language": "=3.0.15",

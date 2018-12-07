@@ -70,6 +70,12 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
     return null;
   }
 
+  async _removeAttribute(uuid: string, attribute: string) {
+    let res = await this._get(uuid);
+    delete res[attribute];
+    this._save(res, uuid);
+  }
+
   async _get(uid) {
     if (!this.storage[uid]) return;
     return this._getSync(uid);
@@ -91,7 +97,7 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
     if (!res[prop]) {
       res[prop] = 0;
     }
-    res.lastUpdate = updateDate;
+    res._lastUpdate = updateDate;
     res[prop] += value;
     return this._save(res, uid);
   }
@@ -137,7 +143,7 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
       }
       res[prop][index] = item;
     }
-    res.lastUpdate = updateDate;
+    res._lastUpdate = updateDate;
     await this._save(res, uid);
   }
 
@@ -161,7 +167,7 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
       throw Error("UpdateCondition not met");
     }
     res[prop].splice(index, 1);
-    res.lastUpdate = updateDate;
+    res._lastUpdate = updateDate;
     return this._save(res, uid);
   }
 

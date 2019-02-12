@@ -7,7 +7,7 @@ import {
   Context,
   Service,
   Core as Webda
-} from '../index';
+} from "../index";
 
 /**
  * S3Binary handles the storage of binary on a S3 bucket
@@ -38,7 +38,7 @@ class S3Binary extends AWSMixIn(Binary) {
     this.AWS = this._getAWS(params);
   }
 
-  async init(): Promise < void > {
+  async init(): Promise<void> {
     await super.init();
     this._s3 = new this.AWS.S3();
   }
@@ -47,55 +47,79 @@ class S3Binary extends AWSMixIn(Binary) {
     super.initRoutes();
     // Will use getRedirectUrl so override the default route
     var url = this._url + "/{store}/{uid}/{property}/{index}";
-    let name = this._name === 'Binary' ? '' : this._name;
+    let name = this._name === "Binary" ? "" : this._name;
     this._addRoute(url, ["GET"], this.getRedirectUrl, {
       get: {
-        description: 'Download a binary linked to an object',
-        summary: 'Download a binary',
+        description: "Download a binary linked to an object",
+        summary: "Download a binary",
         operationId: `get${name}Binary`,
         responses: {
-          '302': 'Redirect to download url',
-          '403': "You don't have permissions",
-          '404': 'Object does not exist or attachment does not exist',
-          '412': 'Provided hash does not match'
+          "302": "Redirect to download url",
+          "403": "You don't have permissions",
+          "404": "Object does not exist or attachment does not exist",
+          "412": "Provided hash does not match"
+        }
+      }
+    });
+    url = this._url + "/{store}/{uid}/{property}/{index}/url";
+    name = this._name === "Binary" ? "" : this._name;
+    this._addRoute(url, ["GET"], this.getRedirectUrlInfo, {
+      get: {
+        description: "Get a redirect url to binary linked to an object",
+        summary: "Get redirect url of a binary",
+        operationId: `get${name}BinaryURL`,
+        responses: {
+          "200": "Containing the URL",
+          "403": "You don't have permissions",
+          "404": "Object does not exist or attachment does not exist",
+          "412": "Provided hash does not match"
         }
       }
     });
   }
 
-  async putRedirectUrl(ctx: Context): Promise < string > {
+  async putRedirectUrl(ctx: Context): Promise<string> {
     if (ctx.body.hash === undefined) {
-      this._webda.log('WARN', 'Request not conform', ctx.body);
+      this._webda.log("WARN", "Request not conform", ctx.body);
       throw 403;
     }
     let targetStore = this._verifyMapAndStore(ctx);
     let object: any = await targetStore.get(ctx._params.uid);
-    await object.canAct(ctx, 'attach_binary');
-    var base64String = new Buffer(ctx.body.hash, 'hex').toString('base64');
+    await object.canAct(ctx, "attach_binary");
+    var base64String = new Buffer(ctx.body.hash, "hex").toString("base64");
     var params = {
       Bucket: this._params.bucket,
       Key: this._getPath(ctx.body.hash),
-      'ContentType': 'application/octet-stream',
-      'ContentMD5': base64String
+      ContentType: "application/octet-stream",
+      ContentMD5: base64String
     };
     // List bucket
-    let data = this._s3.listObjectsV2({
-      Bucket: this._params.bucket,
-      Prefix: this._getPath(ctx.body.hash, '')
-    }).promise();
+    let data = this._s3
+      .listObjectsV2({
+        Bucket: this._params.bucket,
+        Prefix: this._getPath(ctx.body.hash, "")
+      })
+      .promise();
     let foundMap = false;
     let foundData = false;
     for (let i in data.Contents) {
-      if (data.Contents[i].Key.endsWith('data')) foundData = true;
+      if (data.Contents[i].Key.endsWith("data")) foundData = true;
       if (data.Contents[i].Key.endsWith(ctx._params.uid)) foundMap = true;
     }
     if (foundMap) {
       if (foundData) return;
-      return this.getSignedUrl('putObject', params);
+      return this.getSignedUrl("putObject", params);
     }
-    await this.updateSuccess(targetStore, object, ctx._params.property, 'add', ctx.body, ctx.body.metadatas);
+    await this.updateSuccess(
+      targetStore,
+      object,
+      ctx._params.property,
+      "add",
+      ctx.body,
+      ctx.body.metadatas
+    );
     await this.putMarker(ctx.body.hash, ctx._params.uid, ctx._params.store);
-    return this.getSignedUrl('putObject', params);
+    return this.getSignedUrl("putObject", params);
   }
 
   putMarker(hash, uuid, storeName) {
@@ -104,7 +128,7 @@ class S3Binary extends AWSMixIn(Binary) {
         Bucket: this._params.bucket,
         Key: this._getPath(hash, uuid),
         Metadata: {
-          'x-amz-meta-store': storeName
+          "x-amz-meta-store": storeName
         }
       }
     });
@@ -122,49 +146,82 @@ class S3Binary extends AWSMixIn(Binary) {
       Key: this._getPath(info.hash)
     };
     params.Expires = expire; // A get should not take more than 30s
-    await this.emitSync('Binary.Get', {
-      'object': info,
-      'service': this,
-      'context': context
+    await this.emitSync("Binary.Get", {
+      object: info,
+      service: this,
+      context: context
     });
     params.ResponseContentDisposition = "attachment; filename=" + info.name;
     params.ResponseContentType = info.mimetype;
-    return this.getSignedUrl('getObject', params);
+    // Access-Control-Allow-Origin
+    return this.getSignedUrl("getObject", params);
   }
 
   async getRedirectUrl(ctx) {
     let targetStore = this._verifyMapAndStore(ctx);
     let obj = await targetStore.get(ctx._params.uid);
-    if (obj === undefined || obj[ctx._params.property] === undefined || obj[ctx._params.property][ctx._params.index] === undefined) {
+    if (
+      obj === undefined ||
+      obj[ctx._params.property] === undefined ||
+      obj[ctx._params.property][ctx._params.index] === undefined
+    ) {
       throw 404;
     }
-    await obj.canAct(ctx, 'get_binary');
-    let url = await this.getRedirectUrlFromObject(obj, ctx._params.property, ctx._params.index, ctx);
+    await obj.canAct(ctx, "get_binary");
+    let url = await this.getRedirectUrlFromObject(
+      obj,
+      ctx._params.property,
+      ctx._params.index,
+      ctx
+    );
     ctx.writeHead(302, {
-      'Location': url
+      Location: url
     });
     ctx.end();
   }
 
-  _get(info) {
-    return this._s3.getObject({
-      Bucket: this._params.bucket,
-      Key: this._getPath(info.hash)
-    }).createReadStream();
+  async getRedirectUrlInfo(ctx) {
+    let targetStore = this._verifyMapAndStore(ctx);
+    let obj = await targetStore.get(ctx._params.uid);
+    if (
+      obj === undefined ||
+      obj[ctx._params.property] === undefined ||
+      obj[ctx._params.property][ctx._params.index] === undefined
+    ) {
+      throw 404;
+    }
+    await obj.canAct(ctx, "get_binary");
+    let url = await this.getRedirectUrlFromObject(
+      obj,
+      ctx._params.property,
+      ctx._params.index,
+      ctx
+    );
+    ctx.write({ Location: url });
+    ctx.end();
   }
 
-  async getUsageCount(hash): Promise < number > {
+  _get(info) {
+    return this._s3
+      .getObject({
+        Bucket: this._params.bucket,
+        Key: this._getPath(info.hash)
+      })
+      .createReadStream();
+  }
+
+  async getUsageCount(hash): Promise<number> {
     // Not efficient if more than 1000 docs
-    let data = await this._s3.listObjects({
-      Bucket: this._params.bucket,
-      Prefix: this._getPath(hash, '')
-    }).promise();
+    let data = await this._s3
+      .listObjects({
+        Bucket: this._params.bucket,
+        Prefix: this._getPath(hash, "")
+      })
+      .promise();
     return data.Contents.length ? data.Contents.length - 1 : 0;
   }
 
-  _cleanHash(hash) {
-
-  }
+  _cleanHash(hash) {}
 
   async _cleanUsage(hash, uuid) {
     // Dont clean data for now
@@ -184,7 +241,7 @@ class S3Binary extends AWSMixIn(Binary) {
 
   async cascadeDelete(info, uuid) {
     return this._cleanUsage(info.hash, uuid).catch(function(err) {
-      this._webda.log('WARN', 'Cascade delete failed', err);
+      this._webda.log("WARN", "Cascade delete failed", err);
     });
   }
 
@@ -194,27 +251,37 @@ class S3Binary extends AWSMixIn(Binary) {
 
   _getPath(hash, postfix = undefined) {
     if (postfix === undefined) {
-      return hash + '/data';
+      return hash + "/data";
     }
-    return hash + '/' + postfix;
+    return hash + "/" + postfix;
   }
 
   _getUrl(info, ctx: Context) {
-    // Dont return any url if 
+    // Dont return any url if
     if (!ctx) return;
-    return ctx._route._http.protocol + "://" + ctx._route._http.headers.host + this._url + "/upload/data/" + ctx.body.hash;
+    return (
+      ctx._route._http.protocol +
+      "://" +
+      ctx._route._http.headers.host +
+      this._url +
+      "/upload/data/" +
+      ctx.body.hash
+    );
   }
 
   async _getS3(hash) {
-    return this._s3.headObject({
-      Bucket: this._params.bucket,
-      Key: this._getPath(hash)
-    }).promise().catch(function(err) {
-      if (err.code !== 'NotFound') {
-        return Promise.reject(err);
-      }
-      return Promise.resolve();
-    });
+    return this._s3
+      .headObject({
+        Bucket: this._params.bucket,
+        Key: this._getPath(hash)
+      })
+      .promise()
+      .catch(function(err) {
+        if (err.code !== "NotFound") {
+          return Promise.reject(err);
+        }
+        return Promise.resolve();
+      });
   }
 
   getObject(key: string, bucket: string = undefined) {
@@ -228,45 +295,68 @@ class S3Binary extends AWSMixIn(Binary) {
     console.log({
       Bucket: bucket,
       Key: key
-    })
+    });
     return s3obj.getObject().createReadStream();
   }
 
-  async putObject(key: string, body: Buffer | Blob | String | ReadableStream, metadatas = {}, bucket: string = undefined) {
+  async putObject(
+    key: string,
+    body: Buffer | Blob | String | ReadableStream,
+    metadatas = {},
+    bucket: string = undefined
+  ) {
     bucket = bucket || this._params.bucket;
     var s3obj = new this.AWS.S3({
       params: {
         Bucket: bucket,
         Key: key,
-        "Metadata": metadatas
+        Metadata: metadatas
       }
     });
-    await s3obj.upload({
-      Body: body
-    }).promise();
+    await s3obj
+      .upload({
+        Body: body
+      })
+      .promise();
   }
 
-  async store(targetStore, object, property, file, metadatas, index = "add"): Promise < any > {
+  async store(
+    targetStore,
+    object,
+    property,
+    file,
+    metadatas,
+    index = "add"
+  ): Promise<any> {
     this._checkMap(targetStore._name, property);
     this._prepareInput(file);
     file = _extend(file, this._getHashes(file.buffer));
     let data = await this._getS3(file.hash);
     if (data === undefined) {
       let s3metas: any = {};
-      s3metas['x-amz-meta-challenge'] = file.challenge;
+      s3metas["x-amz-meta-challenge"] = file.challenge;
       var s3obj = new this.AWS.S3({
         params: {
           Bucket: this._params.bucket,
           Key: this._getPath(file.hash),
-          "Metadata": s3metas
+          Metadata: s3metas
         }
       });
-      await s3obj.upload({
-        Body: file.buffer
-      }).promise();
+      await s3obj
+        .upload({
+          Body: file.buffer
+        })
+        .promise();
     }
     await this.putMarker(file.hash, object.uuid, targetStore._name);
-    return this.updateSuccess(targetStore, object, property, index, file, metadatas);
+    return this.updateSuccess(
+      targetStore,
+      object,
+      property,
+      index,
+      file,
+      metadatas
+    );
   }
 
   async update(targetStore, object, property, index, file, metadatas) {
@@ -275,9 +365,11 @@ class S3Binary extends AWSMixIn(Binary) {
   }
 
   async ___cleanData() {
-    let data = await this._s3.listObjectsV2({
-      Bucket: this._params.bucket
-    }).promise();
+    let data = await this._s3
+      .listObjectsV2({
+        Bucket: this._params.bucket
+      })
+      .promise();
     var params = {
       Bucket: this._params.bucket,
       Delete: {
@@ -299,26 +391,34 @@ class S3Binary extends AWSMixIn(Binary) {
     if (this._params.region) {
       params.region = this._params.region;
     }
-    var s3 = new(this._getAWS(params)).S3();
-    return s3.headBucket({
-      Bucket: this._params.bucket
-    }).promise().catch((err) => {
-      if (err.code === 'Forbidden') {
-        this._webda.log('ERROR', 'S3 bucket already exists in another account');
-      } else if (err.code === 'NotFound') {
-        this._webda.log('INFO', 'Creating S3 Bucket', this._params.bucket);
-        return s3.createBucket({
-          Bucket: this._params.bucket
-        }).promise();
-      }
-    });
+    var s3 = new (this._getAWS(params)).S3();
+    return s3
+      .headBucket({
+        Bucket: this._params.bucket
+      })
+      .promise()
+      .catch(err => {
+        if (err.code === "Forbidden") {
+          this._webda.log(
+            "ERROR",
+            "S3 bucket already exists in another account"
+          );
+        } else if (err.code === "NotFound") {
+          this._webda.log("INFO", "Creating S3 Bucket", this._params.bucket);
+          return s3
+            .createBucket({
+              Bucket: this._params.bucket
+            })
+            .promise();
+        }
+      });
   }
 
   getARNPolicy(accountId) {
     return {
-      "Sid": this.constructor.name + this._name,
-      "Effect": "Allow",
-      "Action": [
+      Sid: this.constructor.name + this._name,
+      Effect: "Allow",
+      Action: [
         "s3:AbortMultipartUpload",
         "s3:DeleteObject",
         "s3:DeleteObjectVersion",
@@ -339,48 +439,46 @@ class S3Binary extends AWSMixIn(Binary) {
         "s3:PutObjectAcl",
         "s3:RestoreObject"
       ],
-      "Resource": [
-        'arn:aws:s3:::' + this._params.bucket
-      ]
-    }
+      Resource: ["arn:aws:s3:::" + this._params.bucket]
+    };
   }
 
   static getModda() {
     return {
-      "uuid": "Webda/S3Binary",
-      "label": "S3 Binary",
-      "description": "Implements S3 storage, so you can upload binary from users, handles mapping with other objects. It only stores once a binary, and if you use the attached Polymer behavior it will not even uplaod file if they are on the server already",
-      "webcomponents": [],
-      "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
-      "logo": "images/icons/s3.png",
-      "configuration": {
-        "default": {
-          "bucket": "YOUR S3 Bucket",
-          "expose": true
+      uuid: "Webda/S3Binary",
+      label: "S3 Binary",
+      description:
+        "Implements S3 storage, so you can upload binary from users, handles mapping with other objects. It only stores once a binary, and if you use the attached Polymer behavior it will not even uplaod file if they are on the server already",
+      webcomponents: [],
+      documentation:
+        "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
+      logo: "images/icons/s3.png",
+      configuration: {
+        default: {
+          bucket: "YOUR S3 Bucket",
+          expose: true
         },
-        "schema": {
+        schema: {
           type: "object",
           properties: {
-            "expose": {
+            expose: {
               type: "boolean"
             },
-            "accessKeyId": {
+            accessKeyId: {
               type: "string"
             },
-            "secretAccessKey": {
+            secretAccessKey: {
               type: "string"
             },
-            "bucket": {
+            bucket: {
               type: "string"
             }
           },
           required: ["accessKeyId", "secretAccessKey", "bucket"]
         }
       }
-    }
+    };
   }
 }
 
-export {
-  S3Binary
-};
+export { S3Binary };

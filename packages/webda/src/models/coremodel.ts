@@ -1,15 +1,11 @@
 "use strict";
-const uuid = require('uuid');
-import {
-  OwnerPolicy
-} from '../policies/ownerpolicy';
-import {
-  Context
-} from '../utils/context';
+const uuid = require("uuid");
+import { OwnerPolicy } from "../policies/ownerpolicy";
+import { Context } from "../utils/context";
 
 interface CoreModelDefinition {
-  new(raw: any, secure: boolean): CoreModel;
-  new(raw: any): CoreModel;
+  new (raw: any, secure: boolean): CoreModel;
+  new (raw: any): CoreModel;
   getActions(): any;
 }
 
@@ -20,7 +16,6 @@ interface CoreModelDefinition {
  * @class
  */
 class CoreModel extends OwnerPolicy {
-
   static __ctx: Context;
   __store: any;
   _creationDate: Date;
@@ -51,7 +46,7 @@ class CoreModel extends OwnerPolicy {
       raw.uuid = this.generateUid();
     }
     for (let prop in raw) {
-      if (!secure && (prop[0] === "_")) {
+      if (!secure && prop[0] === "_") {
         continue;
       }
       this[prop] = raw[prop];
@@ -70,7 +65,7 @@ class CoreModel extends OwnerPolicy {
    *
    * @throws Error if the object is not coming from a store
    */
-  async refresh(): Promise < CoreModel > {
+  async refresh(): Promise<CoreModel> {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
@@ -86,7 +81,7 @@ class CoreModel extends OwnerPolicy {
    *
    * @throws Error if the object is not coming from a store
    */
-  async delete(): Promise < void > {
+  async delete(): Promise<void> {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
@@ -98,7 +93,7 @@ class CoreModel extends OwnerPolicy {
    *
    * @throws Error if the object is not coming from a store
    */
-  async save(): Promise < void > {
+  async save(): Promise<void> {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
@@ -113,7 +108,7 @@ class CoreModel extends OwnerPolicy {
    *
    * @throws Error if the object is not coming from a store
    */
-  async update(changes): Promise < void > {
+  async update(changes): Promise<void> {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
@@ -131,7 +126,7 @@ class CoreModel extends OwnerPolicy {
     return;
   }
 
-  async validate(ctx, updates = undefined): Promise < boolean > {
+  async validate(ctx, updates = undefined): Promise<boolean> {
     let schema = this._getSchema();
     if (!schema) {
       return true;
@@ -150,7 +145,7 @@ class CoreModel extends OwnerPolicy {
   }
 
   _jsonFilter(key, value): any {
-    if (key[0] === '_' && key.length > 1 && key[1] === '_') {
+    if (key[0] === "_" && key.length > 1 && key[1] === "_") {
       return undefined;
     }
     return value;
@@ -198,7 +193,4 @@ class CoreModel extends OwnerPolicy {
   async _onUpdated() {}
 }
 
-export {
-  CoreModel,
-  CoreModelDefinition
-};
+export { CoreModel, CoreModelDefinition };

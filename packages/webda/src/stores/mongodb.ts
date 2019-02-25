@@ -1,11 +1,7 @@
 "use strict";
-import {
-  Store,
-  CoreModel
-} from '../index';
+import { Store, CoreModel } from "../index";
 
-var MongoClient = require('mongodb').MongoClient;
-
+var MongoClient = require("mongodb").MongoClient;
 
 /**
  * Store Objects in MongoDB
@@ -14,8 +10,8 @@ var MongoClient = require('mongodb').MongoClient;
  *   mongo: 'mongodb://127.0.0.1:27017' // If not found try to read WEBDA_MONGO_URL env variable
  *
  */
-class MongoStore < T extends CoreModel > extends Store < T > {
-  _connectPromise: Promise < any > = undefined;
+class MongoStore<T extends CoreModel> extends Store<T> {
+  _connectPromise: Promise<any> = undefined;
   _client: any;
   _db: any;
   _collection: any;
@@ -24,16 +20,22 @@ class MongoStore < T extends CoreModel > extends Store < T > {
   constructor(webda, name, options) {
     super(webda, name, options);
     this._connectPromise = undefined;
-    if (options.mongo === undefined || options.mongo === '') {
+    if (options.mongo === undefined || options.mongo === "") {
       this._params.mongo = options.mongo = process.env["WEBDA_MONGO_URL"];
     }
     this._params.mongoOptions = this._params.mongoOptions || {};
     if (this._params.mongo) {
       // Get the database name from url
-      this._params.mongoDb = this._params.mongo.substr(this._params.mongo.lastIndexOf('/') + 1);
+      this._params.mongoDb = this._params.mongo.substr(
+        this._params.mongo.lastIndexOf("/") + 1
+      );
       this._params.mongoOptions.useNewUrlParser = true;
     }
-    if (!webda._configurationMode && options.collection === undefined || options.mongo === undefined || this._params.mongoDb === undefined) {
+    if (
+      (!webda._configurationMode && options.collection === undefined) ||
+      options.mongo === undefined ||
+      this._params.mongoDb === undefined
+    ) {
       this._createException = "collection and url must be setup";
     }
   }
@@ -46,15 +48,19 @@ class MongoStore < T extends CoreModel > extends Store < T > {
   async _connect() {
     if (this._connectPromise === undefined) {
       this._connectPromise = new Promise((resolve, reject) => {
-        MongoClient.connect(this._params.mongo, this._params.mongoOptions, (err, client) => {
-          if (err) {
-            return reject(err);
+        MongoClient.connect(
+          this._params.mongo,
+          this._params.mongoOptions,
+          (err, client) => {
+            if (err) {
+              return reject(err);
+            }
+            this._client = client;
+            this._db = client.db(this._params.mongoDb);
+            this._collection = this._db.collection(this._params.collection);
+            return resolve();
           }
-          this._client = client;
-          this._db = client.db(this._params.mongoDb);
-          this._collection = this._db.collection(this._params.collection);
-          return resolve();
-        });
+        );
       });
     }
     return this._connectPromise;
@@ -65,53 +71,76 @@ class MongoStore < T extends CoreModel > extends Store < T > {
     return (await this._get(uid)) !== undefined;
   }
 
-  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
+  async _deleteItemFromCollection(
+    uid,
+    prop,
+    index,
+    itemWriteCondition,
+    itemWriteConditionField,
+    updateDate: Date
+  ) {
     await this._connect();
 
     let filter = {
       _id: uid
     };
     if (itemWriteCondition) {
-      filter[prop + "." + index + '.' + itemWriteConditionField] = itemWriteCondition;
+      filter[
+        prop + "." + index + "." + itemWriteConditionField
+      ] = itemWriteCondition;
     }
     let params = {
-      '$unset': {},
-      '$set': {
-        'lastUpdate': updateDate
+      $unset: {},
+      $set: {
+        lastUpdate: updateDate
       }
     };
-    params['$unset'][prop + "." + index] = 1;
+    params["$unset"][prop + "." + index] = 1;
     let res = await this._collection.updateOne(filter, params);
     if (!res.result.n) {
-      throw Error('UpdateCondition not met');
+      throw Error("UpdateCondition not met");
     }
     let remove = {
-      '$pull': {},
-      '$set': {
-        'lastUpdate': updateDate
+      $pull: {},
+      $set: {
+        lastUpdate: updateDate
       }
     };
-    remove['$pull'][prop] = null;
-    await this._collection.update({
-      _id: uid
-    }, remove);
+    remove["$pull"][prop] = null;
+    await this._collection.update(
+      {
+        _id: uid
+      },
+      remove
+    );
   }
 
   async _incrementAttribute(uid, prop, value, updateDate: Date) {
     await this._connect();
     var params = {
-      '$inc': {},
-      '$set': {
-        'lastUpdate': updateDate
+      $inc: {},
+      $set: {
+        lastUpdate: updateDate
       }
     };
-    params['$inc'][prop] = value;
-    return this._collection.updateOne({
-      _id: uid
-    }, params);
+    params["$inc"][prop] = value;
+    return this._collection.updateOne(
+      {
+        _id: uid
+      },
+      params
+    );
   }
 
-  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField = 'uuid', updateDate: Date) {
+  async _upsertItemToCollection(
+    uid,
+    prop,
+    item,
+    index,
+    itemWriteCondition,
+    itemWriteConditionField = "uuid",
+    updateDate: Date
+  ) {
     await this._connect();
     let filter = {
       _id: uid
@@ -119,24 +148,26 @@ class MongoStore < T extends CoreModel > extends Store < T > {
     var params = {};
     if (index === undefined) {
       params = {
-        '$push': {},
-        '$set': {
-          'lastUpdate': updateDate.toString()
+        $push: {},
+        $set: {
+          lastUpdate: updateDate.toString()
         }
       };
-      params['$push'][prop] = item;
+      params["$push"][prop] = item;
     } else {
       params = {
-        '$set': {
-          'lastUpdate': updateDate
+        $set: {
+          lastUpdate: updateDate
         }
       };
-      params['$set'][prop + "." + index] = item;
-      filter[prop + "." + index + "." + itemWriteConditionField] = itemWriteCondition;
+      params["$set"][prop + "." + index] = item;
+      filter[
+        prop + "." + index + "." + itemWriteConditionField
+      ] = itemWriteCondition;
     }
     let res = await this._collection.updateOne(filter, params);
     if (!res.modifiedCount) {
-      throw Error('UpdateCondition not met');
+      throw Error("UpdateCondition not met");
     }
   }
 
@@ -166,41 +197,51 @@ class MongoStore < T extends CoreModel > extends Store < T > {
     if (object instanceof CoreModel) {
       object = object.toStoredJSON();
     }
-    return this._connect().then(() => {
-      return this._collection.updateOne({
-        _id: uid
-      }, {
-        '$set': object
+    return this._connect()
+      .then(() => {
+        return this._collection.updateOne(
+          {
+            _id: uid
+          },
+          {
+            $set: object
+          }
+        );
+      })
+      .then(result => {
+        return Promise.resolve(object);
       });
-    }).then((result) => {
-      return Promise.resolve(object);
-    });
   }
 
   getAll(uids) {
-    return this._connect().then(() => {
-      let params: any = {};
-      if (uids) {
-        params._id = {
-          $in: uids
-        };
-      }
-      return this._collection.find(params);
-    }).then((result) => {
-      return result.toArray();
-    }).then((items) => {
-      return items.map(this.initModel, this);
-    });
+    return this._connect()
+      .then(() => {
+        let params: any = {};
+        if (uids) {
+          params._id = {
+            $in: uids
+          };
+        }
+        return this._collection.find(params);
+      })
+      .then(result => {
+        return result.toArray();
+      })
+      .then(items => {
+        return items.map(this.initModel, this);
+      });
   }
 
   _get(uid) {
-    return this._connect().then(() => {
-      return this._collection.findOne({
-        _id: uid
+    return this._connect()
+      .then(() => {
+        return this._collection.findOne({
+          _id: uid
+        });
+      })
+      .then(result => {
+        return Promise.resolve(result === null ? undefined : result);
       });
-    }).then((result) => {
-      return Promise.resolve(result === null ? undefined : result);
-    });
   }
 
   async __clean() {
@@ -210,34 +251,33 @@ class MongoStore < T extends CoreModel > extends Store < T > {
 
   static getModda() {
     return {
-      "uuid": "Webda/MongoStore",
-      "label": "MongoStore",
-      "description": "Implements MongoDB NoSQL",
-      "webcomponents": [],
-      "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
-      "logo": "images/icons/mongodb.png",
-      "configuration": {
-        "default": {
-          "mongourl": "mongodb://127.0.0.1:27017",
+      uuid: "Webda/MongoStore",
+      label: "MongoStore",
+      description: "Implements MongoDB NoSQL",
+      webcomponents: [],
+      documentation:
+        "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
+      logo: "images/icons/mongodb.png",
+      configuration: {
+        default: {
+          mongourl: "mongodb://127.0.0.1:27017"
         },
-        "widget": {
-          "tag": "webda-store-configurator",
-          "url": "elements/services/webda-store-configurator.html"
+        widget: {
+          tag: "webda-store-configurator",
+          url: "elements/services/webda-store-configurator.html"
         },
-        "schema": {
+        schema: {
           type: "object",
           properties: {
-            "mongourl": {
+            mongourl: {
               type: "string"
             }
           },
           required: ["mongourl"]
         }
       }
-    }
+    };
   }
 }
 
-export {
-  MongoStore
-};
+export { MongoStore };

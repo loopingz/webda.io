@@ -3,19 +3,18 @@ import {
   ConfigurationProvider,
   AWSMixIn,
   Core as Webda
-} from '../index';
+} from "../index";
 
-export default class AwsSecretsManager extends AWSMixIn(Service) implements ConfigurationProvider {
-
+export default class AwsSecretsManager extends AWSMixIn(Service)
+  implements ConfigurationProvider {
   _client: any;
 
-  async init(): Promise < void > {
+  async init(): Promise<void> {
     await super.init();
-    this._client = new(this._getAWS(this._params)).SecretsManager();
+    this._client = new (this._getAWS(this._params)).SecretsManager();
   }
 
-  async getConfiguration(id: string): Promise < Map < string,
-  any >> {
+  async getConfiguration(id: string): Promise<Map<string, any>> {
     return this.get(id);
   }
 
@@ -31,64 +30,64 @@ export default class AwsSecretsManager extends AWSMixIn(Service) implements Conf
       params = {
         SecretId: id,
         ForceDeleteWithoutRecovery: force
-      }
+      };
     } else {
       params = {
         RecoveryWindowInDays: recovery,
         SecretId: id
-      }
+      };
     }
     await this._client.deleteSecret(params).promise();
   }
 
   async put(id: string, value: any) {
-    await this._client.putSecretValue({
-      SecretId: id,
-      SecretString: JSON.stringify(value)
-    }).promise();
+    await this._client
+      .putSecretValue({
+        SecretId: id,
+        SecretString: JSON.stringify(value)
+      })
+      .promise();
   }
 
   async get(id: string) {
-    let res = await this._client.getSecretValue({
-      SecretId: id
-    }).promise();
+    let res = await this._client
+      .getSecretValue({
+        SecretId: id
+      })
+      .promise();
     return JSON.parse(res.SecretString);
   }
 
   getARNPolicy(accountId) {
-    let region = this._params.region || 'us-east-1';
+    let region = this._params.region || "us-east-1";
     return {
-      "Sid": this.constructor.name + this._name,
-      "Effect": "Allow",
-      "Action": [
-        "secretsmanager:*"
-      ],
-      "Resource": [
-        'arn:aws:secretsmanager:' + region + ':' + accountId + ':secret:*'
+      Sid: this.constructor.name + this._name,
+      Effect: "Allow",
+      Action: ["secretsmanager:*"],
+      Resource: [
+        "arn:aws:secretsmanager:" + region + ":" + accountId + ":secret:*"
       ]
-    }
+    };
   }
-
 
   static getModda() {
     return {
-      "uuid": "Webda/SecretsManager",
-      "label": "SecretsManager",
-      "description": "Implements AWS SecretsManager",
-      "webcomponents": [],
-      "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
-      "logo": "images/icons/s3.png",
-      "configuration": {
-        "default": {},
-        "schema": {
+      uuid: "Webda/SecretsManager",
+      label: "SecretsManager",
+      description: "Implements AWS SecretsManager",
+      webcomponents: [],
+      documentation:
+        "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
+      logo: "images/icons/s3.png",
+      configuration: {
+        default: {},
+        schema: {
           type: "object",
           properties: {}
         }
       }
-    }
+    };
   }
 }
 
-export {
-  AwsSecretsManager
-};
+export { AwsSecretsManager };

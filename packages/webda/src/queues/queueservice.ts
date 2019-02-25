@@ -1,28 +1,25 @@
-import {
-  Service
-} from "../index";
+import { Service } from "../index";
 
 class Queue extends Service {
-
   _timeout: any;
   _interrupt: boolean;
   callback: Function;
   pause: number;
 
   async sendMessage(params: any) {
-    throw Error('Virtual abstract class - concrete only for MixIn usage');
+    throw Error("Virtual abstract class - concrete only for MixIn usage");
   }
 
-  async receiveMessage(): Promise < any > {
-    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  async receiveMessage(): Promise<any> {
+    throw Error("Virtual abstract class - concrete only for MixIn usage");
   }
 
   async deleteMessage(id: string) {
-    throw Error('Virtual abstract class - concrete only for MixIn usage');
+    throw Error("Virtual abstract class - concrete only for MixIn usage");
   }
 
-  async size(): Promise < number > {
-    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  async size(): Promise<number> {
+    throw Error("Virtual abstract class - concrete only for MixIn usage");
   }
 
   async _workerResume() {
@@ -50,12 +47,12 @@ class Queue extends Service {
         }
         return this._workerResume();
       } catch (err) {
-        this._webda.log('ERROR', 'Notification', err);
+        this._webda.log("ERROR", "Notification", err);
         return this._workerResume();
       }
     } catch (err) {
       this.pause *= 2;
-      this._webda.log('ERROR', err);
+      this._webda.log("ERROR", err);
       setTimeout(this._workerReceiveMessage.bind(this), this.pause * 1000);
     }
   }
@@ -76,6 +73,4 @@ class Queue extends Service {
   }
 }
 
-export {
-  Queue
-};
+export { Queue };

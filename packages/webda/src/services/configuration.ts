@@ -1,9 +1,7 @@
-import {
-  Service
-} from "../index";
+import { Service } from "../index";
 
 interface ConfigurationProvider {
-  getConfiguration(id: string): Promise < Map < string, any >> ;
+  getConfiguration(id: string): Promise<Map<string, any>>;
 }
 
 /**
@@ -54,11 +52,11 @@ export default class ConfigurationService extends Service {
     clearInterval(this._interval);
   }
 
-  async reinit(config: any): Promise < void > {
+  async reinit(config: any): Promise<void> {
     // Need to prevent any reinit
   }
 
-  async _loadConfiguration(): Promise < Map < string, any >> {
+  async _loadConfiguration(): Promise<Map<string, any>> {
     return this._sourceService.getConfiguration(this._sourceId);
   }
 
@@ -85,7 +83,4 @@ export default class ConfigurationService extends Service {
   }
 }
 
-export {
-  ConfigurationProvider,
-  ConfigurationService
-};
+export { ConfigurationProvider, ConfigurationService };

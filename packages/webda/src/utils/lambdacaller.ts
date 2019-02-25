@@ -1,7 +1,6 @@
 "use strict";
 
 class LambdaCaller {
-
   _arn: string;
   AWS: any;
 
@@ -13,16 +12,16 @@ class LambdaCaller {
     if (!arn) {
       throw new Error("ARN is required");
     }
-    this.AWS = require('aws-sdk');
+    this.AWS = require("aws-sdk");
     if (config.region) {
       this.AWS.config.update({
         region: config.region
       });
     }
-    if (config['accessKeyId'] !== undefined) {
+    if (config["accessKeyId"] !== undefined) {
       this.AWS.config.update({
-        accessKeyId: config['accessKeyId'],
-        secretAccessKey: config['secretAccessKey']
+        accessKeyId: config["accessKeyId"],
+        secretAccessKey: config["secretAccessKey"]
       });
     }
     this._arn = arn;
@@ -34,22 +33,20 @@ class LambdaCaller {
     }
     let invocationType;
     if (async === undefined || !async) {
-      invocationType = 'RequestResponse';
+      invocationType = "RequestResponse";
     } else {
-      invocationType = 'Event';
+      invocationType = "Event";
     }
     let lambda = new this.AWS.Lambda();
     params = {
       FunctionName: this._arn,
       ClientContext: null,
       InvocationType: invocationType,
-      LogType: 'None',
+      LogType: "None",
       Payload: JSON.stringify(params)
     };
     return lambda.invoke(params).promise();
   }
 }
 
-export {
-  LambdaCaller
-};
+export { LambdaCaller };

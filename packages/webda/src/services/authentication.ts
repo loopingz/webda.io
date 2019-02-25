@@ -9,35 +9,35 @@ import {
   Service,
   User,
   Core
-} from "../index"
-var passport = require('passport');
-const crypto = require('crypto');
+} from "../index";
+var passport = require("passport");
+const crypto = require("crypto");
 
 var Strategies = {
-  "facebook": {
-    strategy: require('passport-facebook').Strategy,
+  facebook: {
+    strategy: require("passport-facebook").Strategy,
     promise: false
   },
-  "google": {
-    strategy: require('passport-google-oauth').OAuth2Strategy,
+  google: {
+    strategy: require("passport-google-oauth").OAuth2Strategy,
     promise: false
   },
-  "amazon": {
-    strategy: require('passport-amazon').Strategy,
+  amazon: {
+    strategy: require("passport-amazon").Strategy,
     promise: false
   },
-  "github": {
-    strategy: require('passport-github2').Strategy,
+  github: {
+    strategy: require("passport-github2").Strategy,
     promise: false
   },
-  "twitter": {
-    strategy: require('passport-twitter').Strategy,
+  twitter: {
+    strategy: require("passport-twitter").Strategy,
     promise: true
   }
-}
+};
 
 interface PasswordVerifier extends Service {
-  validate(password: string): Promise < void > ;
+  validate(password: string): Promise<void>;
 }
 
 /**
@@ -62,51 +62,50 @@ interface PasswordVerifier extends Service {
  */
 class Authentication extends Executor {
   /** @ignore */
-  _identsStore: Store < Ident > ;
-  _usersStore: Store < User > ;
+  _identsStore: Store<Ident>;
+  _usersStore: Store<User>;
   _passwordVerifier: PasswordVerifier;
-  _aliases: Map < string,
-  string > = new Map();
+  _aliases: Map<string, string> = new Map();
   // TODO refactor
   _oauth1: any;
 
   constructor(webda: Core, name: string, params: any) {
     super(webda, name, params);
 
-    this._params.identStore = this._params.identStore || 'idents';
-    this._params.userStore = this._params.userStore || 'users';
+    this._params.identStore = this._params.identStore || "idents";
+    this._params.userStore = this._params.userStore || "users";
     this._params.providers = this._params.providers || {};
   }
 
   initRoutes() {
     // ROUTES
-    let url = this._params.expose || '/auth';
+    let url = this._params.expose || "/auth";
     // List authentication configured
     this._addRoute(url, ["GET", "DELETE"], this._listAuthentications, {
       get: {
-        description: 'Retrieve the list of available authentication',
-        summary: 'Get available auths',
+        description: "Retrieve the list of available authentication",
+        summary: "Get available auths",
         operationId: `getAuthenticationMethods`,
         responses: {
-          '200': {
-            'description': 'List of authentication',
+          "200": {
+            description: "List of authentication",
             schema: {
-              type: 'array',
+              type: "array",
               items: {
-                type: 'string'
+                type: "string"
               }
             }
           }
         }
       },
       delete: {
-        description: 'Logout current user',
-        summary: 'Logout',
+        description: "Logout current user",
+        summary: "Logout",
         operationId: `logout`,
         responses: {
-          '200': {
+          "200": {
             schema: {
-              type: 'string'
+              type: "string"
             }
           }
         }
@@ -115,80 +114,101 @@ class Authentication extends Executor {
     // Get the current user
     this._addRoute(url + "/me", ["GET"], this._getMe, {
       get: {
-        description: 'Retrieve the current user from the session',
-        summary: 'Get current user',
-        operationId: 'getCurrentUser',
+        description: "Retrieve the current user from the session",
+        summary: "Get current user",
+        operationId: "getCurrentUser"
       }
     });
     if (this._params.providers.email) {
       // Add static for email for now, if set before it should have priority
       this._addRoute(url + "/email", ["POST"], this._handleEmail, {
         post: {
-          description: 'Authenticate with an email and password',
-          summary: 'Authenticate with email',
-          operationId: `authWithEmail`,
+          description: "Authenticate with an email and password",
+          summary: "Authenticate with email",
+          operationId: `authWithEmail`
         }
       });
-      this._addRoute(url + "/email/callback{?email,token}", ["GET"], this._handleEmailCallback, {
-        hidden: true
-      });
-      this._addRoute(url + "/email/passwordRecovery", ["POST"], this._passwordRecovery, {
-        post: {
-          description: 'Reinit the password if we have the right token, expire',
-          summary: 'Reinit password',
-          operationId: 'reinitPassword',
-          schema: {
-            type: 'object',
-            properties: {
-              token: {
-                type: 'string'
-              },
-              expire: {
-                type: 'number'
-              },
-              password: {
-                type: 'string'
-              },
-              login: {
-                type: 'string'
+      this._addRoute(
+        url + "/email/callback{?email,token}",
+        ["GET"],
+        this._handleEmailCallback,
+        {
+          hidden: true
+        }
+      );
+      this._addRoute(
+        url + "/email/passwordRecovery",
+        ["POST"],
+        this._passwordRecovery,
+        {
+          post: {
+            description:
+              "Reinit the password if we have the right token, expire",
+            summary: "Reinit password",
+            operationId: "reinitPassword",
+            schema: {
+              type: "object",
+              properties: {
+                token: {
+                  type: "string"
+                },
+                expire: {
+                  type: "number"
+                },
+                password: {
+                  type: "string"
+                },
+                login: {
+                  type: "string"
+                }
               }
+            },
+            responses: {
+              "204": "",
+              "403": "Wrong Token"
             }
-          },
-          responses: {
-            '204': '',
-            '403': 'Wrong Token'
           }
         }
-      });
-      this._addRoute(url + "/email/{email}/recover", ["GET"], this._passwordRecoveryEmail, {
-        get: {
-          description: 'The password reset process will be start',
-          summary: 'Start password recovery',
-          operationId: 'startEmailRecovery',
-          responses: {
-            '204': '',
-            '404': 'Email does not exist',
-            '429': 'Recovery has been initiated in the last 4 hours'
+      );
+      this._addRoute(
+        url + "/email/{email}/recover",
+        ["GET"],
+        this._passwordRecoveryEmail,
+        {
+          get: {
+            description: "The password reset process will be start",
+            summary: "Start password recovery",
+            operationId: "startEmailRecovery",
+            responses: {
+              "204": "",
+              "404": "Email does not exist",
+              "429": "Recovery has been initiated in the last 4 hours"
+            }
           }
         }
-      });
+      );
     }
     // Handle the lost password here
-    url += '/{provider}';
+    url += "/{provider}";
     this._addRoute(url, ["GET"], this._authenticate, {
       get: {
-        description: 'Authenticate with a configured OAuth provider',
-        summary: 'Authenticate with OAuth',
-        operationId: 'oauthWith',
+        description: "Authenticate with a configured OAuth provider",
+        summary: "Authenticate with OAuth",
+        operationId: "oauthWith",
         responses: {
-          '302': 'Redirect to OAuth provider',
-          '404': 'Provider does not exist'
+          "302": "Redirect to OAuth provider",
+          "404": "Provider does not exist"
         }
       }
     });
-    this._addRoute(url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}", ["GET"], this._callback, {
-      hidden: true
-    });
+    this._addRoute(
+      url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}",
+      ["GET"],
+      this._callback,
+      {
+        hidden: true
+      }
+    );
   }
 
   setIdents(identStore) {
@@ -203,21 +223,25 @@ class Authentication extends Executor {
    * @ignore
    * Setup the default routes
    */
-  async init(): Promise < void > {
-
+  async init(): Promise<void> {
     if (this._params.identStore) {
-      this._identsStore = < Store < Ident > > this.getService(this._params.identStore);
+      this._identsStore = <Store<Ident>>(
+        this.getService(this._params.identStore)
+      );
     }
 
     if (this._params.userStore) {
-      this._usersStore = < Store < User > > this.getService(this._params.userStore);
+      this._usersStore = <Store<User>>this.getService(this._params.userStore);
     }
 
-    this._params.passwordRecoveryInterval = this._params.passwordRecoveryInterval || 3600000;
-    this._params.passwordRegexp = this._params.passwordRegexp || '.{8,}';
+    this._params.passwordRecoveryInterval =
+      this._params.passwordRecoveryInterval || 3600000;
+    this._params.passwordRegexp = this._params.passwordRegexp || ".{8,}";
 
     if (this._params.passwordVerifier) {
-      this._passwordVerifier = < PasswordVerifier > this.getService(this._params.passwordVerifier);
+      this._passwordVerifier = <PasswordVerifier>(
+        this.getService(this._params.passwordVerifier)
+      );
     }
 
     if (this._identsStore === undefined || this._usersStore === undefined) {
@@ -231,24 +255,32 @@ class Authentication extends Executor {
   }
 
   _callback(ctx) {
-    this.log('TRACE', 'Callback from OAuth called');
+    this.log("TRACE", "Callback from OAuth called");
     var providerConfig = this._params.providers[ctx._params.provider];
     if (!providerConfig) {
       throw 404;
     }
     return new Promise((resolve, reject) => {
       var done = (err, user, info) => {
-        this.log('TRACE', 'Callback from OAuth done', err, user, info);
+        this.log("TRACE", "Callback from OAuth done", err, user, info);
         resolve();
       };
       this.setupOAuth(ctx, providerConfig, ctx._params.provider);
-      this.log('TRACE', 'OAuth Setup authenticate', this._getProviderName(ctx._params.provider));
-      passport.authenticate(this._getProviderName(ctx._params.provider), {
-        successRedirect: this._params.successRedirect,
-        failureRedirect: this._params.failureRedirect
-      }, done)(ctx, ctx, done);
+      this.log(
+        "TRACE",
+        "OAuth Setup authenticate",
+        this._getProviderName(ctx._params.provider)
+      );
+      passport.authenticate(
+        this._getProviderName(ctx._params.provider),
+        {
+          successRedirect: this._params.successRedirect,
+          failureRedirect: this._params.failureRedirect
+        },
+        done
+      )(ctx, ctx, done);
     });
-  };
+  }
 
   async _getMe(ctx) {
     let user = await ctx.getCurrentUser();
@@ -283,19 +315,23 @@ class Authentication extends Executor {
       return url;
     }
     return url + "/callback";
-  };
+  }
 
   async handleOAuthReturn(ctx, identArg: any, done) {
-    this.log('TRACE', 'Handle OAuth return', identArg);
+    this.log("TRACE", "Handle OAuth return", identArg);
     let ident: Ident = await this._identsStore.get(identArg.uuid);
     if (ident) {
       await this.login(ctx, ident.user, ident);
-      await this._identsStore.update({
-        'lastUsed': new Date()
-      }, ident.uuid);
+      await this._identsStore.update(
+        {
+          lastUsed: new Date()
+        },
+        ident.uuid
+      );
       ctx.writeHead(302, {
-        'Location': this._params.successRedirect + '?validation=' + ctx._params.provider,
-        'X-Webda-Authentication': 'success'
+        Location:
+          this._params.successRedirect + "?validation=" + ctx._params.provider,
+        "X-Webda-Authentication": "success"
       });
       ctx.end();
       done(ident);
@@ -315,10 +351,15 @@ class Authentication extends Executor {
     await this._identsStore.save(ident);
     ident.__new = true;
     await this.login(ctx, user, ident);
-    this.log('TRACE', 'Logged in normally should redirect to', this._params.successRedirect);
+    this.log(
+      "TRACE",
+      "Logged in normally should redirect to",
+      this._params.successRedirect
+    );
     ctx.writeHead(302, {
-      'Location': this._params.successRedirect + '?validation=' + ctx._params.provider,
-      'X-Webda-Authentication': 'success'
+      Location:
+        this._params.successRedirect + "?validation=" + ctx._params.provider,
+      "X-Webda-Authentication": "success"
     });
     ctx.end();
     done(ident);
@@ -326,36 +367,60 @@ class Authentication extends Executor {
 
   setupOAuth(ctx, config, name: string) {
     config.callbackURL = this.getCallbackUrl(ctx);
-    let strategy = new Strategies[ctx._params.provider].strategy(config, (accessToken, refreshToken, profile, done) => {
-      this.log('TRACE', 'OAuth return is', ctx._params.provider, profile.id, accessToken, refreshToken, profile);
-      this.handleOAuthReturn(ctx, Ident.init(ctx._params.provider, profile.id, accessToken, refreshToken, profile._json), done);
-    });
+    let strategy = new Strategies[ctx._params.provider].strategy(
+      config,
+      (accessToken, refreshToken, profile, done) => {
+        this.log(
+          "TRACE",
+          "OAuth return is",
+          ctx._params.provider,
+          profile.id,
+          accessToken,
+          refreshToken,
+          profile
+        );
+        this.handleOAuthReturn(
+          ctx,
+          Ident.init(
+            ctx._params.provider,
+            profile.id,
+            accessToken,
+            refreshToken,
+            profile._json
+          ),
+          done
+        );
+      }
+    );
     if (strategy.name !== name) {
       this._aliases[name] = strategy.name;
     }
     passport.use(strategy);
   }
 
-  async registerUser(ctx, datas, user: any = {}): Promise < any > {
+  async registerUser(ctx, datas, user: any = {}): Promise<any> {
     user.locale = ctx.getLocale();
     await this.emitSync("Register", {
-      "user": user,
-      "datas": datas,
-      "ctx": ctx
+      user: user,
+      datas: datas,
+      ctx: ctx
     });
     return user;
   }
 
-  getPasswordRecoveryInfos(uuid, interval = this._params.passwordRecoveryInterval) {
+  getPasswordRecoveryInfos(
+    uuid,
+    interval = this._params.passwordRecoveryInterval
+  ) {
     var promise;
     var expire = Date.now() + interval;
-    if (typeof(uuid) === 'string') {
+    if (typeof uuid === "string") {
       // Use the one from config if not specified
       promise = this._usersStore.get(uuid);
     } else {
       promise = Promise.resolve(uuid);
     }
-    return promise.then((user) => {
+    return promise.then(user => {
       return {
         expire: expire,
         token: this.hashPassword(user.uuid + expire + user.__password),
@@ -365,7 +430,9 @@ class Authentication extends Executor {
   }
 
   async _passwordRecoveryEmail(ctx) {
-    let ident: Ident = await this._identsStore.get(ctx._params.email + "_email");
+    let ident: Ident = await this._identsStore.get(
+      ctx._params.email + "_email"
+    );
     if (!ident) {
       throw 404;
     }
@@ -374,9 +441,12 @@ class Authentication extends Executor {
     if (user._lastPasswordRecovery > Date.now() - 3600000 * 4) {
       throw 429;
     }
-    await this._usersStore.update({
-      _lastPasswordRecovery: Date.now()
-    }, user.uuid);
+    await this._usersStore.update(
+      {
+        _lastPasswordRecovery: Date.now()
+      },
+      user.uuid
+    );
     await this.sendRecoveryEmail(ctx, user, ctx._params.email);
   }
 
@@ -392,20 +462,33 @@ class Authentication extends Executor {
   }
 
   async _passwordRecovery(ctx) {
-    if (ctx.body.password === undefined || ctx.body.login === undefined || ctx.body.token === undefined || ctx.body.expire === undefined) {
+    if (
+      ctx.body.password === undefined ||
+      ctx.body.login === undefined ||
+      ctx.body.token === undefined ||
+      ctx.body.expire === undefined
+    ) {
       throw 400;
     }
     let user: User = await this._usersStore.get(ctx.body.login.toLowerCase());
-    if (ctx.body.token !== this.hashPassword(ctx.body.login.toLowerCase() + ctx.body.expire + user.__password)) {
+    if (
+      ctx.body.token !==
+      this.hashPassword(
+        ctx.body.login.toLowerCase() + ctx.body.expire + user.__password
+      )
+    ) {
       throw 403;
     }
     if (ctx.body.expire < Date.now()) {
       throw 410;
     }
     await this._verifyPassword(ctx.body.password);
-    await this._usersStore.update({
-      __password: this.hashPassword(ctx.body.password)
-    }, ctx.body.login.toLowerCase());
+    await this._usersStore.update(
+      {
+        __password: this.hashPassword(ctx.body.password)
+      },
+      ctx.body.login.toLowerCase()
+    );
   }
 
   async _handleEmailCallback(ctx) {
@@ -415,7 +498,7 @@ class Authentication extends Executor {
     let validation = ctx._params.token;
     if (validation !== this.generateEmailValidationToken(ctx._params.email)) {
       ctx.writeHead(302, {
-        'Location': this._params.failureRedirect
+        Location: this._params.failureRedirect
       });
       return Promise.resolve();
     }
@@ -424,12 +507,16 @@ class Authentication extends Executor {
     if (ident === undefined) {
       throw 404;
     }
-    await this._identsStore.update({
-      validation: new Date()
-    }, ident.uuid);
+    await this._identsStore.update(
+      {
+        validation: new Date()
+      },
+      ident.uuid
+    );
     ctx.writeHead(302, {
-      'Location': this._params.successRedirect + '?validation=' + ctx._params.provider,
-      'X-Webda-Authentication': 'success'
+      Location:
+        this._params.successRedirect + "?validation=" + ctx._params.provider,
+      "X-Webda-Authentication": "success"
     });
   }
 
@@ -447,7 +534,7 @@ class Authentication extends Executor {
     let mailOptions = {
       to: email,
       locale: locale,
-      template: 'PASSPORT_EMAIL_RECOVERY',
+      template: "PASSPORT_EMAIL_RECOVERY",
       replacements: replacements
     };
     if (!user.locale) {
@@ -460,19 +547,24 @@ class Authentication extends Executor {
     var mailer: Mailer = this.getMailMan();
     let replacements = _extend({}, this._params.providers.email);
     replacements.context = ctx;
-    replacements.url = ctx._route._http.root + "/auth/email/callback?email=" + email + "&token=" + this.generateEmailValidationToken(email);
+    replacements.url =
+      ctx._route._http.root +
+      "/auth/email/callback?email=" +
+      email +
+      "&token=" +
+      this.generateEmailValidationToken(email);
     let mailOptions = {
       to: email,
       locale: ctx.getLocale(),
-      template: 'PASSPORT_EMAIL_REGISTER',
+      template: "PASSPORT_EMAIL_REGISTER",
       replacements: replacements
     };
     return mailer.send(mailOptions);
   }
 
   hashPassword(pass) {
-    var hash = crypto.createHash('sha256');
-    return hash.update(pass + this._webda.getSalt()).digest('hex');
+    var hash = crypto.createHash("sha256");
+    return hash.update(pass + this._webda.getSalt()).digest("hex");
   }
 
   async logout(ctx) {
@@ -485,12 +577,12 @@ class Authentication extends Executor {
   async login(ctx, user, ident) {
     var event: any = {};
     event.userId = user;
-    if (typeof(user) == "object") {
+    if (typeof user == "object") {
       event.userId = user.uuid;
       event.user = user;
     }
     event.identId = ident;
-    if (typeof(ident) == "object") {
+    if (typeof ident == "object") {
       event.identId = ident.uuid;
       event.ident = ident;
     }
@@ -500,12 +592,18 @@ class Authentication extends Executor {
   }
 
   getMailMan(): Mailer {
-    return <Mailer > this.getService(this._params.providers.email.mailer ? this._params.providers.email.mailer : "Mailer");
+    return <Mailer>(
+      this.getService(
+        this._params.providers.email.mailer
+          ? this._params.providers.email.mailer
+          : "Mailer"
+      )
+    );
   }
 
   async _handleEmail(ctx) {
     if (this._identsStore === undefined) {
-      this._webda.log('ERROR', 'Email auth needs an ident store');
+      this._webda.log("ERROR", "Email auth needs an ident store");
       throw 500;
     }
     if (ctx.body.password === undefined || ctx.body.login === undefined) {
@@ -561,7 +659,10 @@ class Authentication extends Executor {
       if (ctx.body.register || ctx._params.register) {
         var validation = undefined;
         // Need to check email before creation
-        if (!mailConfig.postValidation || mailConfig.postValidation === undefined) {
+        if (
+          !mailConfig.postValidation ||
+          mailConfig.postValidation === undefined
+        ) {
           if (ctx.body.token == this.generateEmailValidationToken(email)) {
             validation = new Date();
           } else {
@@ -575,13 +676,13 @@ class Authentication extends Executor {
         await this._verifyPassword(ctx.body.password);
         delete ctx.body.password;
         delete ctx.body.register;
-        let user = await this.registerUser(ctx, ctx.body, ctx.body)
+        let user = await this.registerUser(ctx, ctx.body, ctx.body);
         user = await this._usersStore.save(user);
         var newIdent: any = {
-          'uuid': uuid,
-          'type': 'email',
-          'email': email,
-          'user': user.uuid
+          uuid: uuid,
+          type: "email",
+          email: email,
+          user: user.uuid
         };
         if (validation) {
           newIdent.validation = validation;
@@ -610,12 +711,12 @@ class Authentication extends Executor {
   }
 
   async _authenticate(ctx: Context) {
-    // Handle Logout 
+    // Handle Logout
     if (ctx._params.provider == "logout") {
       await this.logout(ctx);
       if (this._params.logoutRedirect) {
         ctx.writeHead(302, {
-          'Location': this._params.logoutRedirect
+          Location: this._params.logoutRedirect
         });
       }
       throw 204;
@@ -624,12 +725,15 @@ class Authentication extends Executor {
     if (providerConfig) {
       if (!Strategies[ctx._params.provider].promise) {
         this.setupOAuth(ctx, providerConfig, ctx._params.provider);
-        return passport.authenticate(this._getProviderName(ctx._params.provider), {
-          'scope': providerConfig.scope
-        })(ctx, ctx);
+        return passport.authenticate(
+          this._getProviderName(ctx._params.provider),
+          {
+            scope: providerConfig.scope
+          }
+        )(ctx, ctx);
       }
       return new Promise((resolve, reject) => {
-        throw Error('OAuth 1 disabled');
+        throw Error("OAuth 1 disabled");
         // TODO Fix oauth1
         /*
         ctx._end = ctx.end;
@@ -650,51 +754,50 @@ class Authentication extends Executor {
 
   static getModda() {
     return {
-      "uuid": "Webda/Authentication",
-      "label": "Authentication",
-      "description": "Implements user registration and login using either email or OAuth, it handles for now Facebook, Google, Amazon, GitHub, Twitter\nIt needs a Idents and a Users Store to work",
-      "webcomponents": [],
-      "logo": "images/icons/passport.png",
-      "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Authentication.md",
-      "configuration": {
-        "default": {
-          "successRedirect": "YOUR WEBSITE LOGGED PAGE",
-          "failureRedirect": "YOUR WEBSITE FAILURE PAGE",
-          "providers": {
-            "facebook": {
-              "clientID": "",
-              "clientSecret": "",
-              "scope": ["email", "public_profile"]
+      uuid: "Webda/Authentication",
+      label: "Authentication",
+      description:
+        "Implements user registration and login using either email or OAuth, it handles for now Facebook, Google, Amazon, GitHub, Twitter\nIt needs a Idents and a Users Store to work",
+      webcomponents: [],
+      logo: "images/icons/passport.png",
+      documentation:
+        "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Authentication.md",
+      configuration: {
+        default: {
+          successRedirect: "YOUR WEBSITE LOGGED PAGE",
+          failureRedirect: "YOUR WEBSITE FAILURE PAGE",
+          providers: {
+            facebook: {
+              clientID: "",
+              clientSecret: "",
+              scope: ["email", "public_profile"]
             },
-            "email": {
-              "postValidation": false
+            email: {
+              postValidation: false
             }
           }
         },
-        "schema": {
+        schema: {
           type: "object",
           properties: {
-            "expose": {
+            expose: {
               type: "boolean"
             },
-            "successRedirect": {
+            successRedirect: {
               type: "string"
             },
-            "failureRedirect": {
+            failureRedirect: {
               type: "string"
             },
-            "providers": {
+            providers: {
               type: "object"
             }
           },
           required: ["successRedirect", "failureRedirect", "providers"]
         }
       }
-    }
+    };
   }
 }
 
-export {
-  Authentication,
-  PasswordVerifier
-}
+export { Authentication, PasswordVerifier };

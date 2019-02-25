@@ -1,9 +1,9 @@
 "use strict";
 
 class OwnerPolicy {
-  user: any
-  public: boolean
-  uuid: string
+  user: any;
+  public: boolean;
+  uuid: string;
   /**
    * Return false if can't create
    */
@@ -20,13 +20,17 @@ class OwnerPolicy {
   }
 
   async canAct(ctx, action) {
-    if (action === 'create') {
+    if (action === "create") {
       return this.canCreate(ctx);
-    } else if (action === 'update' || action === 'attach_binary' || action === 'detach_binary') {
+    } else if (
+      action === "update" ||
+      action === "attach_binary" ||
+      action === "detach_binary"
+    ) {
       return this.canUpdate(ctx);
-    } else if (action === 'get' || action === 'get_binary') {
+    } else if (action === "get" || action === "get_binary") {
       return this.canGet(ctx);
-    } else if (action === 'delete') {
+    } else if (action === "delete") {
       return this.canDelete(ctx);
     }
     throw 403;
@@ -36,7 +40,10 @@ class OwnerPolicy {
    */
   async canUpdate(ctx) {
     // Allow to modify itself by default
-    if (ctx.session.getUserId() !== this.getOwner() && ctx.session.getUserId() !== this.uuid) {
+    if (
+      ctx.session.getUserId() !== this.getOwner() &&
+      ctx.session.getUserId() !== this.uuid
+    ) {
       throw 403;
     }
     return this;
@@ -49,7 +56,10 @@ class OwnerPolicy {
     if (this.public) {
       return this;
     }
-    if (ctx.session.getUserId() !== this.getOwner() && ctx.session.getUserId() !== this.uuid) {
+    if (
+      ctx.session.getUserId() !== this.getOwner() &&
+      ctx.session.getUserId() !== this.uuid
+    ) {
       throw 403;
     }
     if (!this.getOwner() && ctx.session.getUserId() !== this.uuid) {
@@ -66,6 +76,4 @@ class OwnerPolicy {
   }
 }
 
-export {
-  OwnerPolicy
-};
+export { OwnerPolicy };

@@ -1,8 +1,4 @@
-import {
-  Executor,
-  LambdaCaller,
-  Context
-} from "../index";
+import { Executor, LambdaCaller, Context } from "../index";
 
 /**
  * Execute a Lambda function and return the result, it is usefull for remote moddas already exposed
@@ -10,7 +6,7 @@ import {
  * Configuration
  * '/url': {
  *    'type': 'lambda',
- *    'arn': 'arn::....'	
+ *    'arn': 'arn::....'
  * }
  *
  */
@@ -18,13 +14,15 @@ class LambdaRouteHelper extends Executor {
   /** @ignore */
   constructor(webda, name, params) {
     super(webda, name, params);
-    if (params.accessKeyId === undefined || params.accessKeyId === '') {
-      this._params.accessKeyId = params.accessKeyId = process.env["WEBDA_AWS_KEY"];
+    if (params.accessKeyId === undefined || params.accessKeyId === "") {
+      this._params.accessKeyId = params.accessKeyId =
+        process.env["WEBDA_AWS_KEY"];
     }
-    if (params.secretAccessKey === undefined || params.secretAccessKey === '') {
-      this._params.secretAccessKey = params.secretAccessKey = process.env["WEBDA_AWS_SECRET"];
+    if (params.secretAccessKey === undefined || params.secretAccessKey === "") {
+      this._params.secretAccessKey = params.secretAccessKey =
+        process.env["WEBDA_AWS_SECRET"];
     }
-  };
+  }
 
   /**
    * Handle the result from the Lambda function
@@ -40,10 +38,10 @@ class LambdaRouteHelper extends Executor {
         result.code = 200;
       }
       if (result.headers == undefined) {
-        result.headers = {}
+        result.headers = {};
       }
-      if (result.headers['Content-Type'] == undefined) {
-        result.headers['Content-Type'] = 'application/json';
+      if (result.headers["Content-Type"] == undefined) {
+        result.headers["Content-Type"] = "application/json";
       }
     } catch (err) {
       console.log("Error '" + err + "' parsing result: " + data);
@@ -56,24 +54,22 @@ class LambdaRouteHelper extends Executor {
     ctx.end();
   }
 
-  async execute(ctx: Context): Promise < any > {
+  async execute(ctx: Context): Promise<any> {
     var caller;
     try {
       caller = new LambdaCaller(ctx._params);
     } catch (e) {
       ctx.writeHead(500, {
-        'Content-Type': 'text/plain'
+        "Content-Type": "text/plain"
       });
       ctx.end();
       throw e;
     }
     let data = await caller.execute({
-      '_http': ctx._route._http
+      _http: ctx._route._http
     });
     this.handleResult(ctx, data.Payload);
   }
 }
 
-export {
-  LambdaRouteHelper
-};
+export { LambdaRouteHelper };

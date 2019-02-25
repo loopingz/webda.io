@@ -1,8 +1,4 @@
-import {
-  Binary,
-  _extend,
-  Context
-} from '../index';
+import { Binary, _extend, Context } from "../index";
 const fs = require("fs");
 
 /**
@@ -25,8 +21,8 @@ class FileBinary extends Binary {
     if (!fs.existsSync(params.folder)) {
       fs.mkdirSync(params.folder);
     }
-    if (!this._params.folder.endsWith('/')) {
-      this._params.folder += '/'
+    if (!this._params.folder.endsWith("/")) {
+      this._params.folder += "/";
     }
   }
 
@@ -34,24 +30,24 @@ class FileBinary extends Binary {
     super.initRoutes();
     // Will redirect to this URL for direct upload
     let url = this._url + "/upload/data/{hash}";
-    let name = this._name === 'Binary' ? '' : this._name;
-    this._addRoute(url, ['PUT'], this.storeBinary, {
+    let name = this._name === "Binary" ? "" : this._name;
+    this._addRoute(url, ["PUT"], this.storeBinary, {
       put: {
         operationId: `put${name}Binary`,
-        description: 'Upload a binary to an object after challenge',
-        summary: 'Upload a binary',
+        description: "Upload a binary to an object after challenge",
+        summary: "Upload a binary",
         responses: {
-          '204': '',
-          '400': "Wrong hash",
-          '404': 'Object does not exist or attachment does not exist',
-          '412': 'Provided hash does not match'
+          "204": "",
+          "400": "Wrong hash",
+          "404": "Object does not exist or attachment does not exist",
+          "412": "Provided hash does not match"
         }
       }
     });
   }
 
   _get(info) {
-    var path = this._getPath(info.hash, 'data');
+    var path = this._getPath(info.hash, "data");
     if (!fs.existsSync(path)) {
       throw 404;
     }
@@ -62,16 +58,23 @@ class FileBinary extends Binary {
     if (postfix === undefined) {
       return this._params.folder + hash;
     }
-    return this._params.folder + hash + '/' + postfix;
+    return this._params.folder + hash + "/" + postfix;
   }
 
   _touch(path) {
-    fs.closeSync(fs.openSync(path, 'w'));
+    fs.closeSync(fs.openSync(path, "w"));
   }
 
   getPutUrl(ctx) {
     // Get a full URL, this method should be in a Route Object
-    return ctx._route._http.protocol + "://" + ctx._route._http.headers.host + this._url + "/upload/data/" + ctx.body.hash;
+    return (
+      ctx._route._http.protocol +
+      "://" +
+      ctx._route._http.headers.host +
+      this._url +
+      "/upload/data/" +
+      ctx.body.hash
+    );
   }
 
   /**
@@ -79,13 +82,17 @@ class FileBinary extends Binary {
    *
    * @ignore
    */
-  async putRedirectUrl(ctx: Context): Promise < string > {
+  async putRedirectUrl(ctx: Context): Promise<string> {
     if (ctx.body.hash === undefined) {
-      this._webda.log('WARN', 'Request not conform', ctx.body);
+      this._webda.log("WARN", "Request not conform", ctx.body);
       throw 400;
     }
-    if (fs.existsSync(this._getPath(ctx.body.hash, ctx._params.store + "_" + ctx._params.uid))) {
-      if (!fs.existsSync(this._getPath(ctx.body.hash, 'data'))) {
+    if (
+      fs.existsSync(
+        this._getPath(ctx.body.hash, ctx._params.store + "_" + ctx._params.uid)
+      )
+    ) {
+      if (!fs.existsSync(this._getPath(ctx.body.hash, "data"))) {
         return Promise.resolve(this.getPutUrl(ctx));
       }
       // If the link is already register just return directly ok
@@ -94,12 +101,21 @@ class FileBinary extends Binary {
     // Get the target object to add the mapping
     let targetStore = this._verifyMapAndStore(ctx);
     let object = await targetStore.get(ctx._params.uid);
-    await this.updateSuccess(targetStore, object, ctx._params.property, 'add', ctx.body, ctx.body.metadatas);
+    await this.updateSuccess(
+      targetStore,
+      object,
+      ctx._params.property,
+      "add",
+      ctx.body,
+      ctx.body.metadatas
+    );
     // Need to store the usage of the file
     if (!fs.existsSync(this._getPath(ctx.body.hash))) {
       fs.mkdirSync(this._getPath(ctx.body.hash));
     }
-    this._touch(this._getPath(ctx.body.hash, ctx._params.store + "_" + ctx._params.uid));
+    this._touch(
+      this._getPath(ctx.body.hash, ctx._params.store + "_" + ctx._params.uid)
+    );
     if (this.challenge(ctx.body.hash, ctx.body.challenge)) {
       // Return empty as we dont need to upload the data
       return;
@@ -125,7 +141,7 @@ class FileBinary extends Binary {
       // The folder should have been create by a previous request
       throw 412;
     }
-    let path = this._getPath(result.hash, 'data');
+    let path = this._getPath(result.hash, "data");
     if (!fs.existsSync(path)) {
       // Save the data
       fs.writeFileSync(path, ctx.body);
@@ -145,9 +161,7 @@ class FileBinary extends Binary {
     });
   }
 
-  _cleanHash(hash) {
-
-  }
+  _cleanHash(hash) {}
 
   _cleanUsage(hash, uuid) {
     if (!fs.existsSync(this._getPath(hash))) return;
@@ -164,10 +178,12 @@ class FileBinary extends Binary {
 
   delete(targetStore, object, property, index) {
     var hash = object[property][index].hash;
-    return this.deleteSuccess(targetStore, object, property, index).then((updated) => {
-      this._cleanUsage(hash, object.uuid);
-      return Promise.resolve(updated);
-    });
+    return this.deleteSuccess(targetStore, object, property, index).then(
+      updated => {
+        this._cleanUsage(hash, object.uuid);
+        return Promise.resolve(updated);
+      }
+    );
   }
 
   challenge(hash, challenge) {
@@ -175,24 +191,26 @@ class FileBinary extends Binary {
       return false;
     }
     var path = this._getPath(hash);
-    if (!fs.existsSync(path) || !fs.existsSync(path + '/_' + challenge)) {
+    if (!fs.existsSync(path) || !fs.existsSync(path + "/_" + challenge)) {
       return false;
     }
     return true;
   }
 
   cascadeDelete(info, uuid) {
-    this._cleanUsage(info.hash, '_' + uuid);
+    this._cleanUsage(info.hash, "_" + uuid);
   }
 
   _store(file, targetStore, object) {
     fs.mkdirSync(this._getPath(file.hash));
     if (file.buffer) {
-      fs.writeFileSync(this._getPath(file.hash, 'data'), file.buffer);
+      fs.writeFileSync(this._getPath(file.hash, "data"), file.buffer);
     }
     // Store the challenge
     this._touch(this._getPath(file.hash, "_" + file.challenge));
-    this._touch(this._getPath(file.hash, targetStore._name + "_" + object.uuid));
+    this._touch(
+      this._getPath(file.hash, targetStore._name + "_" + object.uuid)
+    );
   }
 
   store(targetStore, object, property, file, metadatas, index = "add") {
@@ -200,11 +218,27 @@ class FileBinary extends Binary {
     this._prepareInput(file);
     file = _extend(file, this._getHashes(file.buffer));
     if (fs.existsSync(this._getPath(file.hash))) {
-      this._touch(this._getPath(file.hash, targetStore._name + "_" + object.uuid));
-      return this.updateSuccess(targetStore, object, property, 'add', file, metadatas);
+      this._touch(
+        this._getPath(file.hash, targetStore._name + "_" + object.uuid)
+      );
+      return this.updateSuccess(
+        targetStore,
+        object,
+        property,
+        "add",
+        file,
+        metadatas
+      );
     }
-    this._store(file, targetStore, object)
-    return this.updateSuccess(targetStore, object, property, 'add', file, metadatas);
+    this._store(file, targetStore, object);
+    return this.updateSuccess(
+      targetStore,
+      object,
+      property,
+      "add",
+      file,
+      metadatas
+    );
   }
 
   update(targetStore, object, property, index, file, metadatas) {
@@ -212,11 +246,27 @@ class FileBinary extends Binary {
     this._prepareInput(file);
     file = _extend(file, this._getHashes(file.buffer));
     if (fs.existsSync(this._getPath(file.hash))) {
-      this._touch(this._getPath(file.hash, targetStore._name + "_" + object.uuid));
-      return this.updateSuccess(targetStore, object, property, index, file, metadatas);
+      this._touch(
+        this._getPath(file.hash, targetStore._name + "_" + object.uuid)
+      );
+      return this.updateSuccess(
+        targetStore,
+        object,
+        property,
+        index,
+        file,
+        metadatas
+      );
     }
-    this._store(file, targetStore, object)
-    return this.updateSuccess(targetStore, object, property, index, file, metadatas);
+    this._store(file, targetStore, object);
+    return this.updateSuccess(
+      targetStore,
+      object,
+      property,
+      index,
+      file,
+      metadatas
+    );
   }
 
   ___cleanData() {
@@ -228,42 +278,41 @@ class FileBinary extends Binary {
       }
       var files = fs.readdirSync(this._params.folder + hash);
       for (var file in files) {
-        fs.unlinkSync(this._params.folder + hash + '/' + files[file]);
+        fs.unlinkSync(this._params.folder + hash + "/" + files[file]);
       }
-      fs.rmdirSync(this._params.folder + hash + '/');
+      fs.rmdirSync(this._params.folder + hash + "/");
     }
     return Promise.resolve();
   }
 
   static getModda() {
     return {
-      "uuid": "Webda/FileBinary",
-      "label": "File Storage",
-      "description": "Implements storage of files on the server filesystem",
-      "webcomponents": [],
-      "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
-      "logo": "images/icons/filestorage.png",
-      "configuration": {
-        "default": {
-          "folder": "/tmp/binaries",
+      uuid: "Webda/FileBinary",
+      label: "File Storage",
+      description: "Implements storage of files on the server filesystem",
+      webcomponents: [],
+      documentation:
+        "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
+      logo: "images/icons/filestorage.png",
+      configuration: {
+        default: {
+          folder: "/tmp/binaries"
         },
-        "schema": {
+        schema: {
           type: "object",
           properties: {
-            "expose": {
+            expose: {
               type: "boolean"
             },
-            "folder": {
+            folder: {
               type: "string"
             }
           },
           required: ["folder"]
         }
       }
-    }
+    };
   }
 }
 
-export {
-  FileBinary
-};
+export { FileBinary };

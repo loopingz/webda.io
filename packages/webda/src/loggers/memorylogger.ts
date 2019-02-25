@@ -1,10 +1,8 @@
-import {
-  Logger
-} from '../index';
+import { Logger } from "../index";
 
 interface LogEntry {
-  level: string,
-    args: any[]
+  level: string;
+  args: any[];
 }
 
 class MemoryLogger extends Logger {
@@ -21,8 +19,8 @@ class MemoryLogger extends Logger {
       this._logs.shift();
     }
     this._logs.push({
-      "level": level,
-      "args": args
+      level: level,
+      args: args
     });
   }
 
@@ -32,35 +30,32 @@ class MemoryLogger extends Logger {
 
   static getModda() {
     return {
-      "uuid": "Webda/MemoryLogger",
-      "label": "MemoryLogger",
-      "description": "Keep everything in memory",
-      "webcomponents": [],
-      "logo": "images/icons/none.png",
-      "configuration": {
-        "schema": {
+      uuid: "Webda/MemoryLogger",
+      label: "MemoryLogger",
+      description: "Keep everything in memory",
+      webcomponents: [],
+      logo: "images/icons/none.png",
+      configuration: {
+        schema: {
           type: "object",
           properties: {
-            "maxItems": {
+            maxItems: {
               type: "number",
               value: 1000
             },
-            "logLevel": {
+            logLevel: {
               type: "string",
               value: "INFO"
             },
-            "logLevels": {
+            logLevels: {
               type: "string",
               value: "ERROR,WARN,CONSOLE,INFO,DEBUG"
             }
           }
         }
       }
-    }
+    };
   }
 }
 
-export {
-  MemoryLogger,
-  LogEntry
-};
+export { MemoryLogger, LogEntry };

@@ -1,10 +1,6 @@
 "use strict";
-import {
-  Store,
-  CoreModel
-} from '../index';
+import { Store, CoreModel } from "../index";
 var fs = require("fs");
-
 
 /**
  * Simple file storage of object
@@ -17,7 +13,7 @@ var fs = require("fs");
  *  folder: to store to
  *
  */
-class FileStore < T extends CoreModel > extends Store < T > {
+class FileStore<T extends CoreModel> extends Store<T> {
   /** @ignore */
   constructor(webda, name, options) {
     super(webda, name, options);
@@ -27,7 +23,7 @@ class FileStore < T extends CoreModel > extends Store < T > {
   }
 
   file(uid) {
-    return this._params.folder + '/' + uid;
+    return this._params.folder + "/" + uid;
   }
 
   async exists(uid) {
@@ -35,10 +31,10 @@ class FileStore < T extends CoreModel > extends Store < T > {
     return Promise.resolve(fs.existsSync(this.file(uid)));
   }
 
-  async _find(request, offset, limit): Promise < any > {
+  async _find(request, offset, limit): Promise<any> {
     var self = this;
     var res = [];
-    var path = require('path');
+    var path = require("path");
     var files = fs.readdirSync(self._params.folder).filter(function(file) {
       return !fs.statSync(path.join(self._params.folder, file)).isDirectory();
     });
@@ -49,18 +45,32 @@ class FileStore < T extends CoreModel > extends Store < T > {
   }
 
   _save(object, uid) {
-    fs.writeFileSync(this.file(uid), JSON.stringify(object.toStoredJSON(), undefined, this._params.beautify));
+    fs.writeFileSync(
+      this.file(uid),
+      JSON.stringify(object.toStoredJSON(), undefined, this._params.beautify)
+    );
     return Promise.resolve(object);
   }
 
-  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
+  async _upsertItemToCollection(
+    uid,
+    prop,
+    item,
+    index,
+    itemWriteCondition,
+    itemWriteConditionField,
+    updateDate: Date
+  ) {
     let res = await this._get(uid);
     if (res === undefined) {
       throw Error("NotFound");
     }
     if (index === undefined) {
-      if (itemWriteCondition !== undefined && res[prop].length !== itemWriteCondition) {
-        throw Error('UpdateCondition not met');
+      if (
+        itemWriteCondition !== undefined &&
+        res[prop].length !== itemWriteCondition
+      ) {
+        throw Error("UpdateCondition not met");
       }
       if (res[prop] === undefined) {
         res[prop] = [item];
@@ -68,8 +78,11 @@ class FileStore < T extends CoreModel > extends Store < T > {
         res[prop].push(item);
       }
     } else {
-      if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
-        throw Error('UpdateCondition not met');
+      if (
+        itemWriteCondition &&
+        res[prop][index][itemWriteConditionField] != itemWriteCondition
+      ) {
+        throw Error("UpdateCondition not met");
       }
       res[prop][index] = item;
     }
@@ -77,14 +90,24 @@ class FileStore < T extends CoreModel > extends Store < T > {
     await this._save(res, uid);
   }
 
-  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
+  async _deleteItemFromCollection(
+    uid,
+    prop,
+    index,
+    itemWriteCondition,
+    itemWriteConditionField,
+    updateDate: Date
+  ) {
     let res = await this._get(uid);
     if (res === undefined) {
       throw Error("NotFound");
     }
 
-    if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
-      throw Error('UpdateCondition not met');
+    if (
+      itemWriteCondition &&
+      res[prop][index][itemWriteConditionField] != itemWriteCondition
+    ) {
+      throw Error("UpdateCondition not met");
     }
     res[prop].splice(index, 1);
     res.lastUpdate = updateDate;
@@ -93,8 +116,12 @@ class FileStore < T extends CoreModel > extends Store < T > {
 
   async _delete(uid, writeCondition) {
     let res = await this._get(uid);
-    if (writeCondition && res && res[this._writeConditionField] != writeCondition) {
-      return Promise.reject(Error('UpdateCondition not met'));
+    if (
+      writeCondition &&
+      res &&
+      res[this._writeConditionField] != writeCondition
+    ) {
+      return Promise.reject(Error("UpdateCondition not met"));
     }
     if (res) {
       fs.unlinkSync(this.file(uid));
@@ -105,10 +132,10 @@ class FileStore < T extends CoreModel > extends Store < T > {
   async _update(object, uid, writeCondition) {
     let stored = await this._get(uid);
     if (!stored) {
-      return Promise.reject(Error('NotFound'));
+      return Promise.reject(Error("NotFound"));
     }
     if (writeCondition && stored[this._writeConditionField] != writeCondition) {
-      return Promise.reject(Error('UpdateCondition not met'));
+      return Promise.reject(Error("UpdateCondition not met"));
     }
     for (var prop in object) {
       stored[prop] = object[prop];
@@ -116,7 +143,7 @@ class FileStore < T extends CoreModel > extends Store < T > {
     return this._save(stored, uid);
   }
 
-  async getAll(uids): Promise < any > {
+  async getAll(uids): Promise<any> {
     if (!uids) {
       uids = [];
       var files = fs.readdirSync(this._params.folder);
@@ -131,7 +158,7 @@ class FileStore < T extends CoreModel > extends Store < T > {
     return Promise.all(result);
   }
 
-  async _get(uid: string): Promise < any > {
+  async _get(uid: string): Promise<any> {
     let res = await this.exists(uid);
     if (res) {
       let data = fs.readFileSync(this.file(uid));
@@ -143,7 +170,7 @@ class FileStore < T extends CoreModel > extends Store < T > {
   async _incrementAttribute(uid, prop, value, updateDate: Date) {
     let found = this.exists(uid);
     if (!found) {
-      throw Error('NotFound');
+      throw Error("NotFound");
     }
     let stored = await this._get(uid);
     if (stored[prop] === undefined) {
@@ -161,49 +188,51 @@ class FileStore < T extends CoreModel > extends Store < T > {
     var files = fs.readdirSync(this._params.folder);
     var promises = [];
     for (var file in files) {
-      let filename = this._params.folder + '/' + files[file];
-      promises.push(new Promise((resolve, reject) => {
-        fs.unlink(filename, (err) => {
-          if (err) {
-            reject(err);
-          }
-          resolve();
-        });
-      }));
+      let filename = this._params.folder + "/" + files[file];
+      promises.push(
+        new Promise((resolve, reject) => {
+          fs.unlink(filename, err => {
+            if (err) {
+              reject(err);
+            }
+            resolve();
+          });
+        })
+      );
     }
     return Promise.all(promises);
   }
 
   static getModda() {
     return {
-      "uuid": "Webda/FileStore",
-      "label": "File Store",
-      "description": "Implements user registration and login using either email or OAuth, it handles for now Facebook, Google, Amazon, GitHub, Twitter\nIt needs a Idents and a Users Store to work",
-      "webcomponents": [],
-      "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
-      "logo": "images/icons/filedb.png",
-      "configuration": {
-        "default": {
-          "folder": "/tmp/types",
+      uuid: "Webda/FileStore",
+      label: "File Store",
+      description:
+        "Implements user registration and login using either email or OAuth, it handles for now Facebook, Google, Amazon, GitHub, Twitter\nIt needs a Idents and a Users Store to work",
+      webcomponents: [],
+      documentation:
+        "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
+      logo: "images/icons/filedb.png",
+      configuration: {
+        default: {
+          folder: "/tmp/types"
         },
-        "widget": {
-          "tag": "webda-store-configurator",
-          "url": "elements/services/webda-store-configurator.html"
+        widget: {
+          tag: "webda-store-configurator",
+          url: "elements/services/webda-store-configurator.html"
         },
-        "schema": {
+        schema: {
           type: "object",
           properties: {
-            "folder": {
+            folder: {
               type: "string"
             }
           },
           required: ["folder"]
         }
       }
-    }
+    };
   }
 }
 
-export {
-  FileStore
-}
+export { FileStore };

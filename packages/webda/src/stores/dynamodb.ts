@@ -1,10 +1,4 @@
-import {
-  Store,
-  CoreModel,
-  GetAWS,
-  Service,
-  Core as Webda
-} from '../index';
+import { Store, CoreModel, GetAWS, Service, Core as Webda } from "../index";
 
 /**
  * DynamoStore handles the DynamoDB
@@ -16,16 +10,18 @@ import {
  *   region: ''
  *
  */
-class DynamoStore < T extends CoreModel > extends Store < T > {
+class DynamoStore<T extends CoreModel> extends Store<T> {
   _client: any;
 
   /** @ignore */
   constructor(webda, name, params) {
     super(webda, name, params);
     if (params.table === undefined) {
-      throw new Error("Need to define a table,accessKeyId,secretAccessKey at least");
+      throw new Error(
+        "Need to define a table,accessKeyId,secretAccessKey at least"
+      );
     }
-    this._client = new(GetAWS(params)).DynamoDB.DocumentClient();
+    this._client = new (GetAWS(params)).DynamoDB.DocumentClient();
   }
 
   async exists(uid) {
@@ -37,11 +33,11 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
     object = this._cleanObject(object);
     // Cannot have empty attribute on DynamoDB need to clean this
     var params = {
-      'TableName': this._params.table,
-      'Item': object
+      TableName: this._params.table,
+      Item: object
     };
     await this._client.put(params).promise();
-    return object
+    return object;
   }
 
   async _find(request) {
@@ -65,7 +61,7 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
   }
 
   _cleanObject(object) {
-    if (typeof(object) !== "object") return object;
+    if (typeof object !== "object") return object;
     if (object instanceof Date) {
       return this._serializeDate(object);
     }
@@ -79,19 +75,26 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
       res = {};
     }
     for (let i in object) {
-      if (object[i] === '' || i.startsWith('__store')) {
-        continue
+      if (object[i] === "" || i.startsWith("__store")) {
+        continue;
       }
       res[i] = this._cleanObject(object[i]);
     }
     return res;
   }
 
-  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
+  async _deleteItemFromCollection(
+    uid,
+    prop,
+    index,
+    itemWriteCondition,
+    itemWriteConditionField,
+    updateDate: Date
+  ) {
     var params: any = {
-      'TableName': this._params.table,
-      'Key': {
-        "uuid": uid
+      TableName: this._params.table,
+      Key: {
+        uuid: uid
       }
     };
     var attrs = {};
@@ -99,58 +102,83 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
     attrs["#lastUpdate"] = "lastUpdate";
     params.ExpressionAttributeNames = attrs;
     params.ExpressionAttributeValues = {
-      ':lastUpdate': this._serializeDate(updateDate)
+      ":lastUpdate": this._serializeDate(updateDate)
     };
-    params.UpdateExpression = "REMOVE #" + prop + "[" + index + "] SET #lastUpdate = :lastUpdate";
+    params.UpdateExpression =
+      "REMOVE #" + prop + "[" + index + "] SET #lastUpdate = :lastUpdate";
     if (itemWriteCondition) {
       params.ExpressionAttributeValues[":condValue"] = itemWriteCondition;
       attrs["#condName"] = prop;
       attrs["#field"] = itemWriteConditionField;
-      params.ConditionExpression = "#condName[" + index + "].#field = :condValue";
+      params.ConditionExpression =
+        "#condName[" + index + "].#field = :condValue";
     }
     try {
       await this._client.update(params).promise();
     } catch (err) {
-      if (err.code === 'ConditionalCheckFailedException') {
-        throw Error('UpdateCondition not met');
+      if (err.code === "ConditionalCheckFailedException") {
+        throw Error("UpdateCondition not met");
       }
     }
   }
 
-  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
+  async _upsertItemToCollection(
+    uid,
+    prop,
+    item,
+    index,
+    itemWriteCondition,
+    itemWriteConditionField,
+    updateDate: Date
+  ) {
     var params: any = {
-      'TableName': this._params.table,
-      'Key': {
-        "uuid": uid
+      TableName: this._params.table,
+      Key: {
+        uuid: uid
       }
     };
     var attrValues = {};
     var attrs = {};
     attrs["#" + prop] = prop;
-    attrs["#lastUpdate"] = 'lastUpdate';
+    attrs["#lastUpdate"] = "lastUpdate";
     attrValues[":" + prop] = this._cleanObject(item);
     attrValues[":lastUpdate"] = this._serializeDate(updateDate);
     params.ExpressionAttributeValues = attrValues;
     params.ExpressionAttributeNames = attrs;
     if (index === undefined) {
-      params.UpdateExpression = "SET #" + prop + "= list_append(if_not_exists (#" + prop + ", :empty_list),:" + prop + "), #lastUpdate = :lastUpdate";
+      params.UpdateExpression =
+        "SET #" +
+        prop +
+        "= list_append(if_not_exists (#" +
+        prop +
+        ", :empty_list),:" +
+        prop +
+        "), #lastUpdate = :lastUpdate";
       attrValues[":" + prop] = [attrValues[":" + prop]];
       attrValues[":empty_list"] = [];
     } else {
       //attrs["#cond" + prop] += prop + "[" + index + "]." + itemWriteConditionField;
-      params.UpdateExpression = "SET #" + prop + "[" + index + "] = :" + prop + ", #lastUpdate = :lastUpdate";
+      params.UpdateExpression =
+        "SET #" +
+        prop +
+        "[" +
+        index +
+        "] = :" +
+        prop +
+        ", #lastUpdate = :lastUpdate";
       if (itemWriteCondition) {
         attrValues[":condValue"] = itemWriteCondition;
         attrs["#condName"] = prop;
         attrs["#field"] = itemWriteConditionField;
-        params.ConditionExpression = "#condName[" + index + "].#field = :condValue";
+        params.ConditionExpression =
+          "#condName[" + index + "].#field = :condValue";
       }
     }
     try {
       await this._client.update(params).promise();
     } catch (err) {
-      if (err.code === 'ConditionalCheckFailedException') {
-        throw Error('UpdateCondition not met');
+      if (err.code === "ConditionalCheckFailedException") {
+        throw Error("UpdateCondition not met");
       }
     }
   }
@@ -159,14 +187,14 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
     if (writeCondition instanceof Date) {
       writeCondition = this._serializeDate(writeCondition);
     }
-    return this._writeConditionField + ' = ' + writeCondition;
+    return this._writeConditionField + " = " + writeCondition;
   }
 
   async _delete(uid, writeCondition = undefined) {
     var params: any = {
-      'TableName': this._params.table,
-      'Key': {
-        "uuid": uid
+      TableName: this._params.table,
+      Key: {
+        uuid: uid
       }
     };
     if (writeCondition) {
@@ -184,7 +212,7 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
     var skipUpdate = true;
     var i = 1;
     for (var attr in object) {
-      if (attr === 'uuid' || object[attr] === undefined) {
+      if (attr === "uuid" || object[attr] === undefined) {
         continue;
       }
       skipUpdate = false;
@@ -198,11 +226,11 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
       return;
     }
     var params: any = {
-      'TableName': this._params.table,
-      'Key': {
-        "uuid": uid
+      TableName: this._params.table,
+      Key: {
+        uuid: uid
       },
-      'UpdateExpression': expr,
+      UpdateExpression: expr,
       ExpressionAttributeValues: attrValues,
       ExpressionAttributeNames: attrs
     };
@@ -215,22 +243,25 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
 
   async _scan(items, paging = undefined) {
     return new Promise((resolve, reject) => {
-      this._client.scan({
-        TableName: this._params.table,
-        Limit: this._params.scanPage,
-        ExclusiveStartKey: paging
-      }, (err, data) => {
-        if (err) {
-          return reject(err);
+      this._client.scan(
+        {
+          TableName: this._params.table,
+          Limit: this._params.scanPage,
+          ExclusiveStartKey: paging
+        },
+        (err, data) => {
+          if (err) {
+            return reject(err);
+          }
+          for (let i in data.Items) {
+            items.push(this.initModel(data.Items[i]));
+          }
+          if (data.LastEvaluatedKey) {
+            return resolve(this._scan(items, data.LastEvaluatedKey));
+          }
+          return resolve(items);
         }
-        for (let i in data.Items) {
-          items.push(this.initModel(data.Items[i]));
-        }
-        if (data.LastEvaluatedKey) {
-          return resolve(this._scan(items, data.LastEvaluatedKey));
-        }
-        return resolve(items);
-      });
+      );
     });
   }
 
@@ -239,12 +270,12 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
       return this._scan([]);
     }
     var params = {
-      'RequestItems': {}
+      RequestItems: {}
     };
-    params['RequestItems'][this._params.table] = {
-      'Keys': uids.map((value) => {
+    params["RequestItems"][this._params.table] = {
+      Keys: uids.map(value => {
         return {
-          "uuid": value
+          uuid: value
         };
       })
     };
@@ -254,9 +285,9 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
 
   async _get(uid) {
     var params = {
-      'TableName': this._params.table,
-      'Key': {
-        "uuid": uid
+      TableName: this._params.table,
+      Key: {
+        uuid: uid
       }
     };
     return (await this._client.get(params).promise()).Item;
@@ -264,29 +295,29 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
 
   _incrementAttribute(uid, prop, value, updateDate: Date) {
     var params = {
-      'TableName': this._params.table,
-      'Key': {
-        "uuid": uid
+      TableName: this._params.table,
+      Key: {
+        uuid: uid
       },
-      'UpdateExpression': 'SET #a2 = :v2 ADD #a1 :v1',
+      UpdateExpression: "SET #a2 = :v2 ADD #a1 :v1",
       ExpressionAttributeValues: {
-        ':v1': value,
-        ':v2': this._serializeDate(updateDate)
+        ":v1": value,
+        ":v2": this._serializeDate(updateDate)
       },
       ExpressionAttributeNames: {
-        '#a1': prop,
-        '#a2': 'lastUpdate'
+        "#a1": prop,
+        "#a2": "lastUpdate"
       }
     };
     return this._client.update(params).promise();
   }
 
   getARNPolicy(accountId) {
-    let region = this._params.region || 'us-east-1';
+    let region = this._params.region || "us-east-1";
     return {
-      "Sid": this.constructor.name + this._name,
-      "Effect": "Allow",
-      "Action": [
+      Sid: this.constructor.name + this._name,
+      Effect: "Allow",
+      Action: [
         "dynamodb:BatchGetItem",
         "dynamodb:BatchWriteItem",
         "dynamodb:DeleteItem",
@@ -298,39 +329,57 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
         "dynamodb:Scan",
         "dynamodb:UpdateItem"
       ],
-      "Resource": [
-        'arn:aws:dynamodb:' + region + ':' + accountId + ':table/' + this._params.table
+      Resource: [
+        "arn:aws:dynamodb:" +
+          region +
+          ":" +
+          accountId +
+          ":table/" +
+          this._params.table
       ]
-    }
+    };
   }
 
   async install(params) {
     if (this._params.region) {
       params.region = this._params.region;
     }
-    var dynamodb = new(GetAWS(params)).DynamoDB();
-    return dynamodb.describeTable({
-      TableName: this._params.table
-    }).promise().catch((err) => {
-      if (err.code === 'ResourceNotFoundException') {
-        this._webda.log('INFO', 'Creating table', this._params.table);
-        let createTable = this._params.createTableParameters || {
-          ProvisionedThroughput: {},
-          KeySchema: [{
-            AttributeName: 'uuid',
-            KeyType: 'HASH'
-          }],
-          AttributeDefinitions: [{
-            AttributeName: 'uuid',
-            AttributeType: 'S'
-          }]
-        };
-        createTable.TableName = this._params.table;
-        createTable.ProvisionedThroughput.ReadCapacityUnits = createTable.ProvisionedThroughput.ReadCapacityUnits || this._params.tableReadCapacity || 5;
-        createTable.ProvisionedThroughput.WriteCapacityUnits = createTable.ProvisionedThroughput.WriteCapacityUnits || this._params.tableWriteCapacity || 5;
-        return dynamodb.createTable(createTable).promise();
-      }
-    });
+    var dynamodb = new (GetAWS(params)).DynamoDB();
+    return dynamodb
+      .describeTable({
+        TableName: this._params.table
+      })
+      .promise()
+      .catch(err => {
+        if (err.code === "ResourceNotFoundException") {
+          this._webda.log("INFO", "Creating table", this._params.table);
+          let createTable = this._params.createTableParameters || {
+            ProvisionedThroughput: {},
+            KeySchema: [
+              {
+                AttributeName: "uuid",
+                KeyType: "HASH"
+              }
+            ],
+            AttributeDefinitions: [
+              {
+                AttributeName: "uuid",
+                AttributeType: "S"
+              }
+            ]
+          };
+          createTable.TableName = this._params.table;
+          createTable.ProvisionedThroughput.ReadCapacityUnits =
+            createTable.ProvisionedThroughput.ReadCapacityUnits ||
+            this._params.tableReadCapacity ||
+            5;
+          createTable.ProvisionedThroughput.WriteCapacityUnits =
+            createTable.ProvisionedThroughput.WriteCapacityUnits ||
+            this._params.tableWriteCapacity ||
+            5;
+          return dynamodb.createTable(createTable).promise();
+        }
+      });
   }
 
   async uninstall(params) {
@@ -348,7 +397,7 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
 
   async __clean() {
     var params = {
-      'TableName': this._params.table
+      TableName: this._params.table
     };
     let result = await this._client.scan(params).promise();
     var promises = [];
@@ -360,40 +409,39 @@ class DynamoStore < T extends CoreModel > extends Store < T > {
 
   static getModda() {
     return {
-      "uuid": "Webda/DynamoStore",
-      "label": "DynamoStore",
-      "description": "Implements DynamoDB NoSQL storage",
-      "webcomponents": [],
-      "logo": "images/icons/dynamodb.png",
-      "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
-      "configuration": {
-        "default": {
-          "table": "table-name",
+      uuid: "Webda/DynamoStore",
+      label: "DynamoStore",
+      description: "Implements DynamoDB NoSQL storage",
+      webcomponents: [],
+      logo: "images/icons/dynamodb.png",
+      documentation:
+        "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
+      configuration: {
+        default: {
+          table: "table-name"
         },
-        "widget": {
-          "tag": "webda-dynamodb-configurator",
-          "url": "elements/services/webda-dynamodb-configurator.html"
+        widget: {
+          tag: "webda-dynamodb-configurator",
+          url: "elements/services/webda-dynamodb-configurator.html"
         },
-        "schema": {
+        schema: {
           type: "object",
           properties: {
-            "table": {
+            table: {
               type: "string"
             },
-            "accessKeyId": {
+            accessKeyId: {
               type: "string"
             },
-            "secretAccessKey": {
+            secretAccessKey: {
               type: "string"
             }
           },
           required: ["table", "accessKeyId", "secretAccessKey"]
         }
       }
-    }
+    };
   }
 }
 
-export {
-  DynamoStore
-};
+export { DynamoStore };

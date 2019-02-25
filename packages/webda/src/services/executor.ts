@@ -1,9 +1,5 @@
 "use strict";
-import {
-  Service,
-  Context,
-  Core
-} from '../index';
+import { Service, Context, Core } from "../index";
 
 /**
  * An Executor is a Service that is designed to handle HTTP request to it
@@ -19,7 +15,6 @@ import {
  * @class
  */
 class Executor extends Service {
-
   /**
    * Add a route dynamicaly
    *
@@ -27,7 +22,13 @@ class Executor extends Service {
    * @param {Array[]} methods
    * @param {Function} executer Method to execute for this route
    */
-  _addRoute(url: string, methods: string[], executer: Function, swagger: object = {}, allowPath: boolean = false) {
+  _addRoute(
+    url: string,
+    methods: string[],
+    executer: Function,
+    swagger: object = {},
+    allowPath: boolean = false
+  ) {
     let info: any = {};
     info._method = executer;
     info.method = methods;
@@ -40,8 +41,8 @@ class Executor extends Service {
   /**
    * Main method called by the webda framework if the route don't specify a _method
    */
-  execute(ctx: Context): Promise < any > {
-    if (typeof(ctx._route._method) === "function") {
+  execute(ctx: Context): Promise<any> {
+    if (typeof ctx._route._method === "function") {
       return new Promise((resolve, reject) => {
         resolve(this[ctx._route._method.name](ctx));
       });
@@ -60,9 +61,7 @@ class Executor extends Service {
   /**
    * Init the routes
    */
-  initRoutes() {
-
-  }
+  initRoutes() {}
 
   /**
    *
@@ -73,6 +72,4 @@ class Executor extends Service {
   }
 }
 
-export {
-  Executor
-};
+export { Executor };

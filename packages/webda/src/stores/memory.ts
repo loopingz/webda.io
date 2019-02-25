@@ -1,16 +1,13 @@
-import {
-  Store,
-  CoreModel
-} from '../index';
+import { Store, CoreModel } from "../index";
 
 interface StorageMap {
   [key: string]: any;
 }
 
-class MemoryStore < T extends CoreModel > extends Store < T > {
+class MemoryStore<T extends CoreModel> extends Store<T> {
   storage: StorageMap = {};
 
-  async init(): Promise < void > {
+  async init(): Promise<void> {
     return super.init();
   }
 
@@ -18,7 +15,7 @@ class MemoryStore < T extends CoreModel > extends Store < T > {
     return this.storage[uid] !== undefined;
   }
 
-  async _find(request, offset, limit): Promise < any > {
+  async _find(request, offset, limit): Promise<any> {
     // Need to transfert to Array
     return this.storage;
   }
@@ -46,9 +43,9 @@ class MemoryStore < T extends CoreModel > extends Store < T > {
     return this._getSync(uid);
   }
 
-  async getAll(uids): Promise < any > {
+  async getAll(uids): Promise<any> {
     if (!uids) {
-      return Object.keys(this.storage).map((key) => {
+      return Object.keys(this.storage).map(key => {
         return this._getSync(key);
       });
     }
@@ -91,16 +88,32 @@ class MemoryStore < T extends CoreModel > extends Store < T > {
     return this._save(res, uid);
   }
 
-  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
+  async _upsertItemToCollection(
+    uid,
+    prop,
+    item,
+    index,
+    itemWriteCondition,
+    itemWriteConditionField,
+    updateDate: Date
+  ) {
     var res = this.storage[uid];
     if (res === undefined) {
       throw Error("NotFound");
     }
     res = this._getSync(uid);
     if (index === undefined) {
-      if (itemWriteCondition !== undefined && res[prop].length !== itemWriteCondition) {
-        console.log('met', itemWriteCondition, res[prop].length, itemWriteCondition);
-        throw Error('UpdateCondition not met');
+      if (
+        itemWriteCondition !== undefined &&
+        res[prop].length !== itemWriteCondition
+      ) {
+        console.log(
+          "met",
+          itemWriteCondition,
+          res[prop].length,
+          itemWriteCondition
+        );
+        throw Error("UpdateCondition not met");
       }
       if (res[prop] === undefined) {
         res[prop] = [item];
@@ -108,8 +121,11 @@ class MemoryStore < T extends CoreModel > extends Store < T > {
         res[prop].push(item);
       }
     } else {
-      if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
-        throw Error('UpdateCondition not met');
+      if (
+        itemWriteCondition &&
+        res[prop][index][itemWriteConditionField] != itemWriteCondition
+      ) {
+        throw Error("UpdateCondition not met");
       }
       res[prop][index] = item;
     }
@@ -117,14 +133,24 @@ class MemoryStore < T extends CoreModel > extends Store < T > {
     await this._save(res, uid);
   }
 
-  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
+  async _deleteItemFromCollection(
+    uid,
+    prop,
+    index,
+    itemWriteCondition,
+    itemWriteConditionField,
+    updateDate: Date
+  ) {
     var res = this.storage[uid];
     if (res === undefined) {
       throw Error("NotFound");
     }
     res = this._getSync(uid);
-    if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
-      throw Error('UpdateCondition not met');
+    if (
+      itemWriteCondition &&
+      res[prop][index][itemWriteConditionField] != itemWriteCondition
+    ) {
+      throw Error("UpdateCondition not met");
     }
     res[prop].splice(index, 1);
     res.lastUpdate = updateDate;
@@ -133,29 +159,25 @@ class MemoryStore < T extends CoreModel > extends Store < T > {
 
   static getModda() {
     return {
-      "uuid": "Webda/MemoryStore",
-      "label": "MemoryStore",
-      "description": "Implements a simple in memory store",
-      "webcomponents": [],
-      "documentation": "",
-      "logo": "images/icons/memorystore.png",
-      "configuration": {
-        "default": {},
-        "widget": {
-          "tag": "webda-store-configurator",
-          "url": "elements/services/webda-store-configurator.html"
+      uuid: "Webda/MemoryStore",
+      label: "MemoryStore",
+      description: "Implements a simple in memory store",
+      webcomponents: [],
+      documentation: "",
+      logo: "images/icons/memorystore.png",
+      configuration: {
+        default: {},
+        widget: {
+          tag: "webda-store-configurator",
+          url: "elements/services/webda-store-configurator.html"
         },
-        "schema": {
+        schema: {
           type: "object",
           properties: {}
         }
       }
-    }
+    };
   }
 }
 
-
-export {
-  MemoryStore,
-  StorageMap
-};
+export { MemoryStore, StorageMap };

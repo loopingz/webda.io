@@ -1,7 +1,5 @@
-import {
-  _extend
-} from '../core';
-import * as jwt from 'jsonwebtoken';
+import { _extend } from "../core";
+import * as jwt from "jsonwebtoken";
 
 /**
  * Object that handle the session
@@ -27,15 +25,14 @@ class SecureCookie {
 
   /** @ignore */
   constructor(options, data) {
-
     this._algo = "aes-256-ctr";
     this._secret = options.secret;
     this._options = options;
     this._changed = false;
-    if (data === undefined || data === '') {
+    if (data === undefined || data === "") {
       return;
     }
-    if (typeof(data) === "string") {
+    if (typeof data === "string") {
       this._raw = data;
       try {
         _extend(this, jwt.verify(data, this._secret));
@@ -107,7 +104,7 @@ class SecureCookie {
 
   save() {
     if (this.needSave()) {
-      this.exp = Math.floor(Date.now() / 1000) + (24 * 30 * 3600);
+      this.exp = Math.floor(Date.now() / 1000) + 24 * 30 * 3600;
       // Transform the cookie to a plain object
       return jwt.sign(JSON.parse(JSON.stringify(this)), this._secret);
     }
@@ -119,6 +116,4 @@ class SecureCookie {
   }
 }
 
-export {
-  SecureCookie
-};
+export { SecureCookie };

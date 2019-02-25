@@ -1,18 +1,15 @@
 "use strict";
-import {
-  CoreModel
-} from './coremodel';
+import { CoreModel } from "./coremodel";
 
 class IdentTokens {
-  refresh: string
-  access: string
+  refresh: string;
+  access: string;
 }
 /**
  * First basic model for Ident
  * @class
  */
 class Ident extends CoreModel {
-
   type: string;
   uid: string;
   profile: any;
@@ -43,7 +40,4 @@ class Ident extends CoreModel {
   }
 }
 
-export {
-  Ident,
-  IdentTokens
-};
+export { Ident, IdentTokens };

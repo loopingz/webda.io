@@ -1,16 +1,12 @@
-import * as uriTemplates from 'uri-templates';
-import * as fs from 'fs';
-import * as vm from 'vm';
-import * as Ajv from 'ajv';
-import * as path from 'path';
-import * as url from 'url';
-import {
-  serialize as cookieSerialize
-} from "cookie";
-import {
-  Context
-} from "./utils/context";
-import * as events from 'events';
+import * as uriTemplates from "uri-templates";
+import * as fs from "fs";
+import * as vm from "vm";
+import * as Ajv from "ajv";
+import * as path from "path";
+import * as url from "url";
+import { serialize as cookieSerialize } from "cookie";
+import { Context } from "./utils/context";
+import * as events from "events";
 import {
   Store,
   Service,
@@ -36,16 +32,14 @@ import {
   MemoryLogger,
   CloudWatchLogger,
   ConfigurationService
-} from './index';
-import {
-  CoreModelDefinition
-} from "./models/coremodel";
-import * as jsonpath from 'jsonpath';
+} from "./index";
+import { CoreModelDefinition } from "./models/coremodel";
+import * as jsonpath from "jsonpath";
 
-const _extend = require('util')._extend;
+const _extend = require("util")._extend;
 
 interface Configuration {
-  [key: string]: any
+  [key: string]: any;
 }
 
 /**
@@ -54,20 +48,18 @@ interface Configuration {
  * @class Webda
  */
 class Webda extends events.EventEmitter {
-  _services: Map < string,
-  Service > = new Map();
-  _init: Promise < void > ;
+  _services: Map<string, Service> = new Map();
+  _init: Promise<void>;
   _modules: any;
   _config: Configuration;
   _routehelpers: any;
-  _models: Map < string,
-  CoreModelDefinition > = new Map();
+  _models: Map<string, CoreModelDefinition> = new Map();
   _vhost: string;
   _ajv: any;
   _ajvSchemas: any;
   _currentExecutor: any;
   _configFile: string;
-  _initPromise: Promise < void > ;
+  _initPromise: Promise<void>;
   _loggers: Logger[] = [];
   _initTime: number;
   _logger: ConsoleLogger;
@@ -79,48 +71,56 @@ class Webda extends events.EventEmitter {
     /** @ignore */
     super();
     this._initTime = new Date().getTime();
-    this._logger = new ConsoleLogger(this, 'coreLogger', {
-      logLevel: 'WARN',
-      logLevels: 'ERROR,WARN,INFO,DEBUG,TRACE'
+    this._logger = new ConsoleLogger(this, "coreLogger", {
+      logLevel: "WARN",
+      logLevels: "ERROR,WARN,INFO,DEBUG,TRACE"
     });
     // We enforce this normalization
     this._logger.normalizeParams();
     this._loggers.push(this._logger);
-    this._vhost = '';
+    this._vhost = "";
     // Schema validations
     this._ajv = Ajv();
     this._ajvSchemas = {};
     // on the spot routehelpers
     this._routehelpers = {};
-    this._routehelpers['debug'] = Executor;
+    this._routehelpers["debug"] = Executor;
 
-    this._routehelpers['lambda'] = require('./routehelpers/lambda').LambdaRouteHelper;
-    this._routehelpers['inline'] = require('./routehelpers/inline').InlineRouteHelper;
-    this._routehelpers['string'] = require('./routehelpers/string').StringRouteHelper;
-    this._routehelpers['resource'] = require('./routehelpers/resource').ResourceRouteHelper;
-    this._routehelpers['file'] = require('./routehelpers/file').FileRouteHelper;
+    this._routehelpers[
+      "lambda"
+    ] = require("./routehelpers/lambda").LambdaRouteHelper;
+    this._routehelpers[
+      "inline"
+    ] = require("./routehelpers/inline").InlineRouteHelper;
+    this._routehelpers[
+      "string"
+    ] = require("./routehelpers/string").StringRouteHelper;
+    this._routehelpers[
+      "resource"
+    ] = require("./routehelpers/resource").ResourceRouteHelper;
+    this._routehelpers["file"] = require("./routehelpers/file").FileRouteHelper;
 
     // real service - modda
-    this._services['Webda/Authentication'] = Authentication;
-    this._services['Webda/FileStore'] = FileStore;
-    this._services['Webda/MemoryStore'] = MemoryStore;
-    this._services['Webda/MongoStore'] = MongoStore;
-    this._services['Webda/DynamoStore'] = DynamoStore;
-    this._services['Webda/FileBinary'] = FileBinary;
-    this._services['Webda/S3Binary'] = S3Binary;
-    this._services['Webda/Mailer'] = Mailer;
-    this._services['Webda/AsyncEvents'] = EventService;
-    this._services['Webda/ResourceService'] = ResourceService;
-    this._services['Webda/MemoryQueue'] = MemoryQueue;
-    this._services['Webda/SQSQueue'] = SQSQueue;
-    this._services['Webda/MemoryLogger'] = MemoryLogger;
-    this._services['Webda/ConsoleLogger'] = ConsoleLogger;
-    this._services['Webda/CloudWatchLogger'] = CloudWatchLogger;
-    this._services['Webda/ConfigurationService'] = ConfigurationService;
-    this._services['Webda/AwsSecretsManager'] = AwsSecretsManager;
+    this._services["Webda/Authentication"] = Authentication;
+    this._services["Webda/FileStore"] = FileStore;
+    this._services["Webda/MemoryStore"] = MemoryStore;
+    this._services["Webda/MongoStore"] = MongoStore;
+    this._services["Webda/DynamoStore"] = DynamoStore;
+    this._services["Webda/FileBinary"] = FileBinary;
+    this._services["Webda/S3Binary"] = S3Binary;
+    this._services["Webda/Mailer"] = Mailer;
+    this._services["Webda/AsyncEvents"] = EventService;
+    this._services["Webda/ResourceService"] = ResourceService;
+    this._services["Webda/MemoryQueue"] = MemoryQueue;
+    this._services["Webda/SQSQueue"] = SQSQueue;
+    this._services["Webda/MemoryLogger"] = MemoryLogger;
+    this._services["Webda/ConsoleLogger"] = ConsoleLogger;
+    this._services["Webda/CloudWatchLogger"] = CloudWatchLogger;
+    this._services["Webda/ConfigurationService"] = ConfigurationService;
+    this._services["Webda/AwsSecretsManager"] = AwsSecretsManager;
     // Models
-    this._models['Webda/CoreModel'] = CoreModel;
-    this._models['Webda/Ident'] = Ident;
+    this._models["Webda/CoreModel"] = CoreModel;
+    this._models["Webda/Ident"] = Ident;
     // Load the configuration
     this._config = this.loadConfiguration(config);
     if (!this._config.version) {
@@ -136,25 +136,25 @@ class Webda extends events.EventEmitter {
     if (this._init) {
       return this._init;
     }
-    this.log('TRACE', 'Create Webda init promise');
-    this._init = new Promise(async (resolve) => {
+    this.log("TRACE", "Create Webda init promise");
+    this._init = new Promise(async resolve => {
       // Init services
       let service;
       for (service in this._config._services) {
         if (this._config._services[service].init !== undefined) {
           try {
             // TODO Define parralel initialization
-            this.log('TRACE', 'Initializing service', service);
+            this.log("TRACE", "Initializing service", service);
             await this._config._services[service].init();
           } catch (err) {
             this._config._services[service]._initException = err;
-            this.log('ERROR', "Init service " + service + " failed", err);
-            this.log('TRACE', err.stack);
+            this.log("ERROR", "Init service " + service + " failed", err);
+            this.log("TRACE", err.stack);
           }
         }
       }
 
-      this.emit('Webda.Init.Services', this._config._services);
+      this.emit("Webda.Init.Services", this._config._services);
       resolve();
     });
     return this._init;
@@ -170,8 +170,8 @@ class Webda extends events.EventEmitter {
     if (this._config.cachedModules) {
       for (let key in this._config.cachedModules.services) {
         let servicePath = this._config.cachedModules.services[key];
-        if (servicePath.startsWith('.')) {
-          servicePath = process.cwd() + '/' + servicePath;
+        if (servicePath.startsWith(".")) {
+          servicePath = process.cwd() + "/" + servicePath;
         }
         let serviceConstructor = require(servicePath);
         if (serviceConstructor.default) {
@@ -182,8 +182,8 @@ class Webda extends events.EventEmitter {
       }
       for (let key in this._config.cachedModules.models) {
         let modelPath = this._config.cachedModules.models[key];
-        if (modelPath.startsWith('.')) {
-          modelPath = process.cwd() + '/' + modelPath;
+        if (modelPath.startsWith(".")) {
+          modelPath = process.cwd() + "/" + modelPath;
         }
         let model = require(modelPath);
         if (model.default) {
@@ -197,19 +197,19 @@ class Webda extends events.EventEmitter {
     this._modules = {
       services: {},
       models: {}
-    }
-    const Finder = require('fs-finder');
+    };
+    const Finder = require("fs-finder");
     // Modules should be cached on deploy
     var files = [];
-    if (fs.existsSync('./node_modules')) {
-      files = Finder.from('./node_modules').findFiles('webda.module.json');
+    if (fs.existsSync("./node_modules")) {
+      files = Finder.from("./node_modules").findFiles("webda.module.json");
     }
-    if (fs.existsSync(process.cwd() + '/webda.module.json')) {
-      files.push(process.cwd() + '/webda.module.json');
+    if (fs.existsSync(process.cwd() + "/webda.module.json")) {
+      files.push(process.cwd() + "/webda.module.json");
     }
     if (files.length) {
-      this.log('DEBUG', 'Found modules', files);
-      files.forEach((file) => {
+      this.log("DEBUG", "Found modules", files);
+      files.forEach(file => {
         let info = require(file);
         this._loadModule(info, path.dirname(file));
       });
@@ -230,8 +230,8 @@ class Webda extends events.EventEmitter {
       module: {},
       require: function(mod) {
         // We need to add more control here
-        if (mod === 'net') {
-          throw Error('not allowed');
+        if (mod === "net") {
+          throw Error("not allowed");
         }
         // if the module is okay to load, load it:
         return require.apply(this, arguments);
@@ -255,7 +255,9 @@ class Webda extends events.EventEmitter {
       } else {
         this._services[key] = mod;
       }
-      this._modules.services[key] = './' + path.relative(process.cwd(), path.join(parent, info.services[key]));
+      this._modules.services[key] =
+        "./" +
+        path.relative(process.cwd(), path.join(parent, info.services[key]));
     }
     for (let key in info.models) {
       let mod = require(path.join(parent, info.models[key]));
@@ -264,7 +266,9 @@ class Webda extends events.EventEmitter {
       } else {
         this._models[key] = mod;
       }
-      this._modules.models[key] = './' + path.relative(process.cwd(), path.join(parent, info.models[key]));
+      this._modules.models[key] =
+        "./" +
+        path.relative(process.cwd(), path.join(parent, info.models[key]));
     }
   }
 
@@ -276,7 +280,7 @@ class Webda extends events.EventEmitter {
    */
   validate(object, schema) {
     if (!this._ajvSchemas[schema]) {
-      this._ajv.addSchema(require(schema), schema)
+      this._ajv.addSchema(require(schema), schema);
       this._ajvSchemas[schema] = true;
     }
     return this._ajv.validate(schema, object);
@@ -297,36 +301,36 @@ class Webda extends events.EventEmitter {
    * @param {Object|String}
    */
   loadConfiguration(config: any = undefined): Configuration {
-    if (typeof(config) === 'object') {
+    if (typeof config === "object") {
       return config;
     }
-    var fs = require('fs');
+    var fs = require("fs");
     if (config !== undefined) {
       if (fs.existsSync(config)) {
-        this.log('INFO', 'Load ' + config);
+        this.log("INFO", "Load " + config);
         return require(config);
       }
     }
     // Default load from file
     if (process.env.WEBDA_CONFIG == undefined) {
-      config = './webda.config.json';
+      config = "./webda.config.json";
       if (fs.existsSync(config)) {
         this._configFile = path.resolve(config);
         return require(this._configFile);
       }
-      config = '/etc/webda/config.json';
+      config = "/etc/webda/config.json";
       if (fs.existsSync(config)) {
         this._configFile = path.resolve(config);
         return require(this._configFile);
       }
     } else {
-      this.log('INFO', 'Load ' + process.env.WEBDA_CONFIG);
+      this.log("INFO", "Load " + process.env.WEBDA_CONFIG);
       return require(process.env.WEBDA_CONFIG);
     }
   }
 
   migrateConfig(config: Configuration): Configuration {
-    this.log('WARN', 'Old webda.config.json format, trying to migrate');
+    this.log("WARN", "Old webda.config.json format, trying to migrate");
     let newConfig: Configuration = {
       parameters: {},
       services: {},
@@ -335,8 +339,8 @@ class Webda extends events.EventEmitter {
       version: 1
     };
     let domain;
-    if (config['*']) {
-      domain = config[config['*']];
+    if (config["*"]) {
+      domain = config[config["*"]];
     } else {
       domain = config[Object.keys(config)[0]];
     }
@@ -347,7 +351,7 @@ class Webda extends events.EventEmitter {
       newConfig.parameters.locales = domain.global.locales;
     }
     for (let i in domain) {
-      if (i === 'global') continue;
+      if (i === "global") continue;
       newConfig.routes[i] = domain[i];
     }
     return newConfig;
@@ -371,7 +375,9 @@ class Webda extends events.EventEmitter {
    * @since 0.4.0
    */
   getVersion(): string {
-    return JSON.parse(fs.readFileSync(__dirname + '/../package.json').toString()).version;
+    return JSON.parse(
+      fs.readFileSync(__dirname + "/../package.json").toString()
+    ).version;
   }
 
   /**
@@ -393,9 +399,12 @@ class Webda extends events.EventEmitter {
    * @returns A new session
    */
   getNewSession(data) {
-    return new SecureCookie({
-      secret: 'WebdaSecret'
-    }, data);
+    return new SecureCookie(
+      {
+        secret: "WebdaSecret"
+      },
+      data
+    );
   }
 
   /**
@@ -423,16 +432,15 @@ class Webda extends events.EventEmitter {
     }
   }
 
-  getTypedService < T extends Service > (service: string): T {
-    return <T > this.getService(service);
+  getTypedService<T extends Service>(service: string): T {
+    return <T>this.getService(service);
   }
 
   /**
    * Return a map of defined services
    * @returns {{}}
    */
-  getServices(): Map < string,
-  Service > {
+  getServices(): Map<string, Service> {
     return this._config._services || {};
   }
 
@@ -458,8 +466,7 @@ class Webda extends events.EventEmitter {
    * @param type The type of implementation
    * @returns {{}}
    */
-  getServicesImplementations(type): Map < string,
-  Service > {
+  getServicesImplementations(type): Map<string, Service> {
     let result = new Map();
     for (let i in this._config._services) {
       if (this._config._services[i] instanceof type) {
@@ -473,8 +480,7 @@ class Webda extends events.EventEmitter {
    * Return a map of defined stores
    * @returns {{}}
    */
-  getStores(): Map < string,
-  Service > {
+  getStores(): Map<string, Service> {
     return this.getServicesImplementations(Store);
   }
 
@@ -482,8 +488,7 @@ class Webda extends events.EventEmitter {
    * Return a map of defined models
    * @returns {{}}
    */
-  getModels(): Map < string,
-  CoreModelDefinition > {
+  getModels(): Map<string, CoreModelDefinition> {
     return this._config._models || {};
   }
 
@@ -497,7 +502,10 @@ class Webda extends events.EventEmitter {
       throw Error("Undefined model " + name);
     }
     name = name.toLowerCase();
-    if (this._config._models !== undefined && this._config._models[name] !== undefined) {
+    if (
+      this._config._models !== undefined &&
+      this._config._models[name] !== undefined
+    ) {
       return this._config._models[name];
     }
     throw Error("Undefined model " + name);
@@ -516,16 +524,18 @@ class Webda extends events.EventEmitter {
       var routeUrl = config._pathMap[i].url;
       var map = config._pathMap[i].config;
 
-      if (routeUrl !== url &&
-        (map['_uri-template-parse'] === undefined ||
-          map['_uri-template-parse'].fromUri(url) === undefined)) {
+      if (
+        routeUrl !== url &&
+        (map["_uri-template-parse"] === undefined ||
+          map["_uri-template-parse"].fromUri(url) === undefined)
+      ) {
         continue;
       }
 
-      if (Array.isArray(map['method'])) {
-        methods = methods.concat(map['method'])
+      if (Array.isArray(map["method"])) {
+        methods = methods.concat(map["method"]);
       } else {
-        methods.push(map['method']);
+        methods.push(map["method"]);
       }
     }
     return methods;
@@ -541,11 +551,11 @@ class Webda extends events.EventEmitter {
       var map = config._pathMap[i].config;
 
       // Check method
-      if (Array.isArray(map['method'])) {
-        if (map['method'].indexOf(method) === -1) {
+      if (Array.isArray(map["method"])) {
+        if (map["method"].indexOf(method) === -1) {
           continue;
         }
-      } else if (map['method'] !== method) {
+      } else if (map["method"] !== method) {
         continue;
       }
 
@@ -554,10 +564,10 @@ class Webda extends events.EventEmitter {
         return map;
       }
 
-      if (map['_uri-template-parse'] === undefined) {
+      if (map["_uri-template-parse"] === undefined) {
         continue;
       }
-      var parse_result = map['_uri-template-parse'].fromUri(url);
+      var parse_result = map["_uri-template-parse"].fromUri(url);
       if (parse_result !== undefined) {
         ctx._params = _extend(ctx._params, config.parameters);
         ctx._params = _extend(ctx._params, parse_result);
@@ -586,13 +596,13 @@ class Webda extends events.EventEmitter {
       return;
     }
     route._http = {
-      "host": vhost,
-      "method": method,
-      "url": url,
-      "protocol": protocol,
-      "port": port,
-      "headers": headers,
-      "root": protocol + "://" + vhost
+      host: vhost,
+      method: method,
+      url: url,
+      protocol: protocol,
+      port: port,
+      headers: headers,
+      root: protocol + "://" + vhost
     };
     return this.getServiceWithRoute(ctx, route);
   }
@@ -626,10 +636,14 @@ class Webda extends events.EventEmitter {
    */
   getServiceWithRoute(ctx, route): Executor {
     var name = route.executor;
-    var executor = < Executor > this.getService(name);
+    var executor = <Executor>this.getService(name);
     // If no service is found then check for routehelpers
     if (executor === undefined && this._routehelpers[name] !== undefined) {
-      executor = new this._routehelpers[name](this, name, _extend(_extend({}, this._config.parameters), route));
+      executor = new this._routehelpers[name](
+        this,
+        name,
+        _extend(_extend({}, this._config.parameters), route)
+      );
     }
     if (executor === undefined) {
       return;
@@ -646,7 +660,7 @@ class Webda extends events.EventEmitter {
     // Prepare tbe URI parser
     for (var map in config) {
       if (map.indexOf("{") != -1) {
-        config[map]['_uri-template-parse'] = uriTemplates(map);
+        config[map]["_uri-template-parse"] = uriTemplates(map);
       }
     }
   }
@@ -655,16 +669,12 @@ class Webda extends events.EventEmitter {
    * Flush the headers to the response, no more header modification is possible after that
    * @abstract
    */
-  flushHeaders(context): void {
-
-  }
+  flushHeaders(context): void {}
 
   /**
    * Flush the entire response to the client
    */
-  flush(context): void {
-
-  }
+  flush(context): void {}
 
   /**
    * Return if Webda is in debug mode
@@ -698,9 +708,9 @@ class Webda extends events.EventEmitter {
   getCookieHeader(executor): string {
     var session = executor.session;
     var params = {
-      'path': '/',
-      'domain': executor._route._http.host,
-      'httpOnly': true,
+      path: "/",
+      domain: executor._route._http.host,
+      httpOnly: true,
       secure: false,
       maxAge: 86400 * 7
     };
@@ -721,36 +731,42 @@ class Webda extends events.EventEmitter {
       }
     }
     // Expiracy at one week - should configure it
-    var res = cookieSerialize('webda', session.save(), params);
+    var res = cookieSerialize("webda", session.save(), params);
     return res;
   }
 
-  async reinit(updates: Map < string, any > ): Promise < void > {
+  async reinit(updates: Map<string, any>): Promise<void> {
     let configuration = JSON.parse(JSON.stringify(this._config.services));
     for (let service in updates) {
       jsonpath.value(configuration, service, updates[service]);
     }
-    if (JSON.stringify(Object.keys(configuration)) !== JSON.stringify(Object.keys(this._config.services))) {
-      this.log('ERROR', 'Configuration update cannot modify services');
+    if (
+      JSON.stringify(Object.keys(configuration)) !==
+      JSON.stringify(Object.keys(this._config.services))
+    ) {
+      this.log("ERROR", "Configuration update cannot modify services");
       return this._initPromise;
     }
     this._config.services = configuration;
     for (let service in this._config._services) {
       try {
         // TODO Define parralel initialization
-        this.log('TRACE', 'Re-Initializing service', service);
+        this.log("TRACE", "Re-Initializing service", service);
         let serviceBean = this._config._services[service];
         await serviceBean.reinit(this.getServiceParams(serviceBean._name));
       } catch (err) {
         this._config._services[service]._reinitException = err;
-        this.log('ERROR', "Re-Init service " + service + " failed", err);
-        this.log('TRACE', err.stack);
+        this.log("ERROR", "Re-Init service " + service + " failed", err);
+        this.log("TRACE", err.stack);
       }
     }
   }
 
   getServiceParams(service: string): any {
-    var params = this.extendParams(this._config.services[service], this._config.parameters);
+    var params = this.extendParams(
+      this._config.services[service],
+      this._config.parameters
+    );
     delete params.require;
     return params;
   }
@@ -758,7 +774,7 @@ class Webda extends events.EventEmitter {
    * @ignore
    *
    */
-  createServices(excludes: string[] = []): Promise < void > {
+  createServices(excludes: string[] = []): Promise<void> {
     var services = this._config.services;
     if (this._config._services === undefined) {
       this._config._services = {};
@@ -777,7 +793,7 @@ class Webda extends events.EventEmitter {
       if (type === undefined) {
         type = service;
       }
-      if (type.indexOf('/') < 2) {
+      if (type.indexOf("/") < 2) {
         type = "Webda/" + type;
       }
       var include = services[service].require;
@@ -786,9 +802,9 @@ class Webda extends events.EventEmitter {
         serviceConstructor = this._services[type];
       } else {
         try {
-          if (typeof(include) === "string") {
+          if (typeof include === "string") {
             if (include.startsWith("./")) {
-              include = process.cwd() + '/' + include;
+              include = process.cwd() + "/" + include;
             }
             serviceConstructor = require(include);
             if (serviceConstructor.default) {
@@ -798,40 +814,44 @@ class Webda extends events.EventEmitter {
             serviceConstructor = include;
           }
         } catch (ex) {
-          this.log('ERROR', 'Create service ' + service + ' failed');
-          this.log('TRACE', ex.stack);
+          this.log("ERROR", "Create service " + service + " failed");
+          this.log("TRACE", ex.stack);
           continue;
         }
       }
       if (serviceConstructor === undefined) {
-        this.log('ERROR', 'No constructor found for service ' + service);
+        this.log("ERROR", "No constructor found for service " + service);
         continue;
       }
 
       try {
-        this.log('TRACE', 'Constructing service', service);
-        this._config._services[service.toLowerCase()] = new serviceConstructor(this, service, this.getServiceParams(service));
+        this.log("TRACE", "Constructing service", service);
+        this._config._services[service.toLowerCase()] = new serviceConstructor(
+          this,
+          service,
+          this.getServiceParams(service)
+        );
         if (this._config._services[service.toLowerCase()] instanceof Logger) {
           this._loggers.push(this._config._services[service.toLowerCase()]);
         }
       } catch (err) {
-        this.log('ERROR', 'Cannot create service', service, err);
+        this.log("ERROR", "Cannot create service", service, err);
         this._config.services[service]._createException = err;
       }
     }
 
     this.autoConnectServices();
 
-    this.emit('Webda.Create.Services', this._config._services);
+    this.emit("Webda.Create.Services", this._config._services);
   }
-
-
 
   _getSetters(obj): any[] {
     let methods = [];
-    while (obj = Reflect.getPrototypeOf(obj)) {
-      let keys = Reflect.ownKeys(obj).filter(k => k.toString().startsWith('set'))
-      keys.forEach((k) => methods.push(k));
+    while ((obj = Reflect.getPrototypeOf(obj))) {
+      let keys = Reflect.ownKeys(obj).filter(k =>
+        k.toString().startsWith("set")
+      );
+      keys.forEach(k => methods.push(k));
     }
     return methods;
   }
@@ -842,8 +862,10 @@ class Webda extends events.EventEmitter {
       let serviceBean = this._config._services[service];
       serviceBean.resolve();
       let setters = this._getSetters(serviceBean);
-      setters.forEach((setter) => {
-        let targetService = this._config._services[setter.substr(3).toLowerCase()];
+      setters.forEach(setter => {
+        let targetService = this._config._services[
+          setter.substr(3).toLowerCase()
+        ];
         if (targetService) {
           serviceBean[setter](targetService);
         }
@@ -852,12 +874,11 @@ class Webda extends events.EventEmitter {
   }
 
   jsonFilter(key: string, value: any): any {
-    if (key[0] === '_') return undefined;
+    if (key[0] === "_") return undefined;
     return value;
   }
 
   initStatics() {
-
     if (!this._config.routes) {
       this._config.routes = {};
     }
@@ -883,7 +904,7 @@ class Webda extends events.EventEmitter {
     }
     this._config._pathMap.sort(this.comparePath);
     this._config._initiated = true;
-    this.emit('Webda.Init', this._config);
+    this.emit("Webda.Init", this._config);
   }
 
   /**
@@ -908,14 +929,14 @@ class Webda extends events.EventEmitter {
         }
       } else if (modda.type == "lambda") {
         // This should start the lambda
-        this._services[i] = require('./routehelpers/lambda');
+        this._services[i] = require("./routehelpers/lambda");
         this._services[i]._arn = modda.arn;
       } else if (modda.type == "npm") {
         // The package should export the default
         this._services[i] = require(modda.package);
       }
     }
-    this.emit('Webda.Init.Moddas');
+    this.emit("Webda.Init.Moddas");
   }
 
   initModels(config): void {
@@ -924,14 +945,14 @@ class Webda extends events.EventEmitter {
     }
     for (let i in config.models) {
       var type = i;
-      if (type.indexOf('/') < 2) {
+      if (type.indexOf("/") < 2) {
         type = "Webda/" + type;
       }
       var include = config.models[i];
       try {
-        if (typeof(include) === "string") {
+        if (typeof include === "string") {
           if (include.startsWith("./")) {
-            include = process.cwd() + '/' + include;
+            include = process.cwd() + "/" + include;
           }
           let model = require(include);
           if (model.default) {
@@ -940,10 +961,9 @@ class Webda extends events.EventEmitter {
             config._models[type.toLowerCase()] = model;
           }
         }
-
       } catch (ex) {
-        this.log('ERROR', 'Create model ' + type + ' failed');
-        this.log('TRACE', ex.stack);
+        this.log("ERROR", "Create model " + type + " failed");
+        this.log("TRACE", ex.stack);
         continue;
       }
     }
@@ -951,7 +971,7 @@ class Webda extends events.EventEmitter {
       if (config._models[i.toLowerCase()]) continue;
       config._models[i.toLowerCase()] = this._models[i];
     }
-    this.emit('Webda.Init.Models', config._models);
+    this.emit("Webda.Init.Models", config._models);
   }
 
   comparePath(a, b): number {
@@ -998,7 +1018,7 @@ class Webda extends events.EventEmitter {
   /**
    * Emit the event with data and wait for Promise to finish if listener returned a Promise
    */
-  emitSync(event, ...data): Promise < any[] > {
+  emitSync(event, ...data): Promise<any[]> {
     var result;
     var promises = [];
     var listeners = this.listeners(event);
@@ -1019,7 +1039,7 @@ class Webda extends events.EventEmitter {
   log(level, ...args): void {
     this._loggers.forEach((logger: Logger) => {
       logger.log(level, ...args);
-    })
+    });
   }
 
   /**
@@ -1033,7 +1053,7 @@ class Webda extends events.EventEmitter {
       website = this.getGlobalParams().website || "";
     }
     if (!Array.isArray(website)) {
-      if (typeof(website) === 'object') {
+      if (typeof website === "object") {
         website = [website.url];
       } else {
         website = [website];
@@ -1042,26 +1062,26 @@ class Webda extends events.EventEmitter {
     let parsed = url.parse(origin);
     let origins = this.getGlobalParams().csrfOrigins || [];
     for (let i in origins) {
-      if (!origins[i].endsWith('$')) {
-        origins[i] += '$';
+      if (!origins[i].endsWith("$")) {
+        origins[i] += "$";
       }
-      if (!origins[i].startsWith('^')) {
-        origins[i] = '^' + origins[i];
+      if (!origins[i].startsWith("^")) {
+        origins[i] = "^" + origins[i];
       }
       if (parsed.host.match(new RegExp(origins[i]))) {
         return true;
       }
     }
     // Host match or complete match
-    if (website.indexOf(parsed.host) >= 0 || website.indexOf(origin) >= 0 || website === '*') {
+    if (
+      website.indexOf(parsed.host) >= 0 ||
+      website.indexOf(origin) >= 0 ||
+      website === "*"
+    ) {
       return true;
     }
     return false;
   }
 }
 
-export {
-  Webda,
-  _extend,
-  Configuration
-};
+export { Webda, _extend, Configuration };

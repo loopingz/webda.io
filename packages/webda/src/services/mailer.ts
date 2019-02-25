@@ -1,12 +1,10 @@
 "use strict";
-import {
-  Service
-} from '../index';
-var nodemailer = require('nodemailer');
-var ses = require('nodemailer-ses-transport');
-const fs = require('fs');
-const Mustache = require('mustache');
-const EmailTemplate = require('email-templates').EmailTemplate
+import { Service } from "../index";
+var nodemailer = require("nodemailer");
+var ses = require("nodemailer-ses-transport");
+const fs = require("fs");
+const Mustache = require("mustache");
+const EmailTemplate = require("email-templates").EmailTemplate;
 
 interface IEmailTemplate {
   render(options: any);
@@ -34,11 +32,11 @@ class Mailer extends Service {
     try {
       let config: any = {};
       Object.assign(config, params.config);
-      if (config.transport === 'ses' && !config.SES) {
-        let aws = require('aws-sdk');
+      if (config.transport === "ses" && !config.SES) {
+        let aws = require("aws-sdk");
         aws.config.update(config);
         config.SES = new aws.SES({
-          apiVersion: '2010-12-01'
+          apiVersion: "2010-12-01"
         });
       }
       this._transporter = nodemailer.createTransport(config);
@@ -47,18 +45,18 @@ class Mailer extends Service {
     }
   }
 
-  async init(): Promise < void > {
+  async init(): Promise<void> {
     this._params.templates = this._params.templates || "./templates";
   }
 
   _getTemplate(name) {
     if (!this._templates[name]) {
       // Load template
-      let templateDir = this._params.templates + '/' + name;
+      let templateDir = this._params.templates + "/" + name;
       if (!fs.existsSync(templateDir)) {
-        templateDir = __dirname + '/../templates/' + name;
+        templateDir = __dirname + "/../templates/" + name;
         if (!fs.existsSync(templateDir)) {
-          this._webda.log('WARN', 'No template found for', name);
+          this._webda.log("WARN", "No template found for", name);
           return;
         }
       }
@@ -72,9 +70,12 @@ class Mailer extends Service {
    * @params options Options to pass to the sendMail option of the nodemailer module
    * @params callback to pass to the sendMail
    */
-  async send(options, callback = undefined): Promise < any > {
+  async send(options, callback = undefined): Promise<any> {
     if (this._transporter === undefined) {
-      this._webda.log('ERROR', 'Cannot send email as no transporter is defined');
+      this._webda.log(
+        "ERROR",
+        "Cannot send email as no transporter is defined"
+      );
       return Promise.reject("Cannot send email as no transporter is defined");
     }
     if (!options.from) {
@@ -101,37 +102,34 @@ class Mailer extends Service {
         throw Error("Unknown mail template");
       }
     }
-    return this._transporter.sendMail(options, callback)
+    return this._transporter.sendMail(options, callback);
   }
 
   /** @ignore */
   static getModda() {
     return {
-      "uuid": "Webda/Mailer",
-      "label": "Mailer",
-      "description": "Implements a mailer to use in other services, it is used by the Authentication if you activate the email",
-      "webcomponents": [],
-      "logo": "images/icons/email.png",
-      "configuration": {
-        "default": {
-          "config": {}
+      uuid: "Webda/Mailer",
+      label: "Mailer",
+      description:
+        "Implements a mailer to use in other services, it is used by the Authentication if you activate the email",
+      webcomponents: [],
+      logo: "images/icons/email.png",
+      configuration: {
+        default: {
+          config: {}
         },
-        "schema": {
+        schema: {
           type: "object",
           properties: {
-            "config": {
+            config: {
               type: "object"
             }
           },
           required: ["config"]
         }
       }
-    }
+    };
   }
 }
 
-export {
-  Mailer,
-  TemplatesMap,
-  IEmailTemplate
-}
+export { Mailer, TemplatesMap, IEmailTemplate };

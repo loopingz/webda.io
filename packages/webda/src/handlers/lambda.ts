@@ -1,17 +1,9 @@
 "use strict";
-import {
-  Core as Webda,
-  SecureCookie,
-  ClientInfo,
-  Service
-} from '../index';
-import {
-  Constructor,
-  GetAWS
-} from "../services/aws-mixin";
+import { Core as Webda, SecureCookie, ClientInfo, Service } from "../index";
+import { Constructor, GetAWS } from "../services/aws-mixin";
 const cookieParse = require("cookie").parse;
 
-function AWSEventHandlerMixIn < T extends Constructor < Service >> (Base: T) {
+function AWSEventHandlerMixIn<T extends Constructor<Service>>(Base: T) {
   return class extends Base {
     isAWSEventHandled(source: string, event: any) {
       return false;
@@ -20,7 +12,7 @@ function AWSEventHandlerMixIn < T extends Constructor < Service >> (Base: T) {
     async handleAWSEvent(source: string, event: any) {
       return;
     }
-  }
+  };
 }
 
 /**
@@ -43,7 +35,7 @@ class LambdaServer extends Webda {
     var headers = ctx._headers;
     // No route found probably coming from an OPTIONS
     if (ctx._route) {
-      headers['Set-Cookie'] = this.getCookieHeader(ctx);
+      headers["Set-Cookie"] = this.getCookieHeader(ctx);
     }
     this._result = {};
     this._result.headers = headers;
@@ -60,7 +52,7 @@ class LambdaServer extends Webda {
     let res = new ClientInfo();
     res.ip = reqCtx.identity.sourceIp;
     res.userAgent = reqCtx.identity.userAgent;
-    res.set('lambdaRequestContext', reqCtx);
+    res.set("lambdaRequestContext", reqCtx);
     return res;
   }
 
@@ -86,25 +78,25 @@ class LambdaServer extends Webda {
       await this.handleAWSEvent(source, events);
       found = true;
     } else if (events.invocationId && events.records) {
-      await this.handleAWSEvent('aws:kinesis', events);
+      await this.handleAWSEvent("aws:kinesis", events);
       found = true;
-    } else if (events['detail-type'] && events.detail && events.resources) {
-      await this.handleAWSEvent('aws:scheduled-event', events);
+    } else if (events["detail-type"] && events.detail && events.resources) {
+      await this.handleAWSEvent("aws:scheduled-event", events);
       found = true;
     } else if (events.awslogs) {
-      await this.handleAWSEvent('aws:cloudwatch-logs', events);
+      await this.handleAWSEvent("aws:cloudwatch-logs", events);
       found = true;
-    } else if (events['CodePipeline.job']) {
-      await this.handleAWSEvent('aws:codepipeline', events);
+    } else if (events["CodePipeline.job"]) {
+      await this.handleAWSEvent("aws:codepipeline", events);
       found = true;
     } else if (events.identityPoolId) {
-      await this.handleAWSEvent('aws:cognito', events);
+      await this.handleAWSEvent("aws:cognito", events);
       found = true;
     } else if (events.configRuleId) {
-      await this.handleAWSEvent('aws:config', events);
+      await this.handleAWSEvent("aws:config", events);
       found = true;
     } else if (events.jobDefinition || events.jobId) {
-      await this.handleAWSEvent('aws:batch', events);
+      await this.handleAWSEvent("aws:batch", events);
       found = true;
     }
     return found;
@@ -119,45 +111,65 @@ class LambdaServer extends Webda {
     await this.init();
     // Handle AWS event
     if (await this.handleAWSEvents(event)) {
-      this.log('INFO', 'Handled AWS event', event);
+      this.log("INFO", "Handled AWS event", event);
       return;
     }
     // Manual launch of webda
-    if (event.command === 'launch' && event.service && event.method) {
+    if (event.command === "launch" && event.service && event.method) {
       let args = event.args || [];
-      this.log('INFO', 'Executing', event.method, 'on', event.service, 'with', args);
+      this.log(
+        "INFO",
+        "Executing",
+        event.method,
+        "on",
+        event.service,
+        "with",
+        args
+      );
       let service = this.getService(event.service);
       if (!service) {
-        this.log('ERROR', 'Cannot find', event.service);
+        this.log("ERROR", "Cannot find", event.service);
         return;
       }
-      if (typeof(service[event.method]) !== 'function') {
-        this.log('ERROR', 'Cannot find method', event.method, 'on', event.service);
+      if (typeof service[event.method] !== "function") {
+        this.log(
+          "ERROR",
+          "Cannot find method",
+          event.method,
+          "on",
+          event.service
+        );
         return;
       }
       service[event.method](...args);
-      this.log('INFO', 'Finished');
+      this.log("INFO", "Finished");
       return;
     }
-    context.callbackWaitsForEmptyEventLoop = (this._config.parameters && this._config.parameters.waitForEmptyEventLoop) || false;
+    context.callbackWaitsForEmptyEventLoop =
+      (this._config.parameters &&
+        this._config.parameters.waitForEmptyEventLoop) ||
+      false;
     this._result = {};
     var cookies: any = {};
     var rawCookie = event.headers.Cookie;
     if (rawCookie) {
       cookies = cookieParse(rawCookie);
     }
-    var sessionCookie = new SecureCookie({
-      'secret': 'webda-private-key'
-    }, cookies.webda).getProxy();
+    var sessionCookie = new SecureCookie(
+      {
+        secret: "webda-private-key"
+      },
+      cookies.webda
+    ).getProxy();
     var session = sessionCookie;
     var vhost;
     var i;
 
     var headers = event.headers || {};
     vhost = headers.Host;
-    var method = event.httpMethod || 'GET';
-    var protocol = headers['CloudFront-Forwarded-Proto'] || 'https';
-    var port = headers['X-Forwarded-Port'] || 443;
+    var method = event.httpMethod || "GET";
+    var protocol = headers["CloudFront-Forwarded-Proto"] || "https";
+    var port = headers["X-Forwarded-Port"] || 443;
 
     var resourcePath = event.path;
     // Rebuild query string
@@ -176,7 +188,7 @@ class LambdaServer extends Webda {
       // Try to interpret as JSON by default
       body = JSON.parse(event.body);
     } catch (err) {
-      if (headers['Content-Type'] === 'application/json') {
+      if (headers["Content-Type"] === "application/json") {
         throw err;
       }
     }
@@ -184,49 +196,77 @@ class LambdaServer extends Webda {
     // TODO Get all client info
     // event['requestContext']['identity']['sourceIp']
     ctx.clientInfo = this.getClientInfo(event.requestContext);
-    ctx.clientInfo.locale = headers['Accept-Language'];
-    ctx.clientInfo.referer = headers['Referer'] || headers.referer;
+    ctx.clientInfo.locale = headers["Accept-Language"];
+    ctx.clientInfo.referer = headers["Referer"] || headers.referer;
 
     // Debug mode
-    await this.emitSync('Webda.Request', vhost, method, resourcePath, ctx.getCurrentUserId(), body);
+    await this.emitSync(
+      "Webda.Request",
+      vhost,
+      method,
+      resourcePath,
+      ctx.getCurrentUserId(),
+      body
+    );
 
     // Fallback on reference as Origin is not always set by Edge
     let origin = headers.Origin || headers.origin || ctx.clientInfo.referer;
     // Set predefined headers for CORS
     if (origin) {
       if (this.checkCSRF(origin)) {
-        ctx.setHeader('Access-Control-Allow-Origin', origin);
+        ctx.setHeader("Access-Control-Allow-Origin", origin);
       } else {
         // Prevent CSRF
-        this.log('INFO', 'CSRF denied from', origin);
+        this.log("INFO", "CSRF denied from", origin);
         ctx.statusCode = 401;
         return this.handleLambdaReturn(ctx);
       }
     }
-    if (protocol === 'https') {
+    if (protocol === "https") {
       // Add the HSTS header
-      ctx.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+      ctx.setHeader(
+        "Strict-Transport-Security",
+        "max-age=31536000; includeSubDomains; preload"
+      );
     }
-    ctx.setHeader('Access-Control-Allow-Credentials', 'true');
-    ctx.setHeader('Access-Control-Allow-Headers', 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token')
+    ctx.setHeader("Access-Control-Allow-Credentials", "true");
+    ctx.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token"
+    );
 
-    if (method === 'OPTIONS') {
+    if (method === "OPTIONS") {
       // Return allow all methods for now
       let routes = this.getRouteMethodsFromUrl(resourcePath);
       if (routes.length == 0) {
         ctx.statusCode = 404;
         return this.handleLambdaReturn(ctx);
       }
-      routes.push('OPTIONS');
-      ctx.setHeader('Access-Control-Allow-Methods', routes.join(','));
+      routes.push("OPTIONS");
+      ctx.setHeader("Access-Control-Allow-Methods", routes.join(","));
       await ctx.end();
       return this.handleLambdaReturn(ctx);
     }
 
-    var executor = this.getExecutor(ctx, vhost, method, resourcePath, protocol, port, headers);
+    var executor = this.getExecutor(
+      ctx,
+      vhost,
+      method,
+      resourcePath,
+      protocol,
+      port,
+      headers
+    );
 
     if (executor == null) {
-      this.emitSync('Webda.404', vhost, method, resourcePath, ctx.getCurrentUserId(), body);
+      this.emitSync(
+        "Webda.404",
+        vhost,
+        method,
+        resourcePath,
+        ctx.getCurrentUserId(),
+        body
+      );
       ctx.statusCode = 404;
       return this.handleLambdaReturn(ctx);
     }
@@ -238,11 +278,11 @@ class LambdaServer extends Webda {
       }
       return this.handleLambdaReturn(ctx);
     } catch (err) {
-      if (typeof(err) === "number") {
+      if (typeof err === "number") {
         ctx.statusCode = err;
         this.flushHeaders(ctx);
       } else {
-        this.log('ERROR', err);
+        this.log("ERROR", err);
         ctx.statusCode = 500;
       }
       return this.handleLambdaReturn(ctx);
@@ -254,7 +294,7 @@ class LambdaServer extends Webda {
     if (ctx.statusCode) {
       this._result.code = ctx.statusCode;
     }
-    await this.emitSync('Webda.Result', ctx, this._result);
+    await this.emitSync("Webda.Result", ctx, this._result);
     return {
       statusCode: ctx.statusCode,
       headers: this._result.headers,
@@ -263,7 +303,4 @@ class LambdaServer extends Webda {
   }
 }
 
-export {
-  LambdaServer,
-  AWSEventHandlerMixIn
-}
+export { LambdaServer, AWSEventHandlerMixIn };

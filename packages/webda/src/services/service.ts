@@ -1,10 +1,6 @@
 "use strict";
-import events = require('events');
-import {
-  Core,
-  AWSEventHandlerMixIn,
-  LambdaServer
-} from '../index';
+import events = require("events");
+import { Core, AWSEventHandlerMixIn, LambdaServer } from "../index";
 /* beautify preserve:start */
 declare var global: any;
 /* beautify preserve:end */
@@ -20,7 +16,6 @@ declare var global: any;
  * @class Service
  */
 class Service extends events.EventEmitter {
-
   _webda: Core;
   _name: string;
   _params: any;
@@ -63,9 +58,13 @@ class Service extends events.EventEmitter {
    * @param config for the host so you can add your own route here
    * @abstract
    */
-  async init(): Promise < void > {
+  async init(): Promise<void> {
     // In case of Lambda handler register automatically
-    if (this._webda instanceof LambdaServer && this['isAWSEventHandled'] && this['handleAWSEvent']) {
+    if (
+      this._webda instanceof LambdaServer &&
+      this["isAWSEventHandled"] &&
+      this["handleAWSEvent"]
+    ) {
       this._webda.registerAWSEventsHandler(this);
     }
   }
@@ -73,11 +72,9 @@ class Service extends events.EventEmitter {
   /**
    * Handle cleaning of params
    */
-  normalizeParams() {
+  normalizeParams() {}
 
-  }
-
-  async reinit(config): Promise < void > {
+  async reinit(config): Promise<void> {
     this._params = config;
     this.normalizeParams();
     this.init();
@@ -88,7 +85,7 @@ class Service extends events.EventEmitter {
    *
    * @abstract
    */
-  install(params): Promise < any > {
+  install(params): Promise<any> {
     return Promise.resolve();
   }
 
@@ -97,14 +94,14 @@ class Service extends events.EventEmitter {
    *
    * @abstract
    */
-  uninstall(params): Promise < any > {
+  uninstall(params): Promise<any> {
     return Promise.resolve();
   }
 
   /**
    * Emit the event with data and wait for Promise to finish if listener returned a Promise
    */
-  emitSync(event, data): Promise < any[] > {
+  emitSync(event, data): Promise<any[]> {
     var result;
     var promises = [];
     var listeners = this.listeners(event);
@@ -124,7 +121,12 @@ class Service extends events.EventEmitter {
    * @param queue Name of queue to use, can be undefined, queue name are used to define differents priorities
    */
   onAsync(event, callback, queue) {
-    ( < any > this._webda.getService('AsyncEvents')).bindAsyncListener(this, event, callback, queue);
+    (<any>this._webda.getService("AsyncEvents")).bindAsyncListener(
+      this,
+      event,
+      callback,
+      queue
+    );
   }
 
   /**
@@ -135,8 +137,8 @@ class Service extends events.EventEmitter {
     return this._webda.getService(service);
   }
 
-  getTypedService < T extends Service > (service: string): T {
-    return <T > this.getService(service);
+  getTypedService<T extends Service>(service: string): T {
+    return <T>this.getService(service);
   }
 
   /**
@@ -154,9 +156,9 @@ class Service extends events.EventEmitter {
    *
    * @abstract
    */
-  __clean(): Promise < any > {
-    if (typeof(global.it) !== 'function') {
-      throw Error("Only for test purpose")
+  __clean(): Promise<any> {
+    if (typeof global.it !== "function") {
+      throw Error("Only for test purpose");
     }
     return this.___cleanData();
   }
@@ -164,7 +166,7 @@ class Service extends events.EventEmitter {
   /**
    * @private
    */
-  ___cleanData(): Promise < any > {
+  ___cleanData(): Promise<any> {
     return Promise.resolve();
   }
 
@@ -173,6 +175,4 @@ class Service extends events.EventEmitter {
   }
 }
 
-export {
-  Service
-};
+export { Service };

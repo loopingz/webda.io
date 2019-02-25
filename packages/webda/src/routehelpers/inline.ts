@@ -1,6 +1,4 @@
-import {
-  Executor
-} from "../index";
+import { Executor } from "../index";
 
 /**
  * Execute a custom JS code, would recommand to use file instead to avoid polluing the configuration file
@@ -8,7 +6,7 @@ import {
  * Configuration
  * '/url': {
  *    'type': 'inline',
- *    'callback': 'function (executor) { executor.write("Test"); }'	
+ *    'callback': 'function (executor) { executor.write("Test"); }'
  * }
  *
  */
@@ -19,6 +17,4 @@ class InlineRouteHelper extends Executor {
   }
 }
 
-export {
-  InlineRouteHelper
-};
+export { InlineRouteHelper };

@@ -1,18 +1,15 @@
 "use strict";
-import {
-  Queue
-} from "../index";
-const uuid = require('uuid');
+import { Queue } from "../index";
+const uuid = require("uuid");
 
 interface QueueMap {
   [key: string]: any;
 }
 
 class MemoryQueue extends Queue {
-
   private _queue: QueueMap;
 
-  async init(): Promise < void > {
+  async init(): Promise<void> {
     await super.init();
     this._queue = {};
     if (!this._params.expire) {
@@ -21,7 +18,7 @@ class MemoryQueue extends Queue {
     this._params.expire *= 1000;
   }
 
-  async size(): Promise < number > {
+  async size(): Promise<number> {
     return Object.keys(this._queue).length;
   }
 
@@ -60,19 +57,17 @@ class MemoryQueue extends Queue {
 
   static getModda() {
     return {
-      "uuid": "Webda/MemoryQueue",
-      "label": "MemoryQueue",
-      "description": "Implements a simple in memory queue",
-      "webcomponents": [],
-      "documentation": "",
-      "logo": "images/icons/memoryqueue.png",
-      "configuration": {
-        "default": {}
+      uuid: "Webda/MemoryQueue",
+      label: "MemoryQueue",
+      description: "Implements a simple in memory queue",
+      webcomponents: [],
+      documentation: "",
+      logo: "images/icons/memoryqueue.png",
+      configuration: {
+        default: {}
       }
-    }
+    };
   }
 }
 
-export {
-  MemoryQueue
-}
+export { MemoryQueue };

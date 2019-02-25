@@ -1,10 +1,5 @@
 "use strict";
-import {
-  Queue,
-  AWSMixIn,
-  Service,
-  Core as Webda
-} from "../index";
+import { Queue, AWSMixIn, Service, Core as Webda } from "../index";
 
 // TODO Readd AWS Mixin
 class SQSQueue extends AWSMixIn(Queue) {
@@ -14,17 +9,25 @@ class SQSQueue extends AWSMixIn(Queue) {
     this._params.WaitTimeSeconds = this._params.WaitTimeSeconds || 20;
   }
 
-  async init(): Promise < void > {
+  async init(): Promise<void> {
     await super.init();
-    this.sqs = new(this._getAWS(this._params)).SQS();
+    this.sqs = new (this._getAWS(this._params)).SQS();
   }
 
-  async size(): Promise < number > {
-    let res = await this.sqs.getQueueAttributes({
-      AttributeNames: ["ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"],
-      QueueUrl: this._params.queue
-    }).promise();
-    return parseInt(res['Attributes']['ApproximateNumberOfMessages']) + parseInt(res['Attributes']['ApproximateNumberOfMessagesNotVisible']);
+  async size(): Promise<number> {
+    let res = await this.sqs
+      .getQueueAttributes({
+        AttributeNames: [
+          "ApproximateNumberOfMessages",
+          "ApproximateNumberOfMessagesNotVisible"
+        ],
+        QueueUrl: this._params.queue
+      })
+      .promise();
+    return (
+      parseInt(res["Attributes"]["ApproximateNumberOfMessages"]) +
+      parseInt(res["Attributes"]["ApproximateNumberOfMessagesNotVisible"])
+    );
   }
 
   async sendMessage(params) {
@@ -44,10 +47,12 @@ class SQSQueue extends AWSMixIn(Queue) {
   }
 
   async deleteMessage(receipt) {
-    return this.sqs.deleteMessage({
-      QueueUrl: this._params.queue,
-      ReceiptHandle: receipt
-    }).promise();
+    return this.sqs
+      .deleteMessage({
+        QueueUrl: this._params.queue,
+        ReceiptHandle: receipt
+      })
+      .promise();
   }
 
   async __clean() {
@@ -56,17 +61,19 @@ class SQSQueue extends AWSMixIn(Queue) {
 
   private async __cleanWithRetry(fail) {
     try {
-      await this.sqs.purgeQueue({
-        QueueUrl: this._params.queue
-      }).promise();
+      await this.sqs
+        .purgeQueue({
+          QueueUrl: this._params.queue
+        })
+        .promise();
     } catch (err) {
-      if (fail || err.code !== 'AWS.SimpleQueueService.PurgeQueueInProgress') {
+      if (fail || err.code !== "AWS.SimpleQueueService.PurgeQueueInProgress") {
         throw err;
       }
       let delay = Math.floor(err.retryDelay * 1100);
-      console.log('Retry PurgeQueue in ', delay);
+      console.log("Retry PurgeQueue in ", delay);
       // 10% of margin
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         setTimeout(() => {
           resolve(this.__cleanWithRetry(true));
         }, delay);
@@ -77,25 +84,30 @@ class SQSQueue extends AWSMixIn(Queue) {
   async install(params) {
     let queue = this._getQueueInfosFromUrl();
     params.region = queue.region;
-    var sqs = new(this._getAWS(params)).SQS();
-    return sqs.getQueueUrl({
-      QueueName: queue.name,
-      QueueOwnerAWSAccountId: queue.accountId
-    }).promise().catch((err) => {
-      if (err.code === 'AWS.SimpleQueueService.NonExistentQueue') {
-        this._webda.log('ERROR', 'Creating SQS queue', queue.name);
-        return sqs.createQueue({
-          QueueName: queue.name
-        }).promise();
-      }
-    });
+    var sqs = new (this._getAWS(params)).SQS();
+    return sqs
+      .getQueueUrl({
+        QueueName: queue.name,
+        QueueOwnerAWSAccountId: queue.accountId
+      })
+      .promise()
+      .catch(err => {
+        if (err.code === "AWS.SimpleQueueService.NonExistentQueue") {
+          this._webda.log("ERROR", "Creating SQS queue", queue.name);
+          return sqs
+            .createQueue({
+              QueueName: queue.name
+            })
+            .promise();
+        }
+      });
   }
 
   _getQueueInfosFromUrl() {
-    let re = new RegExp(/.*sqs\.(.*)\.amazonaws.com\/([0-9]+)\/(.*)/, 'i');
+    let re = new RegExp(/.*sqs\.(.*)\.amazonaws.com\/([0-9]+)\/(.*)/, "i");
     let found = re.exec(this._params.queue);
     if (!found) {
-      throw new Error('SQS Queue URL malformed');
+      throw new Error("SQS Queue URL malformed");
     }
     return {
       accountId: found[2],
@@ -108,55 +120,53 @@ class SQSQueue extends AWSMixIn(Queue) {
     // Parse this._params.queue;
     let queue = this._getQueueInfosFromUrl();
     return {
-      "Sid": this.constructor.name + this._name,
-      "Effect": "Allow",
-      "Action": [
+      Sid: this.constructor.name + this._name,
+      Effect: "Allow",
+      Action: [
         "sqs:DeleteMessage",
         "sqs:DeleteMessageBatch",
         "sqs:ReceiveMessage",
         "sqs:SendMessage",
         "sqs:SendMessageBatch"
       ],
-      "Resource": [
-        'arn:aws:sqs:' + queue.region + ':' + queue.accountId + ':' + queue.name
+      Resource: [
+        "arn:aws:sqs:" + queue.region + ":" + queue.accountId + ":" + queue.name
       ]
-    }
+    };
   }
 
   static getModda() {
     return {
-      "uuid": "Webda/SQSQueue",
-      "label": "SQS Queue",
-      "description": "Implements a Queue stored in SQS",
-      "webcomponents": [],
-      "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
-      "logo": "images/icons/sqs.png",
-      "configuration": {
-        "default": {
-          "queue": "YOUR QUEUE URL"
+      uuid: "Webda/SQSQueue",
+      label: "SQS Queue",
+      description: "Implements a Queue stored in SQS",
+      webcomponents: [],
+      documentation:
+        "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
+      logo: "images/icons/sqs.png",
+      configuration: {
+        default: {
+          queue: "YOUR QUEUE URL"
         },
-        "schema": {
-          "type": "object",
-          "properties": {
-            "accessKeyId": {
-              "type": "string"
+        schema: {
+          type: "object",
+          properties: {
+            accessKeyId: {
+              type: "string"
             },
-            "secretAccessKey": {
-              "type": "string"
+            secretAccessKey: {
+              type: "string"
             },
-            "queue": {
-              "type": "string",
-              "default": "YOUR QUEUE URL"
+            queue: {
+              type: "string",
+              default: "YOUR QUEUE URL"
             }
           },
-          "required": ["accessKeyId", "secretAccessKey", "queue"]
+          required: ["accessKeyId", "secretAccessKey", "queue"]
         }
       }
-    }
+    };
   }
-
 }
 
-export {
-  SQSQueue
-};
+export { SQSQueue };

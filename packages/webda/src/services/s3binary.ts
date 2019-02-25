@@ -301,7 +301,7 @@ class S3Binary extends AWSMixIn(Binary) {
 
   async putObject(
     key: string,
-    body: Buffer | Blob | String | ReadableStream,
+    body: Buffer | Blob | string | ReadableStream,
     metadatas = {},
     bucket: string = undefined
   ) {

@@ -1,9 +1,7 @@
-import {
-  _extend
-} from 'webda'
+import { _extend } from "webda";
+import { WebdaConfigurationServer } from "../handlers/config";
 
 export class Deployer {
-
   _step: number;
   _maxStep: number;
   resources: any;
@@ -11,8 +9,16 @@ export class Deployer {
   config: any;
   srcConfig: any;
   deployment: any;
+  _webda: WebdaConfigurationServer;
 
-  constructor(config, srcConfig, deployment, unitParameters) {
+  constructor(
+    webda,
+    config,
+    srcConfig,
+    deployment = undefined,
+    unitParameters = undefined
+  ) {
+    this._webda = webda;
     this._step = 1;
     this.parameters = {};
     this.resources = {};
@@ -53,5 +59,4 @@ export class Deployer {
     }
     return res;
   }
-
 }

@@ -1,12 +1,7 @@
-import {
-  Deployer
-} from './deployer';
-import {
-  DockerMixIn
-} from './docker-mixin';
+import { Deployer } from "./deployer";
+import { DockerMixIn } from "./docker-mixin";
 
 export class DockerDeployer extends DockerMixIn(Deployer) {
-
   async deploy(args) {
     this._sentContext = false;
     this._maxStep = 3;
@@ -23,11 +18,15 @@ export class DockerDeployer extends DockerMixIn(Deployer) {
 
   async buildDocker() {
     this.stepper("Building Docker image");
-    let cmd = '';
-    if (this.resources.worker !== 'API') {
-      cmd = 'worker ' + this.resources.worker;
+    let cmd = "";
+    if (this.resources.worker !== "API") {
+      cmd = "worker " + this.resources.worker;
     }
-    return super.buildDocker(this.resources.tag, this.resources.Dockerfile, await this.getDockerfile(cmd));
+    return super.buildDocker(
+      this.resources.tag,
+      this.resources.Dockerfile,
+      await this.getDockerfile(cmd)
+    );
   }
 
   pushDocker() {
@@ -37,21 +36,21 @@ export class DockerDeployer extends DockerMixIn(Deployer) {
 
   static getModda() {
     return {
-      "uuid": "WebdaDeployer/Docker",
-      "label": "Docker",
-      "description": "Create a Docker image and push it",
-      "webcomponents": [],
-      "logo": "images/icons/docker.png",
-      "configuration": {
-        "widget": {
-          "tag": "webda-docker-deployer",
-          "url": "elements/deployers/webda-docker-deployer.html"
+      uuid: "WebdaDeployer/Docker",
+      label: "Docker",
+      description: "Create a Docker image and push it",
+      webcomponents: [],
+      logo: "images/icons/docker.png",
+      configuration: {
+        widget: {
+          tag: "webda-docker-deployer",
+          url: "elements/deployers/webda-docker-deployer.html"
         },
-        "default": {},
-        "schema": {
+        default: {},
+        schema: {
           type: "object"
         }
       }
-    }
+    };
   }
 }

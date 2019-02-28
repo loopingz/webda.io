@@ -1,14 +1,9 @@
-import {
-  AWSDeployer
-} from './aws';
-import {
-  S3,
-  CloudFront
-} from 'aws-sdk';
-const fs = require('fs');
-const path = require('path');
-const Finder = require('fs-finder');
-const mime = require('mime-types');
+import { AWSDeployer } from "./aws";
+import { S3, CloudFront } from "aws-sdk";
+const fs = require("fs");
+const path = require("path");
+const Finder = require("fs-finder");
+const mime = require("mime-types");
 
 /**
  *
@@ -125,24 +120,26 @@ export class S3Deployer extends AWSDeployer {
       Bucket: this.bucket,
       WebsiteConfiguration: {
         ErrorDocument: {
-          Key: this.resources.errorDocument || 'error.html'
+          Key: this.resources.errorDocument || "error.html"
         },
         IndexDocument: {
-          Suffix: this.resources.indexDocument || 'index.html'
+          Suffix: this.resources.indexDocument || "index.html"
         }
       }
     };
     await this._s3.putBucketWebsite(params).promise();
     // Set the bucket policy
     let policy = {
-      "Version": "2012-10-17",
-      "Statement": [{
-        "Sid": "PublicReadGetObject",
-        "Effect": "Allow",
-        "Principal": "*",
-        "Action": ["s3:GetObject"],
-        "Resource": ["arn:aws:s3:::" + this.bucket + "/*"]
-      }]
+      Version: "2012-10-17",
+      Statement: [
+        {
+          Sid: "PublicReadGetObject",
+          Effect: "Allow",
+          Principal: "*",
+          Action: ["s3:GetObject"],
+          Resource: ["arn:aws:s3:::" + this.bucket + "/*"]
+        }
+      ]
     };
     params = {
       Bucket: this.bucket,
@@ -152,35 +149,44 @@ export class S3Deployer extends AWSDeployer {
     await this._createCloudFront();
     if (!this.resources.cloudfront) {
       // Generate a basic CNAME to s3.
-      await this._createDNSEntry(this.bucket, 'CNAME', this.bucket + '.s3-website-' + this._s3.config.region + '.amazonaws.com');
+      await this._createDNSEntry(
+        this.bucket,
+        "CNAME",
+        this.bucket + ".s3-website-" + this._s3.config.region + ".amazonaws.com"
+      );
     }
   }
 
   async _createCertificate(domain) {
     if (this.resources.certificate) {
       // Have to force region to us-east-1 to be able to us it with cloudfront
-      this._certificate = await super._createCertificate(domain, 'us-east-1');
+      this._certificate = await super._createCertificate(domain, "us-east-1");
     }
   }
 
   private _needCloudFrontUpdate(distrib) {
-    return distrib.DefaultRootObject !== (this.resources.indexDocument || 'index.html') ||
-      distrib.PriceClass !== (this.resources.PriceClass || 'PriceClass_100') ||
-      (this._certificate && !distrib.ViewerCertificate);
+    return (
+      distrib.DefaultRootObject !==
+        (this.resources.indexDocument || "index.html") ||
+      distrib.PriceClass !== (this.resources.PriceClass || "PriceClass_100") ||
+      (this._certificate && !distrib.ViewerCertificate)
+    );
   }
 
   private _getCloudFrontConfig() {
-    let viewerPolicy = this.resources.certificate ? 'redirect-to-https' : 'allow-all';
+    let viewerPolicy = this.resources.certificate
+      ? "redirect-to-https"
+      : "allow-all";
     let params: any = {
       DistributionConfig: {
         CallerReference: this.bucket,
-        Comment: 'Webda_' + this.bucket,
-        DefaultRootObject: this.resources.indexDocument || 'index.html',
+        Comment: "Webda_" + this.bucket,
+        DefaultRootObject: this.resources.indexDocument || "index.html",
         DefaultCacheBehavior: {
           TargetOriginId: "S3-" + this.bucket,
           ForwardedValues: {
             Cookies: {
-              Forward: 'none'
+              Forward: "none"
             },
             QueryString: false
           },
@@ -191,53 +197,47 @@ export class S3Deployer extends AWSDeployer {
             Items: []
           },
           ViewerProtocolPolicy: viewerPolicy,
-          "AllowedMethods": {
-            "Quantity": 2,
-            "Items": [
-              "HEAD",
-              "GET"
-            ],
-            "CachedMethods": {
-              "Quantity": 2,
-              "Items": [
-                "HEAD",
-                "GET"
-              ]
+          AllowedMethods: {
+            Quantity: 2,
+            Items: ["HEAD", "GET"],
+            CachedMethods: {
+              Quantity: 2,
+              Items: ["HEAD", "GET"]
             }
           }
         },
         Enabled: true,
         Restrictions: {
           GeoRestriction: {
-            RestrictionType: 'none',
+            RestrictionType: "none",
             Quantity: 0,
             Items: []
           }
         },
-        PriceClass: this.resources.PriceClass || 'PriceClass_100',
-        WebACLId: '',
+        PriceClass: this.resources.PriceClass || "PriceClass_100",
+        WebACLId: "",
         Origins: {
           Quantity: 1,
-          Items: [{
-            "Id": "S3-" + this.bucket,
-            "DomainName": this.bucket + ".s3.amazonaws.com",
-            "OriginPath": "",
-            "CustomHeaders": {
-              "Quantity": 0,
-              "Items": []
-            },
-            "S3OriginConfig": {
-              "OriginAccessIdentity": ""
+          Items: [
+            {
+              Id: "S3-" + this.bucket,
+              DomainName: this.bucket + ".s3.amazonaws.com",
+              OriginPath: "",
+              CustomHeaders: {
+                Quantity: 0,
+                Items: []
+              },
+              S3OriginConfig: {
+                OriginAccessIdentity: ""
+              }
             }
-          }]
-        },
-        HttpVersion: 'http2',
-        IsIPV6Enabled: true,
-        "Aliases": {
-          "Quantity": 1,
-          "Items": [
-            this.bucket
           ]
+        },
+        HttpVersion: "http2",
+        IsIPV6Enabled: true,
+        Aliases: {
+          Quantity: 1,
+          Items: [this.bucket]
         }
       }
     };
@@ -246,11 +246,11 @@ export class S3Deployer extends AWSDeployer {
       params.DistributionConfig.ViewerCertificate = {
         ACMCertificateArn: this._certificate.CertificateArn,
         Certificate: this._certificate.CertificateArn,
-        CertificateSource: 'acm',
+        CertificateSource: "acm",
         CloudFrontDefaultCertificate: false,
-        SSLSupportMethod: 'sni-only',
-        MinimumProtocolVersion: 'TLSv1.1_2016'
-      }
+        SSLSupportMethod: "sni-only",
+        MinimumProtocolVersion: "TLSv1.1_2016"
+      };
     }
     return params;
   }
@@ -261,43 +261,58 @@ export class S3Deployer extends AWSDeployer {
     }
     let cloudfront;
     let params: any = {
-      MaxItems: '1000'
+      MaxItems: "1000"
     };
-    this._cloudfront = new(this._getAWS(this.resources)).CloudFront({
-      apiVersion: '2018-06-18'
+    this._cloudfront = new (this._getAWS(this.resources)).CloudFront({
+      apiVersion: "2018-06-18"
     });
     await this._createCertificate(this.bucket);
     // TODO Handle paginations
-    let res: CloudFront.ListDistributionsResult = await this._cloudfront.listDistributions(params).promise();
+    let res: CloudFront.ListDistributionsResult = await this._cloudfront
+      .listDistributions(params)
+      .promise();
     for (let i in res.DistributionList.Items) {
       // Search for current cloudfront
-      if (res.DistributionList.Items[i].DefaultCacheBehavior.TargetOriginId === ("S3-" + this.bucket)) {
+      if (
+        res.DistributionList.Items[i].DefaultCacheBehavior.TargetOriginId ===
+        "S3-" + this.bucket
+      ) {
         cloudfront = res.DistributionList.Items[i];
-        if (cloudfront.Status === 'InProgress') {
-          console.log('CloudFront distribution', cloudfront.Id, 'is in progress, skipping');
+        if (cloudfront.Status === "InProgress") {
+          console.log(
+            "CloudFront distribution",
+            cloudfront.Id,
+            "is in progress, skipping"
+          );
           return Promise.resolve();
         }
         if (!cloudfront.Enabled) {
-          console.log('CloudFront distribution', cloudfront.Id, 'is in disabled, skipping');
+          console.log(
+            "CloudFront distribution",
+            cloudfront.Id,
+            "is in disabled, skipping"
+          );
           return Promise.resolve();
         }
-        let distributionConfig = await this._cloudfront.getDistributionConfig({
-          Id: cloudfront.Id
-        }).promise();
+        let distributionConfig = await this._cloudfront
+          .getDistributionConfig({
+            Id: cloudfront.Id
+          })
+          .promise();
         if (this._needCloudFrontUpdate(distributionConfig)) {
-          console.log('Update CloudFront distribution', cloudfront.Id);
-          return this._cloudfront.updateDistribution(this._getCloudFrontConfig()).promise();
+          console.log("Update CloudFront distribution", cloudfront.Id);
+          return this._cloudfront
+            .updateDistribution(this._getCloudFrontConfig())
+            .promise();
         }
-        console.log('Invalidate CloudFront distribution', cloudfront.Id);
+        console.log("Invalidate CloudFront distribution", cloudfront.Id);
         params = {
           DistributionId: cloudfront.Id,
           InvalidationBatch: {
-            CallerReference: 'Webda-deployment',
+            CallerReference: "Webda-deployment",
             Paths: {
               Quantity: 1,
-              Items: [
-                '/*'
-              ]
+              Items: ["/*"]
             }
           }
         };
@@ -305,14 +320,20 @@ export class S3Deployer extends AWSDeployer {
       }
     }
     if (!cloudfront) {
-      cloudfront = await this._cloudfront.createDistribution(this._getCloudFrontConfig()).promise()
-      console.log('Create Cloudfront distribution', cloudfront.Distribution.Id, ': this take some times on the AWS side before being effective');
+      cloudfront = await this._cloudfront
+        .createDistribution(this._getCloudFrontConfig())
+        .promise();
+      console.log(
+        "Create Cloudfront distribution",
+        cloudfront.Distribution.Id,
+        ": this take some times on the AWS side before being effective"
+      );
     }
     // Ensure Route53 record set
-    await this._createDNSEntry(this.bucket, 'CNAME', cloudfront.DomainName);
+    await this._createDNSEntry(this.bucket, "CNAME", cloudfront.DomainName);
   }
 
-  async _createDNSEntry(domain, type, value): Promise < void > {
+  async _createDNSEntry(domain, type, value): Promise<void> {
     if (!this.resources.route53) {
       return;
     }
@@ -327,12 +348,12 @@ export class S3Deployer extends AWSDeployer {
   }
 
   async deploy(args) {
-    this._s3 = new(this._getAWS(this.resources)).S3();
+    this._s3 = new (this._getAWS(this.resources)).S3();
     let bucket = this.resources.target;
     let source = path.resolve(this.resources.source);
     this.bucket = bucket;
     this.source = source;
-    console.log('Deploy', source, 'on S3 Bucket', bucket);
+    console.log("Deploy", source, "on S3 Bucket", bucket);
     await this.createBucket(bucket);
     let files = Finder.from(source).findFiles();
     // Should implement multithread here - cleaning too
@@ -341,13 +362,15 @@ export class S3Deployer extends AWSDeployer {
       let key = path.relative(source, file);
       // Need to have mimetype to serve the content correctly
       let mimetype = mime.contentType(path.extname(file));
-      await this._s3.putObject({
-        Bucket: bucket,
-        Body: fs.createReadStream(file),
-        Key: key,
-        ContentType: mimetype
-      }).promise();
-      console.log('Uploaded', file, 'to', key, '(' + mimetype + ')');
+      await this._s3
+        .putObject({
+          Bucket: bucket,
+          Body: fs.createReadStream(file),
+          Key: key,
+          ContentType: mimetype
+        })
+        .promise();
+      console.log("Uploaded", file, "to", key, "(" + mimetype + ")");
     }
     if (!this.resources.staticWebsite) {
       return;
@@ -357,20 +380,20 @@ export class S3Deployer extends AWSDeployer {
 
   static getModda() {
     return {
-      "uuid": "WebdaDeployer/S3",
-      "label": "S3",
-      "description": "Deploy a S3 public website",
-      "logo": "images/icons/s3.png",
-      "configuration": {
-        "widget": {
-          "tag": "webda-s3-deployer",
-          "url": "elements/deployers/webda-s3-deployer.html"
+      uuid: "WebdaDeployer/S3",
+      label: "S3",
+      description: "Deploy a S3 public website",
+      logo: "images/icons/s3.png",
+      configuration: {
+        widget: {
+          tag: "webda-s3-deployer",
+          url: "elements/deployers/webda-s3-deployer.html"
         },
-        "default": {},
-        "schema": {
+        default: {},
+        schema: {
           type: "object"
         }
       }
-    }
+    };
   }
 }

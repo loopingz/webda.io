@@ -1,70 +1,72 @@
-import {
-  WebdaServer
-} from "./http";
-import {
-  Deployment
-} from "../models/deployment";
-import {
-  Core as Webda,
-  Executor,
-  _extend,
-  Store,
-  CoreModel
-} from 'webda';
-import {
-  LambdaDeployer
-} from "../deployers/lambda";
-import {
-  DockerDeployer
-} from "../deployers/docker";
-import {
-  S3Deployer
-} from "../deployers/s3";
-import {
-  ShellDeployer
-} from "../deployers/shell";
-import {
-  FargateDeployer
-} from "../deployers/fargate";
-import {
-  WeDeployDeployer
-} from "../deployers/wedeploy";
+import { WebdaServer } from "./http";
+import { Deployment } from "../models/deployment";
+import { Core as Webda, Executor, _extend, Store, CoreModel } from "webda";
+import { LambdaDeployer } from "../deployers/lambda";
+import { DockerDeployer } from "../deployers/docker";
+import { S3Deployer } from "../deployers/s3";
+import { ShellDeployer } from "../deployers/shell";
+import { FargateDeployer } from "../deployers/fargate";
+import { WeDeployDeployer } from "../deployers/wedeploy";
 
 import * as fs from "fs";
 import * as path from "path";
 
-import * as merge from 'merge';
-import * as mkdirp from 'mkdirp';
-import * as deepmerge from 'deepmerge';
+import * as merge from "merge";
+import * as mkdirp from "mkdirp";
+import * as deepmerge from "deepmerge";
+import { Deployer } from "../deployers/deployer";
 
 export class ConfigurationService extends Executor {
-
   _config: any;
   _computeConfig: any;
   _deployments: any;
-  _deploymentStore: Store < CoreModel > ;
+  _deploymentStore: Store<CoreModel>;
   _webda: WebdaConfigurationServer;
 
   initRoutes() {
-    this._addRoute('/api/modda', ["GET"], this.getServices);
-    this._addRoute('/api/models', ["GET", "POST"], this.crudModels);
-    this._addRoute('/api/models/{name}', ["GET", "PUT", "DELETE"], this.crudModels);
-    this._addRoute('/api/services', ["GET"], this.crudService);
-    this._addRoute('/api/services/{name}', ["PUT", "DELETE", "POST"], this.crudService);
-    this._addRoute('/api/routes', ["GET", "POST", "PUT", "DELETE"], this.crudRoute);
-    this._addRoute('/api/moddas', ["GET"], this.getModdas);
-    this._addRoute('/api/deployers', ["GET"], this.getDeployers);
-    this._addRoute('/api/deployments', ["GET", "POST"], this.restDeployment);
-    this._addRoute('/api/deployments/{name}', ["DELETE", "PUT"], this.restDeployment);
-    this._addRoute('/api/versions', ["GET"], this.versions);
-    this._addRoute('/api/deploy/{name}', ["GET"], this.deploy);
-    this._addRoute('/api/global', ["GET", "PUT"], this.restGlobal);
+    this._addRoute("/api/modda", ["GET"], this.getServices);
+    this._addRoute("/api/models", ["GET", "POST"], this.crudModels);
+    this._addRoute(
+      "/api/models/{name}",
+      ["GET", "PUT", "DELETE"],
+      this.crudModels
+    );
+    this._addRoute("/api/services", ["GET"], this.crudService);
+    this._addRoute(
+      "/api/services/{name}",
+      ["PUT", "DELETE", "POST"],
+      this.crudService
+    );
+    this._addRoute(
+      "/api/routes",
+      ["GET", "POST", "PUT", "DELETE"],
+      this.crudRoute
+    );
+    this._addRoute("/api/moddas", ["GET"], this.getModdas);
+    this._addRoute("/api/deployers", ["GET"], this.getDeployers);
+    this._addRoute("/api/deployments", ["GET", "POST"], this.restDeployment);
+    this._addRoute(
+      "/api/deployments/{name}",
+      ["DELETE", "PUT"],
+      this.restDeployment
+    );
+    this._addRoute("/api/versions", ["GET"], this.versions);
+    this._addRoute("/api/deploy/{name}", ["GET"], this.deploy);
+    this._addRoute("/api/global", ["GET", "PUT"], this.restGlobal);
     // Allow path
-    this._addRoute('/api/browse/{path}', ["GET", "PUT", "DELETE"], this.fileBrowser, {
-      hidden: true
-    }, true);
+    this._addRoute(
+      "/api/browse/{path}",
+      ["GET", "PUT", "DELETE"],
+      this.fileBrowser,
+      {
+        hidden: true
+      },
+      true
+    );
     this.refresh();
-    this._deploymentStore = < Store < CoreModel > > this._webda.getService("deployments");
+    this._deploymentStore = <Store<CoreModel>>(
+      this._webda.getService("deployments")
+    );
   }
 
   refresh() {
@@ -81,11 +83,10 @@ export class ConfigurationService extends Executor {
   }
 
   fileBrowser(ctx, prefix) {
-
     if (prefix === undefined) {
-      prefix = './';
+      prefix = "./";
     }
-    if (ctx._params.path.indexOf("..") >= 0 || ctx._params.path[0] == '/') {
+    if (ctx._params.path.indexOf("..") >= 0 || ctx._params.path[0] == "/") {
       // For security reason prevent the .. or /
       throw 403;
     }
@@ -139,8 +140,8 @@ export class ConfigurationService extends Executor {
     // Add custom model
     for (let i in this._config.models) {
       res[i] = {
-        'src': this._config.models[i],
-        'name': i
+        src: this._config.models[i],
+        name: i
       };
     }
     var arrayRes = [];
@@ -151,26 +152,33 @@ export class ConfigurationService extends Executor {
   }
 
   _getClass(name, extending, templating, models) {
-    let className = name.split('/').pop();
-    let extendName = extending.split('/').pop();
+    let className = name.split("/").pop();
+    let extendName = extending.split("/").pop();
     let requireFile;
     // Builtin
     if (this._webda._models[extending]) {
-      requireFile = 'webda/models/' + extendName.toLowerCase();
+      requireFile = "webda/models/" + extendName.toLowerCase();
     } else {
-      requireFile = '.' + models[extending];
+      requireFile = "." + models[extending];
     }
     let content =
       `"use strict";
-const ` + extendName + ` = require('` + requireFile + `');
+const ` +
+      extendName +
+      ` = require('` +
+      requireFile +
+      `');
 
-class ` + className + ` extends ` + extendName + ` {
+class ` +
+      className +
+      ` extends ` +
+      extendName +
+      ` {
   static getActions() {
     return {};
   }`;
     if (templating) {
-      content +=
-        `
+      content += `
   canAct(ctx, action) {
     // Dont allow anything by default
     // Remove the throw to let it work
@@ -188,9 +196,9 @@ class ` + className + ` extends ` + extendName + ` {
       return Promise.resolve(ctx);
     }
   }
-`
+`;
     }
-    return content + '}\n';
+    return content + "}\n";
   }
   crudModels(ctx) {
     let models = this._getModels();
@@ -205,7 +213,9 @@ class ` + className + ` extends ` + extendName + ` {
         if (models[ctx._params.name].builtin) {
           throw 403;
         }
-        ctx.write(fs.readFileSync(models[ctx._params.name].src + '.js').toString());
+        ctx.write(
+          fs.readFileSync(models[ctx._params.name].src + ".js").toString()
+        );
       } else {
         ctx.write(models);
       }
@@ -214,8 +224,8 @@ class ` + className + ` extends ` + extendName + ` {
       let name = ctx._params.name;
       if (this._config.models[name]) {
         let file = this._config.models[name];
-        if (!file.endsWith('.js')) {
-          file += '.js';
+        if (!file.endsWith(".js")) {
+          file += ".js";
         }
         if (fs.existsSync(file)) {
           fs.unlinkSync(file);
@@ -230,16 +240,19 @@ class ` + className + ` extends ` + extendName + ` {
       this.cleanBody(ctx);
       let file = ctx.body.src;
       this._config.models[name] = ctx.body.src;
-      if (!file.endsWith('.js')) {
-        file += '.js';
+      if (!file.endsWith(".js")) {
+        file += ".js";
       }
       if (model != null || fs.existsSync(file)) {
         throw 409;
       }
-      if (file.startsWith('./models')) {
+      if (file.startsWith("./models")) {
         mkdirp.sync(path.dirname(file));
       }
-      fs.writeFileSync(file, this._getClass(name, ctx.body.extending, ctx.body.templating, models));
+      fs.writeFileSync(
+        file,
+        this._getClass(name, ctx.body.extending, ctx.body.templating, models)
+      );
       this.save();
     }
   }
@@ -286,7 +299,10 @@ class ` + className + ` extends ` + extendName + ` {
         let service = this._config.services[i];
         service._name = i;
         service._type = "Service";
-        if (servicesBeans[i.toLowerCase()] && servicesBeans[i.toLowerCase()].work) {
+        if (
+          servicesBeans[i.toLowerCase()] &&
+          servicesBeans[i.toLowerCase()].work
+        ) {
           service._worker = true;
         }
         services.push(service);
@@ -363,7 +379,10 @@ class ` + className + ` extends ` + extendName + ` {
     var url = ctx.body._name;
     delete ctx.body.url;
     this.cleanBody(ctx);
-    if (ctx._route._http.method === "POST" && this._config.routes[url] != null) {
+    if (
+      ctx._route._http.method === "POST" &&
+      this._config.routes[url] != null
+    ) {
       throw 409;
     }
     this._config.routes[url] = ctx.body;
@@ -371,33 +390,52 @@ class ` + className + ` extends ` + extendName + ` {
   }
 
   exportSwagger(deployment: string = undefined): Object {
-    let packageInfo = JSON.parse(fs.readFileSync(process.cwd() + '/package.json').toString());
-    let swagger2 = deepmerge({
-      swagger: '2.0',
-      info: {
-        description: packageInfo.description,
-        version: packageInfo.version,
-        title: packageInfo.title,
-        termsOfService: packageInfo.termsOfService,
-        contact: packageInfo.author,
-        license: packageInfo.license
-      },
-      schemes: ['https'],
-      basePath: '/',
-      definitions: {
-        Object: {
-          type: 'object'
-        }
-      },
-      paths: {},
-      tags: [],
-    }, this._webda._mockWebda._config.swagger);
-    let tags = {};
-    this._getModels().forEach((model) => {
-      let desc = {
-        type: 'object'
+    let packageInfo = JSON.parse(
+      fs.readFileSync(process.cwd() + "/package.json").toString()
+    );
+    let contact = packageInfo.author;
+    if (typeof packageInfo.author === "string") {
+      contact = {
+        name: packageInfo.author
       };
-      let schema = new(this._webda._mockWebda.getModel(model.name))()._getSchema();
+    }
+    let license = packageInfo.license;
+    if (typeof packageInfo.license === "string") {
+      license = {
+        name: packageInfo.license
+      };
+    }
+    let swagger2 = deepmerge(
+      {
+        swagger: "2.0",
+        info: {
+          description: packageInfo.description,
+          version: packageInfo.version,
+          title: packageInfo.title,
+          termsOfService: packageInfo.termsOfService,
+          contact,
+          license
+        },
+        schemes: ["https"],
+        basePath: "/",
+        definitions: {
+          Object: {
+            type: "object"
+          }
+        },
+        paths: {},
+        tags: []
+      },
+      this._webda._mockWebda._config.swagger || {}
+    );
+    let tags = {};
+    this._getModels().forEach(model => {
+      let desc = {
+        type: "object"
+      };
+      let schema = new (this._webda._mockWebda.getModel(
+        model.name
+      ))()._getSchema();
       if (schema) {
         schema = JSON.parse(fs.readFileSync(schema).toString());
         for (let i in schema.definitions) {
@@ -406,7 +444,7 @@ class ` + className + ` extends ` + extendName + ` {
         delete schema.definitions;
         desc = schema;
       }
-      swagger2.definitions[model.name.split('/').pop()] = desc;
+      swagger2.definitions[model.name.split("/").pop()] = desc;
     });
     for (let i in this._computeConfig.routes) {
       let route = this._computeConfig.routes[i];
@@ -419,36 +457,38 @@ class ` + className + ` extends ` + extendName + ` {
         continue;
       }
       let urlParameters = [];
-      if (i.indexOf('{?') >= 0) {
-        urlParameters = i.substring(i.indexOf('{?') + 2, i.length - 1).split(',');
-        i = i.substr(0, i.indexOf('{?'));
+      if (i.indexOf("{?") >= 0) {
+        urlParameters = i
+          .substring(i.indexOf("{?") + 2, i.length - 1)
+          .split(",");
+        i = i.substr(0, i.indexOf("{?"));
       }
       swagger2.paths[i] = {};
       if (!Array.isArray(route.method)) {
         route.method = [route.method];
       }
-      if (route['_uri-template-parse']) {
+      if (route["_uri-template-parse"]) {
         swagger2.paths[i].parameters = [];
-        route['_uri-template-parse'].varNames.forEach(varName => {
+        route["_uri-template-parse"].varNames.forEach(varName => {
           if (urlParameters.indexOf(varName) >= 0) {
             let name = varName;
-            if (name.startsWith('*')) {
+            if (name.startsWith("*")) {
               name = name.substr(1);
             }
             swagger2.paths[i].parameters.push({
               name: varName,
-              in: 'query',
-              required: !varName.startsWith('*'),
+              in: "query",
+              required: !varName.startsWith("*"),
               type: "string"
-            })
+            });
             return;
           }
           swagger2.paths[i].parameters.push({
             name: varName,
-            in: 'path',
+            in: "path",
             required: true,
             type: "string"
-          })
+          });
         });
       }
       route.method.forEach(method => {
@@ -465,28 +505,28 @@ class ` + className + ` extends ` + extendName + ` {
           operationId = route.swagger[method.toLowerCase()].operationId;
         }
         schema = schema || {
-          '$ref': '#/definitions/' + (route.swagger.model || 'Object')
-        }
+          $ref: "#/definitions/" + (route.swagger.model || "Object")
+        };
         responses = responses || {
           200: {
-            description: 'Operation success'
+            description: "Operation success"
           }
         };
         for (let i in responses) {
-          if (typeof(responses[i]) === 'string') {
+          if (typeof responses[i] === "string") {
             responses[i] = {
               description: responses[i]
             };
           }
           if (!responses[i].schema && responses[i].model) {
             responses[i].schema = {
-              '$ref': '#/definitions/' + responses[i].model
-            }
+              $ref: "#/definitions/" + responses[i].model
+            };
             delete responses[i].model;
           }
           let code = parseInt(i);
           if (code < 300 && code >= 200 && !responses[i].description) {
-            responses[i].description = 'Operation success';
+            responses[i].description = "Operation success";
           }
         }
         let desc: any = {
@@ -495,14 +535,17 @@ class ` + className + ` extends ` + extendName + ` {
           description,
           summary,
           operationId
-        }
-        if (method.toLowerCase().startsWith('p')) {
-          desc.parameters = [{ in: 'body',
-            name: 'body',
-            description: '',
-            required: true,
-            schema: schema
-          }];
+        };
+        if (method.toLowerCase().startsWith("p")) {
+          desc.parameters = [
+            {
+              in: "body",
+              name: "body",
+              description: "",
+              required: true,
+              schema: schema
+            }
+          ];
         }
         swagger2.paths[i][method.toLowerCase()] = desc;
       });
@@ -514,7 +557,7 @@ class ` + className + ` extends ` + extendName + ` {
               name: tag
             });
           }
-        })
+        });
       }
       if (!tags[route.executor] && !route.swagger.tags) {
         tags[route.executor] = true;
@@ -523,13 +566,19 @@ class ` + className + ` extends ` + extendName + ` {
         });
       }
     }
-    swagger2.tags.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+    swagger2.tags.sort((a, b) =>
+      a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+    );
     let paths = {};
-    Object.keys(swagger2.paths).sort().forEach(i => paths[i] = swagger2.paths[i]);
+    Object.keys(swagger2.paths)
+      .sort()
+      .forEach(i => (paths[i] = swagger2.paths[i]));
     swagger2.paths = paths;
     // Allow deployment override
     if (deployment) {
-      let swag = JSON.parse(fs.readFileSync('./deployments/' + deployment).toString()).swagger;
+      let swag = JSON.parse(
+        fs.readFileSync("./deployments/" + deployment).toString()
+      ).swagger;
       if (swag) {
         swagger2 = deepmerge(swagger2, swag);
       }
@@ -575,7 +624,10 @@ class ` + className + ` extends ` + extendName + ` {
       this.cleanBody(ctx);
       return this._deploymentStore.update(ctx.body);
     } else if (ctx._route._http.method == "DELETE") {
-      if (!this._deployments[ctx._params.name] || ctx._params.name === "Global") {
+      if (
+        !this._deployments[ctx._params.name] ||
+        ctx._params.name === "Global"
+      ) {
         throw 409;
       }
       await this._deploymentStore.delete(ctx._params.name);
@@ -588,9 +640,9 @@ export var ServerConfig = {
   version: 1,
   parameters: {
     website: {
-      url: 'localhost:18181',
-      path: 'app/',
-      index: 'index.html'
+      url: "localhost:18181",
+      path: "app/",
+      index: "index.html"
     }
   },
   models: {
@@ -599,11 +651,11 @@ export var ServerConfig = {
   services: {
     deployments: {
       expose: {},
-      folder: './deployments',
-      type: 'FileStore',
+      folder: "./deployments",
+      type: "FileStore",
       lastUpdate: false,
-      beautify: ' ',
-      model: 'WebdaConfig/Deployment'
+      beautify: " ",
+      model: "WebdaConfig/Deployment"
     },
     configuration: {
       require: ConfigurationService
@@ -612,7 +664,6 @@ export var ServerConfig = {
 };
 
 export class WebdaConfigurationServer extends WebdaServer {
-
   _deployers: any;
   config: any;
   _mockWebda: Webda;
@@ -653,25 +704,31 @@ export class WebdaConfigurationServer extends WebdaServer {
     }
   }
 
-  async exportSwagger(deployment: string = undefined): Promise < Object > {
-    return this.getTypedService < ConfigurationService > ('configuration').exportSwagger(deployment);
+  async exportSwagger(deployment: string = undefined): Promise<Object> {
+    return this.getTypedService<ConfigurationService>(
+      "configuration"
+    ).exportSwagger(deployment);
   }
 
   exportJson(o) {
     // Credit to : http://stackoverflow.com/questions/11616630/json-stringify-avoid-typeerror-converting-circular-structure-to-json
     var cache = [];
-    var res = JSON.stringify(o, function(key, value) {
-      if (key.startsWith("_")) return;
-      if (typeof value === 'object' && value !== null) {
-        if (cache.indexOf(value) !== -1) {
-          // Circular reference found, discard key
-          return;
+    var res = JSON.stringify(
+      o,
+      function(key, value) {
+        if (key.startsWith("_")) return;
+        if (typeof value === "object" && value !== null) {
+          if (cache.indexOf(value) !== -1) {
+            // Circular reference found, discard key
+            return;
+          }
+          // Store value in our collection
+          cache.push(value);
         }
-        // Store value in our collection
-        cache.push(value);
-      }
-      return value;
-    }, 4);
+        return value;
+      },
+      4
+    );
     cache = null; // Enable garbage collection
     return res;
   }
@@ -688,19 +745,23 @@ export class WebdaConfigurationServer extends WebdaServer {
     // Need to reload the configuration to resolve it
     delete this._mockWebda;
     this.loadMock(JSON.parse(this.exportJson(this.config)));
-    let configurationService = < ConfigurationService > this.getService("configuration");
+    let configurationService = <ConfigurationService>(
+      this.getService("configuration")
+    );
     if (configurationService) {
       configurationService.refresh();
     }
   }
 
   static getVersion() {
-    return JSON.parse(fs.readFileSync(__dirname + '/../../package.json').toString()).version;
+    return JSON.parse(
+      fs.readFileSync(__dirname + "/../../package.json").toString()
+    ).version;
   }
 
   static getWebdaVersion() {
     if (!Webda.prototype.getVersion) {
-      return '< 0.3.1';
+      return "< 0.3.1";
     }
     return Webda.prototype.getVersion();
   }
@@ -712,9 +773,11 @@ export class WebdaConfigurationServer extends WebdaServer {
       // We just saved the configuration dont want to reload it
     } else if (fs.existsSync("./webda.config.json")) {
       this._file = "./webda.config.json";
-      this.config = JSON.parse(fs.readFileSync(this._file, {
-        encoding: 'utf8'
-      }));
+      this.config = JSON.parse(
+        fs.readFileSync(this._file, {
+          encoding: "utf8"
+        })
+      );
       if (!this.config.version) {
         this.config = this.migrateConfig(this.config);
       }
@@ -723,7 +786,7 @@ export class WebdaConfigurationServer extends WebdaServer {
       this.output("No file is present, creating webda.config.json");
       this.config = {};
       this._file = path.resolve("./webda.config.json");
-      this.config['version'] = 1;
+      this.config["version"] = 1;
       this.saveHostConfiguration({
         parameters: {},
         services: {},
@@ -741,7 +804,7 @@ export class WebdaConfigurationServer extends WebdaServer {
   }
 
   loadDeploymentConfig(env) {
-    var name = './deployments/' + env;
+    var name = "./deployments/" + env;
     if (fs.existsSync(name)) {
       let deployment = JSON.parse(fs.readFileSync(name).toString());
       this.config = super.loadConfiguration();
@@ -770,7 +833,9 @@ export class WebdaConfigurationServer extends WebdaServer {
 
   async install(env, server_config, args) {
     // Create Lambda role if needed
-    let deployment: any = await ( < Store < CoreModel > > this.getService("deployments")).get(env);
+    let deployment: any = await (<Store<CoreModel>>(
+      this.getService("deployments")
+    )).get(env);
     if (deployment === undefined) {
       this.output("Deployment " + env + " unknown");
       throw Error();
@@ -778,12 +843,15 @@ export class WebdaConfigurationServer extends WebdaServer {
     this.resolveConfiguration(this.config, deployment);
     this.config.cachedModules = this._modules;
     let srcConfig = this.exportJson(this.config);
-    return new this._deployers[deployment.type](this.computeConfig, srcConfig, deployment).installServices(args);
+    return new this._deployers[deployment.type](
+      this,
+      this.computeConfig,
+      srcConfig,
+      deployment
+    ).installServices(args);
   }
 
-  uninstall(env, args, fork) {
-
-  }
+  uninstall(env, args, fork) {}
 
   uninstallServices() {
     var promise = Promise.resolve();
@@ -793,7 +861,7 @@ export class WebdaConfigurationServer extends WebdaServer {
         continue;
       }
       promise = promise.then(() => {
-        this.output('Uninstalling service ' + i);
+        this.output("Uninstalling service " + i);
         return service.install(this.resources);
       });
     }
@@ -806,7 +874,7 @@ export class WebdaConfigurationServer extends WebdaServer {
     for (let i in services) {
       let service = services[i];
       promise = promise.then(() => {
-        this.output('Installing service ', i);
+        this.output("Installing service ", i);
         return service.install(JSON.parse(JSON.stringify(resources)));
       });
     }
@@ -814,7 +882,9 @@ export class WebdaConfigurationServer extends WebdaServer {
   }
 
   async deploy(env, args, fork) {
-    let deployment: any = await ( < Store < CoreModel > > this.getService("deployments")).get(env);
+    let deployment: any = await (<Store<CoreModel>>(
+      this.getService("deployments")
+    )).get(env);
 
     if (deployment === undefined) {
       this.output("Deployment " + env + " unknown");
@@ -836,24 +906,36 @@ export class WebdaConfigurationServer extends WebdaServer {
       return;
     }
 
-    if (!args.length || args[0] === 'install') {
+    if (!args.length || args[0] === "install") {
       // Normal launch from the console or forked process
-      this.output('Installing services');
+      this.output("Installing services");
       await this.installServices(deployment.resources);
     }
-    this.output('Deploying', deployment.uuid, 'with', deployment.units.length, 'units');
+    this.output(
+      "Deploying",
+      deployment.uuid,
+      "with",
+      deployment.units.length,
+      "units"
+    );
     let selectedUnit;
     if (args.length > 0) {
       selectedUnit = args[0];
-      if (selectedUnit === 'install') {
+      if (selectedUnit === "install") {
         return;
       }
       args = args.slice(1);
     }
-    let units = deployment.units.filter((unit) => {
+    let units = deployment.units.filter(unit => {
       if (selectedUnit && selectedUnit !== unit.name) return false;
       if (!this._deployers[unit.type]) {
-        this.output('Cannot deploy unit', unit.name, '(', unit.type, '): type not found');
+        this.output(
+          "Cannot deploy unit",
+          unit.name,
+          "(",
+          unit.type,
+          "): type not found"
+        );
         return false;
       }
       return true;
@@ -865,21 +947,39 @@ export class WebdaConfigurationServer extends WebdaServer {
 
   async _deployUnit(unit, config, deployment, args) {
     if (!this._deployers[unit.type]) {
-      this.output('Cannot deploy unit', unit.name, '(', unit.type, '): type not found');
+      this.output(
+        "Cannot deploy unit",
+        unit.name,
+        "(",
+        unit.type,
+        "): type not found"
+      );
       return;
     }
-    this.output('Deploy unit', unit.name, '(', unit.type, ')');
-    return (new this._deployers[unit.type](
-      this.computeConfig, config, deployment, unit)).deploy(args);
+    this.output("Deploy unit", unit.name, "(", unit.type, ")");
+    return new this._deployers[unit.type](
+      this,
+      this.computeConfig,
+      config,
+      deployment,
+      unit
+    ).deploy(args);
   }
 
   async undeploy(env, args) {
-    let deployment: any = await ( < Store < CoreModel > > this.getService("deployments")).get(env);
+    let deployment: any = await (<Store<CoreModel>>(
+      this.getService("deployments")
+    )).get(env);
     if (deployment === undefined) {
       this.output("Deployment " + env + " unknown");
       return Promise.resolve();
     }
-    return new this._deployers[deployment.type](this.computeConfig, deployment).undeploy(args);
+    return new this._deployers[deployment.type](
+      this,
+      this.computeConfig,
+      undefined,
+      deployment
+    ).undeploy(args);
   }
 
   serveStaticWebsite(express, app) {
@@ -887,7 +987,9 @@ export class WebdaConfigurationServer extends WebdaServer {
   }
 
   serveIndex(express, app) {
-    app.use(express.static(process.env.HOME + `/.webda-wui/${this._wui}/index.html`));
+    app.use(
+      express.static(process.env.HOME + `/.webda-wui/${this._wui}/index.html`)
+    );
   }
 
   async serve(port, openBrowser) {
@@ -895,7 +997,7 @@ export class WebdaConfigurationServer extends WebdaServer {
     super.serve(port);
     this.websocket(port + 1);
     if (openBrowser || openBrowser === undefined) {
-      var open = require('open');
+      var open = require("open");
       open("http://localhost:" + port);
     }
     return new Promise(() => {});
@@ -904,14 +1006,14 @@ export class WebdaConfigurationServer extends WebdaServer {
   websocket(port) {
     // WebSocket server - used for status on deployment only
     // Should move to the integrated websocket - move to socket.io
-    var ws = require("nodejs-websocket")
+    var ws = require("nodejs-websocket");
     this.conns = [];
     // Scream server example: "hi" -> "HI!!!"
-    ws.createServer((conn) => {
+    ws.createServer(conn => {
       this.conns.push(conn);
 
-      conn.on("error", (err) => {
-        if (err.code === 'ECONNRESET') {
+      conn.on("error", err => {
+        if (err.code === "ECONNRESET") {
           return;
         }
         this.output("Connection error", err.code);
@@ -921,19 +1023,19 @@ export class WebdaConfigurationServer extends WebdaServer {
           this.conns.splice(this.conns.indexOf(conn), 1);
         }
       });
-    }).listen(port)
+    }).listen(port);
   }
 
   deployFork(env) {
     var args = [];
-    args.push('-d');
+    args.push("-d");
     args.push(env);
     args.push("deploy");
 
-    this.deployChild = require("child_process").spawn('webda', args);
+    this.deployChild = require("child_process").spawn("webda", args);
     this._deployOutput = [];
 
-    this.deployChild.stdout.on('data', (data) => {
+    this.deployChild.stdout.on("data", data => {
       if (!data) return;
       if (data instanceof Buffer) {
         data = data.toString();
@@ -945,18 +1047,17 @@ export class WebdaConfigurationServer extends WebdaServer {
       }
     });
 
-    this.deployChild.stderr.on('data', (data) => {
+    this.deployChild.stderr.on("data", data => {
       for (let i in this.conns) {
         this.conns[i].sendText(data);
       }
     });
 
-    this.deployChild.on('close', (code) => {
+    this.deployChild.on("close", code => {
       for (let i in this.conns) {
         this.conns[i].sendText("DONE");
       }
       this.deployChild = undefined;
     });
   }
-
 }

@@ -26,24 +26,28 @@ class FileBinary extends Binary {
     }
   }
 
-  initRoutes() {
-    super.initRoutes();
+  _initRoutes(): boolean {
+    if (!super._initRoutes()) {
+      return false;
+    }
     // Will redirect to this URL for direct upload
     let url = this._url + "/upload/data/{hash}";
     let name = this._name === "Binary" ? "" : this._name;
-    this._addRoute(url, ["PUT"], this.storeBinary, {
-      put: {
-        operationId: `put${name}Binary`,
-        description: "Upload a binary to an object after challenge",
-        summary: "Upload a binary",
-        responses: {
-          "204": "",
-          "400": "Wrong hash",
-          "404": "Object does not exist or attachment does not exist",
-          "412": "Provided hash does not match"
+    if (!this._params.expose.restrict.create) {
+      this._addRoute(url, ["PUT"], this.storeBinary, {
+        put: {
+          operationId: `put${name}Binary`,
+          description: "Upload a binary to an object after challenge",
+          summary: "Upload a binary",
+          responses: {
+            "204": "",
+            "400": "Wrong hash",
+            "404": "Object does not exist or attachment does not exist",
+            "412": "Provided hash does not match"
+          }
         }
-      }
-    });
+      });
+    }
   }
 
   _get(info) {

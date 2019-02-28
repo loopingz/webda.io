@@ -43,39 +43,43 @@ class S3Binary extends AWSMixIn(Binary) {
     this._s3 = new this.AWS.S3();
   }
 
-  initRoutes() {
-    super.initRoutes();
+  _initRoutes(): boolean {
+    if (!super._initRoutes()) {
+      return false;
+    }
     // Will use getRedirectUrl so override the default route
     var url = this._url + "/{store}/{uid}/{property}/{index}";
     let name = this._name === "Binary" ? "" : this._name;
-    this._addRoute(url, ["GET"], this.getRedirectUrl, {
-      get: {
-        description: "Download a binary linked to an object",
-        summary: "Download a binary",
-        operationId: `get${name}Binary`,
-        responses: {
-          "302": "Redirect to download url",
-          "403": "You don't have permissions",
-          "404": "Object does not exist or attachment does not exist",
-          "412": "Provided hash does not match"
+    if (!this._params.expose.restrict.get) {
+      this._addRoute(url, ["GET"], this.getRedirectUrl, {
+        get: {
+          description: "Download a binary linked to an object",
+          summary: "Download a binary",
+          operationId: `get${name}Binary`,
+          responses: {
+            "302": "Redirect to download url",
+            "403": "You don't have permissions",
+            "404": "Object does not exist or attachment does not exist",
+            "412": "Provided hash does not match"
+          }
         }
-      }
-    });
-    url = this._url + "/{store}/{uid}/{property}/{index}/url";
-    name = this._name === "Binary" ? "" : this._name;
-    this._addRoute(url, ["GET"], this.getRedirectUrlInfo, {
-      get: {
-        description: "Get a redirect url to binary linked to an object",
-        summary: "Get redirect url of a binary",
-        operationId: `get${name}BinaryURL`,
-        responses: {
-          "200": "Containing the URL",
-          "403": "You don't have permissions",
-          "404": "Object does not exist or attachment does not exist",
-          "412": "Provided hash does not match"
+      });
+      url = this._url + "/{store}/{uid}/{property}/{index}/url";
+      name = this._name === "Binary" ? "" : this._name;
+      this._addRoute(url, ["GET"], this.getRedirectUrlInfo, {
+        get: {
+          description: "Get a redirect url to binary linked to an object",
+          summary: "Get redirect url of a binary",
+          operationId: `get${name}BinaryURL`,
+          responses: {
+            "200": "Containing the URL",
+            "403": "You don't have permissions",
+            "404": "Object does not exist or attachment does not exist",
+            "412": "Provided hash does not match"
+          }
         }
-      }
-    });
+      });
+    }
   }
 
   async putRedirectUrl(ctx: Context): Promise<string> {

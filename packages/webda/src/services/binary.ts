@@ -342,11 +342,19 @@ class Binary extends Executor {
   }
 
   initRoutes() {
+    // Use a private method with boolean
+    this._initRoutes();
+  }
+
+  _initRoutes(): boolean {
     let url;
     if (!this._params.expose) {
-      return;
+      return false;
     }
     if (typeof this._params.expose == "boolean") {
+      if (!this._params.expose) {
+        return false;
+      }
       this._params.expose = {};
       this._params.expose.url = "/" + this._name.toLowerCase();
     } else if (typeof this._params.expose == "string") {
@@ -355,17 +363,21 @@ class Binary extends Executor {
       this._params.expose.url = url;
     } else if (
       typeof this._params.expose == "object" &&
-      this._params.expose.url == undefined
+      this._params.expose.url === undefined
     ) {
       this._params.expose.url = "/" + this._name.toLowerCase();
     }
-    if (this._params.expose.restrict == undefined) {
+    if (this._params.expose.restrict === undefined) {
       this._params.expose.restrict = {};
     }
     this._url = this._params.expose.url;
     let name = this._name;
     if (name === "Binary") {
       name = "";
+    }
+
+    if (!this._params.expose.url) {
+      return false;
     }
 
     if (!this._params.expose.restrict.get) {
@@ -444,6 +456,7 @@ class Binary extends Executor {
         }
       });
     }
+    return true;
   }
 
   async httpPost(ctx: Context) {

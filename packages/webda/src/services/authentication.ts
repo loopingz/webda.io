@@ -88,13 +88,7 @@ class Authentication extends Executor {
         operationId: `getAuthenticationMethods`,
         responses: {
           "200": {
-            description: "List of authentication",
-            schema: {
-              type: "array",
-              items: {
-                type: "string"
-              }
-            }
+            description: "List of authentication"
           }
         }
       },
@@ -103,11 +97,7 @@ class Authentication extends Executor {
         summary: "Logout",
         operationId: `logout`,
         responses: {
-          "200": {
-            schema: {
-              type: "string"
-            }
-          }
+          "200": {}
         }
       }
     });

@@ -1,6 +1,11 @@
 "use strict";
 const uuid = require("uuid");
-import { Executor, ConfigurationProvider, CoreModelDefinition, CoreModel} from "../index";
+import {
+  Executor,
+  ConfigurationProvider,
+  CoreModelDefinition,
+  CoreModel
+} from "../index";
 
 /**
  * This class handle NoSQL storage and mapping (duplication) between NoSQL object
@@ -42,10 +47,14 @@ class Store<T extends CoreModel> extends Executor
   _writeConditionField: string;
   _model: CoreModelDefinition;
   _exposeUrl: string;
+  _lastUpdateField: string;
+  _creationDateField: string;
 
   /** @ignore */
   normalizeParams() {
-    this._writeConditionField = "_lastUpdate";
+    this._lastUpdateField = this._params.lastUpdateField || "_lastUpdate";
+    this._creationDateField = this._params.creationDateField || "_creationDate";
+    this._writeConditionField = this._lastUpdateField;
     let model = this._params.model;
     if (!model) {
       model = "Webda/CoreModel";
@@ -57,10 +66,9 @@ class Store<T extends CoreModel> extends Executor
     this.normalizeParams();
     this.initMap(this._params.map);
     if (this._params.index && !(await this.exists("index"))) {
-      await this.save({
-        uuid: "index",
-        _lastUpdate: new Date()
-      });
+      let index = { uuid: "index" };
+      index[this._lastUpdateField] = new Date();
+      await this.save(index);
     }
   }
 
@@ -327,13 +335,16 @@ class Store<T extends CoreModel> extends Executor
     });
   }
 
-  async _handleMapFromPartial(uid: string, updateDate: Date, prop: string = undefined) {
-    if (this.isMapped('lastUpdate') || this.isMapped(prop) || this.isMapped('_lastUpdate')) {
+  async _handleMapFromPartial(
+    uid: string,
+    updateDate: Date,
+    prop: string = undefined
+  ) {
+    if (this.isMapped(prop) || this.isMapped(this._lastUpdateField)) {
       // Not optimal need to reload the object
       let object = await this._get(uid);
-      let updates = {
-        _lastUpdate: updateDate
-      };
+      let updates = {};
+      updates[this._lastUpdateField] = updateDate;
       if (this.isMapped(prop)) {
         updates[prop] = object.prop;
       }
@@ -457,11 +468,13 @@ class Store<T extends CoreModel> extends Executor
         object[this._reverseMap[i].property] = [];
       }
     }
-    object._creationDate = object._lastUpdate = new Date();
+    object[this._creationDateField] = object[
+      this._lastUpdateField
+    ] = new Date();
     object = this.initModel(object);
     if (!object.uuid) {
       object.uuid = object.generateUid();
-      object._creationDate = new Date();
+      object[this._creationDateField] = new Date();
       if (!object.uuid) {
         object.uuid = this.generateUid();
       }
@@ -489,8 +502,8 @@ class Store<T extends CoreModel> extends Executor
     return object;
   }
 
-  async _save(object: CoreModel, uid: string): Promise < any > {
-    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  async _save(object: CoreModel, uid: string): Promise<any> {
+    throw Error("Virtual abstract class - concrete only for MixIn usage");
   }
 
   async patch(object: any, uid: string = undefined, reverseMap = true) {
@@ -530,9 +543,9 @@ class Store<T extends CoreModel> extends Executor
     }
     let writeCondition;
     if (this._params.lastUpdate) {
-      writeCondition = "_lastUpdate";
+      writeCondition = this._lastUpdateField;
     }
-    object._lastUpdate = new Date();
+    object[this._lastUpdateField] = new Date();
     let load = await this._get(uid);
     loaded = this.initModel(load);
     await this.handleMap(loaded, this._params.map, object);
@@ -786,7 +799,7 @@ class Store<T extends CoreModel> extends Executor
       mapper[id] = updates[id];
     });
     mapUpdates[object.uuid] = mapper;
-    mapUpdates["_lastUpdate"] = new Date();
+    mapUpdates[this._lastUpdateField] = new Date();
     await this._patch(mapUpdates, "index");
   }
 
@@ -814,8 +827,8 @@ class Store<T extends CoreModel> extends Executor
     throw Error("Virtual abstract class - concrete only for MixIn usage");
   }
 
-  async _patch(object: any, uid: string, writeCondition ? ): Promise < any > {
-    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  async _patch(object: any, uid: string, writeCondition?): Promise<any> {
+    throw Error("Virtual abstract class - concrete only for MixIn usage");
   }
 
   async cascadeDelete(obj: any, uuid: string): Promise<any> {
@@ -882,9 +895,12 @@ class Store<T extends CoreModel> extends Executor
       await Promise.all(promises);
     }
     if (this._params.asyncDelete && !sync) {
-      await this._patch({
-        '__deleted': true
-      }, uid);
+      await this._patch(
+        {
+          __deleted: true
+        },
+        uid
+      );
     } else {
       await this._delete(uid);
     }
@@ -918,8 +934,8 @@ class Store<T extends CoreModel> extends Executor
    * @param {Array} uuid to gets if undefined then retrieve the all table
    * @return {Promise} the objects retrieved ( can be [] if not found )
    */
-  async getAll(list = undefined): Promise < T[] > {
-    throw Error('Virtual abstract class - concrete only for MixIn usage');
+  async getAll(list = undefined): Promise<T[]> {
+    throw Error("Virtual abstract class - concrete only for MixIn usage");
   }
 
   /**
@@ -934,7 +950,7 @@ class Store<T extends CoreModel> extends Executor
     }
     let result = new Map<string, any>();
     for (let i in object) {
-      if (i === "uuid" || i === "_lastUpdate" || i.startsWith("_")) {
+      if (i === "uuid" || i === this._lastUpdateField || i.startsWith("_")) {
         continue;
       }
       result[i] = object[i];
@@ -997,7 +1013,7 @@ class Store<T extends CoreModel> extends Executor
   async httpCreate(ctx) {
     var object = new this._model();
     object.load(ctx.body);
-    object._creationDate = new Date();
+    object[this._creationDateField] = new Date();
     await object.canAct(ctx, "create");
     try {
       await object.validate(ctx);

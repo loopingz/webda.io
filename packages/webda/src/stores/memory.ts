@@ -97,7 +97,7 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
     if (!res[prop]) {
       res[prop] = 0;
     }
-    res._lastUpdate = updateDate;
+    res[this._lastUpdateField] = updateDate;
     res[prop] += value;
     return this._save(res, uid);
   }
@@ -143,7 +143,7 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
       }
       res[prop][index] = item;
     }
-    res._lastUpdate = updateDate;
+    res[this._lastUpdateField] = updateDate;
     await this._save(res, uid);
   }
 
@@ -167,7 +167,7 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
       throw Error("UpdateCondition not met");
     }
     res[prop].splice(index, 1);
-    res._lastUpdate = updateDate;
+    res[this._lastUpdateField] = updateDate;
     return this._save(res, uid);
   }
 

@@ -78,10 +78,9 @@ class MongoStore<T extends CoreModel> extends Store<T> {
     };
     let params = {
       $unset: {},
-      $set: {
-        _lastUpdate: new Date()
-      }
+      $set: {}
     };
+    params["$set"][this._lastUpdateField] = new Date();
     params["$unset"][attribute] = 1;
     await this._collection.updateOne(filter, params);
   }
@@ -106,10 +105,9 @@ class MongoStore<T extends CoreModel> extends Store<T> {
     }
     let params = {
       $unset: {},
-      $set: {
-        _lastUpdate: updateDate
-      }
+      $set: {}
     };
+    params["$set"][this._lastUpdateField] = updateDate;
     params["$unset"][prop + "." + index] = 1;
     let res = await this._collection.updateOne(filter, params);
     if (!res.result.n) {
@@ -117,10 +115,9 @@ class MongoStore<T extends CoreModel> extends Store<T> {
     }
     let remove = {
       $pull: {},
-      $set: {
-        _lastUpdate: updateDate
-      }
+      $set: {}
     };
+    remove["$set"][this._lastUpdateField] = updateDate;
     remove["$pull"][prop] = null;
     await this._collection.update(
       {
@@ -134,10 +131,9 @@ class MongoStore<T extends CoreModel> extends Store<T> {
     await this._connect();
     var params = {
       $inc: {},
-      $set: {
-        _lastUpdate: updateDate
-      }
+      $set: {}
     };
+    params["$set"][this._lastUpdateField] = updateDate;
     params["$inc"][prop] = value;
     return this._collection.updateOne(
       {
@@ -164,17 +160,15 @@ class MongoStore<T extends CoreModel> extends Store<T> {
     if (index === undefined) {
       params = {
         $push: {},
-        $set: {
-          _lastUpdate: updateDate.toString()
-        }
+        $set: {}
       };
+      params["$set"][this._lastUpdateField] = updateDate.toString();
       params["$push"][prop] = item;
     } else {
       params = {
-        $set: {
-          _lastUpdate: updateDate
-        }
+        $set: {}
       };
+      params["$set"][this._lastUpdateField] = updateDate.toString();
       params["$set"][prop + "." + index] = item;
       filter[
         prop + "." + index + "." + itemWriteConditionField
@@ -280,13 +274,9 @@ class MongoStore<T extends CoreModel> extends Store<T> {
     await this._connect();
     await this._collection.deleteMany();
     if (this._params.index) {
-      await this.save(
-        {
-          uuid: "index",
-          _lastUpdate: new Date()
-        },
-        "index"
-      );
+      let index = { uuid: "index" };
+      index[this._lastUpdateField] = new Date().toString();
+      await this.save(index, "index");
     }
   }
 

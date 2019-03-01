@@ -85,7 +85,7 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
     };
     var attrs = {};
     attrs["#" + attribute] = attribute;
-    attrs["#lastUpdate"] = "_lastUpdate";
+    attrs["#lastUpdate"] = this._lastUpdateField;
     params.ExpressionAttributeNames = attrs;
     params.ExpressionAttributeValues = {
       ":lastUpdate": this._serializeDate(new Date())
@@ -117,7 +117,7 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
     };
     var attrs = {};
     attrs["#" + prop] = prop;
-    attrs["#lastUpdate"] = "_lastUpdate";
+    attrs["#lastUpdate"] = this._lastUpdateField;
     params.ExpressionAttributeNames = attrs;
     params.ExpressionAttributeValues = {
       ":lastUpdate": this._serializeDate(updateDate)
@@ -158,7 +158,7 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
     var attrValues = {};
     var attrs = {};
     attrs["#" + prop] = prop;
-    attrs["#lastUpdate"] = "_lastUpdate";
+    attrs["#lastUpdate"] = this._lastUpdateField;
     attrValues[":" + prop] = this._cleanObject(item);
     attrValues[":lastUpdate"] = this._serializeDate(updateDate);
     params.ExpressionAttributeValues = attrValues;
@@ -340,7 +340,7 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
       },
       ExpressionAttributeNames: {
         "#a1": prop,
-        "#a2": "_lastUpdate"
+        "#a2": this._lastUpdateField
       }
     };
     return this._client.update(params).promise();
@@ -440,7 +440,9 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
     }
     await Promise.all(promises);
     if (this._params.index) {
-      await this.save({ _lastUpdate: new Date(), uuid: "index" }, "index");
+      let index = { uuid: "index" };
+      index[this._lastUpdateField] = new Date();
+      await this.save(index, "index");
     }
   }
 

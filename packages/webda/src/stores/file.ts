@@ -86,7 +86,7 @@ class FileStore<T extends CoreModel> extends Store<T> {
       }
       res[prop][index] = item;
     }
-    res._lastUpdate = updateDate;
+    res[this._lastUpdateField] = updateDate;
     await this._save(res, uid);
   }
 
@@ -116,7 +116,7 @@ class FileStore<T extends CoreModel> extends Store<T> {
       throw Error("UpdateCondition not met");
     }
     res[prop].splice(index, 1);
-    res._lastUpdate = updateDate;
+    res[this._lastUpdateField] = updateDate;
     return this._save(res, uid);
   }
 
@@ -195,7 +195,7 @@ class FileStore<T extends CoreModel> extends Store<T> {
     if (stored[prop] === undefined) {
       stored[prop] = 0;
     }
-    stored._lastUpdate = updateDate;
+    stored[this._lastUpdateField] = updateDate;
     stored[prop] += value;
     return this._save(stored, uid);
   }

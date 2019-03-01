@@ -119,7 +119,7 @@ class MongoStore<T extends CoreModel> extends Store<T> {
     };
     remove["$set"][this._lastUpdateField] = updateDate;
     remove["$pull"][prop] = null;
-    await this._collection.update(
+    await this._collection.updateOne(
       {
         _id: uid
       },
@@ -162,13 +162,13 @@ class MongoStore<T extends CoreModel> extends Store<T> {
         $push: {},
         $set: {}
       };
-      params["$set"][this._lastUpdateField] = updateDate.toString();
+      params["$set"][this._lastUpdateField] = updateDate;
       params["$push"][prop] = item;
     } else {
       params = {
         $set: {}
       };
-      params["$set"][this._lastUpdateField] = updateDate.toString();
+      params["$set"][this._lastUpdateField] = updateDate;
       params["$set"][prop + "." + index] = item;
       filter[
         prop + "." + index + "." + itemWriteConditionField
@@ -195,14 +195,14 @@ class MongoStore<T extends CoreModel> extends Store<T> {
     return this._collection.find(request);
   }
 
-  async _delete(uid, writeCondition) {
+  async _delete(uid, writeCondition = undefined) {
     await this._connect();
     return this._collection.deleteOne({
       _id: uid
     });
   }
 
-  async _patch(object, uid, writeCondition) {
+  async _patch(object, uid, writeCondition = undefined) {
     return this._connect()
       .then(() => {
         return this._collection.updateOne(
@@ -219,7 +219,7 @@ class MongoStore<T extends CoreModel> extends Store<T> {
       });
   }
 
-  async _update(object, uid, writeCondition) {
+  async _update(object, uid, writeCondition = undefined) {
     if (object instanceof CoreModel) {
       object = object.toStoredJSON();
     }

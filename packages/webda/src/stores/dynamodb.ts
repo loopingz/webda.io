@@ -84,20 +84,20 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
       }
     };
     var attrs = {};
-    attrs["#" + attribute] = attribute;
+    attrs["#attr"] = attribute;
     attrs["#lastUpdate"] = this._lastUpdateField;
     params.ExpressionAttributeNames = attrs;
     params.ExpressionAttributeValues = {
       ":lastUpdate": this._serializeDate(new Date())
     };
-    params.UpdateExpression =
-      "REMOVE #" + attribute + " SET #lastUpdate = :lastUpdate";
+    params.UpdateExpression = "REMOVE #attr SET #lastUpdate = :lastUpdate";
     try {
       await this._client.update(params).promise();
     } catch (err) {
       if (err.code === "ConditionalCheckFailedException") {
         throw Error("UpdateCondition not met");
       }
+      throw err;
     }
   }
 
@@ -137,6 +137,7 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
       if (err.code === "ConditionalCheckFailedException") {
         throw Error("UpdateCondition not met");
       }
+      throw err;
     }
   }
 
@@ -198,6 +199,7 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
       if (err.code === "ConditionalCheckFailedException") {
         throw Error("UpdateCondition not met");
       }
+      throw err;
     }
   }
 
@@ -221,7 +223,7 @@ class DynamoStore<T extends CoreModel> extends Store<T> {
     return this._client.delete(params).promise();
   }
 
-  async _patch(object, uid, writeCondition) {
+  async _patch(object, uid, writeCondition = undefined) {
     object = this._cleanObject(object);
     var expr = "SET ";
     var sep = "";

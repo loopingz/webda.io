@@ -439,7 +439,10 @@ class S3Binary extends AWSMixIn(Binary) {
         "s3:PutObjectAcl",
         "s3:RestoreObject"
       ],
-      Resource: ["arn:aws:s3:::" + this._params.bucket]
+      Resource: [
+        `arn:aws:s3:::${this._params.bucket}`,
+        `arn:aws:s3:::${this._params.bucket}/*`
+      ]
     };
   }
 

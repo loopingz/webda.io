@@ -189,7 +189,6 @@ async function mapper(identStore, userStore) {
 
   // Check index
   await index.refresh();
-  console.log(index);
   assert.equal(index[ident2.uuid], undefined);
   assert.equal(index[ident1.uuid], undefined);
 

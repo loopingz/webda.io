@@ -312,9 +312,12 @@ class Authentication extends Executor {
     let ident: Ident = await this._identsStore.get(identArg.uuid);
     if (ident) {
       await this.login(ctx, ident._user, ident);
-      await this._identsStore.patch({
-        '_lastUsed': new Date()
-      }, ident.uuid);
+      await this._identsStore.patch(
+        {
+          _lastUsed: new Date()
+        },
+        ident.uuid
+      );
       ctx.writeHead(302, {
         Location:
           this._params.successRedirect + "?validation=" + ctx._params.provider,
@@ -428,18 +431,12 @@ class Authentication extends Executor {
     if (user._lastPasswordRecovery > Date.now() - 3600000 * 4) {
       throw 429;
     }
-<<<<<<< HEAD
-    await this._usersStore.update(
+    await this._usersStore.patch(
       {
         _lastPasswordRecovery: Date.now()
       },
       user.uuid
     );
-=======
-    await this._usersStore.patch({
-      _lastPasswordRecovery: Date.now()
-    }, user.uuid);
->>>>>>> Move all server variable to _
     await this.sendRecoveryEmail(ctx, user, ctx._params.email);
   }
 
@@ -476,18 +473,12 @@ class Authentication extends Executor {
       throw 410;
     }
     await this._verifyPassword(ctx.body.password);
-<<<<<<< HEAD
-    await this._usersStore.update(
+    await this._usersStore.patch(
       {
         __password: this.hashPassword(ctx.body.password)
       },
       ctx.body.login.toLowerCase()
     );
-=======
-    await this._usersStore.patch({
-      __password: this.hashPassword(ctx.body.password)
-    }, ctx.body.login.toLowerCase());
->>>>>>> Move all server variable to _
   }
 
   async _handleEmailCallback(ctx) {
@@ -506,18 +497,12 @@ class Authentication extends Executor {
     if (ident === undefined) {
       throw 404;
     }
-<<<<<<< HEAD
-    await this._identsStore.update(
+    await this._identsStore.patch(
       {
         validation: new Date()
       },
       ident.uuid
     );
-=======
-    await this._identsStore.patch({
-      validation: new Date()
-    }, ident.uuid);
->>>>>>> Move all server variable to _
     ctx.writeHead(302, {
       Location:
         this._params.successRedirect + "?validation=" + ctx._params.provider,
@@ -684,17 +669,10 @@ class Authentication extends Executor {
         let user = await this.registerUser(ctx, ctx.body, ctx.body);
         user = await this._usersStore.save(user);
         var newIdent: any = {
-<<<<<<< HEAD
           uuid: uuid,
           type: "email",
-          email: email,
-          user: user.uuid
-=======
-          'uuid': uuid,
-          'type': 'email',
-          '_email': email,
-          '_user': user.uuid
->>>>>>> Move all server variable to _
+          _email: email,
+          _user: user.uuid
         };
         if (validation) {
           newIdent.validation = validation;

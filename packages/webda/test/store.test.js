@@ -461,7 +461,7 @@ describe("Store", () => {
       });
       await executor.execute(ctx);
       // Our fake action is pushing true to _plop
-      assert.equal(JSON.parse(ctx._body)._plop, true);
+      assert.equal(JSON.parse(ctx.getResponseBody())._plop, true);
       assert.equal(eventFired, 2);
       assert.notEqual(
         webda.getExecutor(ctx, "test.webda.io", "POST", "/idents/coucou/yop"),
@@ -491,7 +491,7 @@ describe("Store", () => {
       assert.notEqual(executor, undefined);
       await executor.execute(ctx);
       // Our fake index action is just outputing 'indexer'
-      assert.equal(ctx._body, "indexer");
+      assert.equal(ctx.getResponseBody(), "indexer");
       assert.equal(eventFired, 1);
     });
   });
@@ -513,8 +513,8 @@ describe("Store", () => {
       await webda
         .getExecutor(ctx, "test.webda.io", "GET", "/users/PLOP")
         .execute(ctx);
-      assert.notEqual(ctx._body, undefined);
-      assert.equal(ctx._body.indexOf("_lastUpdate") >= 0, true);
+      assert.notEqual(ctx.getResponseBody(), undefined);
+      assert.equal(ctx.getResponseBody().indexOf("_lastUpdate") >= 0, true);
       ctx.body = {
         type: "CRUD2",
         uuid: "PLOP"
@@ -538,7 +538,7 @@ describe("Store", () => {
       assert.equal(user.type, "CRUD2");
       assert.equal(user.additional, "field");
       assert.equal(user.user, "fake_user");
-      ctx._body = undefined;
+      ctx.resetResponse();
       // Check PATH
       ctx.body = {
         type: "CRUD3",

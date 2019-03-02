@@ -58,7 +58,7 @@ describe("CoreModel", () => {
       it("Verify Context access within output to server", () => {
         let task = new Task();
         ctx.write(task);
-        let result = JSON.parse(ctx._body);
+        let result = JSON.parse(ctx.getResponseBody());
         assert.equal(result._gotContext, true);
       });
     });

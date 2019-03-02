@@ -9,7 +9,7 @@ import { CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { Ident } from "./models/ident";
 import { User } from "./models/user";
 // Utils
-import { Context, ClientInfo } from "./utils/context";
+import { Context, ClientInfo, HttpContext } from "./utils/context";
 import { SecureCookie } from "./utils/cookie";
 import { LambdaCaller } from "./utils/lambdacaller";
 // Handler
@@ -83,6 +83,7 @@ export {
   LambdaCaller,
   Context,
   ClientInfo,
+  HttpContext,
   // Handler
   AWSEventHandlerMixIn,
   LambdaServer,

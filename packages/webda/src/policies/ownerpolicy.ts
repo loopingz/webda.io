@@ -1,5 +1,5 @@
 "use strict";
-
+import { Context } from "../index";
 class OwnerPolicy {
   _user: any;
   public: boolean;
@@ -7,7 +7,7 @@ class OwnerPolicy {
   /**
    * Return false if can't create
    */
-  async canCreate(ctx) {
+  async canCreate(ctx: Context) {
     this._user = ctx.session.getUserId();
     if (!this._user) {
       throw 403;
@@ -19,7 +19,7 @@ class OwnerPolicy {
     return this._user;
   }
 
-  async canAct(ctx, action) {
+  async canAct(ctx: Context, action: string) {
     if (action === "create") {
       return this.canCreate(ctx);
     } else if (
@@ -38,7 +38,7 @@ class OwnerPolicy {
   /**
    * Return false if can't update
    */
-  async canUpdate(ctx) {
+  async canUpdate(ctx: Context) {
     // Allow to modify itself by default
     if (
       ctx.session.getUserId() !== this.getOwner() &&
@@ -52,7 +52,7 @@ class OwnerPolicy {
   /**
    * Return false if can't get
    */
-  async canGet(ctx) {
+  async canGet(ctx: Context) {
     if (this.public) {
       return this;
     }
@@ -71,7 +71,7 @@ class OwnerPolicy {
   /**
    * Return false if can't delete
    */
-  async canDelete(ctx) {
+  async canDelete(ctx: Context) {
     return this.canUpdate(ctx);
   }
 }

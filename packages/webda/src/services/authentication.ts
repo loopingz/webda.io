@@ -239,14 +239,15 @@ class Authentication extends Executor {
     }
   }
 
-  addProvider(name, strategy, config) {
+  addProvider(name: string, strategy, config) {
     Strategies[name] = strategy;
     this._params.providers[name] = config;
   }
 
-  _callback(ctx) {
+  _callback(ctx: Context) {
+    let provider = ctx.parameter("provider");
     this.log("TRACE", "Callback from OAuth called");
-    var providerConfig = this._params.providers[ctx._params.provider];
+    var providerConfig = this._params.providers[provider];
     if (!providerConfig) {
       throw 404;
     }
@@ -255,14 +256,14 @@ class Authentication extends Executor {
         this.log("TRACE", "Callback from OAuth done", err, user, info);
         resolve();
       };
-      this.setupOAuth(ctx, providerConfig, ctx._params.provider);
+      this.setupOAuth(ctx, providerConfig, provider);
       this.log(
         "TRACE",
         "OAuth Setup authenticate",
-        this._getProviderName(ctx._params.provider)
+        this._getProviderName(provider)
       );
       passport.authenticate(
-        this._getProviderName(ctx._params.provider),
+        this._getProviderName(provider),
         {
           successRedirect: this._params.successRedirect,
           failureRedirect: this._params.failureRedirect
@@ -272,7 +273,7 @@ class Authentication extends Executor {
     });
   }
 
-  async _getMe(ctx) {
+  async _getMe(ctx: Context) {
     let user = await ctx.getCurrentUser();
     if (user === undefined) {
       throw 404;
@@ -284,7 +285,7 @@ class Authentication extends Executor {
     ctx.write(user);
   }
 
-  async _listAuthentications(ctx) {
+  async _listAuthentications(ctx: Context) {
     if (ctx._route._http.method === "DELETE") {
       await this.logout(ctx);
       ctx.write("GoodBye");
@@ -293,9 +294,10 @@ class Authentication extends Executor {
     ctx.write(Object.keys(this._params.providers));
   }
 
-  getCallbackUrl(ctx) {
-    if (this._params.providers[ctx._params.provider].callbackURL) {
-      return this._params.providers[ctx._params.provider].callbackURL;
+  getCallbackUrl(ctx: Context) {
+    let provider = ctx.parameter("provider");
+    if (this._params.providers[provider].callbackURL) {
+      return this._params.providers[provider].callbackURL;
     }
     let host = ctx._route._http.headers.host || ctx._route._http.host;
     // TODO Issue with specified port for now
@@ -307,7 +309,8 @@ class Authentication extends Executor {
     return url + "/callback";
   }
 
-  async handleOAuthReturn(ctx, identArg: any, done) {
+  async handleOAuthReturn(ctx: Context, identArg: any, done) {
+    let provider = ctx.parameter("provider");
     this.log("TRACE", "Handle OAuth return", identArg);
     let ident: Ident = await this._identsStore.get(identArg.uuid);
     if (ident) {
@@ -319,8 +322,7 @@ class Authentication extends Executor {
         ident.uuid
       );
       ctx.writeHead(302, {
-        Location:
-          this._params.successRedirect + "?validation=" + ctx._params.provider,
+        Location: this._params.successRedirect + "?validation=" + provider,
         "X-Webda-Authentication": "success"
       });
       ctx.end();
@@ -347,23 +349,23 @@ class Authentication extends Executor {
       this._params.successRedirect
     );
     ctx.writeHead(302, {
-      Location:
-        this._params.successRedirect + "?validation=" + ctx._params.provider,
+      Location: this._params.successRedirect + "?validation=" + provider,
       "X-Webda-Authentication": "success"
     });
     ctx.end();
     done(ident);
   }
 
-  setupOAuth(ctx, config, name: string) {
+  setupOAuth(ctx: Context, config, name: string) {
+    let provider = ctx.parameter("provider");
     config.callbackURL = this.getCallbackUrl(ctx);
-    let strategy = new Strategies[ctx._params.provider].strategy(
+    let strategy = new Strategies[provider].strategy(
       config,
       (accessToken, refreshToken, profile, done) => {
         this.log(
           "TRACE",
           "OAuth return is",
-          ctx._params.provider,
+          provider,
           profile.id,
           accessToken,
           refreshToken,
@@ -372,7 +374,7 @@ class Authentication extends Executor {
         this.handleOAuthReturn(
           ctx,
           Ident.init(
-            ctx._params.provider,
+            provider,
             profile.id,
             accessToken,
             refreshToken,
@@ -388,7 +390,7 @@ class Authentication extends Executor {
     passport.use(strategy);
   }
 
-  async registerUser(ctx, datas, user: any = {}): Promise<any> {
+  async registerUser(ctx: Context, datas, user: any = {}): Promise<any> {
     user.locale = ctx.getLocale();
     await this.emitSync("Register", {
       user: user,
@@ -399,7 +401,7 @@ class Authentication extends Executor {
   }
 
   getPasswordRecoveryInfos(
-    uuid,
+    uuid: string,
     interval = this._params.passwordRecoveryInterval
   ) {
     var promise;
@@ -419,10 +421,9 @@ class Authentication extends Executor {
     });
   }
 
-  async _passwordRecoveryEmail(ctx) {
-    let ident: Ident = await this._identsStore.get(
-      ctx._params.email + "_email"
-    );
+  async _passwordRecoveryEmail(ctx: Context) {
+    let email = ctx.parameter("email");
+    let ident: Ident = await this._identsStore.get(email + "_email");
     if (!ident) {
       throw 404;
     }
@@ -437,10 +438,10 @@ class Authentication extends Executor {
       },
       user.uuid
     );
-    await this.sendRecoveryEmail(ctx, user, ctx._params.email);
+    await this.sendRecoveryEmail(ctx, user, email);
   }
 
-  _verifyPassword(password) {
+  _verifyPassword(password: string) {
     if (this._passwordVerifier) {
       return this._passwordVerifier.validate(password);
     }
@@ -451,48 +452,51 @@ class Authentication extends Executor {
     return Promise.resolve(true);
   }
 
-  async _passwordRecovery(ctx) {
+  async _passwordRecovery(ctx: Context) {
+    let body = ctx.getRequestBody();
     if (
-      ctx.body.password === undefined ||
-      ctx.body.login === undefined ||
-      ctx.body.token === undefined ||
-      ctx.body.expire === undefined
+      body.password === undefined ||
+      body.login === undefined ||
+      body.token === undefined ||
+      body.expire === undefined
     ) {
       throw 400;
     }
-    let user: User = await this._usersStore.get(ctx.body.login.toLowerCase());
+    let user: User = await this._usersStore.get(body.login.toLowerCase());
     if (
-      ctx.body.token !==
+      body.token !==
       this.hashPassword(
-        ctx.body.login.toLowerCase() + ctx.body.expire + user.__password
+        body.login.toLowerCase() + body.expire + user.__password
       )
     ) {
       throw 403;
     }
-    if (ctx.body.expire < Date.now()) {
+    if (body.expire < Date.now()) {
       throw 410;
     }
-    await this._verifyPassword(ctx.body.password);
+    await this._verifyPassword(body.password);
     await this._usersStore.patch(
       {
-        __password: this.hashPassword(ctx.body.password)
+        __password: this.hashPassword(body.password)
       },
-      ctx.body.login.toLowerCase()
+      body.login.toLowerCase()
     );
   }
 
-  async _handleEmailCallback(ctx) {
-    if (!ctx._params.token) {
+  async _handleEmailCallback(ctx: Context) {
+    if (!ctx.parameter("token")) {
       throw 404;
     }
-    let validation = ctx._params.token;
-    if (validation !== this.generateEmailValidationToken(ctx._params.email)) {
+    let validation = ctx.parameter("token");
+    if (
+      validation !== this.generateEmailValidationToken(ctx.parameter("email"))
+    ) {
       ctx.writeHead(302, {
         Location: this._params.failureRedirect
       });
       return Promise.resolve();
     }
-    var uuid = ctx._params.email + "_email";
+    var uuid = ctx.parameter("email") + "_email";
     let ident = await this._identsStore.get(uuid);
     if (ident === undefined) {
       throw 404;
@@ -505,12 +509,14 @@ class Authentication extends Executor {
     );
     ctx.writeHead(302, {
       Location:
-        this._params.successRedirect + "?validation=" + ctx._params.provider,
+        this._params.successRedirect +
+        "?validation=" +
+        ctx.parameter("provider"),
       "X-Webda-Authentication": "success"
     });
   }
 
-  async sendRecoveryEmail(ctx, user, email) {
+  async sendRecoveryEmail(ctx: Context, user, email: string) {
     let infos = await this.getPasswordRecoveryInfos(user);
     var mailer: Mailer = this.getMailMan();
     let locale = user.locale;
@@ -528,12 +534,12 @@ class Authentication extends Executor {
       replacements: replacements
     };
     if (!user.locale) {
-      mailOptions.locale = ctx.locale;
+      mailOptions.locale = ctx.getLocale();
     }
     return mailer.send(mailOptions);
   }
 
-  async sendValidationEmail(ctx, email) {
+  async sendValidationEmail(ctx: Context, email: string) {
     var mailer: Mailer = this.getMailMan();
     let replacements = _extend({}, this._params.providers.email);
     replacements.context = ctx;
@@ -552,19 +558,19 @@ class Authentication extends Executor {
     return mailer.send(mailOptions);
   }
 
-  hashPassword(pass) {
+  hashPassword(pass: string) {
     var hash = crypto.createHash("sha256");
     return hash.update(pass + this._webda.getSalt()).digest("hex");
   }
 
-  async logout(ctx) {
+  async logout(ctx: Context) {
     await this.emitSync("Logout", {
       ctx: ctx
     });
     ctx.session.destroy();
   }
 
-  async login(ctx, user, ident) {
+  async login(ctx: Context, user, ident) {
     var event: any = {};
     event.userId = user;
     if (typeof user == "object") {
@@ -591,12 +597,13 @@ class Authentication extends Executor {
     );
   }
 
-  async _handleEmail(ctx) {
+  async _handleEmail(ctx: Context) {
     if (this._identsStore === undefined) {
       this._webda.log("ERROR", "Email auth needs an ident store");
       throw 500;
     }
-    if (ctx.body.password === undefined || ctx.body.login === undefined) {
+    let body = ctx.getRequestBody();
+    if (body.password === undefined || body.login === undefined) {
       throw 400;
     }
     var mailConfig = this._params.providers.email;
@@ -606,16 +613,16 @@ class Authentication extends Executor {
       throw 500;
     }
     var updates: any = {};
-    var uuid = ctx.body.login.toLowerCase() + "_email";
+    var uuid = body.login.toLowerCase() + "_email";
     let ident: Ident = await this._identsStore.get(uuid);
     if (ident != undefined && ident._user != undefined) {
       // Register on an known user
-      if (ctx._params.register) {
+      if (ctx.parameter("register")) {
         throw 409;
       }
       let user: User = await this._usersStore.get(ident._user);
       // Check password
-      if (user.__password === this.hashPassword(ctx.body.password)) {
+      if (user.__password === this.hashPassword(body.password)) {
         if (ident._failedLogin > 0) {
           ident._failedLogin = 0;
         }
@@ -644,16 +651,16 @@ class Authentication extends Executor {
       }
     } else {
       // TODO Handle add of email on authenticated user
-      var email = ctx.body.login.toLowerCase();
+      var email = body.login.toLowerCase();
       // Read the form
-      if (ctx.body.register || ctx._params.register) {
+      if (body.register || ctx.parameter("register")) {
         var validation = undefined;
         // Need to check email before creation
         if (
           !mailConfig.postValidation ||
           mailConfig.postValidation === undefined
         ) {
-          if (ctx.body.token == this.generateEmailValidationToken(email)) {
+          if (body.token == this.generateEmailValidationToken(email)) {
             validation = new Date();
           } else {
             ctx.write({});
@@ -662,11 +669,11 @@ class Authentication extends Executor {
           }
         }
         // Store with a _
-        ctx.body.__password = this.hashPassword(ctx.body.password);
-        await this._verifyPassword(ctx.body.password);
-        delete ctx.body.password;
-        delete ctx.body.register;
-        let user = await this.registerUser(ctx, ctx.body, ctx.body);
+        body.__password = this.hashPassword(body.password);
+        await this._verifyPassword(body.password);
+        delete body.password;
+        delete body.register;
+        let user = await this.registerUser(ctx, body, body);
         user = await this._usersStore.save(user);
         var newIdent: any = {
           uuid: uuid,
@@ -689,7 +696,7 @@ class Authentication extends Executor {
     }
   }
 
-  generateEmailValidationToken(email) {
+  generateEmailValidationToken(email: string) {
     return this.hashPassword(email + "_" + this._webda.getSecret());
   }
 
@@ -702,7 +709,8 @@ class Authentication extends Executor {
 
   async _authenticate(ctx: Context) {
     // Handle Logout
-    if (ctx._params.provider == "logout") {
+    let provider = ctx.parameter("provider");
+    if (provider == "logout") {
       await this.logout(ctx);
       if (this._params.logoutRedirect) {
         ctx.writeHead(302, {
@@ -711,16 +719,13 @@ class Authentication extends Executor {
       }
       throw 204;
     }
-    var providerConfig = this._params.providers[ctx._params.provider];
+    var providerConfig = this._params.providers[provider];
     if (providerConfig) {
-      if (!Strategies[ctx._params.provider].promise) {
-        this.setupOAuth(ctx, providerConfig, ctx._params.provider);
-        return passport.authenticate(
-          this._getProviderName(ctx._params.provider),
-          {
-            scope: providerConfig.scope
-          }
-        )(ctx, ctx);
+      if (!Strategies[provider].promise) {
+        this.setupOAuth(ctx, providerConfig, provider);
+        return passport.authenticate(this._getProviderName(provider), {
+          scope: providerConfig.scope
+        })(ctx, ctx);
       }
       return new Promise((resolve, reject) => {
         throw Error("OAuth 1 disabled");

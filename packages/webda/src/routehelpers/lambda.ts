@@ -57,7 +57,7 @@ class LambdaRouteHelper extends Executor {
   async execute(ctx: Context): Promise<any> {
     var caller;
     try {
-      caller = new LambdaCaller(ctx._params);
+      caller = new LambdaCaller(ctx.getParameters());
     } catch (e) {
       ctx.writeHead(500, {
         "Content-Type": "text/plain"

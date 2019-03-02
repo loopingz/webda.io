@@ -227,7 +227,7 @@ describe("Passport", function() {
         "http"
       );
       await executor.execute(ctx);
-      let user = JSON.parse(ctx._body);
+      let user = JSON.parse(ctx.getResponseBody());
       assert.equal(user.plop, "yep");
       assert.equal(user.register, undefined);
       assert.equal(user.locale, "es-ES");
@@ -372,7 +372,7 @@ describe("Passport", function() {
       assert.equal(ctx.statusCode, 302);
       assert.equal(ctx._params.code, "blahblah");
       assert.equal(
-        ctx._headers.Location,
+        ctx.getResponseHeaders().Location,
         "https://webda.io/user.html?validation=github"
       );
       ident = await identStore.get(ident.uuid);
@@ -403,7 +403,7 @@ describe("Passport", function() {
       assert.equal(events, 1); // Only Login
       assert.equal(ctx.statusCode, 302);
       assert.equal(
-        ctx._headers.Location,
+        ctx.getResponseHeaders().Location,
         "https://webda.io/user.html?validation=github"
       );
       user = await userStore.get(ident._user);

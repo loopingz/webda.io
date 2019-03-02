@@ -56,8 +56,8 @@ export default class ResourceService extends Executor {
   }
 
   _serve(ctx) {
-    ctx._params.resource = ctx._params.resource || "index.html";
-    let file = this._params.folder + ctx._params.resource;
+    let resource = ctx.parameter("resource") || "index.html";
+    let file = this._params.folder + resource;
     if (!path.resolve(file).startsWith(this._resolved)) {
       throw 401;
     }

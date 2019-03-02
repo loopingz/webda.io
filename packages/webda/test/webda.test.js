@@ -140,11 +140,11 @@ describe("Webda", function() {
       ctx.writeHead(undefined, {
         test: "plop"
       });
-      assert.equal(ctx._headers["test"], "plop");
+      assert.equal(ctx.getResponseHeaders()["test"], "plop");
       ctx.setHeader("X-Webda", "HEAD");
-      assert.equal(ctx._headers["X-Webda"], "HEAD");
+      assert.equal(ctx.getResponseHeaders()["X-Webda"], "HEAD");
       ctx.write(400);
-      assert.equal(ctx._body, 400);
+      assert.equal(ctx.getResponseBody(), 400);
       ctx.session = new Webda.SecureCookie({});
       Object.observe = (obj, callback) => {
         callback([
@@ -171,110 +171,191 @@ describe("Webda", function() {
   });
   describe("checkCSRF()", function() {
     it("csrfRegExp", function() {
-      assert.equal(
-        webda.checkCSRF("https://accounts.google.fr", "http://localhost:18181"),
-        true
+      webda._config.parameters.website = "http://localhost:18181";
+      ctx.setHttpContext(
+        new Webda.HttpContext(
+          "accounts.google.fr",
+          "GET",
+          "/",
+          "https",
+          443,
+          {}
+        )
       );
-      assert.equal(
-        webda.checkCSRF(
-          "https://accounts.google.com",
-          "http://localhost:18181"
-        ),
-        true
+      assert.equal(webda.checkCSRF(ctx), true);
+      ctx.setHttpContext(
+        new Webda.HttpContext(
+          "accounts.google.com",
+          "GET",
+          "/",
+          "https",
+          443,
+          {}
+        )
       );
-      assert.equal(
-        webda.checkCSRF(
-          "https://accounts.google.fr.loopingz.com",
-          "http://localhost:18181"
-        ),
-        false
+      assert.equal(webda.checkCSRF(ctx), true);
+      ctx.setHttpContext(
+        new Webda.HttpContext(
+          "accounts.google.fr.loopingz.com",
+          "GET",
+          "/",
+          "https",
+          443,
+          {}
+        )
       );
-      assert.equal(
-        webda.checkCSRF("https://www.facebook.com", "http://localhost:18181"),
-        true
+      assert.equal(webda.checkCSRF(ctx), false);
+      ctx.setHttpContext(
+        new Webda.HttpContext("www.facebook.com", "GET", "/", "https", 443, {})
       );
-      assert.equal(
-        webda.checkCSRF(
-          "https://www.facebook.com.eu",
-          "http://localhost:18181"
-        ),
-        false
+      assert.equal(webda.checkCSRF(ctx), true);
+      ctx.setHttpContext(
+        new Webda.HttpContext(
+          "www.facebook.com.eu",
+          "GET",
+          "/",
+          "https",
+          443,
+          {}
+        )
       );
+      assert.equal(webda.checkCSRF(ctx), false);
     });
     it("string", function() {
-      assert.equal(
-        webda.checkCSRF("http://localhost:18181", "http://localhost:18181"),
-        true
+      webda._config.parameters.website = "http://localhost:18181";
+
+      // Exact match
+      ctx.setHttpContext(
+        new Webda.HttpContext("localhost:18181", "GET", "/", "http", 80, {})
       );
-      assert.equal(
-        webda.checkCSRF("http://localhost:18181", "https://localhost:18181"),
-        false
+      assert.equal(webda.checkCSRF(ctx), true);
+
+      // Bad protocol
+      ctx.setHttpContext(
+        new Webda.HttpContext("localhost:18181", "GET", "/", "https", 443, {})
       );
-      assert.equal(
-        webda.checkCSRF("http://localhost:18181", "localhost:18181"),
-        true
+      assert.equal(webda.checkCSRF(ctx), false);
+
+      // Bad port
+      ctx.setHttpContext(
+        new Webda.HttpContext("localhost:18181", "GET", "/", "http", 18182, {})
       );
-      assert.equal(
-        webda.checkCSRF("http://localhost:18182", "localhost:18181"),
-        false
+      assert.equal(webda.checkCSRF(ctx), false);
+
+      // Bad host
+      ctx.setHttpContext(
+        new Webda.HttpContext("localhost2:18181", "GET", "/", "http", 18181, {})
       );
-      assert.equal(
-        webda.checkCSRF("http://localhost2:18181", "localhost:18181"),
-        false
-      );
+      assert.equal(webda.checkCSRF(ctx), false);
     });
     it("array", function() {
-      assert.equal(
-        webda.checkCSRF("http://localhost:18181", [
-          "http://localhost2:18181",
-          "http://localhost:18181"
-        ]),
-        true
+      webda._config.parameters.website = [
+        "http://localhost:18181",
+        "http://localhost2:18181"
+      ];
+      ctx.setHttpContext(
+        new Webda.HttpContext("localhost", "GET", "/", "http", 18181, {})
       );
-      assert.equal(
-        webda.checkCSRF("http://localhost:18181", [
-          "localhost2:18181",
-          "localhost:18181"
-        ]),
-        true
+      assert.equal(webda.checkCSRF(ctx), true);
+
+      // Just host headers
+      webda._config.parameters.website = [
+        "http://localhost:18181",
+        "http://localhost2:18181"
+      ];
+
+      // First host
+      ctx.setHttpContext(
+        new Webda.HttpContext("localhost", "GET", "/", "http", 18181, {})
       );
-      assert.equal(
-        webda.checkCSRF("http://localhost2:18181", [
-          "localhost2:18181",
-          "localhost:18181"
-        ]),
-        true
+      assert.equal(webda.checkCSRF(ctx), true);
+
+      // Second host
+      ctx.setHttpContext(
+        new Webda.HttpContext("localhost2", "GET", "/", "http", 18181, {})
       );
-      assert.equal(
-        webda.checkCSRF("http://localhost:18182", [
-          "localhost2:18181",
-          "localhost:18181"
-        ]),
-        false
+      assert.equal(webda.checkCSRF(ctx), true);
+
+      // Bad port
+      ctx.setHttpContext(
+        new Webda.HttpContext("localhost", "GET", "/", "http", 18182, {})
       );
-      assert.equal(
-        webda.checkCSRF("http://localhost3:18181", [
-          "localhost2:18181",
-          "localhost:18181"
-        ]),
-        false
+      assert.equal(webda.checkCSRF(ctx), false);
+
+      // Bad host
+      ctx.setHttpContext(
+        new Webda.HttpContext("localhost3", "GET", "/", "http", 18181, {})
       );
+      assert.equal(webda.checkCSRF(ctx), false);
     });
     it("object", function() {
+      // Use object
+      webda._config.parameters.website = {
+        url: "localhost:18181"
+      };
+      // Good host
+      ctx.setHttpContext(
+        new Webda.HttpContext("localhost", "GET", "/", "http", 18181, {})
+      );
+      assert.equal(webda.checkCSRF(ctx), true);
+
+      // Bad host
+      ctx.setHttpContext(
+        new Webda.HttpContext("localhost2", "GET", "/", "http", 18181, {})
+      );
+      assert.equal(webda.checkCSRF(ctx), false);
+
+      // Bad port
+      ctx.setHttpContext(
+        new Webda.HttpContext("localhost", "GET", "/", "http", 18182, {})
+      );
+      assert.equal(webda.checkCSRF(ctx), false);
+    });
+    it("CSRF conditional filter", function() {
+      ctx.setHttpContext(
+        new Webda.HttpContext(
+          "csrf.com",
+          "GET",
+          "/bouzouf/route",
+          "https",
+          443,
+          {}
+        )
+      );
       assert.equal(
-        webda.checkCSRF("http://localhost:18181", {
+        webda.checkCSRF(ctx, "http://localhost:18182", {
           url: "localhost:18181"
         }),
         true
       );
+      ctx.setHttpContext(
+        new Webda.HttpContext(
+          "csrf.com",
+          "GET",
+          "/bouzouf2/route",
+          "https",
+          443,
+          {}
+        )
+      );
       assert.equal(
-        webda.checkCSRF("http://localhost2:18181", {
+        webda.checkCSRF(ctx, "http://localhost:18182", {
           url: "localhost:18181"
         }),
         false
       );
+      ctx.setHttpContext(
+        new Webda.HttpContext(
+          "csrfs.com",
+          "GET",
+          "/bouzouf/route",
+          "https",
+          443,
+          {}
+        )
+      );
       assert.equal(
-        webda.checkCSRF("http://localhost:18182", {
+        webda.checkCSRF(ctx, "http://localhost:18182", {
           url: "localhost:18181"
         }),
         false

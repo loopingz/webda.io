@@ -19,10 +19,43 @@ class ClientInfo extends Map<string, any> {
   referer: string;
 }
 
+class HttpContext {
+  host: string;
+  method: string;
+  uri: string;
+  protocol: string;
+  port: number;
+  headers: Map<string, string>;
+  root: string;
+  origin: string;
+  constructor(
+    host: string,
+    method: string,
+    uri: string,
+    protocol: string,
+    port: number,
+    headers: Map<string, string>
+  ) {
+    this.host = host;
+    this.method = method;
+    this.uri = uri;
+    this.protocol = protocol;
+    this.port = port;
+    this.headers = headers;
+    let portUrl = "";
+    if (port !== 80 && protocol === "http") {
+      portUrl = ":" + port;
+    } else if (port !== 443 && protocol === "https") {
+      portUrl = ":" + port;
+    }
+    this.root = this.protocol + "://" + this.host + portUrl;
+    this.origin = this.host + portUrl;
+  }
+}
 class Context extends Map<string, any> {
   clientInfo: ClientInfo;
-  _body: any;
-  _headers: Map<string, string>;
+  private _body: any;
+  private _outputHeaders: Map<string, string>;
   _webda: Webda;
   statusCode: number;
   _cookie: Map<string, string>;
@@ -35,10 +68,12 @@ class Context extends Map<string, any> {
   _promises: Promise<any>[];
   _executor: Executor;
   _flushHeaders: boolean;
-  body: any;
-  _params: any;
+  private body: any;
+  private _params: any = undefined;
+  private _pathParams: any;
+  private _serviceParams: any;
   files: any[];
-  query: any;
+  private _http: HttpContext;
   static current;
 
   /**
@@ -59,6 +94,67 @@ class Context extends Map<string, any> {
   }
 
   /**
+   * Set current http context
+   * @param httpContext current http context
+   */
+  setHttpContext(httpContext: HttpContext) {
+    this._http = httpContext;
+  }
+
+  /**
+   * Get current http context
+   */
+  getHttpContext() {
+    return this._http;
+  }
+
+  /**
+   * Get output headers
+   */
+  getResponseHeaders() {
+    return this._outputHeaders;
+  }
+
+  getRequestParameters() {
+    return this._params;
+  }
+
+  parameter(name: string) {
+    return this.getParameters()[name];
+  }
+
+  getParameters() {
+    return this._params;
+  }
+
+  private processParameters() {
+    this._params = Object.assign({}, this._serviceParams);
+    this._params = Object.assign(this._params, this._pathParams);
+  }
+
+  getServiceParameters() {
+    return this._serviceParams;
+  }
+
+  getPathParameters() {
+    return this._pathParams;
+  }
+
+  setServiceParameters(params: any) {
+    this._serviceParams = params;
+    this.processParameters();
+  }
+
+  setPathParameters(params: any) {
+    this._pathParams = params;
+    this.processParameters();
+  }
+
+  resetResponse() {
+    this._body = undefined;
+    this._outputHeaders.clear();
+  }
+  /**
    * Write data to the client
    *
    * @param output If it is an object it will be serializeb with toPublicJSON, if it is a String it will be appended to the result, if it is a buffer it will replace the result
@@ -66,7 +162,7 @@ class Context extends Map<string, any> {
    */
   write(output) {
     if (typeof output === "object" && !(output instanceof Buffer)) {
-      this._headers["Content-type"] = "application/json";
+      this._outputHeaders["Content-type"] = "application/json";
       // TODO Remove CoreModel.__ctx in 0.11
       CoreModel.__ctx = Context.current = this;
       try {
@@ -93,7 +189,7 @@ class Context extends Map<string, any> {
    * @param {String} value
    */
   setHeader(header, value) {
-    this._headers[header] = value;
+    this._outputHeaders[header] = value;
   }
 
   /**
@@ -104,7 +200,7 @@ class Context extends Map<string, any> {
    * @param {Object} headers to add to the response
    */
   writeHead(httpCode, headers) {
-    _extend(this._headers, headers);
+    _extend(this._outputHeaders, headers);
     if (httpCode !== undefined) {
       this.statusCode = httpCode;
     }
@@ -158,6 +254,14 @@ class Context extends Map<string, any> {
       return Promise.resolve();
     });
     return this._ended;
+  }
+
+  getRequestBody() {
+    return this.body;
+  }
+
+  getResponseBody() {
+    return this._body;
   }
 
   /**
@@ -226,8 +330,6 @@ class Context extends Map<string, any> {
   setRoute(route) {
     this._route = route;
     this._params = _extend(this._params, route.params);
-    // For retro compatibilify
-    this._params = _extend(this._params, this.query);
     if (this._route && this._route._http && this._route._http.headers) {
       this.headers = this._route._http.headers;
     }
@@ -261,7 +363,7 @@ class Context extends Map<string, any> {
     this.body = body;
     this.files = files;
     this._promises = [];
-    this._headers = new Map();
+    this._outputHeaders = new Map();
     this._flushHeaders = false;
     this._body = undefined;
     this.statusCode = 204;
@@ -285,4 +387,4 @@ class Context extends Map<string, any> {
   }
 }
 
-export { Context, ClientInfo };
+export { Context, ClientInfo, HttpContext };

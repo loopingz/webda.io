@@ -1,6 +1,13 @@
 "use strict";
-import { Core as Webda, SecureCookie, ClientInfo, Service } from "../index";
+import {
+  Core as Webda,
+  SecureCookie,
+  ClientInfo,
+  Service,
+  Context
+} from "../index";
 import { Constructor, GetAWS } from "../services/aws-mixin";
+import { HttpContext } from "../utils/context";
 const cookieParse = require("cookie").parse;
 
 function AWSEventHandlerMixIn<T extends Constructor<Service>>(Base: T) {
@@ -31,8 +38,8 @@ class LambdaServer extends Webda {
   /**
    * @ignore
    */
-  flushHeaders(ctx) {
-    var headers = ctx._headers;
+  flushHeaders(ctx: Context) {
+    var headers = ctx.getResponseHeaders() || {};
     // No route found probably coming from an OPTIONS
     if (ctx._route) {
       headers["Set-Cookie"] = this.getCookieHeader(ctx);
@@ -42,9 +49,9 @@ class LambdaServer extends Webda {
     this._result.statusCode = ctx.statusCode;
   }
 
-  flush(ctx) {
-    if (ctx._body !== undefined) {
-      this._result.body = ctx._body;
+  flush(ctx: Context) {
+    if (ctx.getResponseBody() !== undefined) {
+      this._result.body = ctx.getResponseBody();
     }
   }
 
@@ -170,6 +177,13 @@ class LambdaServer extends Webda {
     var method = event.httpMethod || "GET";
     var protocol = headers["CloudFront-Forwarded-Proto"] || "https";
     var port = headers["X-Forwarded-Port"] || 443;
+    if (typeof port === "string") {
+      try {
+        port = Number(port);
+      } catch (err) {
+        port = 443;
+      }
+    }
 
     var resourcePath = event.path;
     // Rebuild query string
@@ -199,6 +213,10 @@ class LambdaServer extends Webda {
     ctx.clientInfo.locale = headers["Accept-Language"];
     ctx.clientInfo.referer = headers["Referer"] || headers.referer;
 
+    ctx.setHttpContext(
+      new HttpContext(vhost, method, resourcePath, protocol, port, headers)
+    );
+
     // Debug mode
     await this.emitSync(
       "Webda.Request",
@@ -213,7 +231,7 @@ class LambdaServer extends Webda {
     let origin = headers.Origin || headers.origin || ctx.clientInfo.referer;
     // Set predefined headers for CORS
     if (origin) {
-      if (this.checkCSRF(origin)) {
+      if (this.checkCSRF(ctx)) {
         ctx.setHeader("Access-Control-Allow-Origin", origin);
       } else {
         // Prevent CSRF
@@ -289,7 +307,7 @@ class LambdaServer extends Webda {
     }
   }
 
-  async handleLambdaReturn(ctx) {
+  async handleLambdaReturn(ctx: Context) {
     // Override when it comes for express component
     if (ctx.statusCode) {
       this._result.code = ctx.statusCode;

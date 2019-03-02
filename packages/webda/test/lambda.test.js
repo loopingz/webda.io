@@ -5,17 +5,17 @@ var config = require("./config.json");
 var webda;
 var skip = false;
 
-describe('Lambda', function() {
+describe("Lambda", function() {
   before(function() {
     skip = process.env["WEBDA_AWS_TEST"] === undefined;
     if (skip) {
       console.log("Not running as no AWS env found");
     }
-  })
+  });
   beforeEach(function() {
     webda = new Webda.Core(config);
   });
-  describe('launch()', function() {
+  describe("launch()", function() {
     var methods = ["GET", "PUT", "POST", "DELETE"];
     for (var i in methods) {
       it(methods[i], async function() {
@@ -24,12 +24,17 @@ describe('Lambda', function() {
           return;
         }
         var ctx = webda.newContext();
-        var executor = webda.getExecutor(ctx, "test.webda.io", methods[i], "/webda");
+        var executor = webda.getExecutor(
+          ctx,
+          "test.webda.io",
+          methods[i],
+          "/webda"
+        );
         await executor.execute(ctx);
         assert.notEqual(ctx, undefined);
         assert.equal(ctx.statusCode, 200);
-        assert.equal(ctx._headers['Content-Type'], 'text/plain');
-        assert.equal(ctx._body, methods[i] + ' called');
+        assert.equal(ctx.getResponseHeaders()["Content-Type"], "text/plain");
+        assert.equal(ctx.getResponseBody(), methods[i] + " called");
       });
     }
   });

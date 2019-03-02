@@ -461,33 +461,33 @@ class Binary extends Executor {
 
   async httpPost(ctx: Context) {
     let targetStore = this._verifyMapAndStore(ctx);
-    let object = await targetStore.get(ctx._params.uid);
+    let object = await targetStore.get(ctx.parameter("uid"));
     object = await this.store(
       targetStore,
       object,
-      ctx._params.property,
+      ctx.parameter("property"),
       this._getFile(ctx),
-      ctx.body
+      ctx.getRequestBody()
     );
     ctx.write(object);
   }
 
   _verifyMapAndStore(ctx: Context): Store<CoreModel> {
+    let store = ctx.parameter("store").toLowerCase();
     // To avoid any probleme lowercase everything
-    var map = this._params.map[
-      this._lowercaseMaps[ctx._params.store.toLowerCase()]
-    ];
+    var map = this._params.map[this._lowercaseMaps[store]];
     if (map === undefined) {
       throw 404;
     }
-    if (typeof map === "string" && map !== ctx._params.property) {
+    let property = ctx.parameter("property");
+    if (typeof map === "string" && map !== property) {
       throw 404;
     }
-    if (Array.isArray(map) && map.indexOf(ctx._params.property) == -1) {
+    if (Array.isArray(map) && map.indexOf(property) == -1) {
       throw 404;
     }
     var targetStore: Store<CoreModel> = <Store<CoreModel>>(
-      this.getService(ctx._params.store)
+      this.getService(store)
     );
     if (targetStore === undefined) {
       throw 404;
@@ -504,7 +504,9 @@ class Binary extends Executor {
 
   async httpChallenge(ctx: Context) {
     let url = await this.putRedirectUrl(ctx);
-    let base64String = new Buffer(ctx.body.hash, "hex").toString("base64");
+    let base64String = new Buffer(ctx.getRequestBody().hash, "hex").toString(
+      "base64"
+    );
     ctx.write({
       url: url,
       done: url === undefined,
@@ -515,19 +517,22 @@ class Binary extends Executor {
   // Executor side
   async httpRoute(ctx: Context) {
     let targetStore = this._verifyMapAndStore(ctx);
-    let object = await targetStore.get(ctx._params.uid);
+    let uid = ctx.parameter("uid");
+    let object = await targetStore.get(uid);
     if (object === undefined) {
       throw 404;
     }
+    let property = ctx.parameter("property");
+    let index = ctx.parameter("index");
     if (
-      object[ctx._params.property] !== undefined &&
-      typeof object[ctx._params.property] !== "object"
+      object[property] !== undefined &&
+      typeof object[property] !== "object"
     ) {
       throw 403;
     }
     if (
-      object[ctx._params.property] === undefined ||
-      object[ctx._params.property][ctx._params.index] === undefined
+      object[property] === undefined ||
+      object[property][index] === undefined
     ) {
       throw 404;
     }
@@ -541,7 +546,7 @@ class Binary extends Executor {
     }
     await object.canAct(ctx, action);
     if (ctx._route._http.method == "GET") {
-      var file = object[ctx._params.property][ctx._params.index];
+      var file = object[property][index];
       ctx.writeHead(200, {
         "Content-Type":
           file.mimetype === undefined
@@ -561,28 +566,20 @@ class Binary extends Executor {
         readStream.pipe(ctx._stream);
       });
     } else {
-      if (
-        object[ctx._params.property][ctx._params.index].hash !==
-        ctx._params.hash
-      ) {
+      if (object[property][index].hash !== ctx.parameter("hash")) {
         throw 412;
       }
       if (ctx._route._http.method == "DELETE") {
-        object = await this.delete(
-          targetStore,
-          object,
-          ctx._params.property,
-          ctx._params.index
-        );
+        object = await this.delete(targetStore, object, property, index);
         ctx.write(object);
       } else if (ctx._route._http.method == "PUT") {
         object = await this.update(
           targetStore,
           object,
-          ctx._params.property,
-          ctx._params.index,
+          property,
+          index,
           this._getFile(ctx),
-          ctx.body
+          ctx.getRequestBody()
         );
         ctx.write(object);
       }

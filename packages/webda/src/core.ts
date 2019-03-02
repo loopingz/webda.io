@@ -42,6 +42,9 @@ interface Configuration {
   [key: string]: any;
 }
 
+interface CorsFilter {
+  checkCSRF(context: Context): boolean;
+}
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
  *
@@ -63,6 +66,7 @@ class Webda extends events.EventEmitter {
   _loggers: Logger[] = [];
   _initTime: number;
   _logger: ConsoleLogger;
+  _corsFilters: CorsFilter[] = [];
 
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
@@ -141,7 +145,10 @@ class Webda extends events.EventEmitter {
       // Init services
       let service;
       for (service in this._config._services) {
-        if (this._config._services[service].init !== undefined) {
+        if (
+          this._config._services[service].init !== undefined &&
+          !this._config._services[service]._createException
+        ) {
           try {
             // TODO Define parralel initialization
             this.log("TRACE", "Initializing service", service);
@@ -158,6 +165,10 @@ class Webda extends events.EventEmitter {
       resolve();
     });
     return this._init;
+  }
+
+  registerCorsFilter(filter: CorsFilter) {
+    this._corsFilters.push(filter);
   }
 
   /**
@@ -545,7 +556,7 @@ class Webda extends events.EventEmitter {
    * Get the route from a method / url
    * @private
    */
-  getRouteFromUrl(ctx, config, method, url): any {
+  getRouteFromUrl(ctx: Context, config, method, url): any {
     for (let i in config._pathMap) {
       var routeUrl = config._pathMap[i].url;
       var map = config._pathMap[i].config;
@@ -560,7 +571,7 @@ class Webda extends events.EventEmitter {
       }
 
       if (routeUrl === url) {
-        ctx._params = _extend(ctx._params, config.parameters);
+        ctx.setServiceParameters(config.parameters);
         return map;
       }
 
@@ -569,9 +580,8 @@ class Webda extends events.EventEmitter {
       }
       var parse_result = map["_uri-template-parse"].fromUri(url);
       if (parse_result !== undefined) {
-        ctx._params = _extend(ctx._params, config.parameters);
-        ctx._params = _extend(ctx._params, parse_result);
-        ctx.query = parse_result;
+        ctx.setServiceParameters(config.parameters);
+        ctx.setPathParameters(parse_result);
         return map;
       }
     }
@@ -589,7 +599,15 @@ class Webda extends events.EventEmitter {
    * @param {String} port Port can be usefull for auto redirection
    * @param {Object} headers The headers of the request
    */
-  getExecutor(ctx, vhost, method, url, protocol, port, headers): Executor {
+  getExecutor(
+    ctx: Context,
+    vhost: string,
+    method: string,
+    url: string,
+    protocol: string,
+    port: Number,
+    headers: any
+  ): Executor {
     // Check mapping
     var route = this.getRouteFromUrl(ctx, this._config, method, url);
     if (route === undefined) {
@@ -634,7 +652,7 @@ class Webda extends events.EventEmitter {
   /**
    * @private
    */
-  getServiceWithRoute(ctx, route): Executor {
+  getServiceWithRoute(ctx: Context, route): Executor {
     var name = route.executor;
     var executor = <Executor>this.getService(name);
     // If no service is found then check for routehelpers
@@ -669,12 +687,12 @@ class Webda extends events.EventEmitter {
    * Flush the headers to the response, no more header modification is possible after that
    * @abstract
    */
-  flushHeaders(context): void {}
+  flushHeaders(context: Context): void {}
 
   /**
    * Flush the entire response to the client
    */
-  flush(context): void {}
+  flush(context: Context): void {}
 
   /**
    * Return if Webda is in debug mode
@@ -705,29 +723,31 @@ class Webda extends events.EventEmitter {
    * @ignore
    * @protected
    */
-  getCookieHeader(executor): string {
-    var session = executor.session;
+  getCookieHeader(ctx: Context): string {
+    var session = ctx.session;
     var params = {
       path: "/",
-      domain: executor._route._http.host,
+      domain: ctx.getHttpContext().host,
       httpOnly: true,
       secure: false,
       maxAge: 86400 * 7
     };
-    if (executor._route._http.protocol == "https") {
+    if (ctx.getHttpContext().protocol == "https") {
       params.secure = true;
     }
-    if (executor._route._http.wildcard) {
-      params.domain = executor._route._http.vhost;
+    if (ctx._route._http.wildcard) {
+      params.domain = ctx._route._http.vhost;
     }
-    if (executor._params.cookie !== undefined) {
-      if (executor._params.cookie.domain) {
-        params.domain = executor._params.cookie.domain;
+    // Not sure here
+    let cookie = ctx.parameter("cookie");
+    if (cookie !== undefined) {
+      if (cookie.domain) {
+        params.domain = cookie.domain;
       } else {
-        params.domain = executor._route._http.host;
+        params.domain = ctx.getHttpContext().host;
       }
-      if (executor._params.cookie.maxAge) {
-        params.maxAge = executor._params.cookie.maxAge;
+      if (cookie.maxAge) {
+        params.maxAge = cookie.maxAge;
       }
     }
     // Expiracy at one week - should configure it
@@ -1045,13 +1065,12 @@ class Webda extends events.EventEmitter {
   /**
    * Verify if an origin is allowed to do request on the API
    *
-   * @param origin to check
-   * @param website @deprecated
+   * @param context Context of the request
    */
-  checkCSRF(origin, website = undefined): boolean {
-    if (!website) {
-      website = this.getGlobalParams().website || "";
-    }
+  checkCSRF(ctx: Context): boolean {
+    let httpContext = ctx.getHttpContext();
+    let website = this.getGlobalParams().website || "";
+
     if (!Array.isArray(website)) {
       if (typeof website === "object") {
         website = [website.url];
@@ -1059,7 +1078,11 @@ class Webda extends events.EventEmitter {
         website = [website];
       }
     }
-    let parsed = url.parse(origin);
+    for (let i in this._corsFilters) {
+      if (this._corsFilters[i].checkCSRF(ctx)) {
+        return true;
+      }
+    }
     let origins = this.getGlobalParams().csrfOrigins || [];
     for (let i in origins) {
       if (!origins[i].endsWith("$")) {
@@ -1068,14 +1091,18 @@ class Webda extends events.EventEmitter {
       if (!origins[i].startsWith("^")) {
         origins[i] = "^" + origins[i];
       }
-      if (parsed.host.match(new RegExp(origins[i]))) {
+      let regexp = new RegExp(origins[i]);
+      if (httpContext.origin.match(regexp)) {
+        return true;
+      }
+      if (httpContext.root.match(regexp)) {
         return true;
       }
     }
     // Host match or complete match
     if (
-      website.indexOf(parsed.host) >= 0 ||
-      website.indexOf(origin) >= 0 ||
+      website.indexOf(httpContext.root) >= 0 ||
+      website.indexOf(httpContext.origin) >= 0 ||
       website === "*"
     ) {
       return true;

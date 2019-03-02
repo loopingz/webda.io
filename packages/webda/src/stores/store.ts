@@ -4,7 +4,8 @@ import {
   Executor,
   ConfigurationProvider,
   CoreModelDefinition,
-  CoreModel
+  CoreModel,
+  Context
 } from "../index";
 
 /**
@@ -1010,9 +1011,10 @@ class Store<T extends CoreModel> extends Executor
 
   // ADD THE EXECUTOR PART
 
-  async httpCreate(ctx) {
+  async httpCreate(ctx: Context) {
+    let body = ctx.getRequestBody();
     var object = new this._model();
-    object.load(ctx.body);
+    object.load(body);
     object[this._creationDateField] = new Date();
     await object.canAct(ctx, "create");
     try {
@@ -1027,19 +1029,21 @@ class Store<T extends CoreModel> extends Executor
     await this.save(object, object.uuid);
     ctx.write(object);
     await this.emitSync("Store.WebCreate", {
-      values: ctx.body,
+      values: body,
       object: object,
       store: this
     });
   }
 
-  async httpAction(ctx) {
+  async httpAction(ctx: Context) {
     let action = ctx._route._http.url.split("/").pop();
-    if (!ctx._params.uuid) {
+    let body = ctx.getRequestBody();
+    let uuid = ctx.parameter("uuid");
+    if (!uuid) {
       throw 400;
     }
 
-    let object = await this.get(ctx._params.uuid);
+    let object = await this.get(uuid);
     if (object === undefined || object.__deleted) {
       throw 404;
     }
@@ -1048,8 +1052,8 @@ class Store<T extends CoreModel> extends Executor
       action: action,
       object: object,
       store: this,
-      body: ctx.body,
-      params: ctx._params
+      body,
+      params: ctx.getRequestParameters()
     });
     let res = await object["_" + action](ctx);
     if (res) {
@@ -1059,18 +1063,19 @@ class Store<T extends CoreModel> extends Executor
       action: action,
       object: object,
       store: this,
-      body: ctx.body,
-      params: ctx._params
+      body,
+      params: ctx.getRequestParameters()
     });
   }
 
-  async httpGlobalAction(ctx) {
+  async httpGlobalAction(ctx: Context) {
+    let body = ctx.getRequestBody();
     let action = ctx._route._http.url.split("/").pop();
     await this.emitSync("Store.Action", {
       action: action,
       store: this,
-      body: ctx.body,
-      params: ctx._params
+      body,
+      params: ctx.getParameters()
     });
     let res = await this._model["_" + action](ctx);
     if (res) {
@@ -1079,30 +1084,32 @@ class Store<T extends CoreModel> extends Executor
     await this.emitSync("Store.Actioned", {
       action: action,
       store: this,
-      body: ctx.body,
-      params: ctx._params
+      body,
+      params: ctx.getParameters()
     });
   }
 
-  async httpUpdate(ctx) {
-    ctx.body.uuid = ctx._params.uuid;
-    let object = await this.get(ctx._params.uuid);
+  async httpUpdate(ctx: Context) {
+    let body = ctx.getRequestBody();
+    let uuid = ctx.parameter("uuid");
+    body.uuid = uuid;
+    let object = await this.get(uuid);
     if (!object || object.__deleted) throw 404;
     await object.canAct(ctx, "update");
     try {
-      await object.validate(ctx, ctx.body);
+      await object.validate(ctx, body);
     } catch (err) {
       this.log("Object invalid", err);
       throw 400;
     }
     if (ctx._route._http.method === "PATCH") {
       let updateObject: any = new this._model();
-      updateObject.load(ctx.body);
-      await this.patch(updateObject, ctx._params.uuid);
+      updateObject.load(body);
+      await this.patch(updateObject, uuid);
       object = undefined;
     } else {
       let updateObject: any = new this._model();
-      updateObject.load(ctx.body);
+      updateObject.load(body);
       // Copy back the _ attributes
       for (let i in object) {
         if (i.startsWith("_")) {
@@ -1116,19 +1123,20 @@ class Store<T extends CoreModel> extends Executor
       }
 
       // Add mappers back to
-      object = await this.update(updateObject, ctx._params.uuid);
+      object = await this.update(updateObject, uuid);
     }
     ctx.write(object);
     await this.emitSync("Store.WebUpdate", {
-      updates: ctx.body,
+      updates: body,
       object: object,
       store: this
     });
   }
 
-  async httpGet(ctx) {
-    if (ctx._params.uuid) {
-      let object = await this.get(ctx._params.uuid);
+  async httpGet(ctx: Context) {
+    let uuid = ctx.parameter("uuid");
+    if (uuid) {
+      let object = await this.get(uuid);
       if (object === undefined || object.__deleted) {
         throw 404;
       }
@@ -1144,20 +1152,21 @@ class Store<T extends CoreModel> extends Executor
     }
   }
 
-  async httpRoute(ctx) {
+  async httpRoute(ctx: Context) {
+    let uuid = ctx.parameter("uuid");
     if (ctx._route._http.method == "GET") {
       return this.httpGet(ctx);
     } else if (ctx._route._http.method == "DELETE") {
-      let object = await this.get(ctx._params.uuid);
+      let object = await this.get(uuid);
       if (!object || object.__deleted) throw 404;
       await object.canAct(ctx, "delete");
       // http://stackoverflow.com/questions/28684209/huge-delay-on-delete-requests-with-204-response-and-no-content-in-objectve-c#
       // IOS don't handle 204 with Content-Length != 0 it seems
       // Have trouble to handle the Content-Length on API Gateway so returning an empty object for now
       ctx.write({});
-      await this.delete(ctx._params.uuid);
+      await this.delete(uuid);
       await this.emitSync("Store.WebDelete", {
-        object_id: ctx._params.uuid,
+        object_id: uuid,
         store: this
       });
     } else if (

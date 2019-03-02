@@ -10,14 +10,14 @@ var failed = false;
 var webda;
 var ctx;
 
-describe('Policy', () => {
+describe("Policy", () => {
   var taskStore;
   var userStore;
   before(async () => {
     webda = new Webda.Core(config);
     await webda.init();
   });
-  describe('OwnerPolicy', () => {
+  describe("OwnerPolicy", () => {
     beforeEach(async function() {
       taskStore = webda.getService("Tasks");
       userStore = webda.getService("Users");
@@ -41,80 +41,151 @@ describe('Policy', () => {
         public: true
       });
     });
-    it('POST - not logged', async () => {
+    it("POST - not logged", async () => {
       executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/tasks");
       assert.notEqual(executor, undefined);
       ctx.body = {
-        "name": "Task #1"
+        name: "Task #1"
       };
-      await Utils.throws(executor.execute.bind(executor, ctx), res => res == 403);
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        res => res == 403
+      );
     });
-    it('POST', async () => {
+    it("POST", async () => {
       executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/tasks");
       ctx.session.login("fake_user", "fake_ident");
       ctx.body = {
-        "name": "Task #1"
+        name: "Task #1"
       };
       await executor.execute(ctx);
-      task = ctx.body;
+      task = JSON.parse(ctx.getResponseBody());
       assert.equal(task.name, "Task #1");
     });
-    it('GET - wrong owner', async () => {
+    it("GET - wrong owner", async () => {
       ctx.session.login("fake_user2", "fake_ident");
       ctx.body = {};
-      executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/tasks/task_user1");
-      await Utils.throws(executor.execute.bind(executor, ctx), res => res == 403);
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "GET",
+        "/tasks/task_user1"
+      );
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        res => res == 403
+      );
     });
-    it('PUT - wrong owner', async () => {
+    it("PUT - wrong owner", async () => {
       ctx.session.login("fake_user2", "fake_ident");
       ctx.body = {};
-      executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/tasks/task_user1");
-      await Utils.throws(executor.execute.bind(executor, ctx), res => res == 403);
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "PUT",
+        "/tasks/task_user1"
+      );
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        res => res == 403
+      );
     });
-    it('PUT', async () => {
+    it("PUT", async () => {
       ctx.session.login("fake_user", "fake_ident");
       ctx.body = {
-        'public': true
+        public: true
       };
-      executor = webda.getExecutor(ctx, "test.webda.io", "PUT", "/tasks/task_user1");
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "PUT",
+        "/tasks/task_user1"
+      );
       await executor.execute(ctx);
-      let result = JSON.parse(ctx._body);
+      let result = JSON.parse(ctx.getResponseBody());
       assert.equal(result.uuid, "task_user1");
       assert.equal(result.public, true);
     });
-    it('GET - public', async () => {
+    it("GET - public", async () => {
       ctx.session.login("fake_user2", "fake_ident");
-      executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/tasks/task_public");
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "GET",
+        "/tasks/task_public"
+      );
       await executor.execute(ctx);
-      let result = JSON.parse(ctx._body);
-      assert.equal(result.uuid, 'task_public');
+      let result = JSON.parse(ctx.getResponseBody());
+      assert.equal(result.uuid, "task_public");
     });
-    it('Actions', async () => {
+    it("Actions", async () => {
       ctx.session.login("fake_user2", "fake_ident");
-      executor = webda.getExecutor(ctx, "test.webda.io", "GET", '/tasks/task_user1/actionable');
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "GET",
+        "/tasks/task_user1/actionable"
+      );
       await executor.execute(ctx);
-      executor = webda.getExecutor(ctx, "test.webda.io", "PUT", '/tasks/task_user1/impossible');
-      await Utils.throws(executor.execute.bind(executor, ctx), res => res == 403);
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "PUT",
+        "/tasks/task_user1/impossible"
+      );
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        res => res == 403
+      );
     });
-    it('DELETE', async () => {
+    it("DELETE", async () => {
       ctx.session.login("fake_user2", "fake_ident");
-      executor = webda.getExecutor(ctx, "test.webda.io", "DELETE", "/tasks/task_user2");
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "DELETE",
+        "/tasks/task_user2"
+      );
       await executor.execute(ctx);
     });
-    it('DELETE - wrong owner', async () => {
+    it("DELETE - wrong owner", async () => {
       ctx.session.login("fake_user2", "fake_ident");
-      executor = webda.getExecutor(ctx, "test.webda.io", "DELETE", "/tasks/task_user1");
-      await Utils.throws(executor.execute.bind(executor, ctx), res => res == 403);
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "DELETE",
+        "/tasks/task_user1"
+      );
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        res => res == 403
+      );
     });
-    it('DELETE - wrong owner - public', async () => {
+    it("DELETE - wrong owner - public", async () => {
       ctx.session.login("fake_user2", "fake_ident");
-      executor = webda.getExecutor(ctx, "test.webda.io", "DELETE", "/tasks/task_public");
-      await Utils.throws(executor.execute.bind(executor, ctx), res => res == 403);
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "DELETE",
+        "/tasks/task_public"
+      );
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        res => res == 403
+      );
     });
-    it('DELETE - unknown', async () => {
+    it("DELETE - unknown", async () => {
       ctx.session.login("fake_user2", "fake_ident");
-      executor = webda.getExecutor(ctx, "test.webda.io", "DELETE", "/tasks/task_unknown");
-      await Utils.throws(executor.execute.bind(executor, ctx), res => res == 404);
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "DELETE",
+        "/tasks/task_unknown"
+      );
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        res => res == 404
+      );
     });
   });
 });

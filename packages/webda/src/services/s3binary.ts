@@ -83,17 +83,21 @@ class S3Binary extends AWSMixIn(Binary) {
   }
 
   async putRedirectUrl(ctx: Context): Promise<string> {
-    if (ctx.body.hash === undefined) {
-      this._webda.log("WARN", "Request not conform", ctx.body);
+    let body = ctx.getRequestBody();
+    if (body.hash === undefined) {
+      this._webda.log("WARN", "Request not conform", body);
       throw 403;
     }
+    let uid = ctx.parameter("uid");
+    let store = ctx.parameter("store");
+    let property = ctx.parameter("property");
     let targetStore = this._verifyMapAndStore(ctx);
-    let object: any = await targetStore.get(ctx._params.uid);
+    let object: any = await targetStore.get(uid);
     await object.canAct(ctx, "attach_binary");
-    var base64String = new Buffer(ctx.body.hash, "hex").toString("base64");
+    var base64String = new Buffer(body.hash, "hex").toString("base64");
     var params = {
       Bucket: this._params.bucket,
-      Key: this._getPath(ctx.body.hash),
+      Key: this._getPath(body.hash),
       ContentType: "application/octet-stream",
       ContentMD5: base64String
     };
@@ -101,14 +105,14 @@ class S3Binary extends AWSMixIn(Binary) {
     let data = this._s3
       .listObjectsV2({
         Bucket: this._params.bucket,
-        Prefix: this._getPath(ctx.body.hash, "")
+        Prefix: this._getPath(body.hash, "")
       })
       .promise();
     let foundMap = false;
     let foundData = false;
     for (let i in data.Contents) {
       if (data.Contents[i].Key.endsWith("data")) foundData = true;
-      if (data.Contents[i].Key.endsWith(ctx._params.uid)) foundMap = true;
+      if (data.Contents[i].Key.endsWith(uid)) foundMap = true;
     }
     if (foundMap) {
       if (foundData) return;
@@ -117,12 +121,12 @@ class S3Binary extends AWSMixIn(Binary) {
     await this.updateSuccess(
       targetStore,
       object,
-      ctx._params.property,
+      property,
       "add",
-      ctx.body,
-      ctx.body.metadatas
+      body,
+      body.metadatas
     );
-    await this.putMarker(ctx.body.hash, ctx._params.uid, ctx._params.store);
+    await this.putMarker(body.hash, uid, store);
     return this.getSignedUrl("putObject", params);
   }
 
@@ -162,22 +166,20 @@ class S3Binary extends AWSMixIn(Binary) {
   }
 
   async getRedirectUrl(ctx) {
+    let uid = ctx.parameter("uid");
+    let index = ctx.parameter("index");
+    let property = ctx.parameter("property");
     let targetStore = this._verifyMapAndStore(ctx);
-    let obj = await targetStore.get(ctx._params.uid);
+    let obj = await targetStore.get(uid);
     if (
       obj === undefined ||
-      obj[ctx._params.property] === undefined ||
-      obj[ctx._params.property][ctx._params.index] === undefined
+      obj[property] === undefined ||
+      obj[property][index] === undefined
     ) {
       throw 404;
     }
     await obj.canAct(ctx, "get_binary");
-    let url = await this.getRedirectUrlFromObject(
-      obj,
-      ctx._params.property,
-      ctx._params.index,
-      ctx
-    );
+    let url = await this.getRedirectUrlFromObject(obj, property, index, ctx);
     ctx.writeHead(302, {
       Location: url
     });
@@ -185,22 +187,20 @@ class S3Binary extends AWSMixIn(Binary) {
   }
 
   async getRedirectUrlInfo(ctx) {
+    let uid = ctx.parameter("uid");
+    let property = ctx.parameter("property");
+    let index = ctx.parameter("index");
     let targetStore = this._verifyMapAndStore(ctx);
-    let obj = await targetStore.get(ctx._params.uid);
+    let obj = await targetStore.get(uid);
     if (
       obj === undefined ||
-      obj[ctx._params.property] === undefined ||
-      obj[ctx._params.property][ctx._params.index] === undefined
+      obj[property] === undefined ||
+      obj[property][index] === undefined
     ) {
       throw 404;
     }
     await obj.canAct(ctx, "get_binary");
-    let url = await this.getRedirectUrlFromObject(
-      obj,
-      ctx._params.property,
-      ctx._params.index,
-      ctx
-    );
+    let url = await this.getRedirectUrlFromObject(obj, property, index, ctx);
     ctx.write({ Location: url });
     ctx.end();
   }
@@ -269,7 +269,7 @@ class S3Binary extends AWSMixIn(Binary) {
       ctx._route._http.headers.host +
       this._url +
       "/upload/data/" +
-      ctx.body.hash
+      ctx.getRequestBody().hash
     );
   }
 

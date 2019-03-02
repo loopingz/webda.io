@@ -30,7 +30,7 @@ class CoreModel extends OwnerPolicy {
     return {};
   }
 
-  load(raw, secure: boolean = false) {
+  load(raw: any, secure: boolean = false) {
     if (!raw) {
       return;
     }

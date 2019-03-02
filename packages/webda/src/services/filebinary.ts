@@ -69,7 +69,7 @@ class FileBinary extends Binary {
     fs.closeSync(fs.openSync(path, "w"));
   }
 
-  getPutUrl(ctx) {
+  getPutUrl(ctx: Context) {
     // Get a full URL, this method should be in a Route Object
     return (
       ctx._route._http.protocol +
@@ -77,7 +77,7 @@ class FileBinary extends Binary {
       ctx._route._http.headers.host +
       this._url +
       "/upload/data/" +
-      ctx.body.hash
+      ctx.getRequestBody().hash
     );
   }
 
@@ -87,16 +87,16 @@ class FileBinary extends Binary {
    * @ignore
    */
   async putRedirectUrl(ctx: Context): Promise<string> {
-    if (ctx.body.hash === undefined) {
-      this._webda.log("WARN", "Request not conform", ctx.body);
+    let body = ctx.getRequestBody();
+    if (body.hash === undefined) {
+      this._webda.log("WARN", "Request not conform", body);
       throw 400;
     }
-    if (
-      fs.existsSync(
-        this._getPath(ctx.body.hash, ctx._params.store + "_" + ctx._params.uid)
-      )
-    ) {
-      if (!fs.existsSync(this._getPath(ctx.body.hash, "data"))) {
+    let uid = ctx.parameter("uid");
+    let store = ctx.parameter("store");
+    let property = ctx.parameter("property");
+    if (fs.existsSync(this._getPath(body.hash, store + "_" + uid))) {
+      if (!fs.existsSync(this._getPath(body.hash, "data"))) {
         return Promise.resolve(this.getPutUrl(ctx));
       }
       // If the link is already register just return directly ok
@@ -104,23 +104,21 @@ class FileBinary extends Binary {
     }
     // Get the target object to add the mapping
     let targetStore = this._verifyMapAndStore(ctx);
-    let object = await targetStore.get(ctx._params.uid);
+    let object = await targetStore.get(uid);
     await this.updateSuccess(
       targetStore,
       object,
-      ctx._params.property,
+      property,
       "add",
-      ctx.body,
-      ctx.body.metadatas
+      body,
+      body.metadatas
     );
     // Need to store the usage of the file
-    if (!fs.existsSync(this._getPath(ctx.body.hash))) {
-      fs.mkdirSync(this._getPath(ctx.body.hash));
+    if (!fs.existsSync(this._getPath(body.hash))) {
+      fs.mkdirSync(this._getPath(body.hash));
     }
-    this._touch(
-      this._getPath(ctx.body.hash, ctx._params.store + "_" + ctx._params.uid)
-    );
-    if (this.challenge(ctx.body.hash, ctx.body.challenge)) {
+    this._touch(this._getPath(body.hash, store + "_" + uid));
+    if (this.challenge(body.hash, body.challenge)) {
       // Return empty as we dont need to upload the data
       return;
     }
@@ -137,8 +135,9 @@ class FileBinary extends Binary {
    * @ignore
    */
   async storeBinary(ctx: Context) {
-    var result = this._getHashes(ctx.body);
-    if (ctx._params.hash !== result.hash) {
+    let body = ctx.getRequestBody();
+    var result = this._getHashes(body);
+    if (ctx.parameter("hash") !== result.hash) {
       throw 400;
     }
     if (!fs.existsSync(this._getPath(result.hash))) {
@@ -148,7 +147,7 @@ class FileBinary extends Binary {
     let path = this._getPath(result.hash, "data");
     if (!fs.existsSync(path)) {
       // Save the data
-      fs.writeFileSync(path, ctx.body);
+      fs.writeFileSync(path, body);
     }
     // Save the challenge
     this._touch(this._getPath(result.hash, "_" + result.challenge));

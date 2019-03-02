@@ -6,8 +6,26 @@ import { CoreModel } from "./coremodel";
  * @class
  */
 class User extends CoreModel {
-  __password: string;
-  _lastPasswordRecovery: number;
+  private __password: string;
+  private _lastPasswordRecovery: number = 0;
+  private _roles: string[] = [];
+  private _groups: string[] = [];
+
+  getGroups(): string[] {
+    return this._groups;
+  }
+
+  getRoles(): string[] {
+    return this._roles;
+  }
+
+  lastPasswordRecoveryBefore(timestamp: number): boolean {
+    return this._lastPasswordRecovery < timestamp;
+  }
+
+  getPassword() {
+    return this.__password;
+  }
 }
 
 export { User };

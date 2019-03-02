@@ -28,3 +28,6 @@ node_modules
 webda-config.json
 lib
 reports
+
+# Test build
+test/build

@@ -2,12 +2,12 @@
   "compilerOptions": {
     "target": "es2015",
     "module": "commonjs",
-    "outDir": "./lib",
+    "outDir": "./test/build/",
     "strict": false,
     "declaration": true,
     "sourceMap": true,
     "experimentalDecorators": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["**/node_modules", "**/*.spec.ts"]
+  "include": ["test/**/*"],
+  "exclude": ["**/node_modules", "**/*.spec.ts", "**/*.d.ts"]
 }

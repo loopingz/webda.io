@@ -13,8 +13,8 @@
   "typings": "lib/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "pretest": "npm run build",
-    "test": "nyc mocha --exit --timeout=100000",
+    "pretest": "tsc && tsc --build tsconfig.test.json",
+    "test": "nyc mocha --recursive --exit --timeout=100000",
     "run": "node core",
     "format": "node ./scripts/format.js",
     "precommit": "npm run test"
@@ -52,12 +52,13 @@
     "glob": "^7.1.2",
     "istanbul": "^1.1.0-alpha.1",
     "mocha": ">=4.0.0",
+    "mocha-typescript": "^1.1.17",
     "nyc": "^11.6.0",
     "prettier": "^1.16.4",
     "remap-istanbul": "^0.11.0",
     "source-map-support": "^0.5.4",
     "ts-node": "^5.0.1",
-    "typescript": "^2.8.1"
+    "typescript": ">=3.3.3333"
   },
   "nyc": {
     "extension": [

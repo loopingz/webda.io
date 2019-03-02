@@ -18,6 +18,7 @@ import {
   Authentication,
   CoreModel,
   Ident,
+  User,
   Mailer,
   MongoStore,
   MemoryQueue,
@@ -125,6 +126,7 @@ class Webda extends events.EventEmitter {
     // Models
     this._models["Webda/CoreModel"] = CoreModel;
     this._models["Webda/Ident"] = Ident;
+    this._models["Webda/User"] = User;
     // Load the configuration
     this._config = this.loadConfiguration(config);
     if (!this._config.version) {

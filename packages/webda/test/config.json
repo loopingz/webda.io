@@ -219,7 +219,8 @@
         "url": "/users"
       },
       "type": "FileStore",
-      "folder": "./test/data/users"
+      "folder": "./test/data/users",
+      "model": "Webda/User"
     },
     "Tasks": {
       "type": "FileStore",

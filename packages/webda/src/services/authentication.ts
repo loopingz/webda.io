@@ -429,7 +429,7 @@ class Authentication extends Executor {
     }
     let user: User = await this._usersStore.get(ident._user);
     // Dont allow to do too many request
-    if (user._lastPasswordRecovery > Date.now() - 3600000 * 4) {
+    if (!user.lastPasswordRecoveryBefore(Date.now() - 3600000 * 4)) {
       throw 429;
     }
     await this._usersStore.patch(
@@ -466,7 +466,7 @@ class Authentication extends Executor {
     if (
       body.token !==
       this.hashPassword(
-        body.login.toLowerCase() + body.expire + user.__password
+        body.login.toLowerCase() + body.expire + user.getPassword()
       )
     ) {
       throw 403;
@@ -622,7 +622,7 @@ class Authentication extends Executor {
       }
       let user: User = await this._usersStore.get(ident._user);
       // Check password
-      if (user.__password === this.hashPassword(body.password)) {
+      if (user.getPassword() === this.hashPassword(body.password)) {
         if (ident._failedLogin > 0) {
           ident._failedLogin = 0;
         }

@@ -22,6 +22,7 @@ class SecureCookie {
   identUsed: string;
   // Expiration date
   exp: number;
+  [key: string]: any;
 
   /** @ignore */
   constructor(options, data) {
@@ -50,6 +51,7 @@ class SecureCookie {
       // Proxy implementation
       return new Proxy(this, {
         set: (obj, prop, value) => {
+          // @ts-ignore
           obj[prop] = value;
           if (prop !== "_changed") {
             this._changed = true;

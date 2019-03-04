@@ -1,0 +1,12 @@
+FROM node:latest
+MAINTAINER loopingz@loopingz.com
+
+RUN apt-get update \
+ && apt-get install -y libpixman-1-dev libcairo2-dev libpangocairo-1.0-0 libpango1.0-dev libgif-dev
+
+RUN mkdir /server/
+ADD . /server/
+
+RUN cd /server && npm install
+RUN mkdir /etc/webda
+CMD cd /server && node server.js  > /data/webda.log

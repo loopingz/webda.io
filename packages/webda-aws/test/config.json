@@ -56,11 +56,11 @@
       "type": "DynamoStore",
       "table": "webda-test-users"
     },
-    "s3binary": {
+    "binary": {
       "type": "S3Binary",
       "bucket": "webda-test",
       "map": {
-        "dynamousers": ["s3images"]
+        "dynamousers": ["images"]
       },
       "expose": {
         "url": "/s3binary"

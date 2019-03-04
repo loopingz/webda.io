@@ -1,0 +1,69 @@
+{
+  "name": "webda-aws",
+  "version": "0.11.0",
+  "description": "Webda AWS Services implementation",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc && webda module",
+    "pretest": "npm run build",
+    "test": "nyc mocha --recursive --exit --timeout=100000 -r ts-node/register test/**/*.test.js src/**/*.spec.ts",
+    "run": "node core",
+    "format": "node ./scripts/format.js",
+    "precommit": "npm run format && npm run test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda-elasticsearch.git"
+  },
+  "keywords": [
+    "webda"
+  ],
+  "files": [
+    "lib",
+    "webda.module.json",
+    "package.json"
+  ],
+  "author": "loopingz",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/loopingz/webda-aws/issues"
+  },
+  "homepage": "https://github.com/loopingz/webda-aws#readme",
+  "dependencies": {
+    "@types/node": "^10.7.0",
+    "aws-sdk": "^2.311.0",
+    "uuid": "^3.3.2",
+    "webda": ">=0.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^9.6.2",
+    "glob": "^7.1.2",
+    "istanbul": "^1.1.0-alpha.1",
+    "js-beautify": "^1.7.5",
+    "mocha": ">=4.0.0",
+    "mocha-typescript": "^1.1.17",
+    "nyc": "^11.6.0",
+    "remap-istanbul": "^0.11.0",
+    "source-map-support": "^0.5.4",
+    "ts-node": "^5.0.1",
+    "typescript": ">=3.3.3333",
+    "webda-shell": ">=0.10.5"
+  },
+  "nyc": {
+    "extension": [
+      ".ts",
+      ".tsx",
+      ".js"
+    ],
+    "include": [
+      "lib/**/*.js"
+    ],
+    "reporter": [
+      "html",
+      "lcov",
+      "json"
+    ],
+    "report-dir": "./reports",
+    "all": true
+  }
+}

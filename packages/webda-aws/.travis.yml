@@ -1,0 +1,26 @@
+language: node_js
+services:
+- mongodb
+addons:
+  sonarcloud:
+    organization: loopingz-github
+node_js:
+- '8'
+before_script:
+- sleep 15
+- mongo webda-test --eval 'db.createUser({user:"travis",pwd:"test",roles:["readWrite"]});'
+script:
+- npm run test
+after_success:
+- sonar-scanner
+before_deploy:
+- npm run build
+deploy:
+  provider: npm
+  email: rcattiau@loopingz.com
+  skip_cleanup: true
+  tag: next
+  on:
+    tags: true
+  api_key:
+    secure: sDOa1vViedYzQLPEolBDUz+sJAcfj8Hb/UoLmvGnc2dFZ5QrLU7h83W/c615HlzvvJh6KV5Lse9VvIhoJbVZ5FMqM8ZyDdbz97bjTGqnxvw9SpLq6CXcKGj8Tpmq/uVvi/qV+FbgGX3XtKwHmSaqwa+fl9xDaFnjPf6tFXNTUXbSXTiz7+NeUYK9JCyFE6ARmoAlg7ljhrqwyPR8KGAFYgceMm4UumFAd/63JNTw1bWkaI30xEW+ezKJz2XdFzQ+yq3/T9DDV8x5ckYzYw5FSyycehjJVgOasrwhIcPnEhAu/SfJJEPYzAaOmXMCSEeX5Oct3e8W4s0/4WOgzuvHoTRGX1dg47rLeoLGY/eB9WXs44TvLeoat0E7s20ISMC4h/PJuMSYC0CBMvuSTKiFNSBPuaczdQgs0Qtwnt7hExRA+G+N9W5DGmv9AquMS2Iht+iRnPCepuTtYlgViwqFZQ892FYGIr/L9vNo+Rgvz8WSYkG+utqVvplSH3s7CPNebq3dFPcAS/4EEfaVELKA0gzC3zzRq8N08qofajivYFTU5VLCZX2PDciy3+0+7N2UAvGljp0luuTKmYcPsEzs1lveRHYF4j732kQLoE1yfWgxXXzOonRMbW7kGQrwEXDrN2iPW37RchdNHTpUowea2UUYDL0Nq+mPPiUDlgJmj1E=

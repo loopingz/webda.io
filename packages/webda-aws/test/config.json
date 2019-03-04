@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "parameters": {
+    "TEST": "Global",
+    "region": "us-east-1",
+    "website": ["test.webda.io", "test2.webda.io"],
+    "csrfOrigins": ["^accounts\\.google\\.\\w{2,}$", "www\\.facebook\\.com"],
+    "locales": ["es-ES", "en-GB", "fr-FR"]
+  },
+  "moddas": {},
+  "services": {
+    "ConsoleLogger": {
+      "type": "Webda/ConsoleLogger",
+      "logLevel": "INFO"
+    },
+    "ConsoleTestLogger": {
+      "type": "Webda/ConsoleLogger",
+      "logLevels": "TEST",
+      "logLevel": "TEST"
+    },
+    "SQSQueue": {
+      "type": "SQSQueue",
+      "queue": "https://sqs.us-east-1.amazonaws.com/277712386420/webda-test"
+    },
+    "dynamoidents": {
+      "index": ["type", "_lastUpdate"],
+      "map": {
+        "dynamousers": {
+          "key": "_user",
+          "target": "idents",
+          "fields": "type,_lastUpdate",
+          "cascade": true
+        }
+      },
+      "expose": {
+        "restrict": {
+          "create": true,
+          "update": true,
+          "get": true
+        }
+      },
+      "asyncDelete": true,
+      "type": "DynamoStore",
+      "table": "webda-test-idents",
+      "model": "Webda/Ident"
+    },
+    "dynamousers": {
+      "expose": {
+        "url": "/users",
+        "restrict": {
+          "authentication": true,
+          "create": true
+        }
+      },
+      "scanPage": 2,
+      "type": "DynamoStore",
+      "table": "webda-test-users"
+    },
+    "s3binary": {
+      "type": "S3Binary",
+      "bucket": "webda-test",
+      "map": {
+        "dynamousers": ["s3images"]
+      },
+      "expose": {
+        "url": "/s3binary"
+      }
+    },
+    "awsEvents": {
+      "type": "Test/AWSEvents"
+    }
+  }
+}

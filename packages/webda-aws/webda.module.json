@@ -1,0 +1,10 @@
+{
+ "services": {
+  "Webda/CloudWatchLogger": "lib/cloudwatchlogger.js",
+  "Webda/DynamoStore": "lib/dynamodb.js",
+  "Webda/S3Binary": "lib/s3binary.js",
+  "Webda/SecretsManager": "lib/secretsmanager.js",
+  "Webda/SQSQueue": "lib/sqsqueue.js"
+ },
+ "models": {}
+}

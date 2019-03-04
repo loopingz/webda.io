@@ -14,24 +14,18 @@ import {
   SecureCookie,
   MemoryStore,
   FileStore,
-  DynamoStore,
   Authentication,
   CoreModel,
   Ident,
   User,
   Mailer,
-  MongoStore,
   MemoryQueue,
-  SQSQueue,
   EventService,
   ResourceService,
-  AwsSecretsManager,
   FileBinary,
-  S3Binary,
   Logger,
   ConsoleLogger,
   MemoryLogger,
-  CloudWatchLogger,
   ConfigurationService
 } from "./index";
 import { CoreModelDefinition } from "./models/coremodel";
@@ -109,20 +103,14 @@ class Webda extends events.EventEmitter {
     this._services["Webda/Authentication"] = Authentication;
     this._services["Webda/FileStore"] = FileStore;
     this._services["Webda/MemoryStore"] = MemoryStore;
-    this._services["Webda/MongoStore"] = MongoStore;
-    this._services["Webda/DynamoStore"] = DynamoStore;
     this._services["Webda/FileBinary"] = FileBinary;
-    this._services["Webda/S3Binary"] = S3Binary;
     this._services["Webda/Mailer"] = Mailer;
     this._services["Webda/AsyncEvents"] = EventService;
     this._services["Webda/ResourceService"] = ResourceService;
     this._services["Webda/MemoryQueue"] = MemoryQueue;
-    this._services["Webda/SQSQueue"] = SQSQueue;
     this._services["Webda/MemoryLogger"] = MemoryLogger;
     this._services["Webda/ConsoleLogger"] = ConsoleLogger;
-    this._services["Webda/CloudWatchLogger"] = CloudWatchLogger;
     this._services["Webda/ConfigurationService"] = ConfigurationService;
-    this._services["Webda/AwsSecretsManager"] = AwsSecretsManager;
     // Models
     this._models["Webda/CoreModel"] = CoreModel;
     this._models["Webda/Ident"] = Ident;
@@ -606,9 +594,9 @@ class Webda extends events.EventEmitter {
     vhost: string,
     method: string,
     url: string,
-    protocol: string,
-    port: Number,
-    headers: any
+    protocol: string = "http",
+    port: Number = 80,
+    headers: any = {}
   ): Executor {
     // Check mapping
     var route = this.getRouteFromUrl(ctx, this._config, method, url);
@@ -1022,7 +1010,7 @@ class Webda extends events.EventEmitter {
    * @param {Object} headers - The request headers if any
    * @return {Object} A new context object to pass along
    */
-  newContext(body, session, stream = undefined, files = []) {
+  newContext(body, session = undefined, stream = undefined, files = []) {
     return new Context(this, body, session, stream, files);
   }
 

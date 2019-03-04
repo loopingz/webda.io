@@ -1,4 +1,4 @@
-import { suite, test, slow, timeout } from "mocha-typescript";
+import { suite, test } from "mocha-typescript";
 import * as assert from "assert";
 import { CoreModel, User, Core, SecureCookie, RolePolicyMixIn } from "../index";
 var config = require("../../test/config.json");

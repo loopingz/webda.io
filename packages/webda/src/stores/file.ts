@@ -152,10 +152,10 @@ class FileStore<T extends CoreModel> extends Store<T> {
   async _update(object, uid, writeCondition = undefined) {
     let stored = await this._get(uid);
     if (!stored) {
-      return Promise.reject(Error("NotFound"));
+      throw new Error("NotFound");
     }
     if (writeCondition && stored[this._writeConditionField] != writeCondition) {
-      return Promise.reject(Error("UpdateCondition not met"));
+      throw new Error("UpdateCondition not met");
     }
     let coreModel = new CoreModel();
     coreModel.load(object, true);

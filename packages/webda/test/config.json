@@ -68,10 +68,6 @@
       "type": "MemoryQueue",
       "expire": 3600
     },
-    "SQSQueue": {
-      "type": "SQSQueue",
-      "queue": "https://sqs.us-east-1.amazonaws.com/277712386420/webda-test"
-    },
     "Authentication": {
       "successRedirect": "https://webda.io/user.html",
       "failureRedirect": "/login-error",
@@ -99,73 +95,6 @@
       "config": {
         "transport": "ses"
       }
-    },
-    "dynamoidents": {
-      "map": {
-        "dynamousers": {
-          "key": "_user",
-          "target": "idents",
-          "fields": "type,_lastUpdate",
-          "cascade": true
-        }
-      },
-      "index": ["type", "_lastUpdate"],
-      "expose": {
-        "restrict": {
-          "create": true,
-          "update": true,
-          "get": true
-        }
-      },
-      "asyncDelete": true,
-      "model": "WebdaTest/Ident",
-      "type": "DynamoStore",
-      "table": "webda-test-idents"
-    },
-    "dynamousers": {
-      "expose": {
-        "url": "/users",
-        "restrict": {
-          "authentication": true,
-          "create": true
-        }
-      },
-      "scanPage": 2,
-      "type": "DynamoStore",
-      "table": "webda-test-users"
-    },
-    "mongoidents": {
-      "asyncDelete": true,
-      "map": {
-        "mongousers": {
-          "key": "_user",
-          "target": "idents",
-          "fields": "type,_lastUpdate",
-          "cascade": true
-        }
-      },
-      "index": ["type", "_lastUpdate"],
-      "expose": {
-        "restrict": {
-          "create": true,
-          "update": true,
-          "get": true
-        }
-      },
-      "model": "WebdaTest/Ident",
-      "type": "MongoStore",
-      "collection": "idents"
-    },
-    "mongousers": {
-      "expose": {
-        "url": "/users",
-        "restrict": {
-          "authentication": true,
-          "create": true
-        }
-      },
-      "type": "MongoStore",
-      "collection": "users"
     },
     "MemoryIdents": {
       "map": {
@@ -213,7 +142,6 @@
       "folder": "./test/data/idents",
       "validator": "IdentValidator"
     },
-    "AwsSecretsManager": {},
     "Users": {
       "expose": {
         "url": "/users"
@@ -236,16 +164,6 @@
       },
       "expose": {
         "url": "/binary"
-      }
-    },
-    "s3binary": {
-      "type": "S3Binary",
-      "bucket": "webda-test",
-      "map": {
-        "users": ["s3images"]
-      },
-      "expose": {
-        "url": "/s3binary"
       }
     },
     "brokenService": {

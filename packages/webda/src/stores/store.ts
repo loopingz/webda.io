@@ -305,9 +305,9 @@ class Store<T extends CoreModel> extends Executor
     uid,
     prop,
     item,
-    index,
-    itemWriteCondition,
-    itemWriteConditionField
+    index = undefined,
+    itemWriteCondition = undefined,
+    itemWriteConditionField = undefined
   ) {
     if (itemWriteConditionField === undefined) {
       itemWriteConditionField = "uuid";
@@ -1042,7 +1042,6 @@ class Store<T extends CoreModel> extends Executor
     if (!uuid) {
       throw 400;
     }
-
     let object = await this.get(uuid);
     if (object === undefined || object.__deleted) {
       throw 404;

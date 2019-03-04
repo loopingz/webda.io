@@ -1,6 +1,6 @@
 "use strict";
 import events = require("events");
-import { Core, AWSEventHandlerMixIn, LambdaServer } from "../index";
+import { Core } from "../index";
 /* beautify preserve:start */
 declare var global: any;
 /* beautify preserve:end */
@@ -58,16 +58,7 @@ class Service extends events.EventEmitter {
    * @param config for the host so you can add your own route here
    * @abstract
    */
-  async init(): Promise<void> {
-    // In case of Lambda handler register automatically
-    if (
-      this._webda instanceof LambdaServer &&
-      this["isAWSEventHandled"] &&
-      this["handleAWSEvent"]
-    ) {
-      this._webda.registerAWSEventsHandler(this);
-    }
-  }
+  async init(): Promise<void> {}
 
   /**
    * Handle cleaning of params

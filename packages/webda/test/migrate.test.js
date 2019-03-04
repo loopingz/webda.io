@@ -6,60 +6,70 @@ const assert = require("assert");
 var webda;
 var ctx;
 
-describe('Webda Configuration Migration', function() {
-  it('From v0 to v1', async () => {
+describe("Webda Configuration Migration", function() {
+  it("From v0 to v1", async () => {
     let webda = new Webda.Core(old_config);
     await webda.init();
     // All services - DefinedMailer
-    assert.equal(Object.keys(webda.getServices()).length, 17);
+    assert.equal(Object.keys(webda.getServices()).length, 11);
     // Check locales are moved correctly
     assert.equal(webda.getLocales().length, 3);
     // Check models - 2 from configuration files - 2 from Webda
     let count = 0;
     for (let key in webda.getModels()) {
-      if (key.startsWith('webdatest')) {
+      if (key.startsWith("webdatest")) {
         count++;
       }
     }
     assert.equal(count, 2);
     // Check params
-    assert.equal(webda.getGlobalParams().TEST, 'Global');
-    assert.equal(webda.getGlobalParams().region, 'us-east-1');
+    assert.equal(webda.getGlobalParams().TEST, "Global");
+    assert.equal(webda.getGlobalParams().region, "us-east-1");
     // Check custom route migration
     ctx = webda.newContext();
-    let executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/urltemplate/666");
+    let executor = webda.getExecutor(
+      ctx,
+      "test.webda.io",
+      "GET",
+      "/urltemplate/666"
+    );
     assert.notEqual(executor, undefined);
-    assert.equal(ctx['_route']['_http']["method"], "GET");
-    assert.equal(ctx['_route']['_http']["url"], "/urltemplate/666");
-    assert.equal(ctx['_route']['_http']["host"], "test.webda.io");
-    assert.equal(ctx['_params']['id'], 666);
+    assert.equal(ctx["_route"]["_http"]["method"], "GET");
+    assert.equal(ctx["_route"]["_http"]["url"], "/urltemplate/666");
+    assert.equal(ctx["_route"]["_http"]["host"], "test.webda.io");
+    assert.equal(ctx["_params"]["id"], 666);
     assert.equal(ctx["_params"]["TEST_ADD"], "Users");
     assert.equal(ctx["_params"]["TEST"], "Global");
   });
 
-  it('From v0 to v1 - with default domain', async () => {
+  it("From v0 to v1 - with default domain", async () => {
     let webda = new Webda.Core(old_default_config);
     await webda.init();
     // All services - DefinedMailer
-    assert.equal(Object.keys(webda.getServices()).length, 17);
+    assert.equal(Object.keys(webda.getServices()).length, 11);
     // Check locales are moved correctly
     assert.equal(webda.getLocales().length, 3);
     // Check models - 2 from configuration files - 2 from Webda
     let count = 0;
     for (let key in webda.getModels()) {
-      if (key.startsWith('webdatest')) {
+      if (key.startsWith("webdatest")) {
         count++;
       }
     }
     assert.equal(count, 2);
     // Check custom route migration
     ctx = webda.newContext();
-    let executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/urltemplate/666");
+    let executor = webda.getExecutor(
+      ctx,
+      "test.webda.io",
+      "GET",
+      "/urltemplate/666"
+    );
     assert.notEqual(executor, undefined);
-    assert.equal(ctx['_route']['_http']["method"], "GET");
-    assert.equal(ctx['_route']['_http']["url"], "/urltemplate/666");
-    assert.equal(ctx['_route']['_http']["host"], "test.webda.io");
-    assert.equal(ctx['_params']['id'], 666);
+    assert.equal(ctx["_route"]["_http"]["method"], "GET");
+    assert.equal(ctx["_route"]["_http"]["url"], "/urltemplate/666");
+    assert.equal(ctx["_route"]["_http"]["host"], "test.webda.io");
+    assert.equal(ctx["_params"]["id"], 666);
     assert.equal(ctx["_params"]["TEST_ADD"], "Users");
   });
 });

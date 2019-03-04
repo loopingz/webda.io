@@ -22,7 +22,7 @@ class BinaryTest extends WebdaTest {
   }
 
   getTestFile(): string {
-    return process.cwd() + "/test/Dockerfile";
+    return process.cwd() + "/test/Dockerfile.txt";
   }
 
   async before() {

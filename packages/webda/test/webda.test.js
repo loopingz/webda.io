@@ -69,17 +69,6 @@ describe("Webda", function() {
     });
   });
   describe("utils", function() {
-    it("LambdaCaller", async function() {
-      // CodeCoverage test
-      const LambdaCaller = new Webda.LambdaCaller("plop", {});
-      assert.throws(() => new Webda.LambdaCaller());
-      new Webda.LambdaCaller("arn", {
-        accessKeyId: "PLOP"
-      });
-      await Utils.throws(
-        LambdaCaller.execute.bind(LambdaCaller, undefined, true)
-      );
-    });
     it("toPublicJson", function() {
       let obj = {
         _title: "private",
@@ -124,7 +113,6 @@ describe("Webda", function() {
         "ConfigurationServiceBadSourceWithId",
         "is not implementing ConfigurationProvider interface"
       );
-      assertInitError("CloudWatchLogger", "Require a log group");
     });
     it("context", function() {
       ctx.init();
@@ -365,17 +353,17 @@ describe("Webda", function() {
   describe("getModdas()", function() {
     it("normal", function() {
       let moddas = webda.getModdas();
-      assert.equal(Object.keys(moddas).length, 20);
+      assert.equal(Object.keys(moddas).length, 13);
     });
     it("implementation", function() {
       let moddas = webda.getModdas(Webda.Store);
-      assert.equal(Object.keys(moddas).length, 5);
+      assert.equal(Object.keys(moddas).length, 3);
     });
   });
   describe("getServicesImplementations()", function() {
     it("normal", function() {
       let stores = webda.getServicesImplementations(Webda.Store);
-      assert.equal(Object.keys(stores).length, 10);
+      assert.equal(Object.keys(stores).length, 6);
     });
     it("store", function() {
       assert.equal(

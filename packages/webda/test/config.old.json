@@ -5,11 +5,7 @@
         "TEST": "Global",
         "region": "us-east-1"
       },
-      "locales": [
-        "es-ES",
-        "en-GB",
-        "fr-FR"
-      ],
+      "locales": ["es-ES", "en-GB", "fr-FR"],
       "moddas": {
         "Test/Mailer": {
           "type": "local",
@@ -44,10 +40,6 @@
           "type": "MemoryQueue",
           "expire": 3600
         },
-        "SQSQueue": {
-          "type": "SQSQueue",
-          "queue": "https://sqs.us-east-1.amazonaws.com/277712386420/webda-test"
-        },
         "Authentication": {
           "successRedirect": "https://webda.io/user.html",
           "failureRedirect": "/login-error",
@@ -69,75 +61,6 @@
         },
         "DefinedMailer": {
           "type": "Test/Mailer"
-        },
-        "dynamoidents": {
-          "inject": "user",
-          "check": "user",
-          "map": {
-            "dynamousers": {
-              "key": "user",
-              "target": "idents",
-              "fields": "type",
-              "cascade": true
-            }
-          },
-          "expose": {
-            "restrict": {
-              "create": true,
-              "update": true,
-              "get": true
-            }
-          },
-          "asyncDelete": true,
-          "model": "WebdaTest/Ident",
-          "type": "DynamoStore",
-          "table": "webda-test-idents"
-        },
-        "dynamousers": {
-          "expose": {
-            "url": "/users",
-            "restrict": {
-              "authentication": true,
-              "create": true
-            }
-          },
-          "scanPage": 2,
-          "type": "DynamoStore",
-          "table": "webda-test-users"
-        },
-        "mongoidents": {
-          "inject": "user",
-          "check": "user",
-          "asyncDelete": true,
-          "map": {
-            "mongousers": {
-              "key": "user",
-              "target": "idents",
-              "fields": "type",
-              "cascade": true
-            }
-          },
-          "expose": {
-            "restrict": {
-              "create": true,
-              "update": true,
-              "get": true
-            }
-          },
-          "model": "WebdaTest/Ident",
-          "type": "MongoStore",
-          "collection": "idents"
-        },
-        "mongousers": {
-          "expose": {
-            "url": "/users",
-            "restrict": {
-              "authentication": true,
-              "create": true
-            }
-          },
-          "type": "MongoStore",
-          "collection": "users"
         },
         "MemoryIdents": {
           "map": {
@@ -204,18 +127,7 @@
           "type": "FileBinary",
           "folder": "./test/data/binaries",
           "map": {
-            "users": [
-              "images"
-            ]
-          }
-        },
-        "s3binary": {
-          "type": "S3Binary",
-          "bucket": "webda-test",
-          "map": {
-            "users": [
-              "s3images"
-            ]
+            "users": ["images"]
           }
         }
       }
@@ -237,10 +149,7 @@
       }
     },
     "/": {
-      "method": [
-        "GET",
-        "POST"
-      ],
+      "method": ["GET", "POST"],
       "executor": "debug",
       "params": {
         "accessKeyId": "LOCAL_ACCESS_KEY",
@@ -248,12 +157,7 @@
       }
     },
     "/webda": {
-      "method": [
-        "GET",
-        "POST",
-        "DELETE",
-        "PUT"
-      ],
+      "method": ["GET", "POST", "DELETE", "PUT"],
       "executor": "lambda",
       "params": {
         "region": "us-west-2",

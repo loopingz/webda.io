@@ -4,6 +4,8 @@ import { Executor } from "./services/executor";
 import { AWSMixIn, GetAWS } from "./services/aws-mixin";
 // Policies
 import { OwnerPolicy } from "./policies/ownerpolicy";
+import { RolePolicyMixIn } from "./policies/rolepolicy";
+import { AclPolicyMixIn } from "./policies/aclpolicy";
 // Models
 import { CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { Ident } from "./models/ident";
@@ -50,7 +52,6 @@ export {
   // Services
   Service,
   Executor,
-  OwnerPolicy,
   EventService,
   ResourceService,
   AWSMixIn,
@@ -63,6 +64,10 @@ export {
   ConfigurationProvider,
   ConfigurationService,
   AwsSecretsManager,
+  // Policies
+  OwnerPolicy,
+  RolePolicyMixIn,
+  AclPolicyMixIn,
   // Store
   Store,
   DynamoStore,

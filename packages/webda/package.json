@@ -13,8 +13,8 @@
   "typings": "lib/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "pretest": "tsc && tsc --build tsconfig.test.json",
-    "test": "nyc mocha --recursive --exit --timeout=100000",
+    "pretest": "tsc",
+    "test": "nyc mocha --recursive --exit --timeout=100000 -r ts-node/register test/**/*.test.js src/**/*.spec.ts",
     "run": "node core",
     "format": "node ./scripts/format.js",
     "precommit": "npm run test"

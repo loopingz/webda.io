@@ -84,10 +84,6 @@ class Webda extends events.EventEmitter {
     // on the spot routehelpers
     this._routehelpers = {};
     this._routehelpers["debug"] = Executor;
-
-    this._routehelpers[
-      "lambda"
-    ] = require("./routehelpers/lambda").LambdaRouteHelper;
     this._routehelpers[
       "inline"
     ] = require("./routehelpers/inline").InlineRouteHelper;
@@ -937,10 +933,6 @@ class Webda extends events.EventEmitter {
         } else {
           this._services[i] = serviceConstructor;
         }
-      } else if (modda.type == "lambda") {
-        // This should start the lambda
-        this._services[i] = require("./routehelpers/lambda");
-        this._services[i]._arn = modda.arn;
       } else if (modda.type == "npm") {
         // The package should export the default
         this._services[i] = require(modda.package);

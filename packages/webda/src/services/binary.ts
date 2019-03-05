@@ -69,7 +69,7 @@ class Binary extends Executor {
   /**
    * The store can retrieve how many time a binary has been used
    */
-  getUsageCount(hash) {
+  async getUsageCount(hash): Promise<number> {
     throw Error("AbstractBinary has no store method");
   }
 
@@ -284,28 +284,26 @@ class Binary extends Executor {
       );
       info = object[property][index];
     }
-    return promise
-      .then(updated => {
-        update = updated;
-        if (info) {
-          this.cascadeDelete(info, object_uid);
-          return this.emitSync("Binary.Update", {
-            object: fileObj,
-            old: info,
-            service: this,
-            target: object
-          });
-        } else {
-          return this.emitSync("Binary.Create", {
-            object: fileObj,
-            service: this,
-            target: object
-          });
-        }
-      })
-      .then(() => {
-        return Promise.resolve(update);
+    let updated = await promise;
+    update = updated;
+    if (info) {
+      if (info.hash !== file.hash) {
+        this.cascadeDelete(info, object_uid);
+      }
+      await this.emitSync("Binary.Update", {
+        object: fileObj,
+        old: info,
+        service: this,
+        target: object
       });
+    } else {
+      await this.emitSync("Binary.Create", {
+        object: fileObj,
+        service: this,
+        target: object
+      });
+    }
+    return update;
   }
 
   cascadeDelete(info, uuid) {}

@@ -66,7 +66,9 @@ class FileBinary extends Binary {
   }
 
   _touch(path) {
-    fs.closeSync(fs.openSync(path, "w"));
+    if (!fs.existsSync(path)) {
+      fs.closeSync(fs.openSync(path, "w"));
+    }
   }
 
   getPutUrl(ctx: Context) {
@@ -153,15 +155,13 @@ class FileBinary extends Binary {
     this._touch(this._getPath(result.hash, "_" + result.challenge));
   }
 
-  getUsageCount(hash) {
-    return new Promise((resolve, reject) => {
-      var path = this._getPath(hash);
-      if (!fs.existsSync(path)) {
-        resolve(0);
-      }
-      var files = fs.readdirSync(path);
-      resolve(files.length - 2);
-    });
+  async getUsageCount(hash) {
+    var path = this._getPath(hash);
+    if (!fs.existsSync(path)) {
+      return 0;
+    }
+    var files = fs.readdirSync(path);
+    return files.length - 2;
   }
 
   _cleanHash(hash) {}

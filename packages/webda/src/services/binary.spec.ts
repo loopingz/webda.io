@@ -194,6 +194,8 @@ class BinaryTest extends WebdaTest {
       },
       {}
     );
+    value = await binary.getUsageCount(user[map][0].hash);
+    assert.equal(value, 1);
     user = await userStore.get(user1.uuid);
     assert.notEqual(user[map], undefined);
     assert.equal(user[map].length, 1);

@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "parameters": {},
+  "models": {},
+  "moddas": {},
+  "services": {
+    "CloudWatchLogger": {
+      "logGroupName": "webda-test",
+      "logStreamNamePrefix": "test-",
+      "logLevels": "TEST, TEST2",
+      "logLevel": "TEST2"
+    },
+    "ConsoleLogger": {
+      "type": "Webda/ConsoleLogger",
+      "logLevel": "INFO"
+    }
+  }
+}

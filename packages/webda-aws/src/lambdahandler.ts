@@ -4,10 +4,10 @@ import {
   SecureCookie,
   ClientInfo,
   Service,
-  Context
+  Context,
+  HttpContext
 } from "webda";
 import { Constructor, GetAWS } from "./aws-mixin";
-import { HttpContext } from "webda";
 const cookieParse = require("cookie").parse;
 
 function AWSEventHandlerMixIn<T extends Constructor<Service>>(Base: T) {

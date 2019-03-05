@@ -6,10 +6,10 @@ import * as assert from "assert";
 @suite
 class DynamoDBTest extends StoreTest {
   getIdentStore(): Store<any> {
-    return <Store<any>>this.getService("dynamoidents");
+    return <Store<any>>this.getService("idents");
   }
   getUserStore(): Store<any> {
-    return <Store<any>>this.getService("dynamousers");
+    return <Store<any>>this.getService("users");
   }
 
   getModelClass() {
@@ -74,7 +74,7 @@ class DynamoDBTest extends StoreTest {
   @test
   ARNPolicy() {
     let userStore: DynamoStore<any> = <DynamoStore<any>>(
-      this.getService("dynamousers")
+      this.getService("users")
     );
     userStore._params.region = "eu-west-1";
     assert.equal(

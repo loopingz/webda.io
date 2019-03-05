@@ -6,9 +6,7 @@ import { S3Binary } from "./s3binary";
 
 @suite
 class S3BinaryTest extends BinaryTest {
-  getUserStore() {
-    return this.getService("dynamousers");
-  }
+  @test
   getARN() {
     let policies = (<S3Binary>this.getBinary()).getARNPolicy("plop");
 

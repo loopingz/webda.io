@@ -68,8 +68,8 @@ export default class AwsSecretsManager extends AWSMixIn(Service)
 
   static getModda() {
     return {
-      uuid: "Webda/SecretsManager",
-      label: "SecretsManager",
+      uuid: "Webda/AWSSecretsManager",
+      label: "AWSSecretsManager",
       description: "Implements AWS SecretsManager",
       webcomponents: [],
       documentation:

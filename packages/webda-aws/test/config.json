@@ -7,7 +7,12 @@
     "csrfOrigins": ["^accounts\\.google\\.\\w{2,}$", "www\\.facebook\\.com"],
     "locales": ["es-ES", "en-GB", "fr-FR"]
   },
-  "moddas": {},
+  "moddas": {
+    "Test/AWSEvents": {
+      "type": "local",
+      "require": "./test/moddas/awsevents"
+    }
+  },
   "services": {
     "ConsoleLogger": {
       "type": "Webda/ConsoleLogger",
@@ -22,10 +27,11 @@
       "type": "SQSQueue",
       "queue": "https://sqs.us-east-1.amazonaws.com/277712386420/webda-test"
     },
-    "dynamoidents": {
+    "AwsSecretsManager": {},
+    "idents": {
       "index": ["type", "_lastUpdate"],
       "map": {
-        "dynamousers": {
+        "users": {
           "key": "_user",
           "target": "idents",
           "fields": "type,_lastUpdate",
@@ -44,7 +50,7 @@
       "table": "webda-test-idents",
       "model": "Webda/Ident"
     },
-    "dynamousers": {
+    "users": {
       "expose": {
         "url": "/users",
         "restrict": {
@@ -60,10 +66,10 @@
       "type": "S3Binary",
       "bucket": "webda-test",
       "map": {
-        "dynamousers": ["images"]
+        "users": ["images"]
       },
       "expose": {
-        "url": "/s3binary"
+        "url": "/binary"
       }
     },
     "awsEvents": {

@@ -591,7 +591,7 @@ class Webda extends events.EventEmitter {
     method: string,
     url: string,
     protocol: string = "http",
-    port: Number = 80,
+    port: number = 80,
     headers: any = {}
   ): Executor {
     // Check mapping

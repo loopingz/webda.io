@@ -102,7 +102,6 @@ class BinaryTest extends WebdaTest {
       type: "CRUD",
       uuid: "PLOP"
     });
-    error = false;
     ctx.session.userId = user2.uuid;
     let executor = this.webda.getExecutor(
       ctx,

@@ -368,7 +368,8 @@ abstract class StoreTest extends WebdaTest {
     getter.details.blank = "";
     getter.details.bouzouf = undefined;
     getter.empty = [];
-    let object = await identStore.update(getter);
+    let object;
+    await identStore.update(getter);
     assert.equal(eventFired, 2);
     eventFired = 0;
     object = await identStore.get(ident1.uuid);

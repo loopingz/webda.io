@@ -51,7 +51,6 @@ class AclPolicyTest {
 
   @test async userid() {
     await Utils.throws(this.model.canAct.bind(this.model, this._ctx, "action"));
-    this.model.__acls["gip-124"] = "get,action";
     this.model.__acls["user-uid"] = "get";
     this.model.__acls["gip-122"] = "get,action";
     assert.equal(await this.model.canAct(this._ctx, "get"), this.model);

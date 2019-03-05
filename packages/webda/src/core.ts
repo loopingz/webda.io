@@ -926,6 +926,9 @@ class Webda extends events.EventEmitter {
     for (let i in config.moddas) {
       let modda = config.moddas[i];
       if (modda.type == "local") {
+        if (modda.require.startsWith("./")) {
+          modda.require = process.cwd() + modda.require.substr(1);
+        }
         // Add the required type
         let serviceConstructor: any = require(modda.require);
         if (serviceConstructor.default) {

@@ -3,7 +3,6 @@ import * as fs from "fs";
 import * as vm from "vm";
 import * as Ajv from "ajv";
 import * as path from "path";
-import * as url from "url";
 import { serialize as cookieSerialize } from "cookie";
 import { Context } from "./utils/context";
 import * as events from "events";
@@ -18,6 +17,7 @@ import {
   CoreModel,
   Ident,
   User,
+  DebugMailer,
   Mailer,
   MemoryQueue,
   EventService,
@@ -100,6 +100,7 @@ class Webda extends events.EventEmitter {
     this._services["Webda/FileStore"] = FileStore;
     this._services["Webda/MemoryStore"] = MemoryStore;
     this._services["Webda/FileBinary"] = FileBinary;
+    this._services["Webda/DebugMailer"] = DebugMailer;
     this._services["Webda/Mailer"] = Mailer;
     this._services["Webda/AsyncEvents"] = EventService;
     this._services["Webda/ResourceService"] = ResourceService;

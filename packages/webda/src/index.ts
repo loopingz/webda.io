@@ -23,6 +23,7 @@ import { MemoryLogger } from "./loggers/memorylogger";
 import { ConsoleLogger } from "./loggers/consolelogger";
 // Services
 import { Mailer } from "./services/mailer";
+import { DebugMailer } from "./services/debugmailer";
 import { Authentication } from "./services/authentication";
 import { EventService } from "./services/asyncevents";
 import { Binary } from "./services/binary";
@@ -47,6 +48,7 @@ export {
   Binary,
   FileBinary,
   Mailer,
+  DebugMailer,
   Authentication,
   ConfigurationProvider,
   ConfigurationService,

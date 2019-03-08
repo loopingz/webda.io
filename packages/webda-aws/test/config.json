@@ -27,7 +27,8 @@
       "type": "SQSQueue",
       "queue": "https://sqs.us-east-1.amazonaws.com/277712386420/webda-test"
     },
-    "AwsSecretsManager": {},
+    "DebugMailer": {},
+    "AWSSecretsManager": {},
     "idents": {
       "index": ["type", "_lastUpdate"],
       "map": {
@@ -74,6 +75,13 @@
     },
     "awsEvents": {
       "type": "Test/AWSEvents"
+    }
+  },
+  "routes": {
+    "/route/string": {
+      "method": ["GET"],
+      "executor": "string",
+      "result": "CodeCoverage"
     }
   }
 }

@@ -8,7 +8,7 @@ class SecretsManagerTest extends WebdaTest {
   service: AwsSecretsManager;
   async before() {
     await super.before();
-    this.service = <AwsSecretsManager>this.getService("AwsSecretsManager");
+    this.service = <AwsSecretsManager>this.getService("AWSSecretsManager");
     assert.notEqual(this.service, undefined);
     try {
       await this.service.delete("webda-test-unit-test", 7, true);

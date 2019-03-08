@@ -1,5 +1,4 @@
 import { BinaryTest } from "webda/lib/services/binary.spec";
-import { Store, Ident, DynamoStore } from "webda";
 import { test, suite } from "mocha-typescript";
 import * as assert from "assert";
 import { S3Binary } from "./s3binary";

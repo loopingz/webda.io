@@ -413,6 +413,18 @@ class Webda extends events.EventEmitter {
    */
   addRoute(url, info): void {
     this._config.routes[url] = info;
+    if (this._config._initiated) {
+      this.remapRoutes();
+    }
+  }
+
+  /**
+   * Remove a route dynamicly
+   *
+   * @param {String} url to remove
+   */
+  removeRoute(url): void {
+    this._config.routes[url] = undefined;
   }
 
   /**
@@ -569,6 +581,7 @@ class Webda extends events.EventEmitter {
       if (parse_result !== undefined) {
         ctx.setServiceParameters(config.parameters);
         ctx.setPathParameters(parse_result);
+
         return map;
       }
     }
@@ -897,6 +910,14 @@ class Webda extends events.EventEmitter {
     if (this._config.services !== undefined) {
       this.createServices();
     }
+
+    this.remapRoutes();
+
+    this._config._initiated = true;
+    this.emit("Webda.Init", this._config);
+  }
+
+  protected remapRoutes() {
     this.initURITemplates(this._config.routes);
 
     // Order path desc
@@ -910,10 +931,7 @@ class Webda extends events.EventEmitter {
       });
     }
     this._config._pathMap.sort(this.comparePath);
-    this._config._initiated = true;
-    this.emit("Webda.Init", this._config);
   }
-
   /**
    * Not usefull anymore
    * @deprecated

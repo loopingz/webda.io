@@ -443,7 +443,10 @@ export class LambdaDeployer extends AWSDeployer {
       await this.generateLambda(true);
     }
     this.stepper("Generating Swagger");
-    let swagger: any = await this._webda.exportSwagger(this.deployment.name);
+    let swagger: any = await this._webda.exportSwagger(
+      this.deployment.name,
+      false
+    );
     swagger.info.title = this._restApiName;
     for (let p in swagger.paths) {
       // TODO We should reenable mockCors once found the issue of

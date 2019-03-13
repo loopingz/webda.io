@@ -255,6 +255,10 @@ export default class WebdaConsole {
         alias: "w",
         default: false
       })
+      .option("include-hidden", {
+        type: "boolean",
+        default: false
+      })
       .parse(args);
   }
 
@@ -739,7 +743,10 @@ export default class WebdaConsole {
 
   static async generateSwagger(argv) {
     webda = await this._getNewConfig();
-    let swagger = await webda.exportSwagger(argv.deployment);
+    let swagger = await webda.exportSwagger(
+      argv.deployment,
+      !argv.includeHidden
+    );
     let name = argv._[1] || "./swagger.json";
     if (name.endsWith(".json")) {
       fs.writeFileSync(name, JSON.stringify(swagger, undefined, 2));

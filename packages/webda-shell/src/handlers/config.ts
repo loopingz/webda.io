@@ -389,7 +389,10 @@ class ` +
     this.save();
   }
 
-  exportSwagger(deployment: string = undefined): Object {
+  exportSwagger(
+    deployment: string = undefined,
+    skipHidden: boolean = true
+  ): Object {
     let packageInfo = JSON.parse(
       fs.readFileSync(process.cwd() + "/package.json").toString()
     );
@@ -453,9 +456,10 @@ class ` +
           methods: {}
         };
       }
-      if (route.swagger.hidden) {
+      if (route.swagger.hidden && skipHidden) {
         continue;
       }
+      route.swagger.hidden = false;
       let urlParameters = [];
       if (i.indexOf("{?") >= 0) {
         urlParameters = i
@@ -704,10 +708,13 @@ export class WebdaConfigurationServer extends WebdaServer {
     }
   }
 
-  async exportSwagger(deployment: string = undefined): Promise<Object> {
+  async exportSwagger(
+    deployment: string = undefined,
+    skipHidden: boolean = true
+  ): Promise<Object> {
     return this.getTypedService<ConfigurationService>(
       "configuration"
-    ).exportSwagger(deployment);
+    ).exportSwagger(deployment, skipHidden);
   }
 
   exportJson(o) {

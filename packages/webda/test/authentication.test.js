@@ -62,6 +62,7 @@ describe("Passport", function() {
       );
       params.login = params.email;
       ctx.body = params;
+      // User unknown without register parameter
       await Utils.throws(
         executor.execute.bind(executor, ctx),
         res => res == 404
@@ -74,6 +75,7 @@ describe("Passport", function() {
       assert.equal(mailer.sent.length, 1);
       let ident = await identStore.get("test@webda.io_email");
       assert.equal(ident, undefined);
+      // Not registered as postValidation is not set
       executor._params.providers.email.postValidation = true;
       ctx.body.login = "Test2@webda.io";
       ctx.session = webda.getNewSession();
@@ -121,8 +123,28 @@ describe("Passport", function() {
       assert.notEqual(ctx.session.getUserId(), undefined);
       ident = await identStore.get(ctx.session.getIdentUsed());
       // Email should be already validate
-      assert.notEqual(ident.validation, undefined);
+      assert.notEqual(ident._validation, undefined);
       assert.equal(mailer.sent.length, 2);
+      // Resend email
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "GET",
+        "/auth/email/test2@webda.io/validate",
+        "http"
+      );
+      // Should be to soon to resend an email
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        res => res == 429
+      );
+      ident = await identStore.get("test2@webda.io_email");
+      ident._lastValidationEmail = 10;
+      await ident.save();
+      // Should be ok now to send an email
+      await executor.execute(ctx);
+      assert.equal(mailer.sent.length, 3);
+
       // Validate email for test2 now
       var match = mailer.sent[1].replacements.url.match(validationUrl);
       assert.notEqual(match, undefined);
@@ -157,7 +179,7 @@ describe("Passport", function() {
       executor._params.providers.email.skipEmailValidation = true;
       await executor.execute(ctx);
       // No new email has been sent
-      assert.equal(mailer.sent.length, 2);
+      assert.equal(mailer.sent.length, 3);
       assert.equal(events, 2); // Register + Login
       assert.notEqual(ctx.session.getUserId(), undefined);
     });
@@ -234,7 +256,7 @@ describe("Passport", function() {
       assert.notEqual(user, undefined);
     });
 
-    it("login", async function() {
+    it("login and add email", async function() {
       var params = {
         login: "test3@webda.io",
         password: "testtest"

@@ -66,6 +66,7 @@ class Authentication extends Executor {
   _usersStore: Store<User>;
   _passwordVerifier: PasswordVerifier;
   _aliases: Map<string, string> = new Map();
+  _emailDelay: number;
   // TODO refactor
   _oauth1: any;
 
@@ -177,6 +178,22 @@ class Authentication extends Executor {
           }
         }
       );
+      this._addRoute(
+        url + "/email/{email}/validate",
+        ["GET"],
+        this._sendEmailValidation,
+        {
+          get: {
+            description: "The email validation process will be start",
+            summary: "Restart email validation",
+            operationId: "startEmailRecovery",
+            responses: {
+              "204": "",
+              "429": "Validation has been initiated in the last 4 hours"
+            }
+          }
+        }
+      );
     }
     // Handle the lost password here
     url += "/{provider}";
@@ -224,8 +241,7 @@ class Authentication extends Executor {
       this._usersStore = <Store<User>>this.getService(this._params.userStore);
     }
 
-    this._params.passwordRecoveryInterval =
-      this._params.passwordRecoveryInterval || 3600000;
+    this._emailDelay = this._params.emailDelay || 3600000 * 4; // 4 hours by default
     this._params.passwordRegexp = this._params.passwordRegexp || ".{8,}";
 
     if (this._params.passwordVerifier) {
@@ -242,6 +258,24 @@ class Authentication extends Executor {
   addProvider(name: string, strategy, config) {
     Strategies[name] = strategy;
     this._params.providers[name] = config;
+  }
+
+  async _sendEmailValidation(ctx) {
+    let identKey = ctx._params.email + "_email";
+    let ident = await this._identsStore.get(identKey);
+    if (!ident) {
+      throw 404;
+    }
+    if (ident._lastValidationEmail >= Date.now() - this._emailDelay) {
+      throw 429;
+    }
+    await this.sendValidationEmail(ctx, ctx._params.email);
+    await this._identsStore.update(
+      {
+        _lastValidationEmail: Date.now()
+      },
+      identKey
+    );
   }
 
   _callback(ctx: Context) {
@@ -400,10 +434,7 @@ class Authentication extends Executor {
     return user;
   }
 
-  getPasswordRecoveryInfos(
-    uuid: string,
-    interval = this._params.passwordRecoveryInterval
-  ) {
+  getPasswordRecoveryInfos(uuid: string, interval = this._emailDelay) {
     var promise;
     var expire = Date.now() + interval;
     if (typeof uuid === "string") {
@@ -503,7 +534,7 @@ class Authentication extends Executor {
     }
     await this._identsStore.patch(
       {
-        validation: new Date()
+        _validation: new Date()
       },
       ident.uuid
     );
@@ -615,7 +646,7 @@ class Authentication extends Executor {
     var updates: any = {};
     var uuid = body.login.toLowerCase() + "_email";
     let ident: Ident = await this._identsStore.get(uuid);
-    if (ident != undefined && ident._user != undefined) {
+    if (ident !== undefined && ident._user !== undefined) {
       // Register on an known user
       if (ctx.parameter("register")) {
         throw 409;
@@ -682,7 +713,9 @@ class Authentication extends Executor {
           _user: user.uuid
         };
         if (validation) {
-          newIdent.validation = validation;
+          newIdent._validation = validation;
+        } else if (!mailConfig.skipEmailValidation) {
+          newIdent._lastValidationEmail = Date.now();
         }
         ident = await this._identsStore.save(newIdent);
         await this.login(ctx, user, ident);

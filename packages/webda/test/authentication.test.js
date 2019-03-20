@@ -14,7 +14,7 @@ var ctx;
 var userId;
 const Utils = require("./utils");
 
-const validationUrl = /.*\/auth\/email\/callback\?email=([^&]+)&token=([^ ]+)/;
+const validationUrl = /.*\/auth\/email\/callback\?email=([^&]+)&token=([^& ]+)(&user=([^ &]+))?/;
 
 describe("Passport", function() {
   before(async function() {
@@ -256,7 +256,7 @@ describe("Passport", function() {
       assert.notEqual(user, undefined);
     });
 
-    it("login and add email", async function() {
+    it("login", async function() {
       var params = {
         login: "test3@webda.io",
         password: "testtest"
@@ -371,6 +371,91 @@ describe("Passport", function() {
         executor.execute.bind(executor, ctx),
         res => res == 429
       );
+    });
+    it("add email to existing account", async function() {
+      // Log in as test2
+      ctx = webda.newContext({}, webda.getNewSession());
+      ctx.body = {
+        login: "test2@webda.io",
+        password: "retesttest"
+      };
+      ctx.session = webda.getNewSession();
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "POST",
+        "/auth/email",
+        "http"
+      );
+      await executor.execute(ctx);
+      assert.notEqual(ctx.session.getUserId(), undefined);
+      ctx.body = {
+        email: "newtest@webda.io"
+      };
+      await executor.execute(ctx);
+      let ident = await identStore.get("newtest@webda.io_email");
+      assert.equal(ident, undefined);
+      userId = ctx.getCurrentUserId();
+      var match = mailer.sent[0].replacements.url.match(validationUrl);
+      assert.notEqual(match, undefined);
+      assert.equal(match[1], "newtest@webda.io");
+
+      // Try to validate with wrong email
+      ctx.body = undefined;
+      ctx.session.userId = "anotheruser";
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "GET",
+        "/auth/email/callback?email=" +
+          match[1] +
+          "&token=" +
+          match[2] +
+          "&user=" +
+          match[4],
+        "http"
+      );
+      await executor.execute(ctx);
+      assert.equal(ctx.statusCode, 302);
+      assert.equal(ctx._headers.Location, "/login-error?reason=badUser");
+
+      // Right user
+      ctx.session.userId = userId;
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "GET",
+        "/auth/email/callback?email=" +
+          match[1] +
+          "&token=bouzouf" +
+          "&user=" +
+          match[4],
+        "http"
+      );
+      await executor.execute(ctx);
+      assert.equal(ctx.statusCode, 302);
+      assert.equal(ctx._headers.Location, "/login-error?reason=badToken");
+
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "GET",
+        "/auth/email/callback?email=" +
+          match[1] +
+          "&token=" +
+          match[2] +
+          "&user=" +
+          match[4],
+        "http"
+      );
+      await executor.execute(ctx);
+      assert.equal(ctx.statusCode, 302);
+      assert.equal(
+        ctx._headers.Location,
+        "https://webda.io/user.html?validation=email"
+      );
+      ident = await identStore.get("newtest@webda.io_email");
+      assert.notEqual(ident._validation, undefined);
     });
   });
   describe("OAuth", function() {

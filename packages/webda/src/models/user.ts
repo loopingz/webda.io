@@ -67,6 +67,10 @@ class User extends CoreModel {
   getPassword() {
     return this.__password;
   }
+
+  setPassword(password: string) {
+    this.__password = password;
+  }
 }
 
 export { User };

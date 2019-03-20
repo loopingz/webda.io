@@ -19,6 +19,7 @@ class Ident extends CoreModel {
   __new: boolean;
   _failedLogin: number;
   _lastValidationEmail: number;
+  _validation: Date;
 
   static init(type, uid, accessToken, refreshToken, profile): Ident {
     var obj = new Ident();

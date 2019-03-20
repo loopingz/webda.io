@@ -120,7 +120,7 @@ class Authentication extends Executor {
         }
       });
       this._addRoute(
-        url + "/email/callback{?email,token}",
+        url + "/email/callback{?email,token,user}",
         ["GET"],
         this._handleEmailCallback,
         {
@@ -343,6 +343,19 @@ class Authentication extends Executor {
     return url + "/callback";
   }
 
+  async _registerNewEmail(ctx) {
+    if (!ctx.getCurrentUserId()) {
+      throw 403;
+    }
+    let ident = await this._identsStore.get(ctx.body.email + "_email");
+    if (ident) {
+      if (ident._validation) {
+        throw 409;
+      }
+    }
+    await this.sendValidationEmail(ctx, ctx.body.email);
+  }
+
   async handleOAuthReturn(ctx: Context, identArg: any, done) {
     let provider = ctx.parameter("provider");
     this.log("TRACE", "Handle OAuth return", identArg);
@@ -520,29 +533,38 @@ class Authentication extends Executor {
     }
     let validation = ctx.parameter("token");
     if (
-      validation !== this.generateEmailValidationToken(ctx.parameter("email"))
+      validation !==
+      this.generateEmailValidationToken(ctx, ctx.parameter("email"))
     ) {
+      let reason = "badToken";
+      if (ctx.getCurrentUserId() !== ctx.parameter("user")) {
+        reason = "badUser";
+      }
       ctx.writeHead(302, {
-        Location: this._params.failureRedirect
+        Location: this._params.failureRedirect + "?reason=" + reason
       });
-      return Promise.resolve();
+      return;
     }
     var uuid = ctx.parameter("email") + "_email";
     let ident = await this._identsStore.get(uuid);
     if (ident === undefined) {
-      throw 404;
+      // Create the ident
+      await this._identsStore.save({
+        uuid: `${ctx.parameter("email")}_email`,
+        _validation: new Date(),
+        user: ctx.parameter("user")
+      });
+    } else {
+      await this._identsStore.patch(
+        {
+          _validation: new Date(),
+          user: ctx.parameter("user")
+        },
+        ident.uuid
+      );
     }
-    await this._identsStore.patch(
-      {
-        _validation: new Date()
-      },
-      ident.uuid
-    );
     ctx.writeHead(302, {
-      Location:
-        this._params.successRedirect +
-        "?validation=" +
-        ctx.parameter("provider"),
+      Location: this._params.successRedirect + "?validation=email",
       "X-Webda-Authentication": "success"
     });
   }
@@ -579,7 +601,11 @@ class Authentication extends Executor {
       "/auth/email/callback?email=" +
       email +
       "&token=" +
-      this.generateEmailValidationToken(email);
+      this.generateEmailValidationToken(ctx, email);
+    let userId = ctx.getCurrentUserId();
+    if (userId && userId.length > 0) {
+      replacements.url += "&user=" + userId;
+    }
     let mailOptions = {
       to: email,
       locale: ctx.getLocale(),
@@ -589,7 +615,7 @@ class Authentication extends Executor {
     return mailer.send(mailOptions);
   }
 
-  hashPassword(pass: string) {
+  hashPassword(pass: string): string {
     var hash = crypto.createHash("sha256");
     return hash.update(pass + this._webda.getSalt()).digest("hex");
   }
@@ -628,12 +654,53 @@ class Authentication extends Executor {
     );
   }
 
+  protected async handleLogin(ctx: Context, ident) {
+    let updates: any = {};
+    let user: User = await this._usersStore.get(ident.user);
+    // Check password
+    if (
+      user.getPassword() === this.hashPassword(ctx.getRequestBody().password)
+    ) {
+      if (ident._failedLogin > 0) {
+        ident._failedLogin = 0;
+      }
+      updates._lastUsed = new Date();
+      updates._failedLogin = 0;
+
+      await this._identsStore.update(updates, ident.uuid);
+      await this.login(ctx, ident.user, ident);
+      ctx.write(user);
+    } else {
+      await this.emitSync("LoginFailed", {
+        user,
+        ctx
+      });
+      if (ident._failedLogin === undefined) {
+        ident._failedLogin = 0;
+      }
+      updates._failedLogin = ident._failedLogin++;
+      updates._lastFailedLogin = new Date();
+      // Swalow exeception issue to double check !
+      await this._identsStore.update(updates, ident.uuid);
+      // Allows to auto redirect user to a oauth if needed
+      if (!ctx.isEnded()) {
+        throw 403;
+      }
+    }
+  }
+
   async _handleEmail(ctx: Context) {
     if (this._identsStore === undefined) {
       this._webda.log("ERROR", "Email auth needs an ident store");
       throw 500;
     }
     let body = ctx.getRequestBody();
+
+    // Register new email
+    if (body.email && !body.password) {
+      return this._registerNewEmail(ctx);
+    }
+
     if (body.password === undefined || body.login === undefined) {
       throw 400;
     }
@@ -648,89 +715,67 @@ class Authentication extends Executor {
     let ident: Ident = await this._identsStore.get(uuid);
     if (ident !== undefined && ident._user !== undefined) {
       // Register on an known user
-      if (ctx.parameter("register")) {
-        throw 409;
-      }
-      let user: User = await this._usersStore.get(ident._user);
-      // Check password
-      if (user.getPassword() === this.hashPassword(body.password)) {
-        if (ident._failedLogin > 0) {
-          ident._failedLogin = 0;
-        }
-        updates._lastUsed = new Date();
-        updates._failedLogin = 0;
-
-        await this._identsStore.patch(updates, ident.uuid);
-        await this.login(ctx, ident._user, ident);
-        ctx.write(user);
-      } else {
-        await this.emitSync("LoginFailed", {
-          user,
-          ctx
-        });
-        if (ident._failedLogin === undefined) {
-          ident._failedLogin = 0;
-        }
-        updates._failedLogin = ident._failedLogin++;
-        updates._lastFailedLogin = new Date();
-        // Swalow exeception issue to double check !
-        await this._identsStore.patch(updates, ident.uuid);
-        // Allows to auto redirect user to a oauth if needed
-        if (!ctx.isEnded()) {
-          throw 403;
-        }
-      }
-    } else {
-      // TODO Handle add of email on authenticated user
-      var email = body.login.toLowerCase();
-      // Read the form
-      if (body.register || ctx.parameter("register")) {
-        var validation = undefined;
-        // Need to check email before creation
-        if (
-          !mailConfig.postValidation ||
-          mailConfig.postValidation === undefined
-        ) {
-          if (body.token == this.generateEmailValidationToken(email)) {
-            validation = new Date();
-          } else {
-            ctx.write({});
-            // token is undefined send an email
-            return this.sendValidationEmail(ctx, email);
-          }
-        }
-        // Store with a _
-        body.__password = this.hashPassword(body.password);
-        await this._verifyPassword(body.password);
-        delete body.password;
-        delete body.register;
-        let user = await this.registerUser(ctx, body, body);
-        user = await this._usersStore.save(user);
-        var newIdent: any = {
-          uuid: uuid,
-          type: "email",
-          _email: email,
-          _user: user.uuid
-        };
-        if (validation) {
-          newIdent._validation = validation;
-        } else if (!mailConfig.skipEmailValidation) {
-          newIdent._lastValidationEmail = Date.now();
-        }
-        ident = await this._identsStore.save(newIdent);
-        await this.login(ctx, user, ident);
-        ctx.write(user);
-        if (!validation && !mailConfig.skipEmailValidation) {
-          await this.sendValidationEmail(ctx, email);
-        }
+      if (!ctx.parameter("register")) {
+        await this.handleLogin(ctx, ident);
         return;
       }
-      throw 404;
+      // If register on a validate email
+      if (ident._validation !== undefined) {
+        throw 409;
+      }
     }
+
+    // TODO Handle add of email on authenticated user
+    var email = body.login.toLowerCase();
+    // Read the form
+    if (body.register || ctx.parameter("register")) {
+      var validation = undefined;
+      // Need to check email before creation
+      if (!mailConfig.postValidation) {
+        if (body.token == this.generateEmailValidationToken(ctx, email)) {
+          if (body.user !== ctx.getCurrentUserId()) {
+            throw 412;
+          }
+          validation = new Date();
+        } else {
+          ctx.write({});
+          // token is undefined send an email
+          return this.sendValidationEmail(ctx, email);
+        }
+      }
+      // Store with a _
+      body.__password = this.hashPassword(body.password);
+      await this._verifyPassword(body.password);
+      delete body.password;
+      delete body.register;
+      let user = await this.registerUser(ctx, body);
+      user = await this._usersStore.save(user);
+      var newIdent: any = {
+        uuid: uuid,
+        type: "email",
+        email: email,
+        user: user.uuid
+      };
+      if (validation) {
+        newIdent._validation = validation;
+      } else if (!mailConfig.skipEmailValidation) {
+        newIdent._lastValidationEmail = Date.now();
+      }
+      ident = await this._identsStore.save(newIdent);
+      await this.login(ctx, user, ident);
+      ctx.write(user);
+      if (!validation && !mailConfig.skipEmailValidation) {
+        await this.sendValidationEmail(ctx, email);
+      }
+      return;
+    }
+    throw 404;
   }
 
-  generateEmailValidationToken(email: string) {
-    return this.hashPassword(email + "_" + this._webda.getSecret());
+  generateEmailValidationToken(ctx: Context, email: string) {
+    return this.hashPassword(
+      email + "_" + this._webda.getSecret() + ctx.getCurrentUserId()
+    );
   }
 
   _getProviderName(name: string) {

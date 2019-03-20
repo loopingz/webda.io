@@ -389,12 +389,17 @@ describe("Passport", function() {
       );
       await executor.execute(ctx);
       assert.notEqual(ctx.session.getUserId(), undefined);
-      ctx.body = {
-        email: "newtest@webda.io"
-      };
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "GET",
+        "/auth/email/newtest@webda.io/validate",
+        "http"
+      );
       await executor.execute(ctx);
       let ident = await identStore.get("newtest@webda.io_email");
-      assert.equal(ident, undefined);
+      assert.notEqual(ident, undefined);
+      assert.equal(ident._validation, undefined);
       userId = ctx.getCurrentUserId();
       var match = mailer.sent[0].replacements.url.match(validationUrl);
       assert.notEqual(match, undefined);

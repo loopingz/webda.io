@@ -264,18 +264,22 @@ class Authentication extends Executor {
     let identKey = ctx._params.email + "_email";
     let ident = await this._identsStore.get(identKey);
     if (!ident) {
-      throw 404;
-    }
-    if (ident._lastValidationEmail >= Date.now() - this._emailDelay) {
-      throw 429;
+      await this._identsStore.save({
+        uuid: `${ctx._params.email}_email`,
+        _lastValidationEmail: Date.now()
+      });
+    } else {
+      if (ident._lastValidationEmail >= Date.now() - this._emailDelay) {
+        throw 429;
+      }
+      await this._identsStore.update(
+        {
+          _lastValidationEmail: Date.now()
+        },
+        identKey
+      );
     }
     await this.sendValidationEmail(ctx, ctx._params.email);
-    await this._identsStore.update(
-      {
-        _lastValidationEmail: Date.now()
-      },
-      identKey
-    );
   }
 
   _callback(ctx: Context) {
@@ -352,6 +356,11 @@ class Authentication extends Executor {
       if (ident._validation) {
         throw 409;
       }
+    } else {
+      await this._identsStore.save({
+        uuid: `${ctx.body.email}_email`,
+        _lastValidationEmail: Date.now()
+      });
     }
     await this.sendValidationEmail(ctx, ctx.body.email);
   }

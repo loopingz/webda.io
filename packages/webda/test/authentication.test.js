@@ -461,6 +461,31 @@ describe("Passport", function() {
       );
       ident = await identStore.get("newtest@webda.io_email");
       assert.notEqual(ident._validation, undefined);
+      // Verify exception if same user try to revalidate
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "GET",
+        "/auth/email/newtest@webda.io/validate",
+        "http"
+      );
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        res => res == 412
+      );
+      // Verify exception if different user try to validate
+      ctx.session.userId = "bouzouf";
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "GET",
+        "/auth/email/newtest@webda.io/validate",
+        "http"
+      );
+      await Utils.throws(
+        executor.execute.bind(executor, ctx),
+        res => res == 409
+      );
     });
   });
   describe("OAuth", function() {

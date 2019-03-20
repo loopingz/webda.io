@@ -189,6 +189,8 @@ class Authentication extends Executor {
             operationId: "startEmailRecovery",
             responses: {
               "204": "",
+              "409": "Email already verified for another user",
+              "412": "Email already verified for current user",
               "429": "Validation has been initiated in the last 4 hours"
             }
           }
@@ -269,6 +271,12 @@ class Authentication extends Executor {
         _lastValidationEmail: Date.now()
       });
     } else {
+      if (ident._validation) {
+        if (ident.user === ctx.getCurrentUserId()) {
+          throw 412;
+        }
+        throw 409;
+      }
       if (ident._lastValidationEmail >= Date.now() - this._emailDelay) {
         throw 429;
       }

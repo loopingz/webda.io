@@ -379,7 +379,6 @@ describe("Passport", function() {
         login: "test2@webda.io",
         password: "retesttest"
       };
-      ctx.session = webda.getNewSession();
       executor = webda.getExecutor(
         ctx,
         "test.webda.io",
@@ -440,7 +439,6 @@ describe("Passport", function() {
       await executor.execute(ctx);
       assert.equal(ctx.statusCode, 302);
       assert.equal(ctx._headers.Location, "/login-error?reason=badToken");
-
       executor = webda.getExecutor(
         ctx,
         "test.webda.io",
@@ -472,6 +470,13 @@ describe("Passport", function() {
       await Utils.throws(
         executor.execute.bind(executor, ctx),
         res => res == 412
+      );
+      let user = await ctx.getCurrentUser();
+      // Check ident is added to the user
+      assert.equal(
+        user.idents.filter(item => item.uuid === "newtest@webda.io_email")
+          .length,
+        1
       );
       // Verify exception if different user try to validate
       ctx.session.userId = "bouzouf";

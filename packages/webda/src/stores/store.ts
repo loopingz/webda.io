@@ -322,6 +322,7 @@ class Store<T extends CoreModel> extends Executor
       itemWriteConditionField,
       updateDate
     );
+
     await this._handleMapFromPartial(uid, updateDate);
     await this.emitSync("Store.PartialUpdate", {
       object_id: uid,
@@ -601,7 +602,7 @@ class Store<T extends CoreModel> extends Executor
     return false;
   }
 
-  _handleUpdatedMap(object, map, mapped, store, updates) {
+  async _handleUpdatedMap(object, map, mapped, store, updates) {
     var mapper = {
       uuid: object.uuid
     };
@@ -629,7 +630,7 @@ class Store<T extends CoreModel> extends Executor
     }
     if (!found) {
       // None of the mapped keys has been modified -> return
-      return Promise.resolve();
+      return;
     }
 
     // check if reference object has changed
@@ -648,27 +649,18 @@ class Store<T extends CoreModel> extends Executor
         }
       }
       let i = this.getMapper(mapped[map.target], object.uuid);
-      let promise = Promise.resolve();
       if (i >= 0) {
         // Remove the data from old object
-        promise.then(() => {
-          return store.deleteItemFromCollection(
-            mapped.uuid,
-            map.target,
-            i,
-            object.uuid,
-            "uuid"
-          );
-        });
-      }
-      return promise.then(() => {
-        // Add the data to new object
-        return store.upsertItemToCollection(
-          updates[map.key],
+        await store.deleteItemFromCollection(
+          mapped.uuid,
           map.target,
-          mapper
+          i,
+          object.uuid,
+          "uuid"
         );
-      });
+      }
+      // Add the data to new object
+      await store.upsertItemToCollection(updates[map.key], map.target, mapper);
     } else {
       return this._handleUpdatedMapMapper(object, map, mapped, store, updates);
     }
@@ -760,10 +752,11 @@ class Store<T extends CoreModel> extends Executor
   }
 
   async _handleMapProperty(store, object, property, updates) {
-    let mapped = await store.get(object[property.key]);
+    let mapped = await store.get(object[property.key] || updates[property.key]);
     if (mapped == undefined) {
       return;
     }
+
     if (updates === "created") {
       return this._handleCreatedMap(object, property, mapped, store);
     } else if (updates == "deleted") {
@@ -811,7 +804,11 @@ class Store<T extends CoreModel> extends Executor
     }
     for (let prop in map) {
       // No mapped property or not in the object
-      if (map[prop].key === undefined || object[map[prop].key] === undefined) {
+      if (
+        map[prop].key === undefined ||
+        (object[map[prop].key] === undefined &&
+          updates[map[prop].key] === undefined)
+      ) {
         continue;
       }
       let store: Store<CoreModel> = <Store<CoreModel>>this.getService(prop);

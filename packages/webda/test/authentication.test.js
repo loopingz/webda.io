@@ -404,6 +404,19 @@ describe("Passport", function() {
       assert.notEqual(match, undefined);
       assert.equal(match[1], "newtest@webda.io");
 
+      // Send another one on newtest2
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "GET",
+        "/auth/email/newtest2@webda.io/validate",
+        "http"
+      );
+      await executor.execute(ctx);
+      var match2 = mailer.sent[1].replacements.url.match(validationUrl);
+      assert.notEqual(match2, undefined);
+      assert.equal(match2[1], "newtest2@webda.io");
+
       // Try to validate with wrong email
       ctx.body = undefined;
       ctx.session.userId = "anotheruser";
@@ -490,6 +503,27 @@ describe("Passport", function() {
       await Utils.throws(
         executor.execute.bind(executor, ctx),
         res => res == 409
+      );
+
+      // Validation with no user
+      ctx.session = webda.getNewSession();
+      executor = webda.getExecutor(
+        ctx,
+        "test.webda.io",
+        "GET",
+        "/auth/email/callback?email=" +
+          match2[1] +
+          "&token=" +
+          match2[2] +
+          "&user=" +
+          match2[4],
+        "http"
+      );
+      await executor.execute(ctx);
+      assert.equal(ctx.statusCode, 302);
+      assert.equal(
+        ctx._headers.Location,
+        "https://webda.io/user.html?validation=email"
       );
     });
   });

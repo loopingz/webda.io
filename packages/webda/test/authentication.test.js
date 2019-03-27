@@ -133,6 +133,7 @@ describe("Passport", function() {
         "/auth/email/test2@webda.io/validate",
         "http"
       );
+      ctx.session.login(userId, "fake");
       // Should be to soon to resend an email
       await Utils.throws(
         executor.execute.bind(executor, ctx),

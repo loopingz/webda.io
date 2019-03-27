@@ -114,6 +114,12 @@ describe("Webda", function() {
         "is not implementing ConfigurationProvider interface"
       );
     });
+    it("context redirect", function() {
+      ctx.init();
+      ctx.redirect("https://www.loopingz.com");
+      assert.equal(ctx._headers["Location"], "https://www.loopingz.com");
+      assert.equal(ctx.statusCode, 302);
+    });
     it("context", function() {
       ctx.init();
       assert.notEqual(ctx.getWebda(), undefined);

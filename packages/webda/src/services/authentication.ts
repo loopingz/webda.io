@@ -271,11 +271,11 @@ class Authentication extends Executor {
         _lastValidationEmail: Date.now()
       });
     } else {
-      if (ident._validation) {
-        if (ident.user === ctx.getCurrentUserId()) {
-          throw 412;
-        }
+      if (ident.user !== ctx.getCurrentUserId()) {
         throw 409;
+      }
+      if (ident._validation) {
+        throw 412;
       }
       if (ident._lastValidationEmail >= Date.now() - this._emailDelay) {
         throw 429;

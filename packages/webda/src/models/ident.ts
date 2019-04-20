@@ -10,7 +10,7 @@ class IdentTokens {
  * @class
  */
 class Ident extends CoreModel {
-  type: string;
+  _type: string;
   uid: string;
   __profile: any;
   __tokens: IdentTokens;
@@ -23,9 +23,9 @@ class Ident extends CoreModel {
 
   static init(type, uid, accessToken, refreshToken, profile): Ident {
     var obj = new Ident();
-    obj.type = type.toLowerCase();
+    obj._type = type.toLowerCase();
     obj.uid = uid.toLowerCase();
-    obj.uuid = obj.uid + "_" + obj.type;
+    obj.uuid = obj.uid + "_" + obj._type;
     obj.__profile = profile;
     obj.__tokens = new IdentTokens();
     obj.__tokens.refresh = refreshToken;
@@ -39,6 +39,14 @@ class Ident extends CoreModel {
 
   setUser(user) {
     this._user = user;
+  }
+
+  getType() {
+    return this._type;
+  }
+
+  setType(type) {
+    this._type = type;
   }
 }
 

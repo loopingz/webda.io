@@ -268,10 +268,11 @@ class Authentication extends Executor {
     if (!ident) {
       await this._identsStore.save({
         uuid: `${ctx._params.email}_email`,
-        _lastValidationEmail: Date.now()
+        _lastValidationEmail: Date.now(),
+        type: "email"
       });
     } else {
-      if (ident.user !== ctx.getCurrentUserId()) {
+      if (ident.getUser() !== ctx.getCurrentUserId()) {
         throw 409;
       }
       if (ident._validation) {
@@ -280,7 +281,7 @@ class Authentication extends Executor {
       if (ident._lastValidationEmail >= Date.now() - this._emailDelay) {
         throw 429;
       }
-      await this._identsStore.update(
+      await this._identsStore.patch(
         {
           _lastValidationEmail: Date.now()
         },
@@ -379,7 +380,7 @@ class Authentication extends Executor {
     this.log("TRACE", "Handle OAuth return", identArg);
     let ident: Ident = await this._identsStore.get(identArg.uuid);
     if (ident) {
-      await this.login(ctx, ident._user, ident);
+      await this.login(ctx, ident.getUser(), ident);
       await this._identsStore.patch(
         {
           _lastUsed: new Date()
@@ -402,9 +403,11 @@ class Authentication extends Executor {
       await this._usersStore.save(user);
     }
     // Work directly on ident argument
-    ident = identArg;
-    ident._user = user.uuid;
+    ident = new Ident();
+    ident.load(identArg);
+    ident.setUser(user.uuid);
     ident._lastUsed = new Date();
+    ident.setType("email");
     await this._identsStore.save(ident);
     ident.__new = true;
     await this.login(ctx, user, ident);
@@ -489,7 +492,7 @@ class Authentication extends Executor {
     if (!ident) {
       throw 404;
     }
-    let user: User = await this._usersStore.get(ident._user);
+    let user: User = await this._usersStore.get(ident.getUser());
     // Dont allow to do too many request
     if (!user.lastPasswordRecoveryBefore(Date.now() - 3600000 * 4)) {
       throw 429;
@@ -587,7 +590,7 @@ class Authentication extends Executor {
       await this._identsStore.patch(
         {
           _validation: new Date(),
-          user: ctx.parameter("user"),
+          _user: ctx.parameter("user"),
           type: "email"
         },
         ident.uuid
@@ -684,9 +687,9 @@ class Authentication extends Executor {
     );
   }
 
-  protected async handleLogin(ctx: Context, ident) {
+  protected async handleLogin(ctx: Context, ident: Ident) {
     let updates: any = {};
-    let user: User = await this._usersStore.get(ident.user);
+    let user: User = await this._usersStore.get(ident.getUser());
     // Check password
     if (
       user.getPassword() === this.hashPassword(ctx.getRequestBody().password)
@@ -697,8 +700,8 @@ class Authentication extends Executor {
       updates._lastUsed = new Date();
       updates._failedLogin = 0;
 
-      await this._identsStore.update(updates, ident.uuid);
-      await this.login(ctx, ident.user, ident);
+      await this._identsStore.patch(updates, ident.uuid);
+      await this.login(ctx, ident.getUser(), ident);
       ctx.write(user);
     } else {
       await this.emitSync("LoginFailed", {
@@ -711,7 +714,7 @@ class Authentication extends Executor {
       updates._failedLogin = ident._failedLogin++;
       updates._lastFailedLogin = new Date();
       // Swalow exeception issue to double check !
-      await this._identsStore.update(updates, ident.uuid);
+      await this._identsStore.patch(updates, ident.uuid);
       // Allows to auto redirect user to a oauth if needed
       if (!ctx.isEnded()) {
         throw 403;
@@ -740,10 +743,9 @@ class Authentication extends Executor {
       // Bad configuration ( might want to use other than 500 )
       throw 500;
     }
-    var updates: any = {};
     var uuid = body.login.toLowerCase() + "_email";
     let ident: Ident = await this._identsStore.get(uuid);
-    if (ident !== undefined && ident._user !== undefined) {
+    if (ident !== undefined && ident.getUser() !== undefined) {
       // Register on an known user
       if (!ctx.parameter("register")) {
         await this.handleLogin(ctx, ident);
@@ -781,13 +783,13 @@ class Authentication extends Executor {
       await this._verifyPassword(body.password);
       delete body.password;
       delete body.register;
-      let user = await this.registerUser(ctx, body);
+      let user = await this.registerUser(ctx, {}, body);
       user = await this._usersStore.save(user);
       var newIdent: any = {
         uuid: uuid,
         type: "email",
         email: email,
-        user: user.uuid
+        _user: user.uuid
       };
       if (validation) {
         newIdent._validation = validation;

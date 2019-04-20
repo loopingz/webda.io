@@ -206,6 +206,10 @@ class Context extends Map<string, any> {
     }
   }
 
+  /**
+   * Redirect to another url
+   * @param url
+   */
   redirect(url: string) {
     this.writeHead(302, { Location: url });
   }

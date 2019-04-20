@@ -86,7 +86,7 @@ describe("Passport", function() {
       assert.equal(mailer.sent.length, 2);
       let user = await userStore.get(ctx.session.getUserId());
       assert.notEqual(user, undefined);
-      assert.notEqual(user.__password, undefined);
+      assert.notEqual(user.getPassword(), undefined);
       assert.equal(user.locale, "en-GB");
       assert.equal(user.test, "TESTOR"); // Verify that the listener on Register has done something
       // Now logout
@@ -145,7 +145,6 @@ describe("Passport", function() {
       // Should be ok now to send an email
       await executor.execute(ctx);
       assert.equal(mailer.sent.length, 3);
-
       // Validate email for test2 now
       var match = mailer.sent[1].replacements.url.match(validationUrl);
       assert.notEqual(match, undefined);
@@ -435,8 +434,10 @@ describe("Passport", function() {
       );
       await executor.execute(ctx);
       assert.equal(ctx.statusCode, 302);
-      assert.equal(ctx._headers.Location, "/login-error?reason=badUser");
-
+      assert.equal(
+        ctx.getResponseHeaders().Location,
+        "/login-error?reason=badUser"
+      );
       // Right user
       ctx.session.userId = userId;
       executor = webda.getExecutor(
@@ -452,7 +453,10 @@ describe("Passport", function() {
       );
       await executor.execute(ctx);
       assert.equal(ctx.statusCode, 302);
-      assert.equal(ctx._headers.Location, "/login-error?reason=badToken");
+      assert.equal(
+        ctx.getResponseHeaders().Location,
+        "/login-error?reason=badToken"
+      );
       executor = webda.getExecutor(
         ctx,
         "test.webda.io",
@@ -468,7 +472,7 @@ describe("Passport", function() {
       await executor.execute(ctx);
       assert.equal(ctx.statusCode, 302);
       assert.equal(
-        ctx._headers.Location,
+        ctx.getResponseHeaders().Location,
         "https://webda.io/user.html?validation=email"
       );
       ident = await identStore.get("newtest@webda.io_email");
@@ -523,7 +527,7 @@ describe("Passport", function() {
       await executor.execute(ctx);
       assert.equal(ctx.statusCode, 302);
       assert.equal(
-        ctx._headers.Location,
+        ctx.getResponseHeaders().Location,
         "https://webda.io/user.html?validation=email"
       );
     });

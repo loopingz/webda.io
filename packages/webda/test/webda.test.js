@@ -117,7 +117,10 @@ describe("Webda", function() {
     it("context redirect", function() {
       ctx.init();
       ctx.redirect("https://www.loopingz.com");
-      assert.equal(ctx._headers["Location"], "https://www.loopingz.com");
+      assert.equal(
+        ctx.getResponseHeaders().Location,
+        "https://www.loopingz.com"
+      );
       assert.equal(ctx.statusCode, 302);
     });
     it("context", function() {

@@ -87,7 +87,7 @@ describe("Passport", function() {
       let user = await userStore.get(ctx.session.getUserId());
       assert.notEqual(user, undefined);
       assert.notEqual(user.getPassword(), undefined);
-      assert.equal(user.locale, "en-GB");
+      assert.equal(user.locale, "en");
       assert.equal(user.test, "TESTOR"); // Verify that the listener on Register has done something
       // Now logout
       executor = webda.getExecutor(

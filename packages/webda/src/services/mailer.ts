@@ -1,13 +1,12 @@
 "use strict";
 import { Service } from "../index";
 var nodemailer = require("nodemailer");
-var ses = require("nodemailer-ses-transport");
 const fs = require("fs");
-const Mustache = require("mustache");
-const EmailTemplate = require("email-templates").EmailTemplate;
+const Mustache = require("mustache"); // Import as it is our default templates engine
+const Email = require("email-templates");
 
 interface IEmailTemplate {
-  render(options: any);
+  renderAll(file: string, options: any);
 }
 
 interface TemplatesMap {
@@ -33,6 +32,7 @@ class Mailer extends Service {
       let config: any = {};
       Object.assign(config, params.config);
       if (config.transport === "ses" && !config.SES) {
+        var ses = require("nodemailer-ses-transport");
         let aws = require("aws-sdk");
         aws.config.update(config);
         config.SES = new aws.SES({
@@ -52,15 +52,26 @@ class Mailer extends Service {
   _getTemplate(name) {
     if (!this._templates[name]) {
       // Load template
-      let templateDir = this._params.templates + "/" + name;
+      let templateDir = this._params.templates + "/";
       if (!fs.existsSync(templateDir)) {
-        templateDir = __dirname + "/../templates/" + name;
+        templateDir = __dirname + "/../templates/";
         if (!fs.existsSync(templateDir)) {
           this._webda.log("WARN", "No template found for", name);
           return;
         }
       }
-      this._templates[name] = new EmailTemplate(templateDir);
+      if (!fs.existsSync(templateDir + name)) {
+        this._webda.log("WARN", "No template found for", name);
+        return;
+      }
+      this._templates[name] = new Email({
+        views: {
+          root: templateDir,
+          options: {
+            extension: this._params.templatesEngine || "mustache"
+          }
+        }
+      });
     }
     return this._templates[name];
   }
@@ -88,7 +99,10 @@ class Mailer extends Service {
       options.replacements.now = new Date();
       let template = this._getTemplate(options.template);
       if (template) {
-        let result = await template.render(options.replacements);
+        let result = await template.renderAll(
+          options.template,
+          options.replacements
+        );
         if (result.subject) {
           options.subject = result.subject;
         }

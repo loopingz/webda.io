@@ -40,7 +40,7 @@ describe("Webda", function() {
           headers: headers
         }
       });
-      assert.equal(ctx.getLocale(), "en-GB");
+      assert.equal(ctx.getLocale(), "en");
     });
     it("Get exact locale", function() {
       headers["Accept-Language"] =
@@ -60,7 +60,7 @@ describe("Webda", function() {
           headers: headers
         }
       });
-      assert.equal(ctx.getLocale(), "en-GB");
+      assert.equal(ctx.getLocale(), "en");
     });
   });
   describe("getVersion()", function() {

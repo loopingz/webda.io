@@ -5,7 +5,7 @@
     "region": "us-east-1",
     "website": ["test.webda.io", "test2.webda.io"],
     "csrfOrigins": ["^accounts\\.google\\.\\w{2,}$", "www\\.facebook\\.com"],
-    "locales": ["es-ES", "en-GB", "fr-FR"]
+    "locales": ["es-ES", "en", "fr-FR"]
   },
   "moddas": {
     "Test/Mailer": {

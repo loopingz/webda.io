@@ -31,119 +31,123 @@ export class WebdaServer extends Webda {
   }
 
   async handleRequest(req, res, next) {
-    // Wait for Webda to be ready
-    await this.init();
-    // Ensure cookie session
-    if (req.cookies.webda === undefined) {
-      req.cookies.webda = {};
-    }
-    var sessionCookie = new SecureCookie(
-      {
-        secret: "webda-private-key"
-      },
-      req.cookies.webda
-    ).getProxy();
-    req.session = sessionCookie;
-    // Handle reverse proxy
-    var vhost = req.headers.host.match(/:/g)
-      ? req.headers.host.slice(0, req.headers.host.indexOf(":"))
-      : req.headers.host;
-    if (req.hostname !== undefined) {
-      vhost = req.hostname;
-    }
-    if (req.headers["x-forwarded-host"] !== undefined) {
-      vhost = req.headers["x-forwarded-host"];
-    }
-    var protocol = req.protocol;
-    if (req.headers["x-forwarded-proto"] != undefined) {
-      protocol = req.headers["x-forwarded-proto"];
-    }
+    try {
+      // Wait for Webda to be ready
+      await this.init();
+      // Ensure cookie session
+      if (req.cookies.webda === undefined) {
+        req.cookies.webda = {};
+      }
+      var sessionCookie = new SecureCookie(
+        {
+          secret: this.getGlobalParams().sessionSecret
+        },
+        req.cookies.webda
+      );
+      req.session = sessionCookie.getProxy();
+      // Handle reverse proxy
+      var vhost = req.headers.host.match(/:/g)
+        ? req.headers.host.slice(0, req.headers.host.indexOf(":"))
+        : req.headers.host;
+      if (req.hostname !== undefined) {
+        vhost = req.hostname;
+      }
+      if (req.headers["x-forwarded-host"] !== undefined) {
+        vhost = req.headers["x-forwarded-host"];
+      }
+      var protocol = req.protocol;
+      if (req.headers["x-forwarded-proto"] != undefined) {
+        protocol = req.headers["x-forwarded-proto"];
+      }
 
-    // Setup the right session cookie
-    //req.session.cookie.domain = vhost;
+      // Setup the right session cookie
+      //req.session.cookie.domain = vhost;
 
-    // Fallback on reference as Origin is not always set by Edge
-    let origin =
-      req.headers.Origin || req.headers.origin || req.headers.Referer;
-    // Set predefined headers for CORS
-    if (origin) {
-      if (this._devMode || this.checkCSRF(origin)) {
-        res.setHeader("Access-Control-Allow-Origin", origin);
-      } else {
-        // Prevent CSRF
-        this.log("INFO", "CSRF denied from", origin);
-        res.writeHead(401);
+      // Fallback on reference as Origin is not always set by Edge
+      let origin =
+        req.headers.Origin || req.headers.origin || req.headers.Referer;
+      // Set predefined headers for CORS
+      if (origin) {
+        if (this._devMode || this.checkCSRF(origin)) {
+          res.setHeader("Access-Control-Allow-Origin", origin);
+        } else {
+          // Prevent CSRF
+          this.log("INFO", "CSRF denied from", origin);
+          res.writeHead(401);
+          res.end();
+          return;
+        }
+      }
+      if (protocol === "https") {
+        // Add the HSTS header
+        res.setHeader(
+          "Strict-Transport-Security",
+          "max-age=31536000; includeSubDomains; preload"
+        );
+      }
+      if (req.method == "OPTIONS") {
+        // Add correct headers for X-scripting
+        if (req.headers["x-forwarded-server"] === undefined) {
+          if (this._devMode && req.headers["origin"]) {
+            res.setHeader("Access-Control-Allow-Origin", req.headers["origin"]);
+          }
+        }
+        var methods = "GET,POST,PUT,DELETE,OPTIONS";
+        res.setHeader("Access-Control-Allow-Credentials", "true");
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+        res.setHeader("Access-Control-Allow-Methods", methods);
+        res.setHeader("Allow", methods);
+        res.writeHead(200);
         res.end();
         return;
       }
-    }
-    if (protocol === "https") {
-      // Add the HSTS header
-      res.setHeader(
-        "Strict-Transport-Security",
-        "max-age=31536000; includeSubDomains; preload"
+      var ctx = this.newContext(req.body, req.session, res, req.files);
+      ctx.clientInfo = this.getClientInfo(req);
+      await this.emitSync(
+        "Webda.Request",
+        vhost,
+        req.method,
+        req.url,
+        ctx.getCurrentUserId(),
+        req.body,
+        req,
+        ctx
       );
-    }
-    if (req.method == "OPTIONS") {
+      var executor = this.getExecutor(
+        ctx,
+        vhost,
+        req.method,
+        req.url,
+        protocol,
+        req.port,
+        req.headers
+      );
+
+      if (executor == null) {
+        return next();
+      }
+      // Init the pipe on stream
+      ctx.init();
+
       // Add correct headers for X-scripting
       if (req.headers["x-forwarded-server"] === undefined) {
         if (this._devMode && req.headers["origin"]) {
           res.setHeader("Access-Control-Allow-Origin", req.headers["origin"]);
         }
       }
-      var methods = "GET,POST,PUT,DELETE,OPTIONS";
       res.setHeader("Access-Control-Allow-Credentials", "true");
-      res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-      res.setHeader("Access-Control-Allow-Methods", methods);
-      res.setHeader("Allow", methods);
-      res.writeHead(200);
-      res.end();
-      return;
-    }
-    var ctx = this.newContext(req.body, req.session, res, req.files);
-    ctx.clientInfo = this.getClientInfo(req);
-    this.emit(
-      "Webda.Request",
-      vhost,
-      req.method,
-      req.url,
-      ctx.getCurrentUserId(),
-      req.body
-    );
-    var executor = this.getExecutor(
-      ctx,
-      vhost,
-      req.method,
-      req.url,
-      protocol,
-      req.port,
-      req.headers
-    );
-
-    if (executor == null) {
-      return next();
-    }
-    // Init the pipe on stream
-    ctx.init();
-
-    // Add correct headers for X-scripting
-    if (req.headers["x-forwarded-server"] === undefined) {
-      if (this._devMode && req.headers["origin"]) {
-        res.setHeader("Access-Control-Allow-Origin", req.headers["origin"]);
-      }
-    }
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    return Promise.resolve(executor.execute(ctx))
-      .then(() => {
+      try {
+        await executor.execute(ctx);
         if (!ctx._ended) {
-          return ctx.end();
+          await ctx.end();
         }
-      })
-      .catch(err => {
+        await this.emitSync("Webda.Result", ctx);
+      } catch (err) {
+        await this.emitSync("Webda.Result", ctx);
         if (typeof err === "number") {
           ctx.statusCode = err;
           this.flushHeaders(ctx);
-          res.end();
+          return res.end();
         } else {
           this.output(
             "ERROR Exception occured : " + JSON.stringify(err),
@@ -153,7 +157,15 @@ export class WebdaServer extends Webda {
           res.end();
           throw err;
         }
-      });
+      }
+    } catch (err) {
+      res.writeHead(500);
+      this.output(
+        "ERROR Exception occured : " + JSON.stringify(err),
+        err.stack
+      );
+      res.end();
+    }
   }
 
   display404(res) {

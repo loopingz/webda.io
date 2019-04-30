@@ -38,12 +38,7 @@ export class WebdaServer extends Webda {
       if (req.cookies.webda === undefined) {
         req.cookies.webda = {};
       }
-      var sessionCookie = new SecureCookie(
-        {
-          secret: this.getGlobalParams().sessionSecret
-        },
-        req.cookies.webda
-      );
+      var sessionCookie = this.newCookie(req.cookies);
       req.session = sessionCookie.getProxy();
       // Handle reverse proxy
       var vhost = req.headers.host.match(/:/g)

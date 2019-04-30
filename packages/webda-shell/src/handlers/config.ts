@@ -436,6 +436,12 @@ class ` +
       let desc = {
         type: "object"
       };
+      if (
+        model.name === "Webda/Context" ||
+        model.name === "Webda/SecureCookie"
+      ) {
+        return;
+      }
       let schema = new (this._webda._mockWebda.getModel(
         model.name
       ))()._getSchema();

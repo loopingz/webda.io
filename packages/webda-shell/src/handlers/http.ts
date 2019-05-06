@@ -3,7 +3,8 @@ import {
   SecureCookie,
   ClientInfo,
   MemoryLogger,
-  _extend
+  _extend,
+  HttpContext
 } from "webda";
 const path = require("path");
 
@@ -34,12 +35,7 @@ export class WebdaServer extends Webda {
     try {
       // Wait for Webda to be ready
       await this.init();
-      // Ensure cookie session
-      if (req.cookies.webda === undefined) {
-        req.cookies.webda = {};
-      }
-      var sessionCookie = this.newCookie(req.cookies);
-      req.session = sessionCookie.getProxy();
+
       // Handle reverse proxy
       var vhost = req.headers.host.match(/:/g)
         ? req.headers.host.slice(0, req.headers.host.indexOf(":"))
@@ -54,6 +50,19 @@ export class WebdaServer extends Webda {
       if (req.headers["x-forwarded-proto"] != undefined) {
         protocol = req.headers["x-forwarded-proto"];
       }
+
+      let httpContext = new HttpContext(
+        vhost,
+        req.method,
+        req.url,
+        protocol,
+        req.port,
+        req.body,
+        req.headers,
+        req.files
+      );
+      let ctx = await this.newContext(httpContext, res);
+      req.session = ctx.getSession().getProxy();
 
       // Setup the right session cookie
       //req.session.cookie.domain = vhost;
@@ -96,7 +105,6 @@ export class WebdaServer extends Webda {
         res.end();
         return;
       }
-      var ctx = this.newContext(req.body, req.session, res, req.files);
       ctx.clientInfo = this.getClientInfo(req);
       await this.emitSync(
         "Webda.Request",
@@ -108,15 +116,7 @@ export class WebdaServer extends Webda {
         req,
         ctx
       );
-      var executor = this.getExecutor(
-        ctx,
-        vhost,
-        req.method,
-        req.url,
-        protocol,
-        req.port,
-        req.headers
-      );
+      var executor = this.getExecutorWithContext(ctx);
 
       if (executor == null) {
         return next();
@@ -176,7 +176,10 @@ export class WebdaServer extends Webda {
   flushHeaders(ctx) {
     var res = ctx._stream;
     var headers = ctx._headers;
-    headers["Set-Cookie"] = this.getCookieHeader(ctx);
+    let cookies = ctx.getResponseCookies();
+    for (let i in cookies) {
+      res.cookie(cookies[i].name, cookies[i].value, cookies[i].options);
+    }
     res.writeHead(ctx.statusCode, headers);
   }
 

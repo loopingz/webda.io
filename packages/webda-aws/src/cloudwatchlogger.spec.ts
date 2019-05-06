@@ -1,4 +1,5 @@
 import { WebdaTest } from "webda/lib/test";
+import { GetAWS } from "./index";
 import * as assert from "assert";
 import { CloudWatchLogger } from "./cloudwatchlogger";
 import { test, suite } from "mocha-typescript";
@@ -12,11 +13,9 @@ class CloudWatchLoggerTest extends WebdaTest {
   }
 
   async before() {
-    await super.before();
-    this.service = <CloudWatchLogger>this.getService("CloudWatchLogger");
-    assert.notEqual(this.service, undefined);
+    let cloudwatch = new (GetAWS({})).CloudWatchLogs();
     try {
-      await this.service._cloudwatch
+      await cloudwatch
         .deleteLogGroup({
           logGroupName: "webda-test"
         })
@@ -26,6 +25,9 @@ class CloudWatchLoggerTest extends WebdaTest {
     } catch (err) {
       // Skip bad delete
     }
+    await super.before();
+    this.service = <CloudWatchLogger>this.getService("CloudWatchLogger");
+    assert.notEqual(this.service, undefined);
   }
 
   @test
@@ -45,6 +47,7 @@ class CloudWatchLoggerTest extends WebdaTest {
     assert.notEqual(res.logStreams[0].lastEventTimestamp, undefined);
   }
 
+  @test
   async secondRun() {
     // Update config to use the stepper
     this.service._params.singlePush = true;
@@ -56,9 +59,8 @@ class CloudWatchLoggerTest extends WebdaTest {
         logGroupName: "webda-test"
       })
       .promise();
-    assert.equal(res.logStreams.length, 2);
+    assert.equal(res.logStreams.length, 1);
     assert.notEqual(res.logStreams[0].lastEventTimestamp, undefined);
-    assert.notEqual(res.logStreams[1].lastEventTimestamp, undefined);
     this.webda.log("TEST2", "Plop 2", "Test");
     this.webda.log("TEST2", "Plop 3", "Test");
     this.webda.log("TEST2", "Plop 4", "Test");
@@ -68,6 +70,6 @@ class CloudWatchLoggerTest extends WebdaTest {
         logGroupName: "webda-test"
       })
       .promise();
-    assert.equal(res.logStreams.length, 2);
+    assert.equal(res.logStreams.length, 1);
   }
 }

@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc && webda module",
     "pretest": "npm run build",
-    "test": "nyc mocha --recursive --exit --timeout=100000 -r ts-node/register test/**/*.test.js src/**/*.spec.ts",
+    "test": "nyc mocha --recursive --exit --timeout=100000 -r ts-node/register src/**/*.spec.ts",
     "run": "node core",
     "format": "node ./scripts/format.js",
     "precommit": "npm run format && npm run test"
@@ -50,20 +50,12 @@
     "webda-shell": ">=0.10.5"
   },
   "nyc": {
-    "extension": [
-      ".ts",
-      ".tsx",
-      ".js"
-    ],
-    "include": [
-      "lib/**/*.js"
-    ],
+    "extends": "@istanbuljs/nyc-config-typescript",
+    "report-dir": "./reports",
     "reporter": [
       "html",
       "lcov",
       "json"
-    ],
-    "report-dir": "./reports",
-    "all": true
+    ]
   }
 }

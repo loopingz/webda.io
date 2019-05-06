@@ -1,7 +1,7 @@
 import { WebdaTest } from "webda/lib/test";
 import { test, suite } from "mocha-typescript";
 import * as assert from "assert";
-import { LambdaServer } from "./lambdahandler";
+import { LambdaServer } from "./lambdaserver";
 import { Executor, Service } from "webda";
 
 class ExceptionExecutor extends Executor {
@@ -213,7 +213,7 @@ class LambdaHandlerTest extends WebdaTest {
   }
 
   /*
-  describe("aws events", function() {
+  awsEvents() {
     let service;
     beforeEach(function() {
       handler = new Webda.LambdaServer(config);
@@ -245,6 +245,6 @@ class LambdaHandlerTest extends WebdaTest {
         );
       });
     });
-  });
+  }
   */
 }

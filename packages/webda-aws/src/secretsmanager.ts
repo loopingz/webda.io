@@ -1,7 +1,7 @@
 import { Service, ConfigurationProvider } from "webda";
 import { AWSMixIn } from "./aws-mixin";
 
-export default class AwsSecretsManager extends AWSMixIn(Service)
+export default class AWSSecretsManager extends AWSMixIn(Service)
   implements ConfigurationProvider {
   _client: any;
 
@@ -86,4 +86,4 @@ export default class AwsSecretsManager extends AWSMixIn(Service)
   }
 }
 
-export { AwsSecretsManager };
+export { AWSSecretsManager };

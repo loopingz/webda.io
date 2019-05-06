@@ -8,7 +8,7 @@ import {
   HttpContext
 } from "webda";
 import { Constructor, GetAWS } from "./aws-mixin";
-const cookieParse = require("cookie").parse;
+import { parse as cookieParse, serialize as cookieSerialize } from "cookie";
 
 function AWSEventHandlerMixIn<T extends Constructor<Service>>(Base: T) {
   return class extends Base {
@@ -40,13 +40,17 @@ export default class LambdaServer extends Webda {
    */
   flushHeaders(ctx: Context) {
     var headers = ctx.getResponseHeaders() || {};
-    // No route found probably coming from an OPTIONS
-    if (ctx._route) {
-      headers["Set-Cookie"] = this.getCookieHeader(ctx);
-    }
+
     this._result = {};
     this._result.headers = headers;
     this._result.statusCode = ctx.statusCode;
+    let cookies = ctx.getResponseCookies();
+    this._result.multipleHeaders = { "Set-Cookie": [] };
+    for (let i in cookies) {
+      this._result.multipleHeaders["Set-Cookie"].push(
+        cookieSerialize(cookies[i].value, cookies[i].options || {})
+      );
+    }
   }
 
   flush(ctx: Context) {
@@ -157,20 +161,8 @@ export default class LambdaServer extends Webda {
         this._config.parameters.waitForEmptyEventLoop) ||
       false;
     this._result = {};
-    var cookies: any = {};
-    var rawCookie = event.headers.Cookie;
-    if (rawCookie) {
-      cookies = cookieParse(rawCookie);
-    }
-    var sessionCookie = new SecureCookie(
-      {
-        secret: "webda-private-key"
-      },
-      cookies.webda
-    ).getProxy();
-    var session = sessionCookie;
-    var vhost;
-    var i;
+    var vhost: string;
+    var i: any;
 
     var headers = event.headers || {};
     vhost = headers.Host;
@@ -206,16 +198,21 @@ export default class LambdaServer extends Webda {
         throw err;
       }
     }
-    var ctx = this.newContext(body, session);
+    let httpContext = new HttpContext(
+      vhost,
+      method,
+      resourcePath,
+      protocol,
+      port,
+      body,
+      headers
+    );
+    var ctx = await this.newContext(httpContext);
     // TODO Get all client info
     // event['requestContext']['identity']['sourceIp']
     ctx.clientInfo = this.getClientInfo(event.requestContext);
     ctx.clientInfo.locale = headers["Accept-Language"];
     ctx.clientInfo.referer = headers["Referer"] || headers.referer;
-
-    ctx.setHttpContext(
-      new HttpContext(vhost, method, resourcePath, protocol, port, headers)
-    );
 
     // Debug mode
     await this.emitSync(
@@ -266,15 +263,7 @@ export default class LambdaServer extends Webda {
       return this.handleLambdaReturn(ctx);
     }
 
-    var executor = this.getExecutor(
-      ctx,
-      vhost,
-      method,
-      resourcePath,
-      protocol,
-      port,
-      headers
-    );
+    var executor = this.getExecutorWithContext(ctx);
 
     if (executor == null) {
       this.emitSync(

@@ -1,5 +1,5 @@
 "use strict";
-const uuid = require("uuid");
+import * as uuid from "uuid";
 import {
   Executor,
   ConfigurationProvider,

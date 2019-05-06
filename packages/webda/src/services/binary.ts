@@ -1,9 +1,9 @@
 "use strict";
 import { Executor, Store, CoreModel, Context } from "../index";
-const fs = require("fs");
-const path = require("path");
-const mime = require("mime-types");
-const crypto = require("crypto");
+import * as fs from "fs";
+import * as path from "path";
+import * as mime from "mime-types";
+import * as crypto from "crypto";
 
 /**
  * This is a map used to retrieve binary

@@ -1,6 +1,6 @@
 "use strict";
 import { Queue } from "../index";
-const uuid = require("uuid");
+import * as uuid from "uuid";
 
 interface QueueMap {
   [key: string]: any;

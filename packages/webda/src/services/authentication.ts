@@ -11,8 +11,8 @@ import {
   Core,
   CoreModel
 } from "../index";
-var passport = require("passport");
-const crypto = require("crypto");
+import * as passport from "passport";
+import * as crypto from "crypto";
 
 var Strategies = {
   facebook: {

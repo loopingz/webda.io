@@ -1,6 +1,13 @@
 import { _extend } from "../core";
 import * as jwt from "jsonwebtoken";
 import { Context } from "./context";
+
+/**
+ * Cookie cannot be more than 4096, so we split them by this constant
+ * @hidden
+ */
+const SPLIT = 4000;
+
 /**
  * Object that handle the session
  *
@@ -12,8 +19,6 @@ import { Context } from "./context";
  *
  * The object use Object.observe if available or try Proxy in other case, so old JS VM won't run it
  */
-const SPLIT = 4000;
-
 class SecureCookie {
   _name: string;
   _algo: string;

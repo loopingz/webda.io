@@ -1,6 +1,6 @@
 import { Executor, Context } from "../index";
-const mime = require("mime");
-const fs = require("fs");
+import * as mime from "mime";
+import * as fs from "fs";
 
 /**
  * Output a file raw from the hard drive

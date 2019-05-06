@@ -1,16 +1,15 @@
 "use strict";
-const Writable = require("stream").Writable;
+import { Writable } from "stream";
 import {
   _extend,
   Core as Webda,
   Executor,
   SessionCookie,
-  CoreModel,
   Store,
   User,
   Service
 } from "../index";
-const acceptLanguage = require("accept-language");
+import * as acceptLanguage from "accept-language";
 import { parse as cookieParse } from "cookie";
 import { EventEmitter } from "events";
 
@@ -118,7 +117,7 @@ class Context extends EventEmitter {
   clientInfo: ClientInfo;
   private _body: any;
   private _outputHeaders: Map<string, string>;
-  _webda: Webda;
+  private _webda: Webda;
   statusCode: number;
   _cookie: Map<string, Cookie>;
   headers: Map<string, string>;
@@ -141,7 +140,7 @@ class Context extends EventEmitter {
    * @private
    * Used in case of Buffer response ( like Lambda )
    */
-  _write(chunk, enc, next) {
+  protected _write(chunk, enc, next) {
     if (this._body === undefined) {
       this._body = [];
     }
@@ -154,33 +153,33 @@ class Context extends EventEmitter {
    * Set current http context
    * @param httpContext current http context
    */
-  setHttpContext(httpContext: HttpContext) {
+  public setHttpContext(httpContext: HttpContext) {
     this._http = httpContext;
   }
 
   /**
    * Get current http context
    */
-  getHttpContext() {
+  public getHttpContext() {
     return this._http;
   }
 
   /**
    * Get output headers
    */
-  getResponseHeaders(): any {
+  public getResponseHeaders(): any {
     return this._outputHeaders;
   }
 
-  getRequestParameters() {
+  public getRequestParameters() {
     return this._params;
   }
 
-  parameter(name: string) {
+  public parameter(name: string) {
     return this.getParameters()[name];
   }
 
-  getParameters() {
+  public getParameters() {
     return this._params;
   }
 
@@ -189,29 +188,29 @@ class Context extends EventEmitter {
     this._params = Object.assign(this._params, this._pathParams);
   }
 
-  getSession() {
+  public getSession() {
     return this.session.getProxy();
   }
 
-  getServiceParameters() {
+  public getServiceParameters() {
     return this._serviceParams;
   }
 
-  getPathParameters() {
+  public getPathParameters() {
     return this._pathParams;
   }
 
-  setServiceParameters(params: any) {
+  public setServiceParameters(params: any) {
     this._serviceParams = params;
     this.processParameters();
   }
 
-  setPathParameters(params: any) {
+  public setPathParameters(params: any) {
     this._pathParams = params;
     this.processParameters();
   }
 
-  resetResponse() {
+  public resetResponse() {
     this._body = undefined;
     this._outputHeaders.clear();
   }
@@ -221,7 +220,7 @@ class Context extends EventEmitter {
    * @param output If it is an object it will be serializeb with toPublicJSON, if it is a String it will be appended to the result, if it is a buffer it will replace the result
    * @param ...args any arguments to pass to the toPublicJSON method
    */
-  write(output) {
+  public write(output) {
     if (typeof output === "object" && !(output instanceof Buffer)) {
       this._outputHeaders["Content-type"] = "application/json";
       // @ts-ignore
@@ -250,7 +249,7 @@ class Context extends EventEmitter {
    * @param {String} header name
    * @param {String} value
    */
-  setHeader(header, value) {
+  public setHeader(header, value) {
     this._outputHeaders[header] = value;
   }
 

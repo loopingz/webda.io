@@ -1,6 +1,6 @@
 "use strict";
 import { Store, CoreModel } from "../index";
-var fs = require("fs");
+import * as fs from "fs";
 
 /**
  * Simple file storage of object

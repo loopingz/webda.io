@@ -31,7 +31,9 @@ import {
 } from "./index";
 import { CoreModelDefinition } from "./models/coremodel";
 import * as jsonpath from "jsonpath";
-
+/**
+ * @hidden
+ */
 const _extend = require("util")._extend;
 
 interface Configuration {
@@ -47,22 +49,70 @@ interface CorsFilter {
  * @class Webda
  */
 class Webda extends events.EventEmitter {
-  _services: Map<string, Service> = new Map();
-  _init: Promise<void>;
-  _modules: any;
-  _config: Configuration;
-  _routehelpers: any;
-  _models: Map<string, CoreModelDefinition> = new Map();
-  _vhost: string;
-  _ajv: any;
-  _ajvSchemas: any;
-  _currentExecutor: any;
-  _configFile: string;
-  _initPromise: Promise<void>;
-  _loggers: Logger[] = [];
-  _initTime: number;
-  _logger: ConsoleLogger;
-  _corsFilters: CorsFilter[] = [];
+  /**
+   * Webda Services
+   * @hidden
+   */
+  public _services: Map<string, Service> = new Map(); // TODO Close to protected
+  /**
+   * Init promise to ensure, webda is initiated
+   * Used for init() method
+   */
+  protected _init: Promise<void>;
+  /**
+   * Known modules
+   * @hidden
+   */
+  public _modules: any; // TODO Close to protected
+  /**
+   * Configuration loaded from webda.config.json
+   * @hidden
+   */
+  public _config: Configuration; // TODO Close to protected
+  /**
+   * Old route helpers to allow direct URL behaviors
+   *
+   * It is not **deprecated** per say but we advise to use [[Service]] instead
+   */
+  protected _routehelpers: any;
+  /**
+   * Models that can be retrieved with [[Webda.getModel]]
+   * @hidden
+   */
+  public _models: Map<string, CoreModelDefinition> = new Map(); // TODO Close to protected
+  /**
+   * JSON Schema validator instance
+   */
+  protected _ajv: any;
+  /**
+   * JSON Schema registry
+   */
+  protected _ajvSchemas: any;
+  /**
+   * Current executor
+   */
+  protected _currentExecutor: any;
+
+  protected _configFile: string;
+  protected _initPromise: Promise<void>;
+  /**
+   * Loggers registry
+   * @hidden
+   */
+  public _loggers: Logger[] = []; // TODO Close to protected
+  protected _initTime: number;
+  /**
+   * Console logger
+   * @hidden
+   */
+  public _logger: ConsoleLogger; // TODO Close to protected
+  /**
+   * CORS Filter registry
+   *
+   * Added via [[Webda.registerCorsFilter]]
+   * See [[CorsFilter]]
+   */
+  protected _corsFilters: CorsFilter[] = [];
 
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
@@ -78,7 +128,6 @@ class Webda extends events.EventEmitter {
     // We enforce this normalization
     this._logger.normalizeParams();
     this._loggers.push(this._logger);
-    this._vhost = "";
     // Schema validations
     this._ajv = Ajv();
     this._ajvSchemas = {};
@@ -128,6 +177,11 @@ class Webda extends events.EventEmitter {
     this.initStatics();
   }
 
+  /**
+   * Init Webda
+   *
+   * It will resolve Services init method and autolink
+   */
   async init() {
     if (this._init) {
       return this._init;
@@ -532,9 +586,8 @@ class Webda extends events.EventEmitter {
 
   /**
    * Get the route from a method / url
-   * @private
    */
-  getRouteFromUrl(ctx: Context, config, method, url): any {
+  private getRouteFromUrl(ctx: Context, config, method, url): any {
     for (let i in config._pathMap) {
       var routeUrl = config._pathMap[i].url;
       var map = config._pathMap[i].config;
@@ -605,7 +658,7 @@ class Webda extends events.EventEmitter {
    * @param {String} port Port can be usefull for auto redirection
    * @param {Object} headers The headers of the request
    */
-  getExecutor(
+  protected getExecutor(
     ctx: Context,
     vhost: string,
     method: string,
@@ -632,9 +685,9 @@ class Webda extends events.EventEmitter {
    * @deprecated
    * @returns {String} Current secret
    */
-  getSecret(): string {
+  public getSecret(): string {
     // For now a static config file but should have a rolling service secret
-    return this._config.parameters.secret;
+    return this._config.parameters.sessionSecret;
   }
 
   /**
@@ -642,15 +695,15 @@ class Webda extends events.EventEmitter {
    *
    * @returns {String} Current salt
    */
-  getSalt(): string {
+  public getSalt(): string {
     // For now a static config file but should have a rolling service secret
     return this._config.parameters.salt;
   }
 
   /**
-   * @private
+   * @hidden
    */
-  getServiceWithRoute(ctx: Context, route): Executor {
+  protected getServiceWithRoute(ctx: Context, route): Executor {
     var name = route.executor;
     var executor = <Executor>this.getService(name);
     // If no service is found then check for routehelpers
@@ -670,9 +723,9 @@ class Webda extends events.EventEmitter {
   }
 
   /**
-   * @private
+   * @hidden
    */
-  initURITemplates(config: Configuration): void {
+  protected initURITemplates(config: Configuration): void {
     // Prepare tbe URI parser
     for (var map in config) {
       if (map.indexOf("{") != -1) {
@@ -685,37 +738,36 @@ class Webda extends events.EventEmitter {
    * Flush the headers to the response, no more header modification is possible after that
    * @abstract
    */
-  flushHeaders(context: Context): void {}
+  public flushHeaders(context: Context): void {}
 
   /**
    * Flush the entire response to the client
    */
-  flush(context: Context): void {}
+  public flush(context: Context): void {}
 
   /**
    * Return if Webda is in debug mode
    */
-  isDebug(): boolean {
+  public isDebug(): boolean {
     return false;
   }
 
   /**
-   * @private
+   * @hidden
    */
-  extendParams(local, wider): any {
+  protected extendParams(local, wider): any {
     var params = _extend({}, wider);
     return _extend(params, local);
   }
 
   /**
    * Return the global parameters of a domain
-   * @param {String} vhost The domain to retrieve or default if not specified
    */
-  getGlobalParams(): any {
+  public getGlobalParams(): any {
     return this._config.parameters || {};
   }
 
-  async reinit(updates: Map<string, any>): Promise<void> {
+  public async reinit(updates: Map<string, any>): Promise<void> {
     let configuration = JSON.parse(JSON.stringify(this._config.services));
     for (let service in updates) {
       jsonpath.value(configuration, service, updates[service]);
@@ -742,7 +794,7 @@ class Webda extends events.EventEmitter {
     }
   }
 
-  getServiceParams(service: string): any {
+  protected getServiceParams(service: string): any {
     var params = this.extendParams(
       this._config.services[service],
       this._config.parameters
@@ -751,10 +803,10 @@ class Webda extends events.EventEmitter {
     return params;
   }
   /**
-   * @ignore
+   * @hidden
    *
    */
-  createServices(excludes: string[] = []): Promise<void> {
+  protected createServices(excludes: string[] = []): Promise<void> {
     var services = this._config.services;
     if (this._config._services === undefined) {
       this._config._services = {};
@@ -825,7 +877,11 @@ class Webda extends events.EventEmitter {
     this.emit("Webda.Create.Services", this._config._services);
   }
 
-  _getSetters(obj): any[] {
+  /**
+   * Return all methods that are setters (startsWith("set"))
+   * @param obj service get setter from
+   */
+  protected _getSetters(obj): any[] {
     let methods = [];
     while ((obj = Reflect.getPrototypeOf(obj))) {
       let keys = Reflect.ownKeys(obj).filter(k =>
@@ -836,7 +892,10 @@ class Webda extends events.EventEmitter {
     return methods;
   }
 
-  autoConnectServices(): void {
+  /**
+   * Auto connect services with setters
+   */
+  protected autoConnectServices(): void {
     // TODO Leverage decorators instead of setter name
     for (let service in this._config._services) {
       let serviceBean = this._config._services[service];
@@ -853,12 +912,12 @@ class Webda extends events.EventEmitter {
     }
   }
 
-  jsonFilter(key: string, value: any): any {
+  protected jsonFilter(key: string, value: any): any {
     if (key[0] === "_") return undefined;
     return value;
   }
 
-  initStatics() {
+  protected initStatics() {
     if (!this._config.routes) {
       this._config.routes = {};
     }
@@ -897,7 +956,7 @@ class Webda extends events.EventEmitter {
    * @deprecated
    * @param config
    */
-  initModdas(config): void {
+  protected initModdas(config): void {
     // Moddas are the custom type of service
     // They are either coming from npm or are direct lambda feature or local with require
     if (config.moddas === undefined) return;
@@ -923,7 +982,7 @@ class Webda extends events.EventEmitter {
     this.emit("Webda.Init.Moddas");
   }
 
-  initModels(config): void {
+  protected initModels(config): void {
     if (config._models === undefined) {
       config._models = {};
     }
@@ -958,7 +1017,7 @@ class Webda extends events.EventEmitter {
     this.emit("Webda.Init.Models", config._models);
   }
 
-  comparePath(a, b): number {
+  protected comparePath(a, b): number {
     // Normal node works with localeCompare but not Lambda...
     // Local compare { to a return: 26 on Lambda
     let bs = b.url.split("/");
@@ -977,14 +1036,11 @@ class Webda extends events.EventEmitter {
    * Create a new context for a request
    *
    * @class Service
-   * @param {Object} body - The request body
-   * @param {Object} session - The request session
-   * @param {Object} stream - The request output stream if any
-   * @param {Object} files - The files input stream
-   * @param {Object} headers - The request headers if any
-   * @return {Object} A new context object to pass along
+   * @param httpContext THe HTTP request context
+   * @param stream - The request output stream if any
+   * @return A new context object to pass along
    */
-  async newContext(
+  public async newContext(
     httpContext: HttpContext,
     stream = undefined
   ): Promise<Context> {
@@ -1004,14 +1060,14 @@ class Webda extends events.EventEmitter {
    * @param {Object} object - The object to export
    * @return {String} The export of the strip object ( removed all attribute with _ )
    */
-  toPublicJSON(object): string {
+  public toPublicJSON(object): string {
     return JSON.stringify(object, this.jsonFilter);
   }
 
   /**
    * Emit the event with data and wait for Promise to finish if listener returned a Promise
    */
-  emitSync(event, ...data): Promise<any[]> {
+  public emitSync(event, ...data): Promise<any[]> {
     var result;
     var promises = [];
     var listeners = this.listeners(event);
@@ -1029,7 +1085,7 @@ class Webda extends events.EventEmitter {
    * @param level
    * @param args
    */
-  log(level, ...args): void {
+  public log(level, ...args): void {
     this._loggers.forEach((logger: Logger) => {
       logger.log(level, ...args);
     });
@@ -1038,7 +1094,7 @@ class Webda extends events.EventEmitter {
   /**
    * Retrieve a global parameter
    */
-  parameter(name: string): any {
+  public parameter(name: string): any {
     return this.getGlobalParams()[name];
   }
 
@@ -1047,7 +1103,7 @@ class Webda extends events.EventEmitter {
    *
    * @param context Context of the request
    */
-  checkCSRF(ctx: Context): boolean {
+  protected checkCSRF(ctx: Context): boolean {
     let httpContext = ctx.getHttpContext();
     let website = this.getGlobalParams().website || "";
 

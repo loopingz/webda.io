@@ -1,9 +1,6 @@
 "use strict";
 import events = require("events");
 import { Core } from "../index";
-/* beautify preserve:start */
-declare var global: any;
-/* beautify preserve:end */
 
 /**
  * Use this object for representing a service in the application

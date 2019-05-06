@@ -1,5 +1,5 @@
 import { Binary, _extend, Context } from "../index";
-const fs = require("fs");
+import * as fs from "fs";
 
 /**
  * FileBinary handles the storage of binary on a hard drive
@@ -55,7 +55,8 @@ class FileBinary extends Binary {
     if (!fs.existsSync(path)) {
       throw 404;
     }
-    return fs.createReadStream(path);
+    // @ts-ignore
+    return <ReadableStream<any>>fs.createReadStream(path);
   }
 
   _getPath(hash, postfix = undefined) {

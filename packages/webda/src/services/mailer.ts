@@ -1,9 +1,9 @@
 "use strict";
 import { Service } from "../index";
-var nodemailer = require("nodemailer");
-const fs = require("fs");
-const Mustache = require("mustache"); // Import as it is our default templates engine
-const Email = require("email-templates");
+import * as nodemailer from "nodemailer";
+import * as fs from "fs";
+import * as Mustache from "mustache"; // Import as it is our default templates engine
+import * as Email from "email-templates";
 
 interface IEmailTemplate {
   renderAll(file: string, options: any);

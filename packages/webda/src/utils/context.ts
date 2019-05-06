@@ -4,13 +4,15 @@ import {
   _extend,
   Core as Webda,
   Executor,
-  SecureCookie,
+  SessionCookie,
   CoreModel,
   Store,
   User,
   Service
 } from "../index";
 const acceptLanguage = require("accept-language");
+import { parse as cookieParse } from "cookie";
+import { EventEmitter } from "events";
 
 class ClientInfo extends Map<string, any> {
   ip: string;
@@ -25,44 +27,104 @@ class HttpContext {
   uri: string;
   protocol: string;
   port: number;
-  headers: Map<string, string>;
+  headers: any;
   root: string;
   origin: string;
+  body: any;
+  cookies: any;
+  files: any[];
+
   constructor(
     host: string,
     method: string,
     uri: string,
-    protocol: string,
-    port: number,
-    headers: Map<string, string>
+    protocol: string = "http",
+    port: number = 80,
+    body: any = {},
+    headers: any = {},
+    files: any[] = []
   ) {
+    this.files = files;
+    this.body = body;
     this.host = host;
     this.method = method;
     this.uri = uri;
     this.protocol = protocol;
     this.port = port;
     this.headers = headers;
+    for (let i in this.headers) {
+      if (i.toLowerCase() === "cookie") {
+        this.cookies = cookieParse(this.headers[i]);
+      }
+    }
     let portUrl = "";
-    if (port !== 80 && protocol === "http") {
+    if (port !== undefined && port !== 80 && protocol === "http") {
       portUrl = ":" + port;
-    } else if (port !== 443 && protocol === "https") {
+    } else if (port !== undefined && port !== 443 && protocol === "https") {
       portUrl = ":" + port;
     }
     this.root = this.protocol + "://" + this.host + portUrl;
     this.origin = this.host + portUrl;
   }
+
+  getUrl() {
+    return this.uri;
+  }
+
+  getCookies() {
+    return this.cookies;
+  }
+
+  getPort() {
+    return this.port;
+  }
+
+  getHost() {
+    return this.host;
+  }
+
+  getMethod() {
+    return this.method;
+  }
+
+  getProtocol() {
+    return this.protocol;
+  }
+
+  getBody() {
+    return this.body;
+  }
+
+  getHeaders() {
+    return this.headers;
+  }
+
+  setBody(body) {
+    this.body = body;
+  }
+
+  getFullUrl(uri: string = this.uri) {
+    return this.protocol + "://" + this.host + uri;
+  }
 }
-class Context extends Map<string, any> {
+
+class Cookie {
+  name: string;
+  value: string;
+  options: any;
+}
+
+class Context extends EventEmitter {
   clientInfo: ClientInfo;
   private _body: any;
   private _outputHeaders: Map<string, string>;
   _webda: Webda;
   statusCode: number;
-  _cookie: Map<string, string>;
+  _cookie: Map<string, Cookie>;
   headers: Map<string, string>;
   _route: any;
   _buffered: boolean;
-  session: SecureCookie;
+  private session: SessionCookie;
   _ended: Promise<any> = undefined;
   _stream: any;
   _promises: Promise<any>[];
@@ -74,7 +136,6 @@ class Context extends Map<string, any> {
   private _serviceParams: any;
   files: any[];
   private _http: HttpContext;
-  static current;
 
   /**
    * @private
@@ -87,10 +148,6 @@ class Context extends Map<string, any> {
     this._body.push(chunk);
     next();
     return true;
-  }
-
-  static get() {
-    return this.current;
   }
 
   /**
@@ -111,7 +168,7 @@ class Context extends Map<string, any> {
   /**
    * Get output headers
    */
-  getResponseHeaders() {
+  getResponseHeaders(): any {
     return this._outputHeaders;
   }
 
@@ -130,6 +187,10 @@ class Context extends Map<string, any> {
   private processParameters() {
     this._params = Object.assign({}, this._serviceParams);
     this._params = Object.assign(this._params, this._pathParams);
+  }
+
+  getSession() {
+    return this.session.getProxy();
   }
 
   getServiceParameters() {
@@ -163,12 +224,13 @@ class Context extends Map<string, any> {
   write(output) {
     if (typeof output === "object" && !(output instanceof Buffer)) {
       this._outputHeaders["Content-type"] = "application/json";
-      // TODO Remove CoreModel.__ctx in 0.11
-      CoreModel.__ctx = Context.current = this;
+      // @ts-ignore
+      global.WebdaContext = this;
       try {
         this._body = JSON.stringify(output);
       } finally {
-        CoreModel.__ctx = Context.current = undefined;
+        // @ts-ignore
+        global.WebdaContext = undefined;
       }
       return;
     } else if (typeof output == "string") {
@@ -219,12 +281,16 @@ class Context extends Map<string, any> {
    * @todo Implement the serialization
    * Not yet handle by the Webda framework
    */
-  cookie(param, value) {
+  cookie(param, value, options) {
     /** @ignore */
     if (this._cookie === undefined) {
       this._cookie = new Map();
     }
-    this._cookie[param] = value;
+    this._cookie[param] = { name: param, value, options };
+  }
+
+  getResponseCookies(): Map<string, Cookie> {
+    return this._cookie;
   }
 
   addAsyncRequest(promise) {
@@ -241,30 +307,29 @@ class Context extends Map<string, any> {
    * @emits 'finish' event
    * @throws Error if the request was already ended
    */
-  end() {
+  async end() {
     /** @ignore */
     if (this._ended) {
       return this._ended;
     }
-    this._ended = Promise.all(this._promises).then(() => {
-      if (this._buffered && this._stream._body !== undefined) {
-        this._body = Buffer.concat(this._stream._body);
+    this.emit("end");
+    await Promise.all(this._promises);
+    if (this._buffered && this._stream._body !== undefined) {
+      this._body = Buffer.concat(this._stream._body);
+    }
+    if (!this._flushHeaders) {
+      this._flushHeaders = true;
+      if (this._body !== undefined && this.statusCode == 204) {
+        this.statusCode = 200;
       }
-      if (!this._flushHeaders) {
-        this._flushHeaders = true;
-        if (this._body !== undefined && this.statusCode == 204) {
-          this.statusCode = 200;
-        }
-        this._webda.flushHeaders(this);
-      }
-      this._webda.flush(this);
-      return Promise.resolve();
-    });
+      this._webda.flushHeaders(this);
+    }
+    this._webda.flush(this);
     return this._ended;
   }
 
   getRequestBody() {
-    return this.body;
+    return this.getHttpContext().getBody();
   }
 
   getResponseBody() {
@@ -324,8 +389,9 @@ class Context extends Map<string, any> {
   getLocale() {
     let locales = this._webda.getLocales();
     acceptLanguage.languages(locales);
-    if (this.headers["Accept-Language"]) {
-      return acceptLanguage.get(this.headers["Accept-Language"]);
+    let headers = this.getHttpContext().getHeaders();
+    if (headers["Accept-Language"]) {
+      return acceptLanguage.get(headers["Accept-Language"]);
     }
     return locales[0];
   }
@@ -337,11 +403,11 @@ class Context extends Map<string, any> {
   setRoute(route) {
     this._route = route;
     this._params = _extend(this._params, route.params);
-    if (this._route && this._route._http && this._route._http.headers) {
-      this.headers = this._route._http.headers;
-    }
   }
 
+  getRoute() {
+    return this._route;
+  }
   /**
    * @param executor {object} Set the current executor for this context
    */
@@ -359,16 +425,11 @@ class Context extends Map<string, any> {
    * @ignore
    * Used by Webda framework to set the body, session and output stream if known
    */
-  constructor(webda, body, session, stream = undefined, files = []) {
+  constructor(webda: Webda, httpContext: HttpContext, stream: any = undefined) {
     super();
     this.clientInfo = new ClientInfo();
+    this._http = httpContext;
     this._webda = webda;
-    this.session = session;
-    if (session === undefined) {
-      this.session = webda.getNewSession();
-    }
-    this.body = body;
-    this.files = files;
     this._promises = [];
     this._outputHeaders = new Map();
     this._flushHeaders = false;
@@ -383,15 +444,28 @@ class Context extends Map<string, any> {
       this._stream._body = [];
       this._stream._write = this._write;
     }
+    this.processParameters();
+    this.session = this.newSession();
   }
 
-  init() {
+  newSession() {
+    this.session = new (this._webda.getModel(
+      this._webda.parameter("sessionModel") || "WebdaCore/SessionCookie"
+    ))(this);
+    return this.session;
+  }
+
+  async init() {
     this._stream.on("pipe", () => {
       this._flushHeaders = true;
       this._buffered = true;
       this._webda.flushHeaders(this);
     });
+    await this.session.init();
   }
 }
+
+class StoreSessionContext extends Context {}
+class CookieSessionContext extends Context {}
 
 export { Context, ClientInfo, HttpContext };

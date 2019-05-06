@@ -1,6 +1,6 @@
 import { _extend } from "../core";
 import * as jwt from "jsonwebtoken";
-
+import { Context } from "./context";
 /**
  * Object that handle the session
  *
@@ -12,37 +12,54 @@ import * as jwt from "jsonwebtoken";
  *
  * The object use Object.observe if available or try Proxy in other case, so old JS VM won't run it
  */
+const SPLIT = 4000;
+
 class SecureCookie {
+  _name: string;
   _algo: string;
   _secret: string;
   _changed: boolean;
-  _options: any;
   _raw: string;
-  userId: string;
-  identUsed: string;
-  // Expiration date
-  exp: number;
   [key: string]: any;
 
   /** @ignore */
-  constructor(options, data) {
-    this._algo = "aes-256-ctr";
+  constructor(name: string, options: any, ctx: Context, datas: any = {}) {
+    this._name = name;
+    this._algo = options.algo || "aes-256-ctr";
     this._secret = options.secret;
-    this._options = options;
+    if (!this._secret || this._secret.length < 256) {
+      throw new Error("Secret must be at least 256 characters");
+    }
+    let cookies = {};
+    if (ctx.getHttpContext()) {
+      cookies = ctx.getHttpContext().getCookies();
+    }
+    this._raw = this.getRaw(name, cookies);
+    _extend(this, datas);
+    try {
+      _extend(this, jwt.verify(this._raw, this._secret));
+    } catch (err) {
+      // We ignore bad cookies
+    }
+    // Set changed to false after initial modification
     this._changed = false;
-    if (data === undefined || data === "") {
-      return;
+    ctx.addListener("end", () => {
+      this.save(ctx);
+    });
+  }
+
+  getRaw(name, cookies): string {
+    if (!cookies) {
+      return "";
     }
-    if (typeof data === "string") {
-      this._raw = data;
-      try {
-        _extend(this, jwt.verify(data, this._secret));
-      } catch (err) {
-        // We ignore bad cookies
-      }
-    } else {
-      _extend(this, data);
+    let res = cookies[name] || "";
+    let j = 2;
+    let cookieName = `${name}${j++}`;
+    while (cookies[cookieName]) {
+      res += cookies[cookieName];
+      cookieName = `${name}${j++}`;
     }
+    return res;
   }
 
   getProxy() {
@@ -62,15 +79,6 @@ class SecureCookie {
     }
   }
 
-  login(userId, identUsed) {
-    this.userId = userId;
-    this.identUsed = identUsed;
-  }
-
-  isLogged() {
-    return this.userId !== undefined;
-  }
-
   destroy() {
     for (let prop in this) {
       if (prop[0] === "_") {
@@ -79,18 +87,6 @@ class SecureCookie {
       delete this[prop];
     }
     this._changed = true;
-  }
-
-  getIdentUsed() {
-    return this.identUsed;
-  }
-
-  getUserId() {
-    return this.userId;
-  }
-
-  logout() {
-    delete this.userId;
   }
 
   toJSON() {
@@ -104,13 +100,49 @@ class SecureCookie {
     return data;
   }
 
-  save() {
+  save(ctx: Context) {
     if (this.needSave()) {
-      this.exp = Math.floor(Date.now() / 1000) + 24 * 30 * 3600;
+      var params = {
+        path: "/",
+        domain: ctx.getHttpContext().getHost(),
+        httpOnly: true,
+        secure: false,
+        maxAge: 86400 * 7
+      };
+      if (ctx.getHttpContext().getProtocol() == "https") {
+        params.secure = true;
+      }
+      // Not sure here
+      let cookie = ctx.parameter("cookie");
+      if (cookie !== undefined) {
+        if (cookie.domain) {
+          params.domain = cookie.domain;
+        } else {
+          params.domain = ctx.getHttpContext().getHost();
+        }
+        if (cookie.maxAge) {
+          params.maxAge = cookie.maxAge;
+        }
+      }
+      let value = jwt.sign(JSON.parse(JSON.stringify(this)), this._secret);
+      this.sendCookie(ctx, this._name, value, params);
       // Transform the cookie to a plain object
-      return jwt.sign(JSON.parse(JSON.stringify(this)), this._secret);
+      return;
+    } else {
+      console.log("Do not need update", this._name);
     }
-    return this._raw;
+  }
+
+  sendCookie(ctx, name, value, params) {
+    let j = 1;
+    let cookieName = name;
+    for (let i = 0; i < value.length; i += SPLIT) {
+      if (j > 1) {
+        cookieName = `${name}${j}`;
+      }
+      ctx.cookie(cookieName, value.substr(i, SPLIT), params);
+      j++;
+    }
   }
 
   needSave() {
@@ -118,4 +150,46 @@ class SecureCookie {
   }
 }
 
-export { SecureCookie };
+class SessionCookie extends SecureCookie {
+  constructor(ctx: Context) {
+    super(
+      ctx.getWebda().parameter("sessionName") || "webda",
+      {
+        secret: ctx.getWebda().parameter("sessionSecret")
+      },
+      ctx
+    );
+  }
+
+  userId: string;
+  identUsed: string;
+
+  getIdentUsed() {
+    return this.identUsed;
+  }
+
+  getUserId() {
+    return this.userId;
+  }
+
+  logout() {
+    delete this.userId;
+  }
+
+  login(userId, identUsed) {
+    this.userId = userId;
+    this.identUsed = identUsed;
+  }
+
+  isLogged() {
+    return this.userId !== undefined;
+  }
+
+  needSave() {
+    return true;
+  }
+
+  async init() {}
+}
+
+export { SecureCookie, SessionCookie };

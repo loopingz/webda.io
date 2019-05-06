@@ -11,7 +11,7 @@ import { Ident } from "./models/ident";
 import { User } from "./models/user";
 // Utils
 import { Context, ClientInfo, HttpContext } from "./utils/context";
-import { SecureCookie } from "./utils/cookie";
+import { SecureCookie, SessionCookie } from "./utils/cookie";
 // Store
 import { Store } from "./stores/store";
 
@@ -24,7 +24,11 @@ import { ConsoleLogger } from "./loggers/consolelogger";
 // Services
 import { Mailer } from "./services/mailer";
 import { DebugMailer } from "./services/debugmailer";
-import { Authentication } from "./services/authentication";
+import {
+  Authentication,
+  PasswordRecoveryInfos,
+  PasswordVerifier
+} from "./services/authentication";
 import { EventService } from "./services/asyncevents";
 import { Binary } from "./services/binary";
 import { FileBinary } from "./services/filebinary";
@@ -52,6 +56,8 @@ export {
   Authentication,
   ConfigurationProvider,
   ConfigurationService,
+  PasswordRecoveryInfos,
+  PasswordVerifier,
   // Policies
   OwnerPolicy,
   RolePolicyMixIn,
@@ -69,6 +75,7 @@ export {
   Ident,
   User,
   // Utils
+  SessionCookie,
   SecureCookie,
   Context,
   ClientInfo,

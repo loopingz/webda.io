@@ -8,13 +8,13 @@ const mixin = (Sup, rolesMap, permissive: boolean = false) =>
         throw 403;
       }
       // If roles are cached in session
-      if (ctx.session.roles) {
-        return ctx.session.roles;
+      if (ctx.getSession().roles) {
+        return ctx.getSession().roles;
       }
       let user = await ctx.getCurrentUser();
       // Cache roles in session
-      ctx.session.roles = user.getRoles();
-      return ctx.session.roles;
+      ctx.getSession().roles = user.getRoles();
+      return ctx.getSession().roles;
     }
 
     async canAct(ctx: Context, action: string) {

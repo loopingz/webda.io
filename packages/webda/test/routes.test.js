@@ -12,7 +12,7 @@ describe("RoutesHelper", function() {
   beforeEach(async function() {
     webda = new Webda.Core(config);
     await webda.init();
-    ctx = webda.newContext();
+    ctx = await webda.newContext();
   });
   it("String", async () => {
     executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/route/string");

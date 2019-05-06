@@ -535,15 +535,15 @@ class Binary extends Executor {
       throw 404;
     }
     let action = "unknown";
-    if (ctx._route._http.method == "GET") {
+    if (ctx.getHttpContext().getMethod() === "GET") {
       action = "get_binary";
-    } else if (ctx._route._http.method == "DELETE") {
+    } else if (ctx.getHttpContext().getMethod() === "DELETE") {
       action = "detach_binary";
-    } else if (ctx._route._http.method == "PUT") {
+    } else if (ctx.getHttpContext().getMethod() === "PUT") {
       action = "attach_binary";
     }
     await object.canAct(ctx, action);
-    if (ctx._route._http.method == "GET") {
+    if (ctx.getHttpContext().getMethod() === "GET") {
       var file = object[property][index];
       ctx.writeHead(200, {
         "Content-Type":
@@ -567,10 +567,10 @@ class Binary extends Executor {
       if (object[property][index].hash !== ctx.parameter("hash")) {
         throw 412;
       }
-      if (ctx._route._http.method == "DELETE") {
+      if (ctx.getHttpContext().getMethod() === "DELETE") {
         object = await this.delete(targetStore, object, property, index);
         ctx.write(object);
-      } else if (ctx._route._http.method == "PUT") {
+      } else if (ctx.getHttpContext().getMethod() === "PUT") {
         object = await this.update(
           targetStore,
           object,

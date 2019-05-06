@@ -1033,7 +1033,11 @@ class Store<T extends CoreModel> extends Executor
   }
 
   async httpAction(ctx: Context) {
-    let action = ctx._route._http.url.split("/").pop();
+    let action = ctx
+      .getHttpContext()
+      .getUrl()
+      .split("/")
+      .pop();
     let body = ctx.getRequestBody();
     let uuid = ctx.parameter("uuid");
     if (!uuid) {
@@ -1066,7 +1070,11 @@ class Store<T extends CoreModel> extends Executor
 
   async httpGlobalAction(ctx: Context) {
     let body = ctx.getRequestBody();
-    let action = ctx._route._http.url.split("/").pop();
+    let action = ctx
+      .getHttpContext()
+      .getUrl()
+      .split("/")
+      .pop();
     await this.emitSync("Store.Action", {
       action: action,
       store: this,
@@ -1098,7 +1106,7 @@ class Store<T extends CoreModel> extends Executor
       this.log("Object invalid", err);
       throw 400;
     }
-    if (ctx._route._http.method === "PATCH") {
+    if (ctx.getHttpContext().getMethod() === "PATCH") {
       let updateObject: any = new this._model();
       updateObject.load(body);
       await this.patch(updateObject, uuid);
@@ -1150,9 +1158,9 @@ class Store<T extends CoreModel> extends Executor
 
   async httpRoute(ctx: Context) {
     let uuid = ctx.parameter("uuid");
-    if (ctx._route._http.method == "GET") {
+    if (ctx.getHttpContext().getMethod() == "GET") {
       return this.httpGet(ctx);
-    } else if (ctx._route._http.method == "DELETE") {
+    } else if (ctx.getHttpContext().getMethod() == "DELETE") {
       let object = await this.get(uuid);
       if (!object || object.__deleted) throw 404;
       await object.canAct(ctx, "delete");
@@ -1166,8 +1174,8 @@ class Store<T extends CoreModel> extends Executor
         store: this
       });
     } else if (
-      ctx._route._http.method === "PUT" ||
-      ctx._route._http.method === "PATCH"
+      ctx.getHttpContext().getMethod() === "PUT" ||
+      ctx.getHttpContext().getMethod() === "PATCH"
     ) {
       return this.httpUpdate(ctx);
     }

@@ -1,6 +1,13 @@
 import { suite, test } from "mocha-typescript";
 import * as assert from "assert";
-import { CoreModel, User, Core, SecureCookie, RolePolicyMixIn } from "../index";
+import {
+  CoreModel,
+  User,
+  Core,
+  SecureCookie,
+  RolePolicyMixIn,
+  HttpContext
+} from "../index";
 var config = require("../../test/config.json");
 const Utils = require("../../test/utils");
 
@@ -28,11 +35,13 @@ class RolePolicyTest {
   _session: SecureCookie;
   _user: User;
 
-  before() {
+  async before() {
     this._webda = new Core(config);
-    this._session = this._webda.getNewSession({});
+    this._ctx = await this._webda.newContext(
+      new HttpContext("test.webda.io", "GET", "/")
+    );
+    this._session = this._ctx.newSession();
     this._session.login("none", "none");
-    this._ctx = this._webda.newContext({}, this._session);
     this._ctx.getCurrentUser = async () => {
       return this._user;
     };

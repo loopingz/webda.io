@@ -8,7 +8,8 @@ import {
   Mailer,
   Service,
   User,
-  Core
+  Core,
+  CoreModel
 } from "../index";
 var passport = require("passport");
 const crypto = require("crypto");
@@ -38,6 +39,12 @@ var Strategies = {
 
 interface PasswordVerifier extends Service {
   validate(password: string): Promise<void>;
+}
+
+class PasswordRecoveryInfos {
+  public expire: Number;
+  public token: string;
+  public login: string;
 }
 
 /**
@@ -269,7 +276,7 @@ class Authentication extends Executor {
       await this._identsStore.save({
         uuid: `${ctx._params.email}_email`,
         _lastValidationEmail: Date.now(),
-        type: "email"
+        _type: "email"
       });
     } else {
       if (ident.getUser() !== ctx.getCurrentUserId()) {
@@ -333,7 +340,7 @@ class Authentication extends Executor {
   }
 
   async _listAuthentications(ctx: Context) {
-    if (ctx._route._http.method === "DELETE") {
+    if (ctx.getHttpContext().getMethod() === "DELETE") {
       await this.logout(ctx);
       ctx.write("GoodBye");
       return;
@@ -346,9 +353,9 @@ class Authentication extends Executor {
     if (this._params.providers[provider].callbackURL) {
       return this._params.providers[provider].callbackURL;
     }
-    let host = ctx._route._http.headers.host || ctx._route._http.host;
+    let host = ctx.getHttpContext().getHost();
     // TODO Issue with specified port for now
-    var url = ctx._route._http.protocol + "://" + host + ctx._route._http.url;
+    var url = ctx.getHttpContext().getFullUrl();
 
     if (url.endsWith("/callback")) {
       return url;
@@ -369,7 +376,7 @@ class Authentication extends Executor {
       await this._identsStore.save({
         uuid: `${ctx.body.email}_email`,
         _lastValidationEmail: Date.now(),
-        type: "email"
+        _type: "email"
       });
     }
     await this.sendValidationEmail(ctx, ctx.body.email);
@@ -468,22 +475,25 @@ class Authentication extends Executor {
     return user;
   }
 
-  getPasswordRecoveryInfos(uuid: string, interval = this._emailDelay) {
-    var promise;
+  async getPasswordRecoveryInfos(
+    uuid: string | User,
+    interval = this._emailDelay
+  ): Promise<PasswordRecoveryInfos> {
     var expire = Date.now() + interval;
+    let user;
     if (typeof uuid === "string") {
-      // Use the one from config if not specified
-      promise = this._usersStore.get(uuid);
+      user = await this._usersStore.get(uuid);
     } else {
-      promise = Promise.resolve(uuid);
+      user = <User>uuid;
     }
-    return promise.then(user => {
-      return {
-        expire: expire,
-        token: this.hashPassword(user.uuid + expire + user.__password),
-        login: user.uuid
-      };
-    });
+    if (!user) {
+      return undefined;
+    }
+    return {
+      expire: expire,
+      token: this.hashPassword(user.uuid + expire + user.getPassword()),
+      login: user.uuid
+    };
   }
 
   async _passwordRecoveryEmail(ctx: Context) {
@@ -528,6 +538,9 @@ class Authentication extends Executor {
       throw 400;
     }
     let user: User = await this._usersStore.get(body.login.toLowerCase());
+    if (!user) {
+      throw 403;
+    }
     if (
       body.token !==
       this.hashPassword(
@@ -584,14 +597,14 @@ class Authentication extends Executor {
         uuid: `${ctx.parameter("email")}_email`,
         _validation: new Date(),
         user: ctx.parameter("user"),
-        type: "email"
+        _type: "email"
       });
     } else {
       await this._identsStore.patch(
         {
           _validation: new Date(),
           _user: ctx.parameter("user"),
-          type: "email"
+          _type: "email"
         },
         ident.uuid
       );
@@ -629,12 +642,14 @@ class Authentication extends Executor {
     var mailer: Mailer = this.getMailMan();
     let replacements = _extend({}, this._params.providers.email);
     replacements.context = ctx;
-    replacements.url =
-      ctx._route._http.root +
-      "/auth/email/callback?email=" +
-      email +
-      "&token=" +
-      this.generateEmailValidationToken(ctx.getCurrentUserId(), email);
+    replacements.url = ctx
+      .getHttpContext()
+      .getFullUrl(
+        "/auth/email/callback?email=" +
+          email +
+          "&token=" +
+          this.generateEmailValidationToken(ctx.getCurrentUserId(), email)
+      );
     let userId = ctx.getCurrentUserId();
     if (userId && userId.length > 0) {
       replacements.url += "&user=" + userId;
@@ -657,7 +672,7 @@ class Authentication extends Executor {
     await this.emitSync("Logout", {
       ctx: ctx
     });
-    ctx.session.destroy();
+    ctx.getSession().destroy();
   }
 
   async login(ctx: Context, user, ident) {
@@ -673,7 +688,7 @@ class Authentication extends Executor {
       event.ident = ident;
     }
     event.ctx = ctx;
-    ctx.session.login(event.userId, event.identId);
+    ctx.getSession().login(event.userId, event.identId);
     return this.emitSync("Login", event);
   }
 
@@ -787,7 +802,7 @@ class Authentication extends Executor {
       user = await this._usersStore.save(user);
       var newIdent: any = {
         uuid: uuid,
-        type: "email",
+        _type: "email",
         email: email,
         _user: user.uuid
       };
@@ -906,4 +921,4 @@ class Authentication extends Executor {
   }
 }
 
-export { Authentication, PasswordVerifier };
+export { Authentication, PasswordVerifier, PasswordRecoveryInfos };

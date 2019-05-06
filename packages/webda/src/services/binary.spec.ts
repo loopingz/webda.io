@@ -98,12 +98,12 @@ class BinaryTest extends WebdaTest {
     value = await binary.getUsageCount(hash);
     assert.equal(value, 1);
     // Try to get images on user1 as user2
-    ctx = this.webda.newContext({
+    ctx = await this.newContext({
       type: "CRUD",
       uuid: "PLOP"
     });
     ctx.session.userId = user2.uuid;
-    let executor = this.webda.getExecutor(
+    let executor = this.getExecutor(
       ctx,
       "test.webda.io",
       "GET",
@@ -114,7 +114,7 @@ class BinaryTest extends WebdaTest {
       res => res == 403
     );
     ctx.session.userId = user1.uuid;
-    executor = this.webda.getExecutor(
+    executor = this.getExecutor(
       ctx,
       "test.webda.io",
       "GET",

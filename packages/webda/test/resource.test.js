@@ -17,7 +17,7 @@ describe("ResourceService", () => {
     await webda.init();
     resource = webda.getService("ResourceService");
     resourceModel = webda.getService("ModelsResource");
-    ctx = webda.newContext();
+    ctx = await webda.newContext();
   });
   describe("ResourceService", () => {
     it("GET /resources/../config.json", async () => {
@@ -69,13 +69,13 @@ describe("ResourceService", () => {
         ctx,
         "test.webda.io",
         "GET",
-        "/resources/policy.test.js"
+        "/resources/moddas/voidstore.js"
       );
       assert.notEqual(executor, undefined);
       await executor.execute(ctx);
       assert.equal(
         ctx.getResponseBody(),
-        fs.readFileSync("./test/policy.test.js").toString()
+        fs.readFileSync("./test/moddas/voidstore.js").toString()
       );
       assert.equal(
         ctx.getResponseHeaders()["Content-Type"],

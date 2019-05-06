@@ -1,5 +1,5 @@
 "use strict";
-import { CoreModel } from "./coremodel";
+import { CoreModel, CoreModelDefinition } from "./coremodel";
 
 /**
  * First basic model for Ident
@@ -10,7 +10,9 @@ class User extends CoreModel {
   private _lastPasswordRecovery: number = 0;
   private _roles: string[] = [];
   private _groups: string[] = [];
+  private _idents: any[] = [];
 
+  //getIdents(): CoreModelDefinition
   getGroups(): string[] {
     return this._groups;
   }

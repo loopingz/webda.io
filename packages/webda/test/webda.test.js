@@ -18,48 +18,29 @@ function assertInitError(service, msg) {
 }
 
 describe("Webda", function() {
-  beforeEach(function() {
+  beforeEach(async function() {
     webda = new Webda.Core(config);
-    ctx = webda.newContext();
+    ctx = await webda.newContext(new Webda.HttpContext());
   });
   describe("getLocales()", function() {
     var headers = {};
     it("Get default locale", function() {
       headers["Accept-Language"] = "zh-CN";
-      ctx.setRoute({
-        _http: {
-          headers: headers
-        }
-      });
       assert.equal(ctx.getLocale(), "es-ES");
     });
     it("Get approx locale", function() {
-      headers["Accept-Language"] = "en-US;q=0.6,en;q=0.4,es;q=0.2";
-      ctx.setRoute({
-        _http: {
-          headers: headers
-        }
-      });
+      ctx.getHttpContext().getHeaders()["Accept-Language"] =
+        "en-US;q=0.6,en;q=0.4,es;q=0.2";
       assert.equal(ctx.getLocale(), "en");
     });
     it("Get exact locale", function() {
-      headers["Accept-Language"] =
+      ctx.getHttpContext().getHeaders()["Accept-Language"] =
         "fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4,es;q=0.2";
-      ctx.setRoute({
-        _http: {
-          headers: headers
-        }
-      });
       assert.equal(ctx.getLocale(), "fr-FR");
     });
     it("Get fallback locale", function() {
-      headers["Accept-Language"] =
+      ctx.getHttpContext().getHeaders()["Accept-Language"] =
         "zn-CH,zn;q=0.8,en-US;q=0.6,en;q=0.4,es;q=0.2";
-      ctx.setRoute({
-        _http: {
-          headers: headers
-        }
-      });
       assert.equal(ctx.getLocale(), "en");
     });
   });
@@ -82,11 +63,9 @@ describe("Webda", function() {
       assert.throws(webda.getModel.bind(webda, "Ghost"), Error);
       assert.equal(webda.getService("Ghost"), undefined);
       assert.equal(webda.getService(), undefined);
-      assert.equal(webda.getSession(), undefined);
       webda._currentExecutor = {
         session: "test"
       };
-      assert.equal(webda.getSession(), "test");
       assert.notEqual(
         webda.loadConfiguration(__dirname + "/config.json"),
         undefined
@@ -132,8 +111,8 @@ describe("Webda", function() {
       ctx._cookie = undefined;
       ctx.cookie("test", "plop");
       ctx.cookie("test2", "plop2");
-      assert.equal(ctx._cookie["test"], "plop");
-      assert.equal(ctx._cookie["test2"], "plop2");
+      assert.equal(ctx._cookie["test"].value, "plop");
+      assert.equal(ctx._cookie["test2"].value, "plop2");
       ctx.writeHead(undefined, {
         test: "plop"
       });
@@ -142,7 +121,14 @@ describe("Webda", function() {
       assert.equal(ctx.getResponseHeaders()["X-Webda"], "HEAD");
       ctx.write(400);
       assert.equal(ctx.getResponseBody(), 400);
-      ctx.session = new Webda.SecureCookie({});
+      ctx.session = new Webda.SecureCookie(
+        "test",
+        {
+          secret:
+            "Lp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5EN"
+        },
+        ctx
+      );
       Object.observe = (obj, callback) => {
         callback([
           {
@@ -385,9 +371,6 @@ describe("Webda", function() {
     it("Known page", function() {
       executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/");
       assert.notEqual(executor, undefined);
-      assert.equal(ctx["_route"]["_http"]["method"], "GET");
-      assert.equal(ctx["_route"]["_http"]["url"], "/");
-      assert.equal(ctx["_route"]["_http"]["host"], "test.webda.io");
       assert.equal(ctx["_params"]["TEST_ADD"], undefined);
       assert.equal(ctx["_params"]["accessKeyId"], "LOCAL_ACCESS_KEY");
       assert.equal(ctx["_params"]["secretAccessKey"], "LOCAL_SECRET_KEY");
@@ -397,9 +380,6 @@ describe("Webda", function() {
     it("Known page - multiple method", function() {
       executor = webda.getExecutor(ctx, "test.webda.io", "POST", "/");
       assert.notEqual(executor, undefined);
-      assert.equal(ctx["_route"]["_http"]["method"], "POST");
-      assert.equal(ctx["_route"]["_http"]["url"], "/");
-      assert.equal(ctx["_route"]["_http"]["host"], "test.webda.io");
       assert.equal(ctx["_params"]["TEST_ADD"], undefined);
       assert.equal(ctx["_params"]["accessKeyId"], "LOCAL_ACCESS_KEY");
       assert.equal(ctx["_params"]["secretAccessKey"], "LOCAL_SECRET_KEY");
@@ -424,9 +404,6 @@ describe("Webda", function() {
         "/urltemplate/666"
       );
       assert.notEqual(executor, undefined);
-      assert.equal(ctx["_route"]["_http"]["method"], "GET");
-      assert.equal(ctx["_route"]["_http"]["url"], "/urltemplate/666");
-      assert.equal(ctx["_route"]["_http"]["host"], "test.webda.io");
       assert.equal(ctx["_params"]["id"], 666);
       assert.equal(ctx["_params"]["TEST_ADD"], "Users");
       assert.equal(ctx["_params"]["TEST"], "Global");

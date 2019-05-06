@@ -26,11 +26,11 @@ class FileStoreTest extends StoreTest {
     identStore.on("Store.Actioned", evt => {
       eventFired++;
     });
-    ctx = this.webda.newContext({
+    ctx = await this.newContext({
       type: "CRUD",
       uuid: "PLOP"
     });
-    executor = this.webda.getExecutor(
+    executor = this.getExecutor(
       ctx,
       "test.webda.io",
       "PUT",
@@ -49,16 +49,11 @@ class FileStoreTest extends StoreTest {
     assert.equal(JSON.parse(ctx.getResponseBody())._plop, true);
     assert.equal(eventFired, 2);
     assert.notEqual(
-      this.webda.getExecutor(
-        ctx,
-        "test.webda.io",
-        "POST",
-        "/idents/coucou/yop"
-      ),
+      this.getExecutor(ctx, "test.webda.io", "POST", "/idents/coucou/yop"),
       null
     );
     assert.notEqual(
-      this.webda.getExecutor(ctx, "test.webda.io", "GET", "/idents/coucou/yop"),
+      this.getExecutor(ctx, "test.webda.io", "GET", "/idents/coucou/yop"),
       null
     );
   }
@@ -73,16 +68,11 @@ class FileStoreTest extends StoreTest {
     identStore.on("Store.Action", evt => {
       eventFired++;
     });
-    ctx = this.webda.newContext({
+    ctx = await this.newContext({
       type: "CRUD",
       uuid: "PLOP"
     });
-    executor = this.webda.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      "/idents/index"
-    );
+    executor = this.getExecutor(ctx, "test.webda.io", "GET", "/idents/index");
     assert.notEqual(executor, undefined);
     await executor.execute(ctx);
     // Our fake index action is just outputing 'indexer'
@@ -96,42 +86,35 @@ class FileStoreTest extends StoreTest {
     let userStore = this.getUserStore();
     let ctx, executor;
     await userStore.__clean();
-    ctx = this.webda.newContext({
+    ctx = await this.newContext({});
+    ctx.session.login("fake_user", "fake_ident");
+    executor = this.getExecutor(ctx, "test.webda.io", "POST", "/users", {
       type: "CRUD",
       uuid: "PLOP"
     });
-    ctx.session.login("fake_user", "fake_ident");
-    executor = this.webda.getExecutor(ctx, "test.webda.io", "POST", "/users");
     assert.notEqual(executor, undefined);
     await executor.execute(ctx);
     ctx.body = undefined;
-    await this.webda
-      .getExecutor(ctx, "test.webda.io", "GET", "/users/PLOP")
-      .execute(ctx);
+    await this.getExecutor(ctx, "test.webda.io", "GET", "/users/PLOP").execute(
+      ctx
+    );
     assert.notEqual(ctx.getResponseBody(), undefined);
     assert.equal(ctx.getResponseBody().indexOf("_lastUpdate") >= 0, true);
-    ctx.body = {
+    executor = this.getExecutor(ctx, "test.webda.io", "POST", "/users", {
       type: "CRUD2",
       uuid: "PLOP"
-    };
-    executor = this.webda.getExecutor(ctx, "test.webda.io", "POST", "/users");
+    });
     await this.assertThrowsAsync(
       executor.execute.bind(executor, ctx),
       err => err == 409
     );
     // Verify the none overide of UUID
-    ctx.body = {
+    executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/users/PLOP", {
       type: "CRUD2",
       additional: "field",
       uuid: "PLOP2",
       user: "fake_user"
-    };
-    executor = this.webda.getExecutor(
-      ctx,
-      "test.webda.io",
-      "PUT",
-      "/users/PLOP"
-    );
+    });
     await executor.execute(ctx);
     let user = await userStore.get("PLOP");
     assert.equal(user.uuid, "PLOP");
@@ -140,17 +123,11 @@ class FileStoreTest extends StoreTest {
     assert.equal(user.user, "fake_user");
     ctx.resetResponse();
     // Check PATH
-    ctx.body = {
+    executor = this.getExecutor(ctx, "test.webda.io", "PATCH", "/users/PLOP", {
       type: "CRUD3",
       uuid: "PLOP2",
       _testor: "_ should not be update by client"
-    };
-    executor = this.webda.getExecutor(
-      ctx,
-      "test.webda.io",
-      "PATCH",
-      "/users/PLOP"
-    );
+    });
     await executor.execute(ctx);
     user = await userStore.get("PLOP");
     assert.equal(user.uuid, "PLOP");
@@ -158,12 +135,11 @@ class FileStoreTest extends StoreTest {
     assert.equal(user.additional, "field");
     assert.equal(user._testor, undefined);
 
-    executor = this.webda.getExecutor(
-      ctx,
-      "test.webda.io",
-      "PUT",
-      "/users/PLOP"
-    );
+    executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/users/PLOP", {
+      type: "CRUD3",
+      uuid: "PLOP2",
+      _testor: "_ should not be update by client"
+    });
     await executor.execute(ctx);
     user = await userStore.get("PLOP");
     assert.equal(user.uuid, "PLOP");
@@ -171,38 +147,26 @@ class FileStoreTest extends StoreTest {
     assert.equal(user.additional, undefined);
     assert.equal(user._testor, undefined);
 
-    await this.webda
-      .getExecutor(ctx, "test.webda.io", "DELETE", "/users/PLOP")
-      .execute(ctx);
-    eventFired = 0;
-    executor = this.webda.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      "/users/PLOP"
-    );
-    await this.assertThrowsAsync(
-      executor.execute.bind(executor, ctx),
-      err => err == 404
-    );
-    eventFired++;
-    executor = this.webda.getExecutor(
+    await this.getExecutor(
       ctx,
       "test.webda.io",
       "DELETE",
       "/users/PLOP"
-    );
+    ).execute(ctx);
+    eventFired = 0;
+    executor = this.getExecutor(ctx, "test.webda.io", "GET", "/users/PLOP");
     await this.assertThrowsAsync(
       executor.execute.bind(executor, ctx),
       err => err == 404
     );
     eventFired++;
-    executor = this.webda.getExecutor(
-      ctx,
-      "test.webda.io",
-      "PUT",
-      "/users/PLOP"
+    executor = this.getExecutor(ctx, "test.webda.io", "DELETE", "/users/PLOP");
+    await this.assertThrowsAsync(
+      executor.execute.bind(executor, ctx),
+      err => err == 404
     );
+    eventFired++;
+    executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/users/PLOP");
     await this.assertThrowsAsync(
       executor.execute.bind(executor, ctx),
       err => err == 404
@@ -217,6 +181,30 @@ class FileStoreTest extends StoreTest {
       (<Store<CoreModel>>this.webda.getService("users")).getUrl(),
       "/users"
     );
+  }
+
+  @test("JSON Schema - Create") async schemaCreate() {
+    let taskStore = this.webda.getTypedService<Store<CoreModel>>("Tasks");
+    let ctx = await this.webda.newContext(undefined);
+    let executor = this.getExecutor(ctx, "test.webda.io", "POST", "/tasks", {
+      noname: "Task #1"
+    });
+    assert.notEqual(executor, undefined);
+    ctx.getSession().login("fake_user", "fake_ident");
+    await this.assertThrowsAsync(
+      executor.execute.bind(executor, ctx),
+      err => err == 400
+    );
+    executor = this.getExecutor(ctx, "test.webda.io", "POST", "/tasks", {
+      name: "Task #1"
+    });
+    await executor.execute(ctx);
+    let task = JSON.parse(ctx.getResponseBody());
+    // It is two because the Saved has been called two
+    assert.notEqual(task.uuid, undefined);
+    assert.equal(task._autoListener, 2);
+    task = await taskStore.get(task.uuid);
+    assert.equal(task._autoListener, 1);
   }
 }
 

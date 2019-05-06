@@ -1,11 +1,23 @@
 "use strict";
 const uuid = require("uuid");
-import { OwnerPolicy } from "../policies/ownerpolicy";
-import { Context } from "../utils/context";
+import { Context, OwnerPolicy, Store } from "../index";
 
 interface CoreModelDefinition {
   new (): CoreModel;
   getActions(): any;
+}
+
+class CoreModelMapper<T extends CoreModel> {
+  private __store: Store<CoreModel>;
+  public uuid: string;
+
+  constructor(uuid, properties = {}, store) {
+    this.uuid = uuid;
+  }
+
+  async load(): Promise<T> {
+    return <T>await this.__store.get(this.uuid);
+  }
 }
 
 /**
@@ -16,7 +28,7 @@ interface CoreModelDefinition {
  */
 class CoreModel extends OwnerPolicy {
   static __ctx: Context;
-  __store: any;
+  __store: Store<CoreModel>;
   _creationDate: Date;
   lastUpdate: Date;
   _lastUpdate: Date;
@@ -67,6 +79,7 @@ class CoreModel extends OwnerPolicy {
         this[i] = obj[i];
       }
       for (let i in this) {
+        // @ts-ignore
         if (obj[i] !== this[i]) {
           this[i] = undefined;
         }

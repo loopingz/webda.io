@@ -15,14 +15,14 @@ class MemoryStoreTest extends StoreTest {
 
   @test async deleteAsyncHttp() {
     let executor, ctx;
-    ctx = this.webda.newContext({});
+    ctx = await this.webda.newContext(undefined);
     let identStore: Store<CoreModel> = this.getIdentStore();
     await identStore.save({
       uuid: "toDelete",
       test: "ok"
     });
     await identStore.delete("toDelete");
-    executor = this.webda.getExecutor(
+    executor = this.getExecutor(
       ctx,
       "test.webda.io",
       "GET",
@@ -33,7 +33,7 @@ class MemoryStoreTest extends StoreTest {
       executor.execute.bind(executor, ctx),
       err => err == 404
     );
-    executor = this.webda.getExecutor(
+    executor = this.getExecutor(
       ctx,
       "test.webda.io",
       "PUT",
@@ -44,7 +44,7 @@ class MemoryStoreTest extends StoreTest {
       executor.execute.bind(executor, ctx),
       err => err == 404
     );
-    executor = this.webda.getExecutor(
+    executor = this.getExecutor(
       ctx,
       "test.webda.io",
       "DELETE",

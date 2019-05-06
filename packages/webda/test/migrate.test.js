@@ -26,7 +26,7 @@ describe("Webda Configuration Migration", function() {
     assert.equal(webda.getGlobalParams().TEST, "Global");
     assert.equal(webda.getGlobalParams().region, "us-east-1");
     // Check custom route migration
-    ctx = webda.newContext();
+    ctx = await webda.newContext();
     let executor = webda.getExecutor(
       ctx,
       "test.webda.io",
@@ -34,9 +34,6 @@ describe("Webda Configuration Migration", function() {
       "/urltemplate/666"
     );
     assert.notEqual(executor, undefined);
-    assert.equal(ctx["_route"]["_http"]["method"], "GET");
-    assert.equal(ctx["_route"]["_http"]["url"], "/urltemplate/666");
-    assert.equal(ctx["_route"]["_http"]["host"], "test.webda.io");
     assert.equal(ctx["_params"]["id"], 666);
     assert.equal(ctx["_params"]["TEST_ADD"], "Users");
     assert.equal(ctx["_params"]["TEST"], "Global");
@@ -57,8 +54,10 @@ describe("Webda Configuration Migration", function() {
       }
     }
     assert.equal(count, 2);
+    webda._config.parameters["sessionSecret"] =
+      "Lp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5EN";
     // Check custom route migration
-    ctx = webda.newContext();
+    ctx = await webda.newContext();
     let executor = webda.getExecutor(
       ctx,
       "test.webda.io",
@@ -66,9 +65,6 @@ describe("Webda Configuration Migration", function() {
       "/urltemplate/666"
     );
     assert.notEqual(executor, undefined);
-    assert.equal(ctx["_route"]["_http"]["method"], "GET");
-    assert.equal(ctx["_route"]["_http"]["url"], "/urltemplate/666");
-    assert.equal(ctx["_route"]["_http"]["host"], "test.webda.io");
     assert.equal(ctx["_params"]["id"], 666);
     assert.equal(ctx["_params"]["TEST_ADD"], "Users");
   });

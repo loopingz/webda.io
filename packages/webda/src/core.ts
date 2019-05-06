@@ -3,14 +3,11 @@ import * as fs from "fs";
 import * as vm from "vm";
 import * as Ajv from "ajv";
 import * as path from "path";
-import { serialize as cookieSerialize } from "cookie";
-import { Context } from "./utils/context";
 import * as events from "events";
 import {
   Store,
   Service,
   Executor,
-  SecureCookie,
   MemoryStore,
   FileStore,
   Authentication,
@@ -26,7 +23,11 @@ import {
   Logger,
   ConsoleLogger,
   MemoryLogger,
-  ConfigurationService
+  ConfigurationService,
+  Context,
+  SecureCookie,
+  SessionCookie,
+  HttpContext
 } from "./index";
 import { CoreModelDefinition } from "./models/coremodel";
 import * as jsonpath from "jsonpath";
@@ -112,6 +113,10 @@ class Webda extends events.EventEmitter {
     this._models["Webda/CoreModel"] = CoreModel;
     this._models["Webda/Ident"] = Ident;
     this._models["Webda/User"] = User;
+    // Context
+    this._models["WebdaCore/Context"] = Context;
+    this._models["WebdaCore/SessionCookie"] = SessionCookie;
+    this._models["WebdaCore/SecureCookie"] = SecureCookie;
     // Load the configuration
     this._config = this.loadConfiguration(config);
     if (!this._config.version) {
@@ -356,17 +361,6 @@ class Webda extends events.EventEmitter {
   }
 
   /**
-   * Get the current session object
-   *
-   * @returns A session object
-   */
-  getSession(): any {
-    if (this._currentExecutor) {
-      return this._currentExecutor.session;
-    }
-  }
-
-  /**
    * Return webda current version
    *
    * @returns package version
@@ -388,21 +382,6 @@ class Webda extends events.EventEmitter {
       return ["en-GB"];
     }
     return this._config.parameters.locales;
-  }
-
-  /**
-   * Get a new session object initiate with the data object
-   * Can be used to create short term encrypted data, the keys of the session should be refresh frequently
-   *
-   * @returns A new session
-   */
-  getNewSession(data) {
-    return new SecureCookie(
-      {
-        secret: "WebdaSecret"
-      },
-      data
-    );
   }
 
   /**
@@ -599,29 +578,48 @@ class Webda extends events.EventEmitter {
    * @param {String} port Port can be usefull for auto redirection
    * @param {Object} headers The headers of the request
    */
+  getExecutorWithContext(ctx: Context): Executor {
+    let http = ctx.getHttpContext();
+    // Check mapping
+    var route = this.getRouteFromUrl(
+      ctx,
+      this._config,
+      http.getMethod(),
+      http.getUrl()
+    );
+    if (route === undefined) {
+      return;
+    }
+    return this.getServiceWithRoute(ctx, route);
+  }
+
+  /**
+   * Get the executor corresponding to a request
+   * It can be usefull in unit test so you can test the all stack
+   *
+   * @protected
+   * @param {String} vhost The host for the request
+   * @param {String} method The http method
+   * @param {String} url The url path
+   * @param {String} protocol http or https
+   * @param {String} port Port can be usefull for auto redirection
+   * @param {Object} headers The headers of the request
+   */
   getExecutor(
     ctx: Context,
     vhost: string,
     method: string,
     url: string,
-    protocol: string = "http",
+    protocol: string,
     port: number = 80,
-    headers: any = {}
+    headers = {}
   ): Executor {
+    let http = ctx.getHttpContext();
     // Check mapping
     var route = this.getRouteFromUrl(ctx, this._config, method, url);
     if (route === undefined) {
       return;
     }
-    route._http = {
-      host: vhost,
-      method: method,
-      url: url,
-      protocol: protocol,
-      port: port,
-      headers: headers,
-      root: protocol + "://" + vhost
-    };
     return this.getServiceWithRoute(ctx, route);
   }
 
@@ -715,44 +713,6 @@ class Webda extends events.EventEmitter {
    */
   getGlobalParams(): any {
     return this._config.parameters || {};
-  }
-
-  /**
-   * Encode the cookie into a header form
-   *
-   * @ignore
-   * @protected
-   */
-  getCookieHeader(ctx: Context): string {
-    var session = ctx.session;
-    var params = {
-      path: "/",
-      domain: ctx.getHttpContext().host,
-      httpOnly: true,
-      secure: false,
-      maxAge: 86400 * 7
-    };
-    if (ctx.getHttpContext().protocol == "https") {
-      params.secure = true;
-    }
-    if (ctx._route._http.wildcard) {
-      params.domain = ctx._route._http.vhost;
-    }
-    // Not sure here
-    let cookie = ctx.parameter("cookie");
-    if (cookie !== undefined) {
-      if (cookie.domain) {
-        params.domain = cookie.domain;
-      } else {
-        params.domain = ctx.getHttpContext().host;
-      }
-      if (cookie.maxAge) {
-        params.maxAge = cookie.maxAge;
-      }
-    }
-    // Expiracy at one week - should configure it
-    var res = cookieSerialize("webda", session.save(), params);
-    return res;
   }
 
   async reinit(updates: Map<string, any>): Promise<void> {
@@ -1024,8 +984,17 @@ class Webda extends events.EventEmitter {
    * @param {Object} headers - The request headers if any
    * @return {Object} A new context object to pass along
    */
-  newContext(body, session = undefined, stream = undefined, files = []) {
-    return new Context(this, body, session, stream, files);
+  async newContext(
+    httpContext: HttpContext,
+    stream = undefined
+  ): Promise<Context> {
+    let res: Context = <Context>(
+      new (this.getModel(
+        this.getGlobalParams().contextModel || "WebdaCore/Context"
+      ))(this, httpContext, stream)
+    );
+    await res.init();
+    return res;
   }
 
   /**
@@ -1064,6 +1033,13 @@ class Webda extends events.EventEmitter {
     this._loggers.forEach((logger: Logger) => {
       logger.log(level, ...args);
     });
+  }
+
+  /**
+   * Retrieve a global parameter
+   */
+  parameter(name: string): any {
+    return this.getGlobalParams()[name];
   }
 
   /**

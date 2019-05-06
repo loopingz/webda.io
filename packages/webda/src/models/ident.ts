@@ -21,7 +21,13 @@ class Ident extends CoreModel {
   _lastValidationEmail: number;
   _validation: Date;
 
-  static init(type, uid, accessToken, refreshToken, profile): Ident {
+  static init(
+    type: string,
+    uid: string,
+    accessToken: string = "",
+    refreshToken: string = "",
+    profile: object = {}
+  ): Ident {
     var obj = new Ident();
     obj._type = type.toLowerCase();
     obj.uid = uid.toLowerCase();

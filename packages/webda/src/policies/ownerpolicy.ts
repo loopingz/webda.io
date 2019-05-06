@@ -8,7 +8,7 @@ class OwnerPolicy {
    * Return false if can't create
    */
   async canCreate(ctx: Context) {
-    this._user = ctx.session.getUserId();
+    this._user = ctx.getSession().getUserId();
     if (!this._user) {
       throw 403;
     }
@@ -41,8 +41,8 @@ class OwnerPolicy {
   async canUpdate(ctx: Context) {
     // Allow to modify itself by default
     if (
-      ctx.session.getUserId() !== this.getOwner() &&
-      ctx.session.getUserId() !== this.uuid
+      ctx.getSession().getUserId() !== this.getOwner() &&
+      ctx.getSession().getUserId() !== this.uuid
     ) {
       throw 403;
     }
@@ -57,12 +57,12 @@ class OwnerPolicy {
       return this;
     }
     if (
-      ctx.session.getUserId() !== this.getOwner() &&
-      ctx.session.getUserId() !== this.uuid
+      ctx.getSession().getUserId() !== this.getOwner() &&
+      ctx.getSession().getUserId() !== this.uuid
     ) {
       throw 403;
     }
-    if (!this.getOwner() && ctx.session.getUserId() !== this.uuid) {
+    if (!this.getOwner() && ctx.getSession().getUserId() !== this.uuid) {
       throw 403;
     }
     return this;

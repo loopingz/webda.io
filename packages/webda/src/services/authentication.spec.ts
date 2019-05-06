@@ -182,7 +182,7 @@ class AuthenticationTest extends WebdaTest {
     await executor.execute(ctx);
     assert.equal(this.mailer.sent.length, 3);
     // Validate email for test2 now
-    var match = this.mailer.sent[1].replacements.url.match(validationUrl);
+    match = this.mailer.sent[1].replacements.url.match(validationUrl);
     assert.notEqual(match, undefined);
     assert.equal(match[1], "test2@webda.io");
     ctx.newSession();
@@ -509,10 +509,10 @@ class AuthenticationTest extends WebdaTest {
       executor.execute.bind(executor, ctx),
       res => res == 412
     );
-    let user = await ctx.getCurrentUser();
     // Check ident is added to the user
     // TODO Redo this one
     /*
+    let user = await ctx.getCurrentUser();
     assert.equal(
       user.getIdents().filter(item => item.uuid === "newtest@webda.io_email")
         .length,

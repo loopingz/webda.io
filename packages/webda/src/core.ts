@@ -667,7 +667,6 @@ class Webda extends events.EventEmitter {
     port: number = 80,
     headers = {}
   ): Executor {
-    let http = ctx.getHttpContext();
     // Check mapping
     var route = this.getRouteFromUrl(ctx, this._config, method, url);
     if (route === undefined) {

@@ -42,7 +42,7 @@ interface PasswordVerifier extends Service {
 }
 
 class PasswordRecoveryInfos {
-  public expire: Number;
+  public expire: number;
   public token: string;
   public login: string;
 }
@@ -353,7 +353,6 @@ class Authentication extends Executor {
     if (this._params.providers[provider].callbackURL) {
       return this._params.providers[provider].callbackURL;
     }
-    let host = ctx.getHttpContext().getHost();
     // TODO Issue with specified port for now
     var url = ctx.getHttpContext().getFullUrl();
 
@@ -484,7 +483,7 @@ class Authentication extends Executor {
     if (typeof uuid === "string") {
       user = await this._usersStore.get(uuid);
     } else {
-      user = <User>uuid;
+      user = uuid;
     }
     if (!user) {
       return undefined;

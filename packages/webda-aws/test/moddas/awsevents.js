@@ -1,6 +1,6 @@
 "use strict";
 const Webda = require("webda");
-const AWSEventHandlerMixIn = require("../../lib/lambdahandler")
+const AWSEventHandlerMixIn = require("../../lib/lambdaserver")
   .AWSEventHandlerMixIn;
 
 class AWSEventsHandler extends AWSEventHandlerMixIn(Webda.Service) {

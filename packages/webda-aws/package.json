@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/loopingz/webda-elasticsearch.git"
+    "url": "git+https://github.com/loopingz/webda-aws.git"
   },
   "keywords": [
     "webda"

@@ -40,8 +40,8 @@ interface Configuration {
   [key: string]: any;
 }
 
-interface CorsFilter {
-  checkCSRF(context: Context): boolean;
+export interface CorsFilter {
+  checkCSRF(context: Context): Promise<boolean>;
 }
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
@@ -1102,7 +1102,7 @@ class Webda extends events.EventEmitter {
    *
    * @param context Context of the request
    */
-  protected checkCSRF(ctx: Context): boolean {
+  protected async checkCSRF(ctx: Context): Promise<boolean> {
     let httpContext = ctx.getHttpContext();
     let website = this.getGlobalParams().website || "";
 
@@ -1114,7 +1114,7 @@ class Webda extends events.EventEmitter {
       }
     }
     for (let i in this._corsFilters) {
-      if (this._corsFilters[i].checkCSRF(ctx)) {
+      if (await this._corsFilters[i].checkCSRF(ctx)) {
         return true;
       }
     }

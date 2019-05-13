@@ -153,7 +153,7 @@ describe("Webda", function() {
     });
   });
   describe("checkCSRF()", function() {
-    it("csrfRegExp", function() {
+    it("csrfRegExp", async function() {
       webda._config.parameters.website = "http://localhost:18181";
       ctx.setHttpContext(
         new Webda.HttpContext(
@@ -165,7 +165,7 @@ describe("Webda", function() {
           {}
         )
       );
-      assert.equal(webda.checkCSRF(ctx), true);
+      assert.equal(await webda.checkCSRF(ctx), true);
       ctx.setHttpContext(
         new Webda.HttpContext(
           "accounts.google.com",
@@ -176,7 +176,7 @@ describe("Webda", function() {
           {}
         )
       );
-      assert.equal(webda.checkCSRF(ctx), true);
+      assert.equal(await webda.checkCSRF(ctx), true);
       ctx.setHttpContext(
         new Webda.HttpContext(
           "accounts.google.fr.loopingz.com",
@@ -187,11 +187,11 @@ describe("Webda", function() {
           {}
         )
       );
-      assert.equal(webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkCSRF(ctx), false);
       ctx.setHttpContext(
         new Webda.HttpContext("www.facebook.com", "GET", "/", "https", 443, {})
       );
-      assert.equal(webda.checkCSRF(ctx), true);
+      assert.equal(await webda.checkCSRF(ctx), true);
       ctx.setHttpContext(
         new Webda.HttpContext(
           "www.facebook.com.eu",
@@ -202,36 +202,36 @@ describe("Webda", function() {
           {}
         )
       );
-      assert.equal(webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkCSRF(ctx), false);
     });
-    it("string", function() {
+    it("string", async function() {
       webda._config.parameters.website = "http://localhost:18181";
 
       // Exact match
       ctx.setHttpContext(
         new Webda.HttpContext("localhost:18181", "GET", "/", "http", 80, {})
       );
-      assert.equal(webda.checkCSRF(ctx), true);
+      assert.equal(await webda.checkCSRF(ctx), true);
 
       // Bad protocol
       ctx.setHttpContext(
         new Webda.HttpContext("localhost:18181", "GET", "/", "https", 443, {})
       );
-      assert.equal(webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkCSRF(ctx), false);
 
       // Bad port
       ctx.setHttpContext(
         new Webda.HttpContext("localhost:18181", "GET", "/", "http", 18182, {})
       );
-      assert.equal(webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkCSRF(ctx), false);
 
       // Bad host
       ctx.setHttpContext(
         new Webda.HttpContext("localhost2:18181", "GET", "/", "http", 18181, {})
       );
-      assert.equal(webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkCSRF(ctx), false);
     });
-    it("array", function() {
+    it("array", async function() {
       webda._config.parameters.website = [
         "http://localhost:18181",
         "http://localhost2:18181"
@@ -239,7 +239,7 @@ describe("Webda", function() {
       ctx.setHttpContext(
         new Webda.HttpContext("localhost", "GET", "/", "http", 18181, {})
       );
-      assert.equal(webda.checkCSRF(ctx), true);
+      assert.equal(await webda.checkCSRF(ctx), true);
 
       // Just host headers
       webda._config.parameters.website = [
@@ -251,27 +251,27 @@ describe("Webda", function() {
       ctx.setHttpContext(
         new Webda.HttpContext("localhost", "GET", "/", "http", 18181, {})
       );
-      assert.equal(webda.checkCSRF(ctx), true);
+      assert.equal(await webda.checkCSRF(ctx), true);
 
       // Second host
       ctx.setHttpContext(
         new Webda.HttpContext("localhost2", "GET", "/", "http", 18181, {})
       );
-      assert.equal(webda.checkCSRF(ctx), true);
+      assert.equal(await webda.checkCSRF(ctx), true);
 
       // Bad port
       ctx.setHttpContext(
         new Webda.HttpContext("localhost", "GET", "/", "http", 18182, {})
       );
-      assert.equal(webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkCSRF(ctx), false);
 
       // Bad host
       ctx.setHttpContext(
         new Webda.HttpContext("localhost3", "GET", "/", "http", 18181, {})
       );
-      assert.equal(webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkCSRF(ctx), false);
     });
-    it("object", function() {
+    it("object", async function() {
       // Use object
       webda._config.parameters.website = {
         url: "localhost:18181"
@@ -280,21 +280,21 @@ describe("Webda", function() {
       ctx.setHttpContext(
         new Webda.HttpContext("localhost", "GET", "/", "http", 18181, {})
       );
-      assert.equal(webda.checkCSRF(ctx), true);
+      assert.equal(await webda.checkCSRF(ctx), true);
 
       // Bad host
       ctx.setHttpContext(
         new Webda.HttpContext("localhost2", "GET", "/", "http", 18181, {})
       );
-      assert.equal(webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkCSRF(ctx), false);
 
       // Bad port
       ctx.setHttpContext(
         new Webda.HttpContext("localhost", "GET", "/", "http", 18182, {})
       );
-      assert.equal(webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkCSRF(ctx), false);
     });
-    it("CSRF conditional filter", function() {
+    it("CSRF conditional filter", async function() {
       ctx.setHttpContext(
         new Webda.HttpContext(
           "csrf.com",
@@ -306,7 +306,7 @@ describe("Webda", function() {
         )
       );
       assert.equal(
-        webda.checkCSRF(ctx, "http://localhost:18182", {
+        await webda.checkCSRF(ctx, "http://localhost:18182", {
           url: "localhost:18181"
         }),
         true
@@ -322,7 +322,7 @@ describe("Webda", function() {
         )
       );
       assert.equal(
-        webda.checkCSRF(ctx, "http://localhost:18182", {
+        await webda.checkCSRF(ctx, "http://localhost:18182", {
           url: "localhost:18181"
         }),
         false
@@ -338,7 +338,7 @@ describe("Webda", function() {
         )
       );
       assert.equal(
-        webda.checkCSRF(ctx, "http://localhost:18182", {
+        await webda.checkCSRF(ctx, "http://localhost:18182", {
           url: "localhost:18181"
         }),
         false

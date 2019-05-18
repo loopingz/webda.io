@@ -51,9 +51,16 @@ export class WebdaServer extends Webda {
         protocol = req.headers["x-forwarded-proto"];
       }
 
+      let method = req.method;
+
+      // TODO Remove it in Webda 1.x -> this is for compatibility reason
+      if (method === "PUT" && req.headers["x-webda-method"] !== "PUT") {
+        method = "PATCH";
+      }
+
       let httpContext = new HttpContext(
         vhost,
-        req.method,
+        method,
         req.url,
         protocol,
         req.port,
@@ -89,7 +96,7 @@ export class WebdaServer extends Webda {
           "max-age=31536000; includeSubDomains; preload"
         );
       }
-      if (req.method == "OPTIONS") {
+      if (method == "OPTIONS") {
         // Add correct headers for X-scripting
         if (req.headers["x-forwarded-server"] === undefined) {
           if (this._devMode && req.headers["origin"]) {
@@ -109,7 +116,7 @@ export class WebdaServer extends Webda {
       await this.emitSync(
         "Webda.Request",
         vhost,
-        req.method,
+        method,
         req.url,
         ctx.getCurrentUserId(),
         req.body,
@@ -117,7 +124,6 @@ export class WebdaServer extends Webda {
         ctx
       );
       var executor = this.getExecutorWithContext(ctx);
-
       if (executor == null) {
         return next();
       }

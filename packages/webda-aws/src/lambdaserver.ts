@@ -177,6 +177,11 @@ export default class LambdaServer extends Webda {
       }
     }
 
+    // TODO Remove it in Webda 1.x -> this is for compatibility reason
+    if (method === "PUT" && headers["x-webda-method"] !== "PUT") {
+      method = "PATCH";
+    }
+
     var resourcePath = event.path;
     // Rebuild query string
     if (event.queryStringParameters) {

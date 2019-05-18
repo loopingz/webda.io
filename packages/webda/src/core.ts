@@ -1041,14 +1041,17 @@ class Webda extends events.EventEmitter {
    */
   public async newContext(
     httpContext: HttpContext,
-    stream = undefined
+    stream = undefined,
+    noInit: boolean = false
   ): Promise<Context> {
     let res: Context = <Context>(
       new (this.getModel(
         this.getGlobalParams().contextModel || "WebdaCore/Context"
       ))(this, httpContext, stream)
     );
-    await res.init();
+    if (!noInit) {
+      await res.init();
+    }
     return res;
   }
 

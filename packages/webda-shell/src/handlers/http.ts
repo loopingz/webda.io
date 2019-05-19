@@ -47,7 +47,7 @@ export class WebdaServer extends Webda {
         vhost = req.headers["x-forwarded-host"];
       }
       var protocol = req.protocol;
-      if (req.headers["x-forwarded-proto"] != undefined) {
+      if (req.headers["x-forwarded-proto"] !== undefined) {
         protocol = req.headers["x-forwarded-proto"];
       }
 
@@ -57,7 +57,6 @@ export class WebdaServer extends Webda {
       if (method === "PUT" && req.headers["x-webda-method"] !== "PUT") {
         method = "PATCH";
       }
-
       let httpContext = new HttpContext(
         vhost,
         method,
@@ -68,7 +67,14 @@ export class WebdaServer extends Webda {
         req.headers,
         req.files
       );
-      let ctx = await this.newContext(httpContext, res);
+      let ctx = await this.newContext(httpContext, res, true);
+
+      var executor = this.getExecutorWithContext(ctx);
+      if (executor == null) {
+        return next();
+      }
+
+      await ctx.init();
       req.session = ctx.getSession().getProxy();
 
       // Setup the right session cookie
@@ -79,7 +85,7 @@ export class WebdaServer extends Webda {
         req.headers.Origin || req.headers.origin || req.headers.Referer;
       // Set predefined headers for CORS
       if (origin) {
-        if (this._devMode || (await this.checkCSRF(origin))) {
+        if (this._devMode || (await this.checkCSRF(ctx))) {
           res.setHeader("Access-Control-Allow-Origin", origin);
         } else {
           // Prevent CSRF
@@ -123,12 +129,6 @@ export class WebdaServer extends Webda {
         req,
         ctx
       );
-      var executor = this.getExecutorWithContext(ctx);
-      if (executor == null) {
-        return next();
-      }
-      // Init the pipe on stream
-      ctx.init();
 
       // Add correct headers for X-scripting
       if (req.headers["x-forwarded-server"] === undefined) {

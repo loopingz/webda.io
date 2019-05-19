@@ -1,6 +1,13 @@
 import { WebdaServer } from "./http";
 import { Deployment } from "../models/deployment";
-import { Core as Webda, Executor, _extend, Store, CoreModel } from "webda";
+import {
+  Core as Webda,
+  Executor,
+  _extend,
+  Store,
+  CoreModel,
+  Context
+} from "webda";
 import { LambdaDeployer } from "../deployers/lambda";
 import { DockerDeployer } from "../deployers/docker";
 import { S3Deployer } from "../deployers/s3";
@@ -75,29 +82,32 @@ export class ConfigurationService extends Executor {
     this._deployments = {};
   }
 
-  versions(ctx) {
+  versions(ctx: Context) {
     ctx.write({
       shell: WebdaConfigurationServer.getVersion(),
       core: WebdaConfigurationServer.getWebdaVersion()
     });
   }
 
-  fileBrowser(ctx, prefix) {
+  fileBrowser(ctx: Context, prefix) {
     if (prefix === undefined) {
       prefix = "./";
     }
-    if (ctx._params.path.indexOf("..") >= 0 || ctx._params.path[0] == "/") {
+    if (
+      ctx.parameter("path").indexOf("..") >= 0 ||
+      ctx.parameter("path")[0] == "/"
+    ) {
       // For security reason prevent the .. or /
       throw 403;
     }
 
-    var path = prefix + ctx._params.path;
+    var path = prefix + ctx.parameter("path");
     var stat;
     if (fs.existsSync(path)) {
       stat = fs.statSync(path);
     }
 
-    if (ctx._route._http.method === "GET") {
+    if (ctx.getHttpContext().getMethod() === "GET") {
       if (stat == undefined) {
         throw 404;
       }
@@ -107,16 +117,16 @@ export class ConfigurationService extends Executor {
       } else {
         return ctx.write(fs.readFileSync(path));
       }
-    } else if (ctx._route._http.method === "PUT") {
+    } else if (ctx.getHttpContext().getMethod() === "PUT") {
       if (stat !== undefined && stat.isDirectory()) {
         throw 400;
       }
       // Try to create folders if they dont exists
       // TODO Code it or use mkdirp
       // Could handle the
-      fs.writeFileSync(path, ctx.body);
+      fs.writeFileSync(path, ctx.getRequestBody());
       return;
-    } else if (ctx._route._http.method === "DELETE") {
+    } else if (ctx.getHttpContext().getMethod() === "DELETE") {
       if (!fs.existsSync(path)) {
         throw 404;
       }
@@ -200,28 +210,27 @@ class ` +
     }
     return content + "}\n";
   }
-  crudModels(ctx) {
+  crudModels(ctx: Context) {
     let models = this._getModels();
     if (!this._config.models) {
       this._config.models = {};
     }
-    if (ctx._route._http.method === "GET") {
-      if (ctx._params.name) {
-        if (!models[ctx._params.name]) {
+    if (ctx.getHttpContext().getMethod() === "GET") {
+      let name = ctx.parameter("name");
+      if (name) {
+        if (!models[name]) {
           throw 404;
         }
-        if (models[ctx._params.name].builtin) {
+        if (models[name].builtin) {
           throw 403;
         }
-        ctx.write(
-          fs.readFileSync(models[ctx._params.name].src + ".js").toString()
-        );
+        ctx.write(fs.readFileSync(models[name].src + ".js").toString());
       } else {
         ctx.write(models);
       }
       return;
-    } else if (ctx._route._http.method === "DELETE") {
-      let name = ctx._params.name;
+    } else if (ctx.getHttpContext().getMethod() === "DELETE") {
+      let name = ctx.parameter("name");
       if (this._config.models[name]) {
         let file = this._config.models[name];
         if (!file.endsWith(".js")) {
@@ -234,12 +243,13 @@ class ` +
       }
       this.save();
       return;
-    } else if (ctx._route._http.method === "POST") {
-      let name = ctx.body.name;
+    } else if (ctx.getHttpContext().getMethod() === "POST") {
+      let body = ctx.getRequestBody();
+      let name = body.name;
       let model = this._config.models[name];
       this.cleanBody(ctx);
-      let file = ctx.body.src;
-      this._config.models[name] = ctx.body.src;
+      let file = body.src;
+      this._config.models[name] = body.src;
       if (!file.endsWith(".js")) {
         file += ".js";
       }
@@ -251,13 +261,13 @@ class ` +
       }
       fs.writeFileSync(
         file,
-        this._getClass(name, ctx.body.extending, ctx.body.templating, models)
+        this._getClass(name, body.extending, body.templating, models)
       );
       this.save();
     }
   }
 
-  getDeployers(ctx) {
+  getDeployers(ctx: Context) {
     var res = [];
     for (let i in this._webda._deployers) {
       if (!this._webda._deployers[i].getModda) {
@@ -270,7 +280,7 @@ class ` +
     ctx.write(res);
   }
 
-  getModdas(ctx) {
+  getModdas(ctx: Context) {
     var res = [];
     for (let i in this._webda._mockWebda._services) {
       if (!this._webda._mockWebda._services[i].getModda) {
@@ -283,16 +293,16 @@ class ` +
     ctx.write(res);
   }
 
-  getServices(ctx) {
+  getServices(ctx: Context) {
     ctx.write(this._webda._mockWebda.getModdas());
   }
 
-  deploy(ctx) {
-    return this._webda.deploy(ctx._params.name, [], true);
+  deploy(ctx: Context) {
+    return this._webda.deploy(ctx.parameter("name"), [], true);
   }
 
-  crudService(ctx) {
-    if (ctx._route._http.method === "GET") {
+  crudService(ctx: Context) {
+    if (ctx.getHttpContext().getMethod() === "GET") {
       var services = [];
       let servicesBeans = this._webda._mockWebda.getServices();
       for (let i in this._config.services) {
@@ -313,8 +323,8 @@ class ` +
       ctx.write(services);
       return;
     }
-    let name = ctx._params.name;
-    if (ctx._route._http.method === "DELETE") {
+    let name = ctx.parameter("name");
+    if (ctx.getHttpContext().getMethod() === "DELETE") {
       delete this._config.services[name];
       this.save();
       return;
@@ -324,7 +334,7 @@ class ` +
     if (ctx._route._http.method === "POST" && service != null) {
       throw 409;
     }
-    this._config.services[name] = ctx.body;
+    this._config.services[name] = ctx.getRequestBody();
     this.save();
   }
 
@@ -332,17 +342,18 @@ class ` +
     this._webda.saveHostConfiguration(this._config);
   }
 
-  cleanBody(ctx) {
-    for (let i in ctx.body) {
+  cleanBody(ctx: Context) {
+    let body = ctx.getRequestBody();
+    for (let i in body) {
       if (i.startsWith("_")) {
-        delete ctx.body[i];
+        delete body[i];
       }
     }
   }
 
-  crudRoute(ctx) {
+  crudRoute(ctx: Context) {
     this._config.routes = this._config.routes || {};
-    if (ctx._route._http.method === "GET") {
+    if (ctx.getHttpContext().getMethod() === "GET") {
       var routes = [];
       for (let i in this._computeConfig.routes) {
         let route = this._computeConfig.routes[i];
@@ -367,17 +378,18 @@ class ` +
       ctx.write(routes);
       return;
     }
+    let body = ctx.getRequestBody();
     // TODO Check query string
-    if (ctx._route._http.method === "DELETE") {
-      if (!ctx.body.url) {
+    if (ctx.getHttpContext().getMethod() === "DELETE") {
+      if (!body.url) {
         throw 400;
       }
-      delete this._config.routes[ctx.body.url];
+      delete this._config.routes[body.url];
       this.save();
       return;
     }
-    var url = ctx.body._name;
-    delete ctx.body.url;
+    var url = body._name;
+    delete body.url;
     this.cleanBody(ctx);
     if (
       ctx._route._http.method === "POST" &&
@@ -385,7 +397,7 @@ class ` +
     ) {
       throw 409;
     }
-    this._config.routes[url] = ctx.body;
+    this._config.routes[url] = body;
     this.save();
   }
 
@@ -596,24 +608,24 @@ class ` +
     return swagger2;
   }
 
-  restGlobal(ctx) {
-    if (ctx._route._http.method === "GET") {
+  restGlobal(ctx: Context) {
+    if (ctx.getHttpContext().getMethod() === "GET") {
       return this.getGlobal(ctx);
-    } else if (ctx._route._http.method === "PUT") {
+    } else if (ctx.getHttpContext().getMethod() === "PUT") {
       return this.updateGlobal(ctx);
     }
   }
-  getGlobal(ctx) {
+  getGlobal(ctx: Context) {
     ctx.write(this._webda.config.parameters);
   }
 
-  updateGlobal(ctx) {
-    this._webda.config.parameters = ctx.body.parameters;
+  updateGlobal(ctx: Context) {
+    this._webda.config.parameters = ctx.getRequestBody().parameters;
     this.save();
   }
 
-  async restDeployment(ctx) {
-    if (ctx._route._http.method == "GET") {
+  async restDeployment(ctx: Context) {
+    if (ctx.getHttpContext().getMethod() == "GET") {
       let deployments = await this._deploymentStore.find();
       for (let i in deployments) {
         // Clone the object for now
@@ -625,23 +637,24 @@ class ` +
       });
       ctx.write(deployments);
       return;
-    } else if (ctx._route._http.method == "POST") {
-      if (this._deployments[ctx.body.uuid]) {
+    } else if (ctx.getHttpContext().getMethod() == "POST") {
+      let body = ctx.getRequestBody();
+      if (this._deployments[body.uuid]) {
         throw 409;
       }
-      return this._deploymentStore.save(ctx.body);
-    } else if (ctx._route._http.method == "PUT") {
+      return this._deploymentStore.save(body);
+    } else if (ctx.getHttpContext().getMethod() == "PUT") {
       this.cleanBody(ctx);
-      return this._deploymentStore.update(ctx.body);
-    } else if (ctx._route._http.method == "DELETE") {
+      return this._deploymentStore.update(ctx.getRequestBody());
+    } else if (ctx.getHttpContext().getMethod() == "DELETE") {
       if (
-        !this._deployments[ctx._params.name] ||
-        ctx._params.name === "Global"
+        !this._deployments[ctx.parameter("name")] ||
+        ctx.parameter("name") === "Global"
       ) {
         throw 409;
       }
-      await this._deploymentStore.delete(ctx._params.name);
-      delete this._deployments[ctx._params.name];
+      await this._deploymentStore.delete(ctx.parameter("name"));
+      delete this._deployments[ctx.parameter("name")];
     }
   }
 }
@@ -998,10 +1011,18 @@ export class WebdaConfigurationServer extends WebdaServer {
   }
 
   serveStaticWebsite(express, app) {
+    console.log(
+      "Serving static content",
+      process.env.HOME + `/.webda-wui/${this._wui}/`
+    );
     app.use(express.static(process.env.HOME + `/.webda-wui/${this._wui}/`));
   }
 
   serveIndex(express, app) {
+    console.log(
+      "Serving static index",
+      process.env.HOME + `/.webda-wui/${this._wui}/index.html`
+    );
     app.use(
       express.static(process.env.HOME + `/.webda-wui/${this._wui}/index.html`)
     );

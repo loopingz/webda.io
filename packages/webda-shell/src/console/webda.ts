@@ -5,6 +5,7 @@ import { ConsoleLogger } from "webda";
 import * as colors from "colors";
 import { Transform, Writable } from "stream";
 import * as fs from "fs";
+import * as crypto from "crypto";
 
 import * as yauzl from "yauzl";
 import * as path from "path";
@@ -219,6 +220,10 @@ export default class WebdaConsole {
     lines.push(this.bold(" worker") + ": Launch a worker on a queue");
     lines.push(this.bold(" debug") + ": Debug current project");
     lines.push(this.bold(" swagger") + ": Generate swagger file");
+    lines.push(
+      this.bold(" generate-session-secret") +
+        ": Generate a new session secret in parameters"
+    );
     lines.push(
       this.bold(" launch") +
         " ServiceName method arg1 ...: Launch the ServiceName method with arg1 ..."
@@ -736,9 +741,30 @@ export default class WebdaConsole {
         return this.generateModule();
       case "swagger":
         return this.generateSwagger(argv);
+      case "generate-session-secret":
+        return this.generateSessionSecret();
       default:
         return this.help();
     }
+  }
+
+  static async generateRandomString(length = 256): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      crypto.randomBytes(length, (err, buffer) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve(buffer.toString("base64").substring(0, length));
+      });
+    });
+  }
+
+  static async generateSessionSecret() {
+    let config =
+      JSON.parse(fs.readFileSync("./webda.config.json").toString()) || {};
+    config.parameters = config.parameters || {};
+    config.parameters.sessionSecret = await this.generateRandomString(256);
+    fs.writeFileSync("./webda.config.json", JSON.stringify(config, null, 2));
   }
 
   static async generateSwagger(argv) {

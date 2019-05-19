@@ -6,7 +6,8 @@ import {
   _extend,
   Store,
   CoreModel,
-  Context
+  Context,
+  CorsFilter
 } from "webda";
 import { LambdaDeployer } from "../deployers/lambda";
 import { DockerDeployer } from "../deployers/docker";
@@ -23,30 +24,37 @@ import * as mkdirp from "mkdirp";
 import * as deepmerge from "deepmerge";
 import { Deployer } from "../deployers/deployer";
 
-export class ConfigurationService extends Executor {
+export class ConfigurationService extends Executor implements CorsFilter {
   _config: any;
   _computeConfig: any;
   _deployments: any;
   _deploymentStore: Store<CoreModel>;
   _webda: WebdaConfigurationServer;
 
+  async checkCSRF(context: Context): Promise<boolean> {
+    if (context.getHttpContext().getHost() === "localhost") {
+      return true;
+    }
+    return false;
+  }
+
   initRoutes() {
     this._addRoute("/api/modda", ["GET"], this.getServices);
     this._addRoute("/api/models", ["GET", "POST"], this.crudModels);
     this._addRoute(
       "/api/models/{name}",
-      ["GET", "PUT", "DELETE"],
+      ["GET", "PUT", "DELETE", "PATCH"],
       this.crudModels
     );
     this._addRoute("/api/services", ["GET"], this.crudService);
     this._addRoute(
       "/api/services/{name}",
-      ["PUT", "DELETE", "POST"],
+      ["PUT", "DELETE", "POST", "PATCH"],
       this.crudService
     );
     this._addRoute(
       "/api/routes",
-      ["GET", "POST", "PUT", "DELETE"],
+      ["GET", "POST", "PUT", "DELETE", "PATCH"],
       this.crudRoute
     );
     this._addRoute("/api/moddas", ["GET"], this.getModdas);
@@ -54,16 +62,16 @@ export class ConfigurationService extends Executor {
     this._addRoute("/api/deployments", ["GET", "POST"], this.restDeployment);
     this._addRoute(
       "/api/deployments/{name}",
-      ["DELETE", "PUT"],
+      ["DELETE", "PUT", "PATCH"],
       this.restDeployment
     );
     this._addRoute("/api/versions", ["GET"], this.versions);
     this._addRoute("/api/deploy/{name}", ["GET"], this.deploy);
-    this._addRoute("/api/global", ["GET", "PUT"], this.restGlobal);
+    this._addRoute("/api/global", ["GET", "PUT", "PATCH"], this.restGlobal);
     // Allow path
     this._addRoute(
       "/api/browse/{path}",
-      ["GET", "PUT", "DELETE"],
+      ["GET", "PUT", "DELETE", "PATCH"],
       this.fileBrowser,
       {
         hidden: true
@@ -74,6 +82,7 @@ export class ConfigurationService extends Executor {
     this._deploymentStore = <Store<CoreModel>>(
       this._webda.getService("deployments")
     );
+    this._webda.registerCorsFilter(this);
   }
 
   refresh() {
@@ -331,7 +340,7 @@ class ` +
     }
     let service = this._config.services[name];
     this.cleanBody(ctx);
-    if (ctx._route._http.method === "POST" && service != null) {
+    if (ctx.getHttpContext().getMethod() === "POST" && service != null) {
       throw 409;
     }
     this._config.services[name] = ctx.getRequestBody();
@@ -392,7 +401,7 @@ class ` +
     delete body.url;
     this.cleanBody(ctx);
     if (
-      ctx._route._http.method === "POST" &&
+      ctx.getHttpContext().getMethod() === "POST" &&
       this._config.routes[url] != null
     ) {
       throw 409;

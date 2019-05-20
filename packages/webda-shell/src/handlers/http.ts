@@ -57,6 +57,12 @@ export class WebdaServer extends Webda {
       if (method === "PUT" && req.headers["x-webda-method"] !== "PUT") {
         method = "PATCH";
       }
+      if (
+        method === "OPTIONS" &&
+        req.headers["access-control-request-method"]
+      ) {
+        method = req.headers["access-control-request-method"];
+      }
       let httpContext = new HttpContext(
         vhost,
         method,
@@ -102,18 +108,25 @@ export class WebdaServer extends Webda {
           "max-age=31536000; includeSubDomains; preload"
         );
       }
-      if (method == "OPTIONS") {
+      if (req.method === "OPTIONS") {
         // Add correct headers for X-scripting
         if (req.headers["x-forwarded-server"] === undefined) {
           if (this._devMode && req.headers["origin"]) {
             res.setHeader("Access-Control-Allow-Origin", req.headers["origin"]);
           }
         }
-        var methods = "GET,POST,PUT,DELETE,OPTIONS";
+        let routes = this.getRouteMethodsFromUrl(req.url);
+        if (routes.length == 0) {
+          ctx.statusCode = 404;
+          res.writeHead(404);
+          res.end();
+          return;
+        }
+        routes.push("OPTIONS");
         res.setHeader("Access-Control-Allow-Credentials", "true");
         res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-        res.setHeader("Access-Control-Allow-Methods", methods);
-        res.setHeader("Allow", methods);
+        res.setHeader("Access-Control-Allow-Methods", routes.join(","));
+        res.setHeader("Allow", routes.join(","));
         res.writeHead(200);
         res.end();
         return;
@@ -203,10 +216,7 @@ export class WebdaServer extends Webda {
 
   serveStaticWebsite(express, app) {
     if (this.getGlobalParams().website && this.getGlobalParams().website.path) {
-      this.output(
-        "Serving static content",
-        this.getGlobalParams().website.path
-      );
+      this.output(this.getGlobalParams().website.path);
       app.use(express.static(this.getGlobalParams().website.path));
     }
   }

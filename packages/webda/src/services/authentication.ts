@@ -204,6 +204,17 @@ class Authentication extends Executor {
         }
       );
     }
+    this._addRoute(url + "/google/token", ["POST"], this._googleToken, {
+      post: {
+        description: "Log with a Google Auth token",
+        summary: "Use the token provide to validate with Google the user",
+        operationId: "verifyGoogleToken",
+        responses: {
+          "204": "",
+          "400": "Missing token"
+        }
+      }
+    });
     // Handle the lost password here
     url += "/{provider}";
     this._addRoute(url, ["GET"], this._authenticate, {
@@ -225,6 +236,29 @@ class Authentication extends Executor {
         hidden: true
       }
     );
+  }
+
+  async _googleToken(context: Context) {
+    let token = context.getRequestBody().token;
+    if (!token) {
+      throw 400;
+    }
+    // Verify a google token
+    const CLIENT_ID = this._params.providers.google.clientID;
+    const { OAuth2Client } = require("google-auth-library");
+    const client = new OAuth2Client();
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: CLIENT_ID
+    });
+    const payload = ticket.getPayload();
+    context.getRequestParameters().name = "google";
+    this.handleOAuthReturn(
+      context,
+      Ident.init("google", payload["sub"], "", "", payload),
+      () => {}
+    );
+    context.write(context.getCurrentUser());
   }
 
   setIdents(identStore) {
@@ -381,7 +415,12 @@ class Authentication extends Executor {
     await this.sendValidationEmail(ctx, ctx.body.email);
   }
 
-  async handleOAuthReturn(ctx: Context, identArg: any, done) {
+  async handleOAuthReturn(
+    ctx: Context,
+    identArg: any,
+    done,
+    noRedirect = false
+  ) {
     let provider = ctx.parameter("provider");
     this.log("TRACE", "Handle OAuth return", identArg);
     let ident: Ident = await this._identsStore.get(identArg.uuid);
@@ -422,12 +461,14 @@ class Authentication extends Executor {
       "Logged in normally should redirect to",
       this._params.successRedirect
     );
-    ctx.writeHead(302, {
-      Location: this._params.successRedirect + "?validation=" + provider,
-      "X-Webda-Authentication": "success"
-    });
-    ctx.end();
-    done(ident);
+    if (!noRedirect) {
+      ctx.writeHead(302, {
+        Location: this._params.successRedirect + "?validation=" + provider,
+        "X-Webda-Authentication": "success"
+      });
+      ctx.end();
+      done(ident);
+    }
   }
 
   setupOAuth(ctx: Context, config, name: string) {

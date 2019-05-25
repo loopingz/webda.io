@@ -457,10 +457,12 @@ class ` +
       let desc = {
         type: "object"
       };
-      if (
-        model.name === "Webda/Context" ||
-        model.name === "Webda/SecureCookie"
-      ) {
+      // Only export CoreModel info
+      if (!(
+        this._webda._mockWebda.getModel(
+        model.name
+      ).prototype instanceof CoreModel
+      )) {
         return;
       }
       let schema = new (this._webda._mockWebda.getModel(

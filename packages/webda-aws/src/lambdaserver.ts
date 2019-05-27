@@ -45,10 +45,14 @@ export default class LambdaServer extends Webda {
     this._result.headers = headers;
     this._result.statusCode = ctx.statusCode;
     let cookies = ctx.getResponseCookies();
-    this._result.multipleHeaders = { "Set-Cookie": [] };
+    this._result.multiValueHeaders = { "Set-Cookie": [] };
     for (let i in cookies) {
-      this._result.multipleHeaders["Set-Cookie"].push(
-        cookieSerialize(cookies[i].value, cookies[i].options || {})
+      this._result.multiValueHeaders["Set-Cookie"].push(
+        cookieSerialize(
+          cookies[i].name,
+          cookies[i].value,
+          cookies[i].options || {}
+        )
       );
     }
   }
@@ -249,10 +253,12 @@ export default class LambdaServer extends Webda {
         "max-age=31536000; includeSubDomains; preload"
       );
     }
+    // Might want to customize this one
+    ctx.setHeader("Access-Control-Max-Age", 3600);
     ctx.setHeader("Access-Control-Allow-Credentials", "true");
     ctx.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token"
+      "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Cookie"
     );
 
     if (method === "OPTIONS") {
@@ -307,9 +313,11 @@ export default class LambdaServer extends Webda {
       this._result.code = ctx.statusCode;
     }
     await this.emitSync("Webda.Result", ctx, this._result);
+    // TODO Clean to use ...this._result
     return {
       statusCode: ctx.statusCode,
       headers: this._result.headers,
+      multiValueHeaders: this._result.multiValueHeaders,
       body: this._result.body
     };
   }

@@ -458,11 +458,12 @@ class ` +
         type: "object"
       };
       // Only export CoreModel info
-      if (!(
-        this._webda._mockWebda.getModel(
-        model.name
-      ).prototype instanceof CoreModel
-      )) {
+      if (
+        !(
+          this._webda._mockWebda.getModel(model.name).prototype instanceof
+          CoreModel
+        )
+      ) {
         return;
       }
       let schema = new (this._webda._mockWebda.getModel(

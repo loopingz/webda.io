@@ -164,6 +164,24 @@ export class LambdaDeployer extends AWSDeployer {
     }
   }
 
+  addLinkPackage(archive, fromPath, toPath) {
+    let packageFile = fromPath + "/package.json";
+    let files;
+    if (fs.existsSync(packageFile)) {
+      files = require(packageFile).files;
+    }
+    files = files || fs.readdirSync(fromPath);
+    files.forEach(file => {
+      if (file.startsWith(".")) return;
+      var stat = fs.lstatSync(`${fromPath}/${file}`);
+      if (stat.isDirectory()) {
+        archive.directory(`${fromPath}/${file}`, `${toPath}/${file}`);
+      } else if (stat.isFile()) {
+        archive.file(`${fromPath}/${file}`, { name: `${toPath}/${file}` });
+      }
+    });
+  }
+
   async generatePackage(zipPath) {
     this.stepper("Creating package");
     var archiver = require("archiver");
@@ -204,7 +222,10 @@ export class LambdaDeployer extends AWSDeployer {
     }
     // Ensure dependencies
     if (toPacks.indexOf("node_modules") < 0) {
-      toPacks.push("node_modules");
+      let files = fs.readdirSync("node_modules");
+      files.forEach(file => {
+        toPacks.push(`node_modules/${file}`);
+      });
     }
     var output = fs.createWriteStream(zipPath);
     var archive = archiver("zip");
@@ -221,8 +242,10 @@ export class LambdaDeployer extends AWSDeployer {
 
       archive.pipe(output);
       for (let i in toPacks) {
-        var stat = fs.statSync(toPacks[i]);
-        if (stat.isDirectory()) {
+        var stat = fs.lstatSync(toPacks[i]);
+        if (stat.isSymbolicLink()) {
+          this.addLinkPackage(archive, fs.realpathSync(toPacks[i]), toPacks[i]);
+        } else if (stat.isDirectory()) {
           archive.directory(toPacks[i], toPacks[i]);
         } else if (stat.isFile()) {
           archive.file(toPacks[i]);

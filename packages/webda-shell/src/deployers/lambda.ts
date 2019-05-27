@@ -168,11 +168,12 @@ export class LambdaDeployer extends AWSDeployer {
     let packageFile = fromPath + "/package.json";
     let files;
     if (fs.existsSync(packageFile)) {
+      archive.file(`${packageFile}`, { name: `${toPath}/package.json` });
       files = require(packageFile).files;
     }
     files = files || fs.readdirSync(fromPath);
     files.forEach(file => {
-      if (file.startsWith(".")) return;
+      if (file.startsWith(".") || file === "package.json") return;
       var stat = fs.lstatSync(`${fromPath}/${file}`);
       if (stat.isDirectory()) {
         archive.directory(`${fromPath}/${file}`, `${toPath}/${file}`);

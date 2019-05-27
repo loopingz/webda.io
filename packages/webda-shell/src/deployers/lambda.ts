@@ -476,7 +476,7 @@ export class LambdaDeployer extends AWSDeployer {
       // TODO We should reenable mockCors once found the issue of
       // Invalid mapping expression parameter specified: method.response.header.Access-Control-Allow-Credentials
       if (
-        (this._addOPTIONS || this._addMockCORS) &&
+        //(this._addOPTIONS || this._addMockCORS) &&
         !swagger.paths[p]["options"]
       ) {
         swagger.paths[p]["options"] = {};

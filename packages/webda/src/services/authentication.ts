@@ -258,7 +258,10 @@ class Authentication extends Executor {
       Ident.init("google", payload["sub"], "", "", payload),
       () => {}
     );
-    context.write(context.getCurrentUser());
+    await this.emitSync("GoogleToken", {
+      user: payload,
+      ctx: context
+    });
   }
 
   setIdents(identStore) {
@@ -444,7 +447,7 @@ class Authentication extends Executor {
     if (ctx.getCurrentUserId()) {
       user = await ctx.getCurrentUser();
     } else {
-      user = await this.registerUser(ctx, identArg.profile);
+      user = await this.registerUser(ctx, identArg.__profile);
       await this._usersStore.save(user);
     }
     // Work directly on ident argument

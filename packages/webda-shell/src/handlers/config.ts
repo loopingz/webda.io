@@ -126,7 +126,10 @@ export class ConfigurationService extends Executor implements CorsFilter {
       } else {
         return ctx.write(fs.readFileSync(path));
       }
-    } else if (ctx.getHttpContext().getMethod() === "PUT") {
+    } else if (
+      ctx.getHttpContext().getMethod() === "PUT" ||
+      ctx.getHttpContext().getMethod() === "PATCH"
+    ) {
       if (stat !== undefined && stat.isDirectory()) {
         throw 400;
       }
@@ -623,7 +626,10 @@ class ` +
   restGlobal(ctx: Context) {
     if (ctx.getHttpContext().getMethod() === "GET") {
       return this.getGlobal(ctx);
-    } else if (ctx.getHttpContext().getMethod() === "PUT") {
+    } else if (
+      ctx.getHttpContext().getMethod() === "PUT" ||
+      ctx.getHttpContext().getMethod() === "PATCH"
+    ) {
       return this.updateGlobal(ctx);
     }
   }
@@ -637,7 +643,7 @@ class ` +
   }
 
   async restDeployment(ctx: Context) {
-    if (ctx.getHttpContext().getMethod() == "GET") {
+    if (ctx.getHttpContext().getMethod() === "GET") {
       let deployments = await this._deploymentStore.find();
       for (let i in deployments) {
         // Clone the object for now
@@ -649,16 +655,19 @@ class ` +
       });
       ctx.write(deployments);
       return;
-    } else if (ctx.getHttpContext().getMethod() == "POST") {
+    } else if (ctx.getHttpContext().getMethod() === "POST") {
       let body = ctx.getRequestBody();
       if (this._deployments[body.uuid]) {
         throw 409;
       }
       return this._deploymentStore.save(body);
-    } else if (ctx.getHttpContext().getMethod() == "PUT") {
+    } else if (
+      ctx.getHttpContext().getMethod() === "PUT" ||
+      ctx.getHttpContext().getMethod() === "PATCH"
+    ) {
       this.cleanBody(ctx);
       return this._deploymentStore.update(ctx.getRequestBody());
-    } else if (ctx.getHttpContext().getMethod() == "DELETE") {
+    } else if (ctx.getHttpContext().getMethod() === "DELETE") {
       if (
         !this._deployments[ctx.parameter("name")] ||
         ctx.parameter("name") === "Global"

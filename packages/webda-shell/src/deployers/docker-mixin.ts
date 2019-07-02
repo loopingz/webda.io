@@ -145,7 +145,10 @@ function DockerMixIn<T extends Constructor<Deployer>>(Base: T) {
         fs.existsSync(__dirname + "/../../.git") &&
         !process.env["WEBDA_SHELL_DEPLOY_VERSION"]
       ) {
+        let cwd = process.cwd();
+        process.chdir(__dirname + "/../../");
         tag = require("child_process").execSync("git describe --dirty --tag");
+        process.chdir(cwd);
         if (shellPackageInfo.version !== tag) {
           let includes = ["node_modules", "package.json", "lib", "bin/webda"];
           console.log("Untagged version of webda-shell, copying itself");
@@ -162,7 +165,8 @@ function DockerMixIn<T extends Constructor<Deployer>>(Base: T) {
             }
             dockerfile += `ADD ${fullpath} /webda/node_modules/webda-shell/${path}\n`;
           });
-          dockerfile += `RUN ln -s ../webda-shell/bin/webda /webda/node_modules/.bin\n`;
+          dockerfile += `RUN rm /webda/node_modules/.bin/webda\n`;
+          dockerfile += `RUN ln -s ../webda-shell/bin/webda /webda/node_modules/.bin/webda\n`;
           return dockerfile;
         }
       }

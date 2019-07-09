@@ -455,7 +455,7 @@ class Authentication extends Executor {
     ident.load(identArg);
     ident.setUser(user.uuid);
     ident._lastUsed = new Date();
-    ident.setType("email");
+    ident.setType(provider);
     await this._identsStore.save(ident);
     ident.__new = true;
     await this.login(ctx, user, ident);

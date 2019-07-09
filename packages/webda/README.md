@@ -25,9 +25,7 @@ You should checkout our demo project : [link](http://github.com/loopingz/webda-d
 
 Check our video presentation on [Youtube](https://www.youtube.com/playlist?list=PLfn1MAL4_e7ERdqj9rWlmEkK5gMkL4bKI)
 
-
 #### Create a project
-
 
 ```
 npm install -g webda-shell
@@ -55,7 +53,6 @@ We will use the inline RouteHelper here, except the Lambda Route helper, the oth
 }
 ```
 
-
 #### Create a new service
 
 We will create a new executor, so we can map some URLs directly to the service
@@ -69,18 +66,18 @@ class MyService extends Executor {
         // Let's add our routes here, for Modda the URL should be dynamic
         config['/myservice']={method:["GET", "DELETE"], _method: this.handleRequest, executor: this};
    }
-   
+
    delete(ctx) {
      // If we don't output anything, then the default result will be a 204
-   }    
-   
+   }
+
    get(ctx) {
     // Should output : I am a getter and I've sent a welcome email to you
     ctx.write(this._params.sentence);
        let otherService = this.getService("Mailer");
        otherService.send();
    }
-   
+
    handleRequest(ctx) {
      if (ctx._route._http.method === "GET") {
          this.get(ctx);
@@ -92,7 +89,6 @@ class MyService extends Executor {
 ```
 
 Here is the corresponding configuration
-
 
 ```javascript
 {
@@ -109,7 +105,6 @@ Here is the corresponding configuration
 }
 
 ```
-
 
 #### Run it
 
@@ -155,7 +150,6 @@ You can also create and publish on Docker choosing the deployment configuration 
 
 ![image](http://webda.io/images/schemas/archi.png)
 
-
 ## Services
 
 A service is a singleton component that can have access to others services, put some listeners in place, and do its own logic. It is not supposed to handle direct request from the external world so, therefore, doesn't have access to write method for output to the client.
@@ -164,12 +158,12 @@ Service implement the **EventEmitter** of NodeJS so you can emit a message to le
 
 ```javascript
 // Add a listener
-getService("Store").on('Store.Save', (evt) => {
-    // Do something
+getService("Store").on("Store.Save", evt => {
+  // Do something
 });
 
 // Emit a event ( add the context if possible )
-this.emit('Action.Done', {object: this.target, ctx: ctx})
+this.emit("Action.Done", { object: this.target, ctx: ctx });
 ```
 
 ## Executors
@@ -215,7 +209,6 @@ Store by default use the OwnerPolicy, policies define who has the right to acces
 #### OwnerPolicy
 
 By default, the OwnerPolicy add your user id to the object you create in the user field. It will then check for GET/UPDATE/DELETE if you are the user that is referenced in the user field. If your user has the same UUID as the object, then it allows you to perform the operation as well.
-
 
 ## Embedded Services
 
@@ -268,7 +261,6 @@ You can provide a sample configuration, used when creating a new service based o
 
 It is recommended to add some documentation link to a markdown file, so we can also display the documentation to the end user.
 
-
 ## Documentation
 
 You can find the Javascript documentation on github.io
@@ -287,7 +279,7 @@ Here are some screenshots of the UI
 
 #### Routes
 
-![image](http://webda.io/images/schemas/ui_route_create.png) ![image](http://webda.io/images/schemas/ui_route_config.png) 
+![image](http://webda.io/images/schemas/ui_route_create.png) ![image](http://webda.io/images/schemas/ui_route_config.png)
 
 #### Services
 
@@ -296,6 +288,16 @@ Here are some screenshots of the UI
 #### Deployments
 
 ![image](http://webda.io/images/schemas/ui_deployment_create.png) ![image](http://webda.io/images/schemas/ui_deployment_config.png) ![image](http://webda.io/images/schemas/ui_deployment_deploy.png)
+
+## Annotations
+
+@Bean({name: "", instance: ""})
+@Inject("")
+@Route({url: "", methods: [], swagger: {}})
+
+## Google Stackdriver
+
+A module exists that allow you to us Google StackDriver on any webda application (https://github.com/loopingz/webda-stackdriver)
 
 ## Requirements
 
@@ -307,7 +309,7 @@ Known Lambda limitation
 
 The API Gateway limit to only one normal returnCode, so if you return any return code that is not planned, then we cannot set the cookie and update the session, nor we can send other headers.
 
-You can specify the normal return code of a route by adding a configuration for AWS : 
+You can specify the normal return code of a route by adding a configuration for AWS :
 aws: { defaultCode: 302, headersMap: ['header1', 'header2']}
 
 Here we specify that this route will return 302 by default and will set HTTP headers header1 and header2.

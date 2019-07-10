@@ -70,7 +70,7 @@
     "mkdirp": "^0.5.1",
     "multer": ">=1.1.0",
     "nodejs-websocket": "^1.5.0",
-    "open": "0.0.5",
+    "open": ">=6.0.0",
     "request": "^2.81.0",
     "request-promise": "^4.2.0",
     "semver": "^5.5.1",

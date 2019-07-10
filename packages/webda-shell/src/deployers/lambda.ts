@@ -48,14 +48,13 @@ export class LambdaDeployer extends AWSDeployer {
 
   async deploy(args) {
     this._AWS = this._getAWS(this.resources);
-    this._maxStep;
     let steps: any = {};
     if (args[0]) {
       steps[args[0].toLowerCase()] = true;
     } else if (args[0] === "aws-only") {
       steps = {
         lambda: true,
-        package: true,
+        package: false,
         role: true,
         api: true
       };
@@ -484,11 +483,7 @@ export class LambdaDeployer extends AWSDeployer {
       for (let m in swagger.paths[p]) {
         swagger.paths[p][m]["x-amazon-apigateway-integration"] = {
           httpMethod: "POST",
-          uri: `arn:aws:apigateway:${
-            this.region
-          }:lambda:path/2015-03-31/functions/${
-            this._lambdaFunction.FunctionArn
-          }/invocations`,
+          uri: `arn:aws:apigateway:${this.region}:lambda:path/2015-03-31/functions/${this._lambdaFunction.FunctionArn}/invocations`,
           type: "aws_proxy"
         };
       }

@@ -513,7 +513,7 @@ class ` +
               name = name.substr(1);
             }
             swagger2.paths[i].parameters.push({
-              name: varName,
+              name,
               in: "query",
               required: !varName.startsWith("*"),
               type: "string"

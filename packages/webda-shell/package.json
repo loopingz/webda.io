@@ -12,7 +12,7 @@
   "typings": "lib/index.d.ts",
   "repository": "git://github.com/loopingz/webda-shell.git",
   "devDependencies": {
-    "@types/node": "^9.6.2",
+    "@types/node": "^10.7.0",
     "browser-sync": "^2.7.7",
     "connect-history-api-fallback": "^1.1.0",
     "del": "^2.0.2",
@@ -76,7 +76,8 @@
     "semver": "^5.5.1",
     "socket.io": "^2.0.3",
     "unzip": "^0.1.11",
-    "webda": "^0.11.0",
+    "webda": "^0.11.1",
+    "webda-aws": "^0.11.0",
     "yamljs": "^0.3.0",
     "yargs": "^7.1.0",
     "yauzl": "^2.7.0",

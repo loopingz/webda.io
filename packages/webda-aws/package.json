@@ -33,7 +33,7 @@
     "@types/node": "^10.7.0",
     "aws-sdk": "^2.311.0",
     "uuid": "^3.3.2",
-    "webda": ">=0.11.0"
+    "webda": "^0.11.1"
   },
   "devDependencies": {
     "@types/node": "^9.6.2",

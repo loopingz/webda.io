@@ -258,7 +258,7 @@ export default class LambdaServer extends Webda {
     ctx.setHeader("Access-Control-Allow-Credentials", "true");
     ctx.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Cookie"
+      headers["access-control-request-headers"] || "content-type"
     );
 
     if (method === "OPTIONS") {

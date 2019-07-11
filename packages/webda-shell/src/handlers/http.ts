@@ -124,8 +124,12 @@ export class WebdaServer extends Webda {
         }
         routes.push("OPTIONS");
         res.setHeader("Access-Control-Allow-Credentials", "true");
-        res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+        res.setHeader(
+          "Access-Control-Allow-Headers",
+          req.headers["access-control-request-headers"] || "content-type"
+        );
         res.setHeader("Access-Control-Allow-Methods", routes.join(","));
+        res.setHeader("Access-Control-Max-Age", 86400);
         res.setHeader("Allow", routes.join(","));
         res.writeHead(200);
         res.end();

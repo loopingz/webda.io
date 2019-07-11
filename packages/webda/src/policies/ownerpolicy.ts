@@ -41,7 +41,7 @@ class OwnerPolicy {
   async canUpdate(ctx: Context) {
     // Allow to modify itself by default
     if (
-      ctx.getSession().getUserId() !== this.getOwner() &&
+      (!this.getOwner() || ctx.getSession().getUserId() !== this.getOwner()) &&
       ctx.getSession().getUserId() !== this.uuid
     ) {
       throw 403;
@@ -56,16 +56,7 @@ class OwnerPolicy {
     if (this.public) {
       return this;
     }
-    if (
-      ctx.getSession().getUserId() !== this.getOwner() &&
-      ctx.getSession().getUserId() !== this.uuid
-    ) {
-      throw 403;
-    }
-    if (!this.getOwner() && ctx.getSession().getUserId() !== this.uuid) {
-      throw 403;
-    }
-    return this;
+    return this.canUpdate(ctx);
   }
 
   /**

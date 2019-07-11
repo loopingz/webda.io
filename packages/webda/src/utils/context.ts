@@ -346,6 +346,16 @@ class Context extends EventEmitter {
   }
 
   /**
+   * Get a service from webda
+   *
+   * @see Webda
+   * @param {String} name of the service
+   */
+  getTypedService<T extends Service>(name): T {
+    return <T>this._webda.getService(name);
+  }
+
+  /**
    * Get the HTTP stream to output raw data
    * @returns {*}
    */

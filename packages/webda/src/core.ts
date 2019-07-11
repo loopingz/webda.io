@@ -536,6 +536,13 @@ class Webda extends events.EventEmitter {
   }
 
   /**
+   * Register model
+   */
+  registerModel(name: string, clazz) {
+    this._config._models[name.toLowerCase()] = clazz;
+  }
+
+  /**
    * Check for a model name and return the wanted class or throw exception if none found
    *
    * @param {String} name The model name to retrieve

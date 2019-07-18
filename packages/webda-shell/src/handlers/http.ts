@@ -57,12 +57,6 @@ export class WebdaServer extends Webda {
       if (method === "PUT" && req.headers["x-webda-method"] !== "PUT") {
         method = "PATCH";
       }
-      if (
-        method === "OPTIONS" &&
-        req.headers["access-control-request-method"]
-      ) {
-        method = req.headers["access-control-request-method"];
-      }
       let httpContext = new HttpContext(
         vhost,
         method,
@@ -74,10 +68,14 @@ export class WebdaServer extends Webda {
         req.files
       );
       let ctx = await this.newContext(httpContext, res, true);
-
+      ctx.clientInfo = this.getClientInfo(req);
+      
       var executor = this.getExecutorWithContext(ctx);
       if (executor == null) {
-        return next();
+        let routes = this.getRouteMethodsFromUrl(req.url);
+        if (routes.length == 0) {
+          return next();
+        }
       }
 
       await ctx.init();
@@ -135,7 +133,6 @@ export class WebdaServer extends Webda {
         res.end();
         return;
       }
-      ctx.clientInfo = this.getClientInfo(req);
       await this.emitSync(
         "Webda.Request",
         vhost,

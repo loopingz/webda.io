@@ -1,0 +1,7 @@
+{
+  "name": "webda.io",
+  "private": true,
+  "devDependencies": {
+    "lerna": "^3.16.1"
+  }
+}

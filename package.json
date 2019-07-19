@@ -28,9 +28,19 @@
     "web-component-tester": "^4.0.0",
     "xterm": "^3.7.0"
   },
+  "author": "loopingz",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/loopingz/webda.io/issues"
+  },
+  "homepage": "https://github.com/loopingz/webda.io#readme",
+  "repository": "git://github.com/loopingz/webda.io.git",
   "dependencies": {
     "@webda/aws": "file:packages/aws",
     "@webda/core": "file:packages/core",
     "@webda/shell": "file:packages/shell"
+  },
+  "scripts": {
+    "version": "lerna version --conventional-commits"
   }
 }

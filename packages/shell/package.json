@@ -10,7 +10,7 @@
   "author": "Remi Cattiau <remi@cattiau.com>",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
-  "repository": "git://github.com/loopingz/webda-shell.git",
+  "repository": "git://github.com/loopingz/webda.io.git",
   "bin": {
     "webda": "./bin/webda"
   },
@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "@webda/core": "^1.0.0",
+    "@webda/aws": "^1.0.0",
     "archiver": "^1.0.0",
     "aws-sdk": "^2.223.1",
     "body-parser": ">=1.13.3",
@@ -57,8 +58,6 @@
     "semver": "^5.5.1",
     "socket.io": "^2.0.3",
     "unzip": "^0.1.11",
-    "webda": "^0.11.1",
-    "webda-aws": "^0.11.0",
     "yamljs": "^0.3.0",
     "yargs": "^7.1.0",
     "yauzl": "^2.7.0",

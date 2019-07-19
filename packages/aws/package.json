@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/loopingz/webda-aws.git"
+    "url": "git+https://github.com/loopingz/webda.io.git"
   },
   "keywords": [
     "webda"
@@ -26,15 +26,13 @@
   "author": "loopingz",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/loopingz/webda-aws/issues"
+    "url": "https://github.com/loopingz/webda.io/issues"
   },
-  "homepage": "https://github.com/loopingz/webda-aws#readme",
+  "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
-    "@types/node": "^10.7.0",
     "@webda/core": "^1.0.0",
     "aws-sdk": "^2.311.0",
-    "uuid": "^3.3.2",
-    "webda": "^0.11.1"
+    "uuid": "^3.3.2"
   },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",

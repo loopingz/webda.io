@@ -35,20 +35,6 @@
     "uuid": "^3.3.2",
     "webda": "^0.11.1"
   },
-  "devDependencies": {
-    "@types/node": "^9.6.2",
-    "glob": "^7.1.2",
-    "istanbul": "^1.1.0-alpha.1",
-    "js-beautify": "^1.7.5",
-    "mocha": ">=4.0.0",
-    "mocha-typescript": "^1.1.17",
-    "nyc": "^11.6.0",
-    "remap-istanbul": "^0.11.0",
-    "source-map-support": "^0.5.4",
-    "ts-node": "^5.0.1",
-    "typescript": ">=3.3.3333",
-    "webda-shell": ">=0.10.5"
-  },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",
     "report-dir": "./reports",

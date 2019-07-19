@@ -2,6 +2,35 @@
   "name": "webda.io",
   "private": true,
   "devDependencies": {
-    "lerna": "^3.16.1"
+    "@istanbuljs/nyc-config-typescript": "^0.1.3",
+    "@types/node": "^10.7.0",
+    "browser-sync": "^2.7.7",
+    "connect-history-api-fallback": "^1.1.0",
+    "del": "^2.0.2",
+    "glob": "^7.1.2",
+    "glob-all": "^3.0.1",
+    "istanbul": "^1.1.0-alpha.1",
+    "js-beautify": "^1.7.5",
+    "lerna": "^3.16.1",
+    "merge-stream": "^1.0.0",
+    "mocha": ">=6.1.4",
+    "mocha-typescript": "^1.1.17",
+    "nyc": "^14.0.0",
+    "prettier": "^1.16.4",
+    "remap-istanbul": "^0.13.0",
+    "require-dir": "^0.3.0",
+    "run-sequence": "^1.0.2",
+    "source-map-support": "^0.5.4",
+    "ts-node": "^8.1.0",
+    "typedoc": "^0.14.2",
+    "typescript": "^3.4.4",
+    "vulcanize": ">= 1.4.2",
+    "web-component-tester": "^4.0.0",
+    "xterm": "^3.7.0"
+  },
+  "dependencies": {
+    "@webda/aws": "file:packages/aws",
+    "@webda/core": "file:packages/core",
+    "@webda/shell": "file:packages/shell"
   }
 }

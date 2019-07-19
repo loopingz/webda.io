@@ -1,4 +1,4 @@
-import { Webda, _extend, CorsFilter } from "./core";
+import { Webda, _extend, CorsFilter, Bean, Route } from "./core";
 import { Service } from "./services/service";
 import { Executor } from "./services/executor";
 // Policies
@@ -42,6 +42,10 @@ import { Queue } from "./queues/queueservice";
 import { MemoryQueue } from "./queues/memoryqueue";
 
 export {
+  // Annotation
+  Bean,
+  Route,
+  // Core
   Webda as Core,
   _extend,
   CorsFilter,

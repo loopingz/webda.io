@@ -44,6 +44,30 @@ export interface CorsFilter {
   checkCSRF(context: Context): Promise<boolean>;
 }
 
+let beans = {};
+
+// @Bean to declare as a Singleton service
+export function Bean(constructor: Function) {
+  let name = constructor.name.toLowerCase();
+  beans[name] = beans[name] || {constructor};
+  beans[name] = {...beans[name], bean: true };
+}
+
+// @Route to declare route on service
+export function Route(route: string, methods: string | string[] = ["GET"], allowPath: boolean = false, swagger: any = {}) {
+  return function (target: any, executor: string, descriptor: PropertyDescriptor) {
+    let targetName = target.constructor.name.toLowerCase();
+    beans[targetName] = beans[targetName] || {constructor: target.constructor};
+    beans[targetName].routes = beans[targetName].routes || {};
+    beans[targetName].routes[route] = {
+      methods,
+      executor,
+      allowPath,
+      swagger
+    };
+  };
+}
+
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
  *
@@ -199,6 +223,27 @@ class Webda extends events.EventEmitter {
           try {
             // TODO Define parralel initialization
             this.log("TRACE", "Initializing service", service);
+            // Init route for Beans
+            if (beans[service] !== undefined && beans[service].routes) {
+              console.log("Adding route for bean", service);
+              for (let j in beans[service].routes) {
+                let route = beans[service].routes[j];
+                this.addRoute(j, {
+                  method: route.methods, // HTTP methods
+                  _method: this._config._services[service][route.executor], // Link to service method
+                  allowPath: route.allowPath || false, // Allow / in parser
+                  swagger: route.swagger,
+                  executor: beans[service].constructor.name // Name of the service
+                });
+                console.log(j, {
+                  method: route.methods, // HTTP methods
+                  _method: this._config._services[service][route.executor], // Link to service method
+                  allowPath: route.allowPath || false, // Allow / in parser
+                  swagger: route.swagger,
+                  executor: beans[service].constructor.name // Name of the service
+                });
+              }
+            }
             await this._config._services[service].init();
           } catch (err) {
             this._config._services[service]._initException = err;
@@ -813,13 +858,27 @@ class Webda extends events.EventEmitter {
    * @hidden
    *
    */
-  protected createServices(excludes: string[] = []): Promise<void> {
+  protected createServices(excludes: string[] = []): void {
     var services = this._config.services;
     if (this._config._services === undefined) {
       this._config._services = {};
     }
     if (services === undefined) {
-      return;
+      services = {};
+    }
+
+    for (let i in beans) {
+      if (!beans[i].bean) {
+        this.log("INFO", "Implicit @Bean due to a @Route");
+      }
+      let name = beans[i].constructor.name;
+      if (!services[name]) {
+        services[name] = {};
+      }
+      // Force type to Bean
+      services[name].type = `Beans/${name}`;
+      // Register the type
+      this._services[`Beans/${name}`] = beans[i].constructor;
     }
 
     let service;

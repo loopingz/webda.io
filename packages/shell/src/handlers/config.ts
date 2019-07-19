@@ -7,7 +7,7 @@ import {
   Store,
   CoreModel,
   Context,
-  CorsFilter
+  RequestFilter
 } from "webda";
 import { LambdaDeployer } from "../deployers/lambda";
 import { DockerDeployer } from "../deployers/docker";
@@ -24,14 +24,14 @@ import * as mkdirp from "mkdirp";
 import * as deepmerge from "deepmerge";
 import { Deployer } from "../deployers/deployer";
 
-export class ConfigurationService extends Executor implements CorsFilter {
+export class ConfigurationService extends Executor implements RequestFilter {
   _config: any;
   _computeConfig: any;
   _deployments: any;
   _deploymentStore: Store<CoreModel>;
   _webda: WebdaConfigurationServer;
 
-  async checkCSRF(context: Context): Promise<boolean> {
+  async checkRequest(context: Context): Promise<boolean> {
     if (context.getHttpContext().getHost() === "localhost") {
       return true;
     }
@@ -82,7 +82,7 @@ export class ConfigurationService extends Executor implements CorsFilter {
     this._deploymentStore = <Store<CoreModel>>(
       this._webda.getService("deployments")
     );
-    this._webda.registerCorsFilter(this);
+    this._webda.registerRequestFilter(this);
   }
 
   refresh() {

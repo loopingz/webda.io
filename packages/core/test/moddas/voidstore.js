@@ -14,7 +14,7 @@ class VoidStore extends Webda.Store {
     this._addRoute("/broken/{type}", "GET", this._brokenRoute);
   }
 
-  checkCSRF(context, origin, website) {
+  checkRequest(context) {
     if (
       context.getHttpContext().uri === "/bouzouf/route" &&
       context.getHttpContext().host === "csrf.com"

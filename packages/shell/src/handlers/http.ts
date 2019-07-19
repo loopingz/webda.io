@@ -69,7 +69,7 @@ export class WebdaServer extends Webda {
       );
       let ctx = await this.newContext(httpContext, res, true);
       ctx.clientInfo = this.getClientInfo(req);
-      
+
       var executor = this.getExecutorWithContext(ctx);
       if (executor == null) {
         let routes = this.getRouteMethodsFromUrl(req.url);
@@ -89,7 +89,7 @@ export class WebdaServer extends Webda {
         req.headers.Origin || req.headers.origin || req.headers.Referer;
       // Set predefined headers for CORS
       if (origin) {
-        if (this._devMode || (await this.checkCSRF(ctx))) {
+        if (this._devMode || (await this.checkRequest(ctx))) {
           res.setHeader("Access-Control-Allow-Origin", origin);
         } else {
           // Prevent CSRF

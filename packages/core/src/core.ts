@@ -41,7 +41,7 @@ interface Configuration {
 }
 
 export interface RequestFilter {
-  checkCSRF(context: Context): Promise<boolean>;
+  checkRequest(context: Context): Promise<boolean>;
 }
 
 let beans = {};
@@ -145,7 +145,7 @@ class Webda extends events.EventEmitter {
   /**
    * CORS Filter registry
    *
-   * Added via [[Webda.registerCorsFilter]]
+   * Added via [[Webda.registerRequestFilter]]
    * See [[CorsFilter]]
    */
   protected _requestFilters: RequestFilter[] = [];
@@ -261,10 +261,6 @@ class Webda extends events.EventEmitter {
       resolve();
     });
     return this._init;
-  }
-
-  registerCorsFilter(filter: any) {
-    this._requestFilters.push(<RequestFilter>filter);
   }
 
   registerRequestFilter(filter: any) {
@@ -1181,7 +1177,7 @@ class Webda extends events.EventEmitter {
    *
    * @param context Context of the request
    */
-  protected async checkCSRF(ctx: Context): Promise<boolean> {
+  protected async checkRequest(ctx: Context): Promise<boolean> {
     let httpContext = ctx.getHttpContext();
     let website = this.getGlobalParams().website || "";
 
@@ -1193,7 +1189,7 @@ class Webda extends events.EventEmitter {
       }
     }
     for (let i in this._requestFilters) {
-      if (await this._requestFilters[i].checkCSRF(ctx)) {
+      if (await this._requestFilters[i].checkRequest(ctx)) {
         return true;
       }
     }

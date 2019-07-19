@@ -152,7 +152,7 @@ describe("Webda", function() {
       assert.notEqual(null, webda.getService("Authentication"));
     });
   });
-  describe("checkCSRF()", function() {
+  describe("checkRequest()", function() {
     it("csrfRegExp", async function() {
       webda._config.parameters.website = "http://localhost:18181";
       ctx.setHttpContext(
@@ -165,7 +165,7 @@ describe("Webda", function() {
           {}
         )
       );
-      assert.equal(await webda.checkCSRF(ctx), true);
+      assert.equal(await webda.checkRequest(ctx), true);
       ctx.setHttpContext(
         new Webda.HttpContext(
           "accounts.google.com",
@@ -176,7 +176,7 @@ describe("Webda", function() {
           {}
         )
       );
-      assert.equal(await webda.checkCSRF(ctx), true);
+      assert.equal(await webda.checkRequest(ctx), true);
       ctx.setHttpContext(
         new Webda.HttpContext(
           "accounts.google.fr.loopingz.com",
@@ -187,11 +187,11 @@ describe("Webda", function() {
           {}
         )
       );
-      assert.equal(await webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkRequest(ctx), false);
       ctx.setHttpContext(
         new Webda.HttpContext("www.facebook.com", "GET", "/", "https", 443, {})
       );
-      assert.equal(await webda.checkCSRF(ctx), true);
+      assert.equal(await webda.checkRequest(ctx), true);
       ctx.setHttpContext(
         new Webda.HttpContext(
           "www.facebook.com.eu",
@@ -202,7 +202,7 @@ describe("Webda", function() {
           {}
         )
       );
-      assert.equal(await webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkRequest(ctx), false);
     });
     it("string", async function() {
       webda._config.parameters.website = "http://localhost:18181";
@@ -211,25 +211,25 @@ describe("Webda", function() {
       ctx.setHttpContext(
         new Webda.HttpContext("localhost:18181", "GET", "/", "http", 80, {})
       );
-      assert.equal(await webda.checkCSRF(ctx), true);
+      assert.equal(await webda.checkRequest(ctx), true);
 
       // Bad protocol
       ctx.setHttpContext(
         new Webda.HttpContext("localhost:18181", "GET", "/", "https", 443, {})
       );
-      assert.equal(await webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkRequest(ctx), false);
 
       // Bad port
       ctx.setHttpContext(
         new Webda.HttpContext("localhost:18181", "GET", "/", "http", 18182, {})
       );
-      assert.equal(await webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkRequest(ctx), false);
 
       // Bad host
       ctx.setHttpContext(
         new Webda.HttpContext("localhost2:18181", "GET", "/", "http", 18181, {})
       );
-      assert.equal(await webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkRequest(ctx), false);
     });
     it("array", async function() {
       webda._config.parameters.website = [
@@ -239,7 +239,7 @@ describe("Webda", function() {
       ctx.setHttpContext(
         new Webda.HttpContext("localhost", "GET", "/", "http", 18181, {})
       );
-      assert.equal(await webda.checkCSRF(ctx), true);
+      assert.equal(await webda.checkRequest(ctx), true);
 
       // Just host headers
       webda._config.parameters.website = [
@@ -251,25 +251,25 @@ describe("Webda", function() {
       ctx.setHttpContext(
         new Webda.HttpContext("localhost", "GET", "/", "http", 18181, {})
       );
-      assert.equal(await webda.checkCSRF(ctx), true);
+      assert.equal(await webda.checkRequest(ctx), true);
 
       // Second host
       ctx.setHttpContext(
         new Webda.HttpContext("localhost2", "GET", "/", "http", 18181, {})
       );
-      assert.equal(await webda.checkCSRF(ctx), true);
+      assert.equal(await webda.checkRequest(ctx), true);
 
       // Bad port
       ctx.setHttpContext(
         new Webda.HttpContext("localhost", "GET", "/", "http", 18182, {})
       );
-      assert.equal(await webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkRequest(ctx), false);
 
       // Bad host
       ctx.setHttpContext(
         new Webda.HttpContext("localhost3", "GET", "/", "http", 18181, {})
       );
-      assert.equal(await webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkRequest(ctx), false);
     });
     it("object", async function() {
       // Use object
@@ -280,19 +280,19 @@ describe("Webda", function() {
       ctx.setHttpContext(
         new Webda.HttpContext("localhost", "GET", "/", "http", 18181, {})
       );
-      assert.equal(await webda.checkCSRF(ctx), true);
+      assert.equal(await webda.checkRequest(ctx), true);
 
       // Bad host
       ctx.setHttpContext(
         new Webda.HttpContext("localhost2", "GET", "/", "http", 18181, {})
       );
-      assert.equal(await webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkRequest(ctx), false);
 
       // Bad port
       ctx.setHttpContext(
         new Webda.HttpContext("localhost", "GET", "/", "http", 18182, {})
       );
-      assert.equal(await webda.checkCSRF(ctx), false);
+      assert.equal(await webda.checkRequest(ctx), false);
     });
     it("CSRF conditional filter", async function() {
       ctx.setHttpContext(
@@ -306,7 +306,7 @@ describe("Webda", function() {
         )
       );
       assert.equal(
-        await webda.checkCSRF(ctx, "http://localhost:18182", {
+        await webda.checkRequest(ctx, "http://localhost:18182", {
           url: "localhost:18181"
         }),
         true
@@ -322,7 +322,7 @@ describe("Webda", function() {
         )
       );
       assert.equal(
-        await webda.checkCSRF(ctx, "http://localhost:18182", {
+        await webda.checkRequest(ctx, "http://localhost:18182", {
           url: "localhost:18181"
         }),
         false
@@ -338,7 +338,7 @@ describe("Webda", function() {
         )
       );
       assert.equal(
-        await webda.checkCSRF(ctx, "http://localhost:18182", {
+        await webda.checkRequest(ctx, "http://localhost:18182", {
           url: "localhost:18181"
         }),
         false

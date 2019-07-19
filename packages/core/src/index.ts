@@ -49,7 +49,6 @@ export {
   Webda as Core,
   _extend,
   RequestFilter,
-  RequestFilter as CorsFilter,
   // Services
   Service,
   Executor,

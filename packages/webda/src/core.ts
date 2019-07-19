@@ -49,15 +49,26 @@ let beans = {};
 // @Bean to declare as a Singleton service
 export function Bean(constructor: Function) {
   let name = constructor.name.toLowerCase();
-  beans[name] = beans[name] || {constructor};
-  beans[name] = {...beans[name], bean: true };
+  beans[name] = beans[name] || { constructor };
+  beans[name] = { ...beans[name], bean: true };
 }
 
 // @Route to declare route on service
-export function Route(route: string, methods: string | string[] = ["GET"], allowPath: boolean = false, swagger: any = {}) {
-  return function (target: any, executor: string, descriptor: PropertyDescriptor) {
+export function Route(
+  route: string,
+  methods: string | string[] = ["GET"],
+  allowPath: boolean = false,
+  swagger: any = {}
+) {
+  return function(
+    target: any,
+    executor: string,
+    descriptor: PropertyDescriptor
+  ) {
     let targetName = target.constructor.name.toLowerCase();
-    beans[targetName] = beans[targetName] || {constructor: target.constructor};
+    beans[targetName] = beans[targetName] || {
+      constructor: target.constructor
+    };
     beans[targetName].routes = beans[targetName].routes || {};
     beans[targetName].routes[route] = {
       methods,
@@ -225,17 +236,10 @@ class Webda extends events.EventEmitter {
             this.log("TRACE", "Initializing service", service);
             // Init route for Beans
             if (beans[service] !== undefined && beans[service].routes) {
-              console.log("Adding route for bean", service);
               for (let j in beans[service].routes) {
+                this.log("TRACE", "Adding route", j, "for bean", service);
                 let route = beans[service].routes[j];
                 this.addRoute(j, {
-                  method: route.methods, // HTTP methods
-                  _method: this._config._services[service][route.executor], // Link to service method
-                  allowPath: route.allowPath || false, // Allow / in parser
-                  swagger: route.swagger,
-                  executor: beans[service].constructor.name // Name of the service
-                });
-                console.log(j, {
                   method: route.methods, // HTTP methods
                   _method: this._config._services[service][route.executor], // Link to service method
                   allowPath: route.allowPath || false, // Allow / in parser

@@ -1,4 +1,4 @@
-import { Webda, _extend, CorsFilter, Bean, Route } from "./core";
+import { Webda, _extend, RequestFilter, Bean, Route } from "./core";
 import { Service } from "./services/service";
 import { Executor } from "./services/executor";
 // Policies
@@ -48,7 +48,8 @@ export {
   // Core
   Webda as Core,
   _extend,
-  CorsFilter,
+  RequestFilter,
+  RequestFilter as CorsFilter,
   // Services
   Service,
   Executor,

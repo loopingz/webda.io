@@ -40,7 +40,7 @@ interface Configuration {
   [key: string]: any;
 }
 
-export interface CorsFilter {
+export interface RequestFilter {
   checkCSRF(context: Context): Promise<boolean>;
 }
 
@@ -148,7 +148,7 @@ class Webda extends events.EventEmitter {
    * Added via [[Webda.registerCorsFilter]]
    * See [[CorsFilter]]
    */
-  protected _corsFilters: CorsFilter[] = [];
+  protected _requestFilters: RequestFilter[] = [];
 
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
@@ -263,8 +263,12 @@ class Webda extends events.EventEmitter {
     return this._init;
   }
 
-  registerCorsFilter(filter: CorsFilter) {
-    this._corsFilters.push(filter);
+  registerCorsFilter(filter: any) {
+    this._requestFilters.push(<RequestFilter>filter);
+  }
+
+  registerRequestFilter(filter: any) {
+    this._requestFilters.push(<RequestFilter>filter);
   }
 
   /**
@@ -1188,8 +1192,8 @@ class Webda extends events.EventEmitter {
         website = [website];
       }
     }
-    for (let i in this._corsFilters) {
-      if (await this._corsFilters[i].checkCSRF(ctx)) {
+    for (let i in this._requestFilters) {
+      if (await this._requestFilters[i].checkCSRF(ctx)) {
         return true;
       }
     }

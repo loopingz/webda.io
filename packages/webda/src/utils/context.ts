@@ -9,10 +9,11 @@ import {
   User,
   Service
 } from "../index";
+import * as http from "http";
 import * as acceptLanguage from "accept-language";
 import { parse as cookieParse } from "cookie";
 import { EventEmitter } from "events";
-
+import * as sanitizeHtml from "sanitize-html";
 class ClientInfo extends Map<string, any> {
   ip: string;
   userAgent: string;
@@ -129,6 +130,7 @@ class Context extends EventEmitter {
   _promises: Promise<any>[];
   _executor: Executor;
   _flushHeaders: boolean;
+  _sanitized: any;
   private body: any;
   private _params: any = undefined;
   private _pathParams: any;
@@ -140,7 +142,7 @@ class Context extends EventEmitter {
    * @private
    * Used in case of Buffer response ( like Lambda )
    */
-  protected _write(chunk, enc, next) {
+  public _write(chunk, enc, next) {
     if (this._body === undefined) {
       this._body = [];
     }
@@ -155,6 +157,11 @@ class Context extends EventEmitter {
    */
   public setHttpContext(httpContext: HttpContext) {
     this._http = httpContext;
+    this.reinit();
+  }
+
+  public reinit() {
+    this._sanitized = undefined;
   }
 
   /**
@@ -220,7 +227,8 @@ class Context extends EventEmitter {
    * @param output If it is an object it will be serializeb with toPublicJSON, if it is a String it will be appended to the result, if it is a buffer it will replace the result
    * @param ...args any arguments to pass to the toPublicJSON method
    */
-  public write(output) {
+   // @ts-ignore
+  public write(output: any, encoding?: string, cb?: (error: Error) => void): boolean {
     if (typeof output === "object" && !(output instanceof Buffer)) {
       this._outputHeaders["Content-type"] = "application/json";
       // @ts-ignore
@@ -231,13 +239,13 @@ class Context extends EventEmitter {
         // @ts-ignore
         global.WebdaContext = undefined;
       }
-      return;
+      return true;
     } else if (typeof output == "string") {
       if (this._body == undefined) {
         this._body = "";
       }
       this._body += output;
-      return;
+      return true;
     } else {
       this._body = output;
     }
@@ -324,15 +332,56 @@ class Context extends EventEmitter {
       this._webda.flushHeaders(this);
     }
     this._webda.flush(this);
+    this.emit("close");
     return this._ended;
   }
 
-  getRequestBody() {
-    return this.getHttpContext().getBody();
+  getRequestBody(sanitizedOptions: any = {
+    allowedTags: [],
+    allowedAttributes: {}
+  }) {
+    if (this._sanitized) {
+      return this._sanitized;
+    }
+    let recursiveSanitize = (obj, options = undefined) => {
+      if (typeof obj === "string") {
+        return sanitizeHtml(obj, options);
+      }
+      if (typeof obj === "object") {
+        Object.keys(obj).forEach( (key) => {
+          obj[key] = recursiveSanitize(obj[key], options);
+        });
+      }
+      return obj;
+    }
+    this._sanitized = recursiveSanitize(this.getHttpContext().getBody(), sanitizedOptions);
+    return this._sanitized;
   }
 
   getResponseBody() {
     return this._body;
+  }
+
+  getRequest(): http.IncomingMessage {
+    const s = require("stream");
+    var stream = new s.Readable();
+    stream.push(JSON.stringify(this.getRequestBody()));
+    return <http.IncomingMessage>{
+      httpVersionMajor: 1,
+      httpVersionMinor: 0,
+      headers: this.headers,
+      httpVersion: "1.0",
+      method: this.getHttpContext().getMethod(),
+      rawHeaders: [], // TODO Regenerate headers based on the map
+      rawTrailers: [],
+      setTimeout: (msec, callback) => {},
+      socket: undefined,
+      statusCode: 200,
+      trailers: {},
+      url: this.getHttpContext().getUrl(),
+      connection: undefined,
+      ...stream
+    };
   }
 
   /**
@@ -471,6 +520,10 @@ class Context extends EventEmitter {
       this._webda.flushHeaders(this);
     });
     await this.session.init();
+  }
+
+  emitError(err) {
+    this.emit("error", err);
   }
 }
 

@@ -288,6 +288,7 @@ class AuthenticationTest extends WebdaTest {
       login: "test2@webda.io",
       password: "testtest"
     });
+    ctx.reinit();
     ctx.newSession();
     await executor.execute(ctx);
     assert.equal(this.events, 1); // Login
@@ -299,6 +300,7 @@ class AuthenticationTest extends WebdaTest {
       login: "test2@webda.io",
       password: "bouzouf"
     });
+    ctx.reinit();
     ctx.newSession();
     await this.assertThrowsAsync(
       executor.execute.bind(executor, ctx),
@@ -355,6 +357,7 @@ class AuthenticationTest extends WebdaTest {
       password: "retesttest",
       login: userId
     });
+    ctx.reinit();
     await this.assertThrowsAsync(
       executor.execute.bind(executor, ctx),
       res => res == 410
@@ -364,6 +367,7 @@ class AuthenticationTest extends WebdaTest {
     ctx
       .getHttpContext()
       .setBody({ ...tokenInfo, login: userId, password: "retesttest" });
+    ctx.reinit();
     await executor.execute(ctx);
     // Should be update with password retest now
     ctx.newSession();

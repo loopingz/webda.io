@@ -40,6 +40,7 @@
     "passport-google-oauth": "^2.0.0",
     "passport-oauth": "^1.0.0",
     "passport-twitter": ">=1.0.3",
+    "sanitize-html": "^1.20.1",
     "uri-templates": ">=0.2.0",
     "uuid": "^3.0.0"
   },

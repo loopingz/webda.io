@@ -1,5 +1,5 @@
 {
-  "name": "webda-aws",
+  "name": "@webda/aws",
   "version": "0.11.1",
   "description": "Webda AWS Services implementation",
   "main": "lib/index.js",

@@ -1,7 +1,7 @@
 "use strict";
 import { WebdaConfigurationServer } from "../handlers/config";
 import { WebdaServer } from "../handlers/http";
-import { ConsoleLogger } from "webda";
+import { ConsoleLogger } from "@webda/core";
 import * as colors from "colors";
 import { Transform, Writable } from "stream";
 import * as fs from "fs";

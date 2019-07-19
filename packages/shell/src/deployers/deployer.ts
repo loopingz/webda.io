@@ -1,4 +1,4 @@
-import { _extend } from "webda";
+import { _extend } from "@webda/core";
 import { WebdaConfigurationServer } from "../handlers/config";
 
 export class Deployer {

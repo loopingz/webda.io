@@ -1,6 +1,6 @@
 "use strict";
 // Load the AWS SDK for Node.js
-import { Binary, _extend, Context } from "webda";
+import { Binary, _extend, Context } from "@webda/core";
 import { AWSMixIn } from "./aws-mixin";
 
 /**

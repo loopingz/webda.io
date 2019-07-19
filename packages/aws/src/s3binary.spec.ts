@@ -1,4 +1,4 @@
-import { BinaryTest } from "webda/lib/services/binary.spec";
+import { BinaryTest } from "@webda/core/lib/services/binary.spec";
 import { test, suite } from "mocha-typescript";
 import * as assert from "assert";
 import { S3Binary } from "./s3binary";

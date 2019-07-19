@@ -6,7 +6,7 @@ import {
   Service,
   Context,
   HttpContext
-} from "webda";
+} from "@webda/core";
 import { Constructor, GetAWS } from "./aws-mixin";
 import { parse as cookieParse, serialize as cookieSerialize } from "cookie";
 

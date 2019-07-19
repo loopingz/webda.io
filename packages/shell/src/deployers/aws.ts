@@ -1,5 +1,5 @@
-import { Service, Core as Webda } from "webda";
-import { AWSMixIn } from "webda-aws";
+import { Service, Core as Webda } from "@webda/core";
+import { AWSMixIn } from "@webda/aws";
 import { Deployer } from "./deployer";
 import { ACM, Route53, S3 } from "aws-sdk";
 import * as AWS from "aws-sdk";

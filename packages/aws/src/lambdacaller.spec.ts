@@ -1,4 +1,4 @@
-import { WebdaTest } from "webda/lib/test";
+import { WebdaTest } from "@webda/core/lib/test";
 import { test, suite } from "mocha-typescript";
 import * as assert from "assert";
 import { LambdaCaller } from "./lambdacaller";

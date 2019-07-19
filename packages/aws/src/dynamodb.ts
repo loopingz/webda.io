@@ -1,4 +1,4 @@
-import { Store, CoreModel } from "webda";
+import { Store, CoreModel } from "@webda/core";
 import { GetAWS } from "./aws-mixin";
 
 /**

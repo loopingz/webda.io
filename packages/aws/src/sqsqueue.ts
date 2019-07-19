@@ -1,5 +1,5 @@
 "use strict";
-import { Queue } from "webda";
+import { Queue } from "@webda/core";
 import { AWSMixIn } from "./aws-mixin";
 
 // TODO Readd AWS Mixin

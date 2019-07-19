@@ -1,4 +1,4 @@
-import { Service } from "webda";
+import { Service } from "@webda/core";
 const AWS = require("aws-sdk");
 
 type Constructor<T extends Service> = new (...args: any[]) => T;

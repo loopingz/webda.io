@@ -1,4 +1,4 @@
-import { Logger } from "webda";
+import { Logger } from "@webda/core";
 import * as uuid from "uuid";
 import { AWSMixIn } from "./aws-mixin";
 

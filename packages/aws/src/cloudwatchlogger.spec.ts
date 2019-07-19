@@ -1,4 +1,4 @@
-import { WebdaTest } from "webda/lib/test";
+import { WebdaTest } from "@webda/core/lib/test";
 import { GetAWS } from "./index";
 import * as assert from "assert";
 import { CloudWatchLogger } from "./cloudwatchlogger";

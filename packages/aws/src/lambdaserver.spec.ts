@@ -1,8 +1,8 @@
-import { WebdaTest } from "webda/lib/test";
+import { WebdaTest } from "@webda/core/lib/test";
 import { test, suite } from "mocha-typescript";
 import * as assert from "assert";
 import { LambdaServer } from "./lambdaserver";
-import { Executor, Service } from "webda";
+import { Executor, Service } from "@webda/core";
 
 class ExceptionExecutor extends Executor {
   initRoutes() {

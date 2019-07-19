@@ -38,9 +38,15 @@
   "dependencies": {
     "@webda/aws": "file:packages/aws",
     "@webda/core": "file:packages/core",
-    "@webda/shell": "file:packages/shell"
+    "@webda/shell": "file:packages/shell",
+    "@webda/elasticsearch": "file:packages/elasticsearch"
   },
   "scripts": {
     "version": "lerna version --conventional-commits"
+  },
+  "command": {
+    "publish": {
+      "conventionalCommits": true
+    }
   }
 }

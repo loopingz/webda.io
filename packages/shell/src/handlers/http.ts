@@ -1,11 +1,4 @@
-import {
-  Core as Webda,
-  SecureCookie,
-  ClientInfo,
-  MemoryLogger,
-  _extend,
-  HttpContext
-} from "webda";
+import { Core as Webda, ClientInfo, _extend, HttpContext } from "@webda/core";
 const path = require("path");
 
 export class WebdaServer extends Webda {

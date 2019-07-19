@@ -1,4 +1,4 @@
-import { WebdaTest } from "webda/lib/test";
+import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import { AwsSecretsManager } from "./secretsmanager";
 import { test, suite, timeout } from "mocha-typescript";

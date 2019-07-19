@@ -1,45 +1,50 @@
-import {
-  Executor, Store, CoreModel
-} from 'webda';
-import * as elasticsearch from 'elasticsearch';
-
+import { Executor, Store, CoreModel } from "@webda/core";
+import * as elasticsearch from "elasticsearch";
 
 export default class ElasticSearchService extends Executor {
   _client: elasticsearch.Client;
   _asyncCount: number = 0;
-  _refreshMode: string = 'false';
+  _refreshMode: string = "false";
 
   resolve() {
     super.resolve();
     this._client = new elasticsearch.Client({
       host: this._params.server
     });
-    this.log('INFO', 'Indexes', this._params.indexes);
+    this.log("INFO", "Indexes", this._params.indexes);
     this._params.indexes = this._params.indexes || {};
     for (let i in this._params.indexes) {
       let index = this._params.indexes[i];
       index.name = i;
-      let store = index._store = <Store<CoreModel>> this.getService(index.store);
+      let store = (index._store = <Store<CoreModel>>(
+        this.getService(index.store)
+      ));
       if (!store) {
-        this.log('ERROR', 'Cannot initiate index', index.index,': missing store', index.store);
+        this.log(
+          "ERROR",
+          "Cannot initiate index",
+          index.index,
+          ": missing store",
+          index.store
+        );
         return;
       }
       if (index.url) {
-        this._addRoute(index.url, ['POST'], this._httpSearch)
+        this._addRoute(index.url, ["POST"], this._httpSearch);
       }
-      this.log('INFO', 'Setup the Store listeners');
+      this.log("INFO", "Setup the Store listeners");
       // Plug on every modification on the store to update the index accordingly
-      store.on('Store.PartialUpdate', (evt) => {
-        console.log('Store.PartialUpdate', evt);
+      store.on("Store.PartialUpdate", evt => {
+        console.log("Store.PartialUpdate", evt);
         this._update(index.name, evt.object);
       });
-      store.on('Store.Updated', (evt) => {
+      store.on("Store.Updated", evt => {
         this._update(index.name, evt.object);
       });
-      store.on('Store.Saved', async (evt) => {
+      store.on("Store.Saved", async evt => {
         this._create(index.name, evt.object);
       });
-      store.on('Store.Deleted', (evt) => {
+      store.on("Store.Deleted", evt => {
         this._delete(index.name, evt.object);
       });
     }
@@ -91,19 +96,17 @@ export default class ElasticSearchService extends Executor {
     }
   }
 
-  _httpSearch(ctx) {
-
-  }
+  _httpSearch(ctx) {}
 
   async search(index: string, query: any, from: number = 0) {
     if (!this._params.indexes[index]) {
-      throw new Error('Unknown index');
+      throw new Error("Unknown index");
     }
-    let q : any = {};
-    if (typeof(query) === 'string') {
-      q = {q: query, index: index};
+    let q: any = {};
+    if (typeof query === "string") {
+      q = { q: query, index: index };
     } else {
-      q = {index: index, body: query};
+      q = { index: index, body: query };
     }
     q.from = from;
     let result = await this._client.search(q);
@@ -118,7 +121,7 @@ export default class ElasticSearchService extends Executor {
 
   async exists(index: string, uuid: string) {
     if (!this._params.indexes[index]) {
-      throw new Error('Unknown index');
+      throw new Error("Unknown index");
     }
     return await this._client.exists({
       index: index,
@@ -132,13 +135,13 @@ export default class ElasticSearchService extends Executor {
       return (await this._client.count()).count;
     }
     if (!this._params.indexes[index]) {
-      throw new Error('Unknown index');
+      throw new Error("Unknown index");
     }
-    return (await this._client.count({index: index})).count;
+    return (await this._client.count({ index: index })).count;
   }
 
   async _wait() {
-    return new Promise( (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       setTimeout(() => {
         resolve(this._asyncCount === 0);
       }, 100);
@@ -146,7 +149,7 @@ export default class ElasticSearchService extends Executor {
   }
 
   async wait(timeout: number = 10000) {
-    return new Promise( async (resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       for (let i = 0; i < timeout; i += 100) {
         let res = await this._wait();
         if (res) {
@@ -157,7 +160,7 @@ export default class ElasticSearchService extends Executor {
     });
   }
 
-  setRefreshMode(mode: string) : void {
+  setRefreshMode(mode: string): void {
     this._refreshMode = mode;
   }
 
@@ -165,7 +168,9 @@ export default class ElasticSearchService extends Executor {
     for (let i in this._params.indexes) {
       let index = this._params.indexes[i];
       index.name = i;
-      let store = index._store = <Store<CoreModel>> this.getService(index.store);
+      let store = (index._store = <Store<CoreModel>>(
+        this.getService(index.store)
+      ));
       if (!store) {
         continue;
       }
@@ -173,7 +178,7 @@ export default class ElasticSearchService extends Executor {
       await this._client.deleteByQuery({
         index: index.name,
         refresh: this._refreshMode,
-        q: '*'
+        q: "*"
       });
       this._asyncCount--;
     }
@@ -181,31 +186,32 @@ export default class ElasticSearchService extends Executor {
 
   static getModda() {
     return {
-      "uuid": "Webda/ElasticSearchService",
-      "label": "ElasticSearchService",
-      "description": "Index a Store allowing you to query it through ES",
-      "webcomponents": [],
-      "logo": "images/icons/.png",
-      "documentation": "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
-      "configuration": {
-        "default": {
-          "table": "table-name",
+      uuid: "Webda/ElasticSearchService",
+      label: "ElasticSearchService",
+      description: "Index a Store allowing you to query it through ES",
+      webcomponents: [],
+      logo: "images/icons/.png",
+      documentation:
+        "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
+      configuration: {
+        default: {
+          table: "table-name"
         },
-        "widget": {
-          "tag": "myservice-configurator",
-          "url": "elements/services/webda-dynamodb-configurator.html"
+        widget: {
+          tag: "myservice-configurator",
+          url: "elements/services/webda-dynamodb-configurator.html"
         },
-        "schema": {
+        schema: {
           type: "object",
           properties: {
-            "someprop": {
+            someprop: {
               type: "string"
             }
           },
           required: ["someprop"]
         }
       }
-    }
+    };
   }
 }
 

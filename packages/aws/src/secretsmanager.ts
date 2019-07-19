@@ -1,4 +1,4 @@
-import { Service, ConfigurationProvider } from "webda";
+import { Service, ConfigurationProvider } from "@webda/core";
 import { AWSMixIn } from "./aws-mixin";
 
 export default class AWSSecretsManager extends AWSMixIn(Service)

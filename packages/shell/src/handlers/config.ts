@@ -8,7 +8,7 @@ import {
   CoreModel,
   Context,
   RequestFilter
-} from "webda";
+} from "@webda/core";
 import { LambdaDeployer } from "../deployers/lambda";
 import { DockerDeployer } from "../deployers/docker";
 import { S3Deployer } from "../deployers/s3";

@@ -32,8 +32,8 @@
     "node": ">=6.10.0"
   },
   "dependencies": {
-    "@webda/core": "^1.0.0",
-    "@webda/aws": "^1.0.0",
+    "@webda/core": "file:../core",
+    "@webda/aws": "file:../aws",
     "archiver": "^1.0.0",
     "aws-sdk": "^2.223.1",
     "body-parser": ">=1.13.3",

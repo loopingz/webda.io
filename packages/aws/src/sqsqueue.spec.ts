@@ -1,4 +1,4 @@
-import { QueueTest } from "webda/lib/queues/queue.spec";
+import { QueueTest } from "@webda/core/lib/queues/queue.spec";
 import * as assert from "assert";
 import { SQSQueue } from "./sqsqueue";
 import { test, suite, timeout } from "mocha-typescript";

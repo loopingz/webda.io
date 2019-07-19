@@ -273,7 +273,7 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> {
     if (writeCondition) {
       params.WriteCondition = this._getWriteCondition(writeCondition);
     }
-    let result = await this._client.put(params).promise();
+    await this._client.put(params).promise();
     return object;
   }
 

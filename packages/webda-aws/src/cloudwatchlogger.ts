@@ -28,7 +28,7 @@ export default class CloudWatchLogger extends AWSMixIn(FakeLogger) {
       })
       .promise();
     if (!res.logGroups.length) {
-      res = await this._cloudwatch
+      await this._cloudwatch
         .createLogGroup({
           logGroupName: this._logGroupName,
           kmsKeyId: this._params.kmsKeyId,

@@ -43,6 +43,7 @@ interface Configuration {
 export interface CorsFilter {
   checkCSRF(context: Context): Promise<boolean>;
 }
+
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
  *
@@ -1059,6 +1060,7 @@ class Webda extends events.EventEmitter {
     if (!noInit) {
       await res.init();
     }
+    this.emit("Webda.NewContext", res);
     return res;
   }
 

@@ -53,10 +53,6 @@ export class WebdaServer extends Webda {
 
       let method = req.method;
 
-      // TODO Remove it in Webda 1.x -> this is for compatibility reason
-      if (method === "PUT" && req.headers["x-webda-method"] !== "PUT") {
-        method = "PATCH";
-      }
       let httpContext = new HttpContext(
         vhost,
         method,

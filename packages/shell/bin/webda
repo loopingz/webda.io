@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 "use strict";
-var fs = require('fs');
-const colors = require('colors'); // Used for console output: DO NOT REMOVE
-const path = require('path');
-
+var fs = require("fs");
+const colors = require("colors"); // Used for console output: DO NOT REMOVE
+const path = require("path");
+var Module = require("module");
+const semver = require("semver");
 
 /**
  * Get Version of a package (version attribute of package.json)
@@ -11,7 +12,7 @@ const path = require('path');
  * @param packageName to retrieve version from
  */
 function getVersion(packageName) {
-  return require(packageName + '/package.json').version;
+  return require(packageName + "/package.json").version;
 }
 
 /**
@@ -22,36 +23,55 @@ function getVersion(packageName) {
  *  - local folder
  *  - embedded library
  */
+let webdaVersion;
 if (fs.existsSync("node_modules/webda")) {
   // Local module of webda exists use it
-  global.__webda = process.cwd() + '/node_modules/webda';
-  console.log("Using local web" + "da".yellow + " - v" + getVersion(global.__webda));
+  global.__webda = process.cwd() + "/node_modules/webda";
+  console.log(
+    "Using local web" + "da".yellow + " - v" + getVersion(global.__webda)
+  );
+  webdaVersion = getVersion(global.__webda);
 } else if (fs.existsSync("core.js") && fs.existsSync("services/executor.js")) {
   console.log("Using local web" + "da".yellow + "development version");
   // We are in a webda development directory
   global.__webda = process.cwd();
+  webdaVersion = "dev";
 } else {
   // Use the webda-shell default webda
-  global.__webda = 'webda';
-  console.log("Using embedded web" + "da".yellow + " - v" + getVersion(global.__webda));
+  global.__webda = "webda";
+  console.log(
+    "Using embedded web" + "da".yellow + " - v" + getVersion(global.__webda)
+  );
+  webdaVersion = getVersion(global.__webda);
 }
+global.__webda = require(global.__webda);
 
 global.__webda_shell = __dirname + "/..";
-console.log('web' + "da".yellow + "-shell - v" + getVersion(__webda_shell));
+console.log("web" + "da".yellow + "-shell - v" + getVersion(__webda_shell));
+
+// Display warning for versions mismatch
+if (!semver.satisfies(webdaVersion, "^" + getVersion(__webda_shell))) {
+  console.log(
+    "Versions mismatch: @webda/core and @webda/shell are not within patch versions"
+      .yellow
+  );
+}
 
 /**
  * Add a Promise.each ( should add it to core.js )
  */
 if (!Promise.each) {
-  Promise.each = function(arr, fn) { // take an array and a function
+  Promise.each = function(arr, fn) {
+    // take an array and a function
     // invalid input
-    if(!Array.isArray(arr)) return Promise.reject(new Error("Non array passed to each"));
+    if (!Array.isArray(arr))
+      return Promise.reject(new Error("Non array passed to each"));
     // empty case
-    if(arr.length === 0) return Promise.resolve();
+    if (arr.length === 0) return Promise.resolve();
     return arr.reduce(function(prev, cur) {
-      return prev.then(() => fn(cur))
+      return prev.then(() => fn(cur));
     }, Promise.resolve());
-  }
+  };
 }
 
 /**
@@ -61,37 +81,48 @@ if (!Promise.each) {
 // Find first shell override
 var files = [];
 
-if (process.argv.indexOf('--no-override') < 0) {
-  const Finder = require('fs-finder');
-  if (fs.existsSync('./node_modules')) {
-    files = Finder.from('./node_modules').findFiles('webda.shell.json');
+if (process.argv.indexOf("--no-override") < 0) {
+  const Finder = require("fs-finder");
+  if (fs.existsSync("./node_modules")) {
+    files = Finder.from("./node_modules").findFiles("webda.shell.json");
   }
 }
+
+// Capture require() to use local webda if exists
+function intercept(__require) {
+  return function(moduleId) {
+    if (moduleId === "webda") {
+      return global.__webda;
+    }
+    return __require.apply(this, arguments);
+  };
+}
+Module.prototype.require = intercept(Module.prototype.require);
+
 var consoleService;
 if (files.length) {
   let cfg = require(files[0]);
   let dir = path.dirname(files[0]);
-  console.log(cfg.name + ' - v' + getVersion(dir).trim());
+  console.log(cfg.name + " - v" + getVersion(dir).trim());
   consoleService = require(path.join(dir, cfg.handler));
   if (consoleService.default) {
     consoleService = consoleService.default;
   }
 } else {
-  consoleService = require(global.__webda_shell + '/lib/console/webda').default;
+  consoleService = require(global.__webda_shell + "/lib/console/webda").default;
 }
 
 /**
  * Commandline parsing
  */
 let p = consoleService.handleCommand(process.argv.slice(2));
-if (p instanceof Promise || p && p.then) {
-  p.then( () => {
+if (p instanceof Promise || (p && p.then)) {
+  p.then(() => {
     process.exit(0);
-  }).catch( (err) => {
+  }).catch(err => {
     console.log(err);
     process.exit(1);
   });
 } else {
   process.exit(0);
 }
-

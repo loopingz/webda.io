@@ -5,7 +5,7 @@ const Webda = require("../../lib/index.js");
 class VoidStore extends Webda.Store {
   constructor(webda, name, params) {
     super(webda, name, params);
-    webda.registerCorsFilter(this);
+    webda.registerRequestFilter(this);
     if (this._params.brokenConstructor) throw Error();
   }
 

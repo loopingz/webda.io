@@ -1,7 +1,8 @@
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
-import { Store, Ident, DynamoStore } from "webda";
+import { Store, Ident } from "@webda/core";
 import { test, suite } from "mocha-typescript";
 import * as assert from "assert";
+import { DynamoStore } from "./dynamodb";
 
 @suite
 class DynamoDBTest extends StoreTest {

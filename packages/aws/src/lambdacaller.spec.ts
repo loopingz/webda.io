@@ -13,6 +13,7 @@ class LambdaCallerTest extends WebdaTest {
     new LambdaCaller("arn", {
       accessKeyId: "PLOP"
     });
+    // @ts-ignore
     await this.assertThrowsAsync(
       lamdaCaller.execute.bind(LambdaCaller, undefined, true)
     );

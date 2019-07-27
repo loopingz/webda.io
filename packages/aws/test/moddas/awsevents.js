@@ -1,5 +1,5 @@
 "use strict";
-const Webda = require("webda");
+const Webda = require("@webda/core");
 const AWSEventHandlerMixIn = require("../../lib/lambdaserver")
   .AWSEventHandlerMixIn;
 

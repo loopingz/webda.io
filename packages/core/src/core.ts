@@ -46,6 +46,8 @@ export interface RequestFilter {
 
 let beans = {};
 
+export function Model(constructor: Function) {}
+
 // @Bean to declare as a Singleton service
 export function Bean(constructor: Function) {
   let name = constructor.name.toLowerCase();
@@ -234,20 +236,7 @@ class Webda extends events.EventEmitter {
           try {
             // TODO Define parralel initialization
             this.log("TRACE", "Initializing service", service);
-            // Init route for Beans
-            if (beans[service] !== undefined && beans[service].routes) {
-              for (let j in beans[service].routes) {
-                this.log("TRACE", "Adding route", j, "for bean", service);
-                let route = beans[service].routes[j];
-                this.addRoute(j, {
-                  method: route.methods, // HTTP methods
-                  _method: this._config._services[service][route.executor], // Link to service method
-                  allowPath: route.allowPath || false, // Allow / in parser
-                  swagger: route.swagger,
-                  executor: beans[service].constructor.name // Name of the service
-                });
-              }
-            }
+            this.initBeanRoutes(this._config._services[service]);
             await this._config._services[service].init();
           } catch (err) {
             this._config._services[service]._initException = err;
@@ -256,7 +245,6 @@ class Webda extends events.EventEmitter {
           }
         }
       }
-
       this.emit("Webda.Init.Services", this._config._services);
       resolve();
     });
@@ -968,6 +956,7 @@ class Webda extends events.EventEmitter {
   protected autoConnectServices(): void {
     // TODO Leverage decorators instead of setter name
     for (let service in this._config._services) {
+      this.log("TRACE", "Auto-connect", service);
       let serviceBean = this._config._services[service];
       serviceBean.resolve();
       let setters = this._getSetters(serviceBean);
@@ -976,6 +965,12 @@ class Webda extends events.EventEmitter {
           setter.substr(3).toLowerCase()
         ];
         if (targetService) {
+          this.log(
+            "TRACE",
+            "Auto-connecting",
+            serviceBean._name,
+            targetService._name
+          );
           serviceBean[setter](targetService);
         }
       });
@@ -1050,6 +1045,30 @@ class Webda extends events.EventEmitter {
       }
     }
     this.emit("Webda.Init.Moddas");
+  }
+
+  /**
+   * Init Routes declare by @Route annotation
+   */
+  initBeanRoutes(serviceBean: Service) {
+    let service = serviceBean._name.toLowerCase();
+    if (beans[service] !== undefined && beans[service].routes) {
+      for (let j in beans[service].routes) {
+        this.log("TRACE", "Adding route", j, "for bean", service);
+        let route = beans[service].routes[j];
+        if (route.resolved) {
+          continue;
+        }
+        this.addRoute(j, {
+          method: route.methods, // HTTP methods
+          _method: this._config._services[service][route.executor], // Link to service method
+          allowPath: route.allowPath || false, // Allow / in parser
+          swagger: route.swagger,
+          executor: beans[service].constructor.name // Name of the service
+        });
+        route.resolved = true;
+      }
+    }
   }
 
   protected initModels(config): void {

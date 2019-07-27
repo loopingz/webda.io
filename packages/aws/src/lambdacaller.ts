@@ -4,7 +4,7 @@ class LambdaCaller {
   _arn: string;
   AWS: any;
 
-  constructor(arn, config: any = {}) {
+  constructor(arn = undefined, config: any = {}) {
     if (arn instanceof Object) {
       config = arn;
       arn = config.arn;

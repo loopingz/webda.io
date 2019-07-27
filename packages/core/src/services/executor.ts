@@ -69,6 +69,7 @@ class Executor extends Service {
   resolve() {
     super.resolve();
     this.initRoutes();
+    this._webda.initBeanRoutes(this);
   }
 }
 

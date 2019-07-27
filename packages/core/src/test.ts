@@ -39,7 +39,7 @@ class WebdaTest {
     return this.webda.getExecutorWithContext(ctx);
   }
 
-  async assertThrowsAsync(fn, regExp) {
+  async assertThrowsAsync(fn, regExp = undefined) {
     let f = () => {};
     try {
       await fn();

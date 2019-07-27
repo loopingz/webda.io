@@ -1,14 +1,14 @@
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
-import { AwsSecretsManager } from "./secretsmanager";
+import { AWSSecretsManager } from "./secretsmanager";
 import { test, suite, timeout } from "mocha-typescript";
 
 @suite
 class SecretsManagerTest extends WebdaTest {
-  service: AwsSecretsManager;
+  service: AWSSecretsManager;
   async before() {
     await super.before();
-    this.service = <AwsSecretsManager>this.getService("AWSSecretsManager");
+    this.service = <AWSSecretsManager>this.getService("AWSSecretsManager");
     assert.notEqual(this.service, undefined);
     try {
       await this.service.delete("webda-test-unit-test", 7, true);

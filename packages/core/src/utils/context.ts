@@ -56,6 +56,9 @@ class HttpContext {
       if (i.toLowerCase() === "cookie") {
         this.cookies = cookieParse(this.headers[i]);
       }
+      if (i.toLowerCase() !== i) {
+        this.headers[i.toLowerCase()] = this.headers[i];
+      }
     }
     let portUrl = "";
     if (port !== undefined && port !== 80 && protocol === "http") {
@@ -97,6 +100,10 @@ class HttpContext {
 
   getHeaders() {
     return this.headers;
+  }
+
+  getHeader(name: string) {
+    return this.headers[name];
   }
 
   setBody(body) {
@@ -227,8 +234,12 @@ class Context extends EventEmitter {
    * @param output If it is an object it will be serializeb with toPublicJSON, if it is a String it will be appended to the result, if it is a buffer it will replace the result
    * @param ...args any arguments to pass to the toPublicJSON method
    */
-   // @ts-ignore
-  public write(output: any, encoding?: string, cb?: (error: Error) => void): boolean {
+  // @ts-ignore
+  public write(
+    output: any,
+    encoding?: string,
+    cb?: (error: Error) => void
+  ): boolean {
     if (typeof output === "object" && !(output instanceof Buffer)) {
       this._outputHeaders["Content-type"] = "application/json";
       // @ts-ignore
@@ -336,10 +347,12 @@ class Context extends EventEmitter {
     return this._ended;
   }
 
-  getRequestBody(sanitizedOptions: any = {
-    allowedTags: [],
-    allowedAttributes: {}
-  }) {
+  getRequestBody(
+    sanitizedOptions: any = {
+      allowedTags: [],
+      allowedAttributes: {}
+    }
+  ) {
     if (this._sanitized) {
       return this._sanitized;
     }
@@ -348,13 +361,16 @@ class Context extends EventEmitter {
         return sanitizeHtml(obj, options);
       }
       if (typeof obj === "object") {
-        Object.keys(obj).forEach( (key) => {
+        Object.keys(obj).forEach(key => {
           obj[key] = recursiveSanitize(obj[key], options);
         });
       }
       return obj;
-    }
-    this._sanitized = recursiveSanitize(this.getHttpContext().getBody(), sanitizedOptions);
+    };
+    this._sanitized = recursiveSanitize(
+      this.getHttpContext().getBody(),
+      sanitizedOptions
+    );
     return this._sanitized;
   }
 

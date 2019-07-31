@@ -367,6 +367,21 @@ describe("Webda", function() {
       );
     });
   });
+  describe("HttpContext", function() {
+    it("lowerCase header", function() {
+      let ctx = new Webda.HttpContext(
+        "test.webda.io",
+        "GET",
+        "/test",
+        "http",
+        80,
+        {},
+        { "X-Test": "weBda" }
+      );
+      assert.equal(ctx.getHeader("X-Test"), "weBda");
+      assert.equal(ctx.getHeader("X-Test"), ctx.getHeader("x-test"));
+    });
+  });
   describe("getExecutor()", function() {
     it("Known page", function() {
       executor = webda.getExecutor(ctx, "test.webda.io", "GET", "/");

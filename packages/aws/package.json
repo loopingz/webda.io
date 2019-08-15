@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
-    "@webda/core": "file:../core",
+    "@webda/core": "0.11.3",
     "aws-sdk": "^2.311.0",
     "uuid": "^3.3.2"
   },

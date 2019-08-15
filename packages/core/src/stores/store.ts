@@ -126,9 +126,7 @@ class Store<T extends CoreModel> extends Executor
       this._addRoute(expose.url + "/{uuid}", methods, this.httpRoute, {
         model: this._model.name,
         get: {
-          description: `Retrieve ${
-            this._model.name
-          } model if permissions allow`,
+          description: `Retrieve ${this._model.name} model if permissions allow`,
           summary: "Retrieve a " + this._model.name,
           operationId: `get${this._model.name}`,
           responses: {
@@ -532,6 +530,10 @@ class Store<T extends CoreModel> extends Executor
     if (uid == undefined) {
       uid = object.uuid;
     }
+    if (!object.uuid) {
+      // Ensure uuid is set
+      object.uuid = uid;
+    }
     // Dont allow to update collections from map
     if (this._reverseMap != undefined && reverseMap) {
       for (var i in this._reverseMap) {
@@ -540,6 +542,7 @@ class Store<T extends CoreModel> extends Executor
         }
       }
     }
+    let partialEvent = partial ? "Partial" : "";
     if (Object.keys(object).length === 0) {
       return {};
     }
@@ -555,7 +558,7 @@ class Store<T extends CoreModel> extends Executor
     if (this._params.index && loaded.uuid !== "index" && loaded.uuid) {
       await this.handleIndex(loaded, object);
     }
-    await this.emitSync("Store.Update", {
+    await this.emitSync(`Store.${partialEvent}Update`, {
       object: loaded,
       store: this,
       update: object
@@ -566,6 +569,11 @@ class Store<T extends CoreModel> extends Executor
       await this._patch(object, uid, writeCondition);
       res = object;
     } else {
+      // Copy back the mappers
+      for (var i in this._reverseMap) {
+        object[this._reverseMap[i].property] =
+          loaded[this._reverseMap[i].property];
+      }
       res = await this._update(object, uid, writeCondition);
     }
     // Return updated
@@ -576,7 +584,7 @@ class Store<T extends CoreModel> extends Executor
       loaded[i] = object[i];
     }
     saved = this.initModel(loaded);
-    await this.emitSync("Store.Updated", {
+    await this.emitSync(`Store.${partialEvent}Updated`, {
       object: saved,
       store: this
     });
@@ -1120,12 +1128,6 @@ class Store<T extends CoreModel> extends Executor
           updateObject[i] = object[i];
         }
       }
-      // Copy back the mappers
-      for (var i in this._reverseMap) {
-        updateObject[this._reverseMap[i].property] =
-          object[this._reverseMap[i].property];
-      }
-
       // Add mappers back to
       object = await this.update(updateObject, uuid);
     }

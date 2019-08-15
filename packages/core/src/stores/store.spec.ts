@@ -153,6 +153,15 @@ abstract class StoreTest extends WebdaTest {
     user = await userStore.get(user2);
     assert.equal(user.idents.length, 1);
     assert.equal(user.idents[0].type, "google2");
+    // Verify you cannot update a collection from patch
+    await userStore.patch(
+      {
+        idents: []
+      },
+      user2
+    );
+    user = await userStore.get(user2);
+    assert.equal(user.idents.length, 1);
     // Verify you cannot update a collection from update
     await userStore.update(
       {
@@ -178,11 +187,11 @@ abstract class StoreTest extends WebdaTest {
     assert.equal(index[ident2.uuid], undefined);
     assert.equal(index[ident1.uuid], undefined);
 
-    assert.equal(eventFired, 17);
+    assert.equal(eventFired, 13);
     await identStore.delete(ident2.uuid, true);
     ident = await identStore.get(ident2.uuid);
     assert.equal(ident, undefined);
-    assert.equal(eventFired, 19);
+    assert.equal(eventFired, 15);
   }
 
   @test
@@ -330,11 +339,13 @@ abstract class StoreTest extends WebdaTest {
       "Store.Deleted",
       "Store.Update",
       "Store.Updated",
+      "Store.PartialUpdate",
+      "Store.PartialUpdated",
       "Store.Find",
       "Store.Found"
     ];
     for (let evt in events) {
-      identStore.on(events[evt], function(evt) {
+      identStore.on(events[evt], function(e) {
         eventFired++;
       });
     }
@@ -370,6 +381,13 @@ abstract class StoreTest extends WebdaTest {
     getter.empty = [];
     let object;
     await identStore.update(getter);
+    assert.equal(eventFired, 2);
+    eventFired = 0;
+    getter = {};
+    getter.uuid = ident1.uuid;
+    getter.bouzouf = "test";
+    console.log("will patch");
+    await identStore.patch(getter);
     assert.equal(eventFired, 2);
     eventFired = 0;
     object = await identStore.get(ident1.uuid);

@@ -216,6 +216,19 @@ class Webda extends events.EventEmitter {
   }
 
   /**
+   * Reinit the @Route
+   */
+  reinitResolvedRoutes() {
+    for (let i in beans) {
+      if (beans[i].routes) {
+        for (let j in beans[i].routes) {
+          beans[i].routes[j].resolved = false;
+        }
+      }
+    }
+  }
+
+  /**
    * Init Webda
    *
    * It will resolve Services init method and autolink
@@ -224,6 +237,7 @@ class Webda extends events.EventEmitter {
     if (this._init) {
       return this._init;
     }
+    this.reinitResolvedRoutes();
     this.log("TRACE", "Create Webda init promise");
     this._init = new Promise(async resolve => {
       // Init services

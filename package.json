@@ -35,12 +35,9 @@
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "repository": "git://github.com/loopingz/webda.io.git",
-  "dependencies": {
-    "@webda/aws": "file:packages/aws",
-    "@webda/core": "file:packages/core",
-    "@webda/shell": "file:packages/shell",
-    "@webda/elasticsearch": "file:packages/elasticsearch"
-  },
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
   },
   "command": {

@@ -24,9 +24,9 @@ function getVersion(packageName) {
  *  - embedded library
  */
 let webdaVersion;
-if (fs.existsSync("node_modules/webda")) {
+if (fs.existsSync("node_modules/@webda/core")) {
   // Local module of webda exists use it
-  global.__webda = process.cwd() + "/node_modules/webda";
+  global.__webda = process.cwd() + "/node_modules/@webda/core";
   console.log(
     "Using local web" + "da".yellow + " - v" + getVersion(global.__webda)
   );
@@ -38,7 +38,7 @@ if (fs.existsSync("node_modules/webda")) {
   webdaVersion = "dev";
 } else {
   // Use the webda-shell default webda
-  global.__webda = "webda";
+  global.__webda = "@webda/core";
   console.log(
     "Using embedded web" + "da".yellow + " - v" + getVersion(global.__webda)
   );

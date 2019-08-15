@@ -42,7 +42,6 @@
     "@webda/elasticsearch": "file:packages/elasticsearch"
   },
   "scripts": {
-    "version": "lerna version --conventional-commits"
   },
   "command": {
     "publish": {

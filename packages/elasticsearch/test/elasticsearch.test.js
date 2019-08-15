@@ -48,12 +48,24 @@ describe("Webda", function() {
     await elastic.wait();
     assert.equal(await elastic.count(), 2);
   });
-  it("Test CREATE/UPDATE", async function() {
+  it("Test CREATE/PATCH", async function() {
     await memoryStore.save({ uuid: "article1", title: "Test" });
     assert.equal((await memoryStore.getAll()).length, 1);
     await elastic.wait();
     assert.equal(await elastic.count(), 1);
-    await memoryStore.update({ title: "Test2" }, "article1");
+    await memoryStore.patch({ title: "Test2" }, "article1");
+    await elastic.wait();
+    assert.equal(await elastic.count(), 1);
+    let objects = await elastic.search("articles", "*");
+    assert.equal(objects.length, 1);
+    assert.equal(objects[0].title, "Test2");
+  });
+  it("Test CREATE/UPDATE", async function() {
+    await memoryStore.save({ uuid: "article2", title: "Test" });
+    assert.equal((await memoryStore.getAll()).length, 1);
+    await elastic.wait();
+    assert.equal(await elastic.count(), 1);
+    await memoryStore.update({ title: "Test2" }, "article2");
     await elastic.wait();
     assert.equal(await elastic.count(), 1);
     let objects = await elastic.search("articles", "*");

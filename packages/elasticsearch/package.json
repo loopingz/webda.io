@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/loopingz/webda-elasticsearch#readme",
   "dependencies": {
-    "@webda/core": "file:../core",
+    "@webda/core": "0.11.3",
     "elasticsearch": "^15.1.1"
   },
   "nyc": {

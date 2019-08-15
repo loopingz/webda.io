@@ -34,8 +34,7 @@ export default class ElasticSearchService extends Executor {
       }
       this.log("INFO", "Setup the Store listeners");
       // Plug on every modification on the store to update the index accordingly
-      store.on("Store.PartialUpdate", evt => {
-        console.log("Store.PartialUpdate", evt);
+      store.on("Store.PartialUpdated", evt => {
         this._update(index.name, evt.object);
       });
       store.on("Store.Updated", evt => {
@@ -182,6 +181,10 @@ export default class ElasticSearchService extends Executor {
       });
       this._asyncCount--;
     }
+  }
+
+  getClient() {
+    return this._client;
   }
 
   static getModda() {

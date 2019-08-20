@@ -21,7 +21,9 @@ export default class CloudWatchLogger extends AWSMixIn(FakeLogger) {
       throw Error("Require a log group `logGroupName` parameter");
     }
     this._logStreamName = this._params.logStreamNamePrefix + uuid.v4();
-    this._cloudwatch = new (this._getAWS(this._params)).CloudWatchLogs();
+    this._cloudwatch = new (this._getAWS(this._params)).CloudWatchLogs({
+      endpoint: this._params.endpoint
+    });
     let res = await this._cloudwatch
       .describeLogGroups({
         logGroupNamePrefix: this._logGroupName

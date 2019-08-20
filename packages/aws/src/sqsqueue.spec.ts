@@ -8,6 +8,7 @@ class SQSQueueTest extends QueueTest {
   @test
   @timeout(80000)
   async basic() {
+    await this.webda.getService("sqsqueue").install({});
     await this.webda.getService("sqsqueue").__clean();
     // Update timeout to 80000ms as Purge can only be sent once every 60s
     return this.simple(this.webda.getService("sqsqueue"), true);
@@ -18,6 +19,7 @@ class SQSQueueTest extends QueueTest {
     let queue: SQSQueue = <SQSQueue>this.webda.getService("sqsqueue");
     let arn = queue.getARNPolicy();
     assert.equal(arn.Action.indexOf("sqs:SendMessage") >= 0, true);
+    assert.equal(arn.Resource[0], "arn:aws:sqs:us-east-1:queue:webda-test");
   }
 
   @test

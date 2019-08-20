@@ -10,7 +10,8 @@
       "logGroupName": "webda-test",
       "logStreamNamePrefix": "test-",
       "logLevels": "TEST, TEST2",
-      "logLevel": "TEST2"
+      "logLevel": "TEST2",
+      "endpoint": "http://localhost:4586"
     },
     "ConsoleLogger": {
       "type": "Webda/ConsoleLogger",

@@ -22,7 +22,9 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> {
         "Need to define a table,accessKeyId,secretAccessKey at least"
       );
     }
-    this._client = new (GetAWS(params)).DynamoDB.DocumentClient();
+    this._client = new (GetAWS(params)).DynamoDB.DocumentClient({
+      endpoint: this._params.endpoint
+    });
   }
 
   async exists(uid) {
@@ -381,7 +383,9 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> {
     if (this._params.region) {
       params.region = this._params.region;
     }
-    var dynamodb = new (GetAWS(params)).DynamoDB();
+    var dynamodb = new (GetAWS(params)).DynamoDB({
+      endpoint: this._params.endpoint
+    });
     return dynamodb
       .describeTable({
         TableName: this._params.table

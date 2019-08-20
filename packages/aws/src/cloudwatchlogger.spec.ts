@@ -13,7 +13,12 @@ class CloudWatchLoggerTest extends WebdaTest {
   }
 
   async before() {
-    let cloudwatch = new (GetAWS({})).CloudWatchLogs();
+    let cloudwatch = new (GetAWS({
+      accessKeyId: "Bouzouf",
+      secretAccessKey: "plop"
+    })).CloudWatchLogs({
+      endpoint: "http://localhost:4586"
+    });
     try {
       await cloudwatch
         .deleteLogGroup({

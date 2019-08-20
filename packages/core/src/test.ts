@@ -10,11 +10,16 @@ class WebdaTest {
     return process.cwd() + "/test/config.json";
   }
 
-  async before() {
+  protected buildWebda() {
     this.webda = new Core(
       JSON.parse(readFileSync(this.getTestConfiguration()).toString())
     );
-    await this.webda.init();
+  }
+  async before(init: boolean = true) {
+    this.buildWebda();
+    if (init) {
+      await this.webda.init();
+    }
   }
 
   async newContext(body: any = {}): Promise<Context> {

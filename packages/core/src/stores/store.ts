@@ -536,7 +536,7 @@ class Store<T extends CoreModel> extends Executor
     }
     // Dont allow to update collections from map
     if (this._reverseMap != undefined && reverseMap) {
-      for (var i in this._reverseMap) {
+      for (let i in this._reverseMap) {
         if (object[this._reverseMap[i].property] != undefined) {
           delete object[this._reverseMap[i].property];
         }
@@ -570,7 +570,7 @@ class Store<T extends CoreModel> extends Executor
       res = object;
     } else {
       // Copy back the mappers
-      for (var i in this._reverseMap) {
+      for (let i in this._reverseMap) {
         object[this._reverseMap[i].property] =
           loaded[this._reverseMap[i].property];
       }

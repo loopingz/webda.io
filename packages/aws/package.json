@@ -4,6 +4,7 @@
   "description": "Webda AWS Services implementation",
   "main": "lib/index.js",
   "scripts": {
+    "compile": "tsc",
     "build": "tsc && webda module --noCompile",
     "pretest": "tsc",
     "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts"

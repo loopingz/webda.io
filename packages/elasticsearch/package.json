@@ -4,9 +4,9 @@
   "description": "Webda ElasticSearch implementation",
   "main": "lib/index.js",
   "scripts": {
-    "compile": "tsc",
-    "build": "tsc && webda module --noCompile",
-    "pretest": "tsc",
+    "webda-module": "webda module --noCompile",
+    "build": "tsc",
+    "pretest": "npm run build",
     "test": "nyc mocha --timeout=100000"
   },
   "repository": {

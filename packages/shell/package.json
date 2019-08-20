@@ -20,9 +20,8 @@
     "logo.json"
   ],
   "scripts": {
-    "compile": "tsc",
     "build": "tsc",
-    "pretest": "tsc",
+    "pretest": "npm run build",
     "test": "nyc mocha --timeout=100000"
   },
   "engines": {

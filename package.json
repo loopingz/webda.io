@@ -39,6 +39,8 @@
     "packages/*"
   ],
   "scripts": {
+    "build": "lerna run build --scope @webda/core && lerna run build --scope @webda/shell && lerna run build",
+    "test": "yarn build && lerna run test"
   },
   "command": {
     "publish": {

@@ -4,7 +4,7 @@
   "description": "Webda ElasticSearch implementation",
   "main": "lib/index.js",
   "scripts": {
-    "build": "tsc && webda module",
+    "build": "tsc && webda module --noCompile",
     "pretest": "npm run build",
     "test": "nyc mocha --timeout=100000",
     "run": "node core",

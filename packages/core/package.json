@@ -12,12 +12,10 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
+    "compile": "tsc",
     "build": "tsc",
     "pretest": "tsc",
-    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register test/**/*.test.js src/**/*.spec.ts",
-    "run": "node core",
-    "format": "node ./scripts/format.js",
-    "precommit": "npm run test"
+    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register test/**/*.test.js src/**/*.spec.ts"
   },
   "dependencies": {
     "accept-language": "3.0.18",

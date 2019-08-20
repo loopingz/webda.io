@@ -64,20 +64,12 @@
     "yeoman-environment": "^2.0.0"
   },
   "nyc": {
-    "extension": [
-      ".ts",
-      ".tsx",
-      ".js"
-    ],
-    "include": [
-      "lib/**/*.js"
-    ],
+    "extends": "@istanbuljs/nyc-config-typescript",
+    "report-dir": "./reports",
     "reporter": [
       "html",
       "lcov",
       "json"
-    ],
-    "report-dir": "./reports",
-    "all": true
+    ]
   }
 }

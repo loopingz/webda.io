@@ -17,6 +17,8 @@ script:
   - yarn webda-module
   - echo "Waiting for LocalStack to be Ready"; while :; do docker logs localstack 2>&1 | grep Ready > /dev/null; e=$?; if [ $e -eq 0 ]; then break; fi; sleep 1; done
   - yarn test
+after_success:
+  - sonar-scanner
 before_deploy:
   - git config --global user.email ${GITHUB_EMAIL}
   - git config --global user.name ${GITHUB_USER}

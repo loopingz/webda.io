@@ -5,11 +5,8 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc && webda module --noCompile",
-    "pretest": "npm run build",
-    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts",
-    "run": "node core",
-    "format": "node ./scripts/format.js",
-    "precommit": "npm run format && npm run test"
+    "pretest": "tsc",
+    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts"
   },
   "repository": {
     "type": "git",

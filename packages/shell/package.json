@@ -21,12 +21,8 @@
   ],
   "scripts": {
     "build": "tsc",
-    "pretest": "npm run build",
-    "test": "nyc mocha --timeout=100000",
-    "run": "node core",
-    "format": "node ./scripts/format.js",
-    "start": "bin/webda",
-    "precommit": "npm run format && npm run test"
+    "pretest": "tsc",
+    "test": "nyc mocha --timeout=100000"
   },
   "engines": {
     "node": ">=6.10.0"

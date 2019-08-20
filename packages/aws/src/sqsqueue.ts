@@ -12,7 +12,9 @@ export default class SQSQueue extends AWSMixIn(Queue) {
 
   async init(): Promise<void> {
     await super.init();
-    this.sqs = new (this._getAWS(this._params)).SQS();
+    this.sqs = new (this._getAWS(this._params)).SQS({
+      endpoint: this._params.endpoint
+    });
   }
 
   async size(): Promise<number> {
@@ -35,6 +37,7 @@ export default class SQSQueue extends AWSMixIn(Queue) {
     var sqsParams: any = {};
     sqsParams.QueueUrl = this._params.queue;
     sqsParams.MessageBody = JSON.stringify(params);
+
     return this.sqs.sendMessage(sqsParams).promise();
   }
 
@@ -85,7 +88,9 @@ export default class SQSQueue extends AWSMixIn(Queue) {
   async install(params) {
     let queue = this._getQueueInfosFromUrl();
     params.region = queue.region;
-    var sqs = new (this._getAWS(params)).SQS();
+    var sqs = new (this._getAWS(params)).SQS({
+      endpoint: this._params.endpoint
+    });
     return sqs
       .getQueueUrl({
         QueueName: queue.name,
@@ -108,7 +113,15 @@ export default class SQSQueue extends AWSMixIn(Queue) {
     let re = new RegExp(/.*sqs\.(.*)\.amazonaws.com\/([0-9]+)\/(.*)/, "i");
     let found = re.exec(this._params.queue);
     if (!found) {
-      throw new Error("SQS Queue URL malformed");
+      // Check for LocalStack
+      found = this._params.queue.match(
+        /http:\/\/(localhost):\d+\/(.*)\/(.*)/,
+        "i"
+      );
+      if (!found) {
+        throw new Error("SQS Queue URL malformed");
+      }
+      found[1] = "us-east-1";
     }
     return {
       accountId: found[2],

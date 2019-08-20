@@ -12,10 +12,16 @@ class SecretsManagerTest extends WebdaTest {
     assert.notEqual(this.service, undefined);
     try {
       await this.service.delete("webda-test-unit-test", 7, true);
-      // We have to wait for the secret to go away
-      await this.sleep(15000);
     } catch (err) {
       // Skip bad delete
+    }
+    try {
+      await this.service.create("webda-test-manual", {
+        "webda-test-1": "Test1",
+        "webda-test-2": "Test2"
+      });
+    } catch (err) {
+      // Skip as it will fail if it already exists
     }
   }
   async after() {

@@ -1,6 +1,8 @@
 {
   "version": 1,
   "parameters": {
+    "accessKeyId": "Bouzouf",
+    "secretAccessKey": "Plop",
     "TEST": "Global",
     "region": "us-east-1",
     "website": ["test.webda.io", "test2.webda.io"],
@@ -26,10 +28,13 @@
     },
     "SQSQueue": {
       "type": "SQSQueue",
-      "queue": "https://sqs.us-east-1.amazonaws.com/277712386420/webda-test"
+      "endpoint": "http://localhost:4576",
+      "queue": "http://localhost:4576/queue/webda-test"
     },
     "DebugMailer": {},
-    "AWSSecretsManager": {},
+    "AWSSecretsManager": {
+      "endpoint": "http://localhost:4584"
+    },
     "idents": {
       "index": ["type", "_lastUpdate"],
       "map": {
@@ -48,6 +53,7 @@
         }
       },
       "asyncDelete": true,
+      "endpoint": "http://localhost:4569",
       "type": "DynamoStore",
       "table": "webda-test-idents",
       "model": "Webda/Ident"
@@ -61,12 +67,15 @@
         }
       },
       "scanPage": 2,
+      "endpoint": "http://localhost:4569",
       "type": "DynamoStore",
       "table": "webda-test-users"
     },
     "binary": {
       "type": "S3Binary",
       "bucket": "webda-test",
+      "endpoint": "http://localhost:4572",
+      "s3ForcePathStyle": true,
       "map": {
         "users": ["images"]
       },

@@ -7,7 +7,9 @@ export default class AWSSecretsManager extends AWSMixIn(Service)
 
   async init(): Promise<void> {
     await super.init();
-    this._client = new (this._getAWS(this._params)).SecretsManager();
+    this._client = new (this._getAWS(this._params)).SecretsManager({
+      endpoint: this._params.endpoint
+    });
   }
 
   async getConfiguration(id: string): Promise<Map<string, any>> {

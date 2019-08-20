@@ -1,11 +1,18 @@
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
-import { Store, Ident } from "@webda/core";
+import { Store, Ident, CoreModel } from "@webda/core";
 import { test, suite } from "mocha-typescript";
 import * as assert from "assert";
 import { DynamoStore } from "./dynamodb";
 
 @suite
 class DynamoDBTest extends StoreTest {
+  async before() {
+    this.buildWebda();
+    await (<DynamoStore<CoreModel>>this.getService("users")).install({});
+    await (<DynamoStore<CoreModel>>this.getService("idents")).install({});
+    await super.before();
+  }
+
   getIdentStore(): Store<any> {
     return <Store<any>>this.getService("idents");
   }

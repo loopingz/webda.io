@@ -34,7 +34,10 @@ export default class S3Binary extends AWSMixIn(Binary) {
 
   async init(): Promise<void> {
     await super.init();
-    this._s3 = new this.AWS.S3();
+    this._s3 = new this.AWS.S3({
+      endpoint: this._params.endpoint,
+      s3ForcePathStyle: this._params.s3ForcePathStyle || false
+    });
   }
 
   _initRoutes(): boolean {
@@ -126,6 +129,8 @@ export default class S3Binary extends AWSMixIn(Binary) {
 
   putMarker(hash, uuid, storeName) {
     var s3obj = new this.AWS.S3({
+      endpoint: this._params.endpoint,
+      s3ForcePathStyle: this._params.s3ForcePathStyle || false,
       params: {
         Bucket: this._params.bucket,
         Key: this._getPath(hash, uuid),
@@ -285,6 +290,8 @@ export default class S3Binary extends AWSMixIn(Binary) {
   getObject(key: string, bucket: string = undefined) {
     bucket = bucket || this._params.bucket;
     var s3obj = new this.AWS.S3({
+      endpoint: this._params.endpoint,
+      s3ForcePathStyle: this._params.s3ForcePathStyle || false,
       params: {
         Bucket: bucket,
         Key: key
@@ -301,6 +308,8 @@ export default class S3Binary extends AWSMixIn(Binary) {
   ) {
     bucket = bucket || this._params.bucket;
     var s3obj = new this.AWS.S3({
+      endpoint: this._params.endpoint,
+      s3ForcePathStyle: this._params.s3ForcePathStyle || false,
       params: {
         Bucket: bucket,
         Key: key,
@@ -330,6 +339,8 @@ export default class S3Binary extends AWSMixIn(Binary) {
       let s3metas: any = {};
       s3metas["x-amz-meta-challenge"] = file.challenge;
       var s3obj = new this.AWS.S3({
+        endpoint: this._params.endpoint,
+        s3ForcePathStyle: this._params.s3ForcePathStyle || false,
         params: {
           Bucket: this._params.bucket,
           Key: this._getPath(file.hash),
@@ -385,7 +396,10 @@ export default class S3Binary extends AWSMixIn(Binary) {
     if (this._params.region) {
       params.region = this._params.region;
     }
-    var s3 = new (this._getAWS(params)).S3();
+    var s3 = new (this._getAWS(params)).S3({
+      endpoint: this._params.endpoint,
+      s3ForcePathStyle: this._params.s3ForcePathStyle || false
+    });
     return s3
       .headBucket({
         Bucket: this._params.bucket

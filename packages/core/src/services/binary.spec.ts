@@ -25,8 +25,8 @@ class BinaryTest extends WebdaTest {
     return process.cwd() + "/test/Dockerfile.txt";
   }
 
-  async before() {
-    await super.before();
+  async before(init: boolean = true) {
+    await super.before(init);
     let userStore = this.getUserStore();
     let binary = this.getBinary();
     assert.notEqual(userStore, undefined);

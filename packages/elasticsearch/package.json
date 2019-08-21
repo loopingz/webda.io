@@ -26,7 +26,7 @@
   "bugs": {
     "url": "https://github.com/loopingz/webda.io/issues"
   },
-  "homepage": "https://github.com/loopingz/webda-elasticsearch#readme",
+  "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
     "@webda/core": "^1.0.0-beta.0",
     "elasticsearch": "^15.1.1"

@@ -1,6 +1,6 @@
 {
   "name": "webda.io",
-  "private": true,
+  "private": false,
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^0.1.3",
     "@types/node": "^10.7.0",

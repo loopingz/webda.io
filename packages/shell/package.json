@@ -67,5 +67,8 @@
       "lcov",
       "json"
     ]
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

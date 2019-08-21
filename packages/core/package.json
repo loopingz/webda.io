@@ -69,5 +69,8 @@
       "json"
     ]
   },
-  "homepage": "https://webda.io"
+  "homepage": "https://webda.io",
+  "publishConfig": {
+    "access": "public"
+  }
 }

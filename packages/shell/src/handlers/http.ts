@@ -184,7 +184,7 @@ export class WebdaServer extends Webda {
 
   flushHeaders(ctx) {
     var res = ctx._stream;
-    var headers = ctx._headers;
+    var headers = ctx.getResponseHeaders();
     let cookies = ctx.getResponseCookies();
     for (let i in cookies) {
       res.cookie(cookies[i].name, cookies[i].value, cookies[i].options);

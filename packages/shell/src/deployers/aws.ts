@@ -3,6 +3,7 @@ import { AWSMixIn } from "@webda/aws";
 import { Deployer } from "./deployer";
 import { ACM, Route53, S3 } from "aws-sdk";
 import * as AWS from "aws-sdk";
+import IamPolicyOptimizer from "iam-policy-optimizer";
 const mime = require("mime-types");
 const path = require("path");
 const fs = require("fs");
@@ -330,6 +331,7 @@ export class AWSDeployer extends Deployer {
           Version: "2012-10-17",
           Statement: statements
         };
+        policyDocument = IamPolicyOptimizer.reducePolicyObject(policyDocument);
         let policy;
         return iam
           .listPolicies({

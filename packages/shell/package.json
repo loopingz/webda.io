@@ -43,6 +43,7 @@
     "fs-finder": "^1.8.1",
     "generator-webda": ">=0.9.1",
     "glob": "^7.1.2",
+    "iam-policy-optimizer": "^1.1.2",
     "merge": "^1.2.0",
     "mime-types": ">=2.1.4",
     "mkdirp": "^0.5.1",

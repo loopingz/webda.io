@@ -103,7 +103,7 @@ class HttpContext {
   }
 
   getHeader(name: string) {
-    return this.headers[name];
+    return this.headers[name.toLowerCase()];
   }
 
   setBody(body) {
@@ -360,6 +360,9 @@ class Context extends EventEmitter {
       return this._sanitized;
     }
     let recursiveSanitize = (obj, options = undefined) => {
+      if (!obj) {
+        return obj;
+      }
       if (typeof obj === "string") {
         return sanitizeHtml(obj, options);
       }

@@ -35,26 +35,26 @@ export default class ElasticSearchService extends Executor {
       this.log("INFO", "Setup the Store listeners");
       // Plug on every modification on the store to update the index accordingly
       store.on("Store.PartialUpdated", evt => {
-        this._update(index.name, evt.object);
+        this._update(index.name, evt.object, evt.object[store.getUuidField()]);
       });
       store.on("Store.Updated", evt => {
-        this._update(index.name, evt.object);
+        this._update(index.name, evt.object, evt.object[store.getUuidField()]);
       });
       store.on("Store.Saved", async evt => {
-        this._create(index.name, evt.object);
+        this._create(index.name, evt.object, evt.object[store.getUuidField()]);
       });
       store.on("Store.Deleted", evt => {
-        this._delete(index.name, evt.object);
+        this._delete(index.name, evt.object, evt.object[store.getUuidField()]);
       });
     }
   }
 
-  async _delete(index: string, object: CoreModel) {
+  async _delete(index: string, object: CoreModel, uuid: string) {
     this._asyncCount++;
     try {
       await this._client.delete({
         index: index,
-        id: object.uuid,
+        id: uuid,
         refresh: this._refreshMode,
         type: index
       });
@@ -63,12 +63,12 @@ export default class ElasticSearchService extends Executor {
     }
   }
 
-  async _create(index: string, object: CoreModel) {
+  async _create(index: string, object: CoreModel, uuid: string) {
     this._asyncCount++;
     try {
       await this._client.create({
         index: index,
-        id: object.uuid,
+        id: uuid,
         type: index,
         refresh: this._refreshMode,
         body: object.toStoredJSON(false)
@@ -78,12 +78,12 @@ export default class ElasticSearchService extends Executor {
     }
   }
 
-  async _update(index: string, object: CoreModel) {
+  async _update(index: string, object: CoreModel, uuid: string) {
     this._asyncCount++;
     try {
       await this._client.update({
         index: index,
-        id: object.uuid,
+        id: uuid,
         type: index,
         refresh: this._refreshMode,
         body: {

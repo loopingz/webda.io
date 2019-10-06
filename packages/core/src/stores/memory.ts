@@ -20,8 +20,8 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
     return this.storage;
   }
 
-  async _save(object, uid) {
-    uid = uid || object.uuid;
+  async _save(object) {
+    let uid = object[this._uuidField];
     if (!(object instanceof this._model)) {
       object = this.initModel(object);
     }
@@ -33,8 +33,8 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
     delete this.storage[uid];
   }
 
-  async _patch(object, uid) {
-    uid = uid || object.uuid;
+  async _patch(object, uuid) {
+    let uid = uuid || object[this._uuidField];
     let obj = this._getSync(uid);
     for (let prop in object) {
       obj[prop] = object[prop];
@@ -43,9 +43,9 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
     return this._getSync(uid);
   }
 
-  async _update(object, uid) {
-    await this._save(object, uid);
-    return this._getSync(uid);
+  async _update(object, uuid) {
+    await this._save(object);
+    return this._getSync(uuid || object[this._uuidField]);
   }
 
   async getAll(uids): Promise<any> {
@@ -73,7 +73,7 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
   async _removeAttribute(uuid: string, attribute: string) {
     let res = await this._get(uuid);
     delete res[attribute];
-    this._save(res, uuid);
+    this._save(res);
   }
 
   async _get(uid) {
@@ -84,7 +84,7 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
   async __clean() {
     this.storage = {};
     if (this._params.index) {
-      await this.save({}, "index");
+      await this.createIndex();
     }
   }
 
@@ -99,7 +99,7 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
     }
     res[this._lastUpdateField] = updateDate;
     res[prop] += value;
-    return this._save(res, uid);
+    return this._save(res);
   }
 
   async _upsertItemToCollection(
@@ -121,12 +121,6 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
         itemWriteCondition !== undefined &&
         res[prop].length !== itemWriteCondition
       ) {
-        console.log(
-          "met",
-          itemWriteCondition,
-          res[prop].length,
-          itemWriteCondition
-        );
         throw Error("UpdateCondition not met");
       }
       if (res[prop] === undefined) {
@@ -144,7 +138,7 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
       res[prop][index] = item;
     }
     res[this._lastUpdateField] = updateDate;
-    await this._save(res, uid);
+    await this._save(res);
   }
 
   async _deleteItemFromCollection(
@@ -168,7 +162,7 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
     }
     res[prop].splice(index, 1);
     res[this._lastUpdateField] = updateDate;
-    return this._save(res, uid);
+    return this._save(res);
   }
 
   static getModda() {

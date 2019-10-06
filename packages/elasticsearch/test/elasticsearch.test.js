@@ -53,7 +53,7 @@ describe("Webda", function() {
     assert.equal((await memoryStore.getAll()).length, 1);
     await elastic.wait();
     assert.equal(await elastic.count(), 1);
-    await memoryStore.patch({ title: "Test2" }, "article1");
+    await memoryStore.patch({ title: "Test2", uuid: "article1" });
     await elastic.wait();
     assert.equal(await elastic.count(), 1);
     let objects = await elastic.search("articles", "*");
@@ -65,7 +65,7 @@ describe("Webda", function() {
     assert.equal((await memoryStore.getAll()).length, 1);
     await elastic.wait();
     assert.equal(await elastic.count(), 1);
-    await memoryStore.update({ title: "Test2" }, "article2");
+    await memoryStore.update({ title: "Test2", uuid: "article2" });
     await elastic.wait();
     assert.equal(await elastic.count(), 1);
     let objects = await elastic.search("articles", "*");

@@ -231,16 +231,17 @@ export default class LambdaServer extends Webda {
     // Fallback on reference as Origin is not always set by Edge
     let origin = headers.Origin || headers.origin || ctx.clientInfo.referer;
     // Set predefined headers for CORS
-    if (origin) {
-      if (await this.checkRequest(ctx)) {
+    if (await this.checkRequest(ctx)) {
+      if (origin) {
         ctx.setHeader("Access-Control-Allow-Origin", origin);
-      } else {
-        // Prevent CSRF
-        this.log("INFO", "CSRF denied from", origin);
-        ctx.statusCode = 401;
-        return this.handleLambdaReturn(ctx);
       }
+    } else {
+      // Prevent CSRF
+      this.log("INFO", "CSRF denied from", origin);
+      ctx.statusCode = 401;
+      return this.handleLambdaReturn(ctx);
     }
+
     if (protocol === "https") {
       // Add the HSTS header
       ctx.setHeader(

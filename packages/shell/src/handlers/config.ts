@@ -14,7 +14,6 @@ import { DockerDeployer } from "../deployers/docker";
 import { S3Deployer } from "../deployers/s3";
 import { ShellDeployer } from "../deployers/shell";
 import { FargateDeployer } from "../deployers/fargate";
-import { WeDeployDeployer } from "../deployers/wedeploy";
 
 import * as fs from "fs";
 import * as path from "path";
@@ -729,7 +728,6 @@ export class WebdaConfigurationServer extends WebdaServer {
     this._deployers["WebdaDeployer/Fargate"] = FargateDeployer;
     this._deployers["WebdaDeployer/S3"] = S3Deployer;
     this._deployers["WebdaDeployer/Docker"] = DockerDeployer;
-    this._deployers["WebdaDeployer/WeDeploy"] = WeDeployDeployer;
   }
 
   /**

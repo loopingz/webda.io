@@ -44,9 +44,9 @@ class FileStore<T extends CoreModel> extends Store<T> {
     return Promise.all(res);
   }
 
-  _save(object, uid) {
+  _save(object) {
     fs.writeFileSync(
-      this.file(uid),
+      this.file(object[this._uuidField]),
       JSON.stringify(object.toStoredJSON(), undefined, this._params.beautify)
     );
     return Promise.resolve(object);
@@ -87,13 +87,13 @@ class FileStore<T extends CoreModel> extends Store<T> {
       res[prop][index] = item;
     }
     res[this._lastUpdateField] = updateDate;
-    await this._save(res, uid);
+    await this._save(res);
   }
 
   async _removeAttribute(uuid: string, attribute: string) {
     let res = await this._get(uuid);
     delete res[attribute];
-    await this._save(res, uuid);
+    await this._save(res);
   }
 
   async _deleteItemFromCollection(
@@ -117,7 +117,7 @@ class FileStore<T extends CoreModel> extends Store<T> {
     }
     res[prop].splice(index, 1);
     res[this._lastUpdateField] = updateDate;
-    return this._save(res, uid);
+    return this._save(res);
   }
 
   async _delete(uid, writeCondition) {
@@ -136,7 +136,7 @@ class FileStore<T extends CoreModel> extends Store<T> {
   }
 
   async _patch(object, uid, writeCondition) {
-    let stored = await this._get(uid);
+    let stored = await this._get(uid || object[this._uuidField]);
     if (!stored) {
       return Promise.reject(Error("NotFound"));
     }
@@ -146,11 +146,11 @@ class FileStore<T extends CoreModel> extends Store<T> {
     for (var prop in object) {
       stored[prop] = object[prop];
     }
-    return this._save(stored, uid);
+    return this._save(stored);
   }
 
   async _update(object, uid, writeCondition = undefined) {
-    let stored = await this._get(uid);
+    let stored = await this._get(uid || object[this._uuidField]);
     if (!stored) {
       throw new Error("NotFound");
     }
@@ -159,7 +159,7 @@ class FileStore<T extends CoreModel> extends Store<T> {
     }
     let coreModel = new CoreModel();
     coreModel.load(object, true);
-    return this._save(coreModel, uid);
+    return this._save(coreModel);
   }
 
   async getAll(uids): Promise<any> {
@@ -197,7 +197,7 @@ class FileStore<T extends CoreModel> extends Store<T> {
     }
     stored[this._lastUpdateField] = updateDate;
     stored[prop] += value;
-    return this._save(stored, uid);
+    return this._save(stored);
   }
 
   async __clean() {
@@ -221,7 +221,7 @@ class FileStore<T extends CoreModel> extends Store<T> {
     }
     await Promise.all(promises);
     if (this._params.index) {
-      await this.save({}, "index");
+      await this.createIndex();
     }
   }
 

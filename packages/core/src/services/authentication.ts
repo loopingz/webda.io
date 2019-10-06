@@ -325,12 +325,10 @@ class Authentication extends Executor {
       if (ident._lastValidationEmail >= Date.now() - this._emailDelay) {
         throw 429;
       }
-      await this._identsStore.patch(
-        {
-          _lastValidationEmail: Date.now()
-        },
-        identKey
-      );
+      await this._identsStore.patch({
+        _lastValidationEmail: Date.now(),
+        uuid: identKey
+      });
     }
     await this.sendValidationEmail(ctx, ctx._params.email);
   }
@@ -429,12 +427,10 @@ class Authentication extends Executor {
     let ident: Ident = await this._identsStore.get(identArg.uuid);
     if (ident) {
       await this.login(ctx, ident.getUser(), ident);
-      await this._identsStore.patch(
-        {
-          _lastUsed: new Date()
-        },
-        ident.uuid
-      );
+      await this._identsStore.patch({
+        _lastUsed: new Date(),
+        uuid: ident.uuid
+      });
       ctx.writeHead(302, {
         Location: this._params.successRedirect + "?validation=" + provider,
         "X-Webda-Authentication": "success"
@@ -550,12 +546,10 @@ class Authentication extends Executor {
     if (!user.lastPasswordRecoveryBefore(Date.now() - 3600000 * 4)) {
       throw 429;
     }
-    await this._usersStore.patch(
-      {
-        _lastPasswordRecovery: Date.now()
-      },
-      user.uuid
-    );
+    await this._usersStore.patch({
+      _lastPasswordRecovery: Date.now(),
+      uuid: user.uuid
+    });
     await this.sendRecoveryEmail(ctx, user, email);
   }
 
@@ -596,12 +590,10 @@ class Authentication extends Executor {
       throw 410;
     }
     await this._verifyPassword(body.password);
-    await this._usersStore.patch(
-      {
-        __password: this.hashPassword(body.password)
-      },
-      body.login.toLowerCase()
-    );
+    await this._usersStore.patch({
+      __password: this.hashPassword(body.password),
+      uuid: body.login.toLowerCase()
+    });
   }
 
   async _handleEmailCallback(ctx: Context) {
@@ -643,14 +635,12 @@ class Authentication extends Executor {
         _type: "email"
       });
     } else {
-      await this._identsStore.patch(
-        {
-          _validation: new Date(),
-          _user: ctx.parameter("user"),
-          _type: "email"
-        },
-        ident.uuid
-      );
+      await this._identsStore.patch({
+        _validation: new Date(),
+        _user: ctx.parameter("user"),
+        _type: "email",
+        uuid: ident.uuid
+      });
     }
     ctx.writeHead(302, {
       Location: this._params.successRedirect + "?validation=email",
@@ -757,8 +747,9 @@ class Authentication extends Executor {
       }
       updates._lastUsed = new Date();
       updates._failedLogin = 0;
+      updates.uuid = ident.uuid;
 
-      await this._identsStore.patch(updates, ident.uuid);
+      await this._identsStore.patch(updates);
       await this.login(ctx, ident.getUser(), ident);
       ctx.write(user);
     } else {
@@ -771,8 +762,9 @@ class Authentication extends Executor {
       }
       updates._failedLogin = ident._failedLogin++;
       updates._lastFailedLogin = new Date();
+      updates.uuid = ident.uuid;
       // Swalow exeception issue to double check !
-      await this._identsStore.patch(updates, ident.uuid);
+      await this._identsStore.patch(updates);
       // Allows to auto redirect user to a oauth if needed
       if (!ctx.isEnded()) {
         throw 403;

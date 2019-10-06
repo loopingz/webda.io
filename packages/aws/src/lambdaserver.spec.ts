@@ -112,12 +112,14 @@ class LambdaHandlerTest extends WebdaTest {
 
   @test
   async handleRequestKnownRoute() {
+    this.ensureGoodCSRF();
     let res = await this.handler.handleRequest(this.evt, this.context);
     assert.equal(res.body, "CodeCoverage");
   }
 
   @test
   async handleRequestUnknownRoute() {
+    this.ensureGoodCSRF();
     this.evt.path = "/route/unknown";
     delete this.evt.headers.Cookie;
     let res = await this.handler.handleRequest(this.evt, this.context);
@@ -126,6 +128,7 @@ class LambdaHandlerTest extends WebdaTest {
 
   @test
   async handleRequestThrow401() {
+    this.ensureGoodCSRF();
     this.evt.path = "/broken/401";
     let res = await this.handler.handleRequest(this.evt, this.context);
     assert.equal(res.statusCode, 401);
@@ -133,6 +136,7 @@ class LambdaHandlerTest extends WebdaTest {
 
   @test
   async handleRequestThrowError() {
+    this.ensureGoodCSRF();
     this.evt.path = "/broken/Error";
     let res = await this.handler.handleRequest(this.evt, this.context);
     assert.equal(res.statusCode, 500);
@@ -140,6 +144,7 @@ class LambdaHandlerTest extends WebdaTest {
 
   @test
   async handleRequestOPTIONS() {
+    this.ensureGoodCSRF();
     this.evt.httpMethod = "OPTIONS";
     let res = await this.handler.handleRequest(this.evt, this.context);
     assert.equal(res.statusCode, 204);
@@ -148,6 +153,7 @@ class LambdaHandlerTest extends WebdaTest {
 
   @test
   async handleRequestOPTIONSWith404() {
+    this.ensureGoodCSRF();
     this.evt.path = "/route/unknown";
     this.evt.httpMethod = "OPTIONS";
     let res = await this.handler.handleRequest(this.evt, this.context);
@@ -210,6 +216,11 @@ class LambdaHandlerTest extends WebdaTest {
       res.headers["Access-Control-Allow-Origin"],
       this.evt.headers.Referer
     );
+  }
+
+  ensureGoodCSRF() {
+    this.evt.headers.Referer = "https://test.webda.io";
+    this.evt.headers.Host = "test.webda.io";
   }
 
   /*

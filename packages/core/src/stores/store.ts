@@ -50,6 +50,7 @@ class Store<T extends CoreModel> extends Executor
   _exposeUrl: string;
   _lastUpdateField: string;
   _creationDateField: string;
+  protected _uuidField: string = "uuid";
 
   /** @ignore */
   normalizeParams() {
@@ -61,15 +62,22 @@ class Store<T extends CoreModel> extends Executor
       model = "Webda/CoreModel";
     }
     this._model = this._webda.getModel(model);
+    this._uuidField = this._model.getUuidField();
+  }
+
+  getModel() {
+    return this._model;
+  }
+
+  getUuidField() {
+    return this._uuidField;
   }
 
   async init(): Promise<void> {
     this.normalizeParams();
     this.initMap(this._params.map);
-    if (this._params.index && !(await this.exists("index"))) {
-      let index = { uuid: "index" };
-      index[this._lastUpdateField] = new Date();
-      await this.save(index);
+    if (this._params.index) {
+      await this.createIndex();
     }
   }
 
@@ -308,7 +316,7 @@ class Store<T extends CoreModel> extends Executor
     itemWriteConditionField = undefined
   ) {
     if (itemWriteConditionField === undefined) {
-      itemWriteConditionField = "uuid";
+      itemWriteConditionField = this._uuidField;
     }
     let updateDate = new Date();
     await this._upsertItemToCollection(
@@ -375,7 +383,7 @@ class Store<T extends CoreModel> extends Executor
       throw Error("Invalid Argument");
     }
     if (itemWriteConditionField === undefined) {
-      itemWriteConditionField = "uuid";
+      itemWriteConditionField = this._uuidField;
     }
     let updateDate = new Date();
     await this._deleteItemFromCollection(
@@ -409,6 +417,16 @@ class Store<T extends CoreModel> extends Executor
     updateDate: Date
   ): Promise<any> {
     throw Error("Virtual abstract class - concrete only for MixIn usage");
+  }
+
+  async createIndex() {
+    if (!this._params.index || (await this.exists("index"))) {
+      return;
+    }
+    let index = {};
+    index[this._uuidField] = "index";
+    index[this._lastUpdateField] = new Date();
+    await this.save(index);
   }
 
   initMap(map) {
@@ -455,14 +473,8 @@ class Store<T extends CoreModel> extends Executor
    * @param {String} Uuid to use, if not specified take the object.uuid or generate one if not found
    * @return {Promise} with saved object
    */
-  async save(object, uid = object.uuid) {
+  async save(object) {
     /** @ignore */
-    if (uid === undefined) {
-      uid = this.generateUid();
-    }
-    if (object.uuid === undefined || object.uuid !== uid) {
-      object.uuid = uid;
-    }
     for (var i in this._reverseMap) {
       if (object[this._reverseMap[i].property] === undefined) {
         object[this._reverseMap[i].property] = [];
@@ -472,11 +484,11 @@ class Store<T extends CoreModel> extends Executor
       this._lastUpdateField
     ] = new Date();
     object = this.initModel(object);
-    if (!object.uuid) {
-      object.uuid = object.generateUid();
+    if (!object[this._uuidField]) {
+      object[this._uuidField] = object.generateUid();
       object[this._creationDateField] = new Date();
-      if (!object.uuid) {
-        object.uuid = this.generateUid();
+      if (!object[this._uuidField]) {
+        object[this._uuidField] = this.generateUid();
       }
     }
     await this.emitSync("Store.Save", {
@@ -485,7 +497,7 @@ class Store<T extends CoreModel> extends Executor
     });
     // Handle object auto listener
     await object._onSave();
-    let res = await this._save(object, uid);
+    let res = await this._save(object);
     object = this.initModel(res);
     await this.emitSync("Store.Saved", {
       object: object,
@@ -496,44 +508,35 @@ class Store<T extends CoreModel> extends Executor
       await this.handleMap(object, this._params.map, "created");
     }
     // Handle index
-    if (this._params.index && object.uuid !== "index" && object.uuid) {
+    if (
+      this._params.index &&
+      object[this._uuidField] !== "index" &&
+      object[this._uuidField]
+    ) {
       await this.handleIndex(object, "created");
     }
     return object;
   }
 
-  async _save(object: CoreModel, uid: string): Promise<any> {
+  async _save(object: CoreModel): Promise<any> {
     throw Error("Virtual abstract class - concrete only for MixIn usage");
   }
 
-  async patch(object: any, uid: string = undefined, reverseMap = true) {
-    return this.update(object, uid, reverseMap, true);
+  async patch(object: any, reverseMap = true) {
+    return this.update(object, reverseMap, true);
   }
 
   /**
    * Update an object
    *
    * @param {Object} Object to save
-   * @param {String} Uuid to use, if not specified take the object.uuid or generate one if not found
    * @param {Boolean} reverseMap internal use only, for disable map resolution
    * @return {Promise} with saved object
    */
-  async update(
-    object: any,
-    uid: string = undefined,
-    reverseMap = true,
-    partial = false
-  ) {
+  async update(object: any, reverseMap = true, partial = false) {
     /** @ignore */
     var saved;
     var loaded;
-    if (uid == undefined) {
-      uid = object.uuid;
-    }
-    if (!object.uuid) {
-      // Ensure uuid is set
-      object.uuid = uid;
-    }
     // Dont allow to update collections from map
     if (this._reverseMap != undefined && reverseMap) {
       for (let i in this._reverseMap) {
@@ -551,11 +554,15 @@ class Store<T extends CoreModel> extends Executor
       writeCondition = this._lastUpdateField;
     }
     object[this._lastUpdateField] = new Date();
-    let load = await this._get(uid);
+    let load = await this._get(object[this._uuidField]);
     loaded = this.initModel(load);
     await this.handleMap(loaded, this._params.map, object);
     // Handle index
-    if (this._params.index && loaded.uuid !== "index" && loaded.uuid) {
+    if (
+      this._params.index &&
+      loaded[this._uuidField] !== "index" &&
+      loaded[this._uuidField]
+    ) {
       await this.handleIndex(loaded, object);
     }
     await this.emitSync(`Store.${partialEvent}Update`, {
@@ -566,7 +573,7 @@ class Store<T extends CoreModel> extends Executor
     await loaded._onUpdate(object);
     let res: any;
     if (partial) {
-      await this._patch(object, uid, writeCondition);
+      await this._patch(object, object[this._uuidField], writeCondition);
       res = object;
     } else {
       // Copy back the mappers
@@ -574,7 +581,7 @@ class Store<T extends CoreModel> extends Executor
         object[this._reverseMap[i].property] =
           loaded[this._reverseMap[i].property];
       }
-      res = await this._update(object, uid, writeCondition);
+      res = await this._update(object, object[this._uuidField], writeCondition);
     }
     // Return updated
     for (let i in res) {
@@ -594,7 +601,7 @@ class Store<T extends CoreModel> extends Executor
 
   getMapper(map, uuid) {
     for (var i = 0; i < map.length; i++) {
-      if (map[i]["uuid"] == uuid) {
+      if (map[i][this._uuidField] === uuid) {
         return i;
       }
     }
@@ -611,9 +618,8 @@ class Store<T extends CoreModel> extends Executor
   }
 
   async _handleUpdatedMap(object, map, mapped, store, updates) {
-    var mapper = {
-      uuid: object.uuid
-    };
+    var mapper = {};
+    mapper[this._uuidField] = object[this._uuidField];
     // Update only if the key field has been updated
     var found = false;
     for (var field in updates) {
@@ -642,7 +648,10 @@ class Store<T extends CoreModel> extends Executor
     }
 
     // check if reference object has changed
-    if (updates[map.key] != undefined && mapped.uuid != updates[map.key]) {
+    if (
+      updates[map.key] != undefined &&
+      mapped[this._uuidField] != updates[map.key]
+    ) {
       // create mapper
       if (map.fields) {
         let fields = map.fields.split(",");
@@ -656,15 +665,15 @@ class Store<T extends CoreModel> extends Executor
           }
         }
       }
-      let i = this.getMapper(mapped[map.target], object.uuid);
+      let i = this.getMapper(mapped[map.target], object[this._uuidField]);
       if (i >= 0) {
         // Remove the data from old object
         await store.deleteItemFromCollection(
-          mapped.uuid,
+          mapped[this._uuidField],
           map.target,
           i,
-          object.uuid,
-          "uuid"
+          object[this._uuidField],
+          this._uuidField
         );
       }
       // Add the data to new object
@@ -677,7 +686,7 @@ class Store<T extends CoreModel> extends Executor
   _handleUpdatedMapTransferOut(object, map, mapped, store, updates) {
     var update = {};
     update[map.target] = mapped[map.target];
-    return store.update(update, mapped.uuid, false).then(() => {
+    return store.update(update, mapped[this._uuidField], false).then(() => {
       return this._handleUpdatedMapTransferIn(object, map, store, updates);
     });
   }
@@ -699,7 +708,7 @@ class Store<T extends CoreModel> extends Executor
   _handleUpdatedMapMapper(object, map, mapped, store, updates) {
     // Update the mapper
     var mapper: any = {};
-    mapper.uuid = object.uuid;
+    mapper[this._uuidField] = object[this._uuidField];
     if (map.fields) {
       var fields = map.fields.split(",");
       for (var field in fields) {
@@ -711,19 +720,23 @@ class Store<T extends CoreModel> extends Executor
       }
     }
     // Remove old reference
-    let i = this.getMapper(mapped[map.target], object.uuid);
+    let i = this.getMapper(mapped[map.target], object[this._uuidField]);
     // If not found just add it to the collection
     if (i < 0) {
-      return store.upsertItemToCollection(mapped.uuid, map.target, mapper);
+      return store.upsertItemToCollection(
+        mapped[this._uuidField],
+        map.target,
+        mapper
+      );
     }
     // Else update with a check on the uuid
     return store.upsertItemToCollection(
-      mapped.uuid,
+      mapped[this._uuidField],
       map.target,
       mapper,
       i,
-      object.uuid,
-      "uuid"
+      object[this._uuidField],
+      this._uuidField
     );
   }
 
@@ -732,14 +745,14 @@ class Store<T extends CoreModel> extends Executor
     if (mapped[map.target] === undefined) {
       return Promise.resolve();
     }
-    let i = this.getMapper(mapped[map.target], object.uuid);
+    let i = this.getMapper(mapped[map.target], object[this._uuidField]);
     if (i >= 0) {
       return store.deleteItemFromCollection(
-        mapped.uuid,
+        mapped[this._uuidField],
         map.target,
         i,
-        object.uuid,
-        "uuid"
+        object[this._uuidField],
+        this._uuidField
       );
     }
     return Promise.resolve();
@@ -748,7 +761,7 @@ class Store<T extends CoreModel> extends Executor
   _handleCreatedMap(object, map, mapped, store) {
     // Add to the object
     var mapper: any = {};
-    mapper.uuid = object.uuid;
+    mapper[this._uuidField] = object[this._uuidField];
     // Add info to the mapped
     if (map.fields) {
       var fields = map.fields.split(",");
@@ -756,7 +769,11 @@ class Store<T extends CoreModel> extends Executor
         mapper[fields[field]] = object[fields[field]];
       }
     }
-    return store.upsertItemToCollection(mapped.uuid, map.target, mapper);
+    return store.upsertItemToCollection(
+      mapped[this._uuidField],
+      map.target,
+      mapper
+    );
   }
 
   async _handleMapProperty(store, object, property, updates) {
@@ -791,7 +808,7 @@ class Store<T extends CoreModel> extends Executor
         return;
       }
     } else if (updates === "deleted") {
-      await this._removeAttribute("index", object.uuid);
+      await this._removeAttribute("index", object[this._uuidField]);
       return;
     } else if (updates === "created") {
       updates = object;
@@ -800,7 +817,7 @@ class Store<T extends CoreModel> extends Executor
     this._params.index.forEach(id => {
       mapper[id] = updates[id];
     });
-    mapUpdates[object.uuid] = mapper;
+    mapUpdates[object[this._uuidField]] = mapper;
     mapUpdates[this._lastUpdateField] = new Date();
     await this._patch(mapUpdates, "index");
   }
@@ -839,7 +856,7 @@ class Store<T extends CoreModel> extends Executor
 
   async cascadeDelete(obj: any, uuid: string): Promise<any> {
     // We dont need uuid but Binary store will need it
-    return this.delete(obj.uuid);
+    return this.delete(obj[this._uuidField]);
   }
 
   /**
@@ -854,7 +871,7 @@ class Store<T extends CoreModel> extends Executor
     let to_delete: T;
     if (typeof uid === "object") {
       to_delete = uid;
-      uid = to_delete.uuid;
+      uid = to_delete[this._uuidField];
       if (!(to_delete instanceof this._model)) {
         to_delete = this.initModel(await this._get(uid));
       }
@@ -873,7 +890,11 @@ class Store<T extends CoreModel> extends Executor
       await this.handleMap(to_delete, this._params.map, "deleted");
     }
     // Handle index
-    if (this._params.index && to_delete.uuid !== "index" && to_delete.uuid) {
+    if (
+      this._params.index &&
+      to_delete[this._uuidField] !== "index" &&
+      to_delete[this._uuidField]
+    ) {
       await this.handleIndex(to_delete, "deleted");
     }
     if (this._cascade != undefined && to_delete !== undefined) {
@@ -893,7 +914,7 @@ class Store<T extends CoreModel> extends Executor
           promises.push(
             targetStore.cascadeDelete(
               to_delete[this._cascade[i].name][item],
-              to_delete.uuid
+              to_delete[this._uuidField]
             )
           );
         }
@@ -956,7 +977,11 @@ class Store<T extends CoreModel> extends Executor
     }
     let result = new Map<string, any>();
     for (let i in object) {
-      if (i === "uuid" || i === this._lastUpdateField || i.startsWith("_")) {
+      if (
+        i === this._uuidField ||
+        i === this._lastUpdateField ||
+        i.startsWith("_")
+      ) {
         continue;
       }
       result[i] = object[i];
@@ -1028,10 +1053,13 @@ class Store<T extends CoreModel> extends Executor
       this.log("DEBUG", "Object is not valid", err);
       throw 400;
     }
-    if (await this.exists(object.uuid)) {
+    if (
+      object[this._uuidField] &&
+      (await this.exists(object[this._uuidField]))
+    ) {
       throw 409;
     }
-    await this.save(object, object.uuid);
+    await this.save(object);
     ctx.write(object);
     await this.emitSync("Store.WebCreate", {
       values: body,
@@ -1104,7 +1132,7 @@ class Store<T extends CoreModel> extends Executor
   async httpUpdate(ctx: Context) {
     let body = ctx.getRequestBody();
     let uuid = ctx.parameter("uuid");
-    body.uuid = uuid;
+    body[this._uuidField] = uuid;
     let object = await this.get(uuid);
     if (!object || object.__deleted) throw 404;
     await object.canAct(ctx, "update");
@@ -1117,7 +1145,7 @@ class Store<T extends CoreModel> extends Executor
     if (ctx.getHttpContext().getMethod() === "PATCH") {
       let updateObject: any = new this._model();
       updateObject.load(body);
-      await this.patch(updateObject, uuid);
+      await this.patch(updateObject);
       object = undefined;
     } else {
       let updateObject: any = new this._model();
@@ -1129,7 +1157,7 @@ class Store<T extends CoreModel> extends Executor
         }
       }
       // Add mappers back to
-      object = await this.update(updateObject, uuid);
+      object = await this.update(updateObject);
     }
     ctx.write(object);
     await this.emitSync("Store.WebUpdate", {

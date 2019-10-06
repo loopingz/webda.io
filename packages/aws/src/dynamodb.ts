@@ -386,7 +386,7 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> {
     var dynamodb = new (GetAWS(params)).DynamoDB({
       endpoint: this._params.endpoint
     });
-    return dynamodb
+    await dynamodb
       .describeTable({
         TableName: this._params.table
       })
@@ -421,6 +421,7 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> {
           return dynamodb.createTable(createTable).promise();
         }
       });
+    await this.createIndex();
   }
 
   async uninstall(params) {
@@ -446,11 +447,7 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> {
       promises.push(this._delete(result.Items[i].uuid));
     }
     await Promise.all(promises);
-    if (this._params.index) {
-      let index = { uuid: "index" };
-      index[this._lastUpdateField] = new Date();
-      await this.save(index, "index");
-    }
+    await this.createIndex();
   }
 
   static getModda() {

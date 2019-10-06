@@ -345,6 +345,7 @@ class Context extends EventEmitter {
       }
       this._webda.flush(this);
       this.emit("close");
+      resolve();
     });
     return this._ended;
   }

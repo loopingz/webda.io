@@ -386,7 +386,6 @@ abstract class StoreTest extends WebdaTest {
     getter = {};
     getter.uuid = ident1.uuid;
     getter.bouzouf = "test";
-    console.log("will patch");
     await identStore.patch(getter);
     assert.equal(eventFired, 2);
     eventFired = 0;

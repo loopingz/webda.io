@@ -34,10 +34,6 @@ class BinaryMap {
  * @class Binary
  */
 class Binary extends Executor {
-  constructor(webda, name, params: any = {}) {
-    super(webda, name, params);
-  }
-
   _lowercaseMaps: any;
   _url: string;
   /**
@@ -258,7 +254,7 @@ class Binary extends Executor {
     fileObj["size"] = file.size;
     fileObj["hash"] = file.hash;
     fileObj["challenge"] = file.challenge;
-    var object_uid = object.uuid;
+    var object_uid = object[targetStore.getUuidField()];
     var info;
     var update;
     var promise;
@@ -269,13 +265,13 @@ class Binary extends Executor {
     });
     if (index == "add") {
       promise = targetStore.upsertItemToCollection(
-        object.uuid,
+        object_uid,
         property,
         fileObj
       );
     } else {
       promise = targetStore.upsertItemToCollection(
-        object.uuid,
+        object_uid,
         property,
         fileObj,
         index,
@@ -312,7 +308,13 @@ class Binary extends Executor {
     var info = object[property][index];
     var update;
     return targetStore
-      .deleteItemFromCollection(object.uuid, property, index, info.hash, "hash")
+      .deleteItemFromCollection(
+        object[targetStore.getUuidField()],
+        property,
+        index,
+        info.hash,
+        "hash"
+      )
       .then(updated => {
         update = updated;
         return this.emitSync("Binary.Delete", {

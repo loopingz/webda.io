@@ -5,18 +5,20 @@ import { Context, OwnerPolicy, Store } from "../index";
 interface CoreModelDefinition {
   new (): CoreModel;
   getActions(): any;
+  getUuidField(): string;
 }
 
 class CoreModelMapper<T extends CoreModel> {
   private __store: Store<CoreModel>;
-  public uuid: string;
 
   constructor(uuid, properties = {}, store) {
-    this.uuid = uuid;
+    this[this.__store.getModel().getUuidField()] = uuid;
   }
 
   async load(): Promise<T> {
-    return <T>await this.__store.get(this.uuid);
+    return <T>(
+      await this.__store.get(this[this.__store.getModel().getUuidField()])
+    );
   }
 }
 
@@ -36,6 +38,10 @@ class CoreModel extends OwnerPolicy {
 
   static getActions() {
     return {};
+  }
+
+  static getUuidField() {
+    return "uuid";
   }
 
   getAvailableActions() {
@@ -124,7 +130,10 @@ class CoreModel extends OwnerPolicy {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
-    let obj = await this.__store.update(changes, this.uuid);
+    changes[this.__store.getModel().getUuidField()] = this[
+      this.__store.getModel().getUuidField()
+    ];
+    let obj = await this.__store.update(changes);
     for (var i in obj) {
       this[i] = obj[i];
     }

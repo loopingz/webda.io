@@ -41,7 +41,8 @@
   "scripts": {
     "webda-module": "lerna run webda-module",
     "build": "lerna run build",
-    "test": "lerna run test"
+    "test": "lerna run test",
+    "new-version": "lerna version"
   },
   "command": {
     "publish": {

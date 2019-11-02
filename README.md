@@ -1,5 +1,5 @@
 # webda
-![logo](https://webda.io/images/webda.svg)
+![logo](https://webda.io/images/webda.svg | width=128)
 
 [![Build Status](https://travis-ci.org/loopingz/webda.svg?branch=master)](https://travis-ci.org/loopingz/webda)
 

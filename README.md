@@ -1,6 +1,7 @@
-<img src="https://webda.io/images/webda.svg" width="128px" />
+# webda
+![logo](https://webda.io/images/webda.svg)
 
-# webda [![Build Status](https://travis-ci.org/loopingz/webda.svg?branch=master)](https://travis-ci.org/loopingz/webda)
+[![Build Status](https://travis-ci.org/loopingz/webda.svg?branch=master)](https://travis-ci.org/loopingz/webda)
 
 [![Join the chat at https://gitter.im/loopingz/webda](https://badges.gitter.im/loopingz/webda.svg)](https://gitter.im/loopingz/webda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![SonarCloud.io](https://sonarcloud.io/api/project_badges/measure?project=webda&metric=alert_status)](https://sonarcloud.io/dashboard/index/webda)

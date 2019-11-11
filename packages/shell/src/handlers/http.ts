@@ -45,13 +45,16 @@ export class WebdaServer extends Webda {
       }
 
       let method = req.method;
-
+      let port;
+      if (req.socket && req.socket.address()) {
+        port = req.socket.address().port;
+      }
       let httpContext = new HttpContext(
         vhost,
         method,
         req.url,
         protocol,
-        req.port,
+        port,
         req.body,
         req.headers,
         req.files
@@ -77,16 +80,17 @@ export class WebdaServer extends Webda {
       let origin =
         req.headers.Origin || req.headers.origin || req.headers.Referer;
       // Set predefined headers for CORS
-      if (origin) {
-        if (this._devMode || (await this.checkRequest(ctx))) {
+
+      if (this._devMode || (await this.checkRequest(ctx))) {
+        if (origin) {
           res.setHeader("Access-Control-Allow-Origin", origin);
-        } else {
-          // Prevent CSRF
-          this.log("INFO", "CSRF denied from", origin);
-          res.writeHead(401);
-          res.end();
-          return;
         }
+      } else {
+        // Prevent CSRF
+        this.log("INFO", "CSRF denied from", origin);
+        res.writeHead(401);
+        res.end();
+        return;
       }
       if (protocol === "https") {
         // Add the HSTS header
@@ -142,10 +146,10 @@ export class WebdaServer extends Webda {
       res.setHeader("Access-Control-Allow-Credentials", "true");
       try {
         await executor.execute(ctx);
+        await this.emitSync("Webda.Result", ctx);
         if (!ctx._ended) {
           await ctx.end();
         }
-        await this.emitSync("Webda.Result", ctx);
       } catch (err) {
         await this.emitSync("Webda.Result", ctx);
         if (typeof err === "number") {

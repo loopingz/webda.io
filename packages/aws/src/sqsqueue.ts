@@ -100,11 +100,11 @@ export default class SQSQueue extends AWSMixIn(Queue) {
       .catch(err => {
         if (err.code === "AWS.SimpleQueueService.NonExistentQueue") {
           this._webda.log("ERROR", "Creating SQS queue", queue.name);
-          return sqs
-            .createQueue({
-              QueueName: queue.name
-            })
-            .promise();
+          let params = this._params.createQueueParameters || {};
+          if (queue.name) {
+            params.QueueName = queue.name;
+          }
+          return sqs.createQueue(params).promise();
         }
       });
   }

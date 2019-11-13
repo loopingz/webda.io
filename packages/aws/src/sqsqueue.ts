@@ -36,6 +36,9 @@ export default class SQSQueue extends AWSMixIn(Queue) {
   async sendMessage(params) {
     var sqsParams: any = {};
     sqsParams.QueueUrl = this._params.queue;
+    if (this._params.MessageGroupId) {
+      sqsParams.MessageGroupId = this._params.MessageGroupId;
+    }
     sqsParams.MessageBody = JSON.stringify(params);
 
     return this.sqs.sendMessage(sqsParams).promise();
@@ -44,7 +47,8 @@ export default class SQSQueue extends AWSMixIn(Queue) {
   async receiveMessage() {
     let queueArg = {
       QueueUrl: this._params.queue,
-      WaitTimeSeconds: this._params.WaitTimeSeconds
+      WaitTimeSeconds: this._params.WaitTimeSeconds,
+      AttributeNames: ["MessageGroupId"]
     };
     let data = await this.sqs.receiveMessage(queueArg).promise();
     return data.Messages || [];

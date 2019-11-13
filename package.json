@@ -42,7 +42,8 @@
     "webda-module": "lerna run webda-module",
     "build": "lerna run build",
     "test": "lerna run test",
-    "new-version": "lerna version"
+    "new-version": "lerna version",
+    "lerna:publish": "lerna publish"
   },
   "command": {
     "publish": {

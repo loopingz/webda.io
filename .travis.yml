@@ -21,7 +21,7 @@ after_success:
   - sonar-scanner
 deploy:
   provider: script
-  script: "yarn run lerna:publish from-git"
+  script: "yarn run lerna:publish from-git --yes"
   skip_cleanup: true
   tag: next
   on:

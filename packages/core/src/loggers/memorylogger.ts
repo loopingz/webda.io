@@ -1,4 +1,4 @@
-import { Logger } from "../index";
+import { Logger } from "./logger";
 
 interface LogEntry {
   level: string;

@@ -12,13 +12,16 @@ class VoidStore extends Webda.Store {
   init() {
     if (this._params.brokenInit) throw Error();
     this._addRoute("/broken/{type}", "GET", this._brokenRoute);
+    this._addRoute("/", ["GET", "POST"], this._default);
+    this._addRoute("/urltemplate/{id}", "GET", this._template);
   }
 
+  _template() {}
+
+  _default(ctx) {}
+
   checkRequest(context) {
-    if (
-      context.getHttpContext().uri === "/bouzouf/route" &&
-      context.getHttpContext().host === "csrf.com"
-    ) {
+    if (context.getHttpContext().uri === "/bouzouf/route" && context.getHttpContext().host === "csrf.com") {
       return true;
     }
     return false;

@@ -1,6 +1,7 @@
 "use strict";
-import { Store, CoreModel } from "../index";
 import * as fs from "fs";
+import { CoreModel } from "../models/coremodel";
+import { Store } from "./store";
 
 /**
  * Simple file storage of object
@@ -52,24 +53,13 @@ class FileStore<T extends CoreModel> extends Store<T> {
     return Promise.resolve(object);
   }
 
-  async _upsertItemToCollection(
-    uid,
-    prop,
-    item,
-    index,
-    itemWriteCondition,
-    itemWriteConditionField,
-    updateDate: Date
-  ) {
+  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     let res = await this._get(uid);
     if (res === undefined) {
       throw Error("NotFound");
     }
     if (index === undefined) {
-      if (
-        itemWriteCondition !== undefined &&
-        res[prop].length !== itemWriteCondition
-      ) {
+      if (itemWriteCondition !== undefined && res[prop].length !== itemWriteCondition) {
         throw Error("UpdateCondition not met");
       }
       if (res[prop] === undefined) {
@@ -78,10 +68,7 @@ class FileStore<T extends CoreModel> extends Store<T> {
         res[prop].push(item);
       }
     } else {
-      if (
-        itemWriteCondition &&
-        res[prop][index][itemWriteConditionField] != itemWriteCondition
-      ) {
+      if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
         throw Error("UpdateCondition not met");
       }
       res[prop][index] = item;
@@ -96,23 +83,13 @@ class FileStore<T extends CoreModel> extends Store<T> {
     await this._save(res);
   }
 
-  async _deleteItemFromCollection(
-    uid,
-    prop,
-    index,
-    itemWriteCondition,
-    itemWriteConditionField,
-    updateDate: Date
-  ) {
+  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     let res = await this._get(uid);
     if (res === undefined) {
       throw Error("NotFound");
     }
 
-    if (
-      itemWriteCondition &&
-      res[prop][index][itemWriteConditionField] != itemWriteCondition
-    ) {
+    if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
       throw Error("UpdateCondition not met");
     }
     res[prop].splice(index, 1);
@@ -122,11 +99,7 @@ class FileStore<T extends CoreModel> extends Store<T> {
 
   async _delete(uid, writeCondition) {
     let res = await this._get(uid);
-    if (
-      writeCondition &&
-      res &&
-      res[this._writeConditionField] != writeCondition
-    ) {
+    if (writeCondition && res && res[this._writeConditionField] != writeCondition) {
       return Promise.reject(Error("UpdateCondition not met"));
     }
     if (res) {
@@ -232,8 +205,7 @@ class FileStore<T extends CoreModel> extends Store<T> {
       description:
         "Implements user registration and login using either email or OAuth, it handles for now Facebook, Google, Amazon, GitHub, Twitter\nIt needs a Idents and a Users Store to work",
       webcomponents: [],
-      documentation:
-        "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
+      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
       logo: "images/icons/filedb.png",
       configuration: {
         default: {

@@ -1,5 +1,7 @@
-import { Binary, _extend, Context } from "../index";
 import * as fs from "fs";
+import { _extend } from "../index";
+import { Context } from "../utils/context";
+import { Binary } from "./binary";
 
 /**
  * FileBinary handles the storage of binary on a hard drive
@@ -74,9 +76,7 @@ class FileBinary extends Binary {
 
   getPutUrl(ctx: Context) {
     // Get a full URL, this method should be in a Route Object
-    return ctx
-      .getHttpContext()
-      .getFullUrl(this._url + "/upload/data/" + ctx.getRequestBody().hash);
+    return ctx.getHttpContext().getFullUrl(this._url + "/upload/data/" + ctx.getRequestBody().hash);
   }
 
   /**
@@ -103,14 +103,7 @@ class FileBinary extends Binary {
     // Get the target object to add the mapping
     let targetStore = this._verifyMapAndStore(ctx);
     let object = await targetStore.get(uid);
-    await this.updateSuccess(
-      targetStore,
-      object,
-      property,
-      "add",
-      body,
-      body.metadatas
-    );
+    await this.updateSuccess(targetStore, object, property, "add", body, body.metadatas);
     // Need to store the usage of the file
     if (!fs.existsSync(this._getPath(body.hash))) {
       fs.mkdirSync(this._getPath(body.hash));
@@ -177,12 +170,10 @@ class FileBinary extends Binary {
 
   delete(targetStore, object, property, index) {
     var hash = object[property][index].hash;
-    return this.deleteSuccess(targetStore, object, property, index).then(
-      updated => {
-        this._cleanUsage(hash, object.uuid);
-        return Promise.resolve(updated);
-      }
-    );
+    return this.deleteSuccess(targetStore, object, property, index).then(updated => {
+      this._cleanUsage(hash, object.uuid);
+      return Promise.resolve(updated);
+    });
   }
 
   challenge(hash, challenge) {
@@ -207,9 +198,7 @@ class FileBinary extends Binary {
     }
     // Store the challenge
     this._touch(this._getPath(file.hash, "_" + file.challenge));
-    this._touch(
-      this._getPath(file.hash, targetStore._name + "_" + object.uuid)
-    );
+    this._touch(this._getPath(file.hash, targetStore._name + "_" + object.uuid));
   }
 
   store(targetStore, object, property, file, metadatas, index = "add") {
@@ -217,27 +206,11 @@ class FileBinary extends Binary {
     this._prepareInput(file);
     file = _extend(file, this._getHashes(file.buffer));
     if (fs.existsSync(this._getPath(file.hash))) {
-      this._touch(
-        this._getPath(file.hash, targetStore._name + "_" + object.uuid)
-      );
-      return this.updateSuccess(
-        targetStore,
-        object,
-        property,
-        "add",
-        file,
-        metadatas
-      );
+      this._touch(this._getPath(file.hash, targetStore._name + "_" + object.uuid));
+      return this.updateSuccess(targetStore, object, property, "add", file, metadatas);
     }
     this._store(file, targetStore, object);
-    return this.updateSuccess(
-      targetStore,
-      object,
-      property,
-      "add",
-      file,
-      metadatas
-    );
+    return this.updateSuccess(targetStore, object, property, "add", file, metadatas);
   }
 
   update(targetStore, object, property, index, file, metadatas) {
@@ -245,36 +218,17 @@ class FileBinary extends Binary {
     this._prepareInput(file);
     file = _extend(file, this._getHashes(file.buffer));
     if (fs.existsSync(this._getPath(file.hash))) {
-      this._touch(
-        this._getPath(file.hash, targetStore._name + "_" + object.uuid)
-      );
-      return this.updateSuccess(
-        targetStore,
-        object,
-        property,
-        index,
-        file,
-        metadatas
-      );
+      this._touch(this._getPath(file.hash, targetStore._name + "_" + object.uuid));
+      return this.updateSuccess(targetStore, object, property, index, file, metadatas);
     }
     this._store(file, targetStore, object);
-    return this.updateSuccess(
-      targetStore,
-      object,
-      property,
-      index,
-      file,
-      metadatas
-    );
+    return this.updateSuccess(targetStore, object, property, index, file, metadatas);
   }
 
   ___cleanData() {
     var ids = fs.readdirSync(this._params.folder);
     for (var i in ids) {
       var hash = ids[i];
-      if (!fs.existsSync(this._params.folder + hash)) {
-        continue;
-      }
       var files = fs.readdirSync(this._params.folder + hash);
       for (var file in files) {
         fs.unlinkSync(this._params.folder + hash + "/" + files[file]);
@@ -290,8 +244,7 @@ class FileBinary extends Binary {
       label: "File Storage",
       description: "Implements storage of files on the server filesystem",
       webcomponents: [],
-      documentation:
-        "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
+      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
       logo: "images/icons/filestorage.png",
       configuration: {
         default: {

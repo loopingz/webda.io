@@ -1,6 +1,6 @@
 "use strict";
 import events = require("events");
-import { Core } from "../index";
+import { Context, Core } from "../index";
 
 /**
  * Use this object for representing a service in the application
@@ -18,6 +18,7 @@ class Service extends events.EventEmitter {
   _params: any;
   _createException: string;
   _initTime: number;
+  _initException: any = undefined;
   /**
    *
    *
@@ -36,7 +37,51 @@ class Service extends events.EventEmitter {
 
   resolve() {
     this.normalizeParams();
+    this.initRoutes();
+    this._webda.initBeanRoutes(this);
   }
+
+  /**
+   * Add a route dynamicaly
+   *
+   * @param {String} url of the route can contains dynamic part like {uuid}
+   * @param {Array[]} methods
+   * @param {Function} executer Method to execute for this route
+   */
+  _addRoute(url: string, methods: string[], executer: Function, swagger: object = {}, allowPath: boolean = false) {
+    let info: any = {};
+    info._method = executer;
+    info.method = methods;
+    info.executor = this._name;
+    info.allowPath = allowPath;
+    info.swagger = swagger;
+    this._webda.addRoute(url, info);
+  }
+
+  /**
+   * Main method called by the webda framework if the route don't specify a _method
+   */
+  execute(ctx: Context): Promise<any> {
+    if (typeof ctx._route._method === "function") {
+      return new Promise((resolve, reject) => {
+        resolve(this[ctx._route._method.name](ctx));
+      });
+    }
+    return Promise.reject(Error("Not implemented"));
+  }
+
+  /**
+   * Use this method to enhance the context if needed
+   *
+   */
+  updateContext(ctx: Context) {
+    ctx.setExecutor(this);
+  }
+
+  /**
+   * Init the routes
+   */
+  initRoutes() {}
 
   /**
    * Convert an object to JSON using the Webda json filter
@@ -108,13 +153,8 @@ class Service extends events.EventEmitter {
    * @param callback
    * @param queue Name of queue to use, can be undefined, queue name are used to define differents priorities
    */
-  onAsync(event, callback, queue) {
-    (<any>this._webda.getService("AsyncEvents")).bindAsyncListener(
-      this,
-      event,
-      callback,
-      queue
-    );
+  onAsync(event, callback, queue: string = undefined) {
+    (<any>this._webda.getService("AsyncEvents")).bindAsyncListener(this, event, callback, queue);
   }
 
   /**

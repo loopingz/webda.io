@@ -1,7 +1,5 @@
-import { Core, Executor } from "./index";
 import * as assert from "assert";
-import { Context, HttpContext } from "./index";
-import { readFileSync } from "fs";
+import { Context, Core, HttpContext, Service } from "./index";
 
 class WebdaTest {
   webda: Core;
@@ -11,9 +9,7 @@ class WebdaTest {
   }
 
   protected buildWebda() {
-    this.webda = new Core(
-      JSON.parse(readFileSync(this.getTestConfiguration()).toString())
-    );
+    this.webda = new Core(this.getTestConfiguration());
   }
   async before(init: boolean = true) {
     this.buildWebda();
@@ -23,24 +19,24 @@ class WebdaTest {
   }
 
   async newContext(body: any = {}): Promise<Context> {
-    let res = await this.webda.newContext(
-      new HttpContext("test.webda.io", "GET", "/")
-    );
+    let res = await this.webda.newContext(new HttpContext("test.webda.io", "GET", "/"));
     res.getHttpContext().setBody(body);
     return res;
   }
 
   getExecutor(
-    ctx: Context,
+    ctx: Context = undefined,
     host: string = "test.webda.io",
     method: string = "GET",
-    url: string,
+    url: string = "/",
     body: object = {},
     headers: object = {}
-  ): Executor {
-    ctx.setHttpContext(
-      new HttpContext(host, method, url, "http", 80, body, headers)
-    );
+  ): Service {
+    if (!ctx) {
+      ctx = new Context(this.webda, new HttpContext(host, method, url, "http", 80, body, headers));
+    } else {
+      ctx.setHttpContext(new HttpContext(host, method, url, "http", 80, body, headers));
+    }
     return this.webda.getExecutorWithContext(ctx);
   }
 

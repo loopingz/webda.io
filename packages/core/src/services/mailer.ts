@@ -1,9 +1,8 @@
 "use strict";
-import { Service } from "../index";
-import * as nodemailer from "nodemailer";
-import * as fs from "fs";
-import * as Mustache from "mustache"; // Import as it is our default templates engine
 import * as Email from "email-templates";
+import * as fs from "fs";
+import * as nodemailer from "nodemailer";
+import { Service } from "./service";
 
 interface IEmailTemplate {
   renderAll(file: string, options: any);
@@ -83,10 +82,7 @@ class Mailer extends Service {
    */
   async send(options, callback = undefined): Promise<any> {
     if (this._transporter === undefined) {
-      this._webda.log(
-        "ERROR",
-        "Cannot send email as no transporter is defined"
-      );
+      this._webda.log("ERROR", "Cannot send email as no transporter is defined");
       return Promise.reject("Cannot send email as no transporter is defined");
     }
     if (!options.from) {
@@ -99,10 +95,7 @@ class Mailer extends Service {
       options.replacements.now = new Date();
       let template = this._getTemplate(options.template);
       if (template) {
-        let result = await template.renderAll(
-          options.template,
-          options.replacements
-        );
+        let result = await template.renderAll(options.template, options.replacements);
         if (result.subject) {
           options.subject = result.subject;
         }

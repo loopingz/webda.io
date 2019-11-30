@@ -1,47 +1,118 @@
-import * as uriTemplates from "uri-templates";
-import * as fs from "fs";
-import * as vm from "vm";
 import * as Ajv from "ajv";
-import * as path from "path";
 import * as events from "events";
+import * as fs from "fs";
+import * as jsonpath from "jsonpath";
+import * as path from "path";
+import * as vm from "vm";
 import {
-  Store,
-  Service,
-  Executor,
-  MemoryStore,
-  FileStore,
   Authentication,
-  CoreModel,
-  Ident,
-  User,
-  DebugMailer,
-  Mailer,
-  MemoryQueue,
-  EventService,
-  ResourceService,
-  FileBinary,
-  Logger,
-  ConsoleLogger,
-  MemoryLogger,
   ConfigurationService,
+  ConsoleLogger,
   Context,
+  Core,
+  CoreModel,
+  DebugMailer,
+  EventService,
+  FileBinary,
+  FileStore,
+  HttpContext,
+  Ident,
+  Logger,
+  Mailer,
+  MemoryLogger,
+  MemoryQueue,
+  MemoryStore,
+  ResourceService,
   SecureCookie,
+  Service,
   SessionCookie,
-  HttpContext
+  Store,
+  User
 } from "./index";
 import { CoreModelDefinition } from "./models/coremodel";
-import * as jsonpath from "jsonpath";
+import { Router } from "./router";
 /**
  * @hidden
  */
 const _extend = require("util")._extend;
 
-interface Configuration {
+export interface Module {
+  services: { [key: string]: string };
+  models: { [key: string]: string };
+  deployers: { [key: string]: string };
+}
+
+export interface ConfigurationV1 {
+  version: number;
+  cachedModules?: Module;
+  models?: any;
+  services?: any;
+  [key: string]: any;
+}
+
+export interface Configuration {
+  version: number;
+  cachedModules?: Module;
+  module: Module;
+  services?: any;
   [key: string]: any;
 }
 
 export interface RequestFilter {
   checkRequest(context: Context): Promise<boolean>;
+}
+
+export class OriginFilter implements RequestFilter {
+  origins: string[];
+  constructor(origins: string[]) {
+    this.origins = origins;
+  }
+  async checkRequest(context: Context): Promise<boolean> {
+    let httpContext = context.getHttpContext();
+    for (let i in this.origins) {
+      let origin = this.origins[i];
+      if (!origin.endsWith("$")) {
+        origin += "$";
+      }
+      if (!origin.startsWith("^")) {
+        origin = "^" + origin;
+      }
+      let regexp = new RegExp(origin);
+      if (httpContext.origin.match(regexp)) {
+        return true;
+      }
+      if (httpContext.root.match(regexp)) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
+export class WebsiteOriginFilter implements RequestFilter {
+  websites: string[] = [];
+  constructor(website: any) {
+    if (!Array.isArray(website)) {
+      if (typeof website === "object") {
+        this.websites.push(website.url);
+      } else {
+        this.websites.push(website);
+      }
+    } else {
+      this.websites = [...website];
+    }
+  }
+  async checkRequest(context: Context): Promise<boolean> {
+    let httpContext = context.getHttpContext();
+    if (
+      this.websites.indexOf(httpContext.root) >= 0 ||
+      this.websites.indexOf(httpContext.origin) >= 0 ||
+      this.websites.indexOf("*") >= 0
+    ) {
+      return true;
+    }
+    return false;
+  }
 }
 
 let beans = {};
@@ -55,18 +126,14 @@ export function Bean(constructor: Function) {
   beans[name] = { ...beans[name], bean: true };
 }
 
-// @Route to declare route on service
+// @Route to declare route on Bean
 export function Route(
   route: string,
   methods: string | string[] = ["GET"],
   allowPath: boolean = false,
   swagger: any = {}
 ) {
-  return function(
-    target: any,
-    executor: string,
-    descriptor: PropertyDescriptor
-  ) {
+  return function(target: any, executor: string, descriptor: PropertyDescriptor) {
     let targetName = target.constructor.name.toLowerCase();
     beans[targetName] = beans[targetName] || {
       constructor: target.constructor
@@ -81,6 +148,129 @@ export function Route(
   };
 }
 
+interface ServiceConstructor {
+  new (webda: Core, name: string, params: any): Service;
+  getModda();
+}
+
+class WebdaDefinition {
+  protected services: { [key: string]: ServiceConstructor } = {};
+  protected models: { [key: string]: Context | CoreModelDefinition } = {};
+  protected webda: Core;
+  protected modules: any = {
+    services: {},
+    models: {}
+  };
+
+  constructor(webda: Core) {
+    this.webda = webda;
+  }
+
+  addService(name: string, service: ServiceConstructor) {
+    this.webda.log("TRACE", "Registering service", name);
+    this.services[name.toLowerCase()] = service;
+  }
+
+  getService(name) {
+    name = name.toLowerCase();
+    if (!this.services[name.toLowerCase()]) {
+      throw Error("Undefined service " + name);
+    }
+    return this.services[name.toLowerCase()];
+  }
+
+  addModel(name: string, model: any) {
+    this.webda.log("TRACE", "Registering model", name);
+    this.models[name.toLowerCase()] = model;
+  }
+
+  getModel(name: string): any {
+    name = name.toLowerCase();
+    if (!this.models[name.toLowerCase()]) {
+      throw Error("Undefined model " + name);
+    }
+    return this.models[name.toLowerCase()];
+  }
+
+  getModels(): { [key: string]: Context | CoreModelDefinition } {
+    return this.models;
+  }
+
+  getModdas(type: any = undefined): any {
+    let result = {};
+    for (let i in this.services) {
+      if (!type || this.services[i].prototype instanceof type) {
+        result[i] = this.services[i].getModda();
+      }
+    }
+  }
+
+  getModules() {
+    return this.modules;
+  }
+
+  loadModules() {
+    const Finder = require("fs-finder");
+    // Modules should be cached on deploy
+    var files = [];
+    if (fs.existsSync("./node_modules")) {
+      files = Finder.from("./node_modules").findFiles("webda.module.json");
+    }
+    if (fs.existsSync(process.cwd() + "/webda.module.json")) {
+      files.push(process.cwd() + "/webda.module.json");
+    }
+    if (files.length) {
+      this.webda.log("DEBUG", "Found modules", files);
+      files.forEach(file => {
+        let info = require(file);
+        this.loadModule(info, path.dirname(file));
+      });
+    }
+  }
+
+  resolveRequire(info: string) {
+    if (info.startsWith(".")) {
+      info = process.cwd() + "/" + info;
+    }
+    try {
+      let serviceConstructor = require(info);
+      if (serviceConstructor.default) {
+        return serviceConstructor.default;
+      } else {
+        return serviceConstructor;
+      }
+    } catch (err) {
+      this.webda.log("WARN", "Cannot resolve require", info);
+      return null;
+    }
+  }
+
+  /**
+   * Load the module,
+   *
+   * @protected
+   * @ignore Useless for documentation
+   */
+  loadModule(info: Module, parent: string) {
+    for (let key in info.services) {
+      let service = this.resolveRequire(path.join(parent, info.services[key]));
+      if (!service) {
+        continue;
+      }
+      this.addService(key, service);
+      this.modules.services[key] = "./" + path.relative(process.cwd(), path.join(parent, info.services[key]));
+    }
+    for (let key in info.models) {
+      let service = this.resolveRequire(path.join(parent, info.models[key]));
+      if (!service) {
+        continue;
+      }
+      this.addModel(key, service);
+      this.modules.models[key] = "./" + path.relative(process.cwd(), path.join(parent, info.models[key]));
+    }
+  }
+}
+
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
  *
@@ -91,33 +281,22 @@ class Webda extends events.EventEmitter {
    * Webda Services
    * @hidden
    */
-  public _services: Map<string, Service> = new Map(); // TODO Close to protected
+  protected services: { [key: string]: Service } = {};
+  protected definitions: WebdaDefinition = new WebdaDefinition(this);
+  protected router: Router = new Router(this);
+  protected _initiated: boolean = false;
+  protected appPath: string = undefined;
+  protected failedServices: { [key: string]: any } = {};
   /**
    * Init promise to ensure, webda is initiated
    * Used for init() method
    */
   protected _init: Promise<void>;
   /**
-   * Known modules
-   * @hidden
-   */
-  public _modules: any; // TODO Close to protected
-  /**
    * Configuration loaded from webda.config.json
    * @hidden
    */
-  public _config: Configuration; // TODO Close to protected
-  /**
-   * Old route helpers to allow direct URL behaviors
-   *
-   * It is not **deprecated** per say but we advise to use [[Service]] instead
-   */
-  protected _routehelpers: any;
-  /**
-   * Models that can be retrieved with [[Webda.getModel]]
-   * @hidden
-   */
-  public _models: Map<string, CoreModelDefinition> = new Map(); // TODO Close to protected
+  protected configuration: Configuration;
   /**
    * JSON Schema validator instance
    */
@@ -137,13 +316,13 @@ class Webda extends events.EventEmitter {
    * Loggers registry
    * @hidden
    */
-  public _loggers: Logger[] = []; // TODO Close to protected
+  protected _loggers: Logger[] = [];
   protected _initTime: number;
   /**
    * Console logger
    * @hidden
    */
-  public _logger: ConsoleLogger; // TODO Close to protected
+  protected _logger: Logger;
   /**
    * CORS Filter registry
    *
@@ -155,7 +334,7 @@ class Webda extends events.EventEmitter {
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
    */
-  constructor(config = undefined) {
+  constructor(config: string | Configuration = undefined, appPath: string = undefined) {
     /** @ignore */
     super();
     this._initTime = new Date().getTime();
@@ -169,50 +348,57 @@ class Webda extends events.EventEmitter {
     // Schema validations
     this._ajv = Ajv();
     this._ajvSchemas = {};
-    // on the spot routehelpers
-    this._routehelpers = {};
-    this._routehelpers["debug"] = Executor;
-    this._routehelpers[
-      "inline"
-    ] = require("./routehelpers/inline").InlineRouteHelper;
-    this._routehelpers[
-      "string"
-    ] = require("./routehelpers/string").StringRouteHelper;
-    this._routehelpers[
-      "resource"
-    ] = require("./routehelpers/resource").ResourceRouteHelper;
-    this._routehelpers["file"] = require("./routehelpers/file").FileRouteHelper;
 
     // real service - modda
-    this._services["Webda/Authentication"] = Authentication;
-    this._services["Webda/FileStore"] = FileStore;
-    this._services["Webda/MemoryStore"] = MemoryStore;
-    this._services["Webda/FileBinary"] = FileBinary;
-    this._services["Webda/DebugMailer"] = DebugMailer;
-    this._services["Webda/Mailer"] = Mailer;
-    this._services["Webda/AsyncEvents"] = EventService;
-    this._services["Webda/ResourceService"] = ResourceService;
-    this._services["Webda/MemoryQueue"] = MemoryQueue;
-    this._services["Webda/MemoryLogger"] = MemoryLogger;
-    this._services["Webda/ConsoleLogger"] = ConsoleLogger;
-    this._services["Webda/ConfigurationService"] = ConfigurationService;
+    this.definitions.addService("Webda/Authentication", Authentication);
+    this.definitions.addService("Webda/FileStore", FileStore);
+    this.definitions.addService("Webda/MemoryStore", MemoryStore);
+    this.definitions.addService("Webda/FileBinary", FileBinary);
+    this.definitions.addService("Webda/DebugMailer", DebugMailer);
+    this.definitions.addService("Webda/Mailer", Mailer);
+    this.definitions.addService("Webda/AsyncEvents", EventService);
+    this.definitions.addService("Webda/ResourceService", ResourceService);
+    this.definitions.addService("Webda/MemoryQueue", MemoryQueue);
+    this.definitions.addService("Webda/MemoryLogger", MemoryLogger);
+    this.definitions.addService("Webda/ConsoleLogger", ConsoleLogger);
+    this.definitions.addService("Webda/ConfigurationService", ConfigurationService);
     // Models
-    this._models["Webda/CoreModel"] = CoreModel;
-    this._models["Webda/Ident"] = Ident;
-    this._models["Webda/User"] = User;
+    this.definitions.addModel("Webda/CoreModel", CoreModel);
+    this.definitions.addModel("Webda/CoreModel", CoreModel);
+    this.definitions.addModel("Webda/Ident", Ident);
+    this.definitions.addModel("Webda/User", User);
     // Context
-    this._models["WebdaCore/Context"] = Context;
-    this._models["WebdaCore/SessionCookie"] = SessionCookie;
-    this._models["WebdaCore/SecureCookie"] = SecureCookie;
-    // Load the configuration
-    this._config = this.loadConfiguration(config);
-    if (!this._config.version) {
-      this._config = this.migrateConfig(this._config);
+    this.definitions.addModel("WebdaCore/Context", Context);
+    this.definitions.addModel("WebdaCore/SessionCookie", SessionCookie);
+    this.definitions.addModel("WebdaCore/SecureCookie", SecureCookie);
+    // Load the configuration and migrate
+    this.configuration = this.loadConfiguration(config);
+    if (!this.configuration.version) {
+      this.configuration = this.migrateV0Config(this.configuration);
+    }
+    if (this.configuration.version == 1) {
+      this.configuration = this.migrateV1Config(this.configuration);
+    }
+    // Add CSRF origins filtering
+    if (this.configuration.parameters.csrfOrigins) {
+      this.registerRequestFilter(new OriginFilter(this.configuration.parameters.csrfOrigins));
+    }
+    // Add CSRF website filtering
+    if (this.configuration.parameters.website) {
+      this.registerRequestFilter(new WebsiteOriginFilter(this.configuration.parameters.website));
     }
     // Load modules
     this._loadModules();
 
     this.initStatics();
+  }
+
+  getAppPath(): string {
+    return this.appPath;
+  }
+
+  setConsoleLogger(logger: Logger) {
+    this._logger = logger;
   }
 
   /**
@@ -229,6 +415,13 @@ class Webda extends events.EventEmitter {
   }
 
   /**
+   * Retrieve all detected modules definition
+   */
+  getModules() {
+    return this.definitions.getModules();
+  }
+
+  /**
    * Init Webda
    *
    * It will resolve Services init method and autolink
@@ -242,24 +435,22 @@ class Webda extends events.EventEmitter {
     this._init = new Promise(async resolve => {
       // Init services
       let service;
-      for (service in this._config._services) {
-        if (
-          this._config._services[service].init !== undefined &&
-          !this._config._services[service]._createException
-        ) {
+      for (service in this.services) {
+        if (this.services[service].init !== undefined && !this.services[service]._createException) {
           try {
             // TODO Define parralel initialization
             this.log("TRACE", "Initializing service", service);
-            this.initBeanRoutes(this._config._services[service]);
-            await this._config._services[service].init();
+            this.initBeanRoutes(this.services[service]);
+            await this.services[service].init();
           } catch (err) {
-            this._config._services[service]._initException = err;
+            this.services[service]._initException = err;
+            this.failedServices[service] = { _initException: err };
             this.log("ERROR", "Init service " + service + " failed", err);
             this.log("TRACE", err.stack);
           }
         }
       }
-      this.emit("Webda.Init.Services", this._config._services);
+      this.emit("Webda.Init.Services", this.services);
       resolve();
     });
     return this._init;
@@ -276,53 +467,14 @@ class Webda extends events.EventEmitter {
    * @ignore Useless for documentation
    */
   _loadModules() {
-    if (this._config.cachedModules) {
-      for (let key in this._config.cachedModules.services) {
-        let servicePath = this._config.cachedModules.services[key];
-        if (servicePath.startsWith(".")) {
-          servicePath = process.cwd() + "/" + servicePath;
-        }
-        let serviceConstructor = require(servicePath);
-        if (serviceConstructor.default) {
-          this._services[key] = serviceConstructor.default;
-        } else {
-          this._services[key] = serviceConstructor;
-        }
-      }
-      for (let key in this._config.cachedModules.models) {
-        let modelPath = this._config.cachedModules.models[key];
-        if (modelPath.startsWith(".")) {
-          modelPath = process.cwd() + "/" + modelPath;
-        }
-        let model = require(modelPath);
-        if (model.default) {
-          this._models[key] = model.default;
-        } else {
-          this._models[key] = model;
-        }
-      }
+    if (this.configuration.module) {
+      this.definitions.loadModule(this.configuration.module, this.appPath);
+    }
+    if (this.configuration.cachedModules) {
+      this.definitions.loadModule(this.configuration.cachedModules, this.appPath);
       return;
     }
-    this._modules = {
-      services: {},
-      models: {}
-    };
-    const Finder = require("fs-finder");
-    // Modules should be cached on deploy
-    var files = [];
-    if (fs.existsSync("./node_modules")) {
-      files = Finder.from("./node_modules").findFiles("webda.module.json");
-    }
-    if (fs.existsSync(process.cwd() + "/webda.module.json")) {
-      files.push(process.cwd() + "/webda.module.json");
-    }
-    if (files.length) {
-      this.log("DEBUG", "Found modules", files);
-      files.forEach(file => {
-        let info = require(file);
-        this._loadModule(info, path.dirname(file));
-      });
-    }
+    this.definitions.loadModules();
   }
 
   /**
@@ -331,7 +483,7 @@ class Webda extends events.EventEmitter {
    * @param {String} code to execute
    */
   sandbox(executor, code) {
-    var sandbox: Configuration = {
+    var sandbox: vm.Context = {
       // Should be custom console
       console: console,
       webda: executor._webda,
@@ -348,37 +500,6 @@ class Webda extends events.EventEmitter {
     };
     vm.runInNewContext(code, sandbox);
     return sandbox.module.exports(executor);
-  }
-
-  /**
-   * Load the module,
-   *
-   * @protected
-   * @ignore Useless for documentation
-   */
-  _loadModule(info, parent) {
-    for (let key in info.services) {
-      let mod = require(path.join(parent, info.services[key]));
-      if (mod.default) {
-        this._services[key] = mod.default;
-      } else {
-        this._services[key] = mod;
-      }
-      this._modules.services[key] =
-        "./" +
-        path.relative(process.cwd(), path.join(parent, info.services[key]));
-    }
-    for (let key in info.models) {
-      let mod = require(path.join(parent, info.models[key]));
-      if (mod.default) {
-        this._models[key] = mod.default;
-      } else {
-        this._models[key] = mod;
-      }
-      this._modules.models[key] =
-        "./" +
-        path.relative(process.cwd(), path.join(parent, info.models[key]));
-    }
   }
 
   /**
@@ -411,17 +532,21 @@ class Webda extends events.EventEmitter {
    */
   loadConfiguration(config: any = undefined): Configuration {
     if (typeof config === "object") {
+      this.appPath = this.appPath || process.cwd();
       return config;
     }
     var fs = require("fs");
     if (config !== undefined) {
       if (fs.existsSync(config)) {
-        this.log("INFO", "Load " + config);
+        this.appPath = this.appPath || path.dirname(config);
         return require(config);
+      } else {
+        this.log("WARN", "Configuration file does not exist", config, ": fallback on env variable");
       }
     }
     // Default load from file
     if (process.env.WEBDA_CONFIG == undefined) {
+      this.appPath = this.appPath || process.cwd();
       config = "./webda.config.json";
       if (fs.existsSync(config)) {
         this._configFile = path.resolve(config);
@@ -434,13 +559,14 @@ class Webda extends events.EventEmitter {
       }
     } else {
       this.log("INFO", "Load " + process.env.WEBDA_CONFIG);
+      this.appPath = this.appPath || path.dirname(process.env.WEBDA_CONFIG);
       return require(process.env.WEBDA_CONFIG);
     }
   }
 
-  migrateConfig(config: Configuration): Configuration {
-    this.log("WARN", "Old webda.config.json format, trying to migrate");
-    let newConfig: Configuration = {
+  migrateV0Config(config: any): Configuration {
+    this.log("WARN", "Old V0 webda.config.json format, trying to migrate");
+    let newConfig: any = {
       parameters: {},
       services: {},
       models: {},
@@ -458,6 +584,7 @@ class Webda extends events.EventEmitter {
       newConfig.services = domain.global.services || {};
       newConfig.models = domain.global.models || {};
       newConfig.parameters.locales = domain.global.locales;
+      newConfig.moddas = domain.global.moddas || {};
     }
     for (let i in domain) {
       if (i === "global") continue;
@@ -466,6 +593,25 @@ class Webda extends events.EventEmitter {
     return newConfig;
   }
 
+  migrateV1Config(config: ConfigurationV1): Configuration {
+    this.log("WARN", "Old V1 webda.config.json format, trying to migrate");
+    let newConfig: Configuration = {
+      parameters: config.parameters,
+      services: config.services,
+      module: {
+        services: {},
+        models: { ...config.models },
+        deployers: {}
+      },
+      version: 2
+    };
+    if (config.moddas) {
+      for (let i in config.moddas) {
+        newConfig.module.services[i] = config.moddas[i].require;
+      }
+    }
+    return newConfig;
+  }
   /**
    * Return webda current version
    *
@@ -473,9 +619,7 @@ class Webda extends events.EventEmitter {
    * @since 0.4.0
    */
   getVersion(): string {
-    return JSON.parse(
-      fs.readFileSync(__dirname + "/../package.json").toString()
-    ).version;
+    return JSON.parse(fs.readFileSync(__dirname + "/../package.json").toString()).version;
   }
 
   /**
@@ -484,10 +628,10 @@ class Webda extends events.EventEmitter {
    * @return The configured locales or "en-GB" if none are defined
    */
   getLocales(): string[] {
-    if (!this._config || !this._config.parameters.locales) {
+    if (!this.configuration || !this.configuration.parameters.locales) {
       return ["en-GB"];
     }
-    return this._config.parameters.locales;
+    return this.configuration.parameters.locales;
   }
 
   /**
@@ -497,10 +641,7 @@ class Webda extends events.EventEmitter {
    * @param {Object} info the type of executor
    */
   addRoute(url, info): void {
-    this._config.routes[url] = info;
-    if (this._config._initiated) {
-      this.remapRoutes();
-    }
+    this.router.addRoute(url, info);
   }
 
   /**
@@ -509,24 +650,28 @@ class Webda extends events.EventEmitter {
    * @param {String} url to remove
    */
   removeRoute(url): void {
-    this._config.routes[url] = undefined;
+    this.router.removeRoute(url);
   }
 
+  getRouter() {
+    return this.router;
+  }
   /**
    * Check for a service name and return the wanted singleton or undefined if none found
    *
    * @param {String} name The service name to retrieve
    */
-  getService(name: string): Service {
-    if (!this._config || !name) {
-      return;
-    }
+  getService(name: string = ""): Service {
     name = name.toLowerCase();
-    if (this._config._services !== undefined) {
-      return this._config._services[name];
+    if (this.services !== undefined) {
+      return this.services[name];
     }
   }
 
+  /**
+   * Return a service with this type
+   * @param service typed service
+   */
   getTypedService<T extends Service>(service: string): T {
     return <T>this.getService(service);
   }
@@ -535,8 +680,8 @@ class Webda extends events.EventEmitter {
    * Return a map of defined services
    * @returns {{}}
    */
-  getServices(): Map<string, Service> {
-    return this._config._services || {};
+  getServices(): { [key: string]: Service } {
+    return this.services;
   }
 
   /**
@@ -545,15 +690,7 @@ class Webda extends events.EventEmitter {
    * @returns {{}}
    */
   getModdas(type = undefined) {
-    let result = {};
-    for (let i in this._services) {
-      if (!type) {
-        result[i] = this._services[i].getModda();
-      } else if (this._services[i].prototype instanceof type) {
-        result[i] = this._services[i].getModda();
-      }
-    }
-    return result;
+    return this.definitions.getModdas(type);
   }
 
   /**
@@ -561,21 +698,26 @@ class Webda extends events.EventEmitter {
    * @param type The type of implementation
    * @returns {{}}
    */
-  getServicesImplementations(type): Map<string, Service> {
-    let result = new Map();
-    for (let i in this._config._services) {
-      if (this._config._services[i] instanceof type) {
-        result[i] = this._config._services[i];
+  getServicesImplementations(type = undefined): { [key: string]: Service } {
+    let result = {};
+    for (let i in this.services) {
+      let service = this.services[i];
+      if (!type || service instanceof type) {
+        result[i] = service;
       }
     }
     return result;
+  }
+
+  public getConfiguration() {
+    return this.configuration;
   }
 
   /**
    * Return a map of defined stores
    * @returns {{}}
    */
-  getStores(): Map<string, Service> {
+  getStores(): { [key: string]: Service } {
     return this.getServicesImplementations(Store);
   }
 
@@ -583,15 +725,15 @@ class Webda extends events.EventEmitter {
    * Return a map of defined models
    * @returns {{}}
    */
-  getModels(): Map<string, CoreModelDefinition> {
-    return this._config._models || {};
+  getModels(): { [key: string]: CoreModelDefinition } {
+    return <{ [key: string]: CoreModelDefinition }>this.definitions.getModels();
   }
 
   /**
    * Register model
    */
   registerModel(name: string, clazz) {
-    this._config._models[name.toLowerCase()] = clazz;
+    this.definitions.addModel(name, clazz);
   }
 
   /**
@@ -600,82 +742,7 @@ class Webda extends events.EventEmitter {
    * @param {String} name The model name to retrieve
    */
   getModel(name): any {
-    if (!this._config || !name) {
-      throw Error("Undefined model " + name);
-    }
-    name = name.toLowerCase();
-    if (
-      this._config._models !== undefined &&
-      this._config._models[name] !== undefined
-    ) {
-      return this._config._models[name];
-    }
-    throw Error("Undefined model " + name);
-  }
-
-  /**
-   * Get all method for a specific url
-   * @param config
-   * @param method
-   * @param url
-   */
-  getRouteMethodsFromUrl(url): string[] {
-    let config = this._config;
-    let methods = [];
-    for (let i in config._pathMap) {
-      var routeUrl = config._pathMap[i].url;
-      var map = config._pathMap[i].config;
-
-      if (
-        routeUrl !== url &&
-        (map["_uri-template-parse"] === undefined ||
-          map["_uri-template-parse"].fromUri(url) === undefined)
-      ) {
-        continue;
-      }
-
-      if (Array.isArray(map["method"])) {
-        methods = methods.concat(map["method"]);
-      } else {
-        methods.push(map["method"]);
-      }
-    }
-    return methods;
-  }
-
-  /**
-   * Get the route from a method / url
-   */
-  private getRouteFromUrl(ctx: Context, config, method, url): any {
-    for (let i in config._pathMap) {
-      var routeUrl = config._pathMap[i].url;
-      var map = config._pathMap[i].config;
-
-      // Check method
-      if (Array.isArray(map["method"])) {
-        if (map["method"].indexOf(method) === -1) {
-          continue;
-        }
-      } else if (map["method"] !== method) {
-        continue;
-      }
-
-      if (routeUrl === url) {
-        ctx.setServiceParameters(config.parameters);
-        return map;
-      }
-
-      if (map["_uri-template-parse"] === undefined) {
-        continue;
-      }
-      var parse_result = map["_uri-template-parse"].fromUri(url);
-      if (parse_result !== undefined) {
-        ctx.setServiceParameters(config.parameters);
-        ctx.setPathParameters(parse_result);
-
-        return map;
-      }
-    }
+    return this.definitions.getModel(name);
   }
 
   /**
@@ -690,44 +757,10 @@ class Webda extends events.EventEmitter {
    * @param {String} port Port can be usefull for auto redirection
    * @param {Object} headers The headers of the request
    */
-  getExecutorWithContext(ctx: Context): Executor {
+  getExecutorWithContext(ctx: Context): Service {
     let http = ctx.getHttpContext();
     // Check mapping
-    var route = this.getRouteFromUrl(
-      ctx,
-      this._config,
-      http.getMethod(),
-      http.getUrl()
-    );
-    if (route === undefined) {
-      return;
-    }
-    return this.getServiceWithRoute(ctx, route);
-  }
-
-  /**
-   * Get the executor corresponding to a request
-   * It can be usefull in unit test so you can test the all stack
-   *
-   * @protected
-   * @param {String} vhost The host for the request
-   * @param {String} method The http method
-   * @param {String} url The url path
-   * @param {String} protocol http or https
-   * @param {String} port Port can be usefull for auto redirection
-   * @param {Object} headers The headers of the request
-   */
-  protected getExecutor(
-    ctx: Context,
-    vhost: string,
-    method: string,
-    url: string,
-    protocol: string,
-    port: number = 80,
-    headers = {}
-  ): Executor {
-    // Check mapping
-    var route = this.getRouteFromUrl(ctx, this._config, method, url);
+    var route = this.router.getRouteFromUrl(ctx, http.getMethod(), http.getUrl());
     if (route === undefined) {
       return;
     }
@@ -745,7 +778,7 @@ class Webda extends events.EventEmitter {
    */
   public getSecret(): string {
     // For now a static config file but should have a rolling service secret
-    return this._config.parameters.sessionSecret;
+    return this.configuration.parameters.sessionSecret;
   }
 
   /**
@@ -755,41 +788,21 @@ class Webda extends events.EventEmitter {
    */
   public getSalt(): string {
     // For now a static config file but should have a rolling service secret
-    return this._config.parameters.salt;
+    return this.configuration.parameters.salt;
   }
 
   /**
    * @hidden
    */
-  protected getServiceWithRoute(ctx: Context, route): Executor {
+  protected getServiceWithRoute(ctx: Context, route): Service {
     var name = route.executor;
-    var executor = <Executor>this.getService(name);
-    // If no service is found then check for routehelpers
-    if (executor === undefined && this._routehelpers[name] !== undefined) {
-      executor = new this._routehelpers[name](
-        this,
-        name,
-        _extend(_extend({}, this._config.parameters), route)
-      );
-    }
+    var executor = this.getService(name);
     if (executor === undefined) {
       return;
     }
-    ctx.setRoute(this.extendParams(route, this._config));
+    ctx.setRoute(this.extendParams(route, this.configuration));
     executor.updateContext(ctx);
     return executor;
-  }
-
-  /**
-   * @hidden
-   */
-  protected initURITemplates(config: Configuration): void {
-    // Prepare tbe URI parser
-    for (var map in config) {
-      if (map.indexOf("{") != -1) {
-        config[map]["_uri-template-parse"] = uriTemplates(map);
-      }
-    }
   }
 
   /**
@@ -822,30 +835,27 @@ class Webda extends events.EventEmitter {
    * Return the global parameters of a domain
    */
   public getGlobalParams(): any {
-    return this._config.parameters || {};
+    return this.configuration.parameters || {};
   }
 
-  public async reinit(updates: Map<string, any>): Promise<void> {
-    let configuration = JSON.parse(JSON.stringify(this._config.services));
+  public async reinit(updates: any): Promise<void> {
+    let configuration = JSON.parse(JSON.stringify(this.configuration.services));
     for (let service in updates) {
       jsonpath.value(configuration, service, updates[service]);
     }
-    if (
-      JSON.stringify(Object.keys(configuration)) !==
-      JSON.stringify(Object.keys(this._config.services))
-    ) {
+    if (JSON.stringify(Object.keys(configuration)) !== JSON.stringify(Object.keys(this.configuration.services))) {
       this.log("ERROR", "Configuration update cannot modify services");
       return this._initPromise;
     }
-    this._config.services = configuration;
-    for (let service in this._config._services) {
+    this.configuration.services = configuration;
+    for (let service in this.services) {
       try {
         // TODO Define parralel initialization
         this.log("TRACE", "Re-Initializing service", service);
-        let serviceBean = this._config._services[service];
+        let serviceBean = this.services[service];
         await serviceBean.reinit(this.getServiceParams(serviceBean._name));
       } catch (err) {
-        this._config._services[service]._reinitException = err;
+        this.configuration._services[service]._reinitException = err;
         this.log("ERROR", "Re-Init service " + service + " failed", err);
         this.log("TRACE", err.stack);
       }
@@ -853,10 +863,7 @@ class Webda extends events.EventEmitter {
   }
 
   protected getServiceParams(service: string): any {
-    var params = this.extendParams(
-      this._config.services[service],
-      this._config.parameters
-    );
+    var params = this.extendParams(this.configuration.services[service], this.configuration.parameters);
     delete params.require;
     return params;
   }
@@ -865,9 +872,9 @@ class Webda extends events.EventEmitter {
    *
    */
   protected createServices(excludes: string[] = []): void {
-    var services = this._config.services;
-    if (this._config._services === undefined) {
-      this._config._services = {};
+    var services = this.configuration.services;
+    if (this.services === undefined) {
+      this.services = {};
     }
     if (services === undefined) {
       services = {};
@@ -884,7 +891,7 @@ class Webda extends events.EventEmitter {
       // Force type to Bean
       services[name].type = `Beans/${name}`;
       // Register the type
-      this._services[`Beans/${name}`] = beans[i].constructor;
+      this.definitions.addService(`Beans/${name}`, beans[i].constructor);
     }
 
     let service;
@@ -902,10 +909,10 @@ class Webda extends events.EventEmitter {
       }
       var include = services[service].require;
       var serviceConstructor = undefined;
-      if (include === undefined) {
-        serviceConstructor = this._services[type];
-      } else {
-        try {
+      try {
+        if (include === undefined) {
+          serviceConstructor = this.definitions.getService(type);
+        } else {
           if (typeof include === "string") {
             if (include.startsWith("./")) {
               include = process.cwd() + "/" + include;
@@ -917,11 +924,11 @@ class Webda extends events.EventEmitter {
           } else {
             serviceConstructor = include;
           }
-        } catch (ex) {
-          this.log("ERROR", "Create service " + service + " failed");
-          this.log("TRACE", ex.stack);
-          continue;
         }
+      } catch (ex) {
+        this.log("ERROR", "Create service " + service + " failed");
+        this.log("TRACE", ex.stack);
+        continue;
       }
       if (serviceConstructor === undefined) {
         this.log("ERROR", "No constructor found for service " + service);
@@ -930,23 +937,20 @@ class Webda extends events.EventEmitter {
 
       try {
         this.log("TRACE", "Constructing service", service);
-        this._config._services[service.toLowerCase()] = new serviceConstructor(
-          this,
-          service,
-          this.getServiceParams(service)
-        );
-        if (this._config._services[service.toLowerCase()] instanceof Logger) {
-          this._loggers.push(this._config._services[service.toLowerCase()]);
+        this.services[service.toLowerCase()] = new serviceConstructor(this, service, this.getServiceParams(service));
+        if (this.services[service.toLowerCase()] instanceof Logger) {
+          this._loggers.push(<Logger>this.services[service.toLowerCase()]);
         }
       } catch (err) {
         this.log("ERROR", "Cannot create service", service, err);
-        this._config.services[service]._createException = err;
+        // @ts-ignore
+        this.failedServices[service.toLowerCase()] = { _createException: err };
       }
     }
 
     this.autoConnectServices();
 
-    this.emit("Webda.Create.Services", this._config._services);
+    this.emit("Webda.Create.Services", this.services);
   }
 
   /**
@@ -956,9 +960,7 @@ class Webda extends events.EventEmitter {
   protected _getSetters(obj): any[] {
     let methods = [];
     while ((obj = Reflect.getPrototypeOf(obj))) {
-      let keys = Reflect.ownKeys(obj).filter(k =>
-        k.toString().startsWith("set")
-      );
+      let keys = Reflect.ownKeys(obj).filter(k => k.toString().startsWith("set"));
       keys.forEach(k => methods.push(k));
     }
     return methods;
@@ -969,22 +971,15 @@ class Webda extends events.EventEmitter {
    */
   protected autoConnectServices(): void {
     // TODO Leverage decorators instead of setter name
-    for (let service in this._config._services) {
+    for (let service in this.services) {
       this.log("TRACE", "Auto-connect", service);
-      let serviceBean = this._config._services[service];
+      let serviceBean = this.services[service];
       serviceBean.resolve();
       let setters = this._getSetters(serviceBean);
       setters.forEach(setter => {
-        let targetService = this._config._services[
-          setter.substr(3).toLowerCase()
-        ];
+        let targetService = this.services[setter.substr(3).toLowerCase()];
         if (targetService) {
-          this.log(
-            "TRACE",
-            "Auto-connecting",
-            serviceBean._name,
-            targetService._name
-          );
+          this.log("TRACE", "Auto-connecting", serviceBean._name, targetService._name);
           serviceBean[setter](targetService);
         }
       });
@@ -997,68 +992,14 @@ class Webda extends events.EventEmitter {
   }
 
   protected initStatics() {
-    if (!this._config.routes) {
-      this._config.routes = {};
-    }
-    this.initModdas(this._config);
-
-    // Add models
-    this.initModels(this._config);
-
-    if (this._config.services !== undefined) {
+    if (this.configuration.services !== undefined) {
       this.createServices();
     }
 
-    this.remapRoutes();
+    this.router.remapRoutes();
 
-    this._config._initiated = true;
-    this.emit("Webda.Init", this._config);
-  }
-
-  protected remapRoutes() {
-    this.initURITemplates(this._config.routes);
-
-    // Order path desc
-    this._config._pathMap = [];
-    for (var i in this._config.routes) {
-      if (i === "global") continue;
-      // Might need to trail the query string
-      this._config._pathMap.push({
-        url: i,
-        config: this._config.routes[i]
-      });
-    }
-    this._config._pathMap.sort(this.comparePath);
-  }
-  /**
-   * Not usefull anymore
-   * @deprecated
-   * @param config
-   */
-  protected initModdas(config): void {
-    // Moddas are the custom type of service
-    // They are either coming from npm or are direct lambda feature or local with require
-    if (config.moddas === undefined) return;
-
-    for (let i in config.moddas) {
-      let modda = config.moddas[i];
-      if (modda.type == "local") {
-        if (modda.require.startsWith("./")) {
-          modda.require = process.cwd() + modda.require.substr(1);
-        }
-        // Add the required type
-        let serviceConstructor: any = require(modda.require);
-        if (serviceConstructor.default) {
-          this._services[i] = serviceConstructor.default;
-        } else {
-          this._services[i] = serviceConstructor;
-        }
-      } else if (modda.type == "npm") {
-        // The package should export the default
-        this._services[i] = require(modda.package);
-      }
-    }
-    this.emit("Webda.Init.Moddas");
+    this._initiated = true;
+    this.emit("Webda.Init", this.configuration);
   }
 
   /**
@@ -1075,7 +1016,7 @@ class Webda extends events.EventEmitter {
         }
         this.addRoute(j, {
           method: route.methods, // HTTP methods
-          _method: this._config._services[service][route.executor], // Link to service method
+          _method: this.services[service][route.executor], // Link to service method
           allowPath: route.allowPath || false, // Allow / in parser
           swagger: route.swagger,
           executor: beans[service].constructor.name // Name of the service
@@ -1083,56 +1024,6 @@ class Webda extends events.EventEmitter {
         route.resolved = true;
       }
     }
-  }
-
-  protected initModels(config): void {
-    if (config._models === undefined) {
-      config._models = {};
-    }
-    for (let i in config.models) {
-      var type = i;
-      if (type.indexOf("/") < 2) {
-        type = "Webda/" + type;
-      }
-      var include = config.models[i];
-      try {
-        if (typeof include === "string") {
-          if (include.startsWith("./")) {
-            include = process.cwd() + "/" + include;
-          }
-          let model = require(include);
-          if (model.default) {
-            config._models[type.toLowerCase()] = model.default;
-          } else {
-            config._models[type.toLowerCase()] = model;
-          }
-        }
-      } catch (ex) {
-        this.log("ERROR", "Create model " + type + " failed");
-        this.log("TRACE", ex.stack);
-        continue;
-      }
-    }
-    for (let i in this._models) {
-      if (config._models[i.toLowerCase()]) continue;
-      config._models[i.toLowerCase()] = this._models[i];
-    }
-    this.emit("Webda.Init.Models", config._models);
-  }
-
-  protected comparePath(a, b): number {
-    // Normal node works with localeCompare but not Lambda...
-    // Local compare { to a return: 26 on Lambda
-    let bs = b.url.split("/");
-    let as = a.url.split("/");
-    for (let i in as) {
-      if (bs[i] === undefined) return -1;
-      if (as[i] === bs[i]) continue;
-      if (as[i][0] === "{" && bs[i][0] !== "{") return 1;
-      if (as[i][0] !== "{" && bs[i][0] === "{") return -1;
-      return bs[i] < as[i] ? -1 : 1;
-    }
-    return 1;
   }
 
   /**
@@ -1143,15 +1034,9 @@ class Webda extends events.EventEmitter {
    * @param stream - The request output stream if any
    * @return A new context object to pass along
    */
-  public async newContext(
-    httpContext: HttpContext,
-    stream = undefined,
-    noInit: boolean = false
-  ): Promise<Context> {
+  public async newContext(httpContext: HttpContext, stream = undefined, noInit: boolean = false): Promise<Context> {
     let res: Context = <Context>(
-      new (this.getModel(
-        this.getGlobalParams().contextModel || "WebdaCore/Context"
-      ))(this, httpContext, stream)
+      new (this.getModel(this.parameter("contextModel") || "WebdaCore/Context"))(this, httpContext, stream)
     );
     if (!noInit) {
       await res.init();
@@ -1211,47 +1096,13 @@ class Webda extends events.EventEmitter {
    * @param context Context of the request
    */
   protected async checkRequest(ctx: Context): Promise<boolean> {
-    let httpContext = ctx.getHttpContext();
-    let website = this.getGlobalParams().website || "";
-
-    if (!Array.isArray(website)) {
-      if (typeof website === "object") {
-        website = [website.url];
-      } else {
-        website = [website];
-      }
-    }
     for (let i in this._requestFilters) {
       if (await this._requestFilters[i].checkRequest(ctx)) {
         return true;
       }
     }
-    let origins = this.getGlobalParams().csrfOrigins || [];
-    for (let i in origins) {
-      if (!origins[i].endsWith("$")) {
-        origins[i] += "$";
-      }
-      if (!origins[i].startsWith("^")) {
-        origins[i] = "^" + origins[i];
-      }
-      let regexp = new RegExp(origins[i]);
-      if (httpContext.origin.match(regexp)) {
-        return true;
-      }
-      if (httpContext.root.match(regexp)) {
-        return true;
-      }
-    }
-    // Host match or complete match
-    if (
-      website.indexOf(httpContext.root) >= 0 ||
-      website.indexOf(httpContext.origin) >= 0 ||
-      website === "*"
-    ) {
-      return true;
-    }
     return false;
   }
 }
 
-export { Webda, _extend, Configuration };
+export { Webda, _extend };

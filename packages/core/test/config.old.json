@@ -10,16 +10,16 @@
       "moddas": {
         "Test/Mailer": {
           "type": "local",
-          "require": "./test/moddas/debugmailer"
+          "require": "./moddas/debugmailer"
         },
         "Test/VoidStore": {
           "type": "local",
-          "require": "./test/moddas/voidstore"
+          "require": "./moddas/voidstore"
         }
       },
       "models": {
-        "WebdaTest/Task": "./test/models/task",
-        "WebdaTest/Ident": "./test/models/ident"
+        "WebdaTest/Task": "./models/task",
+        "WebdaTest/Ident": "./models/ident"
       },
       "services": {
         "AsyncEvents": {

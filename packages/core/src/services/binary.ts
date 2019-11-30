@@ -1,9 +1,12 @@
 "use strict";
-import { Executor, Store, CoreModel, Context } from "../index";
-import * as fs from "fs";
-import * as path from "path";
-import * as mime from "mime-types";
 import * as crypto from "crypto";
+import * as fs from "fs";
+import * as mime from "mime-types";
+import * as path from "path";
+import { CoreModel } from "../models/coremodel";
+import { Store } from "../stores/store";
+import { Context } from "../utils/context";
+import { Service } from "./service";
 
 /**
  * This is a map used to retrieve binary
@@ -33,7 +36,7 @@ class BinaryMap {
  * @abstract
  * @class Binary
  */
-class Binary extends Executor {
+class Binary extends Service {
   _lowercaseMaps: any;
   _url: string;
   /**
@@ -51,14 +54,7 @@ class Binary extends Executor {
    * @param {Object} metadatas to add to the binary object
    * @emits 'binaryCreate'
    */
-  async store(
-    targetStore,
-    object,
-    property,
-    file,
-    metadatas,
-    index = "add"
-  ): Promise<any> {
+  async store(targetStore, object, property, file, metadatas, index = "add"): Promise<any> {
     throw Error("AbstractBinary has no store method");
   }
 
@@ -81,14 +77,7 @@ class Binary extends Executor {
    * @param {Object} metadatas to add to the binary object
    * @emits 'binaryUpdate'
    */
-  update(
-    targetStore,
-    object,
-    property,
-    index,
-    file,
-    metadatas
-  ): Promise<CoreModel> {
+  update(targetStore, object, property, index, file, metadatas): Promise<CoreModel> {
     throw Error("AbstractBinary has no update method");
   }
 
@@ -167,12 +156,7 @@ class Binary extends Executor {
       this._lowercaseMaps[prop.toLowerCase()] = prop;
       var reverseStore = this._webda.getService(prop);
       if (reverseStore === undefined || !(reverseStore instanceof Store)) {
-        this._webda.log(
-          "WARN",
-          "Can't setup mapping as store ",
-          prop,
-          " doesn't exist"
-        );
+        this._webda.log("WARN", "Can't setup mapping as store ", prop, " doesn't exist");
         map[prop]["-onerror"] = "NoStore";
         continue;
       }
@@ -264,11 +248,7 @@ class Binary extends Executor {
       target: object
     });
     if (index == "add") {
-      promise = targetStore.upsertItemToCollection(
-        object_uid,
-        property,
-        fileObj
-      );
+      promise = targetStore.upsertItemToCollection(object_uid, property, fileObj);
     } else {
       promise = targetStore.upsertItemToCollection(
         object_uid,
@@ -308,13 +288,7 @@ class Binary extends Executor {
     var info = object[property][index];
     var update;
     return targetStore
-      .deleteItemFromCollection(
-        object[targetStore.getUuidField()],
-        property,
-        index,
-        info.hash,
-        "hash"
-      )
+      .deleteItemFromCollection(object[targetStore.getUuidField()], property, index, info.hash, "hash")
       .then(updated => {
         update = updated;
         return this.emitSync("Binary.Delete", {
@@ -361,10 +335,7 @@ class Binary extends Executor {
       url = this._params.expose;
       this._params.expose = {};
       this._params.expose.url = url;
-    } else if (
-      typeof this._params.expose == "object" &&
-      this._params.expose.url === undefined
-    ) {
+    } else if (typeof this._params.expose == "object" && this._params.expose.url === undefined) {
       this._params.expose.url = "/" + this._name.toLowerCase();
     }
     if (this._params.expose.restrict === undefined) {
@@ -421,8 +392,7 @@ class Binary extends Executor {
 
     if (!this._params.expose.restrict.create) {
       // Add file with challenge
-      url =
-        this._params.expose.url + "/upload/{store}/{uid}/{property}/{index}";
+      url = this._params.expose.url + "/upload/{store}/{uid}/{property}/{index}";
       this._addRoute(url, ["PUT"], this.httpChallenge, {
         put: {
           operationId: `put${name}Binary`,
@@ -440,8 +410,7 @@ class Binary extends Executor {
 
     if (!this._params.expose.restrict.delete) {
       // Need hash to avoid concurrent delete
-      url =
-        this._params.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
+      url = this._params.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
       this._addRoute(url, ["DELETE"], this.httpRoute, {
         delete: {
           operationId: `delete${name}Binary`,
@@ -462,13 +431,7 @@ class Binary extends Executor {
   async httpPost(ctx: Context) {
     let targetStore = this._verifyMapAndStore(ctx);
     let object = await targetStore.get(ctx.parameter("uid"));
-    object = await this.store(
-      targetStore,
-      object,
-      ctx.parameter("property"),
-      this._getFile(ctx),
-      ctx.getRequestBody()
-    );
+    object = await this.store(targetStore, object, ctx.parameter("property"), this._getFile(ctx), ctx.getRequestBody());
     ctx.write(object);
   }
 
@@ -486,9 +449,7 @@ class Binary extends Executor {
     if (Array.isArray(map) && map.indexOf(property) == -1) {
       throw 404;
     }
-    var targetStore: Store<CoreModel> = <Store<CoreModel>>(
-      this.getService(store)
-    );
+    var targetStore: Store<CoreModel> = <Store<CoreModel>>this.getService(store);
     if (targetStore === undefined) {
       throw 404;
     }
@@ -504,9 +465,7 @@ class Binary extends Executor {
 
   async httpChallenge(ctx: Context) {
     let url = await this.putRedirectUrl(ctx);
-    let base64String = new Buffer(ctx.getRequestBody().hash, "hex").toString(
-      "base64"
-    );
+    let base64String = new Buffer(ctx.getRequestBody().hash, "hex").toString("base64");
     ctx.write({
       url: url,
       done: url === undefined,
@@ -524,16 +483,10 @@ class Binary extends Executor {
     }
     let property = ctx.parameter("property");
     let index = ctx.parameter("index");
-    if (
-      object[property] !== undefined &&
-      typeof object[property] !== "object"
-    ) {
+    if (object[property] !== undefined && typeof object[property] !== "object") {
       throw 403;
     }
-    if (
-      object[property] === undefined ||
-      object[property][index] === undefined
-    ) {
+    if (object[property] === undefined || object[property][index] === undefined) {
       throw 404;
     }
     let action = "unknown";
@@ -548,10 +501,7 @@ class Binary extends Executor {
     if (ctx.getHttpContext().getMethod() === "GET") {
       var file = object[property][index];
       ctx.writeHead(200, {
-        "Content-Type":
-          file.mimetype === undefined
-            ? "application/octet-steam"
-            : file.mimetype,
+        "Content-Type": file.mimetype === undefined ? "application/octet-steam" : file.mimetype,
         "Content-Length": file.size
       });
       let readStream: any = await this.get(file);
@@ -573,14 +523,7 @@ class Binary extends Executor {
         object = await this.delete(targetStore, object, property, index);
         ctx.write(object);
       } else if (ctx.getHttpContext().getMethod() === "PUT") {
-        object = await this.update(
-          targetStore,
-          object,
-          property,
-          index,
-          this._getFile(ctx),
-          ctx.getRequestBody()
-        );
+        object = await this.update(targetStore, object, property, index, this._getFile(ctx), ctx.getRequestBody());
         ctx.write(object);
       }
     }

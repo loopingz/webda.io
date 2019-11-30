@@ -1,9 +1,9 @@
-import { Executor } from "../index";
 import * as fs from "fs";
-import * as path from "path";
 import * as mime from "mime";
+import * as path from "path";
+import { Service } from "./service";
 
-export default class ResourceService extends Executor {
+export default class ResourceService extends Service {
   _resolved: string;
 
   normalizeParams() {
@@ -56,6 +56,7 @@ export default class ResourceService extends Executor {
   }
 
   _serve(ctx) {
+    // TODO Add file only
     let resource = ctx.parameter("resource") || "index.html";
     let file = this._params.folder + resource;
     if (!path.resolve(file).startsWith(this._resolved)) {

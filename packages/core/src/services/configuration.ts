@@ -1,4 +1,4 @@
-import { Service } from "../index";
+import { Service } from "./service";
 
 interface ConfigurationProvider {
   getConfiguration(id: string): Promise<Map<string, any>>;
@@ -27,20 +27,14 @@ export default class ConfigurationService extends Service {
     let source = this._params.source.split(":");
     this._sourceService = this.getService(source[0]);
     if (!this._sourceService) {
-      throw new Error(
-        'Need a valid service for source ("sourceService:sourceId")'
-      );
+      throw new Error('Need a valid service for source ("sourceService:sourceId")');
     }
     this._sourceId = source[1];
     if (!this._sourceId) {
       throw new Error('Need a valid source ("sourceService:sourceId")');
     }
     if (!this._sourceService.getConfiguration) {
-      throw new Error(
-        `Service ${
-          source[0]
-        } is not implementing ConfigurationProvider interface`
-      );
+      throw new Error(`Service ${source[0]} is not implementing ConfigurationProvider interface`);
     }
     this._configuration = JSON.stringify(this._params.default);
     await this._checkUpdate();
@@ -70,12 +64,7 @@ export default class ConfigurationService extends Service {
       this._webda.reinit(newConfig);
     }
     this._updateNextCheck();
-    this.log(
-      "DEBUG",
-      "Next configuration refresh in",
-      this._params.checkInterval,
-      "s"
-    );
+    this.log("DEBUG", "Next configuration refresh in", this._params.checkInterval, "s");
   }
 
   _updateNextCheck() {

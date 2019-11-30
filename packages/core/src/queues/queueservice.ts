@@ -1,4 +1,4 @@
-import { Service } from "../index";
+import { Service } from "../services/service";
 
 class Queue extends Service {
   _timeout: any;

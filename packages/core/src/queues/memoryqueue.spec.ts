@@ -1,7 +1,8 @@
-import { QueueTest } from "./queue.spec";
-import { Queue } from "../index";
-import { suite, test } from "mocha-typescript";
 import * as assert from "assert";
+import { suite, test } from "mocha-typescript";
+import { Queue } from "../index";
+import { MemoryQueue } from "./memoryqueue";
+import { QueueTest } from "./queue.spec";
 
 @suite
 class MemoryQueueTest extends QueueTest {
@@ -74,7 +75,7 @@ class MemoryQueueTest extends QueueTest {
 
   @test
   async basic() {
-    let queue = this.getService("memoryqueue");
+    let queue: MemoryQueue = <MemoryQueue>this.getService("memoryqueue");
     // For coverage
     assert.equal(queue._params.expire, 1000);
     queue._params.expire = undefined;
@@ -82,6 +83,7 @@ class MemoryQueueTest extends QueueTest {
     assert.equal(queue._params.expire, 30000);
     queue._params.expire = 1000;
     queue.__clean();
+    assert.equal((await queue.receiveMessage()).length, 0);
     return this.simple(queue);
   }
 }

@@ -1,4 +1,4 @@
-import { Service } from "../index";
+import { Service } from "./service";
 
 export default class DebugMailer extends Service {
   sent: any[] = [];
@@ -18,8 +18,7 @@ export default class DebugMailer extends Service {
     return {
       uuid: "Webda/DebugMailer",
       label: "DebugMailer",
-      description:
-        "Implements a mail that store in memory and output in log but nothing else",
+      description: "Implements a mail that store in memory and output in log but nothing else",
       webcomponents: [],
       logo: "images/icons/email.png",
       configuration: {

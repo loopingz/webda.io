@@ -1,4 +1,5 @@
-import { Store, CoreModel } from "../index";
+import { CoreModel } from "../models/coremodel";
+import { Store } from "./store";
 
 interface StorageMap {
   [key: string]: any;
@@ -102,25 +103,14 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
     return this._save(res);
   }
 
-  async _upsertItemToCollection(
-    uid,
-    prop,
-    item,
-    index,
-    itemWriteCondition,
-    itemWriteConditionField,
-    updateDate: Date
-  ) {
+  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     var res = this.storage[uid];
     if (res === undefined) {
       throw Error("NotFound");
     }
     res = this._getSync(uid);
     if (index === undefined) {
-      if (
-        itemWriteCondition !== undefined &&
-        res[prop].length !== itemWriteCondition
-      ) {
+      if (itemWriteCondition !== undefined && res[prop].length !== itemWriteCondition) {
         throw Error("UpdateCondition not met");
       }
       if (res[prop] === undefined) {
@@ -129,10 +119,7 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
         res[prop].push(item);
       }
     } else {
-      if (
-        itemWriteCondition &&
-        res[prop][index][itemWriteConditionField] != itemWriteCondition
-      ) {
+      if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
         throw Error("UpdateCondition not met");
       }
       res[prop][index] = item;
@@ -141,23 +128,13 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
     await this._save(res);
   }
 
-  async _deleteItemFromCollection(
-    uid,
-    prop,
-    index,
-    itemWriteCondition,
-    itemWriteConditionField,
-    updateDate: Date
-  ) {
+  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     var res = this.storage[uid];
     if (res === undefined) {
       throw Error("NotFound");
     }
     res = this._getSync(uid);
-    if (
-      itemWriteCondition &&
-      res[prop][index][itemWriteConditionField] != itemWriteCondition
-    ) {
+    if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
       throw Error("UpdateCondition not met");
     }
     res[prop].splice(index, 1);

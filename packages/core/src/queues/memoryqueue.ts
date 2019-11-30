@@ -1,6 +1,6 @@
 "use strict";
-import { Queue } from "../index";
 import * as uuid from "uuid";
+import { Queue } from "./queueservice";
 
 interface QueueMap {
   [key: string]: any;

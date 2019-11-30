@@ -1,7 +1,8 @@
 "use strict";
 import * as uuid from "uuid";
-import { Context, OwnerPolicy, Store } from "../index";
-
+import { OwnerPolicy } from "../policies/ownerpolicy";
+import { Store } from "../stores/store";
+import { Context } from "../utils/context";
 interface CoreModelDefinition {
   new (): CoreModel;
   getActions(): any;
@@ -16,9 +17,7 @@ class CoreModelMapper<T extends CoreModel> {
   }
 
   async load(): Promise<T> {
-    return <T>(
-      await this.__store.get(this[this.__store.getModel().getUuidField()])
-    );
+    return <T>await this.__store.get(this[this.__store.getModel().getUuidField()]);
   }
 }
 
@@ -130,9 +129,7 @@ class CoreModel extends OwnerPolicy {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
-    changes[this.__store.getModel().getUuidField()] = this[
-      this.__store.getModel().getUuidField()
-    ];
+    changes[this.__store.getModel().getUuidField()] = this[this.__store.getModel().getUuidField()];
     let obj = await this.__store.update(changes);
     for (var i in obj) {
       this[i] = obj[i];

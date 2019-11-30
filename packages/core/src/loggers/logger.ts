@@ -1,15 +1,11 @@
-import { Service } from "../index";
+import { Service } from "../services/service";
 
 abstract class Logger extends Service {
   protected _levels: string[] = ["ERROR", "WARN"];
   protected _level: number = 1;
 
   getDefaultLogLevels() {
-    return (
-      process.env["WEBDA_LOG_LEVELS"] ||
-      this._params.logLevels ||
-      "CONSOLE,ERROR,WARN,INFO,DEBUG,TRACE"
-    );
+    return process.env["WEBDA_LOG_LEVELS"] || this._params.logLevels || "CONSOLE,ERROR,WARN,INFO,DEBUG,TRACE";
   }
 
   getDefaultLogLevel() {
@@ -23,13 +19,7 @@ abstract class Logger extends Service {
     this._level = this._levels.indexOf(this.getDefaultLogLevel());
     if (this._level < 0) {
       this._level = 0;
-      this._log(
-        "ERROR",
-        "Log level",
-        this.getDefaultLogLevel(),
-        "does not exist",
-        this.getDefaultLogLevels()
-      );
+      this._log("ERROR", "Log level", this.getDefaultLogLevel(), "does not exist", this.getDefaultLogLevels());
     }
   }
 

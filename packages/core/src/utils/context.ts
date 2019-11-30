@@ -1,19 +1,15 @@
 "use strict";
-import { Writable } from "stream";
-import {
-  _extend,
-  Core as Webda,
-  Executor,
-  SessionCookie,
-  Store,
-  User,
-  Service
-} from "../index";
-import * as http from "http";
 import * as acceptLanguage from "accept-language";
 import { parse as cookieParse } from "cookie";
 import { EventEmitter } from "events";
+import * as http from "http";
 import * as sanitizeHtml from "sanitize-html";
+import { Writable } from "stream";
+import { Webda, _extend } from "../core";
+import { User } from "../models/user";
+import { Service } from "../services/service";
+import { Store } from "../stores/store";
+import { SessionCookie } from "../utils/cookie";
 class ClientInfo extends Map<string, any> {
   ip: string;
   userAgent: string;
@@ -123,27 +119,26 @@ class Cookie {
 
 class Context extends EventEmitter {
   clientInfo: ClientInfo;
-  private _body: any;
-  private _outputHeaders: Map<string, string>;
-  private _webda: Webda;
+  protected _body: any;
+  protected _outputHeaders: Map<string, string>;
+  protected _webda: Webda;
   statusCode: number;
   _cookie: Map<string, Cookie>;
   headers: Map<string, string>;
   _route: any;
   _buffered: boolean;
-  private session: SessionCookie;
+  protected session: SessionCookie;
   _ended: Promise<any> = undefined;
   _stream: any;
   _promises: Promise<any>[];
-  _executor: Executor;
+  _executor: Service;
   _flushHeaders: boolean;
   _sanitized: any;
-  private body: any;
-  private _params: any = undefined;
-  private _pathParams: any;
-  private _serviceParams: any;
+  protected _params: any = undefined;
+  protected _pathParams: any;
+  protected _serviceParams: any;
   files: any[];
-  private _http: HttpContext;
+  protected _http: HttpContext;
 
   /**
    * @private
@@ -235,11 +230,7 @@ class Context extends EventEmitter {
    * @param ...args any arguments to pass to the toPublicJSON method
    */
   // @ts-ignore
-  public write(
-    output: any,
-    encoding?: string,
-    cb?: (error: Error) => void
-  ): boolean {
+  public write(output: any, encoding?: string, cb?: (error: Error) => void): boolean {
     if (typeof output === "object" && !(output instanceof Buffer)) {
       this._outputHeaders["Content-type"] = "application/json";
       // @ts-ignore
@@ -299,7 +290,7 @@ class Context extends EventEmitter {
    * @todo Implement the serialization
    * Not yet handle by the Webda framework
    */
-  cookie(param, value, options) {
+  cookie(param, value, options = undefined) {
     /** @ignore */
     if (this._cookie === undefined) {
       this._cookie = new Map();
@@ -373,10 +364,7 @@ class Context extends EventEmitter {
       }
       return obj;
     };
-    this._sanitized = recursiveSanitize(
-      this.getHttpContext().getBody(),
-      sanitizedOptions
-    );
+    this._sanitized = recursiveSanitize(this.getHttpContext().getBody(), sanitizedOptions);
     return this._sanitized;
   }
 
@@ -441,9 +429,7 @@ class Context extends EventEmitter {
     if (!this.getCurrentUserId()) {
       return undefined;
     }
-    return (<Store<User>>this._webda.getService("Users")).get(
-      this.getCurrentUserId()
-    );
+    return (<Store<User>>this._webda.getService("Users")).get(this.getCurrentUserId());
   }
 
   /**
@@ -529,9 +515,7 @@ class Context extends EventEmitter {
   }
 
   newSession() {
-    this.session = new (this._webda.getModel(
-      this._webda.parameter("sessionModel") || "WebdaCore/SessionCookie"
-    ))(this);
+    this.session = new (this._webda.getModel(this._webda.parameter("sessionModel") || "WebdaCore/SessionCookie"))(this);
     return this.session;
   }
 

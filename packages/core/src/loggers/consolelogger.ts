@@ -1,4 +1,4 @@
-import { Logger } from "../index";
+import { Logger } from "./logger";
 
 class ConsoleLogger extends Logger {
   protected _count: number = 0;

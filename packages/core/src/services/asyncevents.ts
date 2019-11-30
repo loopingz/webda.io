@@ -1,4 +1,5 @@
-import { Service, Queue } from "../index";
+import { Queue } from "../queues/queueservice";
+import { Service } from "./service";
 
 class AsyncEvent {
   service: Service;
@@ -51,11 +52,7 @@ class EventService extends Service {
     this._async = !this._params.sync;
     // Check we have at least one queue to handle asynchronous
     if (this._async && Object.keys(this._queues).length < 1) {
-      this._webda.log(
-        "ERROR",
-        "Need at least one queue for async to be ready",
-        this._params
-      );
+      this._webda.log("ERROR", "Need at least one queue for async to be ready", this._params);
       throw Error("Need at least one queue for async to be ready");
     }
   }

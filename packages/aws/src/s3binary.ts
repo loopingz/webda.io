@@ -1,6 +1,6 @@
 "use strict";
 // Load the AWS SDK for Node.js
-import { Binary, _extend, Context } from "@webda/core";
+import { Binary, Context, _extend } from "@webda/core";
 import { AWSMixIn } from "./aws-mixin";
 
 /**
@@ -115,14 +115,7 @@ export default class S3Binary extends AWSMixIn(Binary) {
       if (foundData) return;
       return this.getSignedUrl("putObject", params);
     }
-    await this.updateSuccess(
-      targetStore,
-      object,
-      property,
-      "add",
-      body,
-      body.metadatas
-    );
+    await this.updateSuccess(targetStore, object, property, "add", body, body.metadatas);
     await this.putMarker(body.hash, uid, store);
     return this.getSignedUrl("putObject", params);
   }
@@ -142,16 +135,15 @@ export default class S3Binary extends AWSMixIn(Binary) {
     return s3obj.putObject().promise();
   }
 
-  getSignedUrl(action, params): string {
+  getSignedUrl(key: string, action: string = "getObject", params: any = undefined): string {
+    params.Bucket = params.Bucket || this._params.Bucket;
+    params.Key = key;
     return this._s3.getSignedUrl(action, params);
   }
 
   async getRedirectUrlFromObject(obj, property, index, context, expire = 30) {
     let info = obj[property][index];
-    var params: any = {
-      Bucket: this._params.bucket,
-      Key: this._getPath(info.hash)
-    };
+    var params: any = {};
     params.Expires = expire; // A get should not take more than 30s
     await this.emitSync("Binary.Get", {
       object: info,
@@ -161,7 +153,7 @@ export default class S3Binary extends AWSMixIn(Binary) {
     params.ResponseContentDisposition = "attachment; filename=" + info.name;
     params.ResponseContentType = info.mimetype;
     // Access-Control-Allow-Origin
-    return this.getSignedUrl("getObject", params);
+    return this.getSignedUrl(this._getPath(info.hash), "getObject", params);
   }
 
   async getRedirectUrl(ctx) {
@@ -170,11 +162,7 @@ export default class S3Binary extends AWSMixIn(Binary) {
     let property = ctx.parameter("property");
     let targetStore = this._verifyMapAndStore(ctx);
     let obj = await targetStore.get(uid);
-    if (
-      obj === undefined ||
-      obj[property] === undefined ||
-      obj[property][index] === undefined
-    ) {
+    if (obj === undefined || obj[property] === undefined || obj[property][index] === undefined) {
       throw 404;
     }
     await obj.canAct(ctx, "get_binary");
@@ -191,11 +179,7 @@ export default class S3Binary extends AWSMixIn(Binary) {
     let index = ctx.parameter("index");
     let targetStore = this._verifyMapAndStore(ctx);
     let obj = await targetStore.get(uid);
-    if (
-      obj === undefined ||
-      obj[property] === undefined ||
-      obj[property][index] === undefined
-    ) {
+    if (obj === undefined || obj[property] === undefined || obj[property][index] === undefined) {
       throw 404;
     }
     await obj.canAct(ctx, "get_binary");
@@ -323,14 +307,7 @@ export default class S3Binary extends AWSMixIn(Binary) {
       .promise();
   }
 
-  async store(
-    targetStore,
-    object,
-    property,
-    file,
-    metadatas,
-    index = "add"
-  ): Promise<any> {
+  async store(targetStore, object, property, file, metadatas, index = "add"): Promise<any> {
     this._checkMap(targetStore._name, property);
     this._prepareInput(file);
     file = _extend(file, this._getHashes(file.buffer));
@@ -354,14 +331,7 @@ export default class S3Binary extends AWSMixIn(Binary) {
         .promise();
     }
     await this.putMarker(file.hash, object.uuid, targetStore._name);
-    return this.updateSuccess(
-      targetStore,
-      object,
-      property,
-      index,
-      file,
-      metadatas
-    );
+    return this.updateSuccess(targetStore, object, property, index, file, metadatas);
   }
 
   async update(targetStore, object, property, index, file, metadatas) {
@@ -396,7 +366,7 @@ export default class S3Binary extends AWSMixIn(Binary) {
     if (this._params.region) {
       params.region = this._params.region;
     }
-    var s3 = new (this._getAWS(params)).S3({
+    var s3 = new (this._getAWS(params).S3)({
       endpoint: this._params.endpoint,
       s3ForcePathStyle: this._params.s3ForcePathStyle || false
     });
@@ -407,10 +377,7 @@ export default class S3Binary extends AWSMixIn(Binary) {
       .promise()
       .catch(err => {
         if (err.code === "Forbidden") {
-          this._webda.log(
-            "ERROR",
-            "S3 bucket already exists in another account"
-          );
+          this._webda.log("ERROR", "S3 bucket already exists in another account");
         } else if (err.code === "NotFound") {
           this._webda.log("INFO", "Creating S3 Bucket", this._params.bucket);
           return s3
@@ -447,10 +414,7 @@ export default class S3Binary extends AWSMixIn(Binary) {
         "s3:PutObjectAcl",
         "s3:RestoreObject"
       ],
-      Resource: [
-        `arn:aws:s3:::${this._params.bucket}`,
-        `arn:aws:s3:::${this._params.bucket}/*`
-      ]
+      Resource: [`arn:aws:s3:::${this._params.bucket}`, `arn:aws:s3:::${this._params.bucket}/*`]
     };
   }
 
@@ -461,8 +425,7 @@ export default class S3Binary extends AWSMixIn(Binary) {
       description:
         "Implements S3 storage, so you can upload binary from users, handles mapping with other objects. It only stores once a binary, and if you use the attached Polymer behavior it will not even uplaod file if they are on the server already",
       webcomponents: [],
-      documentation:
-        "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
+      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
       logo: "images/icons/s3.png",
       configuration: {
         default: {

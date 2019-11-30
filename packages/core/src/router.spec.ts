@@ -1,3 +1,4 @@
+import * as assert from "assert";
 import { suite, test } from "mocha-typescript";
 import { WebdaTest } from "./test";
 
@@ -5,7 +6,8 @@ import { WebdaTest } from "./test";
 class RouterTest extends WebdaTest {
   @test
   testGetRouteMethodsFromUrl() {
-    console.log(this.webda.getRouter().getRouteMethodsFromUrl("/"));
-    // TODO Add some assert
+    this.webda.addRoute("/plop", { method: "GET" });
+    assert.deepEqual(this.webda.getRouter().getRouteMethodsFromUrl("/"), ["GET", "POST"]);
+    assert.deepEqual(this.webda.getRouter().getRouteMethodsFromUrl("/plop"), ["GET"]);
   }
 }

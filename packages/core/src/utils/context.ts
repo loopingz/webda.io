@@ -135,8 +135,8 @@ class Context extends EventEmitter {
   _flushHeaders: boolean;
   _sanitized: any;
   protected _params: any = undefined;
-  protected _pathParams: any;
-  protected _serviceParams: any;
+  protected _pathParams: any = {};
+  protected _serviceParams: any = {};
   files: any[];
   protected _http: HttpContext;
 

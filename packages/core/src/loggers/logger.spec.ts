@@ -36,4 +36,11 @@ class LoggerTest extends WebdaTest {
     assert.equal((<ConsoleLogger>this.webda.getService("ConsoleTestLogger")).getCount(), 3);
     assert.equal((<ConsoleLogger>this.webda.getService("ConsoleLogger")).getCount(), 2);
   }
+
+  @test
+  covNormalizeParams() {
+    let logger = <ConsoleLogger>this.webda.getService("ConsoleTestLogger");
+    logger.getDefaultLogLevel = () => "NONE";
+    logger.normalizeParams();
+  }
 }

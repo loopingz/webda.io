@@ -12,7 +12,7 @@ import { Context, Core } from "../index";
  * @abstract
  * @class Service
  */
-class Service extends events.EventEmitter {
+abstract class Service extends events.EventEmitter {
   _webda: Core;
   _name: string;
   _params: any;
@@ -118,18 +118,14 @@ class Service extends events.EventEmitter {
    *
    * @abstract
    */
-  install(params): Promise<any> {
-    return Promise.resolve();
-  }
+  async install(params): Promise<any> {}
 
   /**
    * For future use, while undeploying this should be call so the service can create what it needs if necessary
    *
    * @abstract
    */
-  uninstall(params): Promise<any> {
-    return Promise.resolve();
-  }
+  async uninstall(params): Promise<any> {}
 
   /**
    * Emit the event with data and wait for Promise to finish if listener returned a Promise

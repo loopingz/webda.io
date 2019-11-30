@@ -1,5 +1,6 @@
 import * as assert from "assert";
 import { suite, test } from "mocha-typescript";
+import { Service } from "../services/service";
 import { WebdaTest } from "../test";
 import { Context, HttpContext } from "./context";
 import { SecureCookie } from "./cookie";
@@ -10,6 +11,20 @@ class ContextTest extends WebdaTest {
   async before() {
     await super.before();
     this.ctx = new Context(this.webda, new HttpContext("test.webda.io", "GET", "/"));
+  }
+
+  @test
+  cov() {
+    // Get the last lines
+    this.ctx.logIn();
+    console.log(this.ctx.getRoute());
+    assert.notEqual(this.ctx.getService("Users"), undefined);
+    assert.notEqual(this.ctx.getTypedService<Service>("Users"), undefined);
+    this.ctx = new Context(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
+    this.ctx.setPathParameters({ id: "plop" });
+    this.ctx.setServiceParameters({ id: "service" });
+    assert.equal(this.ctx.getServiceParameters().id, "service");
+    assert.equal(this.ctx.getPathParameters().id, "plop");
   }
   @test
   async redirect() {
@@ -101,5 +116,6 @@ class HttpContextTest {
     let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, {}, { "X-Test": "weBda" });
     assert.equal(ctx.getHeader("X-Test"), "weBda");
     assert.equal(ctx.getHeader("X-Test"), ctx.getHeader("x-test"));
+    assert.equal(ctx.getPort(), 80);
   }
 }

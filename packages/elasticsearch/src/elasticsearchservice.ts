@@ -1,7 +1,7 @@
-import { Executor, Store, CoreModel } from "@webda/core";
+import { CoreModel, Service, Store } from "@webda/core";
 import * as elasticsearch from "elasticsearch";
 
-export default class ElasticSearchService extends Executor {
+export default class ElasticSearchService extends Service {
   _client: elasticsearch.Client;
   _asyncCount: number = 0;
   _refreshMode: string = "false";
@@ -16,17 +16,9 @@ export default class ElasticSearchService extends Executor {
     for (let i in this._params.indexes) {
       let index = this._params.indexes[i];
       index.name = i;
-      let store = (index._store = <Store<CoreModel>>(
-        this.getService(index.store)
-      ));
+      let store = (index._store = <Store<CoreModel>>this.getService(index.store));
       if (!store) {
-        this.log(
-          "ERROR",
-          "Cannot initiate index",
-          index.index,
-          ": missing store",
-          index.store
-        );
+        this.log("ERROR", "Cannot initiate index", index.index, ": missing store", index.store);
         return;
       }
       if (index.url) {
@@ -167,9 +159,7 @@ export default class ElasticSearchService extends Executor {
     for (let i in this._params.indexes) {
       let index = this._params.indexes[i];
       index.name = i;
-      let store = (index._store = <Store<CoreModel>>(
-        this.getService(index.store)
-      ));
+      let store = (index._store = <Store<CoreModel>>this.getService(index.store));
       if (!store) {
         continue;
       }
@@ -194,8 +184,7 @@ export default class ElasticSearchService extends Executor {
       description: "Index a Store allowing you to query it through ES",
       webcomponents: [],
       logo: "images/icons/.png",
-      documentation:
-        "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
+      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
       configuration: {
         default: {
           table: "table-name"

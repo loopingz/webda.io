@@ -3,7 +3,6 @@ import * as events from "events";
 import * as fs from "fs";
 import { JSONSchema6 } from "json-schema";
 import * as jsonpath from "jsonpath";
-import * as path from "path";
 import * as vm from "vm";
 import { Application } from "./application";
 import {
@@ -294,7 +293,7 @@ export class Core extends events.EventEmitter {
     this.application.addModel("WebdaCore/SessionCookie", SessionCookie);
     this.application.addModel("WebdaCore/SecureCookie", SecureCookie);
     // Load the configuration and migrate
-    this.configuration = this.loadConfiguration(this.application.getCurrentConfiguration());
+    this.configuration = this.application.getCurrentConfiguration();
     // Init default values for configuration
     this.configuration.parameters = this.configuration.parameters || {};
     this.configuration.services = this.configuration.services || {};
@@ -429,47 +428,6 @@ export class Core extends events.EventEmitter {
    */
   validationLastErrors() {
     return this._ajv.errors;
-  }
-
-  /**
-   * Load the configuration,
-   *
-   * @protected
-   * @ignore Useless for documentation
-   * @param {Object|String}
-   */
-  loadConfiguration(config: any = undefined): Configuration {
-    if (typeof config === "object") {
-      this.appPath = this.appPath || process.cwd();
-      return config;
-    }
-    var fs = require("fs");
-    if (config !== undefined) {
-      if (fs.existsSync(config)) {
-        this.appPath = this.appPath || path.dirname(config);
-        return require(config);
-      } else {
-        this.log("WARN", "Configuration file does not exist", config, ": fallback on env variable");
-      }
-    }
-    // Default load from file
-    if (process.env.WEBDA_CONFIG == undefined) {
-      this.appPath = this.appPath || process.cwd();
-      config = "./webda.config.json";
-      if (fs.existsSync(config)) {
-        this._configFile = path.resolve(config);
-        return require(this._configFile);
-      }
-      config = "/etc/webda/config.json";
-      if (fs.existsSync(config)) {
-        this._configFile = path.resolve(config);
-        return require(this._configFile);
-      }
-    } else {
-      this.log("INFO", "Load " + process.env.WEBDA_CONFIG);
-      this.appPath = this.appPath || path.dirname(process.env.WEBDA_CONFIG);
-      return require(process.env.WEBDA_CONFIG);
-    }
   }
 
   /**

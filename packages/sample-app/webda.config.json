@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "services": {
+    "s3bucket": {
+      "type": "S3Binary"
+    },
+    "sqs": {
+      "type": "SQSQueue"
+    },
+    "store": {
+      "type": "DynamoStore",
+      "table": "dev-table"
+    }
+  }
+}

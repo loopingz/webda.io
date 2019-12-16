@@ -289,7 +289,6 @@ class CoreTest extends WebdaTest {
     this.webda._currentExecutor = {
       session: "test"
     };
-    assert.notEqual(this.webda.loadConfiguration(__dirname + "/../test/config.json"), undefined);
     let local = this.webda.getConfiguration().parameters.locales;
     this.webda.getConfiguration().parameters.locales = undefined;
     assert.equal(this.webda.getLocales().indexOf("en-GB"), 0);

@@ -1,10 +1,82 @@
 import * as assert from "assert";
+import * as fs from "fs-extra";
 import { suite, test } from "mocha-typescript";
+import * as path from "path";
 import { Application, Core } from "./index";
 import { WebdaTest } from "./test";
 
 @suite
 class ApplicationTest extends WebdaTest {
+  sampleApp: Application;
+
+  async before() {
+    await super.before();
+    this.sampleApp = new Application(path.join(__dirname, "..", "..", "sample-app"));
+  }
+
+  cleanSampleApp() {
+    fs.removeSync(this.sampleApp.getAppPath("lib"));
+    fs.removeSync(this.sampleApp.getAppPath("webda.module.json"));
+  }
+
+  @test
+  getAppPath() {
+    assert.equal(this.sampleApp.getAppPath(), path.join(__dirname, "..", "..", "sample-app"));
+    assert.equal(this.sampleApp.getAppPath("lib"), path.join(__dirname, "..", "..", "sample-app", "lib"));
+  }
+
+  @test
+  compile() {
+    assert.equal(this.sampleApp.isTypescript(), true);
+    this.cleanSampleApp();
+    this.sampleApp.compile();
+    // assert files are there
+    assert.equal(fs.existsSync(this.sampleApp.getAppPath("lib")), true);
+    assert.equal(fs.existsSync(this.sampleApp.getAppPath("lib/services/bean.js")), true);
+    assert.equal(fs.existsSync(this.sampleApp.getAppPath("lib/models/contact.js")), true);
+
+    this.cleanSampleApp();
+    // should not recreate
+    this.sampleApp.compile();
+    // Should not recompile as it should be cached
+    assert.equal(fs.existsSync(this.sampleApp.getAppPath("lib")), false);
+  }
+
+  @test
+  generateModule() {
+    this.cleanSampleApp();
+    this.sampleApp.generateModule();
+    assert.equal(fs.existsSync(this.sampleApp.getAppPath("webda.module.json")), true);
+    let config = fs.readJSONSync(this.sampleApp.getAppPath("webda.module.json"));
+    assert.equal(config.services["WebdaDemo/CustomReusableService"], "lib/services/reusable.js");
+    assert.equal(config.models["WebdaDemo/Contact"], "lib/models/contact.js");
+    assert.equal(config.deployers["WebdaDemo/CustomDeployer"], "lib/services/deployer.js");
+  }
+
+  @test
+  loadModules() {
+    this.sampleApp.loadModules();
+  }
+
+  @test
+  getDeployment() {
+    let deployment = this.sampleApp.getDeployment("Dev");
+    deployment = this.sampleApp.getDeployment("Production");
+    assert.throws(() => this.sampleApp.getDeployment("Dev1"), /Unknown deployment/);
+    this.sampleApp.setCurrentDeployment("Production");
+    assert.deepEqual(this.sampleApp.getDeployment(), deployment);
+  }
+
+  @test
+  getConfiguration() {
+    let config = this.sampleApp.getConfiguration();
+    let deploymentConfig = this.sampleApp.getConfiguration("Production");
+    assert.equal(deploymentConfig.parameters.accessKeyId, "PROD_KEY");
+    assert.equal(config.parameters, undefined);
+    assert.equal(deploymentConfig.services.store.table, "production-table");
+    assert.equal(config.services.store.table, "dev-table");
+  }
+
   @test
   async migrateV0toV2() {
     let webda = new Core(new Application(__dirname + "/../test/config.old.json"));

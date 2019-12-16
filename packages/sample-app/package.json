@@ -1,0 +1,47 @@
+{
+  "name": "@webda/sample-app",
+  "version": "1.0.0",
+  "description": "Simple app used for deployment test",
+  "keywords": [
+    "aws",
+    "lamda",
+    "api gateway"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "repository": "git://github.com/loopingz/webda.io.git",
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "pretest": "npm run build",
+    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register test/**/*.test.js src/**/*.spec.ts"
+  },
+  "engines": {
+    "node": ">=6.10.0"
+  },
+  "dependencies": {
+    "@webda/aws": "^1.0.0-beta.2",
+    "@webda/core": "^1.0.0-beta.1"
+  },
+  "nyc": {
+    "extends": "@istanbuljs/nyc-config-typescript",
+    "report-dir": "./reports",
+    "reporter": [
+      "html",
+      "lcov",
+      "json"
+    ]
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "tsuml": "^0.0.1-alpha.8"
+  },
+  "webda": {
+    "namespace": "WebdaDemo"
+  }
+}

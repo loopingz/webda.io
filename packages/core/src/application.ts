@@ -22,32 +22,93 @@ export interface ServiceConstructor {
 }
 
 /**
+ * Map a Webda Application
+ *
+ * It allows to:
+ *  - Analyse imported modules
+ *  - Scan code for Modda and generate the webda.config.json
+ *  - Compile and Watch
+ *  - Migrate from old configuration
+ *  - List deploymments
+ *
+ *
  * @category CoreFeatures
  */
 export class Application {
+  /**
+   * Get Application root path
+   */
   protected appPath: string;
-  protected configuration: Configuration;
-  protected deployment: Deployment;
+  /**
+   * Base configuration loaded from webda.config.json
+   */
   protected baseConfiguration: Configuration;
+  /**
+   * Current deployment
+   */
   protected currentDeployment: string;
 
+  /**
+   * Contains all definitions from imported modules and current code
+   */
   protected cachedModules: Module = {
     services: {},
     models: {},
     deployers: {}
   };
+
+  /**
+   * Contains definitions of current application
+   */
   protected appModule: Module = {
     services: {},
     models: {},
     deployers: {}
   };
-  protected _loaded: string[] = [];
-  protected deployers: { [key: string]: ServiceConstructor } = {};
-  protected services: { [key: string]: ServiceConstructor } = {};
-  protected models: { [key: string]: Context | CoreModelDefinition } = {};
-  static COMPILATION_MARKERS = {};
-  protected logger: Logger;
 
+  /**
+   * Contains already loaded modules
+   */
+  protected _loaded: string[] = [];
+
+  /**
+   * Deployers type registry
+   */
+  protected deployers: { [key: string]: ServiceConstructor } = {};
+
+  /**
+   * Services type registry
+   */
+  protected services: { [key: string]: ServiceConstructor } = {};
+
+  /**
+   * Models type registry
+   */
+  protected models: { [key: string]: Context | CoreModelDefinition } = {};
+
+  /**
+   * Flag if application has been compiled already
+   */
+  protected compiled: boolean = false;
+
+  /**
+   * Class Logger
+   */
+  protected logger: Logger;
+  /**
+   * Contains package.json of application
+   */
+  protected packageDescription: any = {};
+  /**
+   * Webda namespace
+   */
+  protected namespace: string;
+
+  /**
+   *
+   * @param {string} fileOrFolder to load Webda Application from
+   * @param {Logger} logger
+   */
   constructor(file: string, logger: Logger = undefined) {
     this.logger = logger;
     if (!fs.existsSync(file)) {
@@ -56,6 +117,26 @@ export class Application {
     if (fs.lstatSync(file).isDirectory()) {
       file = path.join(file, "webda.config.json");
     }
+    /*
+    // Fallback on
+    if (process.env.WEBDA_CONFIG == undefined) {
+      file = path.join(process.cwd(), "webda.config";
+      config = "./webda.config.json";
+      if (fs.existsSync(config)) {
+        this._configFile = path.resolve(config);
+        return require(this._configFile);
+      }
+      config = "/etc/webda/config.json";
+      if (fs.existsSync(config)) {
+        this._configFile = path.resolve(config);
+        return require(this._configFile);
+      }
+    } else {
+      this.log("INFO", "Load " + process.env.WEBDA_CONFIG);
+      this.appPath = path.dirname(process.env.WEBDA_CONFIG);
+      file = process.env.WEBDA_CONFIG;
+    }
+    */
     // Check if file is a file or folder
     if (!fs.existsSync(file)) {
       throw new Error("Not a webda application folder");
@@ -73,6 +154,13 @@ export class Application {
     if (this.baseConfiguration.module) {
       this.loadModule(this.baseConfiguration.module, this.appPath);
     }
+    let packageJson = path.join(this.appPath, "package.json");
+    if (fs.existsSync(packageJson)) {
+      this.packageDescription = JSON.parse(fs.readFileSync(packageJson).toString());
+    }
+    this.namespace = this.packageDescription.webda
+      ? this.packageDescription.webda.namespace
+      : this.packageDescription.name | this.packageDescription.name;
   }
 
   migrateV0Config(config: any): Configuration {
@@ -125,10 +213,15 @@ export class Application {
   }
 
   log(level: string, ...args) {
-    this.logger.log(level, ...args);
+    if (this.logger) {
+      this.logger.log(level, ...args);
+    }
   }
 
-  getAppPath() {
+  getAppPath(subpath: string = undefined) {
+    if (subpath) {
+      return path.join(this.appPath, subpath);
+    }
     return this.appPath;
   }
 
@@ -171,7 +264,10 @@ export class Application {
     this.deployers[name.toLowerCase()] = model;
   }
 
-  getDeployment(deploymentName: string): Deployment {
+  getDeployment(deploymentName: string = undefined): Deployment {
+    if (!deploymentName) {
+      deploymentName = this.currentDeployment;
+    }
     let deploymentConfig = path.join(this.appPath, "deployments", deploymentName);
     // Load deployment
     if (!fs.existsSync(deploymentConfig)) {
@@ -193,8 +289,8 @@ export class Application {
     }
     let config = JSON.parse(JSON.stringify(this.baseConfiguration));
     let deploymentModel = this.getDeployment(deploymentName);
-    merge.recursive(config.parameters, deploymentModel.parameters);
-    merge.recursive(config.services, deploymentModel.services);
+    config.parameters = merge.recursive(config.parameters, deploymentModel.parameters);
+    config.services = merge.recursive(config.services, deploymentModel.services);
     return config;
   }
 
@@ -225,14 +321,14 @@ export class Application {
    * Do nothing otherwise
    */
   compile() {
-    if (Application.COMPILATION_MARKERS[this.appPath]) {
+    if (this.compiled) {
       return;
     }
     // exec typescript
     if (this.isTypescript()) {
       execSync(`tsc -p ${this.appPath}`);
     }
-    Application.COMPILATION_MARKERS[this.appPath] = true;
+    this.compiled = true;
   }
 
   /**
@@ -281,11 +377,12 @@ export class Application {
     // Compile
     this.compile();
     // Read all files
-    this.getPackagesLocations().forEach(path => {
-      if (fs.existsSync(path) && fs.lstatSync(path).isDirectory()) {
-        path += "/**/*.js";
+    this.getPackagesLocations().forEach(p => {
+      let absPath = path.join(this.appPath, p);
+      if (fs.existsSync(absPath) && fs.lstatSync(absPath).isDirectory()) {
+        absPath += "/**/*.js";
       }
-      glob.sync(path).forEach(this.loadJavascriptFile.bind(this));
+      glob.sync(absPath).forEach(this.loadJavascriptFile.bind(this));
     });
     // Write module
     fs.writeFileSync(path.join(this.appPath, "webda.module.json"), JSON.stringify(this.appModule, undefined, 2));
@@ -344,24 +441,37 @@ export class Application {
     }
   }
 
+  completeNamespace(info: string): string {
+    return `${this.namespace}/${info}`;
+  }
+
   /**
    * Load a javascript file and check for Modda
    * @param path to load
    */
-  protected loadJavascriptFile(path: string) {
-    let absolutePath = process.cwd() + "/" + path;
+  protected loadJavascriptFile(absolutePath: string) {
     if (this._loaded.indexOf(absolutePath) >= 0) {
       return;
     }
     this._loaded.push(absolutePath);
     let mod = this.resolveRequire(absolutePath);
+    let obj = mod;
+    // Check for CoreModel
+    do {
+      // TODO Have better way
+      if (obj.__proto__.name === "CoreModel") {
+        this.appModule["models"][this.completeNamespace(obj.name)] = path.relative(this.appPath, absolutePath);
+        break;
+      }
+      obj = obj.__proto__;
+    } while (obj.__proto__);
     // Check if it is a service
     if (mod.getModda) {
       let modda: ModdaDefinition = mod.getModda();
-      if (!modda.uuid) {
+      if (!modda || !modda.uuid) {
         return;
       }
-      this.appModule[modda.category || "services"][mod.Modda.uuid] = path;
+      this.appModule[modda.category || "services"][modda.uuid] = path.relative(this.appPath, absolutePath);
     }
   }
 
@@ -369,11 +479,6 @@ export class Application {
    * Get the application files
    */
   getPackagesLocations(): string[] {
-    let includes;
-    let packageFile = path.join(this.appPath, "package.json");
-    if (fs.existsSync(packageFile)) {
-      includes = require(packageFile).files;
-    }
-    return includes || ["lib/**/*.js"];
+    return this.packageDescription.files || ["lib/**/*.js"];
   }
 }

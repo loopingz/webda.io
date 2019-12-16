@@ -1,0 +1,63 @@
+{
+ "parameters": {
+  "website": ["www.webda-demo.com"],
+  "csrfOrigins": [
+    "^accounts\\.google\\.\\w{2,}$",
+    "\\w+\\.facebook\\.com"
+  ],
+  "region": "eu-west-1",
+  "accessKeyId": "PROD_KEY",
+  "secretAccessKey": "PROD_SECRET"
+ },
+ "resources": {
+  "restApi": "webda-demo-production",
+  "lambdaRole": "arn:aws:iam::111222333:role/webda-demo-api",
+  "accessKeyId": "PROD_DEPLOYMENT_KEY",
+  "secretAccessKey": "PROD_DEPLOYMENT_SECRET_KEY",
+  "FargateRegion": "eu-west-1"
+ },
+ "type": "aws",
+ "uuid": "Production",
+ "services": {
+     "store": {
+         "table": "production-table"
+     }
+ },
+ "units": [
+  {
+   "workers": [
+    "ProcessorService"
+   ],
+   "name": "Workers",
+   "type": "WebdaDeployer/AWS",
+   "subtype": "Fargate",
+   "clusterName": "webda-demo",
+   "serviceName": "webda-demo-workers",
+   "taskMemory": "1024",
+   "taskCpu": "512",
+   "subnets": "subnet-30095257,subnet-3aa9cd61,subnet-4708250e",
+   "securityGroup": "sg-72d37e09",
+   "tasksNumber": "2",
+   "taskRole": "arn:aws:iam::111222333:role/webda-test"
+  },
+  {
+   "name": "Lambda",
+   "type": "WebdaDeployer/AWS",
+   "subtype": "Lambda",
+   "restApi": "webda-api-production",
+   "lambdaRole": "arn:aws:iam::111222333:role/webdaapi-api",
+   "lambdaStorage": "s3://webda-lambdas/webda-api-production-$commit.zip",
+   "lambdaMemory": "2048",
+   "customDomain": false
+  },
+  {
+   "name": "Lambda",
+   "type": "WebdaDeployer/AWS",
+   "subtype": "S3",
+   "customDomain": true
+  }
+ ],
+ "_type": "deployment",
+ "callback": "",
+ "lastUpdate": "2018-03-30T17:12:00.081Z"
+}

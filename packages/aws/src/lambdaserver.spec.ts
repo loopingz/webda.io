@@ -1,21 +1,29 @@
-import { Application, Service } from "@webda/core";
+import { Application, Bean, Route, Service } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
+import * as fs from "fs";
 import { suite, test } from "mocha-typescript";
 import { LambdaServer } from "./lambdaserver";
 
+@Bean
 class ExceptionExecutor extends Service {
   initRoutes() {
     this._addRoute("/broken/{type}", ["GET"], this._brokenRoute);
+    this._addRoute("/route/string", ["GET"], this.onString);
   }
 
+  @Route("/route/broken/{type}")
   async _brokenRoute(ctx) {
-    console.log("GOT _brokenRoute");
     if (ctx._params.type === "401") {
       throw 401;
     } else if (ctx._params.type === "Error") {
       throw new Error();
     }
+  }
+
+  @Route("/route/string")
+  async onString(ctx) {
+    ctx.write("CodeCoverage");
   }
 }
 
@@ -27,23 +35,9 @@ class LambdaHandlerTest extends WebdaTest {
   context: any = {};
 
   async before() {
-    this.handler = new LambdaServer(new Application(this.getTestConfiguration()));
-    this.handler.addRoute("/broken/401", {
-      _method: this._brokenRoute.bind(this),
-      method: ["GET"],
-      executor: "inline",
-      allowPath: false,
-      swagger: {},
-      callback: "function (ctx) { throw 401 }"
-    });
-    this.handler.addRoute("/broken/Error", {
-      _method: this._brokenRoute.bind(this),
-      method: ["GET"],
-      executor: "inline",
-      allowPath: false,
-      swagger: {},
-      callback: "function (ctx) { throw new Error() }"
-    });
+    let app = new Application(this.getTestConfiguration());
+    app.loadLocalModule();
+    this.webda = this.handler = new LambdaServer(app);
     this.evt = {
       httpMethod: "GET",
       headers: {
@@ -58,15 +52,6 @@ class LambdaHandlerTest extends WebdaTest {
       body: JSON.stringify({})
     };
     this.debugMailer = this.handler.getService("DebugMailer");
-  }
-
-  async _brokenRoute(ctx) {
-    console.log("GOT _brokenRoute");
-    if (ctx._params.type === "401") {
-      throw 401;
-    } else if (ctx._params.type === "Error") {
-      throw new Error();
-    }
   }
 
   @test
@@ -129,7 +114,7 @@ class LambdaHandlerTest extends WebdaTest {
   @test
   async handleRequestThrow401() {
     this.ensureGoodCSRF();
-    this.evt.path = "/broken/401";
+    this.evt.path = "/route/broken/401";
     let res = await this.handler.handleRequest(this.evt, this.context);
     assert.equal(res.statusCode, 401);
   }
@@ -137,7 +122,7 @@ class LambdaHandlerTest extends WebdaTest {
   @test
   async handleRequestThrowError() {
     this.ensureGoodCSRF();
-    this.evt.path = "/broken/Error";
+    this.evt.path = "/route/broken/Error";
     let res = await this.handler.handleRequest(this.evt, this.context);
     assert.equal(res.statusCode, 500);
   }
@@ -217,39 +202,24 @@ class LambdaHandlerTest extends WebdaTest {
     this.evt.headers.Host = "test.webda.io";
   }
 
-  /*
-  awsEvents() {
-    let service;
-    beforeEach(function() {
-      handler = new Webda.LambdaServer(config);
-      service = handler.getService("awsEvents");
-      context = {};
-      callback = (err, result) => {
-        res = result;
-      };
-    });
-    let files = fs.readdirSync(__dirname + "/aws-events");
-    files.forEach(file => {
-      it("check " + file, async function() {
-        let event = JSON.parse(
-          fs.readFileSync(__dirname + "/aws-events/" + file)
-        );
-        await handler.handleRequest(event, context, callback);
-        if (file === "api-gateway-aws-proxy.json") {
-          assert.equal(
-            service.getEvents().length,
-            0,
-            "API Gateway should go throught the normal request handling"
-          );
-          return;
-        }
-        assert.notEqual(
-          service.getEvents().length,
-          0,
-          "Should have get some events:" + JSON.stringify(event)
-        );
-      });
-    });
+  @test
+  consumeAllModdas() {
+    super.consumeAllModdas();
   }
-  */
+
+  @test
+  async awsEvents() {
+    let service: any = this.handler.getService("awsEvents");
+    let files = fs.readdirSync(__dirname + "/../test/aws-events");
+    for (let f in files) {
+      let file = files[f];
+      let event = JSON.parse(fs.readFileSync(__dirname + "/../test/aws-events/" + file).toString());
+      await this.handler.handleRequest(event, context);
+      if (file === "api-gateway-aws-proxy.json") {
+        assert.equal(service.getEvents().length, 0, "API Gateway should go throught the normal request handling");
+      } else {
+        assert.notEqual(service.getEvents().length, 0, "Should have get some events:" + JSON.stringify(event));
+      }
+    }
+  }
 }

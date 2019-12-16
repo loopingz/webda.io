@@ -135,8 +135,8 @@ export default class S3Binary extends AWSMixIn(Binary) {
     return s3obj.putObject().promise();
   }
 
-  getSignedUrl(key: string, action: string = "getObject", params: any = undefined): string {
-    params.Bucket = params.Bucket || this._params.Bucket;
+  getSignedUrl(key: string, action: string = "getObject", params: any = {}): string {
+    params.Bucket = params.Bucket || this._params.bucket;
     params.Key = key;
     return this._s3.getSignedUrl(action, params);
   }

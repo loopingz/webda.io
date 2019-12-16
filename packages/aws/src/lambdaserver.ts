@@ -1,18 +1,10 @@
 "use strict";
 import { ClientInfo, Context, Core as Webda, HttpContext, Service } from "@webda/core";
 import { serialize as cookieSerialize } from "cookie";
-import { Constructor } from "./aws-mixin";
 
-function AWSEventHandlerMixIn<T extends Constructor<Service>>(Base: T) {
-  return class extends Base {
-    isAWSEventHandled(source: string, event: any) {
-      return false;
-    }
-
-    async handleAWSEvent(source: string, event: any) {
-      return;
-    }
-  };
+export interface AWSEventsHandler {
+  isAWSEventHandled(source: string, event: any): boolean;
+  handleAWSEvent(source: string, event: any): Promise<void>;
 }
 
 /**
@@ -264,4 +256,4 @@ export default class LambdaServer extends Webda {
   }
 }
 
-export { LambdaServer, AWSEventHandlerMixIn };
+export { LambdaServer };

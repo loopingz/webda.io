@@ -82,7 +82,7 @@ class ApplicationTest extends WebdaTest {
     let webda = new Core(new Application(__dirname + "/../test/config.old.json"));
     await webda.init();
     // All services - DefinedMailer
-    assert.equal(Object.keys(webda.getServices()).length, 12);
+    assert.equal(Object.keys(webda.getServices()).length, 13);
     // Check locales are moved correctly
     assert.equal(webda.getLocales().length, 3);
     // Check models - 2 from configuration files - 2 from Webda
@@ -107,7 +107,7 @@ class ApplicationTest extends WebdaTest {
     let webda = new Core(new Application(__dirname + "/../test/config.old-default.json"));
     await webda.init();
     // All services - DefinedMailer
-    assert.equal(Object.keys(webda.getServices()).length, 12);
+    assert.equal(Object.keys(webda.getServices()).length, 13);
     // Check locales are moved correctly
     assert.equal(webda.getLocales().length, 3);
     // Check models - 2 from configuration files - 2 from Webda

@@ -301,6 +301,12 @@ export class Core extends events.EventEmitter {
   }
 
   /**
+   * Return application definition
+   */
+  getApplication() {
+    return this.application;
+  }
+  /**
    * Init Webda
    *
    * It will resolve Services init method and autolink
@@ -671,31 +677,12 @@ export class Core extends events.EventEmitter {
       if (type.indexOf("/") < 2) {
         type = "Webda/" + type;
       }
-      var include = services[service].require;
       var serviceConstructor = undefined;
       try {
-        if (include === undefined) {
-          serviceConstructor = this.application.getService(type);
-        } else {
-          if (typeof include === "string") {
-            if (include.startsWith("./")) {
-              include = process.cwd() + "/" + include;
-            }
-            serviceConstructor = require(include);
-            if (serviceConstructor.default) {
-              serviceConstructor = serviceConstructor.default;
-            }
-          } else {
-            serviceConstructor = include;
-          }
-        }
+        serviceConstructor = this.application.getService(type);
       } catch (ex) {
         this.log("ERROR", "Create service " + service + " failed");
         this.log("TRACE", ex.stack);
-        continue;
-      }
-      if (serviceConstructor === undefined) {
-        this.log("ERROR", "No constructor found for service " + service);
         continue;
       }
 

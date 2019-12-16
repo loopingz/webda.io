@@ -1,10 +1,27 @@
 import * as assert from "assert";
 import { suite, test } from "mocha-typescript";
 import { WebsiteOriginFilter } from "./core";
+import { Bean, Route, Service } from "./index";
 import { Store } from "./stores/store";
 import { WebdaTest } from "./test";
 import { Context, HttpContext } from "./utils/context";
 
+@Bean
+class ExceptionExecutor extends Service {
+  @Route("/route/broken/{type}")
+  async _brokenRoute(ctx) {
+    if (ctx._params.type === "401") {
+      throw 401;
+    } else if (ctx._params.type === "Error") {
+      throw new Error();
+    }
+  }
+
+  @Route("/route/string")
+  async onString(ctx) {
+    ctx.write("CodeCoverage");
+  }
+}
 @suite
 class CSRFTest extends WebdaTest {
   ctx: Context;
@@ -123,6 +140,14 @@ class CoreTest extends WebdaTest {
   }
 
   @test
+  async getStringRoute() {
+    let ctx = await this.newContext();
+    let exec = this.getExecutor(ctx, "test.webda.io", "GET", "/route/string");
+    exec.execute(ctx);
+    assert.equal(ctx.getResponseBody(), "CodeCoverage");
+  }
+
+  @test
   getServiceSample() {
     assert.notEqual(null, this.webda.getService("Authentication"));
   }
@@ -130,7 +155,12 @@ class CoreTest extends WebdaTest {
   @test
   getServicesImplementations() {
     let moddas = this.webda.getServicesImplementations();
-    assert.equal(Object.keys(moddas).length, 19);
+    assert.equal(Object.keys(moddas).length, 20);
+  }
+
+  @test
+  consumeAllModdas() {
+    super.consumeAllModdas();
   }
 
   @test

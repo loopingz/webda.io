@@ -1,9 +1,14 @@
 "use strict";
 const Webda = require("@webda/core");
-const AWSEventHandlerMixIn = require("../../lib/lambdaserver")
-  .AWSEventHandlerMixIn;
 
-class AWSEventsHandler extends AWSEventHandlerMixIn(Webda.Service) {
+class AWSEventsHandler extends Webda.Service {
+  async init() {
+    await super.init();
+    if (this._webda.registerAWSEventsHandler) {
+      this._webda.registerAWSEventsHandler(this);
+    }
+  }
+
   getEvents() {
     return AWSEventsHandler.lastEvents;
   }
@@ -13,7 +18,7 @@ class AWSEventsHandler extends AWSEventHandlerMixIn(Webda.Service) {
   }
 
   async handleAWSEvent(event) {
-    await new Promise(resolve => setTimeout(100, resolve));
+    await new Promise(resolve => setTimeout(resolve, 100));
     AWSEventsHandler.lastEvents.push(event);
     return;
   }

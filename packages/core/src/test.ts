@@ -69,6 +69,13 @@ class WebdaTest {
   getService(service: string) {
     return this.webda.getService(service);
   }
+
+  consumeAllModdas() {
+    let services = this.webda.getApplication().getServices();
+    for (let i in services) {
+      services[i].getModda();
+    }
+  }
 }
 
 export { WebdaTest };

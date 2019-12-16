@@ -1,10 +1,10 @@
+import { Application, Service } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
-import { test, suite } from "mocha-typescript";
 import * as assert from "assert";
+import { suite, test } from "mocha-typescript";
 import { LambdaServer } from "./lambdaserver";
-import { Executor, Service } from "@webda/core";
 
-class ExceptionExecutor extends Executor {
+class ExceptionExecutor extends Service {
   initRoutes() {
     this._addRoute("/broken/{type}", ["GET"], this._brokenRoute);
   }
@@ -27,7 +27,7 @@ class LambdaHandlerTest extends WebdaTest {
   context: any = {};
 
   async before() {
-    this.handler = new LambdaServer(this.getTestConfiguration());
+    this.handler = new LambdaServer(new Application(this.getTestConfiguration()));
     this.handler.addRoute("/broken/401", {
       _method: this._brokenRoute.bind(this),
       method: ["GET"],
@@ -184,10 +184,7 @@ class LambdaHandlerTest extends WebdaTest {
       });
     });
     let res = await this.handler.handleRequest(this.evt, this.context);
-    assert.equal(
-      res.headers["Access-Control-Allow-Origin"],
-      this.evt.headers.Origin
-    );
+    assert.equal(res.headers["Access-Control-Allow-Origin"], this.evt.headers.Origin);
     assert.equal(wait, true);
   }
 
@@ -212,10 +209,7 @@ class LambdaHandlerTest extends WebdaTest {
     this.evt.headers.Referer = "https://test.webda.io";
     this.evt.headers.Host = "test.webda.io";
     let res = await this.handler.handleRequest(this.evt, context);
-    assert.equal(
-      res.headers["Access-Control-Allow-Origin"],
-      this.evt.headers.Referer
-    );
+    assert.equal(res.headers["Access-Control-Allow-Origin"], this.evt.headers.Referer);
   }
 
   ensureGoodCSRF() {

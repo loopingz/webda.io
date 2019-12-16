@@ -1,4 +1,4 @@
-import { Logger } from "@webda/core";
+import { Logger, ModdaDefinition } from "@webda/core";
 import * as uuid from "uuid";
 import { AWSMixIn } from "./aws-mixin";
 
@@ -21,7 +21,7 @@ export default class CloudWatchLogger extends AWSMixIn(FakeLogger) {
       throw Error("Require a log group `logGroupName` parameter");
     }
     this._logStreamName = this._params.logStreamNamePrefix + uuid.v4();
-    this._cloudwatch = new (this._getAWS(this._params)).CloudWatchLogs({
+    this._cloudwatch = new (this._getAWS(this._params).CloudWatchLogs)({
       endpoint: this._params.endpoint
     });
     let res = await this._cloudwatch
@@ -89,29 +89,17 @@ export default class CloudWatchLogger extends AWSMixIn(FakeLogger) {
       Effect: "Allow",
       Action: ["logs:*"],
       Resource: [
-        "arn:aws:logs:" +
-          region +
-          ":" +
-          accountId +
-          ":log-group:" +
-          this._params.logGroupName,
-        "arn:aws:logs:" +
-          region +
-          ":" +
-          accountId +
-          ":log-group:" +
-          this._params.logGroupName +
-          ":*:*"
+        "arn:aws:logs:" + region + ":" + accountId + ":log-group:" + this._params.logGroupName,
+        "arn:aws:logs:" + region + ":" + accountId + ":log-group:" + this._params.logGroupName + ":*:*"
       ]
     };
   }
 
-  static getModda() {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/CloudWatchLogger",
       label: "CloudWatchLogger",
       description: "Output to a logstream in CloudWatch",
-      webcomponents: [],
       logo: "images/icons/none.png",
       configuration: {
         schema: {
@@ -119,11 +107,11 @@ export default class CloudWatchLogger extends AWSMixIn(FakeLogger) {
           properties: {
             logLevel: {
               type: "string",
-              value: "INFO"
+              default: "INFO"
             },
             logLevels: {
               type: "string",
-              value: "ERROR,WARN,CONSOLE,INFO,DEBUG"
+              default: "ERROR,WARN,CONSOLE,INFO,DEBUG"
             },
             logGroupName: {
               type: "string"

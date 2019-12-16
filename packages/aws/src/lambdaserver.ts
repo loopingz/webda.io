@@ -1,14 +1,7 @@
 "use strict";
-import {
-  Core as Webda,
-  SecureCookie,
-  ClientInfo,
-  Service,
-  Context,
-  HttpContext
-} from "@webda/core";
-import { Constructor, GetAWS } from "./aws-mixin";
-import { parse as cookieParse, serialize as cookieSerialize } from "cookie";
+import { ClientInfo, Context, Core as Webda, HttpContext, Service } from "@webda/core";
+import { serialize as cookieSerialize } from "cookie";
+import { Constructor } from "./aws-mixin";
 
 function AWSEventHandlerMixIn<T extends Constructor<Service>>(Base: T) {
   return class extends Base {
@@ -48,11 +41,7 @@ export default class LambdaServer extends Webda {
     this._result.multiValueHeaders = { "Set-Cookie": [] };
     for (let i in cookies) {
       this._result.multiValueHeaders["Set-Cookie"].push(
-        cookieSerialize(
-          cookies[i].name,
-          cookies[i].value,
-          cookies[i].options || {}
-        )
+        cookieSerialize(cookies[i].name, cookies[i].value, cookies[i].options || {})
       );
     }
   }
@@ -132,28 +121,14 @@ export default class LambdaServer extends Webda {
     // Manual launch of webda
     if (event.command === "launch" && event.service && event.method) {
       let args = event.args || [];
-      this.log(
-        "INFO",
-        "Executing",
-        event.method,
-        "on",
-        event.service,
-        "with",
-        args
-      );
+      this.log("INFO", "Executing", event.method, "on", event.service, "with", args);
       let service = this.getService(event.service);
       if (!service) {
         this.log("ERROR", "Cannot find", event.service);
         return;
       }
       if (typeof service[event.method] !== "function") {
-        this.log(
-          "ERROR",
-          "Cannot find method",
-          event.method,
-          "on",
-          event.service
-        );
+        this.log("ERROR", "Cannot find method", event.method, "on", event.service);
         return;
       }
       service[event.method](...args);
@@ -161,9 +136,7 @@ export default class LambdaServer extends Webda {
       return;
     }
     context.callbackWaitsForEmptyEventLoop =
-      (this._config.parameters &&
-        this._config.parameters.waitForEmptyEventLoop) ||
-      false;
+      (this.getConfiguration().parameters && this.getConfiguration().parameters.waitForEmptyEventLoop) || false;
     this._result = {};
     var vhost: string;
     var i: any;
@@ -202,15 +175,7 @@ export default class LambdaServer extends Webda {
         throw err;
       }
     }
-    let httpContext = new HttpContext(
-      vhost,
-      method,
-      resourcePath,
-      protocol,
-      port,
-      body,
-      headers
-    );
+    let httpContext = new HttpContext(vhost, method, resourcePath, protocol, port, body, headers);
     var ctx = await this.newContext(httpContext);
     // TODO Get all client info
     // event['requestContext']['identity']['sourceIp']
@@ -219,14 +184,7 @@ export default class LambdaServer extends Webda {
     ctx.clientInfo.referer = headers["Referer"] || headers.referer;
 
     // Debug mode
-    await this.emitSync(
-      "Webda.Request",
-      vhost,
-      method,
-      resourcePath,
-      ctx.getCurrentUserId(),
-      body
-    );
+    await this.emitSync("Webda.Request", vhost, method, resourcePath, ctx.getCurrentUserId(), body);
 
     // Fallback on reference as Origin is not always set by Edge
     let origin = headers.Origin || headers.origin || ctx.clientInfo.referer;
@@ -244,22 +202,16 @@ export default class LambdaServer extends Webda {
 
     if (protocol === "https") {
       // Add the HSTS header
-      ctx.setHeader(
-        "Strict-Transport-Security",
-        "max-age=31536000; includeSubDomains; preload"
-      );
+      ctx.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
     }
     // Might want to customize this one
     ctx.setHeader("Access-Control-Max-Age", 3600);
     ctx.setHeader("Access-Control-Allow-Credentials", "true");
-    ctx.setHeader(
-      "Access-Control-Allow-Headers",
-      headers["access-control-request-headers"] || "content-type"
-    );
+    ctx.setHeader("Access-Control-Allow-Headers", headers["access-control-request-headers"] || "content-type");
 
     if (method === "OPTIONS") {
       // Return allow all methods for now
-      let routes = this.getRouteMethodsFromUrl(resourcePath);
+      let routes = this.router.getRouteMethodsFromUrl(resourcePath);
       if (routes.length == 0) {
         ctx.statusCode = 404;
         return this.handleLambdaReturn(ctx);
@@ -273,14 +225,7 @@ export default class LambdaServer extends Webda {
     var executor = this.getExecutorWithContext(ctx);
 
     if (executor == null) {
-      this.emitSync(
-        "Webda.404",
-        vhost,
-        method,
-        resourcePath,
-        ctx.getCurrentUserId(),
-        body
-      );
+      this.emitSync("Webda.404", vhost, method, resourcePath, ctx.getCurrentUserId(), body);
       ctx.statusCode = 404;
       return this.handleLambdaReturn(ctx);
     }

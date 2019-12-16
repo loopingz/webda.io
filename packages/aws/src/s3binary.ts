@@ -1,6 +1,6 @@
 "use strict";
 // Load the AWS SDK for Node.js
-import { Binary, Context, _extend } from "@webda/core";
+import { Binary, Context, ModdaDefinition, _extend } from "@webda/core";
 import { AWSMixIn } from "./aws-mixin";
 
 /**
@@ -113,11 +113,11 @@ export default class S3Binary extends AWSMixIn(Binary) {
     }
     if (foundMap) {
       if (foundData) return;
-      return this.getSignedUrl("putObject", params);
+      return this.getSignedUrl(params.Key, "putObject", params);
     }
     await this.updateSuccess(targetStore, object, property, "add", body, body.metadatas);
     await this.putMarker(body.hash, uid, store);
-    return this.getSignedUrl("putObject", params);
+    return this.getSignedUrl(params.Key, "putObject", params);
   }
 
   putMarker(hash, uuid, storeName) {
@@ -418,25 +418,21 @@ export default class S3Binary extends AWSMixIn(Binary) {
     };
   }
 
-  static getModda() {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/S3Binary",
       label: "S3 Binary",
       description:
         "Implements S3 storage, so you can upload binary from users, handles mapping with other objects. It only stores once a binary, and if you use the attached Polymer behavior it will not even uplaod file if they are on the server already",
-      webcomponents: [],
       documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
       logo: "images/icons/s3.png",
       configuration: {
-        default: {
-          bucket: "YOUR S3 Bucket",
-          expose: true
-        },
         schema: {
           type: "object",
           properties: {
             expose: {
-              type: "boolean"
+              type: "boolean",
+              default: true
             },
             accessKeyId: {
               type: "string"
@@ -445,7 +441,8 @@ export default class S3Binary extends AWSMixIn(Binary) {
               type: "string"
             },
             bucket: {
-              type: "string"
+              type: "string",
+              default: "YOUR S3 Bucket"
             }
           },
           required: ["accessKeyId", "secretAccessKey", "bucket"]

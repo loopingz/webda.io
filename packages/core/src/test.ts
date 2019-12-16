@@ -14,7 +14,9 @@ class WebdaTest {
   }
 
   protected buildWebda() {
-    this.webda = new Core(new Application(this.getTestConfiguration()));
+    let app = new Application(this.getTestConfiguration());
+    app.loadLocalModule();
+    this.webda = new Core(app);
   }
   async before(init: boolean = true) {
     this.buildWebda();

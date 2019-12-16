@@ -5,30 +5,7 @@ import { JSONSchema6 } from "json-schema";
 import * as jsonpath from "jsonpath";
 import * as vm from "vm";
 import { Application } from "./application";
-import {
-  Authentication,
-  ConfigurationService,
-  ConsoleLogger,
-  Context,
-  CoreModel,
-  DebugMailer,
-  EventService,
-  FileBinary,
-  FileStore,
-  HttpContext,
-  Ident,
-  Logger,
-  Mailer,
-  MemoryLogger,
-  MemoryQueue,
-  MemoryStore,
-  ResourceService,
-  SecureCookie,
-  Service,
-  SessionCookie,
-  Store,
-  User
-} from "./index";
+import { ConsoleLogger, Context, HttpContext, Logger, Service, Store } from "./index";
 import { CoreModelDefinition } from "./models/coremodel";
 import { Router } from "./router";
 /**
@@ -270,28 +247,6 @@ export class Core extends events.EventEmitter {
     this._ajv = Ajv();
     this._ajvSchemas = {};
 
-    // real service - modda
-    this.application.addService("Webda/Authentication", Authentication);
-    this.application.addService("Webda/FileStore", FileStore);
-    this.application.addService("Webda/MemoryStore", MemoryStore);
-    this.application.addService("Webda/FileBinary", FileBinary);
-    this.application.addService("Webda/DebugMailer", DebugMailer);
-    this.application.addService("Webda/Mailer", Mailer);
-    this.application.addService("Webda/AsyncEvents", EventService);
-    this.application.addService("Webda/ResourceService", ResourceService);
-    this.application.addService("Webda/MemoryQueue", MemoryQueue);
-    this.application.addService("Webda/MemoryLogger", MemoryLogger);
-    this.application.addService("Webda/ConsoleLogger", ConsoleLogger);
-    this.application.addService("Webda/ConfigurationService", ConfigurationService);
-    // Models
-    this.application.addModel("Webda/CoreModel", CoreModel);
-    this.application.addModel("Webda/CoreModel", CoreModel);
-    this.application.addModel("Webda/Ident", Ident);
-    this.application.addModel("Webda/User", User);
-    // Context
-    this.application.addModel("WebdaCore/Context", Context);
-    this.application.addModel("WebdaCore/SessionCookie", SessionCookie);
-    this.application.addModel("WebdaCore/SecureCookie", SecureCookie);
     // Load the configuration and migrate
     this.configuration = this.application.getCurrentConfiguration();
     // Init default values for configuration

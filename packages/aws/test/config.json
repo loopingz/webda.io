@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "parameters": {
     "accessKeyId": "Bouzouf",
     "secretAccessKey": "Plop",
@@ -10,10 +10,9 @@
     "locales": ["es-ES", "en-GB", "fr-FR"],
     "sessionSecret": "Lp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5EN"
   },
-  "moddas": {
-    "Test/AWSEvents": {
-      "type": "local",
-      "require": "./test/moddas/awsevents"
+  "module": {
+    "services": {
+      "Test/AWSEvents": "./moddas/awsevents"
     }
   },
   "services": {
@@ -85,13 +84,6 @@
     },
     "awsEvents": {
       "type": "Test/AWSEvents"
-    }
-  },
-  "routes": {
-    "/route/string": {
-      "method": ["GET"],
-      "executor": "string",
-      "result": "CodeCoverage"
     }
   }
 }

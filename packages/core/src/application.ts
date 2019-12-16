@@ -4,15 +4,32 @@ import * as glob from "glob";
 import * as merge from "merge";
 import * as path from "path";
 import {
+  Authentication,
   Configuration,
+  ConfigurationService,
   ConfigurationV1,
+  ConsoleLogger,
   Context,
   Core,
+  CoreModel,
   CoreModelDefinition,
+  DebugMailer,
+  EventService,
+  FileBinary,
+  FileStore,
+  Ident,
   Logger,
+  Mailer,
+  MemoryLogger,
+  MemoryQueue,
+  MemoryStore,
   ModdaDefinition,
   Module,
-  Service
+  ResourceService,
+  SecureCookie,
+  Service,
+  SessionCookie,
+  User
 } from "./index";
 import { Deployment } from "./models/deployment";
 
@@ -79,12 +96,34 @@ export class Application {
   /**
    * Services type registry
    */
-  protected services: { [key: string]: ServiceConstructor } = {};
+  protected services: { [key: string]: ServiceConstructor } = {
+    // real service - modda
+    "webda/authentication": Authentication,
+    "webda/filestore": FileStore,
+    "webda/memorystore": MemoryStore,
+    "webda/filebinary": FileBinary,
+    "webda/debugmailer": DebugMailer,
+    "webda/mailer": Mailer,
+    "webda/asyncevents": EventService,
+    "webda/resourceservice": ResourceService,
+    "webda/memoryqueue": MemoryQueue,
+    "webda/memorylogger": MemoryLogger,
+    "webda/consolelogger": ConsoleLogger,
+    "webda/configurationservice": ConfigurationService
+  };
 
   /**
    * Models type registry
    */
-  protected models: { [key: string]: Context | CoreModelDefinition } = {};
+  protected models: { [key: string]: any } = {
+    // Models
+    "webda/coremodel": CoreModel,
+    "webda/ident": Ident,
+    "webda/user": User,
+    "webdacore/context": Context,
+    "webdacore/sessioncookie": SessionCookie,
+    "webdacore/securecookie": SecureCookie
+  };
 
   /**
    * Flag if application has been compiled already
@@ -236,6 +275,10 @@ export class Application {
       throw Error("Undefined service " + name);
     }
     return this.services[name.toLowerCase()];
+  }
+
+  getServices() {
+    return this.services;
   }
 
   getModel(name: string): any {
@@ -390,7 +433,7 @@ export class Application {
 
   resolveRequire(info: string) {
     if (info.startsWith(".")) {
-      info = process.cwd() + "/" + info;
+      info = this.appPath + "/" + info;
     }
     try {
       let serviceConstructor = require(info);
@@ -404,14 +447,20 @@ export class Application {
       return null;
     }
   }
+
+  loadLocalModule() {
+    let moduleFile = path.join(process.cwd(), "webda.module.json");
+    if (fs.existsSync(moduleFile)) {
+      this.loadModule(JSON.parse(fs.readFileSync(moduleFile).toString()), process.cwd());
+    }
+  }
   /**
    * Load the module,
    *
    * @protected
    * @ignore Useless for documentation
    */
-  loadModule(info: Module, parent: string) {
-    parent = parent || "";
+  loadModule(info: Module, parent: string = this.appPath) {
     info.services = info.services || {};
     info.models = info.models || {};
     info.deployers = info.deployers || {};
@@ -421,7 +470,7 @@ export class Application {
         continue;
       }
       this.addService(key, service);
-      this.cachedModules.services[key] = "./" + path.relative(process.cwd(), path.join(parent, info.services[key]));
+      this.cachedModules.services[key] = "./" + path.relative(this.appPath, path.join(parent, info.services[key]));
     }
     for (let key in info.models) {
       let service = this.resolveRequire(path.join(parent, info.models[key]));
@@ -429,7 +478,7 @@ export class Application {
         continue;
       }
       this.addModel(key, service);
-      this.cachedModules.models[key] = "./" + path.relative(process.cwd(), path.join(parent, info.models[key]));
+      this.cachedModules.models[key] = "./" + path.relative(this.appPath, path.join(parent, info.models[key]));
     }
     for (let key in info.deployers) {
       let service = this.resolveRequire(path.join(parent, info.deployers[key]));
@@ -437,7 +486,7 @@ export class Application {
         continue;
       }
       this.addDeployer(key, service);
-      this.cachedModules.deployers[key] = "./" + path.relative(process.cwd(), path.join(parent, info.deployers[key]));
+      this.cachedModules.deployers[key] = "./" + path.relative(this.appPath, path.join(parent, info.deployers[key]));
     }
   }
 

@@ -1,13 +1,13 @@
-import { Service, ConfigurationProvider } from "@webda/core";
+import { ConfigurationProvider, ModdaDefinition, Service } from "@webda/core";
 import { AWSMixIn } from "./aws-mixin";
 
-export default class AWSSecretsManager extends AWSMixIn(Service)
-  implements ConfigurationProvider {
+class DummyService extends Service {}
+export default class AWSSecretsManager extends AWSMixIn(DummyService) implements ConfigurationProvider {
   _client: any;
 
   async init(): Promise<void> {
     await super.init();
-    this._client = new (this._getAWS(this._params)).SecretsManager({
+    this._client = new (this._getAWS(this._params).SecretsManager)({
       endpoint: this._params.endpoint
     });
   }
@@ -62,23 +62,18 @@ export default class AWSSecretsManager extends AWSMixIn(Service)
       Sid: this.constructor.name + this._name,
       Effect: "Allow",
       Action: ["secretsmanager:*"],
-      Resource: [
-        "arn:aws:secretsmanager:" + region + ":" + accountId + ":secret:*"
-      ]
+      Resource: ["arn:aws:secretsmanager:" + region + ":" + accountId + ":secret:*"]
     };
   }
 
-  static getModda() {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/AWSSecretsManager",
       label: "AWSSecretsManager",
       description: "Implements AWS SecretsManager",
-      webcomponents: [],
-      documentation:
-        "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
+      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
       logo: "images/icons/s3.png",
       configuration: {
-        default: {},
         schema: {
           type: "object",
           properties: {}

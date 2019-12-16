@@ -1,11 +1,16 @@
 "use strict";
 import * as uuid from "uuid";
+import { ModdaDefinition } from "../core";
 import { Queue } from "./queueservice";
 
 interface QueueMap {
   [key: string]: any;
 }
 
+/**
+ * FIFO Queue in Memory
+ * @category CoreServices
+ */
 class MemoryQueue extends Queue {
   private _queue: QueueMap;
 
@@ -55,19 +60,14 @@ class MemoryQueue extends Queue {
     this._queue = {};
   }
 
-  static getModda() {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/MemoryQueue",
       label: "MemoryQueue",
       description: "Implements a simple in memory queue",
-      webcomponents: [],
-      documentation: "",
       logo: "images/icons/memoryqueue.png",
-      configuration: {
-        default: {}
-      }
+      configuration: {}
     };
   }
 }
-
 export { MemoryQueue };

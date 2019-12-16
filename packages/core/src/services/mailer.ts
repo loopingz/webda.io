@@ -2,6 +2,7 @@
 import * as Email from "email-templates";
 import * as fs from "fs";
 import * as nodemailer from "nodemailer";
+import { ModdaDefinition } from "../core";
 import { Service } from "./service";
 
 interface IEmailTemplate {
@@ -20,6 +21,7 @@ interface TemplatesMap {
  *
  * Parameters
  * config: { ... }
+ * @category CoreServices
  */
 class Mailer extends Service {
   _transporter: any;
@@ -111,20 +113,14 @@ class Mailer extends Service {
     }
     return this._transporter.sendMail(options, callback);
   }
-
-  /** @ignore */
-  static getModda() {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/Mailer",
       label: "Mailer",
       description:
         "Implements a mailer to use in other services, it is used by the Authentication if you activate the email",
-      webcomponents: [],
       logo: "images/icons/email.png",
       configuration: {
-        default: {
-          config: {}
-        },
         schema: {
           type: "object",
           properties: {

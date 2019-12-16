@@ -5,11 +5,15 @@ import { EventEmitter } from "events";
 import * as http from "http";
 import * as sanitizeHtml from "sanitize-html";
 import { Writable } from "stream";
-import { Webda, _extend } from "../core";
+import { Core, _extend } from "../core";
 import { User } from "../models/user";
 import { Service } from "../services/service";
 import { Store } from "../stores/store";
 import { SessionCookie } from "../utils/cookie";
+
+/**
+ * @category CoreFeatures
+ */
 class ClientInfo extends Map<string, any> {
   ip: string;
   userAgent: string;
@@ -17,6 +21,9 @@ class ClientInfo extends Map<string, any> {
   referer: string;
 }
 
+/**
+ * @category CoreFeatures
+ */
 class HttpContext {
   host: string;
   method: string;
@@ -111,17 +118,24 @@ class HttpContext {
   }
 }
 
+/**
+ * @category CoreFeatures
+ */
 class Cookie {
   name: string;
   value: string;
   options: any;
 }
 
+/**
+ * @category CoreFeatures
+ */
+
 class Context extends EventEmitter {
   clientInfo: ClientInfo;
   protected _body: any;
   protected _outputHeaders: Map<string, string>;
-  protected _webda: Webda;
+  protected _webda: Core;
   statusCode: number;
   _cookie: Map<string, Cookie>;
   headers: Map<string, string>;
@@ -491,7 +505,7 @@ class Context extends EventEmitter {
    * @ignore
    * Used by Webda framework to set the body, session and output stream if known
    */
-  constructor(webda: Webda, httpContext: HttpContext, stream: any = undefined) {
+  constructor(webda: Core, httpContext: HttpContext, stream: any = undefined) {
     super();
     this.clientInfo = new ClientInfo();
     this._http = httpContext;

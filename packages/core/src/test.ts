@@ -1,6 +1,11 @@
 import * as assert from "assert";
-import { Context, Core, HttpContext, Service } from "./index";
+import { Application, Context, Core, HttpContext, Service } from "./index";
 
+/**
+ * Utility class for UnitTest
+ *
+ * @category CoreFeatures
+ */
 class WebdaTest {
   webda: Core;
 
@@ -9,7 +14,7 @@ class WebdaTest {
   }
 
   protected buildWebda() {
-    this.webda = new Core(this.getTestConfiguration());
+    this.webda = new Core(new Application(this.getTestConfiguration()));
   }
   async before(init: boolean = true) {
     this.buildWebda();

@@ -1,7 +1,7 @@
 "use strict";
 import * as crypto from "crypto";
 import * as passport from "passport";
-import { Webda as Core, _extend } from "../core";
+import { Core, ModdaDefinition, _extend } from "../core";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
 import { Service } from "../services/service";
@@ -61,6 +61,7 @@ class PasswordRecoveryInfos {
  *   }
  *   expose: 'url' // By default /auth
  *
+ * @category CoreServices
  */
 class Authentication extends Service {
   /** @ignore */
@@ -811,31 +812,15 @@ class Authentication extends Service {
     }
     throw 404;
   }
-
-  static getModda() {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/Authentication",
       label: "Authentication",
       description:
         "Implements user registration and login using either email or OAuth, it handles for now Facebook, Google, Amazon, GitHub, Twitter\nIt needs a Idents and a Users Store to work",
-      webcomponents: [],
       logo: "images/icons/passport.png",
       documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Authentication.md",
       configuration: {
-        default: {
-          successRedirect: "YOUR WEBSITE LOGGED PAGE",
-          failureRedirect: "YOUR WEBSITE FAILURE PAGE",
-          providers: {
-            facebook: {
-              clientID: "",
-              clientSecret: "",
-              scope: ["email", "public_profile"]
-            },
-            email: {
-              postValidation: false
-            }
-          }
-        },
         schema: {
           type: "object",
           properties: {
@@ -843,13 +828,25 @@ class Authentication extends Service {
               type: "boolean"
             },
             successRedirect: {
-              type: "string"
+              type: "string",
+              default: "YOUR WEBSITE LOGGED PAGE"
             },
             failureRedirect: {
-              type: "string"
+              type: "string",
+              default: "YOUR WEBSITE FAILURE PAGE"
             },
             providers: {
-              type: "object"
+              type: "object",
+              default: {
+                facebook: {
+                  clientID: "",
+                  clientSecret: "",
+                  scope: ["email", "public_profile"]
+                },
+                email: {
+                  postValidation: false
+                }
+              }
             }
           },
           required: ["successRedirect", "failureRedirect", "providers"]

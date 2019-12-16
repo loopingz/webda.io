@@ -29,6 +29,9 @@ interface QueueMap {
   [key: string]: Queue;
 }
 
+/**
+ * @category CoreServices
+ */
 class EventService extends Service {
   _callbacks: any = {};
   _queues: QueueMap = {};

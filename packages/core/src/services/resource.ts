@@ -3,6 +3,9 @@ import * as mime from "mime";
 import * as path from "path";
 import { Service } from "./service";
 
+/**
+ * @category CoreServices
+ */
 export default class ResourceService extends Service {
   _resolved: string;
 

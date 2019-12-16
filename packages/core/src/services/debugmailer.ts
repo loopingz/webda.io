@@ -1,4 +1,6 @@
+import { ModdaDefinition } from "../core";
 import { Service } from "./service";
+import e = require("express");
 
 export default class DebugMailer extends Service {
   sent: any[] = [];
@@ -13,18 +15,13 @@ export default class DebugMailer extends Service {
     this.sent.push(options);
   }
 
-  /** @ignore */
-  static getModda() {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/DebugMailer",
       label: "DebugMailer",
       description: "Implements a mail that store in memory and output in log but nothing else",
-      webcomponents: [],
       logo: "images/icons/email.png",
       configuration: {
-        default: {
-          config: {}
-        },
         schema: {
           type: "object",
           properties: {},

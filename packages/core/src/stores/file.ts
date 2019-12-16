@@ -1,5 +1,6 @@
 "use strict";
 import * as fs from "fs";
+import { ModdaDefinition } from "../core";
 import { CoreModel } from "../models/coremodel";
 import { Store } from "./store";
 
@@ -13,6 +14,7 @@ import { Store } from "./store";
  * Parameters:
  *  folder: to store to
  *
+ * @category CoreServices
  */
 class FileStore<T extends CoreModel> extends Store<T> {
   /** @ignore */
@@ -197,20 +199,15 @@ class FileStore<T extends CoreModel> extends Store<T> {
       await this.createIndex();
     }
   }
-
-  static getModda() {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/FileStore",
       label: "File Store",
       description:
         "Implements user registration and login using either email or OAuth, it handles for now Facebook, Google, Amazon, GitHub, Twitter\nIt needs a Idents and a Users Store to work",
-      webcomponents: [],
       documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
       logo: "images/icons/filedb.png",
       configuration: {
-        default: {
-          folder: "/tmp/types"
-        },
         widget: {
           tag: "webda-store-configurator",
           url: "elements/services/webda-store-configurator.html"
@@ -219,7 +216,8 @@ class FileStore<T extends CoreModel> extends Store<T> {
           type: "object",
           properties: {
             folder: {
-              type: "string"
+              type: "string",
+              default: "/tmp/types"
             }
           },
           required: ["folder"]

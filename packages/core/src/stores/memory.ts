@@ -1,3 +1,4 @@
+import { ModdaDefinition } from "../core";
 import { CoreModel } from "../models/coremodel";
 import { Store } from "./store";
 
@@ -5,6 +6,11 @@ interface StorageMap {
   [key: string]: any;
 }
 
+/**
+ * Store in Memory
+ *
+ * @category CoreServices
+ */
 class MemoryStore<T extends CoreModel> extends Store<T> {
   storage: StorageMap = {};
 
@@ -141,17 +147,14 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
     res[this._lastUpdateField] = updateDate;
     return this._save(res);
   }
-
-  static getModda() {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/MemoryStore",
       label: "MemoryStore",
       description: "Implements a simple in memory store",
-      webcomponents: [],
       documentation: "",
       logo: "images/icons/memorystore.png",
       configuration: {
-        default: {},
         widget: {
           tag: "webda-store-configurator",
           url: "elements/services/webda-store-configurator.html"

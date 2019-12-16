@@ -1,26 +1,21 @@
 import { Service } from "../services/service";
 
-class Queue extends Service {
+/**
+ * @category CoreServices
+ */
+abstract class Queue extends Service {
   _timeout: any;
   _interrupt: boolean;
   callback: Function;
   pause: number;
 
-  async sendMessage(params: any) {
-    throw Error("Virtual abstract class - concrete only for MixIn usage");
-  }
+  abstract async sendMessage(params: any);
 
-  async receiveMessage(): Promise<any> {
-    throw Error("Virtual abstract class - concrete only for MixIn usage");
-  }
+  abstract async receiveMessage(): Promise<any>;
 
-  async deleteMessage(id: string) {
-    throw Error("Virtual abstract class - concrete only for MixIn usage");
-  }
+  abstract async deleteMessage(id: string);
 
-  async size(): Promise<number> {
-    throw Error("Virtual abstract class - concrete only for MixIn usage");
-  }
+  abstract async size(): Promise<number>;
 
   async _workerResume() {
     if (this._timeout) {

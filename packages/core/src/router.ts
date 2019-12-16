@@ -1,7 +1,11 @@
 import * as uriTemplates from "uri-templates";
-import { Webda as Core } from "./core";
+import { Core } from "./core";
 import { Context } from "./utils/context";
 
+/**
+ * Manage Route resolution
+ * @category CoreFeatures
+ */
 export class Router {
   protected routes: Map<string, any> = new Map();
   protected initiated: boolean = false;

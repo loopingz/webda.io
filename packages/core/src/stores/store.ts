@@ -37,6 +37,7 @@ import { Context } from "../utils/context";
  *         get: true // Don't expose the GET /users/{uuid}
  *      }
  *   }
+ * @category CoreServices
  */
 class Store<T extends CoreModel> extends Service implements ConfigurationProvider {
   _reverseMap: any[] = [];

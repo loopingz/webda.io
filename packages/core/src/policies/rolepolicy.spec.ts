@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import { suite, test } from "mocha-typescript";
-import { Core, CoreModel, HttpContext, RolePolicyMixIn, SecureCookie, User } from "../index";
+import { Application, Core, CoreModel, HttpContext, RolePolicyMixIn, SecureCookie, User } from "../index";
 
 class RolePolicyModel extends RolePolicyMixIn(CoreModel, {
   get: "member",
@@ -27,7 +27,7 @@ class RolePolicyTest {
   _user: User;
 
   async before() {
-    this._webda = new Core(__dirname + "/../../test/config.json");
+    this._webda = new Core(new Application(__dirname + "/../../test/config.json"));
     this._ctx = await this._webda.newContext(new HttpContext("test.webda.io", "GET", "/"));
     this._session = this._ctx.newSession();
     this._session.login("none", "none");

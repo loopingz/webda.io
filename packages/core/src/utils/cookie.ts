@@ -1,5 +1,5 @@
-import { _extend } from "../core";
 import * as jwt from "jsonwebtoken";
+import { _extend } from "../core";
 import { Context } from "./context";
 
 /**
@@ -18,6 +18,7 @@ const SPLIT = 4000;
  * An object session is exposed by the framework, so use this one ( for now it is a SecureCookie.getProxy() but can evolve )
  *
  * The object use Object.observe if available or try Proxy in other case, so old JS VM won't run it
+ * @category CoreFeatures
  */
 class SecureCookie {
   _name: string;

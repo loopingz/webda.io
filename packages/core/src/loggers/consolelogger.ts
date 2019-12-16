@@ -1,5 +1,11 @@
+import { ModdaDefinition } from "../core";
 import { Logger } from "./logger";
 
+/**
+ * Log in the console
+ *
+ * @category CoreServices
+ */
 class ConsoleLogger extends Logger {
   protected _count: number = 0;
 
@@ -24,12 +30,11 @@ class ConsoleLogger extends Logger {
     return this._count;
   }
 
-  static getModda() {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/ConsoleLogger",
       label: "ConsoleLogger",
       description: "Output all everything to the console",
-      webcomponents: [],
       logo: "images/icons/none.png",
       configuration: {
         schema: {
@@ -37,11 +42,11 @@ class ConsoleLogger extends Logger {
           properties: {
             logLevel: {
               type: "string",
-              value: "INFO"
+              default: "INFO"
             },
             logLevels: {
               type: "string",
-              value: "ERROR,WARN,CONSOLE,INFO,DEBUG"
+              default: "ERROR,WARN,CONSOLE,INFO,DEBUG"
             }
           }
         }

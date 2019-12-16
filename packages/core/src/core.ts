@@ -1,15 +1,16 @@
 import * as Ajv from "ajv";
 import * as events from "events";
 import * as fs from "fs";
+import { JSONSchema6 } from "json-schema";
 import * as jsonpath from "jsonpath";
 import * as path from "path";
 import * as vm from "vm";
+import { Application } from "./application";
 import {
   Authentication,
   ConfigurationService,
   ConsoleLogger,
   Context,
-  Core,
   CoreModel,
   DebugMailer,
   EventService,
@@ -34,14 +35,44 @@ import { Router } from "./router";
 /**
  * @hidden
  */
-const _extend = require("util")._extend;
+export const _extend = require("util")._extend;
 
-export interface Module {
-  services: { [key: string]: string };
-  models: { [key: string]: string };
-  deployers: { [key: string]: string };
+/**
+ * Define a reusable service
+ *
+ * A Modda is a class that can be reused
+ * For example:
+ *  - MongoDB Store implementation
+ *  - SQS Service implementation
+ *  - etc
+ */
+export interface ModdaDefinition {
+  uuid: string;
+  label: string;
+  description: string;
+  documentation?: string;
+  category?: "services" | "models" | "deployers";
+  logo: string;
+  configuration: {
+    schema?: JSONSchema6;
+    widget?: any;
+  };
 }
 
+/**
+ * A Webda module is a NPM package
+ *
+ * It contains one or more Modda to provide features
+ */
+export interface Module {
+  services?: { [key: string]: string };
+  models?: { [key: string]: string };
+  deployers?: { [key: string]: string };
+}
+
+/**
+ * Configuration from Webda 1.0 > version > 0.5
+ */
 export interface ConfigurationV1 {
   version: number;
   cachedModules?: Module;
@@ -50,6 +81,9 @@ export interface ConfigurationV1 {
   [key: string]: any;
 }
 
+/**
+ * Configuration from Webda version >= 1.0
+ */
 export interface Configuration {
   version: number;
   cachedModules?: Module;
@@ -58,10 +92,19 @@ export interface Configuration {
   [key: string]: any;
 }
 
+/**
+ * RequestFilter allow a service which implement it to control incoming request
+ *
+ * If one of the filter replies with "true" then the request will go through
+ */
 export interface RequestFilter {
   checkRequest(context: Context): Promise<boolean>;
 }
 
+/**
+ *
+ * @category CoreFeatures
+ */
 export class OriginFilter implements RequestFilter {
   origins: string[];
   constructor(origins: string[]) {
@@ -148,141 +191,19 @@ export function Route(
   };
 }
 
-interface ServiceConstructor {
-  new (webda: Core, name: string, params: any): Service;
-  getModda();
-}
-
-class WebdaDefinition {
-  protected services: { [key: string]: ServiceConstructor } = {};
-  protected models: { [key: string]: Context | CoreModelDefinition } = {};
-  protected webda: Core;
-  protected modules: any = {
-    services: {},
-    models: {}
-  };
-
-  constructor(webda: Core) {
-    this.webda = webda;
-  }
-
-  addService(name: string, service: ServiceConstructor) {
-    this.webda.log("TRACE", "Registering service", name);
-    this.services[name.toLowerCase()] = service;
-  }
-
-  getService(name) {
-    name = name.toLowerCase();
-    if (!this.services[name.toLowerCase()]) {
-      throw Error("Undefined service " + name);
-    }
-    return this.services[name.toLowerCase()];
-  }
-
-  addModel(name: string, model: any) {
-    this.webda.log("TRACE", "Registering model", name);
-    this.models[name.toLowerCase()] = model;
-  }
-
-  getModel(name: string): any {
-    name = name.toLowerCase();
-    if (!this.models[name.toLowerCase()]) {
-      throw Error("Undefined model " + name);
-    }
-    return this.models[name.toLowerCase()];
-  }
-
-  getModels(): { [key: string]: Context | CoreModelDefinition } {
-    return this.models;
-  }
-
-  getModdas(type: any = undefined): any {
-    let result = {};
-    for (let i in this.services) {
-      if (!type || this.services[i].prototype instanceof type) {
-        result[i] = this.services[i].getModda();
-      }
-    }
-  }
-
-  getModules() {
-    return this.modules;
-  }
-
-  loadModules() {
-    const Finder = require("fs-finder");
-    // Modules should be cached on deploy
-    var files = [];
-    if (fs.existsSync("./node_modules")) {
-      files = Finder.from("./node_modules").findFiles("webda.module.json");
-    }
-    if (fs.existsSync(process.cwd() + "/webda.module.json")) {
-      files.push(process.cwd() + "/webda.module.json");
-    }
-    if (files.length) {
-      this.webda.log("DEBUG", "Found modules", files);
-      files.forEach(file => {
-        let info = require(file);
-        this.loadModule(info, path.dirname(file));
-      });
-    }
-  }
-
-  resolveRequire(info: string) {
-    if (info.startsWith(".")) {
-      info = process.cwd() + "/" + info;
-    }
-    try {
-      let serviceConstructor = require(info);
-      if (serviceConstructor.default) {
-        return serviceConstructor.default;
-      } else {
-        return serviceConstructor;
-      }
-    } catch (err) {
-      this.webda.log("WARN", "Cannot resolve require", info);
-      return null;
-    }
-  }
-
-  /**
-   * Load the module,
-   *
-   * @protected
-   * @ignore Useless for documentation
-   */
-  loadModule(info: Module, parent: string) {
-    for (let key in info.services) {
-      let service = this.resolveRequire(path.join(parent, info.services[key]));
-      if (!service) {
-        continue;
-      }
-      this.addService(key, service);
-      this.modules.services[key] = "./" + path.relative(process.cwd(), path.join(parent, info.services[key]));
-    }
-    for (let key in info.models) {
-      let service = this.resolveRequire(path.join(parent, info.models[key]));
-      if (!service) {
-        continue;
-      }
-      this.addModel(key, service);
-      this.modules.models[key] = "./" + path.relative(process.cwd(), path.join(parent, info.models[key]));
-    }
-  }
-}
-
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
  *
- * @class Webda
+ * @class Core
+ * @category CoreFeatures
  */
-class Webda extends events.EventEmitter {
+export class Core extends events.EventEmitter {
   /**
    * Webda Services
    * @hidden
    */
   protected services: { [key: string]: Service } = {};
-  protected definitions: WebdaDefinition = new WebdaDefinition(this);
+  protected application: Application;
   protected router: Router = new Router(this);
   protected _initiated: boolean = false;
   protected appPath: string = undefined;
@@ -334,9 +255,10 @@ class Webda extends events.EventEmitter {
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
    */
-  constructor(config: string | Configuration = undefined, appPath: string = undefined) {
+  constructor(application: Application) {
     /** @ignore */
     super();
+    this.application = application;
     this._initTime = new Date().getTime();
     this._logger = new ConsoleLogger(this, "coreLogger", {
       logLevel: "WARN",
@@ -350,35 +272,33 @@ class Webda extends events.EventEmitter {
     this._ajvSchemas = {};
 
     // real service - modda
-    this.definitions.addService("Webda/Authentication", Authentication);
-    this.definitions.addService("Webda/FileStore", FileStore);
-    this.definitions.addService("Webda/MemoryStore", MemoryStore);
-    this.definitions.addService("Webda/FileBinary", FileBinary);
-    this.definitions.addService("Webda/DebugMailer", DebugMailer);
-    this.definitions.addService("Webda/Mailer", Mailer);
-    this.definitions.addService("Webda/AsyncEvents", EventService);
-    this.definitions.addService("Webda/ResourceService", ResourceService);
-    this.definitions.addService("Webda/MemoryQueue", MemoryQueue);
-    this.definitions.addService("Webda/MemoryLogger", MemoryLogger);
-    this.definitions.addService("Webda/ConsoleLogger", ConsoleLogger);
-    this.definitions.addService("Webda/ConfigurationService", ConfigurationService);
+    this.application.addService("Webda/Authentication", Authentication);
+    this.application.addService("Webda/FileStore", FileStore);
+    this.application.addService("Webda/MemoryStore", MemoryStore);
+    this.application.addService("Webda/FileBinary", FileBinary);
+    this.application.addService("Webda/DebugMailer", DebugMailer);
+    this.application.addService("Webda/Mailer", Mailer);
+    this.application.addService("Webda/AsyncEvents", EventService);
+    this.application.addService("Webda/ResourceService", ResourceService);
+    this.application.addService("Webda/MemoryQueue", MemoryQueue);
+    this.application.addService("Webda/MemoryLogger", MemoryLogger);
+    this.application.addService("Webda/ConsoleLogger", ConsoleLogger);
+    this.application.addService("Webda/ConfigurationService", ConfigurationService);
     // Models
-    this.definitions.addModel("Webda/CoreModel", CoreModel);
-    this.definitions.addModel("Webda/CoreModel", CoreModel);
-    this.definitions.addModel("Webda/Ident", Ident);
-    this.definitions.addModel("Webda/User", User);
+    this.application.addModel("Webda/CoreModel", CoreModel);
+    this.application.addModel("Webda/CoreModel", CoreModel);
+    this.application.addModel("Webda/Ident", Ident);
+    this.application.addModel("Webda/User", User);
     // Context
-    this.definitions.addModel("WebdaCore/Context", Context);
-    this.definitions.addModel("WebdaCore/SessionCookie", SessionCookie);
-    this.definitions.addModel("WebdaCore/SecureCookie", SecureCookie);
+    this.application.addModel("WebdaCore/Context", Context);
+    this.application.addModel("WebdaCore/SessionCookie", SessionCookie);
+    this.application.addModel("WebdaCore/SecureCookie", SecureCookie);
     // Load the configuration and migrate
-    this.configuration = this.loadConfiguration(config);
-    if (!this.configuration.version) {
-      this.configuration = this.migrateV0Config(this.configuration);
-    }
-    if (this.configuration.version == 1) {
-      this.configuration = this.migrateV1Config(this.configuration);
-    }
+    this.configuration = this.loadConfiguration(this.application.getCurrentConfiguration());
+    // Init default values for configuration
+    this.configuration.parameters = this.configuration.parameters || {};
+    this.configuration.services = this.configuration.services || {};
+    this.configuration.module = this.configuration.module || {};
     // Add CSRF origins filtering
     if (this.configuration.parameters.csrfOrigins) {
       this.registerRequestFilter(new OriginFilter(this.configuration.parameters.csrfOrigins));
@@ -387,8 +307,6 @@ class Webda extends events.EventEmitter {
     if (this.configuration.parameters.website) {
       this.registerRequestFilter(new WebsiteOriginFilter(this.configuration.parameters.website));
     }
-    // Load modules
-    this._loadModules();
 
     this.initStatics();
   }
@@ -418,7 +336,14 @@ class Webda extends events.EventEmitter {
    * Retrieve all detected modules definition
    */
   getModules() {
-    return this.definitions.getModules();
+    return this.application.getModules();
+  }
+
+  /**
+   * Retrieve all deployers
+   */
+  getDeployers() {
+    return this.application.getDeployers();
   }
 
   /**
@@ -458,23 +383,6 @@ class Webda extends events.EventEmitter {
 
   registerRequestFilter(filter: any) {
     this._requestFilters.push(<RequestFilter>filter);
-  }
-
-  /**
-   * Load the modules,
-   *
-   * @protected
-   * @ignore Useless for documentation
-   */
-  _loadModules() {
-    if (this.configuration.module) {
-      this.definitions.loadModule(this.configuration.module, this.appPath);
-    }
-    if (this.configuration.cachedModules) {
-      this.definitions.loadModule(this.configuration.cachedModules, this.appPath);
-      return;
-    }
-    this.definitions.loadModules();
   }
 
   /**
@@ -564,54 +472,6 @@ class Webda extends events.EventEmitter {
     }
   }
 
-  migrateV0Config(config: any): Configuration {
-    this.log("WARN", "Old V0 webda.config.json format, trying to migrate");
-    let newConfig: any = {
-      parameters: {},
-      services: {},
-      models: {},
-      routes: {},
-      version: 1
-    };
-    let domain;
-    if (config["*"]) {
-      domain = config[config["*"]];
-    } else {
-      domain = config[Object.keys(config)[0]];
-    }
-    if (domain.global) {
-      newConfig.parameters = domain.global.params || {};
-      newConfig.services = domain.global.services || {};
-      newConfig.models = domain.global.models || {};
-      newConfig.parameters.locales = domain.global.locales;
-      newConfig.moddas = domain.global.moddas || {};
-    }
-    for (let i in domain) {
-      if (i === "global") continue;
-      newConfig.routes[i] = domain[i];
-    }
-    return newConfig;
-  }
-
-  migrateV1Config(config: ConfigurationV1): Configuration {
-    this.log("WARN", "Old V1 webda.config.json format, trying to migrate");
-    let newConfig: Configuration = {
-      parameters: config.parameters,
-      services: config.services,
-      module: {
-        services: {},
-        models: { ...config.models },
-        deployers: {}
-      },
-      version: 2
-    };
-    if (config.moddas) {
-      for (let i in config.moddas) {
-        newConfig.module.services[i] = config.moddas[i].require;
-      }
-    }
-    return newConfig;
-  }
   /**
    * Return webda current version
    *
@@ -685,15 +545,6 @@ class Webda extends events.EventEmitter {
   }
 
   /**
-   * Return a map of all known services modda
-   * @param type The type of implementation if null all moddas
-   * @returns {{}}
-   */
-  getModdas(type = undefined) {
-    return this.definitions.getModdas(type);
-  }
-
-  /**
    * Return a map of services that extends type
    * @param type The type of implementation
    * @returns {{}}
@@ -726,14 +577,14 @@ class Webda extends events.EventEmitter {
    * @returns {{}}
    */
   getModels(): { [key: string]: CoreModelDefinition } {
-    return <{ [key: string]: CoreModelDefinition }>this.definitions.getModels();
+    return <{ [key: string]: CoreModelDefinition }>(<unknown>this.application.getModels());
   }
 
   /**
    * Register model
    */
   registerModel(name: string, clazz) {
-    this.definitions.addModel(name, clazz);
+    this.application.addModel(name, clazz);
   }
 
   /**
@@ -742,7 +593,7 @@ class Webda extends events.EventEmitter {
    * @param {String} name The model name to retrieve
    */
   getModel(name): any {
-    return this.definitions.getModel(name);
+    return this.application.getModel(name);
   }
 
   /**
@@ -891,7 +742,7 @@ class Webda extends events.EventEmitter {
       // Force type to Bean
       services[name].type = `Beans/${name}`;
       // Register the type
-      this.definitions.addService(`Beans/${name}`, beans[i].constructor);
+      this.application.addService(`Beans/${name}`, beans[i].constructor);
     }
 
     let service;
@@ -911,7 +762,7 @@ class Webda extends events.EventEmitter {
       var serviceConstructor = undefined;
       try {
         if (include === undefined) {
-          serviceConstructor = this.definitions.getService(type);
+          serviceConstructor = this.application.getService(type);
         } else {
           if (typeof include === "string") {
             if (include.startsWith("./")) {
@@ -1104,5 +955,3 @@ class Webda extends events.EventEmitter {
     return false;
   }
 }
-
-export { Webda, _extend };

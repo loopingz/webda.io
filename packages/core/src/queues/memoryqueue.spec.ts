@@ -7,21 +7,11 @@ import { QueueTest } from "./queue.spec";
 @suite
 class MemoryQueueTest extends QueueTest {
   @test
-  abstractQueue() {
-    // Ensure abstract - mainly for code coverage
-    let queue = new Queue(undefined, undefined, undefined);
-    this.assertThrowsAsync(queue.sendMessage, Error);
-    this.assertThrowsAsync(queue.size, Error);
-    this.assertThrowsAsync(queue.receiveMessage, Error);
-    this.assertThrowsAsync(queue.deleteMessage, Error);
-  }
-
-  @test
   async worker() {
     await new Promise(resolve => {
-      let queue: any = new Queue(undefined, undefined, undefined);
+      let queue: Queue = new MemoryQueue(undefined, undefined, undefined);
       let seq = 0;
-      queue._webda = {
+      queue._webda = <any>{
         log: () => {}
       };
       queue.receiveMessage = () => {

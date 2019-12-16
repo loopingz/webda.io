@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import { ModdaDefinition } from "../core";
 import { _extend } from "../index";
 import { Context } from "../utils/context";
 import { Binary } from "./binary";
@@ -15,6 +16,7 @@ import { Binary } from "./binary";
  *  folder: "path"
  *
  * See Binary the general interface
+ * @category CoreServices
  */
 class FileBinary extends Binary {
   /** @ignore */
@@ -238,18 +240,14 @@ class FileBinary extends Binary {
     return Promise.resolve();
   }
 
-  static getModda() {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/FileBinary",
       label: "File Storage",
       description: "Implements storage of files on the server filesystem",
-      webcomponents: [],
       documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
       logo: "images/icons/filestorage.png",
       configuration: {
-        default: {
-          folder: "/tmp/binaries"
-        },
         schema: {
           type: "object",
           properties: {
@@ -257,7 +255,8 @@ class FileBinary extends Binary {
               type: "boolean"
             },
             folder: {
-              type: "string"
+              type: "string",
+              default: "/tmp/binaries"
             }
           },
           required: ["folder"]

@@ -1,10 +1,16 @@
+import { ModdaDefinition } from "../core";
 import { Logger } from "./logger";
-
 interface LogEntry {
   level: string;
   args: any[];
 }
 
+/**
+ * Log into memory
+ * Usefull for UnitTest
+ *
+ * @category CoreServices
+ */
 class MemoryLogger extends Logger {
   _logs: LogEntry[] = [];
   _maxItems: number;
@@ -28,12 +34,11 @@ class MemoryLogger extends Logger {
     return this._logs;
   }
 
-  static getModda() {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/MemoryLogger",
       label: "MemoryLogger",
       description: "Keep everything in memory",
-      webcomponents: [],
       logo: "images/icons/none.png",
       configuration: {
         schema: {
@@ -41,15 +46,15 @@ class MemoryLogger extends Logger {
           properties: {
             maxItems: {
               type: "number",
-              value: 1000
+              default: 1000
             },
             logLevel: {
               type: "string",
-              value: "INFO"
+              default: "INFO"
             },
             logLevels: {
               type: "string",
-              value: "ERROR,WARN,CONSOLE,INFO,DEBUG"
+              default: "ERROR,WARN,CONSOLE,INFO,DEBUG"
             }
           }
         }

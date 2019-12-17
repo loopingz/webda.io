@@ -1,15 +1,157 @@
-import { Service, Core as Webda } from "@webda/core";
-import { AWSMixIn } from "@webda/aws";
-import { Deployer } from "./deployer";
-import { ACM, Route53, S3 } from "aws-sdk";
+import * as apigateway from "@aws-cdk/aws-apigateway";
+import * as certmgr from "@aws-cdk/aws-certificatemanager";
+import * as lambda from "@aws-cdk/aws-lambda";
+import * as route53 from "@aws-cdk/aws-route53";
+import { Bucket } from "@aws-cdk/aws-s3";
+import { App, Stack, StackProps } from "@aws-cdk/core";
+import { Core as Webda } from "@webda/core";
 import * as AWS from "aws-sdk";
+import { ACM, Route53, S3 } from "aws-sdk";
 import IamPolicyOptimizer from "iam-policy-optimizer";
+import { Deployer } from "./deployer";
 const mime = require("mime-types");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
 
-export class AWSDeployer extends Deployer {
+export class WebdaStack extends Stack {
+  constructor(
+    deployer: AWSDeployer,
+    webda: Webda,
+    scope: App,
+    id: string,
+    props?: StackProps
+  ) {
+    super(scope, id, props);
+
+    //
+  }
+
+  createCertificate(domainName: string) {
+    const cert = new certmgr.Certificate(this, "Certificate", {
+      domainName
+    });
+    return cert;
+  }
+
+  createBucket(name: string, props?: any) {
+    return new Bucket(this, name, props);
+  }
+
+  createDNSEntry(domain, type, value) {
+    let zone = route53.HostedZone.fromLookup(this, "MyZone", {
+      domainName: domain
+    });
+    new route53[type](this, type, {
+      zone,
+      target: value
+    });
+  }
+}
+
+export interface LambdaStackProps extends StackProps {
+  functionName?: string;
+  lambdaMemory?: string;
+  restApi: string;
+  lambdaHandler?: string;
+  nodeVersion?: string;
+  customDomain?: string;
+  customCertificate?: string;
+}
+
+class LambdaStack extends WebdaStack {
+  constructor(
+    deployer: AWSDeployer,
+    webda: Webda,
+    scope: App,
+    id: string,
+    props?: LambdaStackProps
+  ) {
+    super(deployer, webda, scope, id, props);
+    // Generate package
+    //deployer.generateCodePackage("./dist/lambda.zip");
+
+    // Generate Lambda
+    // memory size : Number.parseInt(this.resources.lambdaMemory, 10) || 512
+    // functionname : this.resources.functionName || this.transformRestApiToFunctionName(this.resources.restApi);
+    // handler : this.resources.lambdaHandler || "entrypoint.handler"
+    // Runtime : this.resources.nodeVersion || "nodejs10.x"
+    // timeout : 3
+    // description
+    // publish
+    let backend = new lambda.Function(
+      this,
+      props.functionName || this.transformRestApiToFunctionName(props.restApi),
+      {
+        runtime: <lambda.Runtime>(
+          (props.nodeVersion || lambda.Runtime.NODEJS_10_X)
+        ),
+        handler: props.lambdaHandler || "entrypoint.handler",
+        code: lambda.Code.fromAsset("./dist/lambda.zip"),
+        memorySize: Number.parseInt(props.lambdaMemory, 10) || 512
+      }
+    );
+
+    let params: any = {
+      handler: backend
+    };
+    if (props.customDomain) {
+      params.domainName = {
+        domainName: props.customDomain,
+        certificate: new certmgr.DnsValidatedCertificate(this, "cert", {
+          domainName: props.customDomain,
+          hostedZone: route53.HostedZone.fromLookup(this, "query", {
+            domainName: props.customDomain
+          })
+        })
+      };
+    }
+    //console.log(backend);
+    // Generate API Gateway
+    new apigateway.LambdaRestApi(this, props.restApi, params);
+  }
+
+  transformRestApiToFunctionName(name) {
+    return name.replace(/[^a-zA-Z0-9_]/g, "-") + "-lambda";
+  }
+}
+
+class S3Stack extends WebdaStack {
+  constructor(
+    deployer: AWSDeployer,
+    webda: Webda,
+    scope: App,
+    id: string,
+    props?: StackProps
+  ) {
+    super(deployer, webda, scope, id, props);
+    // bucket
+    /*Bucket: this.bucket,
+      WebsiteConfiguration: {
+        ErrorDocument: {
+          Key: this.resources.errorDocument || "error.html"
+        },
+        IndexDocument: {
+          Suffix: this.resources.indexDocument || "index.html"
+        }
+      }*/
+
+    // bucket policy
+    // cloudfront
+    // dns entry
+  }
+}
+
+class FargateStack extends WebdaStack {
+  // create log group
+  // create repository
+  // build dockers
+  // create task definition
+  // create cluster
+  // create service
+}
+
+export default class AWSDeployer extends Deployer {
   resources: any;
   _acm: ACM;
   _certificate: any;
@@ -20,12 +162,34 @@ export class AWSDeployer extends Deployer {
   _maxTry: number;
   _try: number;
   _waitCall: any;
+  _app: App;
+  _stack: Stack;
 
   protected md5(str: string): string {
     return crypto
       .createHash("md5")
       .update(str)
       .digest("hex");
+  }
+
+  constructor(webda, deployment = undefined, unitParameters = undefined) {
+    super(webda, deployment, unitParameters);
+  }
+
+  generateCdkStack() {
+    this._app = new App({ outdir: "./cdk-output/" });
+    this._stack = this.getCdkStack();
+    return this._app.synth();
+  }
+
+  getCdkStack() {
+    return new LambdaStack(
+      this,
+      this._webda,
+      this._app,
+      "webda-stack",
+      this.deployment
+    );
   }
 
   _getAWS(params) {
@@ -56,7 +220,7 @@ export class AWSDeployer extends Deployer {
     if (forceRegion) {
       config.region = forceRegion;
     }
-    this._acm = new (this._getAWS(config)).ACM();
+    this._acm = new (this._getAWS(config).ACM)();
     return this._acm
       .listCertificates({})
       .promise()
@@ -114,7 +278,7 @@ export class AWSDeployer extends Deployer {
         }
         throw Error("Delay expired for certificate");
       })
-      .then(cert => {
+      .then((cert: any) => {
         return this._acm
           .describeCertificate({
             CertificateArn: cert.CertificateArn
@@ -205,7 +369,7 @@ export class AWSDeployer extends Deployer {
     }
     let targetZone;
     // Find the right zone
-    this._r53 = new (this._getAWS(this.resources)).Route53();
+    this._r53 = new (this._getAWS(this.resources).Route53)();
     // Identify the right zone first
     let res = await this._r53.listHostedZones().promise();
     for (let i in res.HostedZones) {
@@ -308,7 +472,8 @@ export class AWSDeployer extends Deployer {
           return Promise.resolve();
         }
 
-        // Build policy
+        // Build policy - old
+        /*
         for (let i in services) {
           if (services[i].getARNPolicy) {
             // Update to match recuring policy - might need to split if policy too big
@@ -323,6 +488,7 @@ export class AWSDeployer extends Deployer {
             }
           }
         }
+        */
         Array.prototype.push.apply(
           statements,
           this.getARNPolicy(id.Account, this._AWS.config.region)
@@ -483,7 +649,7 @@ export class AWSDeployer extends Deployer {
   }
 
   putFilesOnBucket(bucket, files) {
-    this._s3 = new (this._getAWS(this.resources)).S3();
+    this._s3 = new (this._getAWS(this.resources).S3)();
     // Create the bucket
     return this.createBucket(bucket).then(() => {
       // Should implement multithread here - cleaning too
@@ -526,3 +692,5 @@ export class AWSDeployer extends Deployer {
     });
   }
 }
+
+export { AWSDeployer };

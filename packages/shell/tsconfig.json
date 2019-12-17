@@ -6,7 +6,8 @@
     "strict": false,
     "sourceMap": true,
     "declaration": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "skipLibCheck": true
   },
   "include": ["src/**/*"],
   "exclude": ["**/node_modules", "**/*.spec.ts"]

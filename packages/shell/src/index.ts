@@ -1,25 +1,10 @@
-import WebdaConsole from "./console/webda";
-import { WebdaServer } from "./handlers/http";
-import { WebdaConfigurationServer } from "./handlers/config";
-import { Deployment } from "./models/deployment";
-import { S3Deployer } from "./deployers/s3";
-import { FargateDeployer } from "./deployers/fargate";
-import { LambdaDeployer } from "./deployers/lambda";
+export * from "./console/webda";
+export * from "./deployers/deployer";
+export * from "./handlers/config";
+export * from "./handlers/http";
+export { Deployment, AWSDeployer, DockerDeployer, DockerMixIn, ShellDeployer };
 import { AWSDeployer } from "./deployers/aws";
 import { DockerDeployer } from "./deployers/docker";
 import { DockerMixIn } from "./deployers/docker-mixin";
 import { ShellDeployer } from "./deployers/shell";
-
-export {
-  WebdaConsole,
-  WebdaServer,
-  WebdaConfigurationServer,
-  Deployment,
-  S3Deployer,
-  FargateDeployer,
-  LambdaDeployer,
-  AWSDeployer,
-  DockerDeployer,
-  DockerMixIn,
-  ShellDeployer
-};
+import { Deployment } from "./models/deployment";

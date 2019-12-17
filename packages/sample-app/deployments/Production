@@ -1,13 +1,15 @@
 {
  "parameters": {
-  "website": ["www.webda-demo.com"],
+  "website": {"path": "./wui"},
+  "requestLimit": "1mb",
   "csrfOrigins": [
     "^accounts\\.google\\.\\w{2,}$",
     "\\w+\\.facebook\\.com"
   ],
   "region": "eu-west-1",
   "accessKeyId": "PROD_KEY",
-  "secretAccessKey": "PROD_SECRET"
+  "secretAccessKey": "PROD_SECRET",
+  "sessionSecret": "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
  },
  "resources": {
   "restApi": "webda-demo-production",
@@ -20,7 +22,8 @@
  "uuid": "Production",
  "services": {
      "store": {
-         "table": "production-table"
+        "type": "DynamoStore",
+        "table": "production-table"
      }
  },
  "units": [

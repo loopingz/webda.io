@@ -1,11 +1,24 @@
-import { Core as Webda, ClientInfo, _extend, HttpContext } from "@webda/core";
+import { ClientInfo, Core as Webda, HttpContext } from "@webda/core";
+import * as http from "http";
 const path = require("path");
 
+export enum ServerStatus {
+  Stopped = "STOPPED",
+  Stopping = "STOPPING",
+  Starting = "STARTING",
+  Started = "STARTED"
+}
+
 export class WebdaServer extends Webda {
-  private _http: any;
-  private _io: any;
-  protected _devMode: boolean;
-  protected _staticIndex: string;
+  private http: http.Server;
+  private io: any;
+  protected devMode: boolean;
+  protected staticIndex: string;
+  protected serverStatus: ServerStatus = ServerStatus.Stopped;
+
+  setDevMode(devMode: boolean) {
+    this.devMode = devMode;
+  }
 
   logRequest(...args) {
     this.log("REQUEST", ...args);
@@ -15,6 +28,10 @@ export class WebdaServer extends Webda {
     this.log("CONSOLE", ...args);
   }
 
+  /**
+   * Initialize a ClientInfo structure based on request
+   * @param {http.Request} req
+   */
   getClientInfo(req): ClientInfo {
     let res = new ClientInfo();
     res.ip = req.connection.remoteAddress;
@@ -24,6 +41,13 @@ export class WebdaServer extends Webda {
     return res;
   }
 
+  /**
+   * Manage the request
+   *
+   * @param req
+   * @param res
+   * @param next
+   */
   async handleRequest(req, res, next) {
     try {
       // Wait for Webda to be ready
@@ -64,7 +88,7 @@ export class WebdaServer extends Webda {
 
       var executor = this.getExecutorWithContext(ctx);
       if (executor == null) {
-        let routes = this.getRouteMethodsFromUrl(req.url);
+        let routes = this.router.getRouteMethodsFromUrl(req.url);
         if (routes.length == 0) {
           return next();
         }
@@ -81,7 +105,7 @@ export class WebdaServer extends Webda {
         req.headers.Origin || req.headers.origin || req.headers.Referer;
       // Set predefined headers for CORS
 
-      if (this._devMode || (await this.checkRequest(ctx))) {
+      if (this.devMode || (await this.checkRequest(ctx))) {
         if (origin) {
           res.setHeader("Access-Control-Allow-Origin", origin);
         }
@@ -99,20 +123,14 @@ export class WebdaServer extends Webda {
           "max-age=31536000; includeSubDomains; preload"
         );
       }
+      // Add correct headers for X-scripting
+      if (req.headers["x-forwarded-server"] === undefined) {
+        if (this.devMode && req.headers["origin"]) {
+          res.setHeader("Access-Control-Allow-Origin", req.headers["origin"]);
+        }
+      }
       if (req.method === "OPTIONS") {
-        // Add correct headers for X-scripting
-        if (req.headers["x-forwarded-server"] === undefined) {
-          if (this._devMode && req.headers["origin"]) {
-            res.setHeader("Access-Control-Allow-Origin", req.headers["origin"]);
-          }
-        }
-        let routes = this.getRouteMethodsFromUrl(req.url);
-        if (routes.length == 0) {
-          ctx.statusCode = 404;
-          res.writeHead(404);
-          res.end();
-          return;
-        }
+        let routes = this.router.getRouteMethodsFromUrl(req.url);
         routes.push("OPTIONS");
         res.setHeader("Access-Control-Allow-Credentials", "true");
         res.setHeader(
@@ -137,12 +155,6 @@ export class WebdaServer extends Webda {
         ctx
       );
 
-      // Add correct headers for X-scripting
-      if (req.headers["x-forwarded-server"] === undefined) {
-        if (this._devMode && req.headers["origin"]) {
-          res.setHeader("Access-Control-Allow-Origin", req.headers["origin"]);
-        }
-      }
       res.setHeader("Access-Control-Allow-Credentials", "true");
       try {
         await executor.execute(ctx);
@@ -176,16 +188,6 @@ export class WebdaServer extends Webda {
     }
   }
 
-  display404(res) {
-    res.writeHead(404, {
-      "Content-Type": "text/plain"
-    });
-    res.write("Webda doesn't know this host or mapping");
-    res.end();
-  }
-
-  updateSecret() {}
-
   flushHeaders(ctx) {
     var res = ctx._stream;
     var headers = ctx.getResponseHeaders();
@@ -204,77 +206,162 @@ export class WebdaServer extends Webda {
     res.end();
   }
 
-  handleStaticIndexRequest(req, res, next) {
-    res.sendFile(this._staticIndex);
+  protected handleStaticIndexRequest(req, res, next) {
+    res.sendFile(this.staticIndex);
   }
 
+  /**
+   * Serve a static directory
+   *
+   * @param express
+   * @param app
+   */
   serveStaticWebsite(express, app) {
     if (this.getGlobalParams().website && this.getGlobalParams().website.path) {
-      this.output(this.getGlobalParams().website.path);
-      app.use(express.static(this.getGlobalParams().website.path));
+      app.use(
+        express.static(
+          path.join(
+            this.application.getAppPath(),
+            this.getGlobalParams().website.path
+          )
+        )
+      );
     }
   }
 
+  /**
+   * Serve a static index if page not found, usefull for Single Page Application
+   *
+   * @param express
+   * @param app
+   */
   serveIndex(express, app) {
     if (this.getGlobalParams().website && this.getGlobalParams().website.path) {
-      let index = this.getGlobalParams().website.index || "index.html";
-      this._staticIndex = path.resolve(index);
+      let index = path.join(
+        this.application.getAppPath(),
+        this.getGlobalParams().website.path,
+        this.getGlobalParams().website.index || "index.html"
+      );
+      this.staticIndex = path.resolve(index);
       app.get("*", this.handleStaticIndexRequest.bind(this));
     }
   }
 
+  /**
+   * Start listening to serve request
+   *
+   * @param port to listen to
+   * @param websockets to enable websockets
+   */
   async serve(port, websockets: boolean = false): Promise<Object> {
-    var http = require("http");
+    this.serverStatus = ServerStatus.Starting;
+    try {
+      var express = require("express");
+      var cookieParser = require("cookie-parser");
+      var bodyParser = require("body-parser");
+      var multer = require("multer"); // v1.0.5
+      var upload = multer(); // for parsing multipart/form-data
 
-    var express = require("express");
-    var cookieParser = require("cookie-parser");
-    var bodyParser = require("body-parser");
-    var multer = require("multer"); // v1.0.5
-    var upload = multer(); // for parsing multipart/form-data
+      var requestLimit = this.getGlobalParams().requestLimit
+        ? this.getGlobalParams().requestLimit
+        : "20mb";
+      var app = express();
+      app.use(cookieParser());
+      app.use(
+        bodyParser.text({
+          type: "text/plain"
+        })
+      );
+      app.use(
+        bodyParser.json({
+          limit: requestLimit
+        })
+      );
+      app.use(
+        bodyParser.urlencoded({
+          extended: true
+        })
+      );
+      app.use(upload.array("file"));
+      // Will lower the limit soon, we should have a library that handle multipart file
+      app.use(
+        bodyParser.raw({
+          type: "*/*",
+          limit: requestLimit
+        })
+      );
 
-    var requestLimit = this.getGlobalParams().requestLimit
-      ? this.getGlobalParams().requestLimit
-      : "20mb";
-    var app = express();
-    app.use(cookieParser());
-    app.use(
-      bodyParser.text({
-        type: "text/plain"
-      })
-    );
-    app.use(
-      bodyParser.json({
-        limit: requestLimit
-      })
-    );
-    app.use(
-      bodyParser.urlencoded({
-        extended: true
-      })
-    );
-    app.use(upload.array("file"));
-    // Will lower the limit soon, we should have a library that handle multipart file
-    app.use(
-      bodyParser.raw({
-        type: "*/*",
-        limit: requestLimit
-      })
-    );
+      app.set("trust proxy", "loopback, 10.0.0.0/8");
+      app.set("x-powered-by", false);
 
-    app.set("trust proxy", "loopback, 10.0.0.0/8");
+      app.use(this.handleRequest.bind(this));
+      this.serveStaticWebsite(express, app);
 
-    app.use(this.handleRequest.bind(this));
-    this.serveStaticWebsite(express, app);
-
-    this._http = http.createServer(app).listen(port);
-    if (websockets) {
-      // Activate websocket
-      this.output("Activating socket.io");
-      this._io = require("socket.io")(this._http);
-      this.emit("Webda.Init.SocketIO", this._io);
+      this.http = http.createServer(app).listen(port);
+      if (websockets) {
+        // Activate websocket
+        this.output("Activating socket.io");
+        this.io = require("socket.io")(this.http);
+        this.emit("Webda.Init.SocketIO", this.io);
+      }
+      this.serveIndex(express, app);
+      this.output("Server running at http://0.0.0.0:" + port);
+      this.serverStatus = ServerStatus.Started;
+      return new Promise(() => {});
+    } catch (err) {
+      this.serverStatus = ServerStatus.Stopped;
     }
-    this.serveIndex(express, app);
-    this.output("Server running at http://0.0.0.0:" + port);
-    return new Promise(() => {});
+  }
+
+  /**
+   * Get server status
+   */
+  getServerStatus() {
+    return this.serverStatus;
+  }
+
+  /**
+   * Wait for the server to be in a desired state
+   *
+   * @param status to wait for
+   * @param timeout max number of ms to wait for
+   */
+  async waitForStatus(
+    status: ServerStatus.Stopped | ServerStatus.Started,
+    timeout: number = 60000
+  ) {
+    let time = 0;
+    do {
+      if (this.getServerStatus() === status) {
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      time += 1000;
+      if (timeout < time) {
+        throw new Error("Timeout");
+      }
+    } while (true);
+  }
+
+  /**
+   * Stop the http server
+   */
+  async stop() {
+    if (this.http) {
+      await this.waitForStatus(ServerStatus.Started);
+    }
+    this.serverStatus = ServerStatus.Stopping;
+    if (this.http) {
+      await new Promise((resolve, reject) => {
+        this.http.close(err => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+    }
+    this.serverStatus = ServerStatus.Stopped;
   }
 }

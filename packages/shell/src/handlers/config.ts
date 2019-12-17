@@ -1,40 +1,36 @@
-import { WebdaServer } from "./http";
-import { Deployment } from "../models/deployment";
 import {
-  Core as Webda,
-  Executor,
-  _extend,
-  Store,
-  CoreModel,
+  Configuration,
   Context,
-  RequestFilter
+  Core as Webda,
+  CoreModel,
+  Logger,
+  RequestFilter,
+  Service,
+  Store
 } from "@webda/core";
-import { LambdaDeployer } from "../deployers/lambda";
-import { DockerDeployer } from "../deployers/docker";
-import { S3Deployer } from "../deployers/s3";
-import { ShellDeployer } from "../deployers/shell";
-import { FargateDeployer } from "../deployers/fargate";
-
+import * as deepmerge from "deepmerge";
 import * as fs from "fs";
-import * as path from "path";
-
 import * as merge from "merge";
 import * as mkdirp from "mkdirp";
-import * as deepmerge from "deepmerge";
+import * as path from "path";
 import { Deployer } from "../deployers/deployer";
+import { WebdaServer } from "./http";
 
-export class ConfigurationService extends Executor implements RequestFilter {
+export class ConfigurationService extends Service implements RequestFilter {
   _config: any;
   _computeConfig: any;
   _deployments: any;
   _deploymentStore: Store<CoreModel>;
-  _webda: WebdaConfigurationServer;
 
   async checkRequest(context: Context): Promise<boolean> {
     if (context.getHttpContext().getHost() === "localhost") {
       return true;
     }
     return false;
+  }
+
+  getWebda(): WebdaConfigurationServer {
+    return <WebdaConfigurationServer>(<any>this._webda);
   }
 
   initRoutes() {
@@ -85,8 +81,9 @@ export class ConfigurationService extends Executor implements RequestFilter {
   }
 
   refresh() {
-    this._config = this._webda.config;
-    this._computeConfig = this._webda.computeConfig;
+    this._config = this._webda.getConfiguration();
+    // TODO Check
+    this._computeConfig = this._webda.getConfiguration();
     this._deployments = {};
   }
 
@@ -152,7 +149,7 @@ export class ConfigurationService extends Executor implements RequestFilter {
   _getModels() {
     var res = {};
     // Add builtin model
-    for (let i in this._webda._models) {
+    for (let i in this._webda.getModels()) {
       res[i] = {
         builtin: true,
         name: i
@@ -176,8 +173,9 @@ export class ConfigurationService extends Executor implements RequestFilter {
     let className = name.split("/").pop();
     let extendName = extending.split("/").pop();
     let requireFile;
+    let modelsDefinition = this._webda.getModels();
     // Builtin
-    if (this._webda._models[extending]) {
+    if (modelsDefinition[extending]) {
       requireFile = "webda/models/" + extendName.toLowerCase();
     } else {
       requireFile = "." + models[extending];
@@ -279,49 +277,34 @@ class ` +
   }
 
   getDeployers(ctx: Context) {
-    var res = [];
-    for (let i in this._webda._deployers) {
-      if (!this._webda._deployers[i].getModda) {
-        continue;
-      }
-      let modda = this._webda._deployers[i].getModda();
-      if (modda === undefined) continue;
-      res.push(modda);
-    }
+    var res = this._webda.getServicesImplementations(Deployer);
     ctx.write(res);
   }
 
   getModdas(ctx: Context) {
-    var res = [];
-    for (let i in this._webda._mockWebda._services) {
-      if (!this._webda._mockWebda._services[i].getModda) {
-        continue;
-      }
-      let modda = this._webda._mockWebda._services[i].getModda();
-      if (modda === undefined) continue;
-      res.push(modda);
-    }
+    var res = this.getWebda()._mockWebda.getServicesImplementations();
     ctx.write(res);
   }
 
   getServices(ctx: Context) {
-    ctx.write(this._webda._mockWebda.getModdas());
+    //ctx.write(this.getWebda()._mockWebda());
   }
 
   deploy(ctx: Context) {
-    return this._webda.deploy(ctx.parameter("name"), [], true);
+    return this.getWebda().deploy(ctx.parameter("name"), [], true);
   }
 
   crudService(ctx: Context) {
     if (ctx.getHttpContext().getMethod() === "GET") {
       var services = [];
-      let servicesBeans = this._webda._mockWebda.getServices();
+      let servicesBeans = this.getWebda()._mockWebda.getServices();
       for (let i in this._config.services) {
         let service = this._config.services[i];
         service._name = i;
         service._type = "Service";
         if (
           servicesBeans[i.toLowerCase()] &&
+          // @ts-ignore TODO Add a Worker implementation
           servicesBeans[i.toLowerCase()].work
         ) {
           service._worker = true;
@@ -350,7 +333,7 @@ class ` +
   }
 
   save() {
-    this._webda.saveHostConfiguration(this._config);
+    this.getWebda().saveHostConfiguration(this._config);
   }
 
   cleanBody(ctx: Context) {
@@ -452,7 +435,7 @@ class ` +
         paths: {},
         tags: []
       },
-      this._webda._mockWebda._config.swagger || {}
+      this.getWebda()._mockWebda.getConfiguration().swagger || {}
     );
     let tags = {};
     this._getModels().forEach(model => {
@@ -462,13 +445,13 @@ class ` +
       // Only export CoreModel info
       if (
         !(
-          this._webda._mockWebda.getModel(model.name).prototype instanceof
+          this.getWebda()._mockWebda.getModel(model.name).prototype instanceof
           CoreModel
         )
       ) {
         return;
       }
-      let schema = new (this._webda._mockWebda.getModel(
+      let schema = new (this.getWebda()._mockWebda.getModel(
         model.name
       ))()._getSchema();
       if (schema) {
@@ -633,11 +616,11 @@ class ` +
     }
   }
   getGlobal(ctx: Context) {
-    ctx.write(this._webda.config.parameters);
+    ctx.write(this._webda.getConfiguration().parameters);
   }
 
   updateGlobal(ctx: Context) {
-    this._webda.config.parameters = ctx.getRequestBody().parameters;
+    this._webda.getConfiguration().parameters = ctx.getRequestBody().parameters;
     this.save();
   }
 
@@ -679,8 +662,8 @@ class ` +
   }
 }
 
-export var ServerConfig = {
-  version: 1,
+export var ServerConfig: Configuration = {
+  version: 2,
   parameters: {
     website: {
       url: "localhost:18181",
@@ -690,8 +673,10 @@ export var ServerConfig = {
     sessionSecret:
       "qwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqaz"
   },
-  models: {
-    "WebdaConfig/Deployment": __dirname + "/../models/deployment"
+  module: {
+    models: {
+      "WebdaConfig/Deployment": __dirname + "/../models/deployment"
+    }
   },
   services: {
     deployments: {
@@ -719,34 +704,6 @@ export class WebdaConfigurationServer extends WebdaServer {
   conns: any[];
   _wui: string;
   _deployOutput: string[];
-
-  constructor(wui: string, config = undefined) {
-    super(config);
-    this._wui = wui;
-    this._deployers = {};
-    this._deployers["WebdaDeployer/Lambda"] = LambdaDeployer;
-    this._deployers["WebdaDeployer/Fargate"] = FargateDeployer;
-    this._deployers["WebdaDeployer/S3"] = S3Deployer;
-    this._deployers["WebdaDeployer/Docker"] = DockerDeployer;
-  }
-
-  /**
-   * Load the deployers in addition to the normal super
-   *
-   * @protected
-   * @ignore Useless for documentation
-   */
-  _loadModule(info, parent) {
-    super._loadModule(info, parent);
-    for (let key in info.deployers) {
-      let mod = require(path.join(parent, info.deployers[key]));
-      if (mod.default) {
-        this._deployers[key] = mod.default;
-      } else {
-        this._deployers[key] = mod;
-      }
-    }
-  }
 
   async exportSwagger(
     deployment: string = undefined,
@@ -825,9 +782,6 @@ export class WebdaConfigurationServer extends WebdaServer {
           encoding: "utf8"
         })
       );
-      if (!this.config.version) {
-        this.config = this.migrateConfig(this.config);
-      }
     } else {
       // Init a default configuration if needed
       this.output("No file is present, creating webda.config.json");
@@ -842,10 +796,10 @@ export class WebdaConfigurationServer extends WebdaServer {
       return;
     }
     this._mockWebda = new Webda(config);
-    this.computeConfig = this._mockWebda._config;
+    this.computeConfig = this._mockWebda.getConfiguration();
   }
 
-  loadConfiguration(config) {
+  loadConfiguration(config = undefined): Configuration {
     this.loadMock();
     return ServerConfig;
   }
@@ -854,7 +808,8 @@ export class WebdaConfigurationServer extends WebdaServer {
     var name = "./deployments/" + env;
     if (fs.existsSync(name)) {
       let deployment = JSON.parse(fs.readFileSync(name).toString());
-      this.config = super.loadConfiguration();
+      // TODO Check
+      //this.config = super.loadConfiguration();
       this.resolveConfiguration(this.config, deployment);
       return JSON.parse(this.exportJson(this.config));
     } else {
@@ -868,7 +823,7 @@ export class WebdaConfigurationServer extends WebdaServer {
    *
    *
    * @param {Object} The server configuration
-   * @param {Object} Teh deployment to resolve
+   * @param {Object} The deployment to resolve
    */
   resolveConfiguration(config, deployment) {
     if (deployment.resources.region && !deployment.parameters.region) {
@@ -888,7 +843,8 @@ export class WebdaConfigurationServer extends WebdaServer {
       throw Error();
     }
     this.resolveConfiguration(this.config, deployment);
-    this.config.cachedModules = this._modules;
+    // TODO Check
+    //this.config.cachedModules = this.definitions.getModules();
     let srcConfig = this.exportJson(this.config);
     return new this._deployers[deployment.type](
       this,
@@ -939,7 +895,8 @@ export class WebdaConfigurationServer extends WebdaServer {
     }
     // Reload with the resolved configuration
     this.resolveConfiguration(this.config, deployment);
-    this.config.cachedModules = this._modules;
+    // TODO Check
+    //this.config.cachedModules = this.definitions.getModules();
     let srcConfig = this.exportJson(this.config);
     this.loadMock(this.config);
 
@@ -1029,24 +986,6 @@ export class WebdaConfigurationServer extends WebdaServer {
     ).undeploy(args);
   }
 
-  serveStaticWebsite(express, app) {
-    console.log(
-      "Serving static content",
-      process.env.HOME + `/.webda-wui/${this._wui}/`
-    );
-    app.use(express.static(process.env.HOME + `/.webda-wui/${this._wui}/`));
-  }
-
-  serveIndex(express, app) {
-    console.log(
-      "Serving static index",
-      process.env.HOME + `/.webda-wui/${this._wui}/index.html`
-    );
-    app.use(
-      express.static(process.env.HOME + `/.webda-wui/${this._wui}/index.html`)
-    );
-  }
-
   async serve(port, openBrowser) {
     // This is the configuration server
     super.serve(port);
@@ -1114,5 +1053,11 @@ export class WebdaConfigurationServer extends WebdaServer {
       }
       this.deployChild = undefined;
     });
+  }
+
+  setLoggers(logger: Logger) {
+    // Transfer the output
+    this._logger = logger;
+    this._loggers = [logger];
   }
 }

@@ -1,13 +1,14 @@
 {
  "parameters": {
-  "website": ["dev.webda-demo.com"],
+  "website": ["dev.webda-demo.com","dev.webda-demo.com:28080"],
   "csrfOrigins": [
     "^accounts\\.google\\.\\w{2,}$",
     "\\w+\\.facebook\\.com"
   ],
   "region": "eu-west-1",
   "accessKeyId": "DEV_ACCESS",
-  "secretAccessKey": "DEV_KEY"
+  "secretAccessKey": "DEV_KEY",
+  "sessionSecret": "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
  },
  "resources": {
   "restApi": "webda-demo-dev",
@@ -21,7 +22,10 @@
     "config": {
       "accessKeyId": "MAIL_TEST"
     }
-  }
+  },
+    "store": {
+      "table": "dev-table"
+    }
  },
  "uuid": "Dev",
  "type": "aws",

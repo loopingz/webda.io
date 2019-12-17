@@ -1,187 +1,20 @@
 "use strict";
-import { WebdaConfigurationServer } from "../handlers/config";
-import { WebdaServer } from "../handlers/http";
-import { ConsoleLogger } from "@webda/core";
+import { Application, ConsoleLogger, Logger } from "@webda/core";
+import { ChildProcess, spawn } from "child_process";
 import * as colors from "colors";
-import { Transform, Writable } from "stream";
-import * as fs from "fs";
 import * as crypto from "crypto";
-
-import * as yauzl from "yauzl";
-import * as path from "path";
-import * as mkdirp from "mkdirp";
-import * as glob from "glob";
-
-import * as rp from "request-promise";
-import * as semver from "semver";
-import * as https from "https";
-import * as unzip from "unzip";
-
-import * as YAML from "yamljs";
-
-var webda;
-var server_config;
-var server_pid;
-
-class ModuleLoader {
-  _loaded: string[] = [];
-  services: any = {};
-  models: any = {};
-
-  loadModuleFile(path: string) {
-    let absolutePath = process.cwd() + "/" + path;
-    if (this._loaded.indexOf(absolutePath) >= 0) {
-      return;
-    }
-    this._loaded.push(absolutePath);
-    let mod = require(absolutePath);
-    if (!mod) {
-      return;
-    }
-    if (mod.default) {
-      mod = mod.default;
-    }
-    // Check if it is a service
-    if (mod.getModda) {
-      let modda = mod.getModda();
-      if (!modda || !modda.uuid) {
-        return;
-      }
-      this.services[modda.uuid] = path;
-    }
-  }
-
-  static getPackagesLocations(): string[] {
-    let includes;
-    if (fs.existsSync(process.cwd() + "/package.json")) {
-      includes = require(process.cwd() + "/package.json").files;
-    }
-    return includes || ["lib/**/*.js"];
-  }
-
-  load() {
-    ModuleLoader.getPackagesLocations().forEach(path => {
-      if (fs.existsSync(path) && fs.lstatSync(path).isDirectory()) {
-        path += "/**/*.js";
-      }
-      glob.sync(path).forEach(this.loadModuleFile.bind(this));
-    });
-  }
-
-  write() {
-    fs.writeFileSync(
-      "./webda.module.json",
-      JSON.stringify(
-        {
-          services: this.services,
-          models: this.models
-        },
-        null,
-        " "
-      )
-    );
-  }
-}
+import * as fs from "fs";
+import { Transform } from "stream";
+import { WebdaServer } from "../handlers/http";
 
 export default class WebdaConsole {
-  static logger: ConsoleLogger = new ConsoleLogger(
-    undefined,
-    "ConsoleLogger",
-    {}
-  );
-
-  static unzip(dest_dir, body) {
-    if (!dest_dir.endsWith("/")) {
-      dest_dir += "/";
-    }
-    return new Promise((resolve, reject) => {
-      yauzl.fromBuffer(
-        body,
-        {
-          lazyEntries: true
-        },
-        function(err, zipfile) {
-          if (err) {
-            return reject(err);
-          }
-          zipfile.readEntry();
-          zipfile.on("end", function() {
-            return resolve();
-          });
-          zipfile.on("entry", function(entry) {
-            if (/\/$/.test(entry.fileName)) {
-              // directory file names end with '/'
-              mkdirp(dest_dir + entry.fileName, function(err) {
-                if (err) {
-                  return reject(err);
-                }
-                zipfile.readEntry();
-              });
-            } else {
-              // file entry
-              zipfile.openReadStream(entry, function(err, readStream) {
-                if (err) throw err;
-                // ensure parent directory exists
-                mkdirp(path.dirname(dest_dir + entry.fileName), function(err) {
-                  if (err) throw err;
-                  readStream.pipe(
-                    fs.createWriteStream(dest_dir + entry.fileName)
-                  );
-                  readStream.on("end", function() {
-                    zipfile.readEntry();
-                  });
-                });
-              });
-            }
-          });
-        }
-      );
-    });
-  }
-
-  static generateLogo(logo) {
-    // For sample
-    var asciify = require("asciify-image");
-    var options = {
-      fit: "box",
-      width: 20,
-      height: 20,
-      format: "array"
-    };
-    return asciify(logo, options)
-      .then(function(asciified) {
-        // Print asciified image to console
-        fs.writeFileSync(logo + ".json", JSON.stringify(asciified));
-        asciified.forEach(line => {
-          this.output(line.join(""));
-        });
-      })
-      .catch(function(err) {
-        this.output("err", err);
-      });
-  }
-
-  static logo(lines) {
-    const logoLines = require("../../logo.json");
-    this.output("");
-    logoLines.forEach((line, idx) => {
-      line = "  " + line.join("") + "  ";
-      if (idx > 0 && lines.length > idx - 1) {
-        line = line + lines[idx - 1];
-      }
-      this.output(line);
-    });
-    this.output("");
-  }
+  static webda: WebdaServer;
+  static serverProcess: ChildProcess;
+  static logger: Logger = new ConsoleLogger(undefined, "ConsoleLogger", {});
+  static app: Application;
 
   static bold(str: string) {
     return colors.bold(colors.yellow(str));
-  }
-
-  static generateModule() {
-    let module = new ModuleLoader();
-    module.load();
-    module.write();
   }
 
   static help() {
@@ -228,13 +61,9 @@ export default class WebdaConsole {
       this.bold(" launch") +
         " ServiceName method arg1 ...: Launch the ServiceName method with arg1 ..."
     );
-    if ((<any>process.stdout).columns > 130) {
-      return this.logo(lines);
-    } else {
-      lines.forEach(line => {
-        this.output(line);
-      });
-    }
+    lines.forEach(line => {
+      this.output(line);
+    });
   }
 
   static parser(args) {
@@ -264,6 +93,7 @@ export default class WebdaConsole {
         type: "boolean",
         default: false
       })
+      .option("app-path", { default: process.cwd() })
       .parse(args);
   }
 
@@ -271,24 +101,25 @@ export default class WebdaConsole {
     if (argv.deployment) {
       // Loading first the configuration
       this.output("Serve as deployment: " + argv.deployment);
-      server_config = this._loadDeploymentConfig(argv.deployment);
     } else {
       this.output("Serve as development");
     }
     // server_config.parameters.logLevel = server_config.parameters.logLevel || argv['log-level'];
-    webda = new WebdaServer(server_config);
-    await webda.init();
-    webda._devMode = argv.devMode;
-    if (webda._devMode) {
+    this.webda = new WebdaServer(this.app);
+    await this.webda.init();
+    this.webda.setDevMode(argv.devMode);
+    if (argv.devMode) {
       this.output("Dev mode activated : wildcard CORS enabled");
     }
-    return webda.serve(argv.port, argv.websockets);
+    return this.webda.serve(argv.port, argv.websockets);
   }
 
   static async install(argv) {
+    /*
     this.output("Installing deployment: " + argv.deployment);
     webda = await this._getNewConfig();
     return webda.install(argv.deployment, server_config, argv._.slice(1));
+    */
   }
 
   static async uninstall(argv) {
@@ -297,32 +128,24 @@ export default class WebdaConsole {
       this.output(
         colors.red("Uninstalling deployment: ") + argv.deployment.red
       );
-      // Should add a confirmation here with RED letter
-      server_config = this._loadDeploymentConfig(argv.deployment);
     }
-    webda = new WebdaServer(server_config);
-    webda.setHost();
-    await webda.init();
-    let services = webda.getServices();
+    this.webda = new WebdaServer(this.app);
+    await this.webda.init();
+    let services = this.webda.getServices();
     let promises = [];
     for (var name in services) {
       if (services[name].uninstall) {
         this.output("Uninstalling", name);
-        promises.push(services[name].uninstall());
+        promises.push(services[name].uninstall(undefined));
       }
     }
     return Promise.all(promises);
   }
 
   static serviceConfig(argv) {
-    if (argv.deployment) {
-      // Loading first the configuration
-      this.output("Service configuration as deployment: " + argv.deployment);
-      server_config = this._loadDeploymentConfig(argv.deployment);
-    }
-    webda = new WebdaServer(server_config);
+    this.webda = new WebdaServer(this.app);
     let service_name = argv._[1];
-    let service = webda.getService(argv._[1]);
+    let service = this.webda.getService(argv._[1]);
     if (!service) {
       let error = "The service " + service_name + " is missing";
       this.output(colors.red(error));
@@ -333,14 +156,9 @@ export default class WebdaConsole {
 
   static async worker(argv) {
     let service_name = argv._[1];
-    if (argv.deployment) {
-      // Loading first the configuration{As}
-      this.output("Should work as deployment: " + argv.deployment);
-      server_config = this._loadDeploymentConfig(argv.deployment);
-    }
-    webda = new WebdaServer(server_config);
-    await webda.init();
-    let service = webda.getService(service_name);
+    this.webda = new WebdaServer(this.app);
+    await this.webda.init();
+    let service = this.webda.getService(service_name);
     let method = argv._[2] || "work";
     if (!service) {
       let error = "The service " + service_name + " is missing";
@@ -369,17 +187,17 @@ export default class WebdaConsole {
 
   static debug(argv) {
     process.on("SIGINT", function() {
-      if (server_pid) {
-        server_pid.kill();
+      if (this.serverPid) {
+        this.serverPid.kill();
       }
     });
     let launchServe = () => {
-      if (server_pid) {
+      if (this.serverProcess) {
         this.output(
           "[" + colors.grey(new Date().toLocaleTimeString()) + "]",
           "Refresh web" + colors.yellow("da") + " server"
         );
-        server_pid.kill();
+        this.serverProcess.kill();
       } else {
         this.output(
           "[" + colors.grey(new Date().toLocaleTimeString()) + "]",
@@ -419,12 +237,13 @@ export default class WebdaConsole {
           callback();
         }
       });
-      server_pid = require("child_process").spawn("webda", args);
-      server_pid.stdout.pipe(addTime).pipe(process.stdout);
+      this.serverProcess = spawn("webda", args);
+      this.serverProcess.stdout.pipe(addTime).pipe(process.stdout);
     };
 
+    let app = new Application(process.cwd());
     // Typescript mode -> launch compiler and update after compile is finished
-    if (fs.existsSync("./tsconfig.json")) {
+    if (app.isTypescript()) {
       let transform = new Transform({
         transform(chunk, encoding, callback) {
           let info = chunk.toString().trim() + "\n";
@@ -462,7 +281,7 @@ export default class WebdaConsole {
           callback();
         }
       });
-      this.typescriptCompile(true, transform);
+      this.typescriptWatch(transform);
     } else {
       // Traditional js
       var listener = (event, filename) => {
@@ -473,7 +292,7 @@ export default class WebdaConsole {
         }
       };
       // glob files
-      ModuleLoader.getPackagesLocations().forEach(path => {
+      app.getPackagesLocations().forEach(path => {
         if (fs.existsSync(path) && fs.lstatSync(path).isDirectory()) {
           // Linux limitation, the recursive does not work
           fs.watch(
@@ -490,157 +309,48 @@ export default class WebdaConsole {
     return new Promise(() => {});
   }
 
-  static async _getNewConfig(): Promise<WebdaConfigurationServer> {
-    let webda = new WebdaConfigurationServer(this.getWUIName());
-    // Transfer the output
-    webda._logger = this.logger;
-    webda._loggers = [this.logger];
-    return webda;
-  }
-
-  static _loadDeploymentConfig(deployment) {
-    let webda = new WebdaConfigurationServer(this.getWUIName());
-    webda._logger = this.logger;
-    webda._loggers = [this.logger];
-    return webda.loadDeploymentConfig(deployment);
-  }
-
-  static getLastWUIVersionURL() {
-    return "https://webda.io/wuis/wuis.json";
-  }
-
   static getVersion() {
     return JSON.parse(
       fs.readFileSync(__dirname + "/../../package.json").toString()
     ).version;
   }
 
-  static getBarLabel() {
-    return "{action}: " + colors.yellow("{bar}") + " {percentage}%";
-  }
-
-  static getWUIName(): string {
-    return "webda";
-  }
-
-  static async getLastWUIVersion() {
-    if (!fs.existsSync(process.env.HOME + "/.webda-wui/")) {
-      fs.mkdirSync(process.env.HOME + "/.webda-wui/");
-    }
-    let path = process.env.HOME + "/.webda-wui/" + this.getWUIName();
-    if (!fs.existsSync(path)) {
-      fs.mkdirSync(path);
-    }
-    let versions = await rp({
-      uri: this.getLastWUIVersionURL(),
-      json: true
-    });
-    let currentVersion = this.getVersion();
-    let wui;
-    for (let i in versions) {
-      let version = versions[i];
-      if (
-        version.version === "latest" ||
-        semver.lt(currentVersion, version.version)
-      ) {
-        // Last available
-        wui = version;
-        break;
-      }
-    }
-    if (!wui) {
-      this.log("ERROR", "No valid WUI found");
-      return;
-    }
-    let versionFile = path + "/version.json";
-    let currentWui = {
-      hash: ""
-    };
-    if (fs.existsSync(versionFile)) {
-      currentWui = JSON.parse(fs.readFileSync(versionFile).toString());
-    }
-    if (currentWui.hash !== wui.hash) {
-      const _cliProgress = require("cli-progress");
-      const bar1 = new _cliProgress.Bar(
-        {
-          format: this.getBarLabel()
-        },
-        _cliProgress.Presets.shades_classic
-      );
-      // Add cli_progress here
-      bar1.start(wui.size, 0, {
-        action: "Downloading WUI"
-      });
-      let dataLength = 0;
-      let fsTest = fs.createWriteStream(path + "/package.zip");
-      await new Promise((resolve, reject) => {
-        https.get(wui.url, res => {
-          res.pipe(fsTest);
-          res.on("data", function(chunk) {
-            dataLength += chunk.length;
-            bar1.update(dataLength);
-          });
-        });
-        fsTest.on("close", () => {
-          dataLength = 0;
-          bar1.update(dataLength, {
-            action: "Extracting WUI"
-          });
-          let src = fs.createReadStream(path + "/package.zip");
-          src.on("data", function(chunk) {
-            dataLength += chunk.length;
-            bar1.update(dataLength);
-          });
-          let unzipStream = unzip.Extract({
-            path
-          });
-          src.pipe(unzipStream);
-          unzipStream.on("close", () => {
-            bar1.stop();
-            resolve();
-          });
-        });
-      });
-      fs.writeFileSync(versionFile, JSON.stringify(wui, undefined, 2));
-    }
-  }
-
   static async config(argv) {
-    try {
-      await this.getLastWUIVersion();
-    } catch (err) {
-      this.log("ERROR", "Cannot get latest version of Web UI", err);
-    }
     if (argv.deployment) {
-      let webda = await this._getNewConfig();
-      server_config = webda.loadDeploymentConfig(argv.deployment);
-      if (!server_config) return Promise.resolve();
-      // Caching the modules
-      server_config.cachedModules = webda._modules;
-      let json = JSON.stringify(server_config, null, " ");
+      let json = JSON.stringify(
+        this.app.getConfiguration(argv.deployment),
+        null,
+        " "
+      );
       if (argv._.length > 1) {
         fs.writeFileSync(argv._[1], json);
       } else {
         this.output(json);
       }
-      return Promise.resolve();
+      return;
     }
+    /*
     webda = await this._getNewConfig();
     await webda.serve(18181, argv.open);
+    */
   }
 
   static async deploy(argv) {
+    /*
     webda = await this._getNewConfig();
     return webda.deploy(argv.deployment, argv._.slice(1)).catch(err => {
       this.output("Error", err);
     });
+    */
   }
 
   static async undeploy(argv) {
+    /*
     webda = await this._getNewConfig();
     return webda.undeploy(argv.deployment, argv._.slice(1)).catch(err => {
       this.output(err);
     });
+    */
   }
 
   static async init(argv, generatorName: string = "webda") {
@@ -681,7 +391,7 @@ export default class WebdaConsole {
     await this.logger.init();
   }
 
-  static async handleCommand(args) {
+  static async handleCommand(args): Promise<number> {
     let argv = this.parser(args);
     await this.initLogger(argv);
     if (
@@ -689,62 +399,70 @@ export default class WebdaConsole {
     ) {
       if (argv.deployment === undefined) {
         this.output("Need to specify an environment");
-        process.exit(1);
+        return 1;
       }
     }
+
+    this.app = new Application(argv.appPath);
 
     if (argv.deployment) {
-      server_config = this._loadDeploymentConfig(argv.deployment);
-      if (!server_config) {
-        return;
+      if (!this.app.hasDeployment(argv.deployment)) {
+        this.output(`Unknown deployment: ${argv.deployment}`);
+        return 1;
       }
+      this.app.setCurrentDeployment(argv.deployment);
     }
 
-    // Compile typescript if needed
-    if (
-      ["debug", "init", "serviceconfig"].indexOf(argv._[0]) < 0 &&
-      !argv.noCompile
-    ) {
-      await this.typescriptCompile();
+    if (argv.noCompile) {
+      this.app.preventCompilation(true);
     }
+
+    //this.app.loadModules();
 
     switch (argv._[0]) {
       case "serve":
-        return new Promise(() => {
-          this.serve(argv);
-        });
+        await this.serve(argv);
+        return 0;
       case "install":
-        return this.install(argv);
+        await this.install(argv);
+        return 0;
       case "uninstall":
-        return this.uninstall(argv);
+        await this.uninstall(argv);
+        return 0;
       case "serviceconfig":
-        return this.serviceConfig(argv);
+        await this.serviceConfig(argv);
+        return 0;
       case "worker":
       case "launch":
-        return this.worker(argv);
+        await this.worker(argv);
+        return 0;
       case "debug":
-        return this.debug(argv);
+        await this.debug(argv);
+        return 0;
       case "config":
-        return new Promise(resolve => {
-          let promise = this.config(argv);
-          if (promise) {
-            resolve(promise);
-          }
-        });
+        await this.config(argv);
+        return 0;
       case "deploy":
-        return this.deploy(argv);
+        await this.deploy(argv);
+        return 0;
       case "undeploy":
-        return this.undeploy(argv);
+        await this.undeploy(argv);
+        return 0;
       case "init":
-        return this.init(argv);
+        await this.init(argv);
+        return 0;
       case "module":
-        return this.generateModule();
+        await this.app.generateModule();
+        return 0;
       case "swagger":
-        return this.generateSwagger(argv);
+        await this.generateSwagger(argv);
+        return 0;
       case "generate-session-secret":
-        return this.generateSessionSecret();
+        await this.generateSessionSecret();
+        return 0;
       default:
-        return this.help();
+        await this.help();
+        return 0;
     }
   }
 
@@ -761,13 +479,19 @@ export default class WebdaConsole {
 
   static async generateSessionSecret() {
     let config =
-      JSON.parse(fs.readFileSync("./webda.config.json").toString()) || {};
+      JSON.parse(
+        fs.readFileSync(this.app.getAppPath("webda.config.json")).toString()
+      ) || {};
     config.parameters = config.parameters || {};
     config.parameters.sessionSecret = await this.generateRandomString(256);
-    fs.writeFileSync("./webda.config.json", JSON.stringify(config, null, 2));
+    fs.writeFileSync(
+      this.app.getAppPath("webda.config.json"),
+      JSON.stringify(config, null, 2)
+    );
   }
 
   static async generateSwagger(argv) {
+    /*
     webda = await this._getNewConfig();
     let swagger = await webda.exportSwagger(
       argv.deployment,
@@ -781,36 +505,22 @@ export default class WebdaConsole {
     } else {
       this.log("ERROR", "Unknown format");
     }
+    */
   }
 
-  static async typescriptCompile(
-    watch: boolean = false,
-    stream: Transform = undefined
-  ) {
-    if (fs.existsSync("./tsconfig.json")) {
-      this.output("Typescript compilation");
-      let args = [];
-      let options: any = {};
-      if (!stream) {
-        options.stdio = ["pipe", process.stdout, process.stderr];
-      }
-      if (watch) {
-        args.push("--watch");
-      }
-      let tsc_compile = require("child_process").spawn("tsc", args, options);
-      if (stream) {
-        tsc_compile.stdout.pipe(stream).pipe(process.stdout);
-      }
-      return new Promise((resolve, reject) => {
-        tsc_compile.on("exit", function(code, signal) {
-          if (!code) {
-            resolve();
-            return;
-          }
-          process.exit(code);
-        });
+  static async typescriptWatch(stream: Transform) {
+    this.output("Typescript compilation");
+    let tsc_compile = require("child_process").spawn("tsc", ["--watch"], {});
+    tsc_compile.stdout.pipe(stream).pipe(process.stdout);
+    return new Promise(resolve => {
+      tsc_compile.on("exit", function(code) {
+        if (!code) {
+          resolve();
+          return;
+        }
+        process.exit(code);
       });
-    }
+    });
   }
 
   static output(...args) {

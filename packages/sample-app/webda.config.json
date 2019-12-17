@@ -1,15 +1,23 @@
 {
-  "version": "1.0",
+  "version": 2,
   "services": {
-    "s3bucket": {
-      "type": "S3Binary"
+    "images": {
+      "type": "FileBinary",
+      "folder": "./test/store"
     },
-    "sqs": {
-      "type": "SQSQueue"
+    "thumbnailsqueue": {
+      "type": "MemoryQueue"
     },
     "store": {
-      "type": "DynamoStore",
-      "table": "dev-table"
+      "model": "WebdaDemo/Contact",
+      "type": "MemoryStore",
+      "table": "local-table",
+      "expose": {
+        "url": "/contacts"
+      }
     }
+  },
+  "parameters": {
+    "sessionSecret": "yDvuWiD/0+W08wa7fVi6+9Yqll+GV5hqxCVC68yb679qYeNfWDaJ3n0NE+E1AhDKS2rFejE3KYJoaqHlC8V2TsFYhqyK21ky10rhnEVe+AD+fXxRSQpzXJIjb/XjAMNLRm7idag3804vryvbWpSSObQ+GmMPXSPfXe1huvNfJfzJQi7jAwoLC3FG9n4nR9MoHFj+gkhSKhxozvGqYDZ7S9vkNrJc0+5QnfYF92OTmdn/adQjn+1blP6EN2O7wpzU"
   }
 }

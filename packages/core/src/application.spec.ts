@@ -29,6 +29,10 @@ class ApplicationTest extends WebdaTest {
   compile() {
     assert.equal(this.sampleApp.isTypescript(), true);
     this.cleanSampleApp();
+    this.sampleApp.preventCompilation(true);
+    this.sampleApp.compile();
+    assert.equal(fs.existsSync(this.sampleApp.getAppPath("lib")), false);
+    this.sampleApp.preventCompilation(false);
     this.sampleApp.compile();
     // assert files are there
     assert.equal(fs.existsSync(this.sampleApp.getAppPath("lib")), true);
@@ -62,8 +66,10 @@ class ApplicationTest extends WebdaTest {
   getDeployment() {
     let deployment = this.sampleApp.getDeployment("Dev");
     deployment = this.sampleApp.getDeployment("Production");
+    assert.equal(this.sampleApp.hasDeployment("Dev1"), false);
     assert.throws(() => this.sampleApp.getDeployment("Dev1"), /Unknown deployment/);
     this.sampleApp.setCurrentDeployment("Production");
+    assert.equal(this.sampleApp.hasDeployment("Production"), true);
     assert.deepEqual(this.sampleApp.getDeployment(), deployment);
   }
 

@@ -15,6 +15,7 @@ export class WebdaServer extends Webda {
   protected devMode: boolean;
   protected staticIndex: string;
   protected serverStatus: ServerStatus = ServerStatus.Stopped;
+  private serverPromise: any;
 
   setDevMode(devMode: boolean) {
     this.devMode = devMode;
@@ -307,7 +308,9 @@ export class WebdaServer extends Webda {
       this.serveIndex(express, app);
       this.output("Server running at http://0.0.0.0:" + port);
       this.serverStatus = ServerStatus.Started;
-      return new Promise(() => {});
+      return new Promise(resolve => {
+        this.serverPromise = resolve;
+      });
     } catch (err) {
       this.serverStatus = ServerStatus.Stopped;
     }
@@ -347,7 +350,7 @@ export class WebdaServer extends Webda {
    * Stop the http server
    */
   async stop() {
-    if (this.http) {
+    if (this.http && this.serverStatus === ServerStatus.Starting) {
       await this.waitForStatus(ServerStatus.Started);
     }
     this.serverStatus = ServerStatus.Stopping;
@@ -363,5 +366,11 @@ export class WebdaServer extends Webda {
       });
     }
     this.serverStatus = ServerStatus.Stopped;
+    this.http = undefined;
+    if (this.serverPromise) {
+      let resolve = this.serverPromise;
+      this.serverPromise = undefined;
+      resolve();
+    }
   }
 }

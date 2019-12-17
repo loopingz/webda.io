@@ -4,7 +4,8 @@ import * as assert from "assert";
 import * as fs from "fs";
 import { suite, test } from "mocha-typescript";
 import * as path from "path";
-import { WebdaSampleApplication } from "../index.spec";
+import { ServerStatus } from "../handlers/http";
+import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import WebdaConsole from "./webda";
 
 @suite
@@ -28,16 +29,20 @@ class ConsoleTest {
     assert.equal(config.services.store.table, "dev-table");
   }
 
-  @test
-  help() {
-    this.commandLine("--noCompile help", false);
+  async after() {
+    if (WebdaConsole.webda) {
+      await WebdaConsole.webda.stop();
+    }
   }
 
   @test
-  async serve() {
-    // TODO
-    /*
-    this.commandLine(`serve -d Dev`);
+  async help() {
+    await this.commandLine("--noCompile help");
+  }
+
+  @test
+  async serveCommandLine() {
+    this.commandLine(`serve -d Dev --port 28080`);
     for (let i = 0; i < 100; i++) {
       if (WebdaConsole.webda) {
         break;
@@ -45,11 +50,26 @@ class ConsoleTest {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     await WebdaConsole.webda.waitForStatus(ServerStatus.Started);
-    assert.equal(status, ServerStatus.Started);
-    let app = new SampleApplicationTest(`http://localhost:18080`);
+    assert.equal(WebdaConsole.webda.getServerStatus(), ServerStatus.Started);
+    let app = new SampleApplicationTest(`http://localhost:28080`);
     await app.testApi();
     await WebdaConsole.webda.stop();
-    */
+  }
+
+  @test
+  async debugCommandLine() {
+    this.commandLine(`debug -d Dev --port 28080`);
+    for (let i = 0; i < 100; i++) {
+      if (WebdaConsole.webda) {
+        break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    await WebdaConsole.webda.waitForStatus(ServerStatus.Started);
+    assert.equal(WebdaConsole.webda.getServerStatus(), ServerStatus.Started);
+    let app = new SampleApplicationTest(`http://localhost:28080`);
+    await app.testApi();
+    await WebdaConsole.webda.stop();
   }
 
   @test
@@ -78,7 +98,7 @@ class ConsoleTest {
   }
 
   @test
-  async genrateModule() {
+  async generateModule() {
     let moduleFile = path.join(
       WebdaSampleApplication.getAppPath(),
       "webda.module.json"

@@ -18,7 +18,6 @@ export class SampleApplicationTest {
 
   async testApi() {
     let res = await fetch(`${this.baseUrl}/test`, {});
-
     assert.equal(res.status, 401);
     // Status 401 as CSRF protection is on
     // Check OPTIONS

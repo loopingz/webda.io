@@ -1,4 +1,4 @@
-import { exec, execSync } from "child_process";
+import { execSync } from "child_process";
 import * as fs from "fs";
 import * as glob from "glob";
 import * as merge from "merge";
@@ -202,6 +202,10 @@ export class Application {
       : this.packageDescription.name | this.packageDescription.name;
   }
 
+  preventCompilation(compile: boolean) {
+    this.compiled = compile;
+  }
+
   migrateV0Config(config: any): Configuration {
     this.log("WARN", "Old V0 webda.config.json format, trying to migrate");
     let newConfig: any = {
@@ -307,6 +311,10 @@ export class Application {
     this.deployers[name.toLowerCase()] = model;
   }
 
+  hasDeployment(deploymentName: string): boolean {
+    return fs.existsSync(path.join(this.appPath, "deployments", deploymentName));
+  }
+
   getDeployment(deploymentName: string = undefined): Deployment {
     if (!deploymentName) {
       deploymentName = this.currentDeployment;
@@ -372,13 +380,6 @@ export class Application {
       execSync(`tsc -p ${this.appPath}`);
     }
     this.compiled = true;
-  }
-
-  /**
-   * Compile the application in watch mode
-   */
-  watch(postCompileCallback: () => {} = undefined) {
-    exec(`tsc -p ${this.appPath} --watch`);
   }
 
   /**

@@ -24,45 +24,46 @@ export default class WebdaConsole {
     lines.push("  --help                     Display this message and exit");
     lines.push("");
     lines.push(
-      this.bold(" config") +
+      WebdaConsole.bold(" config") +
         ": Launch the configuration UI or export a deployment config"
     );
     lines.push(
-      this.bold(" serviceconfig") +
+      WebdaConsole.bold(" serviceconfig") +
         ": Display the configuration of a service with its deployment"
     );
     lines.push(
-      this.bold(" init") + ": Init a sample project for your current version"
+      WebdaConsole.bold(" init") +
+        ": Init a sample project for your current version"
     );
     lines.push(
-      this.bold(" module") +
+      WebdaConsole.bold(" module") +
         ": Generate a module definition based on the script scan"
     );
     lines.push(
-      this.bold(" install") +
+      WebdaConsole.bold(" install") +
         ": Install the resources for the declared services ( DynamoDB Tables, S3 Buckets )"
     );
     lines.push(
-      this.bold(" serve") +
+      WebdaConsole.bold(" serve") +
         " (DeployConfiguration): Serve current project, can serve with DeployConfiguration"
     );
     lines.push(
-      this.bold(" deploy") +
+      WebdaConsole.bold(" deploy") +
         " DeployConfiguration: Deploy current project with DeployConfiguration name"
     );
-    lines.push(this.bold(" worker") + ": Launch a worker on a queue");
-    lines.push(this.bold(" debug") + ": Debug current project");
-    lines.push(this.bold(" swagger") + ": Generate swagger file");
+    lines.push(WebdaConsole.bold(" worker") + ": Launch a worker on a queue");
+    lines.push(WebdaConsole.bold(" debug") + ": Debug current project");
+    lines.push(WebdaConsole.bold(" swagger") + ": Generate swagger file");
     lines.push(
-      this.bold(" generate-session-secret") +
+      WebdaConsole.bold(" generate-session-secret") +
         ": Generate a new session secret in parameters"
     );
     lines.push(
-      this.bold(" launch") +
+      WebdaConsole.bold(" launch") +
         " ServiceName method arg1 ...: Launch the ServiceName method with arg1 ..."
     );
     lines.forEach(line => {
-      this.output(line);
+      WebdaConsole.output(line);
     });
   }
 
@@ -100,24 +101,24 @@ export default class WebdaConsole {
   static async serve(argv) {
     if (argv.deployment) {
       // Loading first the configuration
-      this.output("Serve as deployment: " + argv.deployment);
+      WebdaConsole.output("Serve as deployment: " + argv.deployment);
     } else {
-      this.output("Serve as development");
+      WebdaConsole.output("Serve as development");
     }
     // server_config.parameters.logLevel = server_config.parameters.logLevel || argv['log-level'];
-    this.webda = new WebdaServer(this.app);
-    await this.webda.init();
-    this.webda.setDevMode(argv.devMode);
+    WebdaConsole.webda = new WebdaServer(WebdaConsole.app);
+    await WebdaConsole.webda.init();
+    WebdaConsole.webda.setDevMode(argv.devMode);
     if (argv.devMode) {
-      this.output("Dev mode activated : wildcard CORS enabled");
+      WebdaConsole.output("Dev mode activated : wildcard CORS enabled");
     }
-    return this.webda.serve(argv.port, argv.websockets);
+    await WebdaConsole.webda.serve(argv.port, argv.websockets);
   }
 
   static async install(argv) {
     /*
-    this.output("Installing deployment: " + argv.deployment);
-    webda = await this._getNewConfig();
+    WebdaConsole.output("Installing deployment: " + argv.deployment);
+    webda = await WebdaConsole._getNewConfig();
     return webda.install(argv.deployment, server_config, argv._.slice(1));
     */
   }
@@ -125,17 +126,17 @@ export default class WebdaConsole {
   static async uninstall(argv) {
     if (argv.deployment) {
       // Loading first the configuration
-      this.output(
+      WebdaConsole.output(
         colors.red("Uninstalling deployment: ") + argv.deployment.red
       );
     }
-    this.webda = new WebdaServer(this.app);
-    await this.webda.init();
-    let services = this.webda.getServices();
+    WebdaConsole.webda = new WebdaServer(WebdaConsole.app);
+    await WebdaConsole.webda.init();
+    let services = WebdaConsole.webda.getServices();
     let promises = [];
     for (var name in services) {
       if (services[name].uninstall) {
-        this.output("Uninstalling", name);
+        WebdaConsole.output("Uninstalling", name);
         promises.push(services[name].uninstall(undefined));
       }
     }
@@ -143,32 +144,32 @@ export default class WebdaConsole {
   }
 
   static serviceConfig(argv) {
-    this.webda = new WebdaServer(this.app);
+    WebdaConsole.webda = new WebdaServer(WebdaConsole.app);
     let service_name = argv._[1];
-    let service = this.webda.getService(argv._[1]);
+    let service = WebdaConsole.webda.getService(argv._[1]);
     if (!service) {
       let error = "The service " + service_name + " is missing";
-      this.output(colors.red(error));
+      WebdaConsole.output(colors.red(error));
       process.exit(1);
     }
-    this.output(JSON.stringify(service._params, null, " "));
+    WebdaConsole.output(JSON.stringify(service._params, null, " "));
   }
 
   static async worker(argv) {
     let service_name = argv._[1];
-    this.webda = new WebdaServer(this.app);
-    await this.webda.init();
-    let service = this.webda.getService(service_name);
+    WebdaConsole.webda = new WebdaServer(WebdaConsole.app);
+    await WebdaConsole.webda.init();
+    let service = WebdaConsole.webda.getService(service_name);
     let method = argv._[2] || "work";
     if (!service) {
       let error = "The service " + service_name + " is missing";
-      this.output(colors.red(error));
+      WebdaConsole.output(colors.red(error));
       process.exit(1);
     }
     if (!service[method]) {
       let error =
         "The method " + method + " is missing in service " + service_name;
-      this.output(colors.red(error));
+      WebdaConsole.output(colors.red(error));
       process.exit(1);
     }
     // Launch the worker with arguments
@@ -176,30 +177,30 @@ export default class WebdaConsole {
     let promise = service[method].apply(service, argv._.slice(3));
     if (promise instanceof Promise) {
       return promise.catch(err => {
-        this.output("An error occured", err);
+        WebdaConsole.output("An error occured", err);
       });
     }
     return Promise.resolve(promise).then(() => {
       let seconds = (new Date().getTime() - timestamp) / 1000;
-      this.output("Took", Math.ceil(seconds) + "s");
+      WebdaConsole.output("Took", Math.ceil(seconds) + "s");
     });
   }
 
   static debug(argv) {
     process.on("SIGINT", function() {
-      if (this.serverPid) {
-        this.serverPid.kill();
+      if (WebdaConsole.serverProcess) {
+        WebdaConsole.serverProcess.kill();
       }
     });
     let launchServe = () => {
-      if (this.serverProcess) {
-        this.output(
+      if (WebdaConsole.serverProcess) {
+        WebdaConsole.output(
           "[" + colors.grey(new Date().toLocaleTimeString()) + "]",
           "Refresh web" + colors.yellow("da") + " server"
         );
-        this.serverProcess.kill();
+        WebdaConsole.serverProcess.kill();
       } else {
-        this.output(
+        WebdaConsole.output(
           "[" + colors.grey(new Date().toLocaleTimeString()) + "]",
           "Launch web" + colors.yellow("da") + " serve in debug mode"
         );
@@ -226,7 +227,7 @@ export default class WebdaConsole {
             .split("\n")
             .forEach(line => {
               if (line.length < 4) return;
-              this.push(
+              WebdaConsole.output(
                 "[" +
                   colors.grey(new Date().toLocaleTimeString()) +
                   "] " +
@@ -237,13 +238,12 @@ export default class WebdaConsole {
           callback();
         }
       });
-      this.serverProcess = spawn("webda", args);
-      this.serverProcess.stdout.pipe(addTime).pipe(process.stdout);
+      WebdaConsole.serverProcess = spawn("webda", args);
+      WebdaConsole.serverProcess.stdout.pipe(addTime).pipe(process.stdout);
     };
 
-    let app = new Application(process.cwd());
     // Typescript mode -> launch compiler and update after compile is finished
-    if (app.isTypescript()) {
+    if (WebdaConsole.app.isTypescript()) {
       let transform = new Transform({
         transform(chunk, encoding, callback) {
           let info = chunk.toString().trim() + "\n";
@@ -281,7 +281,7 @@ export default class WebdaConsole {
           callback();
         }
       });
-      this.typescriptWatch(transform);
+      WebdaConsole.typescriptWatch(transform);
     } else {
       // Traditional js
       var listener = (event, filename) => {
@@ -292,7 +292,7 @@ export default class WebdaConsole {
         }
       };
       // glob files
-      app.getPackagesLocations().forEach(path => {
+      WebdaConsole.app.getPackagesLocations().forEach(path => {
         if (fs.existsSync(path) && fs.lstatSync(path).isDirectory()) {
           // Linux limitation, the recursive does not work
           fs.watch(
@@ -318,37 +318,37 @@ export default class WebdaConsole {
   static async config(argv) {
     if (argv.deployment) {
       let json = JSON.stringify(
-        this.app.getConfiguration(argv.deployment),
+        WebdaConsole.app.getConfiguration(argv.deployment),
         null,
         " "
       );
       if (argv._.length > 1) {
         fs.writeFileSync(argv._[1], json);
       } else {
-        this.output(json);
+        WebdaConsole.output(json);
       }
       return;
     }
     /*
-    webda = await this._getNewConfig();
+    webda = await WebdaConsole._getNewConfig();
     await webda.serve(18181, argv.open);
     */
   }
 
   static async deploy(argv) {
     /*
-    webda = await this._getNewConfig();
+    webda = await WebdaConsole._getNewConfig();
     return webda.deploy(argv.deployment, argv._.slice(1)).catch(err => {
-      this.output("Error", err);
+      WebdaConsole.output("Error", err);
     });
     */
   }
 
   static async undeploy(argv) {
     /*
-    webda = await this._getNewConfig();
+    webda = await WebdaConsole._getNewConfig();
     return webda.undeploy(argv.deployment, argv._.slice(1)).catch(err => {
-      this.output(err);
+      WebdaConsole.output(err);
     });
     */
   }
@@ -387,81 +387,81 @@ export default class WebdaConsole {
     if (argv["logLevel"]) {
       process.env["WEBDA_LOG_LEVEL"] = argv["logLevel"];
     }
-    this.logger.normalizeParams();
-    await this.logger.init();
+    WebdaConsole.logger.normalizeParams();
+    await WebdaConsole.logger.init();
   }
 
   static async handleCommand(args): Promise<number> {
-    let argv = this.parser(args);
-    await this.initLogger(argv);
+    let argv = WebdaConsole.parser(args);
+    await WebdaConsole.initLogger(argv);
     if (
       ["undeploy", "deploy", "install", "uninstall"].indexOf(argv._[0]) >= 0
     ) {
       if (argv.deployment === undefined) {
-        this.output("Need to specify an environment");
+        WebdaConsole.output("Need to specify an environment");
         return 1;
       }
     }
 
-    this.app = new Application(argv.appPath);
+    WebdaConsole.app = new Application(argv.appPath);
 
     if (argv.deployment) {
-      if (!this.app.hasDeployment(argv.deployment)) {
-        this.output(`Unknown deployment: ${argv.deployment}`);
+      if (!WebdaConsole.app.hasDeployment(argv.deployment)) {
+        WebdaConsole.output(`Unknown deployment: ${argv.deployment}`);
         return 1;
       }
-      this.app.setCurrentDeployment(argv.deployment);
+      WebdaConsole.app.setCurrentDeployment(argv.deployment);
     }
 
     if (argv.noCompile) {
-      this.app.preventCompilation(true);
+      WebdaConsole.app.preventCompilation(true);
     }
 
-    //this.app.loadModules();
+    WebdaConsole.app.loadModules();
 
     switch (argv._[0]) {
       case "serve":
-        await this.serve(argv);
+        await WebdaConsole.serve(argv);
         return 0;
       case "install":
-        await this.install(argv);
+        await WebdaConsole.install(argv);
         return 0;
       case "uninstall":
-        await this.uninstall(argv);
+        await WebdaConsole.uninstall(argv);
         return 0;
       case "serviceconfig":
-        await this.serviceConfig(argv);
+        await WebdaConsole.serviceConfig(argv);
         return 0;
       case "worker":
       case "launch":
-        await this.worker(argv);
+        await WebdaConsole.worker(argv);
         return 0;
       case "debug":
-        await this.debug(argv);
+        await WebdaConsole.debug(argv);
         return 0;
       case "config":
-        await this.config(argv);
+        await WebdaConsole.config(argv);
         return 0;
       case "deploy":
-        await this.deploy(argv);
+        await WebdaConsole.deploy(argv);
         return 0;
       case "undeploy":
-        await this.undeploy(argv);
+        await WebdaConsole.undeploy(argv);
         return 0;
       case "init":
-        await this.init(argv);
+        await WebdaConsole.init(argv);
         return 0;
       case "module":
-        await this.app.generateModule();
+        await WebdaConsole.app.generateModule();
         return 0;
       case "swagger":
-        await this.generateSwagger(argv);
+        await WebdaConsole.generateSwagger(argv);
         return 0;
       case "generate-session-secret":
-        await this.generateSessionSecret();
+        await WebdaConsole.generateSessionSecret();
         return 0;
       default:
-        await this.help();
+        await WebdaConsole.help();
         return 0;
     }
   }
@@ -480,19 +480,23 @@ export default class WebdaConsole {
   static async generateSessionSecret() {
     let config =
       JSON.parse(
-        fs.readFileSync(this.app.getAppPath("webda.config.json")).toString()
+        fs
+          .readFileSync(WebdaConsole.app.getAppPath("webda.config.json"))
+          .toString()
       ) || {};
     config.parameters = config.parameters || {};
-    config.parameters.sessionSecret = await this.generateRandomString(256);
+    config.parameters.sessionSecret = await WebdaConsole.generateRandomString(
+      256
+    );
     fs.writeFileSync(
-      this.app.getAppPath("webda.config.json"),
+      WebdaConsole.app.getAppPath("webda.config.json"),
       JSON.stringify(config, null, 2)
     );
   }
 
   static async generateSwagger(argv) {
     /*
-    webda = await this._getNewConfig();
+    webda = await WebdaConsole._getNewConfig();
     let swagger = await webda.exportSwagger(
       argv.deployment,
       !argv.includeHidden
@@ -503,13 +507,13 @@ export default class WebdaConsole {
     } else if (name.endsWith(".yaml") || name.endsWith(".yml")) {
       fs.writeFileSync(name, YAML.stringify(swagger, 1000, 2));
     } else {
-      this.log("ERROR", "Unknown format");
+      WebdaConsole.log("ERROR", "Unknown format");
     }
     */
   }
 
   static async typescriptWatch(stream: Transform) {
-    this.output("Typescript compilation");
+    WebdaConsole.output("Typescript compilation");
     let tsc_compile = require("child_process").spawn("tsc", ["--watch"], {});
     tsc_compile.stdout.pipe(stream).pipe(process.stdout);
     return new Promise(resolve => {
@@ -528,6 +532,6 @@ export default class WebdaConsole {
   }
 
   static log(level: string, ...args) {
-    this.logger.log(level, ...args);
+    WebdaConsole.logger.log(level, ...args);
   }
 }

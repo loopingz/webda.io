@@ -42,5 +42,8 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "devDependencies": {
+    "tsuml": "^0.0.1-alpha.8"
   }
 }

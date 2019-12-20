@@ -50,7 +50,12 @@ global.__webda_shell = __dirname + "/..";
 console.log("web" + "da".yellow + "-shell - v" + getVersion(__webda_shell));
 
 // Display warning for versions mismatch
-if (!semver.satisfies(webdaVersion, "^" + getVersion(__webda_shell))) {
+if (
+  !semver.satisfies(
+    webdaVersion.replace(/-.*/, ""),
+    "^" + getVersion(__webda_shell).replace(/-.*/, "")
+  )
+) {
   console.log(
     "Versions mismatch: @webda/core and @webda/shell are not within patch versions"
       .yellow

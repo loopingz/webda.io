@@ -151,7 +151,7 @@ export class Application {
   constructor(file: string, logger: Logger = undefined) {
     this.logger = logger;
     if (!fs.existsSync(file)) {
-      throw new Error("Not a webda application folder or webda.config.json file");
+      throw new Error(`Not a webda application folder or webda.config.json file: ${file}`);
     }
     if (fs.lstatSync(file).isDirectory()) {
       file = path.join(file, "webda.config.json");
@@ -200,6 +200,13 @@ export class Application {
     this.namespace = this.packageDescription.webda
       ? this.packageDescription.webda.namespace
       : this.packageDescription.name | this.packageDescription.name;
+  }
+
+  /**
+   * Retrieve content of package.json
+   */
+  getPackageDescription() {
+    return this.packageDescription;
   }
 
   preventCompilation(compile: boolean) {
@@ -285,14 +292,25 @@ export class Application {
     return this.services;
   }
 
+  /**
+   * Retrieve the model implementation
+   *
+   * @param name model to retrieve
+   */
   getModel(name: string): any {
     name = name.toLowerCase();
+    if (name.indexOf("/") < 0) {
+      name = `webda/${name}`;
+    }
     if (!this.models[name.toLowerCase()]) {
       throw Error("Undefined model " + name);
     }
     return this.models[name.toLowerCase()];
   }
 
+  /**
+   * Get all models definitions
+   */
   getModels(): { [key: string]: Context | CoreModelDefinition } {
     return this.models;
   }
@@ -428,8 +446,15 @@ export class Application {
       }
       glob.sync(absPath).forEach(this.loadJavascriptFile.bind(this));
     });
-    // Write module
-    fs.writeFileSync(path.join(this.appPath, "webda.module.json"), JSON.stringify(this.appModule, undefined, 2));
+    let moduleFile = path.join(this.appPath, "webda.module.json");
+    let current = "";
+    if (fs.existsSync(moduleFile)) {
+      current = fs.readFileSync(moduleFile).toString();
+    }
+    if (current !== JSON.stringify(this.appModule, undefined, 2)) {
+      // Write module
+      fs.writeFileSync(moduleFile, JSON.stringify(this.appModule, undefined, 2));
+    }
   }
 
   resolveRequire(info: string) {

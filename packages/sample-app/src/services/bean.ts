@@ -1,8 +1,6 @@
-import { Bean, Context, Service } from "@webda/core";
+import { Bean, Service } from "@webda/core";
 
 @Bean
-class CustomService extends Service {
-  test(ctx: Context) {
-    ctx.write("Tested");
-  }
+class BeanService extends Service {
+  test() {}
 }

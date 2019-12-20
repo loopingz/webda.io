@@ -35,6 +35,20 @@ abstract class Service extends events.EventEmitter {
     this._params = params;
   }
 
+  /**
+   * Get the service parameters
+   */
+  getParameters() {
+    return this._params;
+  }
+
+  /**
+   * Return WebdaCore
+   */
+  getWebda() {
+    return this._webda;
+  }
+
   resolve() {
     this.normalizeParams();
     this.initRoutes();
@@ -200,4 +214,3 @@ abstract class Service extends events.EventEmitter {
 }
 
 export { Service };
-

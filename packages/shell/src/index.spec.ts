@@ -1,9 +1,16 @@
 import { Application } from "@webda/core";
 import * as assert from "assert";
+import * as fs from "fs-extra";
 import * as fetch from "node-fetch";
 import * as path from "path";
 
-export const WebdaSampleApplication = new Application(
+class TestApplication extends Application {
+  clean() {
+    fs.removeSync(this.getAppPath("lib"));
+    fs.removeSync(this.getAppPath("webda.module.json"));
+  }
+}
+export const WebdaSampleApplication = new TestApplication(
   path.resolve(`${__dirname}/../../sample-app/`)
 );
 
@@ -16,9 +23,9 @@ export class SampleApplicationTest {
     this.baseUrl = url;
   }
 
-  async testApi() {
+  async testApi(noCsrf: number = 401) {
     let res = await fetch(`${this.baseUrl}/test`, {});
-    assert.equal(res.status, 401);
+    assert.equal(res.status, noCsrf);
     // Status 401 as CSRF protection is on
     // Check OPTIONS
     res = await fetch(`${this.baseUrl}/test`, {
@@ -37,6 +44,11 @@ export class SampleApplicationTest {
       headers: { host: "dev.webda-demo.com" }
     });
     assert.equal(await res.text(), "Tested");
+    // Message
+    res = await fetch(`${this.baseUrl}/msg/bouzouf`, {
+      headers: { host: "dev.webda-demo.com" }
+    });
+    assert.equal(await res.text(), "YOUR MESSAGE IS 'bouzouf'");
     // on purpose change the host and rely on the x-forwarded-*
     res = await fetch(`${this.baseUrl}/test`, {
       headers: {

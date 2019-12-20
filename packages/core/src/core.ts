@@ -1,12 +1,14 @@
 import * as Ajv from "ajv";
+import * as deepmerge from "deepmerge";
 import * as events from "events";
 import * as fs from "fs";
 import { JSONSchema6 } from "json-schema";
 import * as jsonpath from "jsonpath";
+import { OpenAPIV3 } from "openapi-types";
 import * as vm from "vm";
 import { Application } from "./application";
 import { ConsoleLogger, Context, HttpContext, Logger, Service, Store } from "./index";
-import { CoreModelDefinition } from "./models/coremodel";
+import { CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { Router } from "./router";
 /**
  * @hidden
@@ -652,7 +654,7 @@ export class Core extends events.EventEmitter {
 
     for (let i in beans) {
       if (!beans[i].bean) {
-        this.log("INFO", "Implicit @Bean due to a @Route");
+        this.log("INFO", "Implicit @Bean due to a @Route", beans[i].constructor.name);
       }
       let name = beans[i].constructor.name;
       if (!services[name]) {
@@ -853,5 +855,77 @@ export class Core extends events.EventEmitter {
       }
     }
     return false;
+  }
+
+  exportSwagger(skipHidden: boolean = true): OpenAPIV3.Document {
+    let packageInfo = this.application.getPackageDescription();
+    let contact = packageInfo.author;
+    if (typeof packageInfo.author === "string") {
+      contact = {
+        name: packageInfo.author
+      };
+    }
+    let license = packageInfo.license;
+    if (typeof packageInfo.license === "string") {
+      license = {
+        name: packageInfo.license
+      };
+    }
+    let swagger2 = deepmerge(
+      {
+        openapi: "3.0",
+        info: {
+          description: packageInfo.description,
+          version: packageInfo.version || "0.0.0",
+          title: packageInfo.title || "Webda-based application",
+          termsOfService: packageInfo.termsOfService,
+          contact,
+          license
+        },
+        schemes: ["https"],
+        basePath: "/",
+        definitions: {
+          Object: {
+            type: "object"
+          }
+        },
+        paths: {},
+        tags: []
+      },
+      this.application.getConfiguration().swagger || {}
+    );
+    let models = this.application.getModels();
+    for (let i in models) {
+      let model = models[i];
+      let desc = {
+        type: "object"
+      };
+      if (model instanceof Context) {
+        continue;
+      }
+      let modelDescription = this.getModel(i);
+      // Only export CoreModel info
+      if (!(modelDescription.prototype instanceof CoreModel)) {
+        continue;
+      }
+      let schema = new modelDescription()._getSchema();
+      if (schema) {
+        schema = JSON.parse(fs.readFileSync(schema).toString());
+        for (let i in schema.definitions) {
+          swagger2.definitions[i] = schema.definitions[i];
+        }
+        delete schema.definitions;
+        desc = schema;
+      }
+      swagger2.definitions[model.name.split("/").pop()] = desc;
+    }
+    this.router.completeSwagger(swagger2, skipHidden);
+    swagger2.tags.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+    let paths = {};
+    Object.keys(swagger2.paths)
+      .sort()
+      .forEach(i => (paths[i] = swagger2.paths[i]));
+    swagger2.paths = paths;
+    return swagger2;
   }
 }

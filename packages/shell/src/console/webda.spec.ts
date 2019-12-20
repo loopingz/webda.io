@@ -242,6 +242,7 @@ class DynamicService extends Service {
       }
     });
 
+    WebdaConsole.webda.reinitResolvedRoutes();
     await this.commandLine(`-d Dev swagger`, true, true);
     assert.equal(fs.existsSync("./swagger.json"), true);
     let def = JSON.parse(fs.readFileSync("./swagger.json").toString());

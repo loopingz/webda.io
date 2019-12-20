@@ -80,7 +80,7 @@ class ApplicationTest extends WebdaTest {
     assert.equal(deploymentConfig.parameters.accessKeyId, "PROD_KEY");
     assert.equal(config.parameters, undefined);
     assert.equal(deploymentConfig.services.store.table, "production-table");
-    assert.equal(config.services.store.table, "dev-table");
+    assert.equal(config.services.store.table, "local-table");
   }
 
   @test

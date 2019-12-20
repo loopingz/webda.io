@@ -303,7 +303,7 @@ export class Application {
       name = `webda/${name}`;
     }
     if (!this.models[name.toLowerCase()]) {
-      throw Error("Undefined model " + name);
+      throw Error("Undefined model '" + name + "' known models are '" + Object.keys(this.models).join(",") + "'");
     }
     return this.models[name.toLowerCase()];
   }

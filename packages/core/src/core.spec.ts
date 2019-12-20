@@ -1,7 +1,8 @@
 import * as assert from "assert";
 import { suite, test } from "mocha-typescript";
-import { WebsiteOriginFilter } from "./core";
-import { Bean, Route, Service } from "./index";
+import * as path from "path";
+import { Core, WebsiteOriginFilter } from "./core";
+import { Application, Bean, Route, Service } from "./index";
 import { Store } from "./stores/store";
 import { WebdaTest } from "./test";
 import { Context, HttpContext } from "./utils/context";
@@ -137,6 +138,18 @@ class CoreTest extends WebdaTest {
   async before() {
     await super.before();
     this.ctx = await this.newContext({});
+  }
+
+  @test
+  async exportSwagger() {
+    let app = new Application(path.join(__dirname, "..", "..", "sample-app"));
+    app.loadModules();
+    let webda = new Core(app);
+    await webda.init();
+    webda.reinitResolvedRoutes();
+    let swagger = webda.exportSwagger();
+    assert.notEqual(swagger.paths["/contacts"], undefined);
+    assert.notEqual(swagger.paths["/contacts/{uuid}"], undefined);
   }
 
   @test

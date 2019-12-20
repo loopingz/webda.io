@@ -16,8 +16,5 @@
         "url": "/contacts"
       }
     }
-  },
-  "parameters": {
-    "sessionSecret": "e2lBpzzTZOQAjItiprWSpeYkfteWXP8/kUssULu5Aj3uv4r2Qe3IeM/CqgULkOnRvHQRZJa6zjwEjGv42hmlO7VenF1+/Wg9ZCUMrPtDBNFUx4PW5JvYPrS5P/nN+0SmF/h+3WkW+arMjR7YYMV2FTbTWCUlfmTTqreGiv/3vY1VvGLIdYKm746gxys6ggzrRwF3jPtjq3gHIR7YsclvCnd6Qnt7L6xhS8Ivmt2W5y2MsNCuiHCju27xJhiql5i0"
   }
 }

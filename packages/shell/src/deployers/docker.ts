@@ -1,7 +1,8 @@
 import { Deployer } from "./deployer";
-import { DockerMixIn } from "./docker-mixin";
 
-export class DockerDeployer extends DockerMixIn(Deployer) {
+export class DockerDeployer extends Deployer {
+  _sentContext: boolean;
+
   async deploy(args) {
     this._sentContext = false;
     this._maxStep = 3;
@@ -22,16 +23,18 @@ export class DockerDeployer extends DockerMixIn(Deployer) {
     if (this.resources.worker !== "API") {
       cmd = "worker " + this.resources.worker;
     }
-    return super.buildDocker(
+    return super.generateDockerImage();
+    /*
       this.resources.tag,
       this.resources.Dockerfile,
       await this.getDockerfile(cmd)
     );
+    */
   }
 
   pushDocker() {
     this.stepper("Pushing Docker image");
-    return super.pushDocker(this.resources.tag);
+    //return super.pushDocker(this.resources.tag);
   }
 
   static getModda() {

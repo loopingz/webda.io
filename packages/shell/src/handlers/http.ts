@@ -254,7 +254,10 @@ export class WebdaServer extends Webda {
    * @param port to listen to
    * @param websockets to enable websockets
    */
-  async serve(port, websockets: boolean = false): Promise<Object> {
+  async serve(
+    port: number = 18080,
+    websockets: boolean = false
+  ): Promise<Object> {
     this.serverStatus = ServerStatus.Starting;
     try {
       var express = require("express");

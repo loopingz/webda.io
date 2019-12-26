@@ -5,9 +5,7 @@ import * as route53 from "@aws-cdk/aws-route53";
 import { Bucket } from "@aws-cdk/aws-s3";
 import { App, Stack, StackProps } from "@aws-cdk/core";
 import { Core as Webda } from "@webda/core";
-import * as AWS from "aws-sdk";
 import { ACM, Route53, S3 } from "aws-sdk";
-import IamPolicyOptimizer from "iam-policy-optimizer";
 import { Deployer } from "./deployer";
 const mime = require("mime-types");
 const path = require("path");
@@ -191,6 +189,10 @@ export default class AWSDeployer extends Deployer {
       this.deployment
     );
   }
+}
+
+/*
+
 
   _getAWS(params) {
     params = params || this.resources || {};
@@ -488,209 +490,210 @@ export default class AWSDeployer extends Deployer {
             }
           }
         }
-        */
-        Array.prototype.push.apply(
-          statements,
-          this.getARNPolicy(id.Account, this._AWS.config.region)
-        );
-        let policyDocument = {
-          Version: "2012-10-17",
-          Statement: statements
-        };
-        policyDocument = IamPolicyOptimizer.reducePolicyObject(policyDocument);
-        let policy;
-        return iam
-          .listPolicies({
-            PathPrefix: "/webda/"
-          })
-          .promise()
-          .then(data => {
-            for (let i in data.Policies) {
-              if (data.Policies[i].PolicyName === policyName) {
-                policy = data.Policies[i];
-              }
+        * /
+       Array.prototype.push.apply(
+        statements,
+        this.getARNPolicy(id.Account, this._AWS.config.region)
+      );
+      let policyDocument = {
+        Version: "2012-10-17",
+        Statement: statements
+      };
+      policyDocument = IamPolicyOptimizer.reducePolicyObject(policyDocument);
+      let policy;
+      return iam
+        .listPolicies({
+          PathPrefix: "/webda/"
+        })
+        .promise()
+        .then(data => {
+          for (let i in data.Policies) {
+            if (data.Policies[i].PolicyName === policyName) {
+              policy = data.Policies[i];
             }
-            if (!policy) {
-              console.log("Creating AWS Policy", policyName);
-              // Create the policy has it doesnt not exist
-              return iam
-                .createPolicy({
-                  PolicyDocument: JSON.stringify(policyDocument),
-                  PolicyName: policyName,
-                  Description: "webda-generated",
-                  Path: "/webda/"
-                })
-                .promise()
-                .then(data => {
-                  policy = data.Policy;
-                });
-            } else {
-              // Compare policy with the new one
-              return iam
-                .getPolicyVersion({
-                  PolicyArn: policy.Arn,
-                  VersionId: policy.DefaultVersionId
-                })
-                .promise()
-                .then(data => {
-                  // If nothing changed just continue
-                  if (
-                    decodeURIComponent(data.PolicyVersion.Document) ===
-                    JSON.stringify(policyDocument)
-                  ) {
-                    return Promise.resolve();
-                  }
-                  console.log("Update AWS Policy", policyName);
-                  // Create new version for the policy
-                  return iam
-                    .createPolicyVersion({
-                      PolicyArn: policy.Arn,
-                      PolicyDocument: JSON.stringify(policyDocument),
-                      SetAsDefault: true
-                    })
-                    .promise()
-                    .then(() => {
-                      // Remove old version
-                      return iam
-                        .deletePolicyVersion({
-                          PolicyArn: policy.Arn,
-                          VersionId: policy.DefaultVersionId
-                        })
-                        .promise();
-                    });
-                });
-            }
-          })
-          .then(() => {
-            //
+          }
+          if (!policy) {
+            console.log("Creating AWS Policy", policyName);
+            // Create the policy has it doesnt not exist
             return iam
-              .listRoles({
-                PathPrefix: "/webda/"
+              .createPolicy({
+                PolicyDocument: JSON.stringify(policyDocument),
+                PolicyName: policyName,
+                Description: "webda-generated",
+                Path: "/webda/"
               })
               .promise()
               .then(data => {
-                let role;
-                for (let i in data.Roles) {
-                  if (data.Roles[i].RoleName === roleName) {
-                    role = data.Roles[i];
-                    roleArn = role.Arn;
-                  }
-                }
-                if (!role) {
-                  console.log("Creating AWS Role", roleName);
-                  return iam
-                    .createRole({
-                      Description: "webda-generated",
-                      Path: "/webda/",
-                      RoleName: roleName,
-                      AssumeRolePolicyDocument: assumeRolePolicy
-                    })
-                    .promise()
-                    .then(res => {
-                      return Promise.resolve(res.Role);
-                    });
-                }
-                return Promise.resolve(role);
-              })
-              .then(role => {
-                roleArn = role.Arn;
-                return iam
-                  .listAttachedRolePolicies({
-                    RoleName: roleName
-                  })
-                  .promise();
-              })
-              .then(data => {
-                for (let i in data.AttachedPolicies) {
-                  if (data.AttachedPolicies[i].PolicyName === policyName) {
-                    return Promise.resolve();
-                  }
-                }
-                console.log("Attaching AWS Policy", policyName, "to", roleName);
-                return iam
-                  .attachRolePolicy({
-                    PolicyArn: policy.Arn,
-                    RoleName: roleName
-                  })
-                  .promise();
+                policy = data.Policy;
               });
-          });
+          } else {
+            // Compare policy with the new one
+            return iam
+              .getPolicyVersion({
+                PolicyArn: policy.Arn,
+                VersionId: policy.DefaultVersionId
+              })
+              .promise()
+              .then(data => {
+                // If nothing changed just continue
+                if (
+                  decodeURIComponent(data.PolicyVersion.Document) ===
+                  JSON.stringify(policyDocument)
+                ) {
+                  return Promise.resolve();
+                }
+                console.log("Update AWS Policy", policyName);
+                // Create new version for the policy
+                return iam
+                  .createPolicyVersion({
+                    PolicyArn: policy.Arn,
+                    PolicyDocument: JSON.stringify(policyDocument),
+                    SetAsDefault: true
+                  })
+                  .promise()
+                  .then(() => {
+                    // Remove old version
+                    return iam
+                      .deletePolicyVersion({
+                        PolicyArn: policy.Arn,
+                        VersionId: policy.DefaultVersionId
+                      })
+                      .promise();
+                  });
+              });
+          }
+        })
+        .then(() => {
+          //
+          return iam
+            .listRoles({
+              PathPrefix: "/webda/"
+            })
+            .promise()
+            .then(data => {
+              let role;
+              for (let i in data.Roles) {
+                if (data.Roles[i].RoleName === roleName) {
+                  role = data.Roles[i];
+                  roleArn = role.Arn;
+                }
+              }
+              if (!role) {
+                console.log("Creating AWS Role", roleName);
+                return iam
+                  .createRole({
+                    Description: "webda-generated",
+                    Path: "/webda/",
+                    RoleName: roleName,
+                    AssumeRolePolicyDocument: assumeRolePolicy
+                  })
+                  .promise()
+                  .then(res => {
+                    return Promise.resolve(res.Role);
+                  });
+              }
+              return Promise.resolve(role);
+            })
+            .then(role => {
+              roleArn = role.Arn;
+              return iam
+                .listAttachedRolePolicies({
+                  RoleName: roleName
+                })
+                .promise();
+            })
+            .then(data => {
+              for (let i in data.AttachedPolicies) {
+                if (data.AttachedPolicies[i].PolicyName === policyName) {
+                  return Promise.resolve();
+                }
+              }
+              console.log("Attaching AWS Policy", policyName, "to", roleName);
+              return iam
+                .attachRolePolicy({
+                  PolicyArn: policy.Arn,
+                  RoleName: roleName
+                })
+                .promise();
+            });
+        });
+    })
+    .then(() => {
+      return Promise.resolve(roleArn);
+    });
+}
+
+tagResource(resource, tags) {
+  // Should add tags to every resource when possible
+  // this.resources.AWSTags;
+}
+
+async createBucket(bucket) {
+  try {
+    await this._s3
+      .headBucket({
+        Bucket: bucket
       })
-      .then(() => {
-        return Promise.resolve(roleArn);
-      });
-  }
-
-  tagResource(resource, tags) {
-    // Should add tags to every resource when possible
-    // this.resources.AWSTags;
-  }
-
-  async createBucket(bucket) {
-    try {
+      .promise();
+  } catch (err) {
+    if (err.code === "Forbidden") {
+      console.log("S3 bucket already exists in another account");
+    } else if (err.code === "NotFound") {
+      console.log("\tCreating S3 Bucket", bucket);
+      // Setup www permission on it
       await this._s3
-        .headBucket({
+        .createBucket({
           Bucket: bucket
         })
         .promise();
-    } catch (err) {
-      if (err.code === "Forbidden") {
-        console.log("S3 bucket already exists in another account");
-      } else if (err.code === "NotFound") {
-        console.log("\tCreating S3 Bucket", bucket);
-        // Setup www permission on it
-        await this._s3
-          .createBucket({
-            Bucket: bucket
-          })
-          .promise();
-      }
     }
   }
-
-  putFilesOnBucket(bucket, files) {
-    this._s3 = new (this._getAWS(this.resources).S3)();
-    // Create the bucket
-    return this.createBucket(bucket).then(() => {
-      // Should implement multithread here - cleaning too
-      let promise = Promise.resolve();
-      files.forEach(file => {
-        let info: any = {};
-        if (typeof file === "string") {
-          info.src = file;
-          info.key = path.relative(process.cwd(), file);
-        } else if (file.src === undefined || file.key === undefined) {
-          throw Error("Should have src and key defined");
-        } else {
-          info.src = file.src;
-          info.key = file.key;
-        }
-        // Need to have mimetype to serve the content correctly
-        let mimetype = mime.contentType(path.extname(info.src));
-        promise = promise
-          .then(() => {
-            return this._s3
-              .putObject({
-                Bucket: bucket,
-                Body: fs.createReadStream(info.src),
-                Key: info.key,
-                ContentType: mimetype
-              })
-              .promise();
-          })
-          .then(() => {
-            console.log(
-              "Uploaded",
-              info.src,
-              "to",
-              info.key,
-              "(" + mimetype + ")"
-            );
-          });
-      });
-      return promise;
-    });
-  }
 }
+
+putFilesOnBucket(bucket, files) {
+  this._s3 = new (this._getAWS(this.resources).S3)();
+  // Create the bucket
+  return this.createBucket(bucket).then(() => {
+    // Should implement multithread here - cleaning too
+    let promise = Promise.resolve();
+    files.forEach(file => {
+      let info: any = {};
+      if (typeof file === "string") {
+        info.src = file;
+        info.key = path.relative(process.cwd(), file);
+      } else if (file.src === undefined || file.key === undefined) {
+        throw Error("Should have src and key defined");
+      } else {
+        info.src = file.src;
+        info.key = file.key;
+      }
+      // Need to have mimetype to serve the content correctly
+      let mimetype = mime.contentType(path.extname(info.src));
+      promise = promise
+        .then(() => {
+          return this._s3
+            .putObject({
+              Bucket: bucket,
+              Body: fs.createReadStream(info.src),
+              Key: info.key,
+              ContentType: mimetype
+            })
+            .promise();
+        })
+        .then(() => {
+          console.log(
+            "Uploaded",
+            info.src,
+            "to",
+            info.key,
+            "(" + mimetype + ")"
+          );
+        });
+    });
+    return promise;
+  });
+}
+
+*/
 
 export { AWSDeployer };

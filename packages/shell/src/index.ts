@@ -1,10 +1,8 @@
 export * from "./console/webda";
+export * from "./deployers/aws";
 export * from "./deployers/deployer";
+export * from "./deployers/docker";
+export * from "./deployers/shell";
 export * from "./handlers/config";
 export * from "./handlers/http";
-export { Deployment, AWSDeployer, DockerDeployer, DockerMixIn, ShellDeployer };
-import { AWSDeployer } from "./deployers/aws";
-import { DockerDeployer } from "./deployers/docker";
-import { DockerMixIn } from "./deployers/docker-mixin";
-import { ShellDeployer } from "./deployers/shell";
-import { Deployment } from "./models/deployment";
+export * from "./models/deployment";

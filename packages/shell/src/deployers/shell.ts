@@ -1,10 +1,9 @@
 import { Deployer } from "./deployer";
-import { DockerMixIn } from "./docker-mixin";
 const fs = require("fs");
 const crypto = require("crypto");
 const spawn = require("child_process").spawn;
 
-export class ShellDeployer extends DockerMixIn(Deployer) {
+export class ShellDeployer extends Deployer {
   async deploy(args) {
     if (
       this.resources.scripts === undefined ||

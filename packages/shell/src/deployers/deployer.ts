@@ -1,4 +1,5 @@
 import { Application, Core, _extend } from "@webda/core";
+import { spawn } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -191,6 +192,36 @@ export class Deployer {
   async deploy(args) {}
 
   async undeploy(args) {}
+
+  execute(script, args = [], onout, onerr, stdin = undefined) {
+    return new Promise((resolve, reject) => {
+      var ls = spawn(script, args);
+
+      ls.stdout.on("data", data => {
+        if (onout) {
+          onout(data);
+        }
+      });
+
+      ls.stderr.on("data", data => {
+        if (onerr) {
+          onerr(data);
+        }
+      });
+
+      ls.on("close", code => {
+        if (code == 0) {
+          resolve(code);
+        } else {
+          reject(code);
+        }
+      });
+      if (stdin) {
+        ls.stdin.write(stdin);
+        ls.stdin.end();
+      }
+    });
+  }
 
   getServices() {
     return this._webda.getServicesImplementations();

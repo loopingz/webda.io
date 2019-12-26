@@ -246,7 +246,7 @@ class Context extends EventEmitter {
   // @ts-ignore
   public write(output: any, encoding?: string, cb?: (error: Error) => void): boolean {
     if (typeof output === "object" && !(output instanceof Buffer)) {
-      this._outputHeaders["Content-type"] = "application/json";
+      this.setHeader("Content-type", "application/json");
       // @ts-ignore
       global.WebdaContext = this;
       try {

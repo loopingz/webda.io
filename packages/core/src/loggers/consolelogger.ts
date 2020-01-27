@@ -23,7 +23,33 @@ class ConsoleLogger extends Logger {
       console.log(...args);
       return;
     }
-    console.log("[" + level + "]", ...args);
+    let includeLevel = false;
+    let method = console.log;
+    switch (level) {
+      case "ERROR":
+        method = console.error;
+        break;
+      case "WARN":
+        method = console.warn;
+        break;
+      case "STACK":
+        method = console.trace;
+        break;
+      case "INFO":
+        method = console.info;
+        break;
+      case "DEBUG":
+        method = console.debug;
+        break;
+      default:
+        includeLevel = true;
+        break;
+    }
+    if (includeLevel) {
+      method.call(console, "[" + level + "]", ...args);
+    } else {
+      method.call(console, ...args);
+    }
   }
 
   getCount() {

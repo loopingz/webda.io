@@ -98,7 +98,7 @@ class EventService extends Service {
 
   _handleEvents(events) {
     events.map(event => {
-      this._handleEvent(AsyncEvent.fromQueue(event.Body));
+      this._handleEvent(AsyncEvent.fromQueue(JSON.parse(event.Body)));
     });
   }
 

@@ -1,3 +1,10 @@
 lerna-debug.log
 yarn-error.log
 node_modules
+lib
+reports
+.nyc_output
+dist
+docs
+diagrams
+packages/core/test/data

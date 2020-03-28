@@ -1,6 +1,7 @@
 "use strict";
 import * as uuid from "uuid";
 import { ModdaDefinition } from "../core";
+import { JSONUtils } from "../utils/json";
 import { Queue } from "./queueservice";
 
 interface QueueMap {
@@ -34,7 +35,7 @@ class MemoryQueue extends Queue {
       uid = uuid.v4();
     }
     this._queue[uid] = {
-      Body: JSON.stringify(params),
+      Body: JSONUtils.stringify(params, undefined, 0),
       Claimed: 0,
       ReceiptHandle: uid
     };

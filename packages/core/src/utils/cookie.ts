@@ -18,6 +18,9 @@ const SPLIT = 4000;
  * An object session is exposed by the framework, so use this one ( for now it is a SecureCookie.getProxy() but can evolve )
  *
  * The object use Object.observe if available or try Proxy in other case, so old JS VM won't run it
+ *
+ * You cannot store variables starting with _ in the session if you do use them they won't be persist, so it can be used to add some context
+ *
  * @category CoreFeatures
  */
 class SecureCookie {

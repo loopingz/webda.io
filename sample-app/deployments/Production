@@ -1,6 +1,6 @@
 {
  "parameters": {
-  "website": {"path": "./wui"},
+  "website": {"path": "./wui", "url": "prod.webda-demo.com"},
   "requestLimit": "1mb",
   "csrfOrigins": [
     "^accounts\\.google\\.\\w{2,}$",
@@ -21,9 +21,17 @@
  "type": "aws",
  "uuid": "Production",
  "services": {
-     "store": {
+     "contacts": {
         "type": "DynamoStore",
-        "table": "production-table"
+        "table": "webda-sample-app-contacts"
+     },
+     "images": {
+       "type": "S3Binary",
+        "bucket": "webda-sample-app-images"
+     },
+     "thumbnailsqueue": {
+       "type": "SQSQueue",
+       "queue": "https://sqs.eu-west-1.amazonaws.com/277712386420/webda-sample-app-tumbnails-queue"
      }
  },
  "units": [
@@ -32,7 +40,7 @@
     "ProcessorService"
    ],
    "name": "Workers",
-   "type": "WebdaDeployer/AWS",
+   "type": "Webda/CdkDeployer",
    "subtype": "Fargate",
    "clusterName": "webda-demo",
    "serviceName": "webda-demo-workers",
@@ -45,17 +53,18 @@
   },
   {
    "name": "Lambda",
-   "type": "WebdaDeployer/AWS",
+   "type": "Webda/CdkDeployer",
    "subtype": "Lambda",
    "restApi": "webda-api-production",
    "lambdaRole": "arn:aws:iam::111222333:role/webdaapi-api",
    "lambdaStorage": "s3://webda-lambdas/webda-api-production-$commit.zip",
    "lambdaMemory": "2048",
-   "customDomain": false
+   "customDomain": false,
+   "assetsBucket": "webda-sample-app"
   },
   {
-   "name": "Lambda",
-   "type": "WebdaDeployer/AWS",
+   "name": "S3",
+   "type": "Webda/CdkDeployer",
    "subtype": "S3",
    "customDomain": true
   }

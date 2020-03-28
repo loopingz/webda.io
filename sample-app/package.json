@@ -23,8 +23,10 @@
     "node": ">=6.10.0"
   },
   "dependencies": {
-    "@webda/aws": "^1.0.0-beta.2",
-    "@webda/core": "^1.0.0-beta.1"
+    "@webda/aws": "link:../packages/aws/",
+    "@webda/core": "link:../packages/core/",
+    "deepmerge": "^4.2.2",
+    "merge": "^1.2.1"
   },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",

@@ -2,7 +2,6 @@ import * as assert from "assert";
 import * as fs from "fs";
 import { suite, test } from "mocha-typescript";
 import * as fetch from "node-fetch";
-import * as path from "path";
 import { WebdaSampleApplication } from "../index.spec";
 import { WebdaConfiguration } from "./config";
 import { ServerStatus } from "./http";
@@ -60,9 +59,7 @@ class WebdaConfigurationServerTest {
     res.parameters.sessionSecret = "PLOP";
     let cfg = JSON.parse(
       fs
-        .readFileSync(
-          path.join(__dirname, "../../../sample-app/webda.config.json")
-        )
+        .readFileSync(WebdaSampleApplication.getAppPath("/webda.config.json"))
         .toString()
     );
     cfg.parameters.sessionSecret = "PLOP";

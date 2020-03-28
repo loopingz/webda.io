@@ -1,0 +1,6 @@
+{
+ "services": {
+  "Webda/ElasticSearchService": "lib/elasticsearchservice.js"
+ },
+ "models": {}
+}

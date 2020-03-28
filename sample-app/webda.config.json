@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "services": {
+    "images": {
+      "type": "FileBinary",
+      "folder": "./test/store",
+      "map": {
+        "contacts": [
+          "picture"
+        ]
+      }
+    },
+    "thumbnailsqueue": {
+      "type": "MemoryQueue"
+    },
+    "contacts": {
+      "model": "WebdaDemo/Contact",
+      "type": "MemoryStore",
+      "table": "local-table",
+      "expose": {
+        "url": "/contacts"
+      }
+    }
+  },
+  "parameters": {
+    "sessionSecret": "98FONHtGPM5D1U3LL82dVietgfjCrh8KYy5EaZj95LZD4DsGNxJ6LBq8PJDSJ4AbHWvkZ5OIpCBV9NhXTkpN6gCPB+DVtQ3RZN2fJGyQ+xmyk2FY1B65cHpRXjiiCzF1N5MdxTybYGulCdyc7MGnn1wF+LS/vuxGYfM/v/JT231WckjXD0cUz+03hXngJfR3sm98WYia/z6xFe22infEEtilJrngAFp8ZcP/ygW1jV/JoZ9NjhZzzbZeeVjGDZcJ"
+  }
+}

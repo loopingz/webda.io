@@ -49,11 +49,18 @@ export interface Module {
 }
 
 /**
+ * Cached module is all modules discover plus local package including the sources list
+ */
+export interface CachedModule extends Module {
+  sources?: string[];
+}
+
+/**
  * Configuration from Webda 1.0 > version > 0.5
  */
 export interface ConfigurationV1 {
   version: number;
-  cachedModules?: Module;
+  cachedModules?: CachedModule;
   models?: any;
   services?: any;
   [key: string]: any;
@@ -64,7 +71,7 @@ export interface ConfigurationV1 {
  */
 export interface Configuration {
   version: number;
-  cachedModules?: Module;
+  cachedModules?: CachedModule;
   module: Module;
   services?: any;
   [key: string]: any;

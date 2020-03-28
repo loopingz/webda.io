@@ -23,7 +23,7 @@
       "accessKeyId": "MAIL_TEST"
     }
   },
-    "store": {
+    "contacts": {
       "table": "dev-table"
     }
  },
@@ -36,7 +36,7 @@
     "ProcessorService"
    ],
    "name": "Workers",
-   "type": "WebdaDeployer/AWS",
+   "type": "Webda/CdkDeployer",
    "subtype": "Fargate",
    "clusterName": "webda-demo",
    "serviceName": "webda-demo-workers",
@@ -49,7 +49,7 @@
   },
   {
    "name": "Lambda",
-   "type": "WebdaDeployer/AWS",
+   "type": "Webda/CdkDeployer",
    "subtype": "Lambda",
    "restApi": "webda-api-dev",
    "lambdaRole": "arn:aws:iam::111222333:role/webdaapi-api",
@@ -58,8 +58,8 @@
    "customDomain": false
   },
   {
-   "name": "Lambda",
-   "type": "WebdaDeployer/AWS",
+   "name": "S3",
+   "type": "Webda/CdkDeployer",
    "subtype": "S3",
    "customDomain": true
   }

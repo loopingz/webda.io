@@ -34,7 +34,7 @@ class MemoryQueue extends Queue {
       uid = uuid.v4();
     }
     this._queue[uid] = {
-      Body: params,
+      Body: JSON.stringify(params),
       Claimed: 0,
       ReceiptHandle: uid
     };

@@ -11,7 +11,7 @@ class TestApplication extends Application {
   }
 }
 export const WebdaSampleApplication = new TestApplication(
-  path.resolve(`${__dirname}/../../sample-app/`)
+  path.resolve(`${__dirname}/../../../sample-app/`)
 );
 
 /**

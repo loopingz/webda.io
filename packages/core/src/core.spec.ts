@@ -142,7 +142,7 @@ class CoreTest extends WebdaTest {
 
   @test
   async exportSwagger() {
-    let app = new Application(path.join(__dirname, "..", "..", "sample-app"));
+    let app = new Application(path.join(__dirname, "..", "..", "..", "sample-app"));
     app.loadModules();
     let webda = new Core(app);
     await webda.init();

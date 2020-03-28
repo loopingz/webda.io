@@ -3,34 +3,7 @@ import * as fs from "fs";
 import * as glob from "glob";
 import * as merge from "merge";
 import * as path from "path";
-import {
-  Authentication,
-  Configuration,
-  ConfigurationService,
-  ConfigurationV1,
-  ConsoleLogger,
-  Context,
-  Core,
-  CoreModel,
-  CoreModelDefinition,
-  DebugMailer,
-  EventService,
-  FileBinary,
-  FileStore,
-  Ident,
-  Logger,
-  Mailer,
-  MemoryLogger,
-  MemoryQueue,
-  MemoryStore,
-  ModdaDefinition,
-  Module,
-  ResourceService,
-  SecureCookie,
-  Service,
-  SessionCookie,
-  User
-} from "./index";
+import { Authentication, CachedModule, Configuration, ConfigurationService, ConfigurationV1, ConsoleLogger, Context, Core, CoreModel, CoreModelDefinition, DebugMailer, EventService, FileBinary, FileStore, Ident, Logger, Mailer, MemoryLogger, MemoryQueue, MemoryStore, ModdaDefinition, Module, ResourceService, SecureCookie, Service, SessionCookie, User } from "./index";
 import { Deployment } from "./models/deployment";
 
 export interface ServiceConstructor {
@@ -68,10 +41,11 @@ export class Application {
   /**
    * Contains all definitions from imported modules and current code
    */
-  protected cachedModules: Module = {
+  protected cachedModules: CachedModule = {
     services: {},
     models: {},
-    deployers: {}
+    deployers: {},
+    sources: []
   };
 
   /**
@@ -192,6 +166,14 @@ export class Application {
     // Load if a module definition is included
     if (this.baseConfiguration.module) {
       this.loadModule(this.baseConfiguration.module, this.appPath);
+    }
+    // Load cached modules if there
+    if (this.baseConfiguration.cachedModules) {
+      this.loadModule(this.baseConfiguration.cachedModules, this.appPath);
+      // Import all modules sources to include any annotation
+      if (this.baseConfiguration.cachedModules.sources) {
+        this.baseConfiguration.cachedModules.sources.forEach(require);
+      }
     }
     let packageJson = path.join(this.appPath, "package.json");
     if (fs.existsSync(packageJson)) {
@@ -407,6 +389,11 @@ export class Application {
    * Load any imported webda.module.json
    */
   loadModules() {
+    // Cached modules is defined on deploy
+    if (this.baseConfiguration.cachedModules) {
+      // We should not load any modules as we are in a deployed version
+      return;
+    }
     // Compile
     this.compile();
     const Finder = require("fs-finder");
@@ -438,6 +425,9 @@ export class Application {
   generateModule() {
     // Compile
     this.compile();
+    // Reinit the sources cache
+    this.cachedModules.sources = [];
+    this._loaded = [];
     // Read all files
     this.getPackagesLocations().forEach(p => {
       let absPath = path.join(this.appPath, p);
@@ -528,6 +518,11 @@ export class Application {
     if (this._loaded.indexOf(absolutePath) >= 0) {
       return;
     }
+    let source = "./" + path.relative(this.appPath, absolutePath)
+    if (this.cachedModules.sources.indexOf(source) < 0) {
+      this.cachedModules.sources.push(source);
+    }
+    
     this._loaded.push(absolutePath);
     let mod = this.resolveRequire(absolutePath);
     let obj = mod;

@@ -11,7 +11,7 @@ class ApplicationTest extends WebdaTest {
 
   async before() {
     await super.before();
-    this.sampleApp = new Application(path.join(__dirname, "..", "..", "sample-app"));
+    this.sampleApp = new Application(path.join(__dirname, "..", "..", "..", "sample-app"));
   }
 
   cleanSampleApp() {
@@ -21,8 +21,8 @@ class ApplicationTest extends WebdaTest {
 
   @test
   getAppPath() {
-    assert.equal(this.sampleApp.getAppPath(), path.join(__dirname, "..", "..", "sample-app"));
-    assert.equal(this.sampleApp.getAppPath("lib"), path.join(__dirname, "..", "..", "sample-app", "lib"));
+    assert.equal(this.sampleApp.getAppPath(), path.join(__dirname, "..", "..", "..", "sample-app"));
+    assert.equal(this.sampleApp.getAppPath("lib"), path.join(__dirname, "..", "..", "..", "sample-app", "lib"));
   }
 
   @test
@@ -78,9 +78,8 @@ class ApplicationTest extends WebdaTest {
     let config = this.sampleApp.getConfiguration();
     let deploymentConfig = this.sampleApp.getConfiguration("Production");
     assert.equal(deploymentConfig.parameters.accessKeyId, "PROD_KEY");
-    assert.equal(config.parameters, undefined);
-    assert.equal(deploymentConfig.services.store.table, "production-table");
-    assert.equal(config.services.store.table, "local-table");
+    assert.equal(deploymentConfig.services.contacts.table, "webda-sample-app-contacts");
+    assert.equal(config.services.contacts.table, "local-table");
   }
 
   @test

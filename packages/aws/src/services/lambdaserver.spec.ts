@@ -1,8 +1,8 @@
 import { Application, Bean, Route, Service } from "@webda/core";
-import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import * as fs from "fs";
 import { suite, test } from "mocha-typescript";
+import { checkLocalStack, WebdaAwsTest } from "../index.spec";
 import { LambdaServer } from "./lambdaserver";
 
 @Bean
@@ -28,13 +28,14 @@ class ExceptionExecutor extends Service {
 }
 
 @suite
-class LambdaHandlerTest extends WebdaTest {
+class LambdaHandlerTest extends WebdaAwsTest {
   evt: any;
   handler: LambdaServer;
   debugMailer: any;
   context: any = {};
 
   async before() {
+    await checkLocalStack();
     let app = new Application(this.getTestConfiguration());
     app.loadLocalModule();
     this.webda = this.handler = new LambdaServer(app);
@@ -210,10 +211,10 @@ class LambdaHandlerTest extends WebdaTest {
   @test
   async awsEvents() {
     let service: any = this.handler.getService("awsEvents");
-    let files = fs.readdirSync(__dirname + "/../test/aws-events");
+    let files = fs.readdirSync(__dirname + "/../../test/aws-events");
     for (let f in files) {
       let file = files[f];
-      let event = JSON.parse(fs.readFileSync(__dirname + "/../test/aws-events/" + file).toString());
+      let event = JSON.parse(fs.readFileSync(__dirname + "/../../test/aws-events/" + file).toString());
       await this.handler.handleRequest(event, context);
       if (file === "api-gateway-aws-proxy.json") {
         assert.equal(service.getEvents().length, 0, "API Gateway should go throught the normal request handling");

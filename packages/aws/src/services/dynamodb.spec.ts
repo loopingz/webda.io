@@ -1,12 +1,14 @@
+import { CoreModel, Ident, Store } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
-import { Store, Ident, CoreModel } from "@webda/core";
-import { test, suite } from "mocha-typescript";
 import * as assert from "assert";
+import { suite, test } from "mocha-typescript";
+import { checkLocalStack } from "../index.spec";
 import { DynamoStore } from "./dynamodb";
 
 @suite
 class DynamoDBTest extends StoreTest {
   async before() {
+    await checkLocalStack();
     this.buildWebda();
     await (<DynamoStore<CoreModel>>this.getService("users")).install({});
     await (<DynamoStore<CoreModel>>this.getService("idents")).install({});
@@ -45,9 +47,7 @@ class DynamoDBTest extends StoreTest {
   @test
   bodyCleaning() {
     //var parse = require("./data/to_clean.json");
-    let identStore: DynamoStore<Ident> = <DynamoStore<Ident>>(
-      this.getIdentStore()
-    );
+    let identStore: DynamoStore<Ident> = <DynamoStore<Ident>>this.getIdentStore();
     let ident = new Ident();
     ident.load(
       {
@@ -81,18 +81,10 @@ class DynamoDBTest extends StoreTest {
 
   @test
   ARNPolicy() {
-    let userStore: DynamoStore<any> = <DynamoStore<any>>(
-      this.getService("users")
-    );
+    let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
     userStore._params.region = "eu-west-1";
-    assert.equal(
-      userStore.getARNPolicy("666").Resource[0],
-      "arn:aws:dynamodb:eu-west-1:666:table/webda-test-users"
-    );
+    assert.equal(userStore.getARNPolicy("666").Resource[0], "arn:aws:dynamodb:eu-west-1:666:table/webda-test-users");
     userStore._params.region = undefined;
-    assert.equal(
-      userStore.getARNPolicy("777").Resource[0],
-      "arn:aws:dynamodb:us-east-1:777:table/webda-test-users"
-    );
+    assert.equal(userStore.getARNPolicy("777").Resource[0], "arn:aws:dynamodb:us-east-1:777:table/webda-test-users");
   }
 }

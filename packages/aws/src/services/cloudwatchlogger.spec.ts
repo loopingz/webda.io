@@ -1,11 +1,11 @@
-import { WebdaTest } from "@webda/core/lib/test";
-import { GetAWS } from "./index";
 import * as assert from "assert";
+import { suite, test } from "mocha-typescript";
+import { GetAWS } from "../index";
+import { checkLocalStack, WebdaAwsTest } from "../index.spec";
 import { CloudWatchLogger } from "./cloudwatchlogger";
-import { test, suite } from "mocha-typescript";
 
 @suite
-class CloudWatchLoggerTest extends WebdaTest {
+class CloudWatchLoggerTest extends WebdaAwsTest {
   service: CloudWatchLogger;
 
   getTestConfiguration() {
@@ -13,10 +13,11 @@ class CloudWatchLoggerTest extends WebdaTest {
   }
 
   async before() {
+    await checkLocalStack();
     let cloudwatch = new (GetAWS({
       accessKeyId: "Bouzouf",
       secretAccessKey: "plop"
-    })).CloudWatchLogs({
+    }).CloudWatchLogs)({
       endpoint: "http://localhost:4586"
     });
     try {
@@ -25,8 +26,6 @@ class CloudWatchLoggerTest extends WebdaTest {
           logGroupName: "webda-test"
         })
         .promise();
-      // We have to wait for the secret to go away
-      await this.sleep(15000);
     } catch (err) {
       // Skip bad delete
     }

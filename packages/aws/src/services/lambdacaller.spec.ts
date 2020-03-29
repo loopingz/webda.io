@@ -1,10 +1,10 @@
-import { WebdaTest } from "@webda/core/lib/test";
-import { test, suite } from "mocha-typescript";
 import * as assert from "assert";
+import { suite, test } from "mocha-typescript";
+import { WebdaAwsTest } from "../index.spec";
 import { LambdaCaller } from "./lambdacaller";
 
 @suite
-class LambdaCallerTest extends WebdaTest {
+class LambdaCallerTest extends WebdaAwsTest {
   @test
   async call() {
     // CodeCoverage test
@@ -14,8 +14,6 @@ class LambdaCallerTest extends WebdaTest {
       accessKeyId: "PLOP"
     });
     // @ts-ignore
-    await this.assertThrowsAsync(
-      lamdaCaller.execute.bind(LambdaCaller, undefined, true)
-    );
+    await this.assertThrowsAsync(lamdaCaller.execute.bind(LambdaCaller, undefined, true));
   }
 }

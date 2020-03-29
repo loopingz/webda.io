@@ -1,13 +1,15 @@
-import { BinaryTest } from "@webda/core/lib/services/binary.spec";
-import { test, suite } from "mocha-typescript";
-import * as assert from "assert";
-import { S3Binary } from "./s3binary";
-import { DynamoStore } from "./dynamodb";
 import { CoreModel } from "@webda/core";
+import { BinaryTest } from "@webda/core/lib/services/binary.spec";
+import * as assert from "assert";
+import { suite, test } from "mocha-typescript";
+import { checkLocalStack } from "../index.spec";
+import { DynamoStore } from "./dynamodb";
+import { S3Binary } from "./s3binary";
 
 @suite
 class S3BinaryTest extends BinaryTest {
   async before() {
+    await checkLocalStack();
     this.buildWebda();
     await (<S3Binary>this.getBinary()).install({});
     await (<DynamoStore<CoreModel>>this.getService("users")).install({});

@@ -17,9 +17,9 @@ class DeploymentManagerTest {
     );
     let deploymentManager = new DeploymentManager(
       WebdaSampleApplication.getAppPath(),
-      "Production"
+      "Shell"
     );
-    assert.equal(Object.keys(deploymentManager.deployers).length, 4);
+    assert.equal(Object.keys(deploymentManager.deployers).length, 1);
     assert.throws(
       () => deploymentManager.getDeployer("plop"),
       /Unknown deployer/g

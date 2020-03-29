@@ -1,0 +1,47 @@
+{
+ "parameters": {
+  "website": {"path": "./wui", "url": "prod.webda-demo.com"},
+  "requestLimit": "1mb",
+  "csrfOrigins": [
+    "^accounts\\.google\\.\\w{2,}$",
+    "\\w+\\.facebook\\.com"
+  ],
+  "region": "eu-west-1",
+  "accessKeyId": "PROD_KEY",
+  "secretAccessKey": "PROD_SECRET",
+  "sessionSecret": "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+ },
+ "resources": {
+  "restApi": "webda-demo-production",
+  "lambdaRole": "arn:aws:iam::111222333:role/webda-demo-api",
+  "accessKeyId": "PROD_DEPLOYMENT_KEY",
+  "secretAccessKey": "PROD_DEPLOYMENT_SECRET_KEY",
+  "FargateRegion": "eu-west-1"
+ },
+ "type": "aws",
+ "uuid": "Production",
+ "services": {
+     "contacts": {
+        "type": "DynamoStore",
+        "table": "webda-sample-app-contacts"
+     },
+     "images": {
+       "type": "S3Binary",
+        "bucket": "webda-sample-app-images"
+     },
+     "thumbnailsqueue": {
+       "type": "SQSQueue",
+       "queue": "https://sqs.eu-west-1.amazonaws.com/277712386420/webda-sample-app-tumbnails-queue"
+     }
+ },
+ "units": [
+  {
+   "name": "Packager",
+   "type": "WebdaDeployer/Packager",
+   "zipFile": "plop.zip"
+  }
+ ],
+ "_type": "deployment",
+ "callback": "",
+ "lastUpdate": "2018-03-30T17:12:00.081Z"
+}

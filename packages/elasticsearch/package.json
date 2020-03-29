@@ -7,7 +7,7 @@
     "webda-module": "webda module --noCompile",
     "build": "tsc",
     "pretest": "npm run build",
-    "test": "nyc mocha --timeout=100000"
+    "test": ""
   },
   "repository": {
     "type": "git",

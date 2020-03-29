@@ -1,10 +1,10 @@
-import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
+import { suite, test } from "mocha-typescript";
+import { WebdaAwsTest } from "../index.spec";
 import { AWSSecretsManager } from "./secretsmanager";
-import { test, suite, timeout } from "mocha-typescript";
 
 @suite
-class SecretsManagerTest extends WebdaTest {
+class SecretsManagerTest extends WebdaAwsTest {
   service: AWSSecretsManager;
   async before() {
     await super.before();

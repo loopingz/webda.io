@@ -1,7 +1,7 @@
 import { Context, ModdaDefinition } from "@webda/core";
 import { Deployer } from "@webda/shell";
 
-class CustomDeployer extends Deployer {
+class CustomDeployer extends Deployer<any> {
   test(ctx: Context) {
     ctx.write("Tested");
   }

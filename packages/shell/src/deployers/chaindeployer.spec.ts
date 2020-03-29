@@ -5,7 +5,7 @@ import ChainDeployer from "./chaindeployer";
 import { Deployer } from "./deployer";
 import { DeployerTest } from "./deployer.spec";
 
-class BouzoufDeployer extends Deployer {
+class BouzoufDeployer extends Deployer<any> {
   static lastResources: any;
 
   constructor(manager, resources) {
@@ -26,7 +26,9 @@ class BouzoufDeployer extends Deployer {
 @suite
 class ChainDeployerTest extends DeployerTest<ChainDeployer> {
   getDeployer(manager: DeploymentManager) {
-    return new ChainDeployer(manager, {});
+    return new ChainDeployer(manager, {
+      chain: []
+    });
   }
 
   @test

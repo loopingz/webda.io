@@ -6,7 +6,7 @@ import { DeploymentManager } from "./deploymentmanager";
 @suite
 class DeploymentManagerTest {
   @test
-  testGetDeployers() {
+  async testGetDeployers() {
     assert.throws(
       () => new DeploymentManager(__dirname, "test"),
       /Not a webda application folder/g
@@ -20,10 +20,10 @@ class DeploymentManagerTest {
       "Shell"
     );
     assert.equal(Object.keys(deploymentManager.deployers).length, 1);
-    assert.throws(
+    assert.rejects(
       () => deploymentManager.getDeployer("plop"),
       /Unknown deployer/g
     );
-    assert.notEqual(deploymentManager.getDeployer("Packager"), undefined);
+    assert.notEqual(await deploymentManager.getDeployer("Packager"), undefined);
   }
 }

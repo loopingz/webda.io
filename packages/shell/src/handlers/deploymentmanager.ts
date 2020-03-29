@@ -19,6 +19,7 @@ export class DeploymentManager {
     out;
     err;
   };
+  webda: Core;
 
   constructor(folder: string, deploymentName: string, streams = undefined) {
     this.application = new Application(folder);
@@ -30,7 +31,7 @@ export class DeploymentManager {
     this.application.addDeployer("WebdaDeployer/ChainDeployer", ChainDeployer);
     this.application.addDeployer("WebdaDeployer/Docker", Docker);
     let deployment = this.application.getDeployment(deploymentName);
-    let webdaCore = new Core(this.application);
+    this.webda = new Core(this.application);
     this.deployersDefinition = <any>this.application.getDeployers();
 
     if (streams) {
@@ -40,11 +41,20 @@ export class DeploymentManager {
     }
     deployment.units.forEach(d => {
       if (!this.deployersDefinition[d.type.toLowerCase()]) {
-        webdaCore.log("CONSOLE", "Cannot find deployer", d.type);
+        this.webda.log("CONSOLE", "Cannot find deployer", d.type);
       } else {
         this.deployers[d.name] = merge.recursive(true, deployment.resources, d); // Load deployer
       }
     });
+  }
+
+  /**
+   * Return instantiated Webda application
+   *
+   * Not initialization performed on it
+   */
+  getWebda() {
+    return this.webda;
   }
 
   /**
@@ -54,13 +64,15 @@ export class DeploymentManager {
     return this.application;
   }
 
-  getDeployer(name: string) {
+  async getDeployer(name: string) {
     if (!this.deployers[name]) {
       throw new Error("Unknown deployer " + name);
     }
-    return new this.deployersDefinition[
+    let deployer = new this.deployersDefinition[
       this.deployers[name].type.toLowerCase()
     ](this, this.deployers[name]);
+    await deployer.defaultResources();
+    return deployer;
   }
 
   getDeploymentName() {
@@ -80,6 +92,7 @@ export class DeploymentManager {
       this,
       resources
     );
+    await deployer.defaultResources();
     return deployer.deploy();
   }
 

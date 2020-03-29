@@ -3,6 +3,7 @@ import { Deployer } from "./deployer";
 
 export interface ChainDeployerResources {
   chain: string | string[];
+  [x: string]: any;
 }
 
 /**

@@ -13,6 +13,7 @@ export abstract class Deployer<T> {
   manager: DeploymentManager;
   app: Application;
   packageDescription: any;
+  _defaulted: boolean = false;
 
   constructor(manager: DeploymentManager, resources: T = undefined) {
     this.manager = manager;
@@ -26,6 +27,18 @@ export abstract class Deployer<T> {
   getApplication(): Application {
     return this.app;
   }
+
+  /**
+   * Initiate the default value for resources
+   */
+  async defaultResources() {
+    if (this._defaulted) {
+      await this.loadDefault();
+    }
+    this._defaulted = true;
+  }
+
+  async loadDefault() {}
 
   /**
    * Deploy the application

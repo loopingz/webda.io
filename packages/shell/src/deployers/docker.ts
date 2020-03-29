@@ -5,6 +5,7 @@ import * as path from "path";
 import { Deployer } from "./deployer";
 
 export interface DockerResources {
+  workers?: string[];
   tag?: string;
   push?: boolean;
   file?: string;

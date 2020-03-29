@@ -14,16 +14,12 @@ class ShellDeployerTest extends DeployerTest<ShellDeployer> {
 
   @test
   async deploy() {
-    let execs = [];
-    this.deployer.execute = async (...args) => {
-      execs.push(args);
-      return 0;
-    };
+    this.deployer.execute = this.mockExecute;
     await this.deployer.deploy();
-    assert.deepEqual(execs, [["ls -alh"], ["cp plop"]]);
+    assert.deepEqual(this.execs, [["ls -alh"], ["cp plop"]]);
     this.deployer.resources.scripts = undefined;
-    execs = [];
+    this.execs = [];
     await this.deployer.deploy();
-    assert.deepEqual(execs, []);
+    assert.deepEqual(this.execs, []);
   }
 }

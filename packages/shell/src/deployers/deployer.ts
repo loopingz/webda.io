@@ -68,19 +68,32 @@ export abstract class Deployer {
    * @param script command to execute
    * @param stdin
    */
-  async execute(command: string, stdin: string = undefined): Promise<number> {
+  async execute(
+    command: string,
+    stdin: string = undefined
+  ): Promise<{ status: number; output: string; error: string }> {
     return new Promise((resolve, reject) => {
+      let res = {
+        status: 0,
+        error: "",
+        output: ""
+      };
       var ls = spawn(command, { shell: true });
 
-      ls.stdout.on("data", data => {});
+      ls.stdout.on("data", data => {
+        res.output += data.toString();
+      });
 
-      ls.stderr.on("data", data => {});
+      ls.stderr.on("data", data => {
+        res.error += data.toString();
+      });
 
       ls.on("close", code => {
         if (code == 0) {
-          resolve(code);
+          resolve(res);
         } else {
-          reject(code);
+          res.status = code;
+          reject(res);
         }
       });
       if (stdin) {

@@ -7,6 +7,11 @@ import { Deployer } from "./deployer";
 export abstract class DeployerTest<T> {
   deployer: T;
   manager: DeploymentManager;
+  execs: any[] = [];
+  mockExecute: any = async (...args) => {
+    this.execs.push(args);
+    return { status: 0, output: "", error: "" };
+  };
 
   abstract getDeployer(manager: DeploymentManager): T;
 
@@ -57,5 +62,16 @@ class CommonDeployerTest extends DeployerTest<TestDeployer> {
         }
       }
     );
+  }
+
+  @test
+  async testExecute() {
+    let info = await this.deployer.execute("ls -alh");
+    assert.equal(info.status, 0);
+    assert.rejects(this.deployer.execute("[ 0 = 1 ]"));
+    info = await this.deployer.execute("cat", "bouzouf");
+    assert.equal(info.output, "bouzouf");
+    info = await this.deployer.execute("cat 1>&2", "bouzouf");
+    assert.equal(info.error, "bouzouf");
   }
 }

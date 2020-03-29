@@ -1,5 +1,4 @@
 export * from "./console/webda";
-export * from "./deployers/aws";
 export * from "./deployers/deployer";
 export * from "./deployers/docker";
 export * from "./deployers/shell";

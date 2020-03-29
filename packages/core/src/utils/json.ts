@@ -19,5 +19,8 @@ export const JSONUtils = {
   parse: value => {
     // Auto clean any noise
     return JSON.parse(value);
+  },
+  duplicate: value => {
+    return JSON.parse(JSONUtils.stringify(value));
   }
 };

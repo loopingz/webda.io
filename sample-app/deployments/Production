@@ -67,6 +67,11 @@
    "type": "Webda/CdkDeployer",
    "subtype": "S3",
    "customDomain": true
+  },
+  {
+   "name": "Packager",
+   "type": "WebdaDeployer/Packager",
+   "zipFile": "plop.zip"
   }
  ],
  "_type": "deployment",

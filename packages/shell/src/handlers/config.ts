@@ -71,7 +71,7 @@ export class ConfigApplication extends Application {
     return super.getModel(model);
   }
 
-  getService(name: string): ServiceConstructor {
+  getService(name: string): ServiceConstructor<Service> {
     if (name.toLowerCase() === "webdaconfiguration/api") {
       return ConfigurationService;
     }

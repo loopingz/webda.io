@@ -6,6 +6,8 @@ class CustomDeployer extends Deployer {
     ctx.write("Tested");
   }
 
+  async deploy() {}
+
   static getModda(): ModdaDefinition {
     return {
       uuid: "WebdaDemo/CustomDeployer",

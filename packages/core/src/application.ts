@@ -3,11 +3,39 @@ import * as fs from "fs";
 import * as glob from "glob";
 import * as merge from "merge";
 import * as path from "path";
-import { Authentication, CachedModule, Configuration, ConfigurationService, ConfigurationV1, ConsoleLogger, Context, Core, CoreModel, CoreModelDefinition, DebugMailer, EventService, FileBinary, FileStore, Ident, Logger, Mailer, MemoryLogger, MemoryQueue, MemoryStore, ModdaDefinition, Module, ResourceService, SecureCookie, Service, SessionCookie, User } from "./index";
+import {
+  Authentication,
+  CachedModule,
+  Configuration,
+  ConfigurationService,
+  ConfigurationV1,
+  ConsoleLogger,
+  Context,
+  Core,
+  CoreModel,
+  CoreModelDefinition,
+  DebugMailer,
+  EventService,
+  FileBinary,
+  FileStore,
+  Ident,
+  Logger,
+  Mailer,
+  MemoryLogger,
+  MemoryQueue,
+  MemoryStore,
+  ModdaDefinition,
+  Module,
+  ResourceService,
+  SecureCookie,
+  Service,
+  SessionCookie,
+  User
+} from "./index";
 import { Deployment } from "./models/deployment";
 
-export interface ServiceConstructor {
-  new (webda: Core, name: string, params: any): Service;
+export interface ServiceConstructor<T extends Service> {
+  new (webda: Core, name: string, params: any): T;
   getModda();
 }
 
@@ -19,7 +47,7 @@ export interface ServiceConstructor {
  *  - Scan code for Modda and generate the webda.config.json
  *  - Compile and Watch
  *  - Migrate from old configuration
- *  - List deploymments
+ *  - List deployments
  *
  *
  * @category CoreFeatures
@@ -65,12 +93,12 @@ export class Application {
   /**
    * Deployers type registry
    */
-  protected deployers: { [key: string]: ServiceConstructor } = {};
+  protected deployers: { [key: string]: any } = {};
 
   /**
    * Services type registry
    */
-  protected services: { [key: string]: ServiceConstructor } = {
+  protected services: { [key: string]: ServiceConstructor<Service> } = {
     // real service - modda
     "webda/authentication": Authentication,
     "webda/filestore": FileStore,
@@ -257,7 +285,7 @@ export class Application {
     return this.appPath;
   }
 
-  addService(name: string, service: ServiceConstructor) {
+  addService(name: string, service: ServiceConstructor<Service>) {
     this.log("TRACE", "Registering service", name);
     this.services[name.toLowerCase()] = service;
   }
@@ -297,7 +325,7 @@ export class Application {
     return this.models;
   }
 
-  getDeployers(): { [key: string]: ServiceConstructor } {
+  getDeployers(): { [key: string]: ServiceConstructor<Service> } {
     return this.deployers;
   }
 
@@ -518,11 +546,11 @@ export class Application {
     if (this._loaded.indexOf(absolutePath) >= 0) {
       return;
     }
-    let source = "./" + path.relative(this.appPath, absolutePath)
+    let source = "./" + path.relative(this.appPath, absolutePath);
     if (this.cachedModules.sources.indexOf(source) < 0) {
       this.cachedModules.sources.push(source);
     }
-    
+
     this._loaded.push(absolutePath);
     let mod = this.resolveRequire(absolutePath);
     let obj = mod;

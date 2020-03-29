@@ -42,7 +42,7 @@ class ConsoleTest {
   checkTestDeploymentConfig(config) {
     assert.notEqual(config, undefined);
     assert.equal(config.parameters.accessKeyId, "DEV_ACCESS");
-    assert.equal(config.services.store.table, "dev-table");
+    assert.equal(config.services.contacts.table, "dev-table");
   }
 
   async after() {

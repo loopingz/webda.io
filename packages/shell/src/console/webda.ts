@@ -30,7 +30,7 @@ export default class WebdaConsole {
 
   static help() {
     var lines = [];
-    lines.push("USAGE: webda [config|debug|deploy|init|install||serve|launch]");
+    lines.push("USAGE: webda [config|debug|deploy|init||serve|launch]");
     lines.push("");
     lines.push("  --help                     Display this message and exit");
     lines.push("");
@@ -48,10 +48,6 @@ export default class WebdaConsole {
     lines.push(
       this.bold(" module") +
         ": Generate a module definition based on the script scan"
-    );
-    lines.push(
-      this.bold(" install") +
-        ": Install the resources for the declared services ( DynamoDB Tables, S3 Buckets )"
     );
     lines.push(
       this.bold(" serve") +
@@ -122,34 +118,6 @@ export default class WebdaConsole {
       this.output("Dev mode activated : wildcard CORS enabled");
     }
     await this.webda.serve(argv.port, argv.websockets);
-  }
-
-  static async install(argv) {
-    /*
-    this.output("Installing deployment: " + argv.deployment);
-    webda = await this._getNewConfig();
-    return webda.install(argv.deployment, server_config, argv._.slice(1));
-    */
-  }
-
-  /**
-   *
-   * @param argv
-   */
-  static async uninstall(argv) {
-    // Loading first the configuration
-    this.output(colors.red("Uninstalling deployment: ") + argv.deployment.red);
-    this.webda = new WebdaServer(this.app);
-    await this.webda.init();
-    let services = this.webda.getServices();
-    let promises = [];
-    for (var name in services) {
-      if (services[name].uninstall) {
-        this.output("Uninstalling", name);
-        promises.push(services[name].uninstall(undefined));
-      }
-    }
-    return Promise.all(promises);
   }
 
   /**
@@ -499,12 +467,6 @@ export default class WebdaConsole {
     switch (argv._[0]) {
       case "serve":
         await this.serve(argv);
-        return 0;
-      case "install":
-        await this.install(argv);
-        return 0;
-      case "uninstall":
-        await this.uninstall(argv);
         return 0;
       case "serviceconfig":
         await this.serviceConfig(argv);

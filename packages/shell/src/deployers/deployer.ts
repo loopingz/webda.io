@@ -1,213 +1,80 @@
-import { Application, Core, _extend } from "@webda/core";
+import { Application } from "@webda/core";
 import { spawn } from "child_process";
-import * as fs from "fs";
-import * as path from "path";
+import { DeploymentManager } from "../handlers/deploymentmanager";
 
-//import { AWSDeployer } from "./aws";
-export class Deployer {
-  _step: number;
-  _maxStep: number;
+/**
+ * **Deployer** represent one type of deploy like: *S3* or *Docker* or *Lambda+API Gateway* or *Fargate*
+ *
+ * This is an abstract class that should be extended to implement new one
+ * @module DeploymentSystem
+ */
+export abstract class Deployer {
   resources: any;
-  parameters: any;
-  deployment: any;
+  manager: DeploymentManager;
   app: Application;
-  _webda: Core;
+  packageDescription: any;
 
-  constructor(
-    app: Application,
-    webda: Core,
-    deployment = undefined,
-    unitParameters = undefined
-  ) {
-    this._webda = webda; // Used once to get swagger definition
-    this._step = 1;
-    this.parameters = {};
+  constructor(manager: DeploymentManager, resources: any = undefined) {
     this.resources = {};
-    this.deployment = deployment;
-    this.app = app;
-    if (this.deployment) {
-      _extend(this.resources, deployment.resources);
-    }
-    if (unitParameters) {
-      _extend(this.resources, unitParameters);
-    }
+    this.manager = manager;
+    this.app = this.manager.getApplication();
+    this.resources = resources;
   }
 
-  static getDeployers(folder: string, deploymentName: string) {
-    // Load Core
-    let app = new Application(folder);
-    app.compile();
-    app.setCurrentDeployment(deploymentName);
-    let deployment = app.getDeployment(deploymentName);
-    let webdaCore = new Core(app);
-    let deployersDefinition: any = webdaCore.getDeployers();
-    deployersDefinition["webdadeployer/aws"] = require("./aws").default; //AWSDeployer;
-    let deployersMap = {};
-    deployment.units.forEach(d => {
-      if (!deployersDefinition[d.type.toLowerCase()]) {
-        webdaCore.log("CONSOLE", "Cannot find deployer", d.type);
-      } else {
-        deployersMap[d.name] = new deployersDefinition[d.type.toLowerCase()](
-          app,
-          webdaCore
-        ); // Load deployer
-      }
-    });
-    return deployersMap;
+  /**
+   * Return the Webda Application
+   */
+  getApplication(): Application {
+    return this.app;
   }
 
-  static getDeployer(folder: string, deployment: string, name: string) {
-    let deployers = Deployer.getDeployers(folder, deployment);
-    if (!deployers[name]) {
-      throw new Error("Unknown deployer");
-    }
-    return deployers[name];
-  }
+  /**
+   * Deploy the application
+   */
+  abstract async deploy(): Promise<any>;
 
-  stepper(msg) {
-    console.log("[" + this._step++ + "/" + this._maxStep + "] " + msg);
-  }
-
-  async generateCodePackage(zipPath: string, entrypoint: string = undefined) {
-    this.app.compile();
-    var archiver = require("archiver");
-    let targetDir = path.dirname(zipPath);
-    if (!fs.existsSync(targetDir)) {
-      fs.mkdirSync(targetDir);
-    }
-    if (fs.existsSync(zipPath)) {
-      fs.unlinkSync(zipPath);
-    }
-    var ignores = [
-      "dist",
-      "bin",
-      "test",
-      "Dockerfile",
-      "README.md",
-      "package.json",
-      "deployments",
-      "app",
-      "webda.config.json"
-    ];
-    if (this.resources.package && this.resources.package.ignores) {
-      ignores = ignores.concat(this.resources.package.ignores);
-    }
-    // Should load the ignore from a file
-    var toPacks = [];
-
-    var files;
-    let appPath = this._webda.getAppPath();
-    let packageFile = appPath + "/package.json";
-    if (fs.existsSync(packageFile)) {
-      files = require(packageFile).files;
-    }
-    files = files || fs.readdirSync(appPath);
-    for (let i in files) {
-      var name = files[i];
-      if (name.startsWith(".")) continue;
-      if (ignores.indexOf(name) >= 0) continue;
-      toPacks.push(`${appPath}/${name}`);
-    }
-    // Ensure dependencies
-    if (toPacks.indexOf(`${appPath}/node_modules`) < 0) {
-      if (fs.existsSync(`${appPath}/node_modules`)) {
-        let files = fs.readdirSync(`${appPath}/node_modules`);
-        files.forEach(file => {
-          toPacks.push(`${appPath}/node_modules/${file}`);
-        });
-      }
-    }
-    var output = fs.createWriteStream(zipPath);
-    var archive = archiver("zip");
-
-    var p = new Promise((resolve, reject) => {
-      output.on("finish", () => {
-        resolve();
-      });
-
-      archive.on("error", function(err) {
-        console.log(err);
-        reject(err);
-      });
-
-      archive.pipe(output);
-      for (let i in toPacks) {
-        if (!fs.existsSync(toPacks[i])) {
-          continue;
-        }
-        var stat = fs.lstatSync(toPacks[i]);
-        if (stat.isSymbolicLink()) {
-          this.addLinkPackage(archive, fs.realpathSync(toPacks[i]), toPacks[i]);
-        } else if (stat.isDirectory()) {
-          archive.directory(toPacks[i], path.relative(appPath, toPacks[i]));
-        } else if (stat.isFile()) {
-          archive.file(toPacks[i], {
-            name: path.relative(appPath, toPacks[i])
-          });
-        }
-      }
-      if (entrypoint) {
-        if (fs.existsSync(entrypoint)) {
-          archive.file(entrypoint, {
-            name: "entrypoint.js"
-          });
-        } else {
-          throw Error("Cannot find the entrypoint for Lambda");
-        }
-      }
-      archive.append(
-        JSON.stringify(this._webda.getConfiguration(), undefined, 2),
-        {
-          name: "webda.config.json"
-        }
-      );
-      archive.finalize();
-    });
-    return p;
-  }
-
-  addLinkPackage(archive, fromPath, toPath) {
-    let packageFile = fromPath + "/package.json";
-    let files;
-    if (fs.existsSync(packageFile)) {
-      archive.file(`${packageFile}`, { name: `${toPath}/package.json` });
-      files = require(packageFile).files;
-    }
-    files = files || fs.readdirSync(fromPath);
-    files.forEach(file => {
-      if (file.startsWith(".") || file === "package.json") return;
-      var stat = fs.lstatSync(`${fromPath}/${file}`);
-      if (stat.isDirectory()) {
-        archive.directory(`${fromPath}/${file}`, `${toPath}/${file}`);
-      } else if (stat.isFile()) {
-        archive.file(`${fromPath}/${file}`, { name: `${toPath}/${file}` });
-      }
+  /**
+   * Allow variable inside of string
+   *
+   * @param templateString to copy
+   */
+  stringParameter(templateString: string) {
+    return new Function("return `" + templateString + "`;").call({
+      resources: this.resources,
+      package: this.manager.getPackageDescription(),
+      git: this.manager.getGitInformation()
     });
   }
 
-  async generateDockerImage() {
-    // Read from docker-mixin
+  /**
+   * Allow variable inside object strings
+   *
+   * @param object a duplicated object with replacement done
+   */
+  objectParameter(object: any) {
+    let from = this;
+    return JSON.parse(
+      JSON.stringify(object, function(key: string, value: any) {
+        if (typeof this[key] === "string") {
+          return from.stringParameter(value);
+        }
+        return value;
+      })
+    );
   }
 
-  async deploy(args) {}
-
-  async undeploy(args) {}
-
-  execute(script, args = [], onout, onerr, stdin = undefined) {
+  /**
+   *
+   * @param script command to execute
+   * @param stdin
+   */
+  async execute(command: string, stdin: string = undefined): Promise<number> {
     return new Promise((resolve, reject) => {
-      var ls = spawn(script, args);
+      var ls = spawn(command, { shell: true });
 
-      ls.stdout.on("data", data => {
-        if (onout) {
-          onout(data);
-        }
-      });
+      ls.stdout.on("data", data => {});
 
-      ls.stderr.on("data", data => {
-        if (onerr) {
-          onerr(data);
-        }
-      });
+      ls.stderr.on("data", data => {});
 
       ls.on("close", code => {
         if (code == 0) {
@@ -221,9 +88,5 @@ export class Deployer {
         ls.stdin.end();
       }
     });
-  }
-
-  getServices() {
-    return this._webda.getServicesImplementations();
   }
 }

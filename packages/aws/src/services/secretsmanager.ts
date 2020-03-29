@@ -84,3 +84,4 @@ export default class AWSSecretsManager extends AWSMixIn(DummyService) implements
 }
 
 export { AWSSecretsManager };
+

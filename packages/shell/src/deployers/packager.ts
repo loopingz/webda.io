@@ -3,6 +3,13 @@ import * as fs from "fs";
 import * as path from "path";
 import { Deployer } from "./deployer";
 
+interface PackagerResources {
+  zipPath: string;
+  entrypoint?: string;
+  package?: {
+    ignores: string[];
+  };
+}
 /**
  * Generate a ZIP Package of the application
  *
@@ -11,7 +18,7 @@ import { Deployer } from "./deployer";
  * @param zipPath path to store the package
  * @param entrypoint file to integrate as entrypoint.js
  */
-export default class Packager extends Deployer {
+export default class Packager extends Deployer<PackagerResources> {
   packagesGenerated: { [key: string]: boolean } = {};
   /**
    * Generate a full code package including dependencies

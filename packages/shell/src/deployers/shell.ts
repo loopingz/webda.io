@@ -1,6 +1,10 @@
 import { Deployer } from "./deployer";
 
-export default class ShellDeployer extends Deployer {
+export interface ShellDeployerResources {
+  scripts: string[];
+}
+
+export default class ShellDeployer extends Deployer<ShellDeployerResources> {
   async deploy() {
     this.resources.scripts = this.resources.scripts || [];
     for (let i in this.resources.scripts) {

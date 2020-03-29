@@ -24,7 +24,7 @@ export abstract class DeployerTest<T> {
   }
 }
 
-class TestDeployer extends Deployer {
+class TestDeployer extends Deployer<any> {
   async deploy(): Promise<any> {}
 }
 

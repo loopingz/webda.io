@@ -7,7 +7,7 @@ import { Docker } from "../deployers/docker";
 import { Packager } from "../deployers/packager";
 
 export interface DeployerConstructor {
-  new (manager: DeploymentManager, resources: any): Deployer;
+  new (manager: DeploymentManager, resources: any): Deployer<any>;
 }
 
 export class DeploymentManager {

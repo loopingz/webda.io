@@ -4,7 +4,14 @@ import * as mkdirp from "mkdirp";
 import * as path from "path";
 import { Deployer } from "./deployer";
 
-export class Docker extends Deployer {
+export interface DockerResources {
+  tag?: string;
+  push?: boolean;
+  file?: string;
+  command?: string;
+}
+
+export class Docker extends Deployer<DockerResources> {
   _copied: boolean = false;
 
   /**

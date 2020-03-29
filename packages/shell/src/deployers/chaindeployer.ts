@@ -1,10 +1,14 @@
 import * as merge from "merge";
 import { Deployer } from "./deployer";
 
+export interface ChainDeployerResources {
+  chain: string | string[];
+}
+
 /**
  * Run a list of Deployer
  */
-export default class ChainDeployer extends Deployer {
+export default class ChainDeployer extends Deployer<ChainDeployerResources> {
   getChain(): string[] {
     if (typeof this.resources.chain === "string") {
       return this.resources.chain.split(",");

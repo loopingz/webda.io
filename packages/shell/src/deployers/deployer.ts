@@ -8,14 +8,13 @@ import { DeploymentManager } from "../handlers/deploymentmanager";
  * This is an abstract class that should be extended to implement new one
  * @module DeploymentSystem
  */
-export abstract class Deployer {
-  resources: any;
+export abstract class Deployer<T> {
+  resources: T;
   manager: DeploymentManager;
   app: Application;
   packageDescription: any;
 
-  constructor(manager: DeploymentManager, resources: any = undefined) {
-    this.resources = {};
+  constructor(manager: DeploymentManager, resources: T = undefined) {
     this.manager = manager;
     this.app = this.manager.getApplication();
     this.resources = resources;

@@ -13,16 +13,16 @@ class PackagerTest {
   @test("simple")
   async package() {
     // Check override is ok
-    let zipFile = path.join(
+    let zipPath = path.join(
       WebdaSampleApplication.getAppPath(),
       "dist",
-      "package.zip"
+      "package-2.zip"
     );
 
     let deployer = new Packager(
       new DeploymentManager(WebdaSampleApplication.getAppPath(), "Production"),
       {
-        zipFile
+        zipPath
       }
     );
 
@@ -36,7 +36,7 @@ class PackagerTest {
     };
     await new Promise(resolve =>
       fs
-        .createReadStream(zipFile)
+        .createReadStream(zipPath)
         // @ts-ignore
         .pipe(unzip.Parse())
         .on("entry", function(entry) {

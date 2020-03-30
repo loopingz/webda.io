@@ -7,6 +7,7 @@ import * as fs from "fs";
 import { Transform } from "stream";
 import * as YAML from "yamljs";
 import * as yargs from "yargs";
+import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";
 
 export enum DebuggerStatus {
@@ -30,7 +31,7 @@ export default class WebdaConsole {
 
   static help() {
     var lines = [];
-    lines.push("USAGE: webda [config|debug|deploy|init||serve|launch]");
+    lines.push("USAGE: webda [config|debug|deploy|init|serve|launch]");
     lines.push("");
     lines.push("  --help                     Display this message and exit");
     lines.push("");
@@ -371,12 +372,9 @@ export default class WebdaConsole {
    * @param argv
    */
   static async deploy(argv: yargs.Arguments): Promise<number> {
-    /*
-    webda = await this._getNewConfig();
-    return webda.deploy(argv.deployment, argv._.slice(1)).catch(err => {
-      this.output("Error", err);
-    });
-    */
+    let manager = new DeploymentManager(process.cwd(), argv.deployment);
+    argv._.slice(1);
+    // Check if we deploy all
     return 0;
   }
 

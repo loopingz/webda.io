@@ -1,6 +1,7 @@
 export * from "./console/webda";
 export * from "./deployers/deployer";
 export * from "./deployers/docker";
+export * from "./deployers/packager";
 export * from "./deployers/shell";
 export * from "./handlers/config";
 export * from "./handlers/deploymentmanager";

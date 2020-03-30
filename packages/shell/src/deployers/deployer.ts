@@ -1,4 +1,4 @@
-import { Application } from "@webda/core";
+import { Application, Cache } from "@webda/core";
 import { spawn } from "child_process";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 
@@ -31,14 +31,12 @@ export abstract class Deployer<T> {
   /**
    * Initiate the default value for resources
    */
-  async defaultResources() {
-    if (this._defaulted) {
-      await this.loadDefault();
-    }
-    this._defaulted = true;
+  @Cache()
+  async defaultResources(): Promise<void> {
+    await this.loadDefaults();
   }
 
-  async loadDefault() {}
+  async loadDefaults(): Promise<void> {}
 
   /**
    * Deploy the application

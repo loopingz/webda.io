@@ -1,3 +1,5 @@
+// Export a default Cache - we might recode this to be able to specify custom provider
+export { MemoryCache as Cache } from "ts-method-cache";
 export * from "./application";
 export * from "./core";
 // Loggers

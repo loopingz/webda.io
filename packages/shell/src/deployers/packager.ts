@@ -3,7 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { Deployer } from "./deployer";
 
-interface PackagerResources {
+export interface PackagerResources {
   zipPath: string;
   entrypoint?: string;
   package?: {

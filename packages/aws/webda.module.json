@@ -1,10 +1,13 @@
 {
   "services": {
-    "Webda/CloudWatchLogger": "./lib/cloudwatchlogger.js",
-    "Webda/DynamoStore": "./lib/dynamodb.js",
-    "Webda/S3Binary": "./lib/s3binary.js",
-    "Webda/AWSSecretsManager": "./lib/secretsmanager.js",
-    "Webda/SQSQueue": "./lib/sqsqueue.js"
+    "Webda/CloudWatchLogger": "./lib/services/cloudwatchlogger.js",
+    "Webda/DynamoStore": "./lib/services/dynamodb.js",
+    "Webda/S3Binary": "./lib/services/s3binary.js",
+    "Webda/AWSSecretsManager": "./lib/services/secretsmanager.js",
+    "Webda/SQSQueue": "./lib/services/sqsqueue.js"
   },
-  "models": {}
+  "models": {},
+  "deployers": {
+    "WebdaAWSDeployer/CloudFormationDeployer": "./lib/deployers/cloudformation.js"
+  }
 }

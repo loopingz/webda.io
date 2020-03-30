@@ -41,7 +41,13 @@ export class DeploymentManager {
     }
     deployment.units.forEach(d => {
       if (!this.deployersDefinition[d.type.toLowerCase()]) {
-        this.webda.log("CONSOLE", "Cannot find deployer", d.type);
+        this.webda.log(
+          "CONSOLE",
+          "Cannot find deployer",
+          d.type,
+          "known types:",
+          Object.keys(this.deployersDefinition).join(",")
+        );
       } else {
         this.deployers[d.name] = merge.recursive(true, deployment.resources, d); // Load deployer
       }

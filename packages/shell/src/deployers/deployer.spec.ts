@@ -13,14 +13,14 @@ export abstract class DeployerTest<T> {
     return { status: 0, output: "", error: "" };
   };
 
-  abstract getDeployer(manager: DeploymentManager): T;
+  abstract async getDeployer(manager: DeploymentManager): Promise<T>;
 
-  before() {
+  async before() {
     this.manager = new DeploymentManager(
       WebdaSampleApplication.getAppPath(),
       "Production"
     );
-    this.deployer = this.getDeployer(this.manager);
+    this.deployer = await this.getDeployer(this.manager);
   }
 }
 
@@ -30,7 +30,7 @@ class TestDeployer extends Deployer<any> {
 
 @suite
 class CommonDeployerTest extends DeployerTest<TestDeployer> {
-  getDeployer(manager) {
+  async getDeployer(manager) {
     return new TestDeployer(manager, { replace: "Plop" });
   }
   @test

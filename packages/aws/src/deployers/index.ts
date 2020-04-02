@@ -17,6 +17,13 @@ export interface AWSDeployerResources {
   sessionToken?: string;
   AWSAccountId?: string;
   createMissingResources?: boolean;
+  endpoints?: {
+    ACM?: string;
+    S3?: string;
+    STS?: string;
+    EC2?: string;
+    Route53?: string;
+  };
 }
 
 export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deployer<T> {
@@ -35,6 +42,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       sessionToken: this.resources.sessionToken,
       region: this.resources.region
     });
+    this.resources.endpoints = this.resources.endpoints || {};
     this.AWS = AWS;
     this.resources.createMissingResources = this.resources.createMissingResources || false;
   }
@@ -49,7 +57,9 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
 
   @Cache()
   async getAWSIdentity(): Promise<AWS.STS.GetCallerIdentityResponse> {
-    let sts = new this.AWS.STS();
+    let sts = new this.AWS.STS({
+      endpoint: this.resources.endpoints.STS
+    });
     return sts.getCallerIdentity().promise();
   }
 
@@ -60,7 +70,9 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       Subnets: []
     };
     let vpcFilter;
-    let ec2 = new this.AWS.EC2();
+    let ec2 = new this.AWS.EC2({
+      endpoint: this.resources.endpoints.EC2
+    });
     let res = await ec2.describeVpcs().promise();
     for (let i in res.Vpcs) {
       if (res.Vpcs[i].IsDefault) {
@@ -107,7 +119,9 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       if (region) {
         this.AWS.config.update({ region });
       }
-      let acm: AWS.ACM = new this.AWS.ACM();
+      let acm: AWS.ACM = new this.AWS.ACM({
+        endpoint: this.resources.endpoints.ACM
+      });
       let params: any = {};
       let res: AWS.ACM.ListCertificatesResponse;
       let certificate;
@@ -136,7 +150,9 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     }
     let targetZone: AWS.Route53.HostedZone;
     // Find the right zone
-    let r53: AWS.Route53 = new this.AWS.Route53();
+    let r53: AWS.Route53 = new this.AWS.Route53({
+      endpoint: this.resources.endpoints.Route53
+    });
     let res: AWS.Route53.ListHostedZonesResponse;
     let params: AWS.Route53.ListHostedZonesRequest = {};
     // Identify the right zone first
@@ -158,7 +174,9 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
   }
 
   async doCreateCertificate(domain: string, zone: AWS.Route53.HostedZone) {
-    let acm: AWS.ACM = new this.AWS.ACM();
+    let acm: AWS.ACM = new this.AWS.ACM({
+      endpoint: this.resources.endpoints.S3
+    });
     let params = {
       DomainName: domain,
       DomainValidationOptions: [
@@ -234,7 +252,9 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     value: string,
     targetZone: AWS.Route53.HostedZone = undefined
   ): Promise<void> {
-    let r53 = new this.AWS.Route53();
+    let r53 = new this.AWS.Route53({
+      endpoint: this.resources.endpoints.S3
+    });
     if (!domain.endsWith(".")) {
       domain = domain + ".";
     }
@@ -305,7 +325,10 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
   }
 
   async createBucket(bucket) {
-    let s3 = new this.AWS.S3();
+    let s3 = new this.AWS.S3({
+      endpoint: this.resources.endpoints.S3,
+      s3ForcePathStyle: this.resources.endpoints.S3 !== undefined
+    });
     try {
       await s3
         .headBucket({
@@ -314,7 +337,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
         .promise();
     } catch (err) {
       if (err.code === "Forbidden") {
-        console.log("S3 bucket already exists in another account");
+        console.log("S3 bucket already exists in another account or you do not have permissions on it");
       } else if (err.code === "NotFound") {
         console.log("\tCreating S3 Bucket", bucket);
         // Setup www permission on it
@@ -328,7 +351,10 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
   }
 
   async putFilesOnBucket(bucket, files) {
-    let s3 = new this.AWS.S3();
+    let s3 = new this.AWS.S3({
+      endpoint: this.resources.endpoints.S3,
+      s3ForcePathStyle: this.resources.endpoints.S3 !== undefined
+    });
     // Create the bucket
     await this.createBucket(bucket);
     // Should implement multithread here - cleaning too
@@ -361,8 +387,3 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     );
   }
 }
-
-export * from "./docker";
-export * from "./fargate";
-export * from "./lambda";
-export * from "./s3";

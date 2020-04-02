@@ -7,7 +7,7 @@ import { Docker } from "./docker";
 
 @suite
 class DockerDeployerTest extends DeployerTest<Docker> {
-  getDeployer(manager: DeploymentManager) {
+  async getDeployer(manager: DeploymentManager) {
     return new Docker(manager, {
       tag: "webda-deployer:test"
     });

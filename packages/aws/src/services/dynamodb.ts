@@ -1,4 +1,5 @@
 import { CoreModel, ModdaDefinition, Store } from "@webda/core";
+import { CloudFormationContributor } from ".";
 import { GetAWS } from "./aws-mixin";
 
 /**
@@ -11,7 +12,7 @@ import { GetAWS } from "./aws-mixin";
  *   region: ''
  *
  */
-export default class DynamoStore<T extends CoreModel> extends Store<T> {
+export default class DynamoStore<T extends CoreModel> extends Store<T> implements CloudFormationContributor {
   _client: any;
 
   /** @ignore */
@@ -386,19 +387,6 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> {
     await this.createIndex();
   }
 
-  async uninstall(params) {
-    /* Code sample for later use
-     @ignore
-     if (params.region !== undefined) {
-     AWS.config.update(({region: params.region});
-     }
-     AWS.config.update({accessKeyId: params.accessKeyId, secretAccessKey: params.secretAccessKey});
-     var client = new AWS.DynamoDB.DocumentClient();
-     var params = "";
-     this._webda.log('INFO', {'TableName': this._params.table, 'Key': {"uuid": uid}});
-     */
-  }
-
   async __clean() {
     var params = {
       TableName: this._params.table
@@ -410,6 +398,22 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> {
     }
     await Promise.all(promises);
     await this.createIndex();
+  }
+
+  getCloudFormation(accountId: string, region: string) {
+    let resources = {};
+    this._params.CloudFormation = this._params.CloudFormation || {};
+    resources[this._name + "DynamoTable"] = {
+      Type: "AWS::DynamoDB::Table",
+      Properties: {
+        // ? "AttributeDefinitions" : [ AttributeDefinition, ... ],
+        // ?"KeySchema" : [ KeySchema, ... ],
+        ...this._params.CloudFormation.Table,
+        TableName: this._params.table
+      }
+    };
+    // Add any Other resources with prefix of the service
+    return resources;
   }
 
   static getModda(): ModdaDefinition {

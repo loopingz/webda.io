@@ -25,7 +25,7 @@ class BouzoufDeployer extends Deployer<any> {
 
 @suite
 class ChainDeployerTest extends DeployerTest<ChainDeployer> {
-  getDeployer(manager: DeploymentManager) {
+  async getDeployer(manager: DeploymentManager) {
     return new ChainDeployer(manager, {
       chain: []
     });

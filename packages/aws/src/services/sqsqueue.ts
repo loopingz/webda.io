@@ -1,5 +1,6 @@
 "use strict";
 import { ModdaDefinition, Queue } from "@webda/core";
+import { CloudFormationContributor } from ".";
 import { AWSMixIn } from "./aws-mixin";
 
 class DummyQueue extends Queue {
@@ -11,7 +12,7 @@ class DummyQueue extends Queue {
   }
 }
 // TODO Readd AWS Mixin
-export default class SQSQueue extends AWSMixIn(DummyQueue) {
+export default class SQSQueue extends AWSMixIn(DummyQueue) implements CloudFormationContributor {
   sqs: any;
 
   normalizeParams() {
@@ -94,30 +95,6 @@ export default class SQSQueue extends AWSMixIn(DummyQueue) {
     }
   }
 
-  async install(params) {
-    let queue = this._getQueueInfosFromUrl();
-    params.region = queue.region;
-    var sqs = new (this._getAWS(params).SQS)({
-      endpoint: this._params.endpoint
-    });
-    return sqs
-      .getQueueUrl({
-        QueueName: queue.name,
-        QueueOwnerAWSAccountId: queue.accountId
-      })
-      .promise()
-      .catch(err => {
-        if (err.code === "AWS.SimpleQueueService.NonExistentQueue") {
-          this._webda.log("ERROR", "Creating SQS queue", queue.name);
-          let params = this._params.createQueueParameters || {};
-          if (queue.name) {
-            params.QueueName = queue.name;
-          }
-          return sqs.createQueue(params).promise();
-        }
-      });
-  }
-
   _getQueueInfosFromUrl() {
     let re = new RegExp(/.*sqs\.(.*)\.amazonaws.com\/([0-9]+)\/(.*)/, "i");
     let found = re.exec(this._params.queue);
@@ -151,6 +128,20 @@ export default class SQSQueue extends AWSMixIn(DummyQueue) {
       ],
       Resource: ["arn:aws:sqs:" + queue.region + ":" + queue.accountId + ":" + queue.name]
     };
+  }
+
+  getCloudFormation(accountId: string, region: string) {
+    let resources = {};
+    this._params.CloudFormation = this._params.CloudFormation || {};
+    resources[this._name + "DynamoTable"] = {
+      Type: "AWS::SQS::Queue",
+      Properties: {
+        ...this._params.CloudFormation.Queue,
+        QueueName: this._params.queue
+      }
+    };
+    // Add any Other resources with prefix of the service
+    return resources;
   }
 
   static getModda(): ModdaDefinition {

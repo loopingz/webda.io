@@ -1,12 +1,13 @@
 import { Logger, ModdaDefinition } from "@webda/core";
 import * as uuid from "uuid";
+import { CloudFormationContributor } from ".";
 import { AWSMixIn } from "./aws-mixin";
 
 export class FakeLogger extends Logger {
   _log(level, ...args): void {}
 }
 
-export default class CloudWatchLogger extends AWSMixIn(FakeLogger) {
+export default class CloudWatchLogger extends AWSMixIn(FakeLogger) implements CloudFormationContributor {
   _logGroupName: string;
   _logStreamName: string;
   _seqToken: string;
@@ -93,6 +94,20 @@ export default class CloudWatchLogger extends AWSMixIn(FakeLogger) {
         "arn:aws:logs:" + region + ":" + accountId + ":log-group:" + this._params.logGroupName + ":*:*"
       ]
     };
+  }
+
+  getCloudFormation(accountId: string, region: string) {
+    let resources = {};
+    this._params.CloudFormation = this._params.CloudFormation || {};
+    resources[this._name + "LogGroup"] = {
+      Type: "AWS::Logs::LogGroup",
+      Properties: {
+        ...this._params.CloudFormation.LogGroup,
+        LogGroupName: this._params.logGroupName
+      }
+    };
+    // Add any Other resources with prefix of the service
+    return resources;
   }
 
   static getModda(): ModdaDefinition {

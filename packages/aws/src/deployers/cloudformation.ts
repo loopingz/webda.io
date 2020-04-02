@@ -120,7 +120,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         // Update to match recuring policy - might need to split if policy too big
         let res = (<CloudFormationContributor>(<any>services[i])).getCloudFormation(me.Account, this.AWS.config.region);
         for (let i in res) {
-          this.template.Resources[i] = res[i];
+          this.template.Resources[`Service${i}`] = res[i];
         }
       }
     }
@@ -256,11 +256,14 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   }
 
   async generateLambdaPackage(): Promise<{ S3Bucket: string; S3Key: string }> {
-    const { AssetsBucket: S3Bucket, ZipPath, AssetsPrefix } = this.resources;
+    const { AssetsBucket: S3Bucket, ZipPath, AssetsPrefix = "" } = this.resources;
     let result: { S3Bucket: string; S3Key: string } = {
       S3Bucket,
       S3Key: AssetsPrefix + path.basename(ZipPath)
     };
+    if (!S3Bucket) {
+      throw new Error("AssetsBucket must be defined");
+    }
     // Create the package
     await this.manager.run("WebdaDeployer/Packager", {
       zipPath: ZipPath,

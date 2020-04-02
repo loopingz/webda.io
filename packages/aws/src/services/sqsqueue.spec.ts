@@ -14,7 +14,6 @@ class SQSQueueTest extends QueueTest {
   @test
   @timeout(80000)
   async basic() {
-    await this.webda.getService("sqsqueue").install({});
     await this.webda.getService("sqsqueue").__clean();
     // Update timeout to 80000ms as Purge can only be sent once every 60s
     return this.simple(this.webda.getService("sqsqueue"), true);

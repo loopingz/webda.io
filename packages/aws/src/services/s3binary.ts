@@ -1,6 +1,7 @@
 "use strict";
 // Load the AWS SDK for Node.js
 import { Binary, Context, ModdaDefinition, _extend } from "@webda/core";
+import { CloudFormationContributor } from ".";
 import { AWSMixIn } from "./aws-mixin";
 
 /**
@@ -19,7 +20,7 @@ import { AWSMixIn } from "./aws-mixin";
  *
  * See Binary the general interface
  */
-export default class S3Binary extends AWSMixIn(Binary) {
+export default class S3Binary extends AWSMixIn(Binary) implements CloudFormationContributor {
   AWS: any;
   _s3: any;
 
@@ -416,6 +417,20 @@ export default class S3Binary extends AWSMixIn(Binary) {
       ],
       Resource: [`arn:aws:s3:::${this._params.bucket}`, `arn:aws:s3:::${this._params.bucket}/*`]
     };
+  }
+
+  getCloudFormation(accountId: string, region: string) {
+    let resources = {};
+    this._params.CloudFormation = this._params.CloudFormation || {};
+    resources[this._name + "S3Bucket"] = {
+      Type: "AWS::S3::Bucket",
+      Properties: {
+        ...this._params.CloudFormation.Bucket,
+        BucketName: this._params.bucketName
+      }
+    };
+    // Add any Other resources with prefix of the service
+    return resources;
   }
 
   static getModda(): ModdaDefinition {

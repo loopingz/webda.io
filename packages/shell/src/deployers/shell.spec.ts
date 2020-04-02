@@ -6,7 +6,7 @@ import ShellDeployer from "./shell";
 
 @suite
 class ShellDeployerTest extends DeployerTest<ShellDeployer> {
-  getDeployer(manager: DeploymentManager) {
+  async getDeployer(manager: DeploymentManager) {
     return new ShellDeployer(manager, {
       scripts: ["ls -alh", "cp plop"]
     });

@@ -54,7 +54,7 @@
    "lambdaStorage": "s3://webda-lambdas/webda-api-production-$commit.zip",
    "lambdaMemory": "2048",
    "customDomain": false,
-   "assetsBucket": "webda-sample-app"
+   "AssetsBucket": "webda-sample-app"
   },
   {
    "name": "Packager",

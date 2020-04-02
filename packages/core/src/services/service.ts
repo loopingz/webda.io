@@ -128,20 +128,6 @@ abstract class Service extends events.EventEmitter {
   }
 
   /**
-   * For future use, while deploying this should be call so the service can create what it needs if necessary
-   *
-   * @abstract
-   */
-  async install(params): Promise<any> {}
-
-  /**
-   * For future use, while undeploying this should be call so the service can create what it needs if necessary
-   *
-   * @abstract
-   */
-  async uninstall(params): Promise<any> {}
-
-  /**
    * Emit the event with data and wait for Promise to finish if listener returned a Promise
    */
   emitSync(event, data): Promise<any[]> {

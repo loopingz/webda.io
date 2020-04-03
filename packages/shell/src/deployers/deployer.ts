@@ -49,7 +49,9 @@ export abstract class Deployer<T> {
    * @param templateString to copy
    */
   stringParameter(templateString: string) {
-    return new Function("return `" + templateString + "`;").call({
+    return new Function(
+      "return `" + templateString.replace(/\$\{/g, "${this.") + "`;"
+    ).call({
       resources: this.resources,
       package: this.manager.getPackageDescription(),
       git: this.manager.getGitInformation()
@@ -71,6 +73,13 @@ export abstract class Deployer<T> {
         return value;
       })
     );
+  }
+
+  /**
+   * Replace variables in resources
+   */
+  replaceVariables() {
+    this.resources = this.objectParameter(this.resources);
   }
 
   /**

@@ -36,7 +36,7 @@ class CommonDeployerTest extends DeployerTest<TestDeployer> {
   @test
   testStringParameter() {
     assert.equal(
-      this.deployer.stringParameter("Test${this.resources.replace}"),
+      this.deployer.stringParameter("Test${resources.replace}"),
       "TestPlop"
     );
   }
@@ -52,7 +52,7 @@ class CommonDeployerTest extends DeployerTest<TestDeployer> {
       this.deployer.objectParameter({
         test: true,
         bouzouf: {
-          yop: "${this.resources.replace}"
+          yop: "${resources.replace}"
         }
       }),
       {
@@ -62,6 +62,25 @@ class CommonDeployerTest extends DeployerTest<TestDeployer> {
         }
       }
     );
+  }
+
+  @test
+  testReplaceVariables() {
+    this.deployer.resources = {
+      replace: "bouzouf",
+      test: true,
+      bouzouf: {
+        yop: "${resources.replace}"
+      }
+    };
+    this.deployer.replaceVariables();
+    assert.deepEqual(this.deployer.resources, {
+      replace: "bouzouf",
+      test: true,
+      bouzouf: {
+        yop: "bouzouf"
+      }
+    });
   }
 
   @test

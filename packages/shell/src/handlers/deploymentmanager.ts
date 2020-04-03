@@ -1,4 +1,4 @@
-import { Application, Core } from "@webda/core";
+import { Application, Core, Cache } from "@webda/core";
 import { execSync } from "child_process";
 import * as merge from "merge";
 import ChainDeployer from "../deployers/chaindeployer";
@@ -78,6 +78,7 @@ export class DeploymentManager {
       this.deployers[name].type.toLowerCase()
     ](this, this.deployers[name]);
     await deployer.defaultResources();
+    deployer.replaceVariables();
     return deployer;
   }
 
@@ -105,6 +106,7 @@ export class DeploymentManager {
   /**
    * Retrieve Git Repository information
    */
+  @Cache()
   getGitInformation() {
     let options = {
       cwd: this.application.getAppPath()
@@ -122,10 +124,8 @@ export class DeploymentManager {
   /**
    * Get package.json information
    */
+  @Cache()
   getPackageDescription() {
-    if (!this.packageDescription) {
-      this.packageDescription = this.application.getPackageDescription();
-    }
-    return this.packageDescription;
+    return this.application.getPackageDescription();
   }
 }

@@ -70,7 +70,7 @@ class PackagerTest {
     );
     assert.equal(
       config.cachedModules.services["Webda/AWSSecretsManager"],
-      "./node_modules/@webda/aws/lib/secretsmanager.js"
+      "./node_modules/@webda/aws/lib/services/secretsmanager.js"
     );
     assert.equal(
       config.cachedModules.models["WebdaDemo/Contact"],

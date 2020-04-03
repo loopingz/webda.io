@@ -9,10 +9,10 @@ import { MockAWSDeployerMethods } from "./index.spec";
 class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
   mocks: { [key: string]: sinon.stub } = {};
 
-  async getDeployer(manager: DeploymentManager) {
+  async getDeployer(manager: DeploymentManager): Promise<CloudFormationDeployer> {
     let deployer = await (<any>manager.getDeployer("Application"));
     MockAWSDeployerMethods(deployer, this);
-    return deployer;
+    return <CloudFormationDeployer>deployer;
   }
 
   @test

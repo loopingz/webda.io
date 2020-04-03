@@ -23,7 +23,7 @@ class FileBinary extends Binary {
   constructor(webda, name, params) {
     super(webda, name, params);
     if (!fs.existsSync(params.folder)) {
-      fs.mkdirSync(params.folder);
+      fs.mkdirSync(params.folder, { recursive: true });
     }
     if (!this._params.folder.endsWith("/")) {
       this._params.folder += "/";

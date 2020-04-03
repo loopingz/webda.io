@@ -6,6 +6,6 @@ import * as path from "path";
  */
 export class LambdaPackager extends Packager {
   async loadDefaults() {
-    this.resources.entrypoint = this.resources.entrypoint || path.join(__dirname, "aws-entrypoint.js");
+    this.resources.entrypoint = this.resources.entrypoint || path.join(__dirname, "lambda-entrypoint.js");
   }
 }

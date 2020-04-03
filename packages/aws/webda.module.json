@@ -8,6 +8,7 @@
   },
   "models": {},
   "deployers": {
-    "WebdaAWSDeployer/CloudFormationDeployer": "./lib/deployers/cloudformation.js"
+    "WebdaAWSDeployer/CloudFormationDeployer": "./lib/deployers/cloudformation.js",
+    "WebdaAWSDeployer/LambdaPackager": "./lib/deployers/lambdapackager.js"
   }
 }

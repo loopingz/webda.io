@@ -80,6 +80,9 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
         break;
       }
     }
+    if (defaultVpc.Id === "") {
+      return undefined;
+    }
     vpcFilter = {
       Filters: [
         {
@@ -90,7 +93,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     };
     res = await ec2.describeSubnets(vpcFilter).promise();
     for (let i in res.Subnets) {
-      defaultVpc.Subnets.push(res.Subnets[i].SubnetId);
+      defaultVpc.Subnets.push(res.Subnets[i]);
     }
     return defaultVpc;
   }
@@ -144,6 +147,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     }
   }
 
+  @Cache()
   async getZoneForDomainName(domain): Promise<AWS.Route53.HostedZone> {
     if (!domain.endsWith(".")) {
       domain = domain + ".";
@@ -300,6 +304,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     ];
   }
 
+  @Cache()
   async getPolicyDocument() {
     let me = await this.getAWSIdentity();
     let services = this.manager.getWebda().getServices();

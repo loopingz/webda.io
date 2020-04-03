@@ -16,15 +16,27 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
   }
 
   @test
+  async defaultResources() {
+    let resources = this.deployer.resources;
+    resources.Lambda = {};
+    resources.APIGateway = {};
+    resources.APIGatewayDomain = { DomainName: "webda.io" };
+    resources.Policy = {};
+    resources.APIGatewayBasePathMapping = {};
+    await this.deployer.defaultResources();
+  }
+
+  @test
   async deploy() {
     let resources = this.manager.deployers.Application;
     resources.Lambda = {};
     resources.Resources = {};
-    resources.APIGateway = {};
-    resources.APIGatewayDomain = { DomainName: "webda.io" };
+    resources.APIGateway = { DomainName: "webda.io" };
+    resources.APIGatewayDomain = {};
     resources.Policy = {};
     resources.Role = {};
     resources.Fargate = {};
+    resources.Tags = [{ Key: "test", Value: "test" }];
     let result = await this.deployer.deploy();
     console.log(JSON.stringify(result, undefined, 2));
   }

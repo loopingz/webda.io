@@ -21,10 +21,10 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
     DomainName: string;
   };
   APIGatewayBasePathMapping?: {
-    BasePath: string;
-    DomainName: String;
-    RestApiId: String;
-    Stage: String;
+    BasePath?: string;
+    DomainName?: String;
+    RestApiId?: String;
+    Stage?: String;
   };
 
   Role?: {
@@ -35,8 +35,8 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   };
 
   Policy?: {
-    PolicyName;
-    PolicyDocument;
+    PolicyName?;
+    PolicyDocument?;
   };
 
   Description?: string;
@@ -44,11 +44,11 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   // Lambda specific
   ZipPath?: string;
   Lambda?: {
-    Role;
-    Runtime;
+    Role?;
+    Runtime?;
     Handler?: string;
-    MemorySize: number;
-    Timeout: number;
+    MemorySize?: number;
+    Timeout?: number;
   };
 
   // Deploy Static website
@@ -69,6 +69,10 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
   constructor(manager, resources) {
     super(manager, resources);
+  }
+
+  async defaultResources() {
+    await super.defaultResources();
     this.resources.Description = this.resources.Description || "Deployed by @webda/aws/cloudformation";
     this.resources.ZipPath = this.resources.ZipPath || "./dist/lambda-${this.package.version}.zip";
     // Default Policy
@@ -96,10 +100,6 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       Description,
       Resources: {}
     };
-    // DynamoDB Tables
-    // SQS Queues
-    // S3 Bucket
-    // etc
 
     // Dynamicly call each methods
     for (let i in this.resources) {

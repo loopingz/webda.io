@@ -31,7 +31,6 @@
     "@aws-cdk/aws-apigateway": "^1.16.2",
     "@aws-cdk/aws-iam": "^1.16.2",
     "@aws-cdk/core": "^1.16.2",
-    "@webda/aws": "^1.0.0-beta.2",
     "@webda/core": "^1.0.0-beta.1",
     "archiver": "^1.0.0",
     "aws-sdk": "^2.223.1",

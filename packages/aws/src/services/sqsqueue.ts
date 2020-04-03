@@ -3,7 +3,7 @@ import { ModdaDefinition, Queue } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import { AWSMixIn } from "./aws-mixin";
 
-class DummyQueue extends Queue {
+export class DummyQueue extends Queue {
   async deleteMessage(receipt: any) {}
   async receiveMessage() {}
   async sendMessage(params: any) {}

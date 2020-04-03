@@ -139,7 +139,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
         if (!zone) {
           throw new Error("Cannot create certificate as Route53 Zone was not found");
         }
-        await this.doCreateCertificate(domain, zone);
+        certificate = await this.doCreateCertificate(domain, zone);
       }
       return certificate;
     } finally {
@@ -206,7 +206,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       5,
       "Waiting for certificate challenge"
     );
-    if (cert.Status === "FAILED") {
+    if (cert === undefined || cert.Status === "FAILED") {
       throw new Error("Certificate validation has failed");
     }
     if (cert.Status === "PENDING_VALIDATION") {
@@ -239,15 +239,18 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     //
   }
 
-  async waitFor(callback, delay: number, retries: number, title: string) {
-    let tries: number = 0;
-    while (retries > tries++) {
-      if (title) {
-        console.log("[" + tries + "/" + retries + "]", title);
+  async waitFor(callback, delay: number, retries: number, title: string): Promise<any> {
+    return new Promise(async (mainResolve, mainReject) => {
+      let tries: number = 0;
+      while (retries > tries++) {
+        if (title) {
+          console.log("[" + tries + "/" + retries + "]", title);
+        }
+        await callback(mainResolve, mainReject);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
-      await callback();
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
+      mainReject("Timeout while waiting for " + title);
+    });
   }
 
   protected async createDNSEntry(

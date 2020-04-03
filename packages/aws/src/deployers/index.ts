@@ -384,7 +384,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
         await s3
           .putObject({
             Bucket: bucket,
-            Body: fs.createReadStream(info.src),
+            Body: info.src === "string" ? fs.createReadStream(info.src) : info.src,
             Key: info.key,
             ContentType: mimetype
           })

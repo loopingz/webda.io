@@ -96,7 +96,7 @@ export default class CloudWatchLogger extends AWSMixIn(FakeLogger) implements Cl
     };
   }
 
-  getCloudFormation(accountId: string, region: string) {
+  getCloudFormation() {
     let resources = {};
     this._params.CloudFormation = this._params.CloudFormation || {};
     resources[this._name + "LogGroup"] = {

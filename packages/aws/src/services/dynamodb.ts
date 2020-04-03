@@ -400,7 +400,7 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
     await this.createIndex();
   }
 
-  getCloudFormation(accountId: string, region: string) {
+  getCloudFormation() {
     let resources = {};
     this._params.CloudFormation = this._params.CloudFormation || {};
     resources[this._name + "DynamoTable"] = {

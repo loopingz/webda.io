@@ -1,14 +1,19 @@
 import * as path from "path";
 import { AWSDeployer, AWSDeployerResources } from ".";
 import { CloudFormationContributor } from "../services";
+import * as YAML from "yaml";
 
 interface CloudFormationDeployerResources extends AWSDeployerResources {
   repositoryNamespace: string;
   // Where to put information
   AssetsBucket: string;
   AssetsPrefix?: string;
+
+  Format?: "YAML" | "JSON";
   // Name of the CloudFormation
-  Name?: string;
+  Name: string;
+  // How to name CloudFormation.json on AssetsBucket
+  FileName?: string;
   // Default DomainName
   DomainName?: string;
 
@@ -28,11 +33,13 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   };
 
   Role?: {
-    AssumeRolePolicyDocument;
-    Path;
-    Policies;
-    RoleName;
+    AssumeRolePolicyDocument?;
+    Path?;
+    Policies?;
+    RoleName?;
   };
+
+  Resources?: {};
 
   Policy?: {
     PolicyName?;
@@ -51,6 +58,8 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
     Timeout?: number;
   };
 
+  Fargate?: {};
+
   // Deploy Static website
   Statics?: [
     {
@@ -66,6 +75,7 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
 
 export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDeployerResources> {
   template: any = {};
+  result: any = {};
 
   constructor(manager, resources) {
     super(manager, resources);
@@ -74,7 +84,9 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   async defaultResources() {
     await super.defaultResources();
     this.resources.Description = this.resources.Description || "Deployed by @webda/aws/cloudformation";
-    this.resources.ZipPath = this.resources.ZipPath || "./dist/lambda-${this.package.version}.zip";
+    this.resources.ZipPath = this.resources.ZipPath || "./dist/lambda-${package.version}.zip";
+    this.resources.FileName = this.resources.FileName || this.resources.Name;
+    this.resources.Format = this.resources.Format || "JSON";
     // Default Policy
     if (this.resources.Policy) {
       this.resources.Policy.PolicyName = "";
@@ -100,6 +112,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       Description,
       Resources: {}
     };
+    this.result = {};
 
     // Dynamicly call each methods
     for (let i in this.resources) {
@@ -107,8 +120,33 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         await this[i]();
       }
     }
+
     console.log("Deploy with CloudFormation");
-    return this.template;
+    // Upload new version it
+    await this.sendCloudFormationTemplate();
+    return this.result;
+  }
+
+  async sendCloudFormationTemplate() {
+    let src;
+    let key = path.join(this.resources.AssetsPrefix, this.resources.FileName);
+    if (this.resources.Format === "YAML") {
+      src = new Buffer(YAML.stringify(this.template));
+      if (!key.endsWith(".yml") && !key.endsWith(".yaml")) {
+        key += ".yml";
+      }
+    } else {
+      src = new Buffer(JSON.stringify(this.template, undefined, 2));
+      if (!key.endsWith(".json")) {
+        key += ".json";
+      }
+    }
+    this.result.CloudFormation = {
+      Bucket: this.resources.AssetsBucket,
+      Key: key
+    };
+    this.result.CloudFormationContent = src.toString();
+    this.putFilesOnBucket(this.resources.AssetsBucket, { key, src });
   }
 
   async Resources() {
@@ -118,7 +156,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     for (let i in services) {
       if ("getCloudFormation" in services[i]) {
         // Update to match recuring policy - might need to split if policy too big
-        let res = (<CloudFormationContributor>(<any>services[i])).getCloudFormation(me.Account, this.AWS.config.region);
+        let res = (<CloudFormationContributor>(<any>services[i])).getCloudFormation(this);
         for (let i in res) {
           this.template.Resources[`Service${i}`] = res[i];
         }

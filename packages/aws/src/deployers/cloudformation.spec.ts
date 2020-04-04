@@ -12,7 +12,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
   mocks: { [key: string]: sinon.stub } = {};
 
   async getDeployer(manager: DeploymentManager): Promise<CloudFormationDeployer> {
-    let deployer = await (<any>manager.getDeployer("Application"));
+    let deployer = await (<any>manager.getDeployer("WebdaSampleApplication"));
     MockAWSDeployerMethods(deployer, this);
     return <CloudFormationDeployer>deployer;
   }
@@ -41,6 +41,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       Bucket: "webda",
       Key: "plop/123.json"
     });
+    this.deployer.resources.AssetsPrefix = "/plop/";
     this.deployer.resources.FileName = "123.json";
     this.deployer.result = {};
     await this.deployer.sendCloudFormationTemplate();
@@ -72,10 +73,11 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     });
     this.deployer.resources.FileName = "123.yaml";
     this.deployer.result = {};
+    this.deployer.resources.AssetsPrefix = "";
     await this.deployer.sendCloudFormationTemplate();
     assert.deepEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
-      Key: "plop/123.yaml"
+      Key: "123.yaml"
     });
   }
 

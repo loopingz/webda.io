@@ -8,7 +8,7 @@ import { LambdaPackager } from "./lambdapackager";
 @suite
 class LambdaPackagerTest extends DeployerTest<LambdaPackager> {
   async getDeployer(manager: DeploymentManager): Promise<LambdaPackager> {
-    return new LambdaPackager(manager, { zipPath: "test.zip" });
+    return new LambdaPackager(manager, { name: "deployer", type: "LambdaPackager", zipPath: "test.zip" });
   }
 
   @test

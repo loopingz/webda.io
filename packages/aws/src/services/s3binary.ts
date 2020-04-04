@@ -422,7 +422,7 @@ export default class S3Binary extends AWSMixIn(Binary) implements CloudFormation
   getCloudFormation() {
     let resources = {};
     this._params.CloudFormation = this._params.CloudFormation || {};
-    resources[this._name + "S3Bucket"] = {
+    resources[this._name + "Bucket"] = {
       Type: "AWS::S3::Bucket",
       Properties: {
         ...this._params.CloudFormation.Bucket,

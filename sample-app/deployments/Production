@@ -14,8 +14,6 @@
  "resources": {
   "restApi": "webda-demo-production",
   "lambdaRole": "arn:aws:iam::111222333:role/webda-demo-api",
-  "accessKeyId": "PROD_DEPLOYMENT_KEY",
-  "secretAccessKey": "PROD_DEPLOYMENT_SECRET_KEY",
   "FargateRegion": "eu-west-1"
  },
  "type": "aws",
@@ -36,11 +34,19 @@
  },
  "units": [
   {
-   "name": "Application",
+   "name": "WebdaSampleApplication",
    "workers": [
     "ProcessorService"
    ],
    "type": "WebdaAWSDeployer/CloudFormationDeployer",
+   "AssetsBucket": "webda-sample-app-artifacts",
+   "Lambda": {
+     "FunctionName": "webda-sample-app"
+   },
+   "Resources": {},
+   "APIGateway": {},
+
+
    "clusterName": "webda-demo",
    "serviceName": "webda-demo-workers",
    "taskMemory": "1024",
@@ -49,12 +55,7 @@
    "securityGroup": "sg-72d37e09",
    "tasksNumber": "2",
    "taskRole": "arn:aws:iam::111222333:role/webda-test",
-   "restApi": "webda-api-production",
-   "lambdaRole": "arn:aws:iam::111222333:role/webdaapi-api",
-   "lambdaStorage": "s3://webda-lambdas/webda-api-production-$commit.zip",
-   "lambdaMemory": "2048",
-   "customDomain": false,
-   "AssetsBucket": "webda-sample-app"
+   "restApi": "webda-api-production"
   },
   {
    "name": "Packager",

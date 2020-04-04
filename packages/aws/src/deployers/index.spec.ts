@@ -55,7 +55,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
   @test
   async testGetPolicyDocument() {
     try {
-      let resources = this.manager.deployers.Application;
+      let resources = this.manager.deployers.WebdaSampleApplication;
       AWSMock.mock("STS", "getCallerIdentity", callback => {
         callback(null, {
           Account: "test"
@@ -71,7 +71,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
   @test
   async testGetDefaultVpc() {
     try {
-      let resources = this.manager.deployers.Application;
+      let resources = this.manager.deployers.WebdaSampleApplication;
       var vpcsSpy = sinon.stub().callsFake(c => {
         if (vpcsSpy.callCount === 1) {
           c(null, {
@@ -183,8 +183,18 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       createBucket.callsFake(async () => {});
       putSpy.callsFake((p, c) => c());
       AWSMock.mock("S3", "putObject", putSpy);
-      await this.deployer.putFilesOnBucket("plop", [__filename, { src: __dirname + "/index.ts", key: "plop.ts" }]);
-      assert.equal(putSpy.calledTwice, true);
+      // @ts-ignore shortcut to test both in one
+      await this.deployer.putFilesOnBucket("plop", [
+        __filename,
+        { src: __dirname + "/index.ts", key: "plop.ts" },
+        { key: "buffer.out", src: Buffer.from("bouzouf"), mimetype: "text/plain" }
+      ]);
+      assert.equal(putSpy.callCount, 3);
+      // checks call
+      assert.equal(putSpy.firstCall.firstArg.Body.constructor.name, "ReadStream");
+      assert.equal(putSpy.secondCall.firstArg.Body.constructor.name, "ReadStream");
+      assert.deepEqual(putSpy.thirdCall.firstArg.Body.constructor.name, "Buffer");
+      assert.deepEqual(putSpy.thirdCall.firstArg.Body.toString(), "bouzouf");
       assert.equal(createBucket.calledOnce, true);
     } finally {
       AWSMock.restore();

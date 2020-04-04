@@ -403,13 +403,18 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
   getCloudFormation() {
     let resources = {};
     this._params.CloudFormation = this._params.CloudFormation || {};
+    this._params.CloudFormation.Table = this._params.CloudFormation.Table || {};
+    let KeySchema = this._params.CloudFormation.KeySchema || [{ KeyType: "HASH", AttributeName: "uuid" }];
+    let AttributeDefinitions = this._params.CloudFormation.AttributeDefinitions || [];
+    this._params.CloudFormation.Table.BillingMode = this._params.CloudFormation.Table.BillingMode || "PAY_PER_REQUEST";
+    AttributeDefinitions.push({ AttributeName: "uuid", AttributeType: "S" });
     resources[this._name + "DynamoTable"] = {
       Type: "AWS::DynamoDB::Table",
       Properties: {
-        // ? "AttributeDefinitions" : [ AttributeDefinition, ... ],
-        // ?"KeySchema" : [ KeySchema, ... ],
         ...this._params.CloudFormation.Table,
-        TableName: this._params.table
+        TableName: this._params.table,
+        KeySchema,
+        AttributeDefinitions
       }
     };
     // Add any Other resources with prefix of the service

@@ -131,13 +131,14 @@ export default class SQSQueue extends AWSMixIn(DummyQueue) implements CloudForma
   }
 
   getCloudFormation() {
+    let { name: QueueName } = this._getQueueInfosFromUrl();
     let resources = {};
     this._params.CloudFormation = this._params.CloudFormation || {};
-    resources[this._name + "DynamoTable"] = {
+    resources[this._name + "Queue"] = {
       Type: "AWS::SQS::Queue",
       Properties: {
         ...this._params.CloudFormation.Queue,
-        QueueName: this._params.queue
+        QueueName
       }
     };
     // Add any Other resources with prefix of the service

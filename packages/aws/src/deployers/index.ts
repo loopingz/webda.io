@@ -1,5 +1,5 @@
 import { Cache } from "@webda/core";
-import { Deployer, DeploymentManager } from "@webda/shell";
+import { Deployer, DeploymentManager, DeployerResources } from "@webda/shell";
 import * as AWS from "aws-sdk";
 import { ACM } from "aws-sdk";
 import * as bluebird from "bluebird";
@@ -10,7 +10,7 @@ import * as mime from "mime-types";
 import * as path from "path";
 import { IAMPolicyContributor } from "../services";
 
-export interface AWSDeployerResources {
+export interface AWSDeployerResources extends DeployerResources {
   accessKeyId?: string;
   secretAccessKey?: string;
   region?: string;
@@ -308,7 +308,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
   }
 
   @Cache()
-  async getPolicyDocument() {
+  async getPolicyDocument(additionalStatements: any[] = []) {
     let me = await this.getAWSIdentity();
     let services = this.manager.getWebda().getServices();
     let statements = [];
@@ -327,7 +327,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     Array.prototype.push.apply(statements, this.getARNPolicy(me.Account, this.AWS.config.region));
     let policyDocument = {
       Version: "2012-10-17",
-      Statement: statements
+      Statement: [...statements, ...additionalStatements]
     };
     return IamPolicyOptimizer.reducePolicyObject(policyDocument);
   }
@@ -358,7 +358,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     }
   }
 
-  async putFilesOnBucket(bucket, files) {
+  async putFilesOnBucket(bucket: string, files: { key: string; src: any; mimetype?: string }[] | string[]) {
     let s3 = new this.AWS.S3({
       endpoint: this.resources.endpoints.S3,
       s3ForcePathStyle: this.resources.endpoints.S3 !== undefined
@@ -376,20 +376,25 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
         } else if (file.src === undefined || file.key === undefined) {
           throw Error("Should have src and key defined");
         } else {
-          info.src = file.src;
-          info.key = file.key;
+          info = file;
         }
         // Need to have mimetype to serve the content correctly
-        let mimetype = mime.contentType(path.extname(info.src));
+        let mimetype = info.mimetype || mime.contentType(path.extname(info.key)) || "application/octet-stream";
         await s3
           .putObject({
             Bucket: bucket,
-            Body: info.src === "string" ? fs.createReadStream(info.src) : info.src,
+            Body: typeof info.src === "string" ? fs.createReadStream(info.src) : info.src,
             Key: info.key,
             ContentType: mimetype
           })
           .promise();
-        console.log("Uploaded", info.src, "to", info.key, "(" + mimetype + ")");
+        console.log(
+          "Uploaded",
+          typeof info.src === "string" ? info.src : "<dynamicContent>",
+          "to",
+          info.key,
+          "(" + mimetype + ")"
+        );
       },
       { concurrency: 5 }
     );

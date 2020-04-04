@@ -10,15 +10,17 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   AssetsPrefix?: string;
 
   Format?: "YAML" | "JSON";
-  // Name of the CloudFormation
-  Name: string;
   // How to name CloudFormation.json on AssetsBucket
+  StackName?: string;
   FileName?: string;
   // Default DomainName
   DomainName?: string;
 
   // What
-  APIGateway?: {};
+  APIGateway?: {
+    Name?: string;
+  };
+  APIGatewayDeployment?: {};
   APIGatewayStage?: {
     StageName?: string;
   };
@@ -33,24 +35,33 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   };
 
   Role?: {
-    AssumeRolePolicyDocument?;
+    AssumeRolePolicyDocument?: {
+      Statement: any[];
+      Version?: string;
+    };
     Path?;
     Policies?;
     RoleName?;
   };
+  StackOptions?: any;
 
   Resources?: {};
 
   Policy?: {
     PolicyName?;
     PolicyDocument?;
+    Roles?: any[];
+    USers?: any[];
+    Groups?: any[];
   };
 
+  OpenAPIFileName?: string;
   Description?: string;
 
   // Lambda specific
   ZipPath?: string;
   Lambda?: {
+    FunctionName?: string;
     Role?;
     Runtime?;
     Handler?: string;
@@ -83,20 +94,56 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
   async defaultResources() {
     await super.defaultResources();
+    this.resources.AssetsPrefix = this.resources.AssetsPrefix || "";
     this.resources.Description = this.resources.Description || "Deployed by @webda/aws/cloudformation";
     this.resources.ZipPath = this.resources.ZipPath || "./dist/lambda-${package.version}.zip";
-    this.resources.FileName = this.resources.FileName || this.resources.Name;
+    this.resources.FileName = this.resources.FileName || this.resources.name;
+    this.resources.StackName = this.resources.StackName || this.resources.name;
     this.resources.Format = this.resources.Format || "JSON";
-    // Default Policy
-    if (this.resources.Policy) {
-      this.resources.Policy.PolicyName = "";
-    }
+    this.resources.OpenAPIFileName = this.resources.OpenAPIFileName || "${resources.name}-openapi-${package.version}";
+    let autoRole;
     // Default Lambda value
     if (this.resources.Lambda) {
-      this.resources.Lambda.Runtime = this.resources.Lambda.Runtime || "node12.x";
+      this.resources.Lambda.Runtime = this.resources.Lambda.Runtime || "nodejs12.x";
       this.resources.Lambda.MemorySize = this.resources.Lambda.MemorySize || 2048;
       this.resources.Lambda.Timeout = this.resources.Lambda.Timeout || 30;
+      this.resources.Lambda.Handler = this.resources.Lambda.Handler || "entrypoint.js";
+      this.resources.Lambda.FunctionName = this.resources.Lambda.FunctionName || this.resources.name;
+      if (!this.resources.Lambda.Role) {
+        this.resources.Lambda.Role = { "Fn::GetAtt": ["Role", "Arn"] };
+        // If no role is specified auto enable Role and Policy creation
+        this.resources.Role = this.resources.Role || {};
+        this.resources.Policy = this.resources.Policy || {};
+      }
     }
+
+    // Default Role
+    if (this.resources.Role) {
+      this.resources.Role.RoleName = `${this.resources.name}Role`;
+      if (!this.resources.Role.Policies || this.resources.Role.Policies.length === 0) {
+        this.resources.Policy = this.resources.Policy || {};
+      }
+      this.resources.Role.AssumeRolePolicyDocument = this.resources.Role.AssumeRolePolicyDocument || {
+        Statement: []
+      };
+      this.resources.Role.AssumeRolePolicyDocument.Version =
+        this.resources.Role.AssumeRolePolicyDocument.Version || "2012-10-17";
+    }
+
+    // Default Policy
+    if (this.resources.Policy) {
+      this.resources.Policy.PolicyName = `${this.resources.name}Policy`;
+      this.resources.Policy.Roles = this.resources.Policy.Roles || [];
+      if (this.resources.Role) {
+        this.resources.Policy.Roles.push({ Ref: "Role" });
+      }
+      this.resources.Policy.PolicyDocument = this.resources.Policy.PolicyDocument || { Statement: [] };
+    }
+
+    if (this.resources.APIGateway) {
+      this.resources.APIGateway.Name = this.resources.APIGateway.Name || this.resources.name;
+    }
+
     // Default BasePathMapping
     if (this.resources.APIGatewayBasePathMapping) {
       this.resources.APIGatewayBasePathMapping.BasePath = this.resources.APIGatewayBasePathMapping.BasePath || "/";
@@ -124,29 +171,111 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     console.log("Deploy with CloudFormation");
     // Upload new version it
     await this.sendCloudFormationTemplate();
+    // Load the stack
+    await this.createCloudFormation();
     return this.result;
   }
 
   async sendCloudFormationTemplate() {
-    let src;
-    let key = path.join(this.resources.AssetsPrefix, this.resources.FileName);
-    if (this.resources.Format === "YAML") {
-      src = new Buffer(YAML.stringify(this.template));
-      if (!key.endsWith(".yml") && !key.endsWith(".yaml")) {
-        key += ".yml";
-      }
-    } else {
-      src = new Buffer(JSON.stringify(this.template, undefined, 2));
-      if (!key.endsWith(".json")) {
-        key += ".json";
-      }
-    }
+    let res = this.getStringified(this.template, this.resources.FileName);
     this.result.CloudFormation = {
       Bucket: this.resources.AssetsBucket,
-      Key: key
+      Key: res.key
     };
-    this.result.CloudFormationContent = src.toString();
-    this.putFilesOnBucket(this.resources.AssetsBucket, { key, src });
+    this.result.CloudFormationContent = res.src.toString();
+    await this.putFilesOnBucket(this.resources.AssetsBucket, [res]);
+  }
+
+  async deleteCloudFormation() {
+    let cloudformation = new this.AWS.CloudFormation();
+    await cloudformation.deleteStack({ StackName: this.resources.StackName }).promise();
+    return this.waitFor(
+      async resolve => {
+        try {
+          await cloudformation.describeStacks({ StackName: this.resources.StackName }).promise();
+        } catch (err) {
+          resolve();
+        }
+      },
+      5000,
+      50,
+      "Waiting on stack to be deleted"
+    );
+  }
+
+  async createCloudFormation() {
+    let cloudformation = new this.AWS.CloudFormation();
+    let changeSetParams = {
+      ...this.resources.StackOptions,
+      StackName: this.resources.StackName,
+      ChangeSetName: "WebdaCloudFormationDeployer",
+      Capabilities: ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM"],
+      Tags: this.getDefaultTags("StackOptions"),
+      TemplateURL: `https://${this.result.CloudFormation.Bucket}.s3.amazonaws.com/${this.result.CloudFormation.Key}`
+    };
+    let changeSet;
+    try {
+      changeSet = await cloudformation.createChangeSet({ ...changeSetParams, ChangeSetType: "UPDATE" }).promise();
+    } catch (err) {
+      if (err.message.endsWith(" is in ROLLBACK_COMPLETE state and can not be updated.")) {
+        console.log("Deleting buguous stack");
+        await this.deleteCloudFormation();
+        changeSet = await cloudformation.createChangeSet({ ...changeSetParams, ChangeSetType: "CREATE" }).promise();
+      } else if (err.message === `Stack [${this.resources.StackName}] does not exist`) {
+        changeSet = await cloudformation.createChangeSet({ ...changeSetParams, ChangeSetType: "CREATE" }).promise();
+      } else if (err.message.endsWith(" state and can not be updated.")) {
+        await this.waitFor(
+          async resolve => {
+            let res = await cloudformation
+              .describeStacks({
+                StackName: this.resources.StackName
+              })
+              .promise();
+            if (res.Stacks.length === 0) {
+              // If it disapeared, recreate
+              changeSet = await cloudformation
+                .createChangeSet({ ...changeSetParams, ChangeSetType: "CREATE" })
+                .promise();
+              resolve();
+              return;
+            }
+            if (res.Stacks[0].StackStatus.endsWith("COMPLETE")) {
+              changeSet = await cloudformation
+                .createChangeSet({ ...changeSetParams, ChangeSetType: "UPDATE" })
+                .promise();
+              resolve();
+            }
+          },
+          5000,
+          50,
+          "Waiting for COMPLETE state"
+        );
+      } else {
+        console.log(err);
+        return;
+      }
+    }
+    let changes = await this.waitFor(
+      async resolve => {
+        let changes = await cloudformation
+          .describeChangeSet({ ChangeSetName: "WebdaCloudFormationDeployer", StackName: this.resources.StackName })
+          .promise();
+        if (changes.Status === "CREATE_COMPLETE") {
+          resolve(changes);
+        }
+      },
+      5000,
+      50,
+      "Waiting for ChangeSet to be ready..."
+    );
+    console.log(changes);
+    changes.Changes.filter(i => i.Type === "Resource").forEach(({ ResourceChange: info }) =>
+      console.log(`${info.Action.padEnd(8)} ${info.ResourceType.padEnd(30)} ${info.LogicalResourceId}`)
+    );
+    console.log("Executing Change Set");
+    await cloudformation
+      .executeChangeSet({ ChangeSetName: "WebdaCloudFormationDeployer", StackName: this.resources.StackName })
+      .promise();
   }
 
   async Resources() {
@@ -178,26 +307,84 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     return Tags;
   }
 
+  completeOpenAPI(openapi) {
+    return openapi;
+  }
+
+  getStringified(object, filename, addPrefix: boolean = true) {
+    let key = addPrefix ? path.join(this.resources.AssetsPrefix, filename) : filename;
+    if (key.startsWith("/")) {
+      key = key.substr(1);
+    }
+    let src;
+    if (this.resources.Format === "YAML") {
+      src = Buffer.from(YAML.stringify(object));
+      if (!key.endsWith(".yml") && !key.endsWith(".yaml")) {
+        key += ".yml";
+      }
+    } else {
+      src = Buffer.from(JSON.stringify(object, undefined, 2));
+      if (!key.endsWith(".json")) {
+        key += ".json";
+      }
+    }
+    return {
+      key,
+      src
+    };
+  }
+
   async APIGateway() {
+    // Get openapi
+    let openapi = this.completeOpenAPI(this.manager.getWebda().exportOpenAPI(false));
+    this.resources.Format;
+    let openapiS3Object = this.getStringified(openapi, this.resources.OpenAPIFileName);
+    this.putFilesOnBucket(this.resources.AssetsBucket, [openapiS3Object]);
     this.template.Resources.APIGateway = {
       Type: "AWS::ApiGateway::RestApi",
       Properties: {
         ...this.resources.APIGateway,
-        Tags: this.getDefaultTags("APIGateway")
+        Tags: this.getDefaultTags("APIGateway"),
+        BodyS3Location: {
+          Bucket: this.resources.AssetsBucket,
+          Key: openapiS3Object.key
+        }
       }
     };
     this.template.Resources.LambdaApiGatewayPermission = {
-      Action: "lambda:InvokeFunction",
-      FunctionName: "!Ref Lambda",
-      Principal: "apigateway.amazonaws.com",
-      SourceArn: "!Ref APIGateway"
+      Type: "AWS::Lambda::Permission",
+      Properties: {
+        Action: "lambda:InvokeFunction",
+        FunctionName: this.resources.Lambda.FunctionName,
+        Principal: "apigateway.amazonaws.com",
+        SourceArn: {
+          "Fn::Join": [
+            ":",
+            [
+              "arn:aws:execute-api",
+              { Ref: "AWS::Region" },
+              { Ref: "AWS::AccountId" },
+              { "Fn::Join": ["", [{ Ref: "APIGateway" }, "/*"]] }
+            ]
+          ]
+        }
+      }
+    };
+    this.template.Resources.APIGatewayDeployment = {
+      Type: "AWS::ApiGateway::Deployment",
+      Properties: {
+        ...this.resources.APIGatewayDeployment,
+        RestApiId: { Ref: "APIGateway" }
+      }
     };
     // SourceArn: "arn:aws:execute-api:" + this.AWS.config.region + ":" + awsId + ":" + this.restApiId + "/*"
     this.template.Resources.APIGatewayStage = {
       Type: "AWS::ApiGateway::Stage",
       Properties: {
         ...this.resources.APIGatewayStage,
-        Tags: this.getDefaultTags("APIGatewayStage")
+        Tags: this.getDefaultTags("APIGatewayStage"),
+        DeploymentId: { Ref: "APIGatewayDeployment" },
+        RestApiId: { Ref: "APIGateway" }
       }
     };
   }
@@ -223,22 +410,27 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   }
 
   async Policy() {
+    let PolicyDocument = JSON.stringify(
+      await this.getPolicyDocument(this.resources.Policy.PolicyDocument.Statement),
+      undefined,
+      2
+    );
     this.template.Resources.Policy = {
       Type: "AWS::IAM::Policy",
       Properties: {
         ...this.resources.Policy,
-        Tags: this.getDefaultTags("Policy")
+        PolicyDocument
       }
     };
   }
 
   addAssumeRolePolicyStatement(...statements) {
-    //this.resources.Role.AssumeRolePolicyDocument
+    this.resources.Role.AssumeRolePolicyDocument.Statement.push(...statements);
   }
 
   async Role() {
     // add auto generation
-    let AssumeRolePolicyDocument = this.resources.Role.AssumeRolePolicyDocument;
+    let AssumeRolePolicyDocument = JSON.stringify(this.resources.Role.AssumeRolePolicyDocument, undefined, 2);
     this.template.Resources.Role = {
       Type: "AWS::IAM::Role",
       Properties: {
@@ -250,7 +442,12 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   }
 
   async Lambda() {
-    const Code = await this.generateLambdaPackage();
+    // BEFORE_COMMIT
+    //const Code = await this.generateLambdaPackage();
+    const Code = {
+      S3Bucket: "webda-sample-app-artifacts",
+      S3Key: "lambda-1.0.0.zip"
+    };
     this.addAssumeRolePolicyStatement({
       Effect: "Allow",
       Principal: { Service: "lambda.amazonaws.com" },

@@ -27,6 +27,8 @@ class BouzoufDeployer extends Deployer<any> {
 class ChainDeployerTest extends DeployerTest<ChainDeployer> {
   async getDeployer(manager: DeploymentManager) {
     return new ChainDeployer(manager, {
+      name: "deployer",
+      type: "ChainDeployer",
       chain: []
     });
   }
@@ -56,10 +58,12 @@ class ChainDeployerTest extends DeployerTest<ChainDeployer> {
     assert.deepEqual(BouzoufDeployer.lastResources, {
       plop: "bouzouf",
       chain: "BOuzouf,Plop",
+      name: "deployer",
       bouzouf: {
         plop: 2,
         yop: "plop"
-      }
+      },
+      type: "ChainDeployer"
     });
   }
 }

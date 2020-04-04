@@ -357,7 +357,7 @@ export class Application {
     try {
       deploymentModel = JSON.parse(fs.readFileSync(deploymentConfig).toString());
     } catch (err) {
-      throw new Error(`Invalid deployment configuration ${deploymentConfig}`);
+      throw new Error(`Invalid deployment configuration ${deploymentConfig}: ${err.toString()}`);
     }
     return deploymentModel;
   }

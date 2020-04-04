@@ -22,6 +22,8 @@ class PackagerTest {
     let deployer = new Packager(
       new DeploymentManager(WebdaSampleApplication.getAppPath(), "Production"),
       {
+        name: "deployer",
+        type: "Packager",
         zipPath
       }
     );

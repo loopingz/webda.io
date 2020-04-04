@@ -141,15 +141,15 @@ class CoreTest extends WebdaTest {
   }
 
   @test
-  async exportSwagger() {
+  async exportOpenAPI() {
     let app = new Application(path.join(__dirname, "..", "..", "..", "sample-app"));
     app.loadModules();
     let webda = new Core(app);
     await webda.init();
     webda.reinitResolvedRoutes();
-    let swagger = webda.exportSwagger();
-    assert.notEqual(swagger.paths["/contacts"], undefined);
-    assert.notEqual(swagger.paths["/contacts/{uuid}"], undefined);
+    let openapi = webda.exportOpenAPI();
+    assert.notEqual(openapi.paths["/contacts"], undefined);
+    assert.notEqual(openapi.paths["/contacts/{uuid}"], undefined);
   }
 
   @test

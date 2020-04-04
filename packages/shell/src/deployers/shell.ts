@@ -1,6 +1,6 @@
-import { Deployer } from "./deployer";
+import { Deployer, DeployerResources } from "./deployer";
 
-export interface ShellDeployerResources {
+export interface ShellDeployerResources extends DeployerResources {
   scripts: string[];
 }
 

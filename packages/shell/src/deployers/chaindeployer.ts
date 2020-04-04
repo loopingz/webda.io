@@ -1,7 +1,7 @@
 import * as merge from "merge";
-import { Deployer } from "./deployer";
+import { Deployer, DeployerResources } from "./deployer";
 
-export interface ChainDeployerResources {
+export interface ChainDeployerResources extends DeployerResources {
   chain: string | string[];
   [x: string]: any;
 }

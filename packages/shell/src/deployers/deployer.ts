@@ -2,13 +2,17 @@ import { Application, Cache } from "@webda/core";
 import { spawn } from "child_process";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 
+export interface DeployerResources {
+  name: string;
+  type: string;
+}
 /**
  * **Deployer** represent one type of deploy like: *S3* or *Docker* or *Lambda+API Gateway* or *Fargate*
  *
  * This is an abstract class that should be extended to implement new one
  * @module DeploymentSystem
  */
-export abstract class Deployer<T> {
+export abstract class Deployer<T extends DeployerResources> {
   resources: T;
   manager: DeploymentManager;
   app: Application;

@@ -235,34 +235,34 @@ class DynamicService extends Service {
   }
 
   @test
-  async swaggerCommandLine() {
-    ["./swagger.json", "./myswagger.yml", "./myswagger.yaml"].forEach(f => {
+  async openapiCommandLine() {
+    ["./openapi.json", "./myopenapi.yml", "./myopenapi.yaml"].forEach(f => {
       if (fs.existsSync(f)) {
         fs.unlinkSync(f);
       }
     });
 
     WebdaConsole.webda.reinitResolvedRoutes();
-    await this.commandLine(`-d Dev swagger`, true, true);
-    assert.equal(fs.existsSync("./swagger.json"), true);
-    let def = JSON.parse(fs.readFileSync("./swagger.json").toString());
+    await this.commandLine(`-d Dev openapi`, true, true);
+    assert.equal(fs.existsSync("./openapi.json"), true);
+    let def = JSON.parse(fs.readFileSync("./openapi.json").toString());
     assert.notEqual(def.paths["/test"], undefined);
     assert.notEqual(def.paths["/msg/{msg}"], undefined);
     WebdaConsole.webda.reinitResolvedRoutes();
-    await this.commandLine(`-d Dev swagger myswagger.yml`);
-    assert.equal(fs.existsSync("./myswagger.yml"), true);
+    await this.commandLine(`-d Dev openapi myopenapi.yml`);
+    assert.equal(fs.existsSync("./myopenapi.yml"), true);
     assert.deepEqual(
-      YAML.parse(fs.readFileSync("./myswagger.yml").toString()),
+      YAML.parse(fs.readFileSync("./myopenapi.yml").toString()),
       def
     );
     WebdaConsole.webda.reinitResolvedRoutes();
-    await this.commandLine(`-d Dev swagger myswagger.yaml`);
-    assert.equal(fs.existsSync("./myswagger.yaml"), true);
+    await this.commandLine(`-d Dev openapi myopenapi.yaml`);
+    assert.equal(fs.existsSync("./myopenapi.yaml"), true);
     assert.equal(
-      fs.readFileSync("./myswagger.yaml").toString(),
-      fs.readFileSync("./myswagger.yml").toString()
+      fs.readFileSync("./myopenapi.yaml").toString(),
+      fs.readFileSync("./myopenapi.yml").toString()
     );
-    await this.commandLine(`-d Dev swagger myswagger.txt`);
+    await this.commandLine(`-d Dev openapi myopenapi.txt`);
   }
 
   @test

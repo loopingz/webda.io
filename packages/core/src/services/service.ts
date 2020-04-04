@@ -62,13 +62,13 @@ abstract class Service extends events.EventEmitter {
    * @param {Array[]} methods
    * @param {Function} executer Method to execute for this route
    */
-  _addRoute(url: string, methods: string[], executer: Function, swagger: object = {}, allowPath: boolean = false) {
+  _addRoute(url: string, methods: string[], executer: Function, openapi: object = {}, allowPath: boolean = false) {
     let info: any = {};
     info._method = executer;
     info.method = methods;
     info.executor = this._name;
     info.allowPath = allowPath;
-    info.swagger = swagger;
+    info.openapi = openapi;
     this._webda.addRoute(url, info);
   }
 

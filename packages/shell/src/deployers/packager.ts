@@ -1,9 +1,9 @@
 import { Configuration } from "@webda/core";
 import * as fs from "fs";
 import * as path from "path";
-import { Deployer } from "./deployer";
+import { Deployer, DeployerResources } from "./deployer";
 
-export interface PackagerResources {
+export interface PackagerResources extends DeployerResources {
   zipPath: string;
   entrypoint?: string;
   package?: {

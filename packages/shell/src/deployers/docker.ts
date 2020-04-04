@@ -2,9 +2,9 @@ import * as fs from "fs";
 import * as glob from "glob";
 import * as mkdirp from "mkdirp";
 import * as path from "path";
-import { Deployer } from "./deployer";
+import { Deployer, DeployerResources } from "./deployer";
 
-export interface DockerResources {
+export interface DockerResources extends DeployerResources {
   workers?: string[];
   tag?: string;
   push?: boolean;

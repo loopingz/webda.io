@@ -9,6 +9,8 @@ import { Docker } from "./docker";
 class DockerDeployerTest extends DeployerTest<Docker> {
   async getDeployer(manager: DeploymentManager) {
     return new Docker(manager, {
+      name: "deployer",
+      type: "DockerDeployer",
       tag: "webda-deployer:test"
     });
   }

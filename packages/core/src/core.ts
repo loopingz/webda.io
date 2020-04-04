@@ -159,7 +159,7 @@ export function Route(
   route: string,
   methods: string | string[] = ["GET"],
   allowPath: boolean = false,
-  swagger: any = {}
+  openapi: any = {}
 ) {
   return function(target: any, executor: string, descriptor: PropertyDescriptor) {
     let targetName = target.constructor.name.toLowerCase();
@@ -171,7 +171,7 @@ export function Route(
       methods,
       executor,
       allowPath,
-      swagger
+      openapi
     };
   };
 }
@@ -778,7 +778,7 @@ export class Core extends events.EventEmitter {
           method: route.methods, // HTTP methods
           _method: this.services[service][route.executor], // Link to service method
           allowPath: route.allowPath || false, // Allow / in parser
-          swagger: route.swagger,
+          openapi: route.openapi,
           executor: beans[service].constructor.name // Name of the service
         });
         route.resolved = true;
@@ -864,7 +864,7 @@ export class Core extends events.EventEmitter {
     return false;
   }
 
-  exportSwagger(skipHidden: boolean = true): OpenAPIV3.Document {
+  exportOpenAPI(skipHidden: boolean = true): OpenAPIV3.Document {
     let packageInfo = this.application.getPackageDescription();
     let contact = packageInfo.author;
     if (typeof packageInfo.author === "string") {
@@ -878,7 +878,7 @@ export class Core extends events.EventEmitter {
         name: packageInfo.license
       };
     }
-    let swagger2 = deepmerge(
+    let openapi = deepmerge(
       {
         openapi: "3.0",
         info: {
@@ -899,7 +899,7 @@ export class Core extends events.EventEmitter {
         paths: {},
         tags: []
       },
-      this.application.getConfiguration().swagger || {}
+      this.application.getConfiguration().openapi || {}
     );
     let models = this.application.getModels();
     for (let i in models) {
@@ -919,20 +919,20 @@ export class Core extends events.EventEmitter {
       if (schema) {
         schema = JSON.parse(fs.readFileSync(schema).toString());
         for (let i in schema.definitions) {
-          swagger2.definitions[i] = schema.definitions[i];
+          openapi.definitions[i] = schema.definitions[i];
         }
         delete schema.definitions;
         desc = schema;
       }
-      swagger2.definitions[model.name.split("/").pop()] = desc;
+      openapi.definitions[model.name.split("/").pop()] = desc;
     }
-    this.router.completeSwagger(swagger2, skipHidden);
-    swagger2.tags.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+    this.router.completeOpenAPI(openapi, skipHidden);
+    openapi.tags.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
     let paths = {};
-    Object.keys(swagger2.paths)
+    Object.keys(openapi.paths)
       .sort()
-      .forEach(i => (paths[i] = swagger2.paths[i]));
-    swagger2.paths = paths;
-    return swagger2;
+      .forEach(i => (paths[i] = openapi.paths[i]));
+    openapi.paths = paths;
+    return openapi;
   }
 }

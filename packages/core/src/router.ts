@@ -149,13 +149,13 @@ export class Router {
   /**
    * Add all known routes to paths
    *
-   * @param swagger2 to complete
+   * @param openapi to complete
    * @param skipHidden add hidden routes or not
    */
-  completeSwagger(swagger2: OpenAPIV3.Document, skipHidden: boolean = true) {
+  completeOpenAPI(openapi: OpenAPIV3.Document, skipHidden: boolean = true) {
     let hasTag = (tag: string) => {
-      for (let t in swagger2.tags) {
-        if (swagger2.tags[t].name === tag) {
+      for (let t in openapi.tags) {
+        if (openapi.tags[t].name === tag) {
           return true;
         }
       }
@@ -163,40 +163,40 @@ export class Router {
     };
     for (let i in this.routes) {
       let route = this.routes[i];
-      if (!route.swagger) {
-        route.swagger = {
+      if (!route.openapi) {
+        route.openapi = {
           methods: {}
         };
       }
-      if (route.swagger.hidden && skipHidden) {
+      if (route.openapi.hidden && skipHidden) {
         continue;
       }
-      route.swagger.hidden = false;
+      route.openapi.hidden = false;
       let urlParameters = [];
       if (i.indexOf("{?") >= 0) {
         urlParameters = i.substring(i.indexOf("{?") + 2, i.length - 1).split(",");
         i = i.substr(0, i.indexOf("{?"));
       }
-      swagger2.paths[i] = {};
+      openapi.paths[i] = {};
       if (!Array.isArray(route.method)) {
         route.method = [route.method];
       }
       if (route["_uri-template-parse"]) {
-        swagger2.paths[i].parameters = [];
+        openapi.paths[i].parameters = [];
         route["_uri-template-parse"].varNames.forEach(varName => {
           if (urlParameters.indexOf(varName) >= 0) {
             let name = varName;
             if (name.startsWith("*")) {
               name = name.substr(1);
             }
-            swagger2.paths[i].parameters.push({
+            openapi.paths[i].parameters.push({
               name,
               in: "query",
               required: !varName.startsWith("*")
             });
             return;
           }
-          swagger2.paths[i].parameters.push({
+          openapi.paths[i].parameters.push({
             name: varName,
             in: "path",
             required: true
@@ -209,15 +209,15 @@ export class Router {
         let description;
         let summary;
         let operationId;
-        if (route.swagger[method.toLowerCase()]) {
-          responses = route.swagger[method.toLowerCase()].responses;
-          schema = route.swagger[method.toLowerCase()].schema;
-          description = route.swagger[method.toLowerCase()].description;
-          summary = route.swagger[method.toLowerCase()].summary;
-          operationId = route.swagger[method.toLowerCase()].operationId;
+        if (route.openapi[method.toLowerCase()]) {
+          responses = route.openapi[method.toLowerCase()].responses;
+          schema = route.openapi[method.toLowerCase()].schema;
+          description = route.openapi[method.toLowerCase()].description;
+          summary = route.openapi[method.toLowerCase()].summary;
+          operationId = route.openapi[method.toLowerCase()].operationId;
         }
         schema = schema || {
-          $ref: "#/definitions/" + (route.swagger.model || "Object")
+          $ref: "#/definitions/" + (route.openapi.model || "Object")
         };
         responses = responses || {
           200: {
@@ -242,7 +242,7 @@ export class Router {
           }
         }
         let desc: any = {
-          tags: route.swagger.tags || [route.executor],
+          tags: route.openapi.tags || [route.executor],
           responses: responses,
           description,
           summary,
@@ -259,20 +259,20 @@ export class Router {
             }
           ];
         }
-        swagger2.paths[i][method.toLowerCase()] = desc;
+        openapi.paths[i][method.toLowerCase()] = desc;
       });
-      if (route.swagger.tags) {
-        route.swagger.tags.forEach(tag => {
+      if (route.openapi.tags) {
+        route.openapi.tags.forEach(tag => {
           if (!hasTag(tag)) {
-            swagger2.tags.push({
+            openapi.tags.push({
               name: tag
             });
           }
         });
       }
-      if (!route.swagger.tags) {
+      if (!route.openapi.tags) {
         if (!hasTag(route.executor)) {
-          swagger2.tags.push({
+          openapi.tags.push({
             name: route.executor
           });
         }

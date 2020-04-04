@@ -8,6 +8,8 @@ import ShellDeployer from "./shell";
 class ShellDeployerTest extends DeployerTest<ShellDeployer> {
   async getDeployer(manager: DeploymentManager) {
     return new ShellDeployer(manager, {
+      name: "deployer",
+      type: "ShellDeployer",
       scripts: ["ls -alh", "cp plop"]
     });
   }

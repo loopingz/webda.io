@@ -5,6 +5,7 @@ import ChainDeployer from "../deployers/chaindeployer";
 import { Deployer } from "../deployers/deployer";
 import { Docker } from "../deployers/docker";
 import { Packager } from "../deployers/packager";
+import * as yargs from "yargs";
 
 export interface DeployerConstructor {
   new (manager: DeploymentManager, resources: any): Deployer<any>;
@@ -52,6 +53,27 @@ export class DeploymentManager {
         this.deployers[d.name] = merge.recursive(true, deployment.resources, d); // Load deployer
       }
     });
+  }
+
+  /**
+   * Command line executor
+   * @param argv
+   */
+  async commandLine(argv: yargs.Arguments): Promise<number> {
+    const [deployerName, command = "deploy"] = argv._;
+    let deployers = [deployerName];
+    if (deployerName === undefined) {
+      deployers = Object.keys(this.deployers);
+    } else if (!this.deployers[deployerName]) {
+      console.log("Unknown deployer", deployerName);
+      return 1;
+    }
+    let args = argv._.slice(2);
+    for (let i in deployers) {
+      let deployer = await this.getDeployer(deployers[i]);
+      await deployer[command](...args);
+    }
+    return 0;
   }
 
   /**

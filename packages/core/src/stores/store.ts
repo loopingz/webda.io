@@ -201,7 +201,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
             }
             action._method = this.httpGlobalAction;
           }
-          this._addRoute(expose.url + "/" + action.name, action.method, action._method, action.swagger);
+          this._addRoute(expose.url + "/" + action.name, action.method, action._method, action.openapi);
         } else {
           // By default will grab the object and then call the action
           if (!action._method) {
@@ -210,7 +210,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
             }
             action._method = this.httpAction;
           }
-          this._addRoute(expose.url + "/{uuid}/" + action.name, action.method, action._method, action.swagger);
+          this._addRoute(expose.url + "/{uuid}/" + action.name, action.method, action._method, action.openapi);
         }
       });
     }

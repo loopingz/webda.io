@@ -60,7 +60,7 @@ export default class WebdaConsole {
     );
     lines.push(this.bold(" worker") + ": Launch a worker on a queue");
     lines.push(this.bold(" debug") + ": Debug current project");
-    lines.push(this.bold(" swagger") + ": Generate swagger file");
+    lines.push(this.bold(" openapi") + ": Generate openapi file");
     lines.push(
       this.bold(" generate-session-secret") +
         ": Generate a new session secret in parameters"
@@ -373,9 +373,8 @@ export default class WebdaConsole {
    */
   static async deploy(argv: yargs.Arguments): Promise<number> {
     let manager = new DeploymentManager(process.cwd(), argv.deployment);
-    argv._.slice(1);
-    // Check if we deploy all
-    return 0;
+    argv._ = argv._.slice(1);
+    return await manager.commandLine(argv);
   }
 
   /**
@@ -488,8 +487,8 @@ export default class WebdaConsole {
       case "module":
         await this.app.generateModule();
         return 0;
-      case "swagger":
-        await this.generateSwagger(argv);
+      case "openapi":
+        await this.generateOpenAPI(argv);
         return 0;
       case "generate-session-secret":
         await this.generateSessionSecret();
@@ -538,18 +537,18 @@ export default class WebdaConsole {
    * If filename can end with .yml or .json to select the format
    * @param argv
    */
-  static async generateSwagger(argv: yargs.Arguments): Promise<void> {
+  static async generateOpenAPI(argv: yargs.Arguments): Promise<void> {
     this.webda = new WebdaServer(this.app);
-    let swagger = this.webda.exportSwagger(!argv.includeHidden);
-    //console.log(swagger);
-    let name = argv._[1] || "./swagger.json";
+    let openapi = this.webda.exportOpenAPI(!argv.includeHidden);
+    //console.log(openapi);
+    let name = argv._[1] || "./openapi.json";
     if (name.endsWith(".json")) {
-      fs.writeFileSync(name, JSON.stringify(swagger, undefined, 2));
+      fs.writeFileSync(name, JSON.stringify(openapi, undefined, 2));
     } else if (name.endsWith(".yaml") || name.endsWith(".yml")) {
       // Remove null value with JSON.parse/stringify
       fs.writeFileSync(
         name,
-        YAML.stringify(JSON.parse(JSON.stringify(swagger)), 1000, 2)
+        YAML.stringify(JSON.parse(JSON.stringify(openapi)), 1000, 2)
       );
     } else {
       this.log("ERROR", "Unknown format");

@@ -1,8 +1,15 @@
 import * as colors from "colors";
 import { EventEmitter } from "events";
 import * as readline from "readline";
-
 var error = colors.red;
+() => {
+  readline.clearScreenDown(process.stdout);
+};
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+  crlfDelay: Infinity,
+});
 
 class WorkerTerminal {
   tty: boolean;
@@ -21,7 +28,17 @@ class WorkerTerminal {
     this.tty = process.stdout.isTTY;
     this.wo.on("message", async (msg) => this.router(msg));
     this.height = process.stdout.rows;
-    process.stdout.write("\x1B[?12l");
+    process.stdout.write("\x1B[?12l\x1B[?47h");
+    let resetTerm = () => {
+      process.stdout.write("\x1B[?47l");
+      process.stdout.write(this.displayHistory(50, false));
+    };
+    process.on("beforeExit", resetTerm);
+    process.on("SIGTERM", resetTerm);
+    process.on("SIGINT", () => {
+      resetTerm();
+      process.exit(0);
+    });
     process.stdout.on("resize", (size) => {
       this.height = process.stdout.rows;
       if (this.hasProgress) {
@@ -103,8 +120,8 @@ class WorkerTerminal {
   }
 
   displayTitle() {
-    let pads = (process.stdout.columns - this.title.length) / 2;
-    process.stdout.write(`${" ".repeat(pads)}${colors.bold(this.title)}${" ".repeat(pads)}\n`);
+    let pads = (process.stdout.columns - this.title.length - 4) / 2;
+    return `${" ".repeat(pads)}${colors.bold(this.title)}${" ".repeat(pads)}\n`;
   }
 
   displayProgress(p: WorkerProgress) {
@@ -116,54 +133,67 @@ class WorkerTerminal {
     let numberLength = p.total.toString().length;
     let line = `${bar} ${Math.floor(p.current)
       .toString()
-      .padStart(numberLength)}/${p.total} ${p.title || ""}`;
-    process.stdout.write(`${line.padEnd(process.stdout.columns - 1)}`);
+      .padStart(numberLength)}/${p.total} ${p.title || ""}`.padEnd(process.stdout.columns - 2);
+    if (line.length > process.stdout.columns - 2) {
+      line = line.substr(0, process.stdout.columns - 2);
+    }
+    return `${line}`;
   }
 
   displayFooter() {
     // Separator
-    process.stdout.write("\u2015".repeat(process.stdout.columns) + "\n");
+
+    let res = "\u2015".repeat(process.stdout.columns) + "\n";
     let values = Object.values(this.progresses);
     let k = values.length;
     if (this.title) {
-      this.displayTitle();
+      res += this.displayTitle();
     }
     for (let i in this.progresses) {
-      this.displayProgress(this.progresses[i]);
+      res += this.displayProgress(this.progresses[i]);
       if (--k > 0) {
-        process.stdout.write(`\n\r`);
+        res += `\r`;
       }
     }
+    return res;
   }
 
-  displayHistory(lines) {
+  displayHistory(lines: number, complete: boolean = true) {
+    let res = "";
     let j = this.history.length - lines;
-    if (j < 0) {
+    if (!complete && j < 0) {
       j = 0;
+    }
+    while (j++ < 0) {
+      res += " ".repeat(process.stdout.columns) + "\n";
     }
     for (; j < this.history.length; j++) {
       let line = this.history[j].padEnd(process.stdout.columns);
-      process.stdout.write(`${line}\n`);
+      res += `${line}\n`;
     }
+    return res;
   }
 
   async displayScreen() {
     // Reset terminal
-    process.stdout.write("\x1Bc");
+    let screen = ""; //"\x1Bc";
+
     let footer = this.getFooterSize();
     // Calculate where to start
     let start = this.height - this.history.length + footer;
     if (start < 0) {
       start = 0;
     }
-    readline.cursorTo(process.stdout, 0, start);
-    this.displayHistory(this.height - this.getFooterSize());
+    //readline.cursorTo(process.stdout, 0, start);
+    screen += this.displayHistory(this.height - this.getFooterSize());
 
     // Display footer
     if (this.hasProgress || this.title) {
-      readline.cursorTo(process.stdout, 0, this.height - footer - 1);
-      this.displayFooter();
+      screen += this.displayFooter();
     }
+    readline.cursorTo(process.stdout, 0, 0);
+    readline.clearScreenDown(process.stdout);
+    rl.write(screen);
   }
 }
 
@@ -340,9 +370,10 @@ output.openGroup("Subgroup");
 output.closeGroup();
 let interval2 = setInterval(() => {
   output.log(<any>WorkerLogLevelEnum[Math.floor(Math.random() * 5)], "This is my log " + i++);
-}, 100);
+}, 500);
 setTimeout(() => output.closeGroup(), 5600);
 setTimeout(() => {
   clearInterval(interval);
   clearInterval(interval2);
-}, 30000);
+  rl.close();
+}, 90000);

@@ -1,29 +1,40 @@
 import * as colors from "colors";
 import * as readline from "readline";
-import { WorkerLogLevelEnum, WorkerMessage, WorkerOutput, WorkerProgress } from "..";
+import { LogFilter, WorkerLogLevel, WorkerLogLevelEnum, WorkerMessage, WorkerOutput, WorkerProgress } from "..";
+import { ConsoleLogger } from "../loggers/console";
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-  crlfDelay: Infinity,
-});
-
-export class WorkerTerminal {
+export class Terminal {
   tty: boolean;
   wo: WorkerOutput;
   height: number;
   history: string[] = [];
-  level: WorkerLogLevelEnum = process.env.WEBDA_LOG_LEVEL
-    ? WorkerLogLevelEnum[process.env.WEBDA_LOG_LEVEL]
-    : WorkerLogLevelEnum.INFO || WorkerLogLevelEnum.INFO;
+  level: WorkerLogLevel;
   hasProgress: boolean;
   progresses: { [key: string]: WorkerProgress } = {};
   title: string = "";
+  format: string;
   inputs: any[] = [];
+  rl: readline.Interface;
 
-  constructor(wo: WorkerOutput) {
+  constructor(
+    wo: WorkerOutput,
+    level: WorkerLogLevel = undefined,
+    format: string = "",
+    tty: boolean = process.stdout.isTTY
+  ) {
     this.wo = wo;
-    this.tty = process.stdout.isTTY;
+    this.tty = tty;
+    this.format = format;
+    this.level = level ? level : <any>process.env.LOG_LEVEL || "INFO";
+    // Fallback on basic ConsoleLogger if no tty
+    if (!this.tty) {
+      this.wo.on("message", async (msg) => {
+        if (msg.type === "log" && LogFilter(msg.log.level, this.level)) {
+          ConsoleLogger.display(msg, this.format);
+        }
+      });
+      return;
+    }
     this.wo.on("message", async (msg) => this.router(msg));
     this.height = process.stdout.rows;
     process.stdout.write("\x1B[?12l\x1B[?47h");
@@ -45,10 +56,6 @@ export class WorkerTerminal {
     });
   }
 
-  close() {
-    rl.close();
-  }
-
   pushHistory(line) {
     this.history.push(line);
     if (this.history.length > 100) {
@@ -59,7 +66,7 @@ export class WorkerTerminal {
   async router(msg: WorkerMessage) {
     switch (msg.type) {
       case "log":
-        return this.log(msg.groups, WorkerLogLevelEnum[msg.log.level], ...msg.log.args);
+        return this.log(msg.groups, msg.log.level, ...msg.log.args);
       case "progress.stop":
       case "progress.start":
         this.hasProgress = Object.keys(msg.progresses)
@@ -82,19 +89,12 @@ export class WorkerTerminal {
     }
   }
 
-  log(groups, level: WorkerLogLevelEnum, ...args) {
-    if (level > this.level) {
+  log(groups, level: WorkerLogLevel, ...args) {
+    if (!LogFilter(level, this.level)) {
       return;
     }
-    let color = (s) => s;
-    let levelColor = WorkerLogLevelEnum[level].padStart(5);
-    if (level === WorkerLogLevelEnum.ERROR) {
-      color = colors.red;
-    } else if (level === WorkerLogLevelEnum.WARN) {
-      color = colors.yellow;
-    } else if (level === WorkerLogLevelEnum.TRACE) {
-      color = colors.grey;
-    }
+    let color = ConsoleLogger.getColor(<any>WorkerLogLevelEnum[level]);
+    let levelColor = level.padStart(5);
     let groupsPart = "";
     if (groups.length) {
       groupsPart = `[${groups.map((g) => `${color(g)}`).join(colors.grey(">"))}] `;
@@ -108,9 +108,12 @@ export class WorkerTerminal {
     return Object.keys(this.progresses).length + 1 + this.title ? 1 : 0;
   }
 
-  displayString(str, limit) {
+  displayString(str, limit: number = undefined) {
+    if (!limit) {
+      limit = process.stdout.columns;
+    }
     if (str.length > limit) {
-      return str.substr(0, limit);
+      return str.substr(0, limit - 3) + "...";
     }
     return str.padEnd(limit - str.length);
   }
@@ -130,7 +133,10 @@ export class WorkerTerminal {
 
   displayTitle() {
     let pads = (process.stdout.columns - this.title.length - 4) / 2;
-    return `${" ".repeat(pads)}${colors.bold(this.title)}${" ".repeat(pads)}\n`;
+    if (pads < 0) {
+      pads = 0;
+    }
+    return this.displayString(`${" ".repeat(pads)}${colors.bold(this.title)}${" ".repeat(pads)}\n`);
   }
 
   displayProgress(p: WorkerProgress) {
@@ -140,9 +146,11 @@ export class WorkerTerminal {
       .toFixed(2)
       .padStart(5);
     let numberLength = p.total.toString().length;
-    let line = `${bar} ${Math.floor(p.current)
-      .toString()
-      .padStart(numberLength)}/${p.total} ${p.title || ""}`.padEnd(process.stdout.columns - 2);
+    let line = this.displayString(
+      `${bar} ${Math.floor(p.current)
+        .toString()
+        .padStart(numberLength)}/${p.total} ${p.title || ""}`.padEnd(process.stdout.columns - 2)
+    );
     if (line.length > process.stdout.columns - 2) {
       line = line.substr(0, process.stdout.columns - 2);
     }
@@ -180,7 +188,7 @@ export class WorkerTerminal {
       res += " ".repeat(process.stdout.columns) + "\n";
     }
     for (; j < this.history.length; j++) {
-      let line = this.history[j].padEnd(process.stdout.columns);
+      let line = this.displayString(this.history[j].padEnd(process.stdout.columns));
       res += `${line}\n`;
     }
     return res;
@@ -189,7 +197,6 @@ export class WorkerTerminal {
   async displayScreen() {
     // Reset terminal
     let screen = ""; //"\x1Bc";
-
     let footer = this.getFooterSize();
     // Calculate where to start
     let start = this.height - this.history.length + footer;
@@ -203,8 +210,12 @@ export class WorkerTerminal {
     if (this.hasProgress || this.title) {
       screen += this.displayFooter();
     }
+    this.clearScreen();
+    process.stdout.write(screen);
+  }
+
+  clearScreen() {
     readline.cursorTo(process.stdout, 0, 0);
     readline.clearScreenDown(process.stdout);
-    rl.write(screen);
   }
 }

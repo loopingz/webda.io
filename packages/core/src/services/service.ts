@@ -19,7 +19,7 @@ abstract class Service extends events.EventEmitter {
   _createException: string;
   _initTime: number;
   _initException: any = undefined;
-  protected logger: Logger;
+  logger: Logger;
   /**
    *
    *

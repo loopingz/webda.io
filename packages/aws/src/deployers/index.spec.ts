@@ -55,13 +55,13 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
   @test
   async testGetPolicyDocument() {
     try {
-      let resources = this.manager.deployers.WebdaSampleApplication;
       AWSMock.mock("STS", "getCallerIdentity", callback => {
         callback(null, {
           Account: "test"
         });
       });
       let result = await this.deployer.getPolicyDocument();
+      console.log(result.Statement);
       assert.equal(result.Statement.length, 4);
     } finally {
       AWSMock.restore();
@@ -71,7 +71,6 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
   @test
   async testGetDefaultVpc() {
     try {
-      let resources = this.manager.deployers.WebdaSampleApplication;
       var vpcsSpy = sinon.stub().callsFake(c => {
         if (vpcsSpy.callCount === 1) {
           c(null, {

@@ -13,8 +13,7 @@
     "CloudWatchLogger": {
       "logGroupName": "webda-test",
       "logStreamNamePrefix": "test-",
-      "logLevels": "TEST, TEST2",
-      "logLevel": "TEST2",
+      "logLevel": "DEBUG",
       "endpoint": "http://localhost:4586"
     },
     "ConsoleLogger": {

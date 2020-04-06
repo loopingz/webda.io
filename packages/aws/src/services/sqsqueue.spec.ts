@@ -2,23 +2,13 @@ import { QueueTest } from "@webda/core/lib/queues/queue.spec";
 import * as assert from "assert";
 import { suite, test, timeout } from "mocha-typescript";
 import { checkLocalStack } from "../index.spec";
-import { DummyQueue, SQSQueue } from "./sqsqueue";
+import { SQSQueue } from "./sqsqueue";
 
 @suite
 class SQSQueueTest extends QueueTest {
   async before() {
     await checkLocalStack();
     await super.before();
-  }
-
-  @test
-  async dummyQueue() {
-    // Only for COV
-    let queue = new DummyQueue(undefined, "dummy", {});
-    await queue.deleteMessage(12);
-    await queue.receiveMessage();
-    await queue.sendMessage(12);
-    await queue.size();
   }
 
   @test

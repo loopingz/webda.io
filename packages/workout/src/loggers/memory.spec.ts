@@ -32,7 +32,7 @@ class MemoryConsoleTest {
 
   @test
   testAllMessagesLimit() {
-    let logger = new MemoryLogger(this.output, true, "TRACE", 3);
+    let logger = new MemoryLogger(this.output, "TRACE", 3, true);
     this.output.log("DEBUG", "Test 1");
     assert.equal(logger.getMessages().length, 1);
     assert.equal(logger.getLogs().length, 1);

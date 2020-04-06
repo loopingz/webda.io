@@ -1,6 +1,9 @@
 {
   "version": 2,
   "services": {
+    "memorylogger": {
+      "type": "MemoryLogger"
+    },
     "images": {
       "type": "FileBinary",
       "folder": "./test/store",
@@ -23,6 +26,6 @@
     }
   },
   "parameters": {
-    "sessionSecret": "qq6mS4PsQbHoY9tMkSCQ9oBfjONeQSpxQlPpBKErxCeKDHXIE4Of0/TDb/fQ06zw7woUGeDf1mET8DYo+fqFUl3c+tuSMbGTobHWoNwttfUHx6SuQyFH7pZTpweso4h8CO2vfJ5Wd0AdlgFXb4KFBFTJO6kXGFoYegmfi1UE7Tu/W7kKtmWleFZbTX/PVaceK3DP5w3TpU0JJoIgrsNSkqokYNV/mpRHMCpILkO4/vpuLZjqNdxpVw3XyZQbJroC"
+    "sessionSecret": "MgdKaO2w4JSXpxTua+5MvKkX/9rAkfai8HgagZp4W++C9peVsm3XY8DZNgWF2ho42P1skZ/KaQ6ElLTDLV2DsQSVI/bV1F3vZChcLWcThJh4R2B0smTsLt6m7Psyf71BvN5s9AWUAbT01WkZ3TAm2UlACZ6EEH7Z3NJqi1Dq0HeeI3C0OEAS6jnHxR8crqJLvWVy4N4VxPZm1upacCNqDEnoTNwXQ3bAODtWSOJLS1RNltdpDPOdyN+1S6zUF3ib"
   }
 }

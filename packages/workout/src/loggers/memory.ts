@@ -7,7 +7,7 @@ export class MemoryLogger {
   protected messages: WorkerMessage[] = [];
   protected includeAll: boolean;
 
-  constructor(output: WorkerOutput, includeAll: boolean = false, level: WorkerLogLevel = "DEBUG", limit = 2000) {
+  constructor(output: WorkerOutput, level: WorkerLogLevel = "DEBUG", limit = 2000, includeAll: boolean = false) {
     this.includeAll = includeAll;
     output.on("message", (msg: WorkerMessage) => {
       if (!includeAll && msg.type !== "log") {
@@ -33,10 +33,10 @@ export class MemoryLogger {
   /**
    * Get all logs messages
    */
-  getLogs() {
+  getLogs(): WorkerMessage[] {
     // If includeAll we need to filter
     if (this.includeAll) {
-      return this.messages.filter((t) => t.type === "log").map(() => {});
+      return this.messages.filter(t => t.type === "log");
     }
     return this.messages;
   }

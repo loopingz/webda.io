@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@webda/aws": "link:../packages/aws/",
+    "@webda/workout": "link:../packages/workout/",
     "@webda/core": "link:../packages/core/",
     "@webda/shell": "link:../packages/shell/",
     "deepmerge": "^4.2.2",

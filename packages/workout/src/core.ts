@@ -45,8 +45,8 @@ export class WorkerProgress {
   }
 }
 
-export function LogFilter(logLevel: WorkerLogLevel, level: WorkerLogLevel): boolean {
-  return WorkerLogLevelEnum[logLevel] <= WorkerLogLevelEnum[level];
+export function LogFilter(logLineLevel: WorkerLogLevel, loggerLevel: WorkerLogLevel): boolean {
+  return WorkerLogLevelEnum[logLineLevel] <= WorkerLogLevelEnum[loggerLevel];
 }
 
 /**
@@ -74,7 +74,7 @@ class WorkerInputEmitter extends WorkerInput {
     return {
       uuid: this.uuid,
       title: this.title,
-      validators: this.validators,
+      validators: this.validators
     };
   }
 }
@@ -87,7 +87,7 @@ export enum WorkerLogLevelEnum {
   WARN,
   INFO,
   DEBUG,
-  TRACE,
+  TRACE
 }
 
 /**
@@ -321,7 +321,7 @@ export class WorkerOutput extends EventEmitter {
     });
 
     this.emitMessage("input.request", {
-      input: this.inputs[uuid].toMessage(),
+      input: this.inputs[uuid].toMessage()
     });
     if (waitFor) {
       return this.waitForInput(uuid);

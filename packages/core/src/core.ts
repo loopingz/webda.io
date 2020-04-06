@@ -240,7 +240,7 @@ export class Core extends events.EventEmitter {
   constructor(application: Application) {
     /** @ignore */
     super();
-    this.workerOutput = new WorkerOutput();
+    this.workerOutput = application.getWorkerOutput();
     this.logger = new Logger(this.workerOutput, "@webda/core/lib/core.js");
     this.application = application;
     this._initTime = new Date().getTime();
@@ -675,7 +675,7 @@ export class Core extends events.EventEmitter {
 
     for (let i in beans) {
       if (!beans[i].bean) {
-        this.log("INFO", "Implicit @Bean due to a @Route", beans[i].constructor.name);
+        this.log("DEBUG", "Implicit @Bean due to a @Route", beans[i].constructor.name);
       }
       let name = beans[i].constructor.name;
       if (!services[name]) {

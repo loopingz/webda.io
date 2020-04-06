@@ -1,9 +1,7 @@
 import { Service } from "@webda/core";
 const AWS = require("aws-sdk");
 
-type Constructor<T extends Service> = new (...args: any[]) => T;
-
-function GetAWS(params: any) {
+export function GetAWS(params: any) {
   if (!params.accessKeyId && !process.env["ECS_CLUSTER"]) {
     // If in ECS_CLUSTER then rely on metadata service
     params.accessKeyId = process.env["AWS_ACCESS_KEY_ID"];
@@ -22,13 +20,3 @@ function GetAWS(params: any) {
   AWS.config.update(update);
   return AWS;
 }
-
-function AWSMixIn<T extends Constructor<Service>>(Base: T) {
-  return class extends Base {
-    _getAWS(params = undefined) {
-      return GetAWS(params || this._params || {});
-    }
-  };
-}
-
-export { AWSMixIn, Constructor, GetAWS };

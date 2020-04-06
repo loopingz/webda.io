@@ -9,34 +9,21 @@ import * as YAML from "yamljs";
 import { ServerStatus } from "../handlers/http";
 import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import { DebuggerStatus, WebdaConsole } from "./webda";
-import { WorkerMessage, WorkerOutput } from "@webda/workout";
+import { MemoryLogger, WorkerOutput } from "@webda/workout";
 
-class DebugLogger {
-  logs: any[];
-
-  constructor(worker: WorkerOutput) {
-    worker.on("message", (msg: WorkerMessage) => {
-      if (msg.type !== "log") {
-        return;
-      }
-      this.logs.push(msg.log);
-    });
-  }
-
-  getLogs() {
-    return this.logs;
+class DebugLogger extends MemoryLogger {
+  getLogs(start: number = 0) {
+    let res = super.getLogs().slice(start);
+    this.clear();
+    return res;
   }
 }
 
 @suite
 class ConsoleTest {
   logger: DebugLogger;
-  async commandLine(
-    line,
-    addAppPath: boolean = true,
-    displayLog: boolean = false
-  ) {
-    this.logger = new DebugLogger(WebdaConsole.webda.getWorkerOutput());
+  dynamicFile: string;
+  async commandLine(line, addAppPath: boolean = true) {
     if (addAppPath) {
       line = `--appPath ${WebdaSampleApplication.getAppPath()} ` + line;
     }
@@ -47,6 +34,21 @@ class ConsoleTest {
     assert.notEqual(config, undefined);
     assert.equal(config.parameters.accessKeyId, "DEV_ACCESS");
     assert.equal(config.services.contacts.table, "dev-table");
+  }
+
+  async before() {
+    let dynamicFile = path.join(
+      WebdaSampleApplication.getAppPath(),
+      "src",
+      "services",
+      "dynamic.ts"
+    );
+    if (fs.existsSync(dynamicFile)) {
+      fs.unlinkSync(dynamicFile);
+    }
+    this.dynamicFile = dynamicFile;
+    WebdaConsole.logger = new WorkerOutput();
+    this.logger = new DebugLogger(WebdaConsole.logger, "INFO");
   }
 
   async after() {
@@ -86,7 +88,9 @@ class ConsoleTest {
   async waitForStatus(status: DebuggerStatus, timeout: number = 120000) {
     let time = 0;
     do {
-      if (WebdaConsole.getDebuggerStatus() === status) {
+      let currentStatus = WebdaConsole.getDebuggerStatus();
+      console.log("Status:", currentStatus, "required", status);
+      if (currentStatus === status) {
         return;
       }
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -100,15 +104,7 @@ class ConsoleTest {
   @test
   async debugCommandLine() {
     WebdaSampleApplication.clean();
-    let dynamicFile = path.join(
-      WebdaSampleApplication.getAppPath(),
-      "src",
-      "services",
-      "dynamic.ts"
-    );
-    if (fs.existsSync(dynamicFile)) {
-      fs.unlinkSync(dynamicFile);
-    }
+    console.log("Launch debug command line");
     this.commandLine(`debug -d Dev --port 28080`);
     for (let i = 0; i < 100; i++) {
       if (WebdaConsole.webda) {
@@ -116,13 +112,15 @@ class ConsoleTest {
       }
       await new Promise(resolve => setTimeout(resolve, 100));
     }
+    console.log("Wait for serving");
     await this.waitForStatus(DebuggerStatus.Serving);
     let app = new SampleApplicationTest(`http://localhost:28080`);
     // CSRF is disabled by default in debug mode
+    console.log("test API");
     await app.testApi(200);
     // Add a new .ts
     fs.writeFileSync(
-      dynamicFile,
+      this.dynamicFile,
       `import { Context, Route, Service } from "@webda/core";
 
 class DynamicService extends Service {
@@ -134,20 +132,23 @@ class DynamicService extends Service {
       
 `
     );
+    console.log("Waiting for Launching");
     await this.waitForStatus(DebuggerStatus.Launching);
+    console.log("Waiting for Serving");
     await this.waitForStatus(DebuggerStatus.Serving);
+    console.log("Test new route");
     let res = await fetch(`http://localhost:28080/myNewRoute`);
     assert.equal(res.status, 200);
+    fs.unlinkSync(this.dynamicFile);
   }
 
   @test
   async serviceconfigCommandLine() {
     await this.commandLine("serviceconfig CustomService");
     let logs = this.logger.getLogs();
-    logs = this.logger.getLogs();
     assert.equal(logs.length, 1);
     assert.notEqual(
-      logs[0].args[0].match(
+      logs[0].log.args[0].match(
         /[\w\W]*"sessionSecret":[\w\W]*"type": "Beans\/CustomService"[\w\W]*/gm
       ),
       undefined
@@ -156,7 +157,7 @@ class DynamicService extends Service {
     logs = this.logger.getLogs();
     assert.equal(logs.length, 1);
     assert.equal(
-      logs[0].args[0],
+      logs[0].log.args[0],
       "\u001b[31mThe service UnknownService is missing\u001b[39m"
     );
   }
@@ -167,33 +168,34 @@ class DynamicService extends Service {
     await this.commandLine("launch CustomService");
     let logs = this.logger.getLogs();
     assert.equal(logs.length, 2);
-    assert.equal(logs[0].args.length, 2);
-    assert.equal(logs[0].args[0], "Result:");
-    assert.equal(logs[1].args.length, 2);
-    assert.equal(logs[1].args[0], "Took");
+    assert.equal(logs[0].log.args.length, 2);
+    assert.equal(logs[0].log.args[0], "Result:");
+    assert.equal(logs[1].log.args.length, 2);
+    assert.equal(logs[1].log.args[0], "Took");
     await this.commandLine("worker CustomService output DEBUG_MSG");
     logs = this.logger.getLogs();
-    assert.equal(logs[0].args.length, 2);
-    assert.equal(logs[0].args[0], "Result:");
-    assert.equal(logs[0].args[1], "YOUR MESSAGE IS 'DEBUG_MSG'");
-    assert.equal(logs[1].args.length, 2);
-    assert.equal(logs[1].args[0], "Took");
+    logs.forEach(p => console.log(p.log.args.join(" ")));
+    assert.equal(logs[0].log.args.length, 2);
+    assert.equal(logs[0].log.args[0], "Result:");
+    assert.equal(logs[0].log.args[1], "YOUR MESSAGE IS 'DEBUG_MSG'");
+    assert.equal(logs[1].log.args.length, 2);
+    assert.equal(logs[1].log.args[0], "Took");
     await this.commandLine("worker CustomService badMethod");
     logs = this.logger.getLogs();
     assert.equal(logs.length, 1);
-    assert.equal(logs[0].args[0], "\u001b[31mAn error occured\u001b[39m");
+    assert.equal(logs[0].log.args[0], "\u001b[31mAn error occured\u001b[39m");
     await this.commandLine("worker CustomService unknownMethod");
     logs = this.logger.getLogs();
     assert.equal(logs.length, 1);
     assert.equal(
-      logs[0].args[0],
+      logs[0].log.args[0],
       "\u001b[31mThe method unknownMethod is missing in service CustomService\u001b[39m"
     );
     await this.commandLine("worker UnknownService");
     logs = this.logger.getLogs();
     assert.equal(logs.length, 1);
     assert.equal(
-      logs[0].args[0],
+      logs[0].log.args[0],
       "\u001b[31mThe service UnknownService is missing\u001b[39m"
     );
   }
@@ -247,7 +249,7 @@ class DynamicService extends Service {
     });
 
     WebdaConsole.webda.reinitResolvedRoutes();
-    await this.commandLine(`-d Dev openapi`, true, true);
+    await this.commandLine(`-d Dev openapi`, true);
     assert.equal(fs.existsSync("./openapi.json"), true);
     let def = JSON.parse(fs.readFileSync("./openapi.json").toString());
     assert.notEqual(def.paths["/test"], undefined);
@@ -294,9 +296,7 @@ class DynamicService extends Service {
   @test
   async exporterBadDeployment() {
     await this.commandLine("-d TestLambda config test.export.json");
-    assert.equal(
-      this.logger.getLogs()[0].args[0],
-      "Unknown deployment: TestLambda"
-    );
+    let logs = this.logger.getLogs();
+    assert.equal(logs[0].log.args[0], "Unknown deployment: TestLambda");
   }
 }

@@ -8,3 +8,4 @@ dist
 docs
 diagrams
 packages/core/test/data
+sample-app/src/services/dynamic.ts

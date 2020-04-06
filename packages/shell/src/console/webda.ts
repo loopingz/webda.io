@@ -9,7 +9,7 @@ import * as YAML from "yamljs";
 import * as yargs from "yargs";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";
-import { WorkerOutput, WorkerLogLevel } from "@webda/workout";
+import { WorkerOutput, WorkerLogLevel, Terminal } from "@webda/workout";
 
 export enum DebuggerStatus {
   Stopped = "STOPPED",
@@ -22,7 +22,13 @@ export default class WebdaConsole {
   static webda: WebdaServer;
   static serverProcess: ChildProcess;
   static tscCompiler: ChildProcess;
-  static logger: Logger;
+  static logger: WorkerOutput = new WorkerOutput();
+  static terminal: Terminal = new Terminal(
+    WebdaConsole.logger,
+    "INFO",
+    "",
+    false
+  );
   static app: Application;
   static debuggerStatus: DebuggerStatus = DebuggerStatus.Stopped;
 
@@ -373,7 +379,11 @@ export default class WebdaConsole {
    * @param argv
    */
   static async deploy(argv: yargs.Arguments): Promise<number> {
-    let manager = new DeploymentManager(process.cwd(), argv.deployment);
+    let manager = new DeploymentManager(
+      WebdaConsole.logger,
+      process.cwd(),
+      argv.deployment
+    );
     let worker = new WorkerOutput();
 
     manager.setOutput(worker);
@@ -447,7 +457,7 @@ export default class WebdaConsole {
       }
     }
 
-    this.app = new Application(argv.appPath);
+    this.app = new Application(argv.appPath, WebdaConsole.logger);
 
     if (argv.deployment) {
       if (!this.app.hasDeployment(argv.deployment)) {

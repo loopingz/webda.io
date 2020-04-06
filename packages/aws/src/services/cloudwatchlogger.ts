@@ -1,13 +1,10 @@
-import { LoggerService, ModdaDefinition } from "@webda/core";
+import { Service, ModdaDefinition } from "@webda/core";
 import * as uuid from "uuid";
 import { CloudFormationContributor } from ".";
-import { AWSMixIn } from "./aws-mixin";
+import { GetAWS } from "./aws-mixin";
+import { WorkerMessage, LogFilter } from "@webda/workout";
 
-export class FakeLogger extends LoggerService {
-  _log(level, ...args): void {}
-}
-
-export default class CloudWatchLogger extends AWSMixIn(FakeLogger) implements CloudFormationContributor {
+export default class CloudWatchLogger extends Service implements CloudFormationContributor {
   _logGroupName: string;
   _logStreamName: string;
   _seqToken: string;
@@ -22,7 +19,7 @@ export default class CloudWatchLogger extends AWSMixIn(FakeLogger) implements Cl
       throw Error("Require a log group `logGroupName` parameter");
     }
     this._logStreamName = this._params.logStreamNamePrefix + uuid.v4();
-    this._cloudwatch = new (this._getAWS(this._params).CloudWatchLogs)({
+    this._cloudwatch = new (GetAWS(this._params).CloudWatchLogs)({
       endpoint: this._params.endpoint
     });
     let res = await this._cloudwatch
@@ -45,6 +42,14 @@ export default class CloudWatchLogger extends AWSMixIn(FakeLogger) implements Cl
         logStreamName: this._logStreamName
       })
       .promise();
+    this._webda.getWorkerOutput().on("message", (msg: WorkerMessage) => {
+      if (msg.type !== "log") {
+        return;
+      }
+      if (LogFilter(msg.log.level, this._params.logLevel)) {
+        this._log(msg.log.level, ...msg.log.args);
+      }
+    });
     this._webda.on("Webda.Result", this.sendLogs.bind(this));
   }
 
@@ -73,7 +78,7 @@ export default class CloudWatchLogger extends AWSMixIn(FakeLogger) implements Cl
   }
 
   _log(level, ...args): void {
-    let msg = `[${level}] ` + args.join(" ");
+    let msg = `[${level}] ` + args.map(p => p.toString()).join(" ");
     this._bufferedLogs.push({
       message: msg,
       timestamp: new Date().getTime()

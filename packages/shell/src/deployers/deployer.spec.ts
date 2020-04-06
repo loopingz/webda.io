@@ -3,6 +3,7 @@ import { suite, test } from "mocha-typescript";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaSampleApplication } from "../index.spec";
 import { Deployer } from "./deployer";
+import { WorkerOutput } from "@webda/workout";
 
 export abstract class DeployerTest<T> {
   deployer: T;
@@ -17,6 +18,7 @@ export abstract class DeployerTest<T> {
 
   async before() {
     this.manager = new DeploymentManager(
+      new WorkerOutput(),
       WebdaSampleApplication.getAppPath(),
       "Production"
     );

@@ -8,6 +8,8 @@ import {
   CachedModule,
   Configuration,
   ConfigurationService,
+  ConsoleLoggerService,
+  MemoryLoggerService,
   ConfigurationV1,
   Context,
   Core,
@@ -31,7 +33,7 @@ import {
   User
 } from "./index";
 import { Deployment } from "./models/deployment";
-import { WorkerLogLevel } from "@webda/workout";
+import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
 
 export interface ServiceConstructor<T extends Service> {
   new (webda: Core, name: string, params: any): T;
@@ -108,7 +110,9 @@ export class Application {
     "webda/asyncevents": EventService,
     "webda/resourceservice": ResourceService,
     "webda/memoryqueue": MemoryQueue,
-    "webda/configurationservice": ConfigurationService
+    "webda/configurationservice": ConfigurationService,
+    "webda/consolelogger": ConsoleLoggerService,
+    "webda/memorylogger": MemoryLoggerService
   };
 
   /**
@@ -132,7 +136,7 @@ export class Application {
   /**
    * Class Logger
    */
-  protected logger: Logger;
+  protected logger: WorkerOutput;
   /**
    * Contains package.json of application
    */
@@ -147,8 +151,8 @@ export class Application {
    * @param {string} fileOrFolder to load Webda Application from
    * @param {Logger} logger
    */
-  constructor(file: string, logger: Logger = undefined) {
-    this.logger = logger;
+  constructor(file: string, logger: WorkerOutput = undefined) {
+    this.logger = logger || new WorkerOutput();
     if (!fs.existsSync(file)) {
       throw new Error(`Not a webda application folder or webda.config.json file: ${file}`);
     }
@@ -273,6 +277,10 @@ export class Application {
     if (this.logger) {
       this.logger.log(level, ...args);
     }
+  }
+
+  getWorkerOutput() {
+    return this.logger;
   }
 
   getAppPath(subpath: string = undefined) {

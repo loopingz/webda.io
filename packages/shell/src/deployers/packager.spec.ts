@@ -7,6 +7,7 @@ import * as unzip from "unzipper";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaSampleApplication } from "../index.spec";
 import { Packager } from "./packager";
+import { WorkerOutput } from "@webda/workout";
 
 @suite
 class PackagerTest {
@@ -20,7 +21,11 @@ class PackagerTest {
     );
 
     let deployer = new Packager(
-      new DeploymentManager(WebdaSampleApplication.getAppPath(), "Production"),
+      new DeploymentManager(
+        new WorkerOutput(),
+        WebdaSampleApplication.getAppPath(),
+        "Production"
+      ),
       {
         name: "deployer",
         type: "Packager",

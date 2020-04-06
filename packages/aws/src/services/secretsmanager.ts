@@ -1,13 +1,12 @@
 import { ConfigurationProvider, ModdaDefinition, Service } from "@webda/core";
-import { AWSMixIn } from "./aws-mixin";
+import { GetAWS } from "./aws-mixin";
 
-class DummyService extends Service {}
-export default class AWSSecretsManager extends AWSMixIn(DummyService) implements ConfigurationProvider {
+export default class AWSSecretsManager extends Service implements ConfigurationProvider {
   _client: any;
 
   async init(): Promise<void> {
     await super.init();
-    this._client = new (this._getAWS(this._params).SecretsManager)({
+    this._client = new (GetAWS(this._params).SecretsManager)({
       endpoint: this._params.endpoint
     });
   }
@@ -84,4 +83,3 @@ export default class AWSSecretsManager extends AWSMixIn(DummyService) implements
 }
 
 export { AWSSecretsManager };
-

@@ -36,11 +36,11 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
 
   @test
   async basic() {
-    this.webda.log("TEST", "Plop 0", "Test");
-    this.webda.log("TEST2", "Plop 1", "Test");
-    this.webda.log("TEST2", "Plop 2", "Test");
-    this.webda.log("TEST2", "Plop 3", "Test");
-    this.webda.log("TEST2", "Plop 4", "Test");
+    this.webda.log("INFO", "Plop 0", "Test");
+    this.webda.log("DEBUG", "Plop 1", "Test");
+    this.webda.log("DEBUG", "Plop 2", "Test");
+    this.webda.log("DEBUG", "Plop 3", "Test");
+    this.webda.log("DEBUG", "Plop 4", "Test");
     await this.webda.emitSync("Webda.Result");
     let res = await this.service._cloudwatch
       .describeLogStreams({
@@ -55,8 +55,8 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
   async secondRun() {
     // Update config to use the stepper
     this.service._params.singlePush = true;
-    this.webda.log("TEST", "Plop 0", "Test");
-    this.webda.log("TEST2", "Plop 1", "Test");
+    this.webda.log("INFO", "Plop 0", "Test");
+    this.webda.log("DEBUG", "Plop 1", "Test");
     await this.sleep(1000);
     let res = await this.service._cloudwatch
       .describeLogStreams({
@@ -65,9 +65,9 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
       .promise();
     assert.equal(res.logStreams.length, 1);
     assert.notEqual(res.logStreams[0].lastEventTimestamp, undefined);
-    this.webda.log("TEST2", "Plop 2", "Test");
-    this.webda.log("TEST2", "Plop 3", "Test");
-    this.webda.log("TEST2", "Plop 4", "Test");
+    this.webda.log("DEBUG", "Plop 2", "Test");
+    this.webda.log("DEBUG", "Plop 3", "Test");
+    this.webda.log("DEBUG", "Plop 4", "Test");
     await this.webda.emitSync("Webda.Result");
     res = await this.service._cloudwatch
       .describeLogStreams({

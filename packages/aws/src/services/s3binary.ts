@@ -2,7 +2,7 @@
 // Load the AWS SDK for Node.js
 import { Binary, Context, ModdaDefinition, _extend } from "@webda/core";
 import { CloudFormationContributor } from ".";
-import { AWSMixIn } from "./aws-mixin";
+import { GetAWS } from "./aws-mixin";
 
 /**
  * S3Binary handles the storage of binary on a S3 bucket
@@ -20,7 +20,7 @@ import { AWSMixIn } from "./aws-mixin";
  *
  * See Binary the general interface
  */
-export default class S3Binary extends AWSMixIn(Binary) implements CloudFormationContributor {
+export default class S3Binary extends Binary implements CloudFormationContributor {
   AWS: any;
   _s3: any;
 
@@ -30,7 +30,7 @@ export default class S3Binary extends AWSMixIn(Binary) implements CloudFormation
     if (params.bucket === undefined) {
       throw new Error("Need to define a bucket at least");
     }
-    this.AWS = this._getAWS(params);
+    this.AWS = GetAWS(params);
   }
 
   async init(): Promise<void> {
@@ -367,7 +367,7 @@ export default class S3Binary extends AWSMixIn(Binary) implements CloudFormation
     if (this._params.region) {
       params.region = this._params.region;
     }
-    var s3 = new (this._getAWS(params).S3)({
+    var s3 = new (GetAWS(params).S3)({
       endpoint: this._params.endpoint,
       s3ForcePathStyle: this._params.s3ForcePathStyle || false
     });

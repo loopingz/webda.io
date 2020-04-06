@@ -1,18 +1,10 @@
 "use strict";
 import { ModdaDefinition, Queue } from "@webda/core";
 import { CloudFormationContributor } from ".";
-import { AWSMixIn } from "./aws-mixin";
+import { GetAWS } from "./aws-mixin";
 
-export class DummyQueue extends Queue {
-  async deleteMessage(receipt: any) {}
-  async receiveMessage() {}
-  async sendMessage(params: any) {}
-  async size(): Promise<number> {
-    return 0;
-  }
-}
 // TODO Readd AWS Mixin
-export default class SQSQueue extends AWSMixIn(DummyQueue) implements CloudFormationContributor {
+export default class SQSQueue extends Queue implements CloudFormationContributor {
   sqs: any;
 
   normalizeParams() {
@@ -21,7 +13,7 @@ export default class SQSQueue extends AWSMixIn(DummyQueue) implements CloudForma
 
   async init(): Promise<void> {
     await super.init();
-    this.sqs = new (this._getAWS(this._params).SQS)({
+    this.sqs = new (GetAWS(this._params).SQS)({
       endpoint: this._params.endpoint
     });
   }

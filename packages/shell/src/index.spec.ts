@@ -3,6 +3,7 @@ import * as assert from "assert";
 import * as fs from "fs-extra";
 import * as fetch from "node-fetch";
 import * as path from "path";
+import { WorkerOutput } from "@webda/workout";
 
 class TestApplication extends Application {
   clean() {

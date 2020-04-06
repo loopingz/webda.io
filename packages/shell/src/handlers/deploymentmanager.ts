@@ -24,7 +24,12 @@ export class DeploymentManager {
   webda: Core;
   output: WorkerOutput;
 
-  constructor(folder: string, deploymentName: string, streams = undefined) {
+  constructor(
+    output: WorkerOutput,
+    folder: string,
+    deploymentName: string,
+    streams = undefined
+  ) {
     this.application = new Application(folder);
     this.application.compile();
     this.application.setCurrentDeployment(deploymentName);
@@ -36,6 +41,7 @@ export class DeploymentManager {
     let deployment = this.application.getDeployment(deploymentName);
     this.webda = new Core(this.application);
     this.deployersDefinition = <any>this.application.getDeployers();
+    this.output = output;
 
     if (streams) {
       this.streams = streams;

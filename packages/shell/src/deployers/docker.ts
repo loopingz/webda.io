@@ -154,7 +154,7 @@ export class Docker extends Deployer<DockerResources> {
     var cwd = process.cwd();
     var packageInfo = require(cwd + "/package.json");
     var dockerfile = `
-FROM node:latest
+FROM node:lts-alpine
 MAINTAINER docker@webda.io
 EXPOSE 18080
 

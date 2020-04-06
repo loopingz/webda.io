@@ -1,9 +1,9 @@
-import { Logger, ModdaDefinition } from "@webda/core";
+import { LoggerService, ModdaDefinition } from "@webda/core";
 import * as uuid from "uuid";
 import { CloudFormationContributor } from ".";
 import { AWSMixIn } from "./aws-mixin";
 
-export class FakeLogger extends Logger {
+export class FakeLogger extends LoggerService {
   _log(level, ...args): void {}
 }
 

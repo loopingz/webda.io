@@ -6,6 +6,7 @@ import { Deployer } from "../deployers/deployer";
 import { Docker } from "../deployers/docker";
 import { Packager } from "../deployers/packager";
 import * as yargs from "yargs";
+import { WorkerOutput } from "@webda/workout";
 
 export interface DeployerConstructor {
   new (manager: DeploymentManager, resources: any): Deployer<any>;
@@ -21,6 +22,7 @@ export class DeploymentManager {
     err;
   };
   webda: Core;
+  output: WorkerOutput;
 
   constructor(folder: string, deploymentName: string, streams = undefined) {
     this.application = new Application(folder);
@@ -42,8 +44,8 @@ export class DeploymentManager {
     }
     deployment.units.forEach(d => {
       if (!this.deployersDefinition[d.type.toLowerCase()]) {
-        this.webda.log(
-          "CONSOLE",
+        this.output.log(
+          "ERROR",
           "Cannot find deployer",
           d.type,
           "known types:",
@@ -56,6 +58,18 @@ export class DeploymentManager {
   }
 
   /**
+   *
+   * @param output
+   */
+  setOutput(output: WorkerOutput) {
+    this.output = output;
+  }
+
+  getOutput(): WorkerOutput {
+    return this.output;
+  }
+
+  /**
    * Command line executor
    * @param argv
    */
@@ -65,7 +79,7 @@ export class DeploymentManager {
     if (deployerName === undefined) {
       deployers = Object.keys(this.deployers);
     } else if (!this.deployers[deployerName]) {
-      console.log("Unknown deployer", deployerName);
+      this.output.log("ERROR", "Unknown deployer", deployerName);
       return 1;
     }
     let args = argv._.slice(2);

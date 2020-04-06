@@ -1,6 +1,6 @@
 "use strict";
 import events = require("events");
-import { Context, Core } from "../index";
+import { Context, Core, Logger } from "../index";
 
 /**
  * Use this object for representing a service in the application
@@ -19,6 +19,7 @@ abstract class Service extends events.EventEmitter {
   _createException: string;
   _initTime: number;
   _initException: any = undefined;
+  protected logger: Logger;
   /**
    *
    *
@@ -29,6 +30,7 @@ abstract class Service extends events.EventEmitter {
    */
   constructor(webda: Core, name: string, params: any) {
     super();
+    this.logger = webda ? webda.getLogger(this) : undefined;
     this._initTime = new Date().getTime();
     this._webda = webda;
     this._name = name;
@@ -195,7 +197,7 @@ abstract class Service extends events.EventEmitter {
   }
 
   log(level, ...args) {
-    this._webda.log(level, ...args);
+    this.logger.log(level, ...args);
   }
 }
 

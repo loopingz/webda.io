@@ -7,9 +7,10 @@ import * as jsonpath from "jsonpath";
 import { OpenAPIV3 } from "openapi-types";
 import * as vm from "vm";
 import { Application } from "./application";
-import { ConsoleLogger, Context, HttpContext, Logger, Service, Store } from "./index";
+import { Context, HttpContext, Logger, Service, Store } from "./index";
 import { CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { Router } from "./router";
+import { WorkerOutput, WorkerLogLevel } from "@webda/workout";
 /**
  * @hidden
  */
@@ -218,17 +219,12 @@ export class Core extends events.EventEmitter {
 
   protected _configFile: string;
   protected _initPromise: Promise<void>;
-  /**
-   * Loggers registry
-   * @hidden
-   */
-  protected _loggers: Logger[] = [];
   protected _initTime: number;
   /**
    * Console logger
    * @hidden
    */
-  protected _logger: Logger;
+  protected logger: Logger;
   /**
    * CORS Filter registry
    *
@@ -236,6 +232,7 @@ export class Core extends events.EventEmitter {
    * See [[CorsFilter]]
    */
   protected _requestFilters: RequestFilter[] = [];
+  private workerOutput: WorkerOutput;
 
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
@@ -243,15 +240,10 @@ export class Core extends events.EventEmitter {
   constructor(application: Application) {
     /** @ignore */
     super();
+    this.workerOutput = new WorkerOutput();
+    this.logger = new Logger(this.workerOutput, "@webda/core/lib/core.js");
     this.application = application;
     this._initTime = new Date().getTime();
-    this._logger = new ConsoleLogger(this, "coreLogger", {
-      logLevel: "WARN",
-      logLevels: "ERROR,WARN,INFO,DEBUG,TRACE"
-    });
-    // We enforce this normalization
-    this._logger.normalizeParams();
-    this._loggers.push(this._logger);
     // Schema validations
     this._ajv = Ajv();
     this._ajvSchemas = {};
@@ -276,10 +268,6 @@ export class Core extends events.EventEmitter {
 
   getAppPath(): string {
     return this.appPath;
-  }
-
-  setConsoleLogger(logger: Logger) {
-    this._logger = logger;
   }
 
   /**
@@ -314,6 +302,13 @@ export class Core extends events.EventEmitter {
    */
   getApplication() {
     return this.application;
+  }
+
+  /**
+   * Get WorkerOutput
+   */
+  getWorkerOutput() {
+    return this.workerOutput;
   }
   /**
    * Init Webda
@@ -420,6 +415,25 @@ export class Core extends events.EventEmitter {
       return ["en-GB"];
     }
     return this.configuration.parameters.locales;
+  }
+
+  /**
+   * Get a Logger for a class
+   * @param clazz
+   */
+  getLogger(clazz: string | Service) {
+    let className = clazz;
+    if (typeof clazz !== "string") {
+      let definitions = this.application.getServices();
+      for (let i in definitions) {
+        if (definitions[i] === clazz.constructor) {
+          className = i.replace(/\//g, ".") + ".";
+          break;
+        }
+      }
+      className += (<Service>clazz).getName();
+    }
+    return new Logger(this.workerOutput, <string>className);
   }
 
   /**
@@ -698,9 +712,6 @@ export class Core extends events.EventEmitter {
       try {
         this.log("TRACE", "Constructing service", service);
         this.services[service.toLowerCase()] = new serviceConstructor(this, service, this.getServiceParams(service));
-        if (this.services[service.toLowerCase()] instanceof Logger) {
-          this._loggers.push(<Logger>this.services[service.toLowerCase()]);
-        }
       } catch (err) {
         this.log("ERROR", "Cannot create service", service, err);
         // @ts-ignore
@@ -837,10 +848,8 @@ export class Core extends events.EventEmitter {
    * @param level
    * @param args
    */
-  public log(level, ...args): void {
-    this._loggers.forEach((logger: Logger) => {
-      logger.log(level, ...args);
-    });
+  public log(level: WorkerLogLevel, ...args): void {
+    this.logger.log(level, ...args);
   }
 
   /**

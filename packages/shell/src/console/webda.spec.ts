@@ -9,33 +9,37 @@ import * as YAML from "yamljs";
 import { ServerStatus } from "../handlers/http";
 import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import { DebuggerStatus, WebdaConsole } from "./webda";
+import { WorkerMessage, WorkerOutput } from "@webda/workout";
 
-class DebugLogger extends Webda.MemoryLogger {
-  log(level: any, ...args) {
-    super.log(level, ...args);
-    if (this._params.displayLog) {
-      console.log(level, ...args);
-    }
+class DebugLogger {
+  logs: any[];
+
+  constructor(worker: WorkerOutput) {
+    worker.on("message", (msg: WorkerMessage) => {
+      if (msg.type !== "log") {
+        return;
+      }
+      this.logs.push(msg.log);
+    });
+  }
+
+  getLogs() {
+    return this.logs;
   }
 }
 
 @suite
 class ConsoleTest {
-  logger: Webda.MemoryLogger;
+  logger: DebugLogger;
   async commandLine(
     line,
     addAppPath: boolean = true,
     displayLog: boolean = false
   ) {
-    this.logger = new DebugLogger(undefined, "MemoryLogger", {
-      logLevels: "CONSOLE,ERROR,WARN,INFO,DEBUG,TRACE",
-      logLevel: "WARN",
-      displayLog
-    });
+    this.logger = new DebugLogger(WebdaConsole.webda.getWorkerOutput());
     if (addAppPath) {
       line = `--appPath ${WebdaSampleApplication.getAppPath()} ` + line;
     }
-    WebdaConsole.logger = this.logger;
     await WebdaConsole.handleCommand(line.split(" "));
   }
 

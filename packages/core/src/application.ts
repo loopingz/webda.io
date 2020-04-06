@@ -9,7 +9,6 @@ import {
   Configuration,
   ConfigurationService,
   ConfigurationV1,
-  ConsoleLogger,
   Context,
   Core,
   CoreModel,
@@ -21,7 +20,6 @@ import {
   Ident,
   Logger,
   Mailer,
-  MemoryLogger,
   MemoryQueue,
   MemoryStore,
   ModdaDefinition,
@@ -33,6 +31,7 @@ import {
   User
 } from "./index";
 import { Deployment } from "./models/deployment";
+import { WorkerLogLevel } from "@webda/workout";
 
 export interface ServiceConstructor<T extends Service> {
   new (webda: Core, name: string, params: any): T;
@@ -109,8 +108,6 @@ export class Application {
     "webda/asyncevents": EventService,
     "webda/resourceservice": ResourceService,
     "webda/memoryqueue": MemoryQueue,
-    "webda/memorylogger": MemoryLogger,
-    "webda/consolelogger": ConsoleLogger,
     "webda/configurationservice": ConfigurationService
   };
 
@@ -272,7 +269,7 @@ export class Application {
     return newConfig;
   }
 
-  log(level: string, ...args) {
+  log(level: WorkerLogLevel, ...args) {
     if (this.logger) {
       this.logger.log(level, ...args);
     }

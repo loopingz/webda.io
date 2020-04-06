@@ -32,6 +32,7 @@
     "@aws-cdk/aws-iam": "^1.16.2",
     "@aws-cdk/core": "^1.16.2",
     "@webda/core": "^1.0.0-beta.1",
+    "@webda/workout": "^1.0.0-beta.1",
     "archiver": "^1.0.0",
     "aws-sdk": "^2.223.1",
     "body-parser": ">=1.13.3",

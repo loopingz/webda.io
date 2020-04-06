@@ -2,10 +2,6 @@
 export { MemoryCache as Cache } from "ts-method-cache";
 export * from "./application";
 export * from "./core";
-// Loggers
-export * from "./loggers/consolelogger";
-export * from "./loggers/logger";
-export * from "./loggers/memorylogger";
 // Models
 export * from "./models/coremodel";
 export * from "./models/ident";
@@ -35,3 +31,4 @@ export * from "./stores/store";
 export * from "./utils/context";
 export * from "./utils/cookie";
 export * from "./utils/json";
+export * from "./utils/logger";

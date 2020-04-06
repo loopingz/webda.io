@@ -1,5 +1,5 @@
 "use strict";
-import { Application, ConsoleLogger, Logger } from "@webda/core";
+import { Application, Logger } from "@webda/core";
 import { ChildProcess, spawn } from "child_process";
 import * as colors from "colors";
 import * as crypto from "crypto";
@@ -9,6 +9,7 @@ import * as YAML from "yamljs";
 import * as yargs from "yargs";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";
+import { WorkerOutput, WorkerLogLevel } from "@webda/workout";
 
 export enum DebuggerStatus {
   Stopped = "STOPPED",
@@ -21,7 +22,7 @@ export default class WebdaConsole {
   static webda: WebdaServer;
   static serverProcess: ChildProcess;
   static tscCompiler: ChildProcess;
-  static logger: Logger = new ConsoleLogger(undefined, "ConsoleLogger", {});
+  static logger: Logger;
   static app: Application;
   static debuggerStatus: DebuggerStatus = DebuggerStatus.Stopped;
 
@@ -373,6 +374,9 @@ export default class WebdaConsole {
    */
   static async deploy(argv: yargs.Arguments): Promise<number> {
     let manager = new DeploymentManager(process.cwd(), argv.deployment);
+    let worker = new WorkerOutput();
+
+    manager.setOutput(worker);
     argv._ = argv._.slice(1);
     return await manager.commandLine(argv);
   }
@@ -421,8 +425,6 @@ export default class WebdaConsole {
     if (argv["logLevel"]) {
       process.env["WEBDA_LOG_LEVEL"] = argv["logLevel"];
     }
-    this.logger.normalizeParams();
-    await this.logger.init();
   }
 
   /**
@@ -613,11 +615,11 @@ export default class WebdaConsole {
   }
 
   static output(...args) {
-    this.log("CONSOLE", ...args);
+    this.log("INFO", ...args);
   }
 
-  static log(level: string, ...args) {
-    this.logger.log(level, ...args);
+  static log(level: WorkerLogLevel, ...args) {
+    WebdaConsole.logger.log(level, ...args);
   }
 }
 

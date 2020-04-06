@@ -22,11 +22,11 @@ export class WebdaServer extends Webda {
   }
 
   logRequest(...args) {
-    this.log("REQUEST", ...args);
+    this.logger.logWithContext("INFO", { type: "REQUEST" }, ...args);
   }
 
   output(...args) {
-    this.log("CONSOLE", ...args);
+    this.log("INFO", ...args);
   }
 
   /**

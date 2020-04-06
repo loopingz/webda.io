@@ -1,6 +1,15 @@
 import { EventEmitter } from "events";
 import { v4 as uuidv4 } from "uuid";
 
+export interface Logger {
+  log: (level: WorkerLogLevel, ...args) => void;
+  logGroupOpen: (name: string) => void;
+  logGroupClose: () => void;
+  logProgressStart: (uid: string, total: number, title: string) => void;
+  logProgressIncrement: (inc: number, uid: string) => void;
+  logProgressUpdate: (current: number, uid: string, title: string) => void;
+}
+
 /**
  * Represents a progress indicator
  */
@@ -61,7 +70,7 @@ class WorkerInputEmitter extends WorkerInput {
     return {
       uuid: this.uuid,
       title: this.title,
-      validators: this.validators,
+      validators: this.validators
     };
   }
 }
@@ -74,7 +83,7 @@ export enum WorkerLogLevelEnum {
   WARN,
   INFO,
   DEBUG,
-  TRACE,
+  TRACE
 }
 
 /**
@@ -256,7 +265,15 @@ export class WorkerOutput extends EventEmitter {
    * @param args anything you want to log
    */
   log(level: WorkerLogLevel, ...args) {
-    this.emitMessage("log", { log: new WorkerLog(level, ...args) });
+    this.logWithContext(level, undefined, ...args);
+  }
+
+  /**
+   *
+   * @param interactive
+   */
+  logWithContext(level: WorkerLogLevel, context: any, ...args) {
+    this.emitMessage("log", { context, log: new WorkerLog(level, ...args) });
   }
 
   /**
@@ -300,7 +317,7 @@ export class WorkerOutput extends EventEmitter {
     });
 
     this.emitMessage("input.request", {
-      input: this.inputs[uuid].toMessage(),
+      input: this.inputs[uuid].toMessage()
     });
     if (waitFor) {
       return this.waitForInput(uuid);

@@ -389,6 +389,13 @@ export class Application {
   }
 
   /**
+   * Get current deployment name
+   */
+  getCurrentDeployment() {
+    return this.currentDeployment;
+  }
+
+  /**
    * Return if the application is a typescript application
    */
   isTypescript() {

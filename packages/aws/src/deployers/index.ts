@@ -1,5 +1,5 @@
 import { Cache } from "@webda/core";
-import { Deployer, DeploymentManager, DeployerResources } from "@webda/shell";
+import { Deployer, DeployerResources, DeploymentManager } from "@webda/shell";
 import * as AWS from "aws-sdk";
 import { ACM } from "aws-sdk";
 import * as bluebird from "bluebird";
@@ -181,6 +181,9 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     let acm: AWS.ACM = new this.AWS.ACM({
       endpoint: this.resources.endpoints.S3
     });
+    if (domain.endsWith(".")) {
+      domain = domain.substr(0, domain.length - 1);
+    }
     let params = {
       DomainName: domain,
       DomainValidationOptions: [
@@ -196,7 +199,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     let cert: ACM.CertificateDetail = <any>await this.waitFor(
       async resolve => {
         let res = await acm.describeCertificate({ CertificateArn: certificate.CertificateArn }).promise();
-        if (res.Certificate.DomainValidationOptions[0].ResourceRecord) {
+        if (res.Certificate.DomainValidationOptions && res.Certificate.DomainValidationOptions[0].ResourceRecord) {
           resolve(res.Certificate);
           return true;
         }
@@ -215,7 +218,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       console.log("Need to validate certificate", cert.CertificateArn);
       await this.createDNSEntry(record.Name, "CNAME", record.Value, zone);
       // Waiting for certificate validation
-      await this.waitFor(
+      cert = await this.waitFor(
         async (resolve, reject) => {
           let res = await acm
             .describeCertificate({
@@ -237,6 +240,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       );
     }
     //
+    return cert;
   }
 
   async waitFor(callback, delay: number, retries: number, title: string): Promise<any> {
@@ -246,7 +250,9 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
         if (title) {
           console.log("[" + tries + "/" + retries + "]", title);
         }
-        await callback(mainResolve, mainReject);
+        if (await callback(mainResolve, mainReject)) {
+          return;
+        }
         await new Promise(resolve => setTimeout(resolve, delay));
       }
       mainReject("Timeout while waiting for " + title);

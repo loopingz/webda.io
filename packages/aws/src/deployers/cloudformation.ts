@@ -1,7 +1,7 @@
 import * as path from "path";
+import * as YAML from "yaml";
 import { AWSDeployer, AWSDeployerResources } from ".";
 import { CloudFormationContributor } from "../services";
-import * as YAML from "yaml";
 
 interface CloudFormationDeployerResources extends AWSDeployerResources {
   repositoryNamespace: string;
@@ -26,6 +26,10 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   };
   APIGatewayDomain?: {
     DomainName: string;
+    CertificateArn?: string;
+    EndpointConfiguration?: {
+      Types: string[];
+    };
   };
   APIGatewayBasePathMapping?: {
     BasePath?: string;
@@ -70,6 +74,7 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   };
 
   Fargate?: {};
+  // Workers Image
 
   // Deploy Static website
   Statics?: [
@@ -124,7 +129,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         this.resources.Policy = this.resources.Policy || {};
       }
       this.resources.Role.AssumeRolePolicyDocument = this.resources.Role.AssumeRolePolicyDocument || {
-        Statement: []
+        Statement: [],
       };
       this.resources.Role.AssumeRolePolicyDocument.Version =
         this.resources.Role.AssumeRolePolicyDocument.Version || "2012-10-17";
@@ -144,11 +149,28 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       this.resources.APIGateway.Name = this.resources.APIGateway.Name || this.resources.name;
     }
 
+    if (this.resources.APIGatewayStage) {
+      this.resources.APIGatewayStage.StageName =
+        // @ts-ignore
+        this.resources.APIGatewayStage.StageName || this.getApplication().currentDeployment;
+    }
+    // Activate Domain
+    if (this.resources.APIGatewayDomain) {
+      // Enable BasePathMapping if does not exist
+      this.resources.APIGatewayBasePathMapping = this.resources.APIGatewayBasePathMapping || {};
+    }
+
     // Default BasePathMapping
     if (this.resources.APIGatewayBasePathMapping) {
-      this.resources.APIGatewayBasePathMapping.BasePath = this.resources.APIGatewayBasePathMapping.BasePath || "/";
+      this.resources.APIGatewayBasePathMapping.BasePath = this.resources.APIGatewayBasePathMapping.BasePath || "";
       this.resources.APIGatewayBasePathMapping.DomainName =
         this.resources.APIGatewayBasePathMapping.DomainName || this.resources.APIGatewayDomain.DomainName;
+      if (this.resources.APIGatewayBasePathMapping.DomainName.endsWith(".")) {
+        this.resources.APIGatewayBasePathMapping.DomainName = this.resources.APIGatewayBasePathMapping.DomainName.substr(
+          0,
+          this.resources.APIGatewayBasePathMapping.DomainName.length - 1
+        );
+      }
     }
   }
 
@@ -157,7 +179,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
     this.template = {
       Description,
-      Resources: {}
+      Resources: {},
     };
     this.result = {};
 
@@ -180,7 +202,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     let res = this.getStringified(this.template, this.resources.FileName);
     this.result.CloudFormation = {
       Bucket: this.resources.AssetsBucket,
-      Key: res.key
+      Key: res.key,
     };
     this.result.CloudFormationContent = res.src.toString();
     await this.putFilesOnBucket(this.resources.AssetsBucket, [res]);
@@ -190,7 +212,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     let cloudformation = new this.AWS.CloudFormation();
     await cloudformation.deleteStack({ StackName: this.resources.StackName }).promise();
     return this.waitFor(
-      async resolve => {
+      async (resolve) => {
         try {
           await cloudformation.describeStacks({ StackName: this.resources.StackName }).promise();
         } catch (err) {
@@ -211,7 +233,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       ChangeSetName: "WebdaCloudFormationDeployer",
       Capabilities: ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM"],
       Tags: this.getDefaultTags("StackOptions"),
-      TemplateURL: `https://${this.result.CloudFormation.Bucket}.s3.amazonaws.com/${this.result.CloudFormation.Key}`
+      TemplateURL: `https://${this.result.CloudFormation.Bucket}.s3.amazonaws.com/${this.result.CloudFormation.Key}`,
     };
     let changeSet;
     try {
@@ -225,10 +247,10 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         changeSet = await cloudformation.createChangeSet({ ...changeSetParams, ChangeSetType: "CREATE" }).promise();
       } else if (err.message.endsWith(" state and can not be updated.")) {
         await this.waitFor(
-          async resolve => {
+          async (resolve) => {
             let res = await cloudformation
               .describeStacks({
-                StackName: this.resources.StackName
+                StackName: this.resources.StackName,
               })
               .promise();
             if (res.Stacks.length === 0) {
@@ -256,7 +278,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       }
     }
     let changes = await this.waitFor(
-      async resolve => {
+      async (resolve) => {
         let changes = await cloudformation
           .describeChangeSet({ ChangeSetName: "WebdaCloudFormationDeployer", StackName: this.resources.StackName })
           .promise();
@@ -269,7 +291,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       "Waiting for ChangeSet to be ready..."
     );
     console.log(changes);
-    changes.Changes.filter(i => i.Type === "Resource").forEach(({ ResourceChange: info }) =>
+    changes.Changes.filter((i) => i.Type === "Resource").forEach(({ ResourceChange: info }) =>
       console.log(`${info.Action.padEnd(8)} ${info.ResourceType.padEnd(30)} ${info.LogicalResourceId}`)
     );
     console.log("Executing Change Set");
@@ -301,13 +323,30 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   getDefaultTags(key: string) {
     let Tags = this.resources[key] ? this.resources[key].Tags || [] : [];
     if (this.resources.Tags) {
-      let TagKeys = Tags.map(t => t.Key);
-      Tags.push(...this.resources.Tags.filter(t => TagKeys.indexOf(t.Key) < 0));
+      let TagKeys = Tags.map((t) => t.Key);
+      Tags.push(...this.resources.Tags.filter((t) => TagKeys.indexOf(t.Key) < 0));
     }
     return Tags;
   }
 
-  completeOpenAPI(openapi) {
+  async completeOpenAPI(openapi) {
+    openapi.info.title = this.resources.APIGateway.Name;
+    let info = await this.getAWSIdentity();
+    let arn = `arn:aws:lambda:${this.AWS.config.region}:${info.Account}:function:${this.resources.Lambda.FunctionName}`;
+    for (let p in openapi.paths) {
+      // TODO We should reenable mockCors once found the issue of
+      // Invalid mapping expression parameter specified: method.response.header.Access-Control-Allow-Credentials
+      if (!openapi.paths[p]["options"]) {
+        openapi.paths[p]["options"] = {};
+      }
+      for (let m in openapi.paths[p]) {
+        openapi.paths[p][m]["x-amazon-apigateway-integration"] = {
+          httpMethod: "POST",
+          uri: `arn:aws:apigateway:${this.AWS.config.region}:lambda:path/2015-03-31/functions/${arn}/invocations`,
+          type: "aws_proxy",
+        };
+      }
+    }
     return openapi;
   }
 
@@ -330,14 +369,13 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     }
     return {
       key,
-      src
+      src,
     };
   }
 
   async APIGateway() {
     // Get openapi
-    let openapi = this.completeOpenAPI(this.manager.getWebda().exportOpenAPI(false));
-    this.resources.Format;
+    let openapi = await this.completeOpenAPI(this.manager.getWebda().exportOpenAPI(false));
     let openapiS3Object = this.getStringified(openapi, this.resources.OpenAPIFileName);
     this.putFilesOnBucket(this.resources.AssetsBucket, [openapiS3Object]);
     this.template.Resources.APIGateway = {
@@ -347,9 +385,9 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         Tags: this.getDefaultTags("APIGateway"),
         BodyS3Location: {
           Bucket: this.resources.AssetsBucket,
-          Key: openapiS3Object.key
-        }
-      }
+          Key: openapiS3Object.key,
+        },
+      },
     };
     this.template.Resources.LambdaApiGatewayPermission = {
       Type: "AWS::Lambda::Permission",
@@ -364,18 +402,18 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
               "arn:aws:execute-api",
               { Ref: "AWS::Region" },
               { Ref: "AWS::AccountId" },
-              { "Fn::Join": ["", [{ Ref: "APIGateway" }, "/*"]] }
-            ]
-          ]
-        }
-      }
+              { "Fn::Join": ["", [{ Ref: "APIGateway" }, "/*"]] },
+            ],
+          ],
+        },
+      },
     };
     this.template.Resources.APIGatewayDeployment = {
       Type: "AWS::ApiGateway::Deployment",
       Properties: {
         ...this.resources.APIGatewayDeployment,
-        RestApiId: { Ref: "APIGateway" }
-      }
+        RestApiId: { Ref: "APIGateway" },
+      },
     };
     // SourceArn: "arn:aws:execute-api:" + this.AWS.config.region + ":" + awsId + ":" + this.restApiId + "/*"
     this.template.Resources.APIGatewayStage = {
@@ -384,29 +422,49 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         ...this.resources.APIGatewayStage,
         Tags: this.getDefaultTags("APIGatewayStage"),
         DeploymentId: { Ref: "APIGatewayDeployment" },
-        RestApiId: { Ref: "APIGateway" }
-      }
+        RestApiId: { Ref: "APIGateway" },
+      },
     };
   }
 
   async APIGatewayDomain() {
+    let region;
+    if (this.resources.APIGatewayDomain.EndpointConfiguration) {
+      if (this.resources.APIGatewayDomain.EndpointConfiguration.Types.indexOf("EDGE") >= 0) {
+        region = "us-east-1";
+      }
+    }
+    if (!this.resources.APIGatewayDomain.CertificateArn) {
+      this.resources.APIGatewayDomain.CertificateArn = (
+        await this.getCertificate(this.resources.APIGatewayDomain.DomainName, region)
+      ).CertificateArn;
+    }
+
     this.template.Resources.APIGatewayDomain = {
       Type: "AWS::ApiGateway::DomainName",
       Properties: {
         ...this.resources.APIGatewayDomain,
-        Tags: this.getDefaultTags("APIGatewayDomain")
-      }
+        Tags: this.getDefaultTags("APIGatewayDomain"),
+      },
     };
+    console.log({
+      Type: "AWS::ApiGateway::BasePathMapping",
+      Properties: {
+        ...this.resources.APIGatewayBasePathMapping,
+        DomainName: { Ref: "APIGatewayDomain" },
+        RestApiId: { Ref: "APIGateway" },
+        Stage: { Ref: "APIGatewayStage" },
+      },
+    });
     this.template.Resources.APIGatewayBasePathMapping = {
       Type: "AWS::ApiGateway::BasePathMapping",
       Properties: {
-        ...this.resources.APIGatewayBasePathMapping
-      }
+        ...this.resources.APIGatewayBasePathMapping,
+        DomainName: { Ref: "APIGatewayDomain" },
+        RestApiId: { Ref: "APIGateway" },
+        Stage: { Ref: "APIGatewayStage" },
+      },
     };
-  }
-
-  addPolicyStatement(...statements) {
-    //this.resources.Role.AssumeRolePolicyDocument
   }
 
   async Policy() {
@@ -419,8 +477,8 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       Type: "AWS::IAM::Policy",
       Properties: {
         ...this.resources.Policy,
-        PolicyDocument
-      }
+        PolicyDocument,
+      },
     };
   }
 
@@ -436,8 +494,8 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       Properties: {
         ...this.resources.Role,
         AssumeRolePolicyDocument,
-        Tags: this.getDefaultTags("Role")
-      }
+        Tags: this.getDefaultTags("Role"),
+      },
     };
   }
 
@@ -446,19 +504,19 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     //const Code = await this.generateLambdaPackage();
     const Code = {
       S3Bucket: "webda-sample-app-artifacts",
-      S3Key: "lambda-1.0.0.zip"
+      S3Key: "lambda-1.0.0.zip",
     };
     this.addAssumeRolePolicyStatement({
       Effect: "Allow",
       Principal: { Service: "lambda.amazonaws.com" },
-      Action: "sts:AssumeRole"
+      Action: "sts:AssumeRole",
     });
     this.template.Resources.Lambda = {
       Type: "AWS::Lambda::Function",
       Properties: {
         ...this.resources.Lambda,
-        Code
-      }
+        Code,
+      },
     };
   }
 
@@ -466,19 +524,20 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     this.addAssumeRolePolicyStatement({
       Effect: "Allow",
       Principal: { Service: "ecs-tasks.amazonaws.com" },
-      Action: "sts:AssumeRole"
+      Action: "sts:AssumeRole",
     });
+    /*
     this.addPolicyStatement({
       Sid: "WebdaECRAuth",
       Effect: "Allow",
       Action: ["ecr:GetAuthorizationToken"],
-      Resource: ["*"]
+      Resource: ["*"],
     });
     let statement = {
       Sid: "WebdaPullImage",
       Effect: "Allow",
       Action: ["ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage"],
-      Resource: []
+      Resource: [],
     };
     let me = await this.getAWSIdentity();
     let resourceType =
@@ -488,27 +547,28 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       statement.Resource.push(resourceType + i);
     }
     this.addPolicyStatement(statement);
+    */
   }
 
   async generateLambdaPackage(): Promise<{ S3Bucket: string; S3Key: string }> {
     const { AssetsBucket: S3Bucket, ZipPath, AssetsPrefix = "" } = this.resources;
     let result: { S3Bucket: string; S3Key: string } = {
       S3Bucket,
-      S3Key: AssetsPrefix + path.basename(ZipPath)
+      S3Key: AssetsPrefix + path.basename(ZipPath),
     };
     if (!S3Bucket) {
       throw new Error("AssetsBucket must be defined");
     }
     // Create the package
     await this.manager.run("WebdaAWSDeployer/LambdaPackager", {
-      zipPath: ZipPath
+      zipPath: ZipPath,
     });
     // Copy package to S3
     await this.putFilesOnBucket(result.S3Bucket, [
       {
         key: result.S3Key,
-        src: ZipPath
-      }
+        src: ZipPath,
+      },
     ]);
     return result;
   }

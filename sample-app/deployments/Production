@@ -45,6 +45,7 @@
    },
    "Resources": {},
    "APIGateway": {},
+   "APIGatewayDomain": {"DomainName": "api.sampleapp.webda.io"},
 
 
    "clusterName": "webda-demo",

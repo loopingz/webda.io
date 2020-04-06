@@ -1,6 +1,6 @@
 {
   "name": "@webda/aws",
-  "version": "1.0.0-beta.2",
+  "version": "1.0.0-beta.3",
   "description": "Webda AWS Services implementation",
   "main": "lib/index.js",
   "scripts": {
@@ -28,8 +28,8 @@
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
-    "@webda/core": "^1.0.0-beta.1",
-    "@webda/shell": "^1.0.0-beta.1",
+    "@webda/core": "^1.0.0-beta.2",
+    "@webda/shell": "^1.0.0-beta.4",
     "aws-sdk": "^2.311.0",
     "aws-sdk-mock": "^5.1.0",
     "bluebird": "^3.7.2",

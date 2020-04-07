@@ -36,8 +36,7 @@
     "typescript": "^3.4.4"
   },
   "files": [
-    "lib",
-    "test"
+    "lib"
   ],
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",

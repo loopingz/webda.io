@@ -9,7 +9,12 @@ import * as YAML from "yamljs";
 import * as yargs from "yargs";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";
-import { WorkerOutput, WorkerLogLevel, Terminal } from "@webda/workout";
+import {
+  WorkerOutput,
+  WorkerLogLevel,
+  Terminal,
+  ConsoleLogger
+} from "@webda/workout";
 
 export enum DebuggerStatus {
   Stopped = "STOPPED",
@@ -22,13 +27,8 @@ export default class WebdaConsole {
   static webda: WebdaServer;
   static serverProcess: ChildProcess;
   static tscCompiler: ChildProcess;
-  static logger: WorkerOutput = new WorkerOutput();
-  static terminal: Terminal = new Terminal(
-    WebdaConsole.logger,
-    "INFO",
-    "",
-    false
-  );
+  static logger: Logger;
+  static terminal: Terminal;
   static app: Application;
   static debuggerStatus: DebuggerStatus = DebuggerStatus.Stopped;
 
@@ -380,13 +380,10 @@ export default class WebdaConsole {
    */
   static async deploy(argv: yargs.Arguments): Promise<number> {
     let manager = new DeploymentManager(
-      WebdaConsole.logger,
+      this.app.getWorkerOutput(),
       process.cwd(),
       argv.deployment
     );
-    let worker = new WorkerOutput();
-
-    manager.setOutput(worker);
     argv._ = argv._.slice(1);
     return await manager.commandLine(argv);
   }
@@ -457,7 +454,13 @@ export default class WebdaConsole {
       }
     }
 
-    this.app = new Application(argv.appPath, WebdaConsole.logger);
+    this.app = new Application(argv.appPath, new WorkerOutput());
+    WebdaConsole.logger = new Logger(
+      this.app.getWorkerOutput(),
+      "console/webda"
+    );
+    new Terminal(this.app.getWorkerOutput());
+    //new ConsoleLogger(this.app.getWorkerOutput(), "TRACE");
 
     if (argv.deployment) {
       if (!this.app.hasDeployment(argv.deployment)) {

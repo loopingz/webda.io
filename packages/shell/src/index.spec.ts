@@ -11,6 +11,7 @@ class TestApplication extends Application {
     fs.removeSync(this.getAppPath("webda.module.json"));
   }
 }
+
 export const WebdaSampleApplication = new TestApplication(
   path.resolve(`${__dirname}/../../../sample-app/`)
 );

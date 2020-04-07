@@ -1,5 +1,6 @@
 import * as colors from "colors";
 import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "..";
+import * as util from "util";
 
 /**
  * ConsoleLogger
@@ -30,7 +31,7 @@ export class ConsoleLogger {
     } else if (level === "DEBUG" || level === "TRACE") {
       return colors.grey;
     }
-    return (s) => s;
+    return s => s;
   }
 
   /**
@@ -40,6 +41,14 @@ export class ConsoleLogger {
    * @param format
    */
   static display(msg: WorkerMessage, format: string = "%t [%l]") {
-    console.log(ConsoleLogger.getColor(msg.log.level)([msg.timestamp, msg.log.level, ...msg.log.args].join(" ")));
+    console.log(
+      ConsoleLogger.getColor(msg.log.level)(
+        [
+          msg.timestamp,
+          msg.log.level,
+          ...msg.log.args.map(a => (typeof a === "object" ? util.inspect(a) : a.toString()))
+        ].join(" ")
+      )
+    );
   }
 }

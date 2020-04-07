@@ -9,6 +9,7 @@ import IamPolicyOptimizer from "iam-policy-optimizer";
 import * as mime from "mime-types";
 import * as path from "path";
 import { IAMPolicyContributor } from "../services";
+import { v4 as uuidv4 } from "uuid";
 
 export interface AWSDeployerResources extends DeployerResources {
   accessKeyId?: string;
@@ -114,8 +115,8 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
   }
 
   async getCertificate(domain: string, region: string = undefined) {
-    if (!domain.endsWith(".")) {
-      domain = domain + ".";
+    if (domain.endsWith(".")) {
+      domain = domain.substr(0, domain.length - 1);
     }
     let originRegion = this.AWS.config.region;
     try {
@@ -139,8 +140,10 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
         if (!zone) {
           throw new Error("Cannot create certificate as Route53 Zone was not found");
         }
+        this.logger.log("INFO", "Creating a certificate for", domain);
         certificate = await this.doCreateCertificate(domain, zone);
       }
+
       return certificate;
     } finally {
       this.AWS.config.update({ region: originRegion });
@@ -178,6 +181,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
   }
 
   async doCreateCertificate(domain: string, zone: AWS.Route53.HostedZone) {
+    let uuid = `doCreateCertificate${domain}`;
     let acm: AWS.ACM = new this.AWS.ACM({
       endpoint: this.resources.endpoints.S3
     });
@@ -215,7 +219,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     if (cert.Status === "PENDING_VALIDATION") {
       // On create need to wait
       let record = cert.DomainValidationOptions[0].ResourceRecord;
-      console.log("Need to validate certificate", cert.CertificateArn);
+      this.logger.log("INFO", "Need to validate certificate", cert.CertificateArn);
       await this.createDNSEntry(record.Name, "CNAME", record.Value, zone);
       // Waiting for certificate validation
       cert = await this.waitFor(
@@ -246,11 +250,15 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
   async waitFor(callback, delay: number, retries: number, title: string): Promise<any> {
     return new Promise(async (mainResolve, mainReject) => {
       let tries: number = 0;
+      let uuid = uuidv4();
+      this.logger.logProgressStart(uuid, retries, title);
       while (retries > tries++) {
         if (title) {
-          console.log("[" + tries + "/" + retries + "]", title);
+          this.logger.log("DEBUG", "[" + tries + "/" + retries + "]", title);
         }
+        this.logger.logProgressUpdate(tries, uuid);
         if (await callback(mainResolve, mainReject)) {
+          this.logger.logProgressUpdate(retries);
           return;
         }
         await new Promise(resolve => setTimeout(resolve, delay));
@@ -265,6 +273,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     value: string,
     targetZone: AWS.Route53.HostedZone = undefined
   ): Promise<void> {
+    this.logger.log("INFO", `Creating DNS entry ${domain} ${type} ${value}`);
     let r53 = new this.AWS.Route53({
       endpoint: this.resources.endpoints.S3
     });
@@ -351,9 +360,9 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
         .promise();
     } catch (err) {
       if (err.code === "Forbidden") {
-        console.log("S3 bucket already exists in another account or you do not have permissions on it");
+        this.logger.log("ERROR", "S3 bucket already exists in another account or you do not have permissions on it");
       } else if (err.code === "NotFound") {
-        console.log("\tCreating S3 Bucket", bucket);
+        this.logger.log("INFO", "\tCreating S3 Bucket", bucket);
         // Setup www permission on it
         await s3
           .createBucket({
@@ -372,6 +381,8 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     // Create the bucket
     await this.createBucket(bucket);
     // Should implement multithread here - cleaning too
+    let uuid = uuidv4();
+    this.logger.logProgressStart(uuid, files.length, "Uploading to S3 bucket " + bucket);
     await bluebird.map(
       files,
       async file => {
@@ -394,7 +405,9 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
             ContentType: mimetype
           })
           .promise();
-        console.log(
+        this.logger.logProgressIncrement(1, uuid);
+        this.logger.log(
+          "INFO",
           "Uploaded",
           typeof info.src === "string" ? info.src : "<dynamicContent>",
           "to",

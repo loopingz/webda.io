@@ -1,4 +1,4 @@
-import { Application, Core, Cache } from "@webda/core";
+import { Application, Core, Cache, Logger } from "@webda/core";
 import { execSync } from "child_process";
 import * as merge from "merge";
 import ChainDeployer from "../deployers/chaindeployer";
@@ -23,6 +23,7 @@ export class DeploymentManager {
   };
   webda: Core;
   output: WorkerOutput;
+  logger: Logger;
 
   constructor(
     output: WorkerOutput,
@@ -30,7 +31,7 @@ export class DeploymentManager {
     deploymentName: string,
     streams = undefined
   ) {
-    this.application = new Application(folder);
+    this.application = new Application(folder, output);
     this.application.compile();
     this.application.setCurrentDeployment(deploymentName);
     this.application.loadModules();
@@ -42,7 +43,7 @@ export class DeploymentManager {
     this.webda = new Core(this.application);
     this.deployersDefinition = <any>this.application.getDeployers();
     this.output = output;
-
+    this.logger = new Logger(output, `deploymentManager`);
     if (streams) {
       this.streams = streams;
     } else {
@@ -50,7 +51,7 @@ export class DeploymentManager {
     }
     deployment.units.forEach(d => {
       if (!this.deployersDefinition[d.type.toLowerCase()]) {
-        this.output.log(
+        this.logger.log(
           "ERROR",
           "Cannot find deployer",
           d.type,
@@ -68,6 +69,12 @@ export class DeploymentManager {
    * @param output
    */
   setOutput(output: WorkerOutput) {
+    console.log("SETTING OUTPUT");
+    try {
+      throw new Error();
+    } catch (err) {
+      console.log(err.stack);
+    }
     this.output = output;
   }
 
@@ -85,12 +92,17 @@ export class DeploymentManager {
     if (deployerName === undefined) {
       deployers = Object.keys(this.deployers);
     } else if (!this.deployers[deployerName]) {
-      this.output.log("ERROR", "Unknown deployer", deployerName);
+      this.logger.log("ERROR", "Unknown deployer", deployerName);
       return 1;
     }
     let args = argv._.slice(2);
     for (let i in deployers) {
       let deployer = await this.getDeployer(deployers[i]);
+      this.logger.logTitle(
+        `Deploying ${
+          deployers[i]
+        } (${this.getApplication().getCurrentDeployment()})`
+      );
       await deployer[command](...args);
     }
     return 0;

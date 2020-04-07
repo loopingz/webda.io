@@ -2,6 +2,7 @@ import * as colors from "colors";
 import * as readline from "readline";
 import { LogFilter, WorkerLogLevel, WorkerLogLevelEnum, WorkerMessage, WorkerOutput, WorkerProgress } from "..";
 import { ConsoleLogger } from "../loggers/console";
+import * as util from "util";
 
 export class Terminal {
   tty: boolean;
@@ -29,6 +30,7 @@ export class Terminal {
     // Fallback on basic ConsoleLogger if no tty
     if (!this.tty) {
       this.wo.on("message", async msg => {
+        console.log(msg.type);
         if (msg.type === "log" && LogFilter(msg.log.level, this.level)) {
           ConsoleLogger.display(msg, this.format);
         }
@@ -42,7 +44,7 @@ export class Terminal {
       process.stdout.write("\x1B[?47l");
       process.stdout.write(this.displayHistory(50, false));
     };
-    process.on("beforeExit", resetTerm);
+    process.on("exit", resetTerm);
     process.on("SIGTERM", resetTerm);
     process.on("SIGINT", () => {
       resetTerm();
@@ -99,7 +101,9 @@ export class Terminal {
     if (groups.length) {
       groupsPart = `[${groups.map(g => `${color(g)}`).join(colors.grey(">"))}] `;
     }
-    let line = `[${color(levelColor)}] ${groupsPart}${color(args.map(o => o.toString()).join(" "))}`;
+    let line = `[${color(levelColor)}] ${groupsPart}${color(
+      args.map(a => (typeof a === "object" ? util.inspect(a) : a.toString())).join(" ")
+    )}`;
     this.pushHistory(line);
     this.displayScreen();
   }
@@ -109,6 +113,7 @@ export class Terminal {
   }
 
   displayString(str, limit: number = undefined) {
+    return str;
     if (!limit) {
       limit = process.stdout.columns;
     }
@@ -136,7 +141,7 @@ export class Terminal {
     if (pads < 0) {
       pads = 0;
     }
-    return this.displayString(`${" ".repeat(pads)}${colors.bold(this.title)}${" ".repeat(pads)}\n`);
+    return `${" ".repeat(pads)}${colors.bold(this.title)}${" ".repeat(pads)}\n`;
   }
 
   displayProgress(p: WorkerProgress) {

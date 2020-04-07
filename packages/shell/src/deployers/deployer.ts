@@ -1,4 +1,4 @@
-import { Application, Cache } from "@webda/core";
+import { Application, Cache, Logger } from "@webda/core";
 import { spawn } from "child_process";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 
@@ -18,9 +18,14 @@ export abstract class Deployer<T extends DeployerResources> {
   app: Application;
   packageDescription: any;
   _defaulted: boolean = false;
+  logger: Logger;
 
   constructor(manager: DeploymentManager, resources: T = undefined) {
     this.manager = manager;
+    this.logger = new Logger(
+      this.manager.getApplication().getWorkerOutput(),
+      `deployers.${this.constructor.name}`
+    );
     this.app = this.manager.getApplication();
     this.resources = resources;
   }

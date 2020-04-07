@@ -5,6 +5,7 @@ import { ACM } from "aws-sdk";
 import * as bluebird from "bluebird";
 import * as crypto from "crypto";
 import * as fs from "fs";
+import * as glob from "glob";
 import IamPolicyOptimizer from "iam-policy-optimizer";
 import * as mime from "mime-types";
 import * as path from "path";
@@ -41,7 +42,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       accessKeyId: this.resources.accessKeyId,
       secretAccessKey: this.resources.secretAccessKey,
       sessionToken: this.resources.sessionToken,
-      region: this.resources.region
+      region: this.resources.region,
     });
     this.resources.endpoints = this.resources.endpoints || {};
     this.AWS = AWS;
@@ -59,7 +60,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
   @Cache()
   async getAWSIdentity(): Promise<AWS.STS.GetCallerIdentityResponse> {
     let sts = new this.AWS.STS({
-      endpoint: this.resources.endpoints.STS
+      endpoint: this.resources.endpoints.STS,
     });
     return sts.getCallerIdentity().promise();
   }
@@ -68,11 +69,11 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
   async getDefaultVpc() {
     let defaultVpc = {
       Id: "",
-      Subnets: []
+      Subnets: [],
     };
     let vpcFilter;
     let ec2 = new this.AWS.EC2({
-      endpoint: this.resources.endpoints.EC2
+      endpoint: this.resources.endpoints.EC2,
     });
     let res = await ec2.describeVpcs().promise();
     for (let i in res.Vpcs) {
@@ -88,9 +89,9 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       Filters: [
         {
           Name: "vpc-id",
-          Values: [defaultVpc.Id]
-        }
-      ]
+          Values: [defaultVpc.Id],
+        },
+      ],
     };
     res = await ec2.describeSubnets(vpcFilter).promise();
     for (let i in res.Subnets) {
@@ -99,10 +100,21 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     return defaultVpc;
   }
 
+  /**
+   * Generate a MD5 in hex
+   * @param str to hash
+   */
   protected md5(str: string) {
     return this.hash(str, "md5", "hex");
   }
 
+  /**
+   * Hash the string
+   *
+   * @param str to hash
+   * @param type of hash
+   * @param format hex or b64
+   */
   protected hash(str: string, type: string = "md5", format: "hex" | "base64" = "hex"): string {
     return crypto
       .createHash("md5")
@@ -114,6 +126,12 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     return id.replace(/\//g, "_");
   }
 
+  /**
+   * Get a certificate or create it
+   *
+   * @param domain to get certificate for
+   * @param region
+   */
   async getCertificate(domain: string, region: string = undefined) {
     if (domain.endsWith(".")) {
       domain = domain.substr(0, domain.length - 1);
@@ -124,14 +142,14 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
         this.AWS.config.update({ region });
       }
       let acm: AWS.ACM = new this.AWS.ACM({
-        endpoint: this.resources.endpoints.ACM
+        endpoint: this.resources.endpoints.ACM,
       });
       let params: any = {};
       let res: AWS.ACM.ListCertificatesResponse;
       let certificate;
       do {
         res = await acm.listCertificates(params).promise();
-        certificate = res.CertificateSummaryList.filter(cert => cert.DomainName === domain).pop();
+        certificate = res.CertificateSummaryList.filter((cert) => cert.DomainName === domain).pop();
         params.NextToken = res.NextToken;
       } while (!certificate && res.NextToken);
       // We did not find the certificate need to create one
@@ -150,6 +168,11 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     }
   }
 
+  /**
+   * Get the closest zone to the domain
+   *
+   * @param domain to get zone for
+   */
   @Cache()
   async getZoneForDomainName(domain): Promise<AWS.Route53.HostedZone> {
     if (!domain.endsWith(".")) {
@@ -158,7 +181,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     let targetZone: AWS.Route53.HostedZone;
     // Find the right zone
     let r53: AWS.Route53 = new this.AWS.Route53({
-      endpoint: this.resources.endpoints.Route53
+      endpoint: this.resources.endpoints.Route53,
     });
     let res: AWS.Route53.ListHostedZonesResponse;
     let params: AWS.Route53.ListHostedZonesRequest = {};
@@ -180,10 +203,17 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     return targetZone;
   }
 
+  /**
+   * Create a certificate for a domain
+   * Will use Route 53 to do the validation
+   *
+   * @param domain to create the certificate for
+   * @param zone
+   */
   async doCreateCertificate(domain: string, zone: AWS.Route53.HostedZone) {
     let uuid = `doCreateCertificate${domain}`;
     let acm: AWS.ACM = new this.AWS.ACM({
-      endpoint: this.resources.endpoints.S3
+      endpoint: this.resources.endpoints.S3,
     });
     if (domain.endsWith(".")) {
       domain = domain.substr(0, domain.length - 1);
@@ -193,15 +223,15 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       DomainValidationOptions: [
         {
           DomainName: domain,
-          ValidationDomain: domain
-        }
+          ValidationDomain: domain,
+        },
       ],
       ValidationMethod: "DNS",
-      IdempotencyToken: "Webda_" + this.md5(domain).substr(0, 26)
+      IdempotencyToken: "Webda_" + this.md5(domain).substr(0, 26),
     };
     let certificate = await acm.requestCertificate(params).promise();
     let cert: ACM.CertificateDetail = <any>await this.waitFor(
-      async resolve => {
+      async (resolve) => {
         let res = await acm.describeCertificate({ CertificateArn: certificate.CertificateArn }).promise();
         if (res.Certificate.DomainValidationOptions && res.Certificate.DomainValidationOptions[0].ResourceRecord) {
           resolve(res.Certificate);
@@ -226,7 +256,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
         async (resolve, reject) => {
           let res = await acm
             .describeCertificate({
-              CertificateArn: cert.CertificateArn
+              CertificateArn: cert.CertificateArn,
             })
             .promise();
           if (res.Certificate.Status === "ISSUED") {
@@ -247,6 +277,13 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     return cert;
   }
 
+  /**
+   *
+   * @param callback
+   * @param delay
+   * @param retries
+   * @param title
+   */
   async waitFor(callback, delay: number, retries: number, title: string): Promise<any> {
     return new Promise(async (mainResolve, mainReject) => {
       let tries: number = 0;
@@ -261,12 +298,20 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
           this.logger.logProgressUpdate(retries);
           return;
         }
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
       mainReject("Timeout while waiting for " + title);
     });
   }
 
+  /**
+   * Create DNS entry
+   *
+   * @param domain to create
+   * @param type of DNS
+   * @param value the value of the record
+   * @param targetZone
+   */
   protected async createDNSEntry(
     domain: string,
     type: string,
@@ -275,7 +320,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
   ): Promise<void> {
     this.logger.log("INFO", `Creating DNS entry ${domain} ${type} ${value}`);
     let r53 = new this.AWS.Route53({
-      endpoint: this.resources.endpoints.S3
+      endpoint: this.resources.endpoints.S3,
     });
     if (!domain.endsWith(".")) {
       domain = domain + ".";
@@ -297,16 +342,16 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
                 Name: domain,
                 ResourceRecords: [
                   {
-                    Value: value
-                  }
+                    Value: value,
+                  },
                 ],
                 TTL: 360,
-                Type: type
-              }
-            }
+                Type: type,
+              },
+            },
           ],
-          Comment: "webda-automated-deploiement"
-        }
+          Comment: "webda-automated-deploiement",
+        },
       })
       .promise();
   }
@@ -317,8 +362,8 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
         Sid: "WebdaLog",
         Effect: "Allow",
         Action: ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
-        Resource: ["arn:aws:logs:" + region + ":" + accountId + ":*"]
-      }
+        Resource: ["arn:aws:logs:" + region + ":" + accountId + ":*"],
+      },
     ];
   }
 
@@ -342,41 +387,67 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     Array.prototype.push.apply(statements, this.getARNPolicy(me.Account, this.AWS.config.region));
     let policyDocument = {
       Version: "2012-10-17",
-      Statement: [...statements, ...additionalStatements]
+      Statement: [...statements, ...additionalStatements],
     };
     return IamPolicyOptimizer.reducePolicyObject(policyDocument);
   }
 
-  async createBucket(bucket) {
+  /**
+   * Create a bucket if it does not exist
+   *
+   * @param bucket to create
+   */
+  async createBucket(Bucket: string) {
     let s3 = new this.AWS.S3({
       endpoint: this.resources.endpoints.S3,
-      s3ForcePathStyle: this.resources.endpoints.S3 !== undefined
+      s3ForcePathStyle: this.resources.endpoints.S3 !== undefined,
     });
     try {
       await s3
         .headBucket({
-          Bucket: bucket
+          Bucket,
         })
         .promise();
     } catch (err) {
       if (err.code === "Forbidden") {
         this.logger.log("ERROR", "S3 bucket already exists in another account or you do not have permissions on it");
       } else if (err.code === "NotFound") {
+<<<<<<< HEAD
         this.logger.log("INFO", "\tCreating S3 Bucket", bucket);
+=======
+        console.log("\tCreating S3 Bucket", Bucket);
+>>>>>>> wip: add statics
         // Setup www permission on it
         await s3
           .createBucket({
-            Bucket: bucket
+            Bucket: Bucket,
           })
           .promise();
       }
     }
   }
 
+  /**
+   * Send a full folder on bucket
+   *
+   * @param bucket to send data to
+   * @param folder to send
+   * @param prefix prefix on the bucket
+   */
+  async putFolderOnBucket(bucket: string, folder: string, prefix: string = "") {
+    let files = glob.sync(`${folder}/**/*`);
+    await this.putFilesOnBucket(bucket, files);
+  }
+
+  /**
+   *
+   * @param bucket to send bucket
+   * @param files to send
+   */
   async putFilesOnBucket(bucket: string, files: { key: string; src: any; mimetype?: string }[] | string[]) {
     let s3 = new this.AWS.S3({
       endpoint: this.resources.endpoints.S3,
-      s3ForcePathStyle: this.resources.endpoints.S3 !== undefined
+      s3ForcePathStyle: this.resources.endpoints.S3 !== undefined,
     });
     // Create the bucket
     await this.createBucket(bucket);
@@ -385,7 +456,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     this.logger.logProgressStart(uuid, files.length, "Uploading to S3 bucket " + bucket);
     await bluebird.map(
       files,
-      async file => {
+      async (file) => {
         let info: any = {};
         if (typeof file === "string") {
           info.src = file;
@@ -402,7 +473,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
             Bucket: bucket,
             Body: typeof info.src === "string" ? fs.createReadStream(info.src) : info.src,
             Key: info.key,
-            ContentType: mimetype
+            ContentType: mimetype,
           })
           .promise();
         this.logger.logProgressIncrement(1, uuid);

@@ -80,10 +80,14 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   Statics?: [
     {
       DomainName: string;
-      CloudFront: boolean;
+      CloudFront: any;
       Source: string;
+      AssetsPath?: string;
     }
   ];
+
+  // Deploy images and ECR
+  Workers?: [];
 
   // Default Tags
   Tags?: [{ Key: string; Value: String }];
@@ -185,11 +189,22 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     };
     this.result = {};
 
+    // Ensure S3 bucket exist
+    await this.createBucket(this.resources.AssetsBucket);
+
+    // Upload any Statics
+    let statics = [];
+    await this.uploadStatics();
+
     // Dynamicly call each methods
     for (let i in this.resources) {
       if (this[i]) {
         await this[i]();
       }
+    }
+    // Add any static
+    for (let i in this.resources.Statics) {
+      await this.createStatic(this.resources.Statics[i]);
     }
 
     this.logger.log("INFO", "Deploy with CloudFormation");
@@ -197,7 +212,57 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     await this.sendCloudFormationTemplate();
     // Load the stack
     await this.createCloudFormation();
+    // Finish upload
+    await statics;
     return this.result;
+  }
+
+  async uploadStatics(assets: boolean = true) {
+    for (let i in this.resources.Statics) {
+      const { Source, DomainName, Bucket } = this.resources.Statics[i];
+      this.putFolderOnBucket(DomainName, Source);
+    }
+  }
+  async createStatic(info: any) {
+    const { DomainName, CloudFront, Bucket } = info;
+    info.Bucket = info.Bucket || {};
+    // Create bucket
+    let resPrefix = `Static${DomainName.replace(/\./g, "")}`;
+    if (Bucket) {
+      this.template.Resources[`${resPrefix}Bucket`] = {
+        Type: "AWS::S3::Bucket",
+        Properties: {
+          ...info.Bucket,
+          BucketName: DomainName,
+          Tags: this.getDefaultTags(info.Bucket.Tags),
+        },
+      };
+    }
+    if (CloudFront) {
+      let DistributionConfig = {
+        ...info.CloudFront.DistributionConfig,
+      };
+      DistributionConfig.Aliases = DistributionConfig.Aliases || [];
+      if (DistributionConfig.Aliases.indexOf(DomainName) < 0) {
+        DistributionConfig.Aliases.push(DomainName);
+      }
+      DistributionConfig.Comment = DistributionConfig.Comment || "Deployed with @webda/aws/cloudformation";
+      if (DistributionConfig.Enabled === undefined) {
+        DistributionConfig.Enabled = true;
+      }
+      if (!DistributionConfig.ViewerCertificate) {
+        DistributionConfig.ViewerCertificate = {
+          AcmCertificateArn: (await this.getCertificate(DomainName)).CertificateArn,
+        };
+      }
+      this.template.Resources[`${resPrefix}CloudFront`] = {
+        Type: "AWS::CloudFront::Distribution",
+        Properties: {
+          DistributionConfig,
+          Tags: this.getDefaultTags(info.CloudFront.Tags),
+        },
+      };
+    }
   }
 
   async sendCloudFormationTemplate() {

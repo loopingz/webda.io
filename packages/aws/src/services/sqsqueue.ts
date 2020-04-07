@@ -1,6 +1,7 @@
 "use strict";
 import { ModdaDefinition, Queue } from "@webda/core";
 import { CloudFormationContributor } from ".";
+import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
 
 // TODO Readd AWS Mixin
@@ -14,7 +15,7 @@ export default class SQSQueue extends Queue implements CloudFormationContributor
   async init(): Promise<void> {
     await super.init();
     this.sqs = new (GetAWS(this._params).SQS)({
-      endpoint: this._params.endpoint
+      endpoint: this._params.endpoint,
     });
   }
 
@@ -22,7 +23,7 @@ export default class SQSQueue extends Queue implements CloudFormationContributor
     let res = await this.sqs
       .getQueueAttributes({
         AttributeNames: ["ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"],
-        QueueUrl: this._params.queue
+        QueueUrl: this._params.queue,
       })
       .promise();
     return (
@@ -46,7 +47,7 @@ export default class SQSQueue extends Queue implements CloudFormationContributor
     let queueArg = {
       QueueUrl: this._params.queue,
       WaitTimeSeconds: this._params.WaitTimeSeconds,
-      AttributeNames: ["MessageGroupId"]
+      AttributeNames: ["MessageGroupId"],
     };
     let data = await this.sqs.receiveMessage(queueArg).promise();
     return data.Messages || [];
@@ -56,7 +57,7 @@ export default class SQSQueue extends Queue implements CloudFormationContributor
     return this.sqs
       .deleteMessage({
         QueueUrl: this._params.queue,
-        ReceiptHandle: receipt
+        ReceiptHandle: receipt,
       })
       .promise();
   }
@@ -69,7 +70,7 @@ export default class SQSQueue extends Queue implements CloudFormationContributor
     try {
       await this.sqs
         .purgeQueue({
-          QueueUrl: this._params.queue
+          QueueUrl: this._params.queue,
         })
         .promise();
     } catch (err) {
@@ -79,7 +80,7 @@ export default class SQSQueue extends Queue implements CloudFormationContributor
       let delay = Math.floor(err.retryDelay * 1100);
       console.log("Retry PurgeQueue in ", delay);
       // 10% of margin
-      return new Promise(resolve => {
+      return new Promise((resolve) => {
         setTimeout(() => {
           resolve(this.__cleanWithRetry(true));
         }, delay);
@@ -101,7 +102,7 @@ export default class SQSQueue extends Queue implements CloudFormationContributor
     return {
       accountId: found[2],
       region: found[1],
-      name: found[3]
+      name: found[3],
     };
   }
 
@@ -116,13 +117,16 @@ export default class SQSQueue extends Queue implements CloudFormationContributor
         "sqs:DeleteMessageBatch",
         "sqs:ReceiveMessage",
         "sqs:SendMessage",
-        "sqs:SendMessageBatch"
+        "sqs:SendMessageBatch",
       ],
-      Resource: ["arn:aws:sqs:" + queue.region + ":" + queue.accountId + ":" + queue.name]
+      Resource: ["arn:aws:sqs:" + queue.region + ":" + queue.accountId + ":" + queue.name],
     };
   }
 
-  getCloudFormation() {
+  getCloudFormation(deployer: CloudFormationDeployer) {
+    if (this._params.CloudFormationSkip) {
+      return {};
+    }
     let { name: QueueName } = this._getQueueInfosFromUrl();
     let resources = {};
     this._params.CloudFormation = this._params.CloudFormation || {};
@@ -130,8 +134,9 @@ export default class SQSQueue extends Queue implements CloudFormationContributor
       Type: "AWS::SQS::Queue",
       Properties: {
         ...this._params.CloudFormation.Queue,
-        QueueName
-      }
+        QueueName,
+        Tags: deployer.getDefaultTags(this._params.CloudFormation.Table.Tags),
+      },
     };
     // Add any Other resources with prefix of the service
     return resources;
@@ -149,19 +154,19 @@ export default class SQSQueue extends Queue implements CloudFormationContributor
           type: "object",
           properties: {
             accessKeyId: {
-              type: "string"
+              type: "string",
             },
             secretAccessKey: {
-              type: "string"
+              type: "string",
             },
             queue: {
               type: "string",
-              default: "YOUR QUEUE URL"
-            }
+              default: "YOUR QUEUE URL",
+            },
           },
-          required: ["accessKeyId", "secretAccessKey", "queue"]
-        }
-      }
+          required: ["accessKeyId", "secretAccessKey", "queue"],
+        },
+      },
     };
   }
 }

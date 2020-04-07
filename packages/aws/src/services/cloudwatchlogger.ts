@@ -1,8 +1,8 @@
-import { Service, ModdaDefinition } from "@webda/core";
+import { ModdaDefinition, Service } from "@webda/core";
+import { LogFilter, WorkerMessage } from "@webda/workout";
 import * as uuid from "uuid";
 import { CloudFormationContributor } from ".";
 import { GetAWS } from "./aws-mixin";
-import { WorkerMessage, LogFilter } from "@webda/workout";
 
 export default class CloudWatchLogger extends Service implements CloudFormationContributor {
   _logGroupName: string;
@@ -20,11 +20,11 @@ export default class CloudWatchLogger extends Service implements CloudFormationC
     }
     this._logStreamName = this._params.logStreamNamePrefix + uuid.v4();
     this._cloudwatch = new (GetAWS(this._params).CloudWatchLogs)({
-      endpoint: this._params.endpoint
+      endpoint: this._params.endpoint,
     });
     let res = await this._cloudwatch
       .describeLogGroups({
-        logGroupNamePrefix: this._logGroupName
+        logGroupNamePrefix: this._logGroupName,
       })
       .promise();
     if (!res.logGroups.length) {
@@ -32,14 +32,14 @@ export default class CloudWatchLogger extends Service implements CloudFormationC
         .createLogGroup({
           logGroupName: this._logGroupName,
           kmsKeyId: this._params.kmsKeyId,
-          tags: this._params.tags
+          tags: this._params.tags,
         })
         .promise();
     }
     this._logStream = await this._cloudwatch
       .createLogStream({
         logGroupName: this._logGroupName,
-        logStreamName: this._logStreamName
+        logStreamName: this._logStreamName,
       })
       .promise();
     this._webda.getWorkerOutput().on("message", (msg: WorkerMessage) => {
@@ -68,7 +68,7 @@ export default class CloudWatchLogger extends Service implements CloudFormationC
       logEvents: toSend,
       logGroupName: this._logGroupName,
       logStreamName: this._logStreamName,
-      sequenceToken: this._seqToken
+      sequenceToken: this._seqToken,
     };
     let res = await this._cloudwatch.putLogEvents(params).promise();
     this._seqToken = res.nextSequenceToken;
@@ -78,10 +78,10 @@ export default class CloudWatchLogger extends Service implements CloudFormationC
   }
 
   _log(level, ...args): void {
-    let msg = `[${level}] ` + args.map(p => p.toString()).join(" ");
+    let msg = `[${level}] ` + args.map((p) => p.toString()).join(" ");
     this._bufferedLogs.push({
       message: msg,
-      timestamp: new Date().getTime()
+      timestamp: new Date().getTime(),
     });
     if (this._params.singlePush) {
       this.sendLogs(true);
@@ -96,20 +96,23 @@ export default class CloudWatchLogger extends Service implements CloudFormationC
       Action: ["logs:*"],
       Resource: [
         "arn:aws:logs:" + region + ":" + accountId + ":log-group:" + this._params.logGroupName,
-        "arn:aws:logs:" + region + ":" + accountId + ":log-group:" + this._params.logGroupName + ":*:*"
-      ]
+        "arn:aws:logs:" + region + ":" + accountId + ":log-group:" + this._params.logGroupName + ":*:*",
+      ],
     };
   }
 
   getCloudFormation() {
+    if (this._params.CloudFormationSkip) {
+      return {};
+    }
     let resources = {};
     this._params.CloudFormation = this._params.CloudFormation || {};
     resources[this._name + "LogGroup"] = {
       Type: "AWS::Logs::LogGroup",
       Properties: {
         ...this._params.CloudFormation.LogGroup,
-        LogGroupName: this._params.logGroupName
-      }
+        LogGroupName: this._params.logGroupName,
+      },
     };
     // Add any Other resources with prefix of the service
     return resources;
@@ -127,30 +130,30 @@ export default class CloudWatchLogger extends Service implements CloudFormationC
           properties: {
             logLevel: {
               type: "string",
-              default: "INFO"
+              default: "INFO",
             },
             logLevels: {
               type: "string",
-              default: "ERROR,WARN,CONSOLE,INFO,DEBUG"
+              default: "ERROR,WARN,CONSOLE,INFO,DEBUG",
             },
             logGroupName: {
-              type: "string"
+              type: "string",
             },
             logStreamNamePrefix: {
-              type: "string"
+              type: "string",
             },
             kmsKeyId: {
-              type: "string"
+              type: "string",
             },
             tags: {
-              type: "array"
+              type: "array",
             },
             singlePush: {
-              type: "boolean"
-            }
-          }
-        }
-      }
+              type: "boolean",
+            },
+          },
+        },
+      },
     };
   }
 }

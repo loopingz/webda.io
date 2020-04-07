@@ -334,8 +334,13 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
    *
    * @param key of the resources to add
    */
-  getDefaultTags(key: string) {
-    let Tags = this.resources[key] ? this.resources[key].Tags || [] : [];
+  getDefaultTags(key: string | object[]): any[] {
+    let Tags;
+    if (typeof key === "string") {
+      Tags = this.resources[key] ? this.resources[key].Tags || [] : [];
+    } else {
+      Tags = key || [];
+    }
     if (this.resources.Tags) {
       let TagKeys = Tags.map(t => t.Key);
       Tags.push(...this.resources.Tags.filter(t => TagKeys.indexOf(t.Key) < 0));

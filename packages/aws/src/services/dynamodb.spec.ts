@@ -4,14 +4,15 @@ import * as assert from "assert";
 import { suite, test } from "mocha-typescript";
 import { checkLocalStack } from "../index.spec";
 import { DynamoStore } from "./dynamodb";
+import { GetAWS } from "./aws-mixin";
 
 @suite
-class DynamoDBTest extends StoreTest {
+export class DynamoDBTest extends StoreTest {
   async before() {
     await checkLocalStack();
     this.buildWebda();
-    await (<DynamoStore<CoreModel>>this.getService("users")).install({});
-    await (<DynamoStore<CoreModel>>this.getService("idents")).install({});
+    DynamoDBTest.install("webda-test-idents");
+    DynamoDBTest.install("webda-test-users");
     await super.before();
   }
 
@@ -26,6 +27,41 @@ class DynamoDBTest extends StoreTest {
     return Ident;
   }
 
+  static async install(TableName: string) {
+    var dynamodb = new (GetAWS({}).DynamoDB)({
+      endpoint: "http://localhost:4569",
+    });
+    await dynamodb
+      .describeTable({
+        TableName,
+      })
+      .promise()
+      .catch((err) => {
+        if (err.code === "ResourceNotFoundException") {
+          let createTable = {
+            TableName,
+            ProvisionedThroughput: {
+              ReadCapacityUnits: 5,
+              WriteCapacityUnits: 5,
+            },
+            KeySchema: [
+              {
+                AttributeName: "uuid",
+                KeyType: "HASH",
+              },
+            ],
+            AttributeDefinitions: [
+              {
+                AttributeName: "uuid",
+                AttributeType: "S",
+              },
+            ],
+          };
+          return dynamodb.createTable(createTable).promise();
+        }
+      });
+  }
+
   @test
   async dateHandling() {
     let userStore = this.getUserStore();
@@ -35,10 +71,10 @@ class DynamoDBTest extends StoreTest {
       subobject: {
         empty: "",
         t: {
-          plop: ""
+          plop: "",
         },
-        date: new Date()
-      }
+        date: new Date(),
+      },
     });
     let user = await userStore.get("testUpdate");
     assert.notEqual(user.date, {});
@@ -54,19 +90,19 @@ class DynamoDBTest extends StoreTest {
         arr: [
           {
             value: "",
-            test: "oki"
+            test: "oki",
           },
           {
-            value: ""
+            value: "",
           },
           {
-            value: "Test"
-          }
+            value: "Test",
+          },
         ],
         sub: {
-          value: ""
+          value: "",
         },
-        __store: identStore
+        __store: identStore,
       },
       true
     );

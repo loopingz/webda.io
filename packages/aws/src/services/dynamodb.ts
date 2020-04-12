@@ -347,47 +347,6 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
     };
   }
 
-  async install(params) {
-    if (this._params.region) {
-      params.region = this._params.region;
-    }
-    var dynamodb = new (GetAWS(params).DynamoDB)({
-      endpoint: this._params.endpoint,
-    });
-    await dynamodb
-      .describeTable({
-        TableName: this._params.table,
-      })
-      .promise()
-      .catch((err) => {
-        if (err.code === "ResourceNotFoundException") {
-          this._webda.log("INFO", "Creating table", this._params.table);
-          let createTable = this._params.createTableParameters || {
-            ProvisionedThroughput: {},
-            KeySchema: [
-              {
-                AttributeName: "uuid",
-                KeyType: "HASH",
-              },
-            ],
-            AttributeDefinitions: [
-              {
-                AttributeName: "uuid",
-                AttributeType: "S",
-              },
-            ],
-          };
-          createTable.TableName = this._params.table;
-          createTable.ProvisionedThroughput.ReadCapacityUnits =
-            createTable.ProvisionedThroughput.ReadCapacityUnits || this._params.tableReadCapacity || 5;
-          createTable.ProvisionedThroughput.WriteCapacityUnits =
-            createTable.ProvisionedThroughput.WriteCapacityUnits || this._params.tableWriteCapacity || 5;
-          return dynamodb.createTable(createTable).promise();
-        }
-      });
-    await this.createIndex();
-  }
-
   async __clean() {
     var params = {
       TableName: this._params.table,

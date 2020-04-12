@@ -341,56 +341,6 @@ export default class S3Binary extends Binary implements CloudFormationContributo
     return this.store(targetStore, object, property, file, metadatas, index);
   }
 
-  async ___cleanData() {
-    let data = await this._s3
-      .listObjectsV2({
-        Bucket: this._params.bucket,
-      })
-      .promise();
-    var params = {
-      Bucket: this._params.bucket,
-      Delete: {
-        Objects: [],
-      },
-    };
-    for (var i in data.Contents) {
-      params.Delete.Objects.push({
-        Key: data.Contents[i].Key,
-      });
-    }
-    if (params.Delete.Objects.length === 0) {
-      return;
-    }
-    return this._s3.deleteObjects(params).promise();
-  }
-
-  async install(params) {
-    if (this._params.region) {
-      params.region = this._params.region;
-    }
-    var s3 = new (GetAWS(params).S3)({
-      endpoint: this._params.endpoint,
-      s3ForcePathStyle: this._params.s3ForcePathStyle || false,
-    });
-    return s3
-      .headBucket({
-        Bucket: this._params.bucket,
-      })
-      .promise()
-      .catch((err) => {
-        if (err.code === "Forbidden") {
-          this._webda.log("ERROR", "S3 bucket already exists in another account");
-        } else if (err.code === "NotFound") {
-          this._webda.log("INFO", "Creating S3 Bucket", this._params.bucket);
-          return s3
-            .createBucket({
-              Bucket: this._params.bucket,
-            })
-            .promise();
-        }
-      });
-  }
-
   getARNPolicy(accountId) {
     return {
       Sid: this.constructor.name + this._name,

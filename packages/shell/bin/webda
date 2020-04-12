@@ -122,8 +122,8 @@ if (files.length) {
  */
 let p = consoleService.handleCommand(process.argv.slice(2));
 if (p instanceof Promise || (p && p.then)) {
-  p.then(() => {
-    process.exit(0);
+  p.then(res => {
+    process.exit(res);
   }).catch(err => {
     console.log(err);
     process.exit(1);

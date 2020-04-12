@@ -107,6 +107,10 @@ export default class WebdaConsole {
         type: "boolean",
         default: false
       })
+      .option("notty", {
+        type: "boolean",
+        default: false
+      })
       .option("app-path", { default: process.cwd() })
       .parse(args);
   }
@@ -459,15 +463,26 @@ export default class WebdaConsole {
       this.app.getWorkerOutput(),
       "console/webda"
     );
-    new Terminal(this.app.getWorkerOutput());
-    //new ConsoleLogger(this.app.getWorkerOutput(), "TRACE");
+
+    if (argv.notty) {
+      new ConsoleLogger(this.app.getWorkerOutput());
+    } else {
+      new Terminal(this.app.getWorkerOutput());
+    }
 
     if (argv.deployment) {
       if (!this.app.hasDeployment(argv.deployment)) {
         this.output(`Unknown deployment: ${argv.deployment}`);
         return 1;
       }
-      this.app.setCurrentDeployment(argv.deployment);
+      try {
+        this.app.setCurrentDeployment(argv.deployment);
+        // Try to load it already
+        this.app.getDeployment();
+      } catch (err) {
+        this.log("ERROR", "Cannot load deployment", argv.deployment, "\n", err);
+        return 1;
+      }
     }
 
     if (argv.noCompile) {

@@ -29,20 +29,21 @@ export class Terminal {
     this.level = level ? level : <any>process.env.LOG_LEVEL || "INFO";
     // Fallback on basic ConsoleLogger if no tty
     if (!this.tty) {
-      this.wo.on("message", async msg => {
-        console.log(msg.type);
+      this.wo.on("message", async (msg) => {
         if (msg.type === "log" && LogFilter(msg.log.level, this.level)) {
-          ConsoleLogger.display(msg, this.format);
+          ConsoleLogger.handleMessage(msg, this.level, this.format);
         }
       });
       return;
     }
-    this.wo.on("message", async msg => this.router(msg));
+    this.wo.on("message", async (msg) => this.router(msg));
     this.height = process.stdout.rows;
     process.stdout.write("\x1B[?12l\x1B[?47h");
-    let resetTerm = () => {
-      process.stdout.write("\x1B[?47l");
-      process.stdout.write(this.displayHistory(50, false));
+    let resetTerm = (...args) => {
+      if (args[0] === 0) {
+        process.stdout.write("\x1B[?47l");
+        process.stdout.write(this.displayHistory(50, false));
+      }
     };
     process.on("exit", resetTerm);
     process.on("SIGTERM", resetTerm);
@@ -50,7 +51,7 @@ export class Terminal {
       resetTerm();
       process.exit(0);
     });
-    process.stdout.on("resize", size => {
+    process.stdout.on("resize", (size) => {
       this.height = process.stdout.rows;
       if (this.hasProgress) {
         this.displayScreen();
@@ -72,7 +73,7 @@ export class Terminal {
       case "progress.stop":
       case "progress.start":
         this.hasProgress = Object.keys(msg.progresses)
-          .map(i => msg.progresses[i].running)
+          .map((i) => msg.progresses[i].running)
           .reduce((prev, cur) => cur || prev, false);
       case "progress.update":
         this.progresses = msg.progresses;
@@ -80,13 +81,14 @@ export class Terminal {
         break;
       case "title.set":
         this.title = msg.title;
+        this.log(msg.groups, "INFO", [msg.title || ""]);
         this.displayScreen();
         break;
       case "input.request":
         this.inputs.push(msg.input);
         break;
       case "input.received":
-        this.inputs = this.inputs.filter(m => msg.input.id !== m.id);
+        this.inputs = this.inputs.filter((m) => msg.input.id !== m.id);
         break;
     }
   }
@@ -99,10 +101,10 @@ export class Terminal {
     let levelColor = level.padStart(5);
     let groupsPart = "";
     if (groups.length) {
-      groupsPart = `[${groups.map(g => `${color(g)}`).join(colors.grey(">"))}] `;
+      groupsPart = `[${groups.map((g) => `${color(g)}`).join(colors.grey(">"))}] `;
     }
     let line = `[${color(levelColor)}] ${groupsPart}${color(
-      args.map(a => (typeof a === "object" ? util.inspect(a) : a.toString())).join(" ")
+      args.map((a) => (typeof a === "object" ? util.inspect(a) : a.toString())).join(" ")
     )}`;
     this.pushHistory(line);
     this.displayScreen();

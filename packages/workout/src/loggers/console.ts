@@ -13,9 +13,7 @@ export class ConsoleLogger {
     this.level = level;
     this.format = format;
     output.on("message", (msg: WorkerMessage) => {
-      if (msg.type === "log" && LogFilter(msg.log.level, this.level)) {
-        ConsoleLogger.display(msg, this.format);
-      }
+      ConsoleLogger.handleMessage(msg, this.level, this.format);
     });
   }
 
@@ -31,7 +29,32 @@ export class ConsoleLogger {
     } else if (level === "DEBUG" || level === "TRACE") {
       return colors.grey;
     }
-    return s => s;
+    return (s) => s;
+  }
+
+  /**
+   * Commonly handle a message
+   * @param msg
+   * @param level
+   * @param format
+   */
+  static handleMessage(msg: WorkerMessage, level: WorkerLogLevel, format: string = "%t [%l]") {
+    if (msg.type === "title.set" && LogFilter("INFO", level)) {
+      console.log(msg);
+      ConsoleLogger.display(
+        <any>{
+          timestamp: msg.timestamp,
+          log: {
+            level: "INFO",
+            args: [msg.title],
+          },
+        },
+        format
+      );
+    }
+    if (msg.type === "log" && LogFilter(msg.log.level, level)) {
+      ConsoleLogger.display(msg, format);
+    }
   }
 
   /**
@@ -46,7 +69,9 @@ export class ConsoleLogger {
         [
           msg.timestamp,
           msg.log.level,
-          ...msg.log.args.map(a => (typeof a === "object" ? util.inspect(a) : a.toString()))
+          ...msg.log.args.map((a) =>
+            a === undefined ? "undefined" : typeof a === "object" ? util.inspect(a) : a.toString()
+          ),
         ].join(" ")
       )
     );

@@ -426,12 +426,13 @@ export default class S3Binary extends Binary implements CloudFormationContributo
     }
     let resources = {};
     this._params.CloudFormation = this._params.CloudFormation || {};
+    this._params.CloudFormation.Bucket = this._params.CloudFormation.Bucket || {};
     resources[this._name + "Bucket"] = {
       Type: "AWS::S3::Bucket",
       Properties: {
         ...this._params.CloudFormation.Bucket,
         BucketName: this._params.bucketName,
-        Tags: deployer.getDefaultTags(this._params.CloudFormation.Table.Tags),
+        Tags: deployer.getDefaultTags(this._params.CloudFormation.Bucket.Tags),
       },
     };
     // Add any Other resources with prefix of the service

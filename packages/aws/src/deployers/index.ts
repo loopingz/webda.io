@@ -412,11 +412,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       if (err.code === "Forbidden") {
         this.logger.log("ERROR", "S3 bucket already exists in another account or you do not have permissions on it");
       } else if (err.code === "NotFound") {
-<<<<<<< HEAD
-        this.logger.log("INFO", "\tCreating S3 Bucket", bucket);
-=======
-        console.log("\tCreating S3 Bucket", Bucket);
->>>>>>> wip: add statics
+        this.logger.log("INFO", "\tCreating S3 Bucket", Bucket);
         // Setup www permission on it
         await s3
           .createBucket({
@@ -435,8 +431,27 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    * @param prefix prefix on the bucket
    */
   async putFolderOnBucket(bucket: string, folder: string, prefix: string = "") {
-    let files = glob.sync(`${folder}/**/*`);
-    await this.putFilesOnBucket(bucket, files);
+    let absFolder = path.resolve(folder);
+    let files = glob.sync(`${absFolder}/**/*`);
+    await this.putFilesOnBucket(
+      bucket,
+      files.map((f) => ({ key: `${prefix}${path.relative(absFolder, f)}`, src: f }))
+    );
+  }
+
+  /**
+   *
+   * @param str1 to compare
+   * @param str2 to compare
+   */
+  commonPrefix(str1, str2) {
+    let res = "";
+    let i = 0;
+    while (i <= str1.length && i <= str2.length && str1[i] === str2[i]) {
+      res += str1[i];
+      i++;
+    }
+    return res;
   }
 
   /**
@@ -444,27 +459,60 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    * @param bucket to send bucket
    * @param files to send
    */
-  async putFilesOnBucket(bucket: string, files: { key: string; src: any; mimetype?: string }[] | string[]) {
+  async putFilesOnBucket(bucket: string, files: { key?: string; src: any; mimetype?: string }[]) {
     let s3 = new this.AWS.S3({
       endpoint: this.resources.endpoints.S3,
       s3ForcePathStyle: this.resources.endpoints.S3 !== undefined,
     });
+    if (!files.length) {
+      return;
+    }
     // Create the bucket
     await this.createBucket(bucket);
+    files.forEach((f) => {
+      if (f.src === undefined) {
+        throw Error("Should have src and key defined");
+      } else if (!f.key) {
+        f.key = path.relative(process.cwd(), f.src);
+      }
+    });
+    // Retrieve current files to only upload the one we do not have
+    let currentFiles = {};
+    let Prefix = files.reduce((prev, cur) => this.commonPrefix(prev, cur.key), files[0].key);
+    let Params = {
+      Bucket: bucket,
+      Prefix,
+      MaxKeys: 1000,
+      ContinuationToken: undefined,
+    };
+    do {
+      let res = await s3.listObjectsV2(Params).promise();
+      res.Contents.forEach((obj) => {
+        currentFiles[obj.Key] = obj;
+      });
+      Params.ContinuationToken = res.NextContinuationToken;
+    } while (Params.ContinuationToken);
     // Should implement multithread here - cleaning too
     let uuid = uuidv4();
     this.logger.logProgressStart(uuid, files.length, "Uploading to S3 bucket " + bucket);
     await bluebird.map(
       files,
-      async (file) => {
-        let info: any = {};
-        if (typeof file === "string") {
-          info.src = file;
-          info.key = path.relative(process.cwd(), file);
-        } else if (file.src === undefined || file.key === undefined) {
-          throw Error("Should have src and key defined");
-        } else {
-          info = file;
+      async (info) => {
+        // Check if upload is needed
+        if (currentFiles[info.key]) {
+          let s3obj = currentFiles[info.key];
+          if (typeof info.src === "string") {
+            let stat = fs.statSync(info.src);
+            if (stat.size === s3obj.Size) {
+              let md5 = `"${this.hash(fs.readFileSync(info.src).toString(), "md5", "hex")}"`;
+              if (md5 === s3obj.ETag) {
+                this.logger.log("TRACE", "Skipping upload of", info.src, "file with same hash already on bucket");
+                return;
+              }
+            }
+          } else {
+            // Dynamic content need to do something else
+          }
         }
         // Need to have mimetype to serve the content correctly
         let mimetype = info.mimetype || mime.contentType(path.extname(info.key)) || "application/octet-stream";
@@ -482,7 +530,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
           "Uploaded",
           typeof info.src === "string" ? info.src : "<dynamicContent>",
           "to",
-          info.key,
+          `s3://${bucket}/${info.key}`,
           "(" + mimetype + ")"
         );
       },

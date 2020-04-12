@@ -3,12 +3,35 @@ import * as assert from "assert";
 import { suite, test, timeout } from "mocha-typescript";
 import { checkLocalStack } from "../index.spec";
 import { SQSQueue } from "./sqsqueue";
+import { GetAWS } from "./aws-mixin";
 
 @suite
 class SQSQueueTest extends QueueTest {
   async before() {
     await checkLocalStack();
     await super.before();
+    await this.install();
+  }
+
+  async install() {
+    var sqs = new (GetAWS({}).SQS)({
+      endpoint: "http://localhost:4576",
+    });
+    return sqs
+      .getQueueUrl({
+        QueueName: "webda-test",
+        QueueOwnerAWSAccountId: "123456789",
+      })
+      .promise()
+      .catch((err) => {
+        if (err.code === "AWS.SimpleQueueService.NonExistentQueue") {
+          return sqs
+            .createQueue({
+              QueueName: "webda-test",
+            })
+            .promise();
+        }
+      });
   }
 
   @test

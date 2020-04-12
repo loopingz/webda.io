@@ -130,12 +130,13 @@ export default class SQSQueue extends Queue implements CloudFormationContributor
     let { name: QueueName } = this._getQueueInfosFromUrl();
     let resources = {};
     this._params.CloudFormation = this._params.CloudFormation || {};
+    this._params.CloudFormation.Queue = this._params.CloudFormation.Queue || {};
     resources[this._name + "Queue"] = {
       Type: "AWS::SQS::Queue",
       Properties: {
         ...this._params.CloudFormation.Queue,
         QueueName,
-        Tags: deployer.getDefaultTags(this._params.CloudFormation.Table.Tags),
+        Tags: deployer.getDefaultTags(this._params.CloudFormation.Queue.Tags),
       },
     };
     // Add any Other resources with prefix of the service

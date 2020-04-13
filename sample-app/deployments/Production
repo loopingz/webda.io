@@ -35,6 +35,10 @@
    "AssetsBucket": "webda-sample-app-artifacts",
    "FargateCluster": "webda-demo",
 
+   "Tags": {
+     "test": "webda3"
+   },
+
   "Certificates": {
      "sampleapp.webda.io": {
        "alt": ["*.sampleapp.webda.io"]
@@ -42,7 +46,10 @@
    },
 
    "Lambda": {
-     "FunctionName": "webda-sample-app"
+     "FunctionName": "webda-sample-app",
+     "Tags": {
+       "updater": "test"
+     }
    },
 
    "Resources": {},

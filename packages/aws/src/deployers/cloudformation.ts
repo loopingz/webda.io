@@ -3,6 +3,7 @@ import * as YAML from "yaml";
 import { AWSDeployer, AWSDeployerResources } from ".";
 import { CloudFormationContributor } from "../services";
 import { Domain } from "domain";
+import { ConsoleLogger } from "@webda/workout";
 
 interface CloudFormationDeployerResources extends AWSDeployerResources {
   repositoryNamespace: string;
@@ -91,7 +92,7 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   Workers?: [];
 
   // Default Tags
-  Tags?: [{ Key: string; Value: String }];
+  Tags?: { Key: string; Value: string }[] | { [key: string]: string };
 }
 
 export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDeployerResources> {
@@ -155,6 +156,8 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     if (this.resources.APIGateway) {
       this.resources.APIGateway.Name = this.resources.APIGateway.Name || this.resources.name;
     }
+
+    this.resources.Tags = this.transformTags(this.resources.Tags || []);
 
     if (this.resources.APIGatewayStage) {
       this.resources.APIGatewayStage.StageName =
@@ -411,9 +414,14 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
           50,
           "Waiting for COMPLETE state"
         );
+      } else if (err.code === "AlreadyExistsException") {
+        this.logger.log("WARN", "ChangeSet exists and need to be clean");
+        await cloudformation
+          .deleteChangeSet({ StackName: this.resources.StackName, ChangeSetName: "WebdaCloudFormationDeployer" })
+          .promise();
+        changeSet = await cloudformation.createChangeSet({ ...changeSetParams, ChangeSetType: "UPDATE" }).promise();
       } else {
         this.logger.log("ERROR", err);
-        // TODO Managed when changeset are in error
         return;
       }
     }
@@ -431,6 +439,10 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       50,
       "Waiting for ChangeSet to be ready..."
     );
+    if (changes.Status === "UPDATE_IN_PROGRESS") {
+      this.logger.log("ERROR", "Timeout waiting for Stack to update");
+      return;
+    }
     if (changes.Status === "FAILED") {
       if (
         changes.StatusReason ===
@@ -443,12 +455,51 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       return;
     }
     changes.Changes.filter((i) => i.Type === "Resource").forEach(({ ResourceChange: info }) =>
-      this.logger.log("INFO", `${info.Action.padEnd(8)} ${info.ResourceType.padEnd(30)} ${info.LogicalResourceId}`)
+      this.logger.log(
+        "INFO",
+        `${info.Action.toUpperCase().padEnd(38)} ${info.ResourceType.padEnd(30)} ${info.LogicalResourceId}`
+      )
     );
     this.logger.log("INFO", "Executing Change Set");
+    let lastEvent = (
+      await cloudformation.describeStackEvents({ StackName: this.resources.StackName }).promise()
+    ).StackEvents.shift();
     await cloudformation
       .executeChangeSet({ ChangeSetName: "WebdaCloudFormationDeployer", StackName: this.resources.StackName })
       .promise();
+    // Wait for the completion of change and display events in the meantime
+    this.logger.log("INFO", "Waiting for update completion");
+    let i = 0;
+    let Timeout = true;
+    do {
+      let events = (await cloudformation.describeStackEvents({ StackName: this.resources.StackName }).promise())
+        .StackEvents;
+      let display = lastEvent ? false : true;
+      let event;
+      while ((event = events.pop())) {
+        if (display) {
+          this.logger.log(
+            "INFO",
+            `${event.ResourceStatus.padEnd(38)} ${event.ResourceType.padEnd(30)} ${event.LogicalResourceId}`
+          );
+          lastEvent = event;
+          if (
+            lastEvent.LogicalResourceId === this.resources.StackName &&
+            (lastEvent.ResourceStatus === "UPDATE_COMPLETE" || lastEvent.ResourceStatus === "CREATE_COMPLETE")
+          ) {
+            Timeout = false;
+            break;
+          }
+        } else if (event.EventId === lastEvent.EventId) {
+          display = true;
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+      i++;
+    } while (i < 60 && Timeout);
+    if (Timeout) {
+      this.logger.log("WARN", "Timeout while waiting for stack to update");
+    }
   }
 
   async Resources() {
@@ -466,6 +517,17 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     }
   }
 
+  transformTags(tags: { [key: string]: string } | { Key: string; Value: string }[]): { Key: string; Value: string }[] {
+    if (Array.isArray(tags)) {
+      return tags;
+    }
+    let res = [];
+    for (let i in tags) {
+      res.push({ Key: i, Value: tags[i] });
+    }
+    return res;
+  }
+
   /**
    * Take this.resources[key].Tags and add all remaining Tags from this.resources.Tags
    *
@@ -474,13 +536,13 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   getDefaultTags(key: string | object[]): any[] {
     let Tags;
     if (typeof key === "string") {
-      Tags = this.resources[key] ? this.resources[key].Tags || [] : [];
+      Tags = this.resources[key] ? this.transformTags(this.resources[key].Tags) || [] : [];
     } else {
       Tags = key || [];
     }
-    if (this.resources.Tags) {
+    if (this.resources.Tags.length) {
       let TagKeys = Tags.map((t) => t.Key);
-      Tags.push(...this.resources.Tags.filter((t) => TagKeys.indexOf(t.Key) < 0));
+      Tags.push(...(<any[]>this.resources.Tags).filter((t) => TagKeys.indexOf(t.Key) < 0));
     }
     return Tags;
   }
@@ -672,6 +734,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       Properties: {
         ...this.resources.Lambda,
         Code,
+        Tags: this.getDefaultTags("Lambda"),
       },
     };
   }

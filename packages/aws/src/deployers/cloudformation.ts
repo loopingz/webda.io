@@ -90,9 +90,6 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
 
   // Deploy images and ECR
   Workers?: [];
-
-  // Default Tags
-  Tags?: { Key: string; Value: string }[] | { [key: string]: string };
 }
 
 export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDeployerResources> {
@@ -515,36 +512,6 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         }
       }
     }
-  }
-
-  transformTags(tags: { [key: string]: string } | { Key: string; Value: string }[]): { Key: string; Value: string }[] {
-    if (Array.isArray(tags)) {
-      return tags;
-    }
-    let res = [];
-    for (let i in tags) {
-      res.push({ Key: i, Value: tags[i] });
-    }
-    return res;
-  }
-
-  /**
-   * Take this.resources[key].Tags and add all remaining Tags from this.resources.Tags
-   *
-   * @param key of the resources to add
-   */
-  getDefaultTags(key: string | object[]): any[] {
-    let Tags;
-    if (typeof key === "string") {
-      Tags = this.resources[key] ? this.transformTags(this.resources[key].Tags) || [] : [];
-    } else {
-      Tags = key || [];
-    }
-    if (this.resources.Tags.length) {
-      let TagKeys = Tags.map((t) => t.Key);
-      Tags.push(...(<any[]>this.resources.Tags).filter((t) => TagKeys.indexOf(t.Key) < 0));
-    }
-    return Tags;
   }
 
   async completeOpenAPI(openapi) {

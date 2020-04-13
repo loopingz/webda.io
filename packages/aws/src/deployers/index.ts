@@ -12,6 +12,7 @@ import * as path from "path";
 import { IAMPolicyContributor } from "../services";
 import { v4 as uuidv4 } from "uuid";
 
+export type TagsDefinition = { Key: string; Value: string }[] | { [key: string]: string };
 export interface AWSDeployerResources extends DeployerResources {
   accessKeyId?: string;
   secretAccessKey?: string;
@@ -25,6 +26,16 @@ export interface AWSDeployerResources extends DeployerResources {
     STS?: string;
     EC2?: string;
     Route53?: string;
+  };
+
+  // Default Tags
+  Tags?: TagsDefinition;
+  // Certificates
+  Certificates?: {
+    [key: string]: {
+      SubjectAlternativeNames?: string[];
+      Tags?: TagsDefinition;
+    };
   };
 }
 
@@ -47,10 +58,6 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     this.resources.endpoints = this.resources.endpoints || {};
     this.AWS = AWS;
     this.resources.createMissingResources = this.resources.createMissingResources || false;
-  }
-
-  stepper(...args) {
-    // TODO Define how to manage stepper and console output
   }
 
   getRegion(): string {
@@ -201,6 +208,41 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       params.Marker = res.NextMarker;
     } while (!targetZone && res.NextMarker);
     return targetZone;
+  }
+
+  /**
+   * Transform a tag map into a tag array
+   *
+   * @param tags
+   */
+  transformTags(tags: TagsDefinition): { Key: string; Value: string }[] {
+    if (Array.isArray(tags)) {
+      return tags;
+    }
+    let res = [];
+    for (let i in tags) {
+      res.push({ Key: i, Value: tags[i] });
+    }
+    return res;
+  }
+
+  /**
+   * Take this.resources[key].Tags and add all remaining Tags from this.resources.Tags
+   *
+   * @param key of the resources to add
+   */
+  getDefaultTags(key: string | object[]): any[] {
+    let Tags;
+    if (typeof key === "string") {
+      Tags = this.resources[key] ? this.transformTags(this.resources[key].Tags) || [] : [];
+    } else {
+      Tags = key || [];
+    }
+    if (this.resources.Tags.length) {
+      let TagKeys = Tags.map((t) => t.Key);
+      Tags.push(...(<any[]>this.resources.Tags).filter((t) => TagKeys.indexOf(t.Key) < 0));
+    }
+    return Tags;
   }
 
   /**

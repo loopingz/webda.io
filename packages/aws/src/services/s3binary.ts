@@ -286,6 +286,43 @@ export default class S3Binary extends Binary implements CloudFormationContributo
     return s3obj.getObject().createReadStream();
   }
 
+  /**
+   *
+   * @param Bucket to iterate on
+   * @param Prefix to use
+   * @param callback to execute with each key
+   * @param filter regexp to execute on the key
+   */
+  async forEachFile(
+    Bucket: string,
+    callback: (Key: string, page: number) => Promise<void>,
+    Prefix: string = "",
+    filter: RegExp = undefined
+  ) {
+    let params: any = { Bucket, Prefix };
+    let page = 0;
+    var s3 = new this.AWS.S3({
+      endpoint: this._params.endpoint,
+      s3ForcePathStyle: this._params.s3ForcePathStyle || false,
+    });
+    do {
+      await s3
+        .listObjectsV2(params)
+        .promise()
+        .then(async ({ Contents, NextContinuationToken }: any) => {
+          params.ContinuationToken = NextContinuationToken;
+          for (let f in Contents) {
+            let { Key } = Contents[f];
+            if (filter && filter.exec(Key) === undefined) {
+              continue;
+            }
+            await callback(Key, page);
+          }
+        });
+      page++;
+    } while (params.ContinuationToken);
+  }
+
   async putObject(
     key: string,
     body: Buffer | Blob | string | ReadableStream,

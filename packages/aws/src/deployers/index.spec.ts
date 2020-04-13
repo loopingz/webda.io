@@ -26,6 +26,9 @@ export function MockAWSDeployerMethods(service: AWSDeployer<any>, test: Mockable
   test.mocks["doCreateCertificate"] = sinon.stub(service, "doCreateCertificate").callsFake(async () => {});
   test.mocks["getCertificate"] = sinon.stub(service, "getCertificate").callsFake(async () => "arn:myfakecertif");
   test.mocks["createDNSEntry"] = sinon.stub(service, "createDNSEntry").callsFake(async () => {});
+  test.mocks["getZoneForDomainName"] = sinon
+    .stub(service, "getZoneForDomainName")
+    .callsFake(async () => ({ Id: "MyZoneId" }));
   test.mocks["getAWSIdentity"] = sinon.stub(service, "getAWSIdentity").callsFake(async () => ({
     Account: "666111333",
     UserId: "AR1232432433",

@@ -2,6 +2,7 @@ import * as path from "path";
 import * as YAML from "yaml";
 import { AWSDeployer, AWSDeployerResources } from ".";
 import { CloudFormationContributor } from "../services";
+import { Domain } from "domain";
 
 interface CloudFormationDeployerResources extends AWSDeployerResources {
   repositoryNamespace: string;
@@ -179,6 +180,51 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       }
     }
     this.resources.Statics = <any>(this.resources.Statics || []);
+    this.resources.Statics.forEach((conf) => {
+      // Should move to init
+      if (!conf.AssetsPath) {
+        conf.AssetsPath = conf.Source;
+        if (conf.AssetsPath.startsWith("/")) {
+          conf.AssetsPath = conf.AssetsPath.substr(1);
+        }
+        if (!conf.AssetsPath.endsWith("/")) {
+          conf.AssetsPath += "/";
+        }
+      }
+      if (conf.CloudFront) {
+        let DistributionConfig = conf.CloudFront.DistributionConfig || {};
+        DistributionConfig.Aliases = DistributionConfig.Aliases || [];
+        if (DistributionConfig.Aliases.indexOf(conf.DomainName) < 0) {
+          DistributionConfig.Aliases.push(conf.DomainName);
+        }
+        DistributionConfig.PriceClass = DistributionConfig.PriceClass || "PriceClass_100";
+        DistributionConfig.Comment = DistributionConfig.Comment || "Deployed with @webda/aws/cloudformation";
+        if (DistributionConfig.Enabled === undefined) {
+          DistributionConfig.Enabled = true;
+        }
+        if (!DistributionConfig.DefaultCacheBehavior) {
+          DistributionConfig.DefaultCacheBehavior = {
+            AllowedMethods: ["GET", "HEAD"],
+            ViewerProtocolPolicy: "redirect-to-https",
+            TargetOriginId: conf.DomainName,
+            ForwardedValues: {
+              QueryString: false,
+            },
+          };
+        }
+        if (!DistributionConfig.Origins) {
+          DistributionConfig.Origins = [
+            {
+              DomainName: `${this.resources.AssetsBucket}.s3.amazonaws.com`,
+              Id: conf.DomainName,
+              OriginPath: `/${conf.AssetsPath.substr(0, conf.AssetsPath.length - 1)}`,
+              S3OriginConfig: {},
+            },
+          ];
+        }
+        conf.CloudFront.DistributionConfig = DistributionConfig;
+      }
+    });
   }
 
   async deploy(): Promise<any> {
@@ -202,11 +248,14 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     // Dynamicly call each methods
     for (let i in this.resources) {
       if (this[i]) {
+        this.logger.log("TRACE", "Add CloudFormation Resource", i);
         await this[i]();
       }
     }
+
     // Add any static
     for (let i in this.resources.Statics) {
+      this.logger.log("TRACE", "Add Static Resource", i);
       await this.createStatic(this.resources.Statics[i]);
     }
 
@@ -223,26 +272,17 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   async uploadStatics(assets: boolean = true) {
     for (let i in this.resources.Statics) {
       const { Source, AssetsPath } = this.resources.Statics[i];
-      let prefix = AssetsPath;
-      if (!AssetsPath) {
-        prefix = Source;
-        if (prefix.startsWith("/")) {
-          prefix = prefix.substr(1);
-        }
-        if (!prefix.endsWith("/")) {
-          prefix += "/";
-        }
-      }
+
       await this.putFolderOnBucket(
         this.resources.AssetsBucket,
         this.manager.getApplication().getAppPath(Source),
-        prefix
+        AssetsPath
       );
     }
   }
 
   async createStatic(info: any) {
-    const { DomainName, CloudFront, Bucket } = info;
+    const { DomainName, CloudFront, Bucket, AssetsPath } = info;
     info.Bucket = info.Bucket || {};
     // Create bucket
     let resPrefix = `Static${DomainName.replace(/\./g, "")}`;
@@ -257,29 +297,24 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       };
     }
     if (CloudFront) {
-      let DistributionConfig = {
-        ...info.CloudFront.DistributionConfig,
-      };
-      DistributionConfig.Aliases = DistributionConfig.Aliases || [];
-      if (DistributionConfig.Aliases.indexOf(DomainName) < 0) {
-        DistributionConfig.Aliases.push(DomainName);
-      }
-      DistributionConfig.Comment = DistributionConfig.Comment || "Deployed with @webda/aws/cloudformation";
-      if (DistributionConfig.Enabled === undefined) {
-        DistributionConfig.Enabled = true;
-      }
-      if (!DistributionConfig.ViewerCertificate) {
-        DistributionConfig.ViewerCertificate = {
+      if (!CloudFront.DistributionConfig.ViewerCertificate) {
+        CloudFront.DistributionConfig.ViewerCertificate = {
           AcmCertificateArn: (await this.getCertificate(DomainName)).CertificateArn,
+          SslSupportMethod: "sni-only",
         };
       }
       this.template.Resources[`${resPrefix}CloudFront`] = {
         Type: "AWS::CloudFront::Distribution",
         Properties: {
-          DistributionConfig,
+          DistributionConfig: CloudFront.DistributionConfig,
           Tags: this.getDefaultTags(info.CloudFront.Tags),
         },
       };
+      await this.createCloudFormationDNSEntry(
+        { "Fn::GetAtt": [`${resPrefix}CloudFront`, "DomainName"] },
+        DomainName,
+        "Z2FDTNDATAQYW2" // Constant as seen here: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-route53-aliastarget-1.html#cfn-route53-aliastarget-hostedzoneid
+      );
     }
   }
 
@@ -308,6 +343,25 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       50,
       "Waiting on stack to be deleted"
     );
+  }
+
+  async createCloudFormationDNSEntry(ref: any, domain: string, HostedZoneId: any) {
+    let zone = await this.getZoneForDomainName(domain);
+    if (!zone) {
+      this.logger.log("WARN", "Cannot find Route53 zone for", domain, ", you will have to create manually the CNAME");
+      return;
+    }
+    // Possible conflict if my.name.domain.io and myn.ame.domain.io exists
+    this.template.Resources[`DNSEntry${domain.replace(/\./g, "")}`] = {
+      Type: "AWS::Route53::RecordSet",
+      Properties: {
+        AliasTarget: { DNSName: ref, HostedZoneId },
+        Comment: "Created by @webda/aws/cloudformation",
+        Type: "A",
+        Name: domain,
+        HostedZoneId: zone.Id,
+      },
+    };
   }
 
   async createCloudFormation() {
@@ -359,6 +413,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         );
       } else {
         this.logger.log("ERROR", err);
+        // TODO Managed when changeset are in error
         return;
       }
     }
@@ -387,7 +442,6 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       }
       return;
     }
-    this.logger.log("INFO", changes);
     changes.Changes.filter((i) => i.Type === "Resource").forEach(({ ResourceChange: info }) =>
       this.logger.log("INFO", `${info.Action.padEnd(8)} ${info.ResourceType.padEnd(30)} ${info.LogicalResourceId}`)
     );
@@ -558,6 +612,12 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         Stage: { Ref: "APIGatewayStage" },
       },
     };
+    // Should do conditional with RegionalDomainName/RegionalHostedZoneId
+    await this.createCloudFormationDNSEntry(
+      { "Fn::GetAtt": ["APIGatewayDomain", "DistributionDomainName"] },
+      this.resources.APIGatewayDomain.DomainName,
+      { "Fn::GetAtt": ["APIGatewayDomain", "DistributionHostedZoneId"] }
+    );
   }
 
   async Policy() {

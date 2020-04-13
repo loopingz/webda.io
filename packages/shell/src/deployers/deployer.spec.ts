@@ -3,9 +3,10 @@ import { suite, test } from "mocha-typescript";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaSampleApplication } from "../index.spec";
 import { Deployer } from "./deployer";
-import { WorkerOutput } from "@webda/workout";
+import { WorkerOutput, ConsoleLogger, WorkerLogLevel } from "@webda/workout";
+import { Logger } from "@webda/core";
 
-export abstract class DeployerTest<T> {
+export abstract class DeployerTest<T extends Deployer<any>> {
   deployer: T;
   manager: DeploymentManager;
   execs: any[] = [];
@@ -16,9 +17,13 @@ export abstract class DeployerTest<T> {
 
   abstract async getDeployer(manager: DeploymentManager): Promise<T>;
 
-  async before() {
+  async before(logger: WorkerLogLevel = "INFO") {
+    let workerOutput = new WorkerOutput();
+    if (logger) {
+      new ConsoleLogger(workerOutput, logger);
+    }
     this.manager = new DeploymentManager(
-      new WorkerOutput(),
+      workerOutput,
       WebdaSampleApplication.getAppPath(),
       "Production"
     );

@@ -1,4 +1,5 @@
 {
+ "uuid": "Production",
  "parameters": {
   "website": {"path": "./wui", "url": "prod.webda-demo.com"},
   "requestLimit": "1mb",
@@ -11,13 +12,6 @@
   "secretAccessKey": "PROD_SECRET",
   "sessionSecret": "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
  },
- "resources": {
-  "restApi": "webda-demo-production",
-  "lambdaRole": "arn:aws:iam::111222333:role/webda-demo-api",
-  "FargateRegion": "eu-west-1"
- },
- "type": "aws",
- "uuid": "Production",
  "services": {
      "contacts": {
         "type": "DynamoStore",
@@ -32,20 +26,30 @@
        "queue": "https://sqs.eu-west-1.amazonaws.com/277712386420/webda-sample-app-tumbnails-queue"
      }
  },
+ "resources": {},
  "units": [
   {
    "name": "WebdaSampleApplication",
-   "workers": [
-    "ProcessorService"
-   ],
    "type": "WebdaAWSDeployer/CloudFormationDeployer",
+
    "AssetsBucket": "webda-sample-app-artifacts",
+   "FargateCluster": "webda-demo",
+
+  "Certificates": {
+     "sampleapp.webda.io": {
+       "alt": ["*.sampleapp.webda.io"]
+     }
+   },
+
    "Lambda": {
      "FunctionName": "webda-sample-app"
    },
+
    "Resources": {},
+
    "APIGateway": {},
    "APIGatewayDomain": {"DomainName": "api.sampleapp.webda.io"},
+
    "Statics": [{
      "DomainName": "sampleapp.webda.io",
      "CloudFront": {
@@ -53,21 +57,14 @@
      },
      "Source": "wui"
    }],
+
+   "Docker": "",
+   
    "Workers": [
      {
-       "type": "",
-       "Repository" :{
-
-       },
-       "Fargate": {
-         "Cluster": {
-           "Name": "webda-demo"
-         },
-        "Service": {
-          "Name": "webda-demo-workers"
-        },
-        "TaskDefinition": {}
-       }
+       "FargateCluster": "webda-demo",
+       "FargateService": {"Name": "webda-demo-workers"},
+       "FargateTaskDefinition": {}
      }
    ]
   },
@@ -76,8 +73,5 @@
    "type": "WebdaDeployer/Packager",
    "zipFile": "plop.zip"
   }
- ],
- "_type": "deployment",
- "callback": "",
- "lastUpdate": "2018-03-30T17:12:00.081Z"
+ ]
 }

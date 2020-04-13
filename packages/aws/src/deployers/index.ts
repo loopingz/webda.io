@@ -507,6 +507,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
               let md5 = `"${this.hash(fs.readFileSync(info.src).toString(), "md5", "hex")}"`;
               if (md5 === s3obj.ETag) {
                 this.logger.log("TRACE", "Skipping upload of", info.src, "file with same hash already on bucket");
+                this.logger.logProgressIncrement(1, uuid);
                 return;
               }
             }

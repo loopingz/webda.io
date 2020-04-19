@@ -1,15 +1,23 @@
 import * as colors from "colors";
 import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "..";
 import * as util from "util";
+import { sprintf } from "sprintf-js";
 
+interface WorkerLogMessage {
+  m: string;
+  l: string;
+  t: number;
+  [key: string]: any;
+}
 /**
  * ConsoleLogger
  */
 export class ConsoleLogger {
+  static defaultFormat = "%(d)s [%(l)s] %(m)s";
   format: string;
   level: WorkerLogLevel;
 
-  constructor(output: WorkerOutput, level: WorkerLogLevel = "INFO", format: string = "%t [%l]") {
+  constructor(output: WorkerOutput, level: WorkerLogLevel = "INFO", format: string = ConsoleLogger.defaultFormat) {
     this.level = level;
     this.format = format;
     output.on("message", (msg: WorkerMessage) => {
@@ -38,9 +46,8 @@ export class ConsoleLogger {
    * @param level
    * @param format
    */
-  static handleMessage(msg: WorkerMessage, level: WorkerLogLevel, format: string = "%t [%l]") {
+  static handleMessage(msg: WorkerMessage, level: WorkerLogLevel, format: string = ConsoleLogger.defaultFormat) {
     if (msg.type === "title.set" && LogFilter("INFO", level)) {
-      console.log(msg);
       ConsoleLogger.display(
         <any>{
           timestamp: msg.timestamp,
@@ -63,17 +70,16 @@ export class ConsoleLogger {
    * @param msg
    * @param format
    */
-  static display(msg: WorkerMessage, format: string = "%t [%l]") {
-    console.log(
-      ConsoleLogger.getColor(msg.log.level)(
-        [
-          msg.timestamp,
-          msg.log.level,
-          ...msg.log.args.map(a =>
-            a === undefined ? "undefined" : typeof a === "object" ? util.inspect(a) : a.toString()
-          )
-        ].join(" ")
-      )
-    );
+  static display(msg: WorkerMessage, format: string = ConsoleLogger.defaultFormat) {
+    let info: WorkerLogMessage = {
+      m: msg.log.args
+        .map(a => (a === undefined ? "undefined" : typeof a === "object" ? util.inspect(a) : a.toString()))
+        .join(" "),
+      l: msg.log.level,
+      t: msg.timestamp,
+      d: () => new Date(msg.timestamp).toISOString()
+      // TODO Add different format of dates
+    };
+    console.log(ConsoleLogger.getColor(msg.log.level)(sprintf(format, info)));
   }
 }

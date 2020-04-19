@@ -21,7 +21,7 @@ export class Terminal {
   constructor(
     wo: WorkerOutput,
     level: WorkerLogLevel = undefined,
-    format: string = "",
+    format: string = undefined,
     tty: boolean = process.stdout.isTTY
   ) {
     this.wo = wo;

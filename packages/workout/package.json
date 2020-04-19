@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "path": "^0.12.7",
+    "sprintf-js": "^1.1.2",
     "uuid": "^7.0.3"
   },
   "devDependencies": {

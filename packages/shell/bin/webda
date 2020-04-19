@@ -70,20 +70,10 @@ if (!Promise.each) {
  * Search for webda.shell.json override or use standard
  */
 
-// Find first shell override
-var files = [];
-
-if (process.argv.indexOf("--no-override") < 0) {
-  const Finder = require("fs-finder");
-  if (fs.existsSync("./node_modules")) {
-    files = Finder.from("./node_modules").findFiles("webda.shell.json");
-  }
-}
-
 // Capture require() to use local webda if exists
 function intercept(__require) {
   return function(moduleId) {
-    if (moduleId === "webda") {
+    if (moduleId === "@webda/core" || moduleId === "webda") {
       return global.__webda;
     }
     return __require.apply(this, arguments);
@@ -91,18 +81,7 @@ function intercept(__require) {
 }
 Module.prototype.require = intercept(Module.prototype.require);
 
-var consoleService;
-if (files.length) {
-  let cfg = require(files[0]);
-  let dir = path.dirname(files[0]);
-  console.log(cfg.name + " - v" + getVersion(dir).trim());
-  consoleService = require(path.join(dir, cfg.handler));
-  if (consoleService.default) {
-    consoleService = consoleService.default;
-  }
-} else {
-  consoleService = require(global.__webda_shell + "/lib/console/webda").default;
-}
+var consoleService = require(global.__webda_shell + "/lib/console/webda").default;
 
 /**
  * Commandline parsing

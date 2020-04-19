@@ -24,11 +24,13 @@ class DebugLogger extends MemoryLogger {
 class ConsoleTest {
   logger: DebugLogger;
   dynamicFile: string;
+  workerOutput: WorkerOutput;
   async commandLine(line, addAppPath: boolean = true) {
     if (addAppPath) {
       line = `--appPath ${WebdaSampleApplication.getAppPath()} ` + line;
     }
-    await WebdaConsole.handleCommand(line.split(" "));
+    line = "--notty " + line;
+    return await WebdaConsole.handleCommand(line.split(" "), this.workerOutput);
   }
 
   checkTestDeploymentConfig(config) {
@@ -43,9 +45,9 @@ class ConsoleTest {
       fs.unlinkSync(dynamicFile);
     }
     this.dynamicFile = dynamicFile;
-    let workerOutput = new WorkerOutput();
-    WebdaConsole.logger = new Logger(workerOutput, "webda/console");
-    this.logger = new DebugLogger(workerOutput, "INFO");
+    this.workerOutput = new WorkerOutput();
+    WebdaConsole.logger = new Logger(this.workerOutput, "webda/console");
+    this.logger = new DebugLogger(this.workerOutput, "INFO");
   }
 
   async after() {
@@ -267,7 +269,8 @@ class DynamicService extends Service {
 
   @test
   async exporterBadDeployment() {
-    await this.commandLine("-d TestLambda config test.export.json");
+    let res = await this.commandLine("-d TestLambda config test.export.json");
+    assert.equal(res, -1);
     let logs = this.logger.getLogs();
     assert.equal(logs[0].log.args[0], "Unknown deployment: TestLambda");
   }

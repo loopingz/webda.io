@@ -10,6 +10,14 @@ import * as yargs from "yargs";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";
 import { WorkerOutput, WorkerLogLevel, Terminal, ConsoleLogger } from "@webda/workout";
+import * as path from "path";
+
+export type WebdaCommand = (argv: any[]) => void;
+export interface WebdaShellExtension {
+  require: string;
+  export?: string;
+  description: string;
+}
 
 export enum DebuggerStatus {
   Stopped = "STOPPED",
@@ -31,7 +39,7 @@ export default class WebdaConsole {
     return colors.bold(colors.yellow(str));
   }
 
-  static help() {
+  static help(commands: string[] = []) {
     var lines = [];
     lines.push("USAGE: webda [config|debug|deploy|init|serve|launch]");
     lines.push("");
@@ -50,6 +58,7 @@ export default class WebdaConsole {
     lines.push(this.bold(" openapi") + ": Generate openapi file");
     lines.push(this.bold(" generate-session-secret") + ": Generate a new session secret in parameters");
     lines.push(this.bold(" launch") + " ServiceName method arg1 ...: Launch the ServiceName method with arg1 ...");
+    lines.push(...commands);
     lines.forEach(line => {
       this.output(line);
     });
@@ -387,7 +396,7 @@ export default class WebdaConsole {
    *
    * @param args
    */
-  static async handleCommand(args): Promise<number> {
+  static async handleCommand(args, output: WorkerOutput = undefined): Promise<number> {
     // Arguments parsing
     let argv = this.parser(args);
     await this.initLogger(argv);
@@ -399,7 +408,7 @@ export default class WebdaConsole {
     }
 
     // Init WorkerOutput
-    let output = new WorkerOutput();
+    output = output || new WorkerOutput();
     if (argv.notty) {
       new ConsoleLogger(output);
     } else {
@@ -438,7 +447,7 @@ export default class WebdaConsole {
     // Load webda module
     this.app.loadModules();
 
-    // Manage commands
+    // Manage builtin commands
     switch (argv._[0]) {
       case "serve":
         await this.serve(argv);
@@ -471,10 +480,70 @@ export default class WebdaConsole {
       case "generate-session-secret":
         await this.generateSessionSecret();
         return 0;
-      default:
-        await this.help();
-        return 0;
     }
+
+    // Search for shell override
+    let commands = [];
+    if (fs.existsSync(this.app.getAppPath("node_modules"))) {
+      let files = [];
+      let rec = p => {
+        try {
+          fs.readdirSync(p).forEach(f => {
+            let ap = path.join(p, f);
+            let stat = fs.lstatSync(ap);
+            if (stat.isDirectory() || stat.isSymbolicLink()) {
+              rec(ap);
+            } else if (f === "webda.shell.json" && stat.isFile()) {
+              this.log("DEBUG", "Found shell extension", ap);
+              files.push(ap);
+            }
+          });
+        } catch (err) {
+          // skip exception
+        }
+      };
+      rec(this.app.getAppPath("node_modules"));
+      let appCustom = this.app.getAppPath("webda.shell.json");
+      if (fs.existsSync(appCustom)) {
+        files.push(appCustom);
+      }
+
+      // Load each files
+      for (let i in files) {
+        try {
+          let info = JSON.parse(fs.readFileSync(files[i]).toString());
+          for (let j in info.commands) {
+            commands.push(" " + this.bold(j) + ": " + info.commands[j].description);
+            if (j === argv._[0]) {
+              // Load lib
+              argv._.shift();
+              return await this.executeShellExtension(info.commands[j], path.dirname(files[i]), argv);
+            }
+          }
+        } catch (err) {
+          this.log("ERROR", err);
+          return -1;
+        }
+      }
+    }
+    if (commands.length) {
+      commands.unshift("", "Extensions", "");
+      commands.push("");
+    }
+    // Display help if nothing is found
+    await this.help(commands);
+  }
+
+  /**
+   *
+   * @param ext extension to execute
+   * @param relPath relative path of the extension
+   * @param argv arguments passed to the shell
+   */
+  static async executeShellExtension(ext: WebdaShellExtension, relPath: string, argv: any) {
+    ext.export = ext.export || "default";
+    const data = require(path.join(relPath, ext.require));
+    return data[ext.export](this, argv);
   }
 
   /**

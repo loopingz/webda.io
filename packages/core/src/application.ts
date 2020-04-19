@@ -509,6 +509,8 @@ export class Application {
     info.services = info.services || {};
     info.models = info.models || {};
     info.deployers = info.deployers || {};
+
+    // Load services definition
     for (let key in info.services) {
       let service = this.resolveRequire(path.join(parent, info.services[key]));
       if (!service) {
@@ -517,6 +519,8 @@ export class Application {
       this.addService(key, service);
       this.cachedModules.services[key] = "./" + path.relative(this.appPath, path.join(parent, info.services[key]));
     }
+
+    // Load models definition
     for (let key in info.models) {
       let service = this.resolveRequire(path.join(parent, info.models[key]));
       if (!service) {
@@ -525,6 +529,8 @@ export class Application {
       this.addModel(key, service);
       this.cachedModules.models[key] = "./" + path.relative(this.appPath, path.join(parent, info.models[key]));
     }
+
+    // Load deployers definition
     for (let key in info.deployers) {
       let service = this.resolveRequire(path.join(parent, info.deployers[key]));
       if (!service) {

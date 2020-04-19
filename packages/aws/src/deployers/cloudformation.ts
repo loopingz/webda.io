@@ -755,6 +755,12 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     ]);
     return result;
   }
+
+  static shellCommand(console, args) {
+    console.log("INFO", "Got called", args);
+  }
 }
 
-export { CloudFormationDeployer };
+const ShellCommand = CloudFormationDeployer.shellCommand;
+
+export { CloudFormationDeployer, ShellCommand };

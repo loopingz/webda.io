@@ -27,9 +27,7 @@ let webdaVersion;
 if (fs.existsSync("node_modules/@webda/core")) {
   // Local module of webda exists use it
   global.__webda = process.cwd() + "/node_modules/@webda/core";
-  console.log(
-    "Using local web" + "da".yellow + " - v" + getVersion(global.__webda)
-  );
+  console.log("Using local web" + "da".yellow + " - v" + getVersion(global.__webda));
   webdaVersion = getVersion(global.__webda);
 } else if (fs.existsSync("core.js") && fs.existsSync("services/executor.js")) {
   console.log("Using local web" + "da".yellow + "development version");
@@ -39,9 +37,7 @@ if (fs.existsSync("node_modules/@webda/core")) {
 } else {
   // Use the webda-shell default webda
   global.__webda = "@webda/core";
-  console.log(
-    "Using embedded web" + "da".yellow + " - v" + getVersion(global.__webda)
-  );
+  console.log("Using embedded web" + "da".yellow + " - v" + getVersion(global.__webda));
   webdaVersion = getVersion(global.__webda);
 }
 global.__webda = require(global.__webda);
@@ -50,16 +46,8 @@ global.__webda_shell = __dirname + "/..";
 console.log("web" + "da".yellow + "-shell - v" + getVersion(__webda_shell));
 
 // Display warning for versions mismatch
-if (
-  !semver.satisfies(
-    webdaVersion.replace(/-.*/, ""),
-    "^" + getVersion(__webda_shell).replace(/-.*/, "")
-  )
-) {
-  console.log(
-    "Versions mismatch: @webda/core and @webda/shell are not within patch versions"
-      .yellow
-  );
+if (!semver.satisfies(webdaVersion.replace(/-.*/, ""), "^" + getVersion(__webda_shell).replace(/-.*/, ""))) {
+  console.log("Versions mismatch: @webda/core and @webda/shell are not within patch versions".yellow);
 }
 
 /**
@@ -69,8 +57,7 @@ if (!Promise.each) {
   Promise.each = function(arr, fn) {
     // take an array and a function
     // invalid input
-    if (!Array.isArray(arr))
-      return Promise.reject(new Error("Non array passed to each"));
+    if (!Array.isArray(arr)) return Promise.reject(new Error("Non array passed to each"));
     // empty case
     if (arr.length === 0) return Promise.resolve();
     return arr.reduce(function(prev, cur) {
@@ -125,7 +112,7 @@ if (p instanceof Promise || (p && p.then)) {
   p.then(res => {
     process.exit(res);
   }).catch(err => {
-    console.log(err);
+    consoleService.log("ERROR", err);
     process.exit(1);
   });
 } else {

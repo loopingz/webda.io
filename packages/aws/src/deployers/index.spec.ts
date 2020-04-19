@@ -145,6 +145,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
   @test
   async testCreateBucket() {
     try {
+      this.deployer.resources.Tags = this.deployer.transformTags({ test: "mytag" });
       var headSpy = sinon.stub();
       headSpy.callsFake((params, callback) => {
         let res = {};
@@ -162,15 +163,17 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
         }
         callback(null, res);
       });
-      var createSpy = sinon.stub();
-      createSpy.callsFake((params, callback) => callback());
+      var createSpy = sinon.stub().callsFake((params, callback) => callback());
+      var tagSpy = sinon.stub().callsFake((params, callback) => callback());
       AWSMock.mock("S3", "headBucket", headSpy);
       AWSMock.mock("S3", "createBucket", createSpy);
+      AWSMock.mock("S3", "putBucketTagging", tagSpy);
       await this.deployer.createBucket("plop");
       // Bucket exists
       assert.equal(headSpy.callCount, 1);
       assert.equal(headSpy.calledWith({ Bucket: "plop" }), true);
       assert.equal(createSpy.notCalled, true);
+      assert.equal(tagSpy.notCalled, true);
       // Bucket exists in another account or we do not have rights
       await this.deployer.createBucket("plop");
       assert.equal(headSpy.callCount, 2);
@@ -179,6 +182,8 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       assert.equal(headSpy.callCount, 3);
       assert.equal(createSpy.calledOnce, true);
       assert.equal(createSpy.calledWith({ Bucket: "plop" }), true);
+      assert.equal(tagSpy.calledOnce, true);
+      assert.equal(tagSpy.calledWith({ Bucket: "plop", Tagging: { TagSet: [{ Key: "test", Value: "mytag" }] } }), true);
     } finally {
       AWSMock.restore();
     }

@@ -1,5 +1,6 @@
 import * as merge from "merge";
 import { Deployer, DeployerResources } from "./deployer";
+import { WebdaError } from "@webda/core";
 
 export interface ChainDeployerResources extends DeployerResources {
   chain: string | string[];
@@ -21,7 +22,7 @@ export default class ChainDeployer extends Deployer<ChainDeployerResources> {
     let deployers = this.getChain();
     deployers.forEach(d => {
       if (!this.manager.deployersDefinition[d.toLowerCase()]) {
-        throw new Error("Deployer " + d + " is unknown");
+        throw new WebdaError("DEPLOYER_UNKNOWN", "Deployer " + d + " is unknown");
       }
     });
     // Duplicate object

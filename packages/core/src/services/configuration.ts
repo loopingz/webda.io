@@ -1,4 +1,5 @@
 import { Service } from "./service";
+import { WebdaError } from "../core";
 
 interface ConfigurationProvider {
   getConfiguration(id: string): Promise<Map<string, any>>;
@@ -23,19 +24,25 @@ export default class ConfigurationService extends Service {
     }
 
     if (!this._params.source) {
-      throw new Error("Need a source for ConfigurationService");
+      throw new WebdaError("CONFIGURATION_SOURCE_MISSING", "Need a source for ConfigurationService");
     }
     let source = this._params.source.split(":");
     this._sourceService = this.getService(source[0]);
     if (!this._sourceService) {
-      throw new Error('Need a valid service for source ("sourceService:sourceId")');
+      throw new WebdaError(
+        "CONFIGURATION_SOURCE_INVALID",
+        'Need a valid service for source ("sourceService:sourceId")'
+      );
     }
     this._sourceId = source[1];
     if (!this._sourceId) {
-      throw new Error('Need a valid source ("sourceService:sourceId")');
+      throw new WebdaError("CONFIGURATION_SOURCE_INVALID", 'Need a valid source ("sourceService:sourceId")');
     }
     if (!this._sourceService.getConfiguration) {
-      throw new Error(`Service ${source[0]} is not implementing ConfigurationProvider interface`);
+      throw new WebdaError(
+        "CONFIGURATION_SOURCE_INVALID",
+        `Service ${source[0]} is not implementing ConfigurationProvider interface`
+      );
     }
     this._configuration = JSON.stringify(this._params.default);
     await this._checkUpdate();

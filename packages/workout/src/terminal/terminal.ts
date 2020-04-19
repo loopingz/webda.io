@@ -15,6 +15,7 @@ export class Terminal {
   title: string = "";
   format: string;
   inputs: any[] = [];
+  buffer: string[] = [];
   rl: readline.Interface;
 
   constructor(
@@ -38,12 +39,16 @@ export class Terminal {
     }
     this.wo.on("message", async msg => this.router(msg));
     this.height = process.stdout.rows;
+    process.stdout.on("data", data => {
+      this.buffer.push(data);
+    });
+    process.stderr.on("data", data => {
+      this.buffer.push(data);
+    });
     process.stdout.write("\x1B[?12l\x1B[?47h");
     let resetTerm = (...args) => {
-      if (args[0] === 0) {
-        process.stdout.write("\x1B[?47l");
-        process.stdout.write(this.displayHistory(50, false));
-      }
+      process.stdout.write("\x1B[?47l");
+      process.stdout.write(this.displayHistory(50, false));
     };
     process.on("exit", resetTerm);
     process.on("SIGTERM", resetTerm);
@@ -154,9 +159,9 @@ export class Terminal {
       .padStart(5);
     let numberLength = p.total.toString().length;
     let line = this.displayString(
-      `${bar} ${Math.floor(p.current).toString().padStart(numberLength)}/${p.total} ${p.title || ""}`.padEnd(
-        process.stdout.columns - 2
-      )
+      `${bar} ${Math.floor(p.current)
+        .toString()
+        .padStart(numberLength)}/${p.total} ${p.title || ""}`.padEnd(process.stdout.columns - 2)
     );
     if (line.length > process.stdout.columns - 2) {
       line = line.substr(0, process.stdout.columns - 2);
@@ -191,8 +196,9 @@ export class Terminal {
     if (!complete && j < 0) {
       j = 0;
     }
-    while (j++ < 0) {
+    while (j < 0) {
       res += " ".repeat(process.stdout.columns) + "\n";
+      j++;
     }
     for (; j < this.history.length; j++) {
       let line = this.displayString(this.history[j].padEnd(process.stdout.columns));

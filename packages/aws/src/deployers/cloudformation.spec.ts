@@ -6,7 +6,8 @@ import { CloudFormationDeployer } from "./cloudformation";
 import { MockAWSDeployerMethods } from "./index.spec";
 import * as assert from "assert";
 import { LambdaPackager } from "./lambdapackager";
-
+import * as AWS from "aws-sdk";
+import * as AWSMock from "aws-sdk-mock";
 @suite
 class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
   mocks: { [key: string]: sinon.stub } = {};
@@ -108,4 +109,34 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     console.log(JSON.stringify(this.deployer.template, undefined, 2));
     assert.equal(sendCloudFormation.calledOnce, true);
   }
+
+  @test
+  async testDeleteCloudFormation() {
+    this.mocks["deleteStack"] = sinon.stub().callsFake((params, c) => {
+      c(null, {});
+    });
+    this.mocks["describeStacks"] = sinon.stub().callsFake((params, c) => {
+      if (this.mocks["describeStacks"].callCount > 1) {
+        throw new Error();
+      }
+      c(null, {});
+    });
+    this.mocks["waitFor"] = sinon.stub(this.deployer, "waitFor").callsFake(async (c) => {
+      await c(() => {});
+      await c(() => {});
+    });
+    try {
+      AWSMock.mock("CloudFormation", "deleteStack", this.mocks["deleteStack"]);
+      AWSMock.mock("CloudFormation", "describeStacks", this.mocks["describeStacks"]);
+      await this.deployer.deleteCloudFormation();
+      assert.equal(this.mocks["deleteStack"].calledOnce, true);
+      assert.equal(this.mocks["waitFor"].calledOnce, true);
+      assert.equal(this.mocks["describeStacks"].calledTwice, true);
+    } finally {
+      AWSMock.restore();
+    }
+  }
+
+  @test
+  testCreateCloudFormation() {}
 }

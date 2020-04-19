@@ -1,5 +1,5 @@
 import * as jwt from "jsonwebtoken";
-import { _extend } from "../core";
+import { _extend, WebdaError } from "../core";
 import { Context } from "./context";
 
 /**
@@ -37,7 +37,7 @@ class SecureCookie {
     this._algo = options.algo || "aes-256-ctr";
     this._secret = options.secret;
     if (!this._secret || this._secret.length < 256) {
-      throw new Error("Secret must be at least 256 characters");
+      throw new WebdaError("SECRET_INVALID", "Secret must be at least 256 characters");
     }
     let cookies = {};
     if (ctx.getHttpContext()) {

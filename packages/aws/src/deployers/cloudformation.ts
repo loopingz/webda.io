@@ -4,6 +4,7 @@ import { AWSDeployer, AWSDeployerResources } from ".";
 import { CloudFormationContributor } from "../services";
 import { Domain } from "domain";
 import { ConsoleLogger } from "@webda/workout";
+import { WebdaError } from "@webda/core";
 
 interface CloudFormationDeployerResources extends AWSDeployerResources {
   repositoryNamespace: string;
@@ -337,6 +338,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
           await cloudformation.describeStacks({ StackName: this.resources.StackName }).promise();
         } catch (err) {
           resolve();
+          return true;
         }
       },
       5000,
@@ -685,12 +687,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   }
 
   async Lambda() {
-    // BEFORE_COMMIT
-    //const Code = await this.generateLambdaPackage();
-    const Code = {
-      S3Bucket: "webda-sample-app-artifacts",
-      S3Key: "lambda-1.0.0.zip"
-    };
+    const Code = await this.generateLambdaPackage();
     this.addAssumeRolePolicyStatement({
       Effect: "Allow",
       Principal: { Service: "lambda.amazonaws.com" },
@@ -743,7 +740,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       S3Key: AssetsPrefix + path.basename(ZipPath)
     };
     if (!S3Bucket) {
-      throw new Error("AssetsBucket must be defined");
+      throw new WebdaError("ASSETS_BUCKET_REQUIRED", "AssetsBucket must be defined");
     }
     // Create the package
     await this.manager.run("WebdaAWSDeployer/LambdaPackager", {

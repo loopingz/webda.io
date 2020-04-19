@@ -1,4 +1,4 @@
-import { CoreModel, Service, Store } from "@webda/core";
+import { CoreModel, Service, Store, WebdaError } from "@webda/core";
 import * as elasticsearch from "elasticsearch";
 
 export default class ElasticSearchService extends Service {
@@ -91,7 +91,7 @@ export default class ElasticSearchService extends Service {
 
   async search(index: string, query: any, from: number = 0) {
     if (!this._params.indexes[index]) {
-      throw new Error("Unknown index");
+      throw new WebdaError("ES_UNKOWN_INDEX", "Unknown index");
     }
     let q: any = {};
     if (typeof query === "string") {
@@ -112,7 +112,7 @@ export default class ElasticSearchService extends Service {
 
   async exists(index: string, uuid: string) {
     if (!this._params.indexes[index]) {
-      throw new Error("Unknown index");
+      throw new WebdaError("ES_UNKOWN_INDEX", "Unknown index");
     }
     return await this._client.exists({
       index: index,
@@ -126,7 +126,7 @@ export default class ElasticSearchService extends Service {
       return (await this._client.count()).count;
     }
     if (!this._params.indexes[index]) {
-      throw new Error("Unknown index");
+      throw new WebdaError("ES_UNKOWN_INDEX", "Unknown index");
     }
     return (await this._client.count({ index: index })).count;
   }

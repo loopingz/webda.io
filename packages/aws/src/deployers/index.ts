@@ -1,4 +1,4 @@
-import { Cache } from "@webda/core";
+import { Cache, WebdaError } from "@webda/core";
 import { Deployer, DeployerResources, DeploymentManager } from "@webda/shell";
 import * as AWS from "aws-sdk";
 import { ACM } from "aws-sdk";
@@ -123,7 +123,10 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    * @param format hex or b64
    */
   protected hash(str: string, type: string = "md5", format: "hex" | "base64" = "hex"): string {
-    return crypto.createHash("md5").update(str).digest(format);
+    return crypto
+      .createHash("md5")
+      .update(str)
+      .digest(format);
   }
 
   _replaceForAWS(id) {
@@ -160,7 +163,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       if (!certificate) {
         let zone = await this.getZoneForDomainName(domain);
         if (!zone) {
-          throw new Error("Cannot create certificate as Route53 Zone was not found");
+          throw new WebdaError("ROUTE53_NOTFOUND", "Cannot create certificate as Route53 Zone was not found");
         }
         this.logger.log("INFO", "Creating a certificate for", domain);
         certificate = await this.doCreateCertificate(domain, zone);
@@ -283,7 +286,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       "Waiting for certificate challenge"
     );
     if (cert === undefined || cert.Status === "FAILED") {
-      throw new Error("Certificate validation has failed");
+      throw new WebdaError("ACM_VALIDATION_FAILED", "Certificate validation has failed");
     }
     if (cert.Status === "PENDING_VALIDATION") {
       // On create need to wait
@@ -458,6 +461,17 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
             Bucket: Bucket
           })
           .promise();
+        let Tags = this.getDefaultTags([]);
+        if (Tags.length) {
+          await s3
+            .putBucketTagging({
+              Bucket,
+              Tagging: {
+                TagSet: Tags
+              }
+            })
+            .promise();
+        }
       }
     }
   }

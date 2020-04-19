@@ -1,5 +1,5 @@
 "use strict";
-import { Application, Logger } from "@webda/core";
+import { Application, Logger, WebdaError } from "@webda/core";
 import { ChildProcess, spawn } from "child_process";
 import * as colors from "colors";
 import * as crypto from "crypto";
@@ -118,7 +118,7 @@ export default class WebdaConsole {
     if (!service) {
       let error = "The service " + service_name + " is missing";
       this.output(colors.red(error));
-      return 1;
+      return -1;
     }
     this.output(JSON.stringify(service.getParameters(), null, " "));
   }
@@ -137,12 +137,12 @@ export default class WebdaConsole {
     if (!service) {
       let error = "The service " + service_name + " is missing";
       this.output(colors.red(error));
-      return 1;
+      return -1;
     }
     if (!service[method]) {
       let error = "The method " + method + " is missing in service " + service_name;
       this.output(colors.red(error));
-      return 1;
+      return -1;
     }
     // Launch the worker with arguments
     let timestamp = new Date().getTime();
@@ -168,7 +168,7 @@ export default class WebdaConsole {
    * @param argv
    */
   static async debug(argv: yargs.Arguments) {
-    process.on("SIGINT", function () {
+    process.on("SIGINT", function() {
       if (this.serverProcess) {
         this.serverProcess.kill();
       }
@@ -372,11 +372,8 @@ export default class WebdaConsole {
    * @param argv
    */
   static async initLogger(argv: yargs.Arguments) {
-    if (argv["logLevels"]) {
-      process.env["WEBDA_LOG_LEVELS"] = argv["logLevels"];
-    }
     if (argv["logLevel"]) {
-      process.env["WEBDA_LOG_LEVEL"] = argv["logLevel"];
+      process.env["LOG_LEVEL"] = argv["logLevel"];
     }
   }
 
@@ -391,45 +388,57 @@ export default class WebdaConsole {
    * @param args
    */
   static async handleCommand(args): Promise<number> {
+    // Arguments parsing
     let argv = this.parser(args);
     await this.initLogger(argv);
     if (["deploy", "install", "uninstall"].indexOf(argv._[0]) >= 0) {
       if (argv.deployment === undefined) {
         this.output("Need to specify an environment");
-        return 1;
+        return -1;
       }
     }
 
-    this.app = new Application(argv.appPath, new WorkerOutput());
-    WebdaConsole.logger = new Logger(this.app.getWorkerOutput(), "console/webda");
-
+    // Init WorkerOutput
+    let output = new WorkerOutput();
     if (argv.notty) {
-      new ConsoleLogger(this.app.getWorkerOutput());
+      new ConsoleLogger(output);
     } else {
-      new Terminal(this.app.getWorkerOutput());
+      new Terminal(output);
     }
 
+    // Load Application
+    try {
+      this.app = new Application(argv.appPath, output);
+    } catch (err) {
+      output.log("ERROR", err.message);
+      return -1;
+    }
+    WebdaConsole.logger = new Logger(this.app.getWorkerOutput(), "console/webda");
+    // Load deployment
     if (argv.deployment) {
       if (!this.app.hasDeployment(argv.deployment)) {
         this.output(`Unknown deployment: ${argv.deployment}`);
-        return 1;
+        return -1;
       }
       try {
         this.app.setCurrentDeployment(argv.deployment);
         // Try to load it already
         this.app.getDeployment();
       } catch (err) {
-        this.log("ERROR", "Cannot load deployment", argv.deployment, "\n", err);
-        return 1;
+        this.log("ERROR", err.message);
+        return -1;
       }
     }
 
+    // Recompile project
     if (argv.noCompile) {
       this.app.preventCompilation(true);
     }
 
+    // Load webda module
     this.app.loadModules();
 
+    // Manage commands
     switch (argv._[0]) {
       case "serve":
         await this.serve(argv);

@@ -1,4 +1,4 @@
-import { Application, Core, Cache, Logger } from "@webda/core";
+import { Application, Core, Cache, Logger, WebdaError } from "@webda/core";
 import { execSync } from "child_process";
 import * as merge from "merge";
 import ChainDeployer from "../deployers/chaindeployer";
@@ -64,12 +64,6 @@ export class DeploymentManager {
    * @param output
    */
   setOutput(output: WorkerOutput) {
-    console.log("SETTING OUTPUT");
-    try {
-      throw new Error();
-    } catch (err) {
-      console.log(err.stack);
-    }
     this.output = output;
   }
 
@@ -117,7 +111,7 @@ export class DeploymentManager {
 
   async getDeployer(name: string) {
     if (!this.deployers[name]) {
-      throw new Error("Unknown deployer " + name);
+      throw new WebdaError("DEPLOYER_UNKNOWN", "Unknown deployer " + name);
     }
     let deployer = new this.deployersDefinition[this.deployers[name].type.toLowerCase()](this, this.deployers[name]);
     await deployer.defaultResources();
@@ -136,7 +130,7 @@ export class DeploymentManager {
    */
   async run(type: string, resources: any): Promise<any> {
     if (!this.deployersDefinition[type.toLowerCase()]) {
-      throw new Error("Unknown deployer type " + type);
+      throw new WebdaError("DEPLOYER_TYPE_UNKNOWN", "Unknown deployer type " + type);
     }
     let deployer = new this.deployersDefinition[type.toLowerCase()](this, resources);
     await deployer.defaultResources();
@@ -152,8 +146,12 @@ export class DeploymentManager {
       cwd: this.application.getAppPath()
     };
     return {
-      commit: execSync(`git rev-parse HEAD`, options).toString().trim(),
-      branch: execSync("git symbolic-ref --short HEAD", options).toString().trim()
+      commit: execSync(`git rev-parse HEAD`, options)
+        .toString()
+        .trim(),
+      branch: execSync("git symbolic-ref --short HEAD", options)
+        .toString()
+        .trim()
     };
   }
 

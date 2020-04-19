@@ -1,6 +1,6 @@
 "use strict";
 // Load the AWS SDK for Node.js
-import { Binary, Context, ModdaDefinition, _extend } from "@webda/core";
+import { Binary, Context, ModdaDefinition, _extend, WebdaError } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
@@ -29,7 +29,7 @@ export default class S3Binary extends Binary implements CloudFormationContributo
   constructor(webda, name, params) {
     super(webda, name, params);
     if (params.bucket === undefined) {
-      throw new Error("Need to define a bucket at least");
+      throw new WebdaError("S3BUCKET_PARAMETER_REQUIRED", "Need to define a bucket at least");
     }
     this.AWS = GetAWS(params);
   }
@@ -229,7 +229,7 @@ export default class S3Binary extends Binary implements CloudFormationContributo
   }
 
   async cascadeDelete(info, uuid) {
-    return this._cleanUsage(info.hash, uuid).catch(function (err) {
+    return this._cleanUsage(info.hash, uuid).catch(function(err) {
       this._webda.log("WARN", "Cascade delete failed", err);
     });
   }
@@ -265,7 +265,7 @@ export default class S3Binary extends Binary implements CloudFormationContributo
         Key: this._getPath(hash)
       })
       .promise()
-      .catch(function (err) {
+      .catch(function(err) {
         if (err.code !== "NotFound") {
           return Promise.reject(err);
         }

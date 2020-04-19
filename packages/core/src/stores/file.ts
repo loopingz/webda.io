@@ -1,6 +1,6 @@
 "use strict";
 import * as fs from "fs";
-import { ModdaDefinition } from "../core";
+import { ModdaDefinition, WebdaError } from "../core";
 import { CoreModel } from "../models/coremodel";
 import { Store } from "./store";
 
@@ -38,7 +38,7 @@ class FileStore<T extends CoreModel> extends Store<T> {
     var self = this;
     var res = [];
     var path = require("path");
-    var files = fs.readdirSync(self._params.folder).filter(function (file) {
+    var files = fs.readdirSync(self._params.folder).filter(function(file) {
       return !fs.statSync(path.join(self._params.folder, file)).isDirectory();
     });
     for (var file in files) {
@@ -127,10 +127,10 @@ class FileStore<T extends CoreModel> extends Store<T> {
   async _update(object, uid, writeCondition = undefined) {
     let stored = await this._get(uid || object[this._uuidField]);
     if (!stored) {
-      throw new Error("NotFound");
+      throw new WebdaError("STORE_NOTFOUND", "NotFound");
     }
     if (writeCondition && stored[this._writeConditionField] != writeCondition) {
-      throw new Error("UpdateCondition not met");
+      throw new WebdaError("STORE_UPDATE_CONDITION_NOT_MET", "UpdateCondition not met");
     }
     let coreModel = new CoreModel();
     coreModel.load(object, true);

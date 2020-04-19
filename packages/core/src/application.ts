@@ -30,7 +30,8 @@ import {
   SecureCookie,
   Service,
   SessionCookie,
-  User
+  User,
+  WebdaError
 } from "./index";
 import { Deployment } from "./models/deployment";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
@@ -154,37 +155,22 @@ export class Application {
   constructor(file: string, logger: WorkerOutput = undefined) {
     this.logger = logger || new WorkerOutput();
     if (!fs.existsSync(file)) {
-      throw new Error(`Not a webda application folder or webda.config.json file: ${file}`);
+      throw new WebdaError("NO_WEBDA_FOLDER", `Not a webda application folder or webda.config.json file: ${file}`);
     }
     if (fs.lstatSync(file).isDirectory()) {
       file = path.join(file, "webda.config.json");
     }
-    /*
-    // Fallback on
-    if (process.env.WEBDA_CONFIG == undefined) {
-      file = path.join(process.cwd(), "webda.config";
-      config = "./webda.config.json";
-      if (fs.existsSync(config)) {
-        this._configFile = path.resolve(config);
-        return require(this._configFile);
-      }
-      config = "/etc/webda/config.json";
-      if (fs.existsSync(config)) {
-        this._configFile = path.resolve(config);
-        return require(this._configFile);
-      }
-    } else {
-      this.log("INFO", "Load " + process.env.WEBDA_CONFIG);
-      this.appPath = path.dirname(process.env.WEBDA_CONFIG);
-      file = process.env.WEBDA_CONFIG;
-    }
-    */
     // Check if file is a file or folder
     if (!fs.existsSync(file)) {
-      throw new Error("Not a webda application folder");
+      throw new WebdaError("NO_WEBDA_FOLDER", `Not a webda application folder or webda.config.json file: ${file}`);
     }
     this.appPath = path.dirname(file);
-    this.baseConfiguration = JSON.parse(fs.readFileSync(file).toString());
+    try {
+      this.baseConfiguration = JSON.parse(fs.readFileSync(file).toString());
+    } catch (err) {
+      throw new WebdaError("INVALID_WEBDA_CONFIG", `Cannot parse JSON of: ${file}`);
+    }
+
     // Migrate if needed
     if (!this.baseConfiguration.version) {
       this.baseConfiguration = this.migrateV0Config(this.baseConfiguration);
@@ -355,14 +341,17 @@ export class Application {
     let deploymentConfig = path.join(this.appPath, "deployments", deploymentName);
     // Load deployment
     if (!fs.existsSync(deploymentConfig)) {
-      throw new Error("Unknown deployment");
+      throw new WebdaError("UNKNOWN_DEPLOYMENT", "Unknown deployment");
     }
 
     let deploymentModel: Deployment;
     try {
       deploymentModel = JSON.parse(fs.readFileSync(deploymentConfig).toString());
     } catch (err) {
-      throw new Error(`Invalid deployment configuration ${deploymentConfig}: ${err.toString()}`);
+      throw new WebdaError(
+        "INVALID_DEPLOYMENT",
+        `Invalid deployment configuration ${deploymentConfig}: ${err.toString()}`
+      );
     }
     return deploymentModel;
   }

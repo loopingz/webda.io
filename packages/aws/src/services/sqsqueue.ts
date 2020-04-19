@@ -1,5 +1,5 @@
 "use strict";
-import { ModdaDefinition, Queue } from "@webda/core";
+import { ModdaDefinition, Queue, WebdaError } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
@@ -95,7 +95,7 @@ export default class SQSQueue extends Queue implements CloudFormationContributor
       // Check for LocalStack
       found = this._params.queue.match(/http:\/\/(localhost):\d+\/(.*)\/(.*)/, "i");
       if (!found) {
-        throw new Error("SQS Queue URL malformed");
+        throw new WebdaError("SQS_PARAMETER_MALFORMED", "SQS Queue URL malformed");
       }
       found[1] = "us-east-1";
     }

@@ -1,4 +1,4 @@
-import { ClientInfo, Core as Webda, HttpContext } from "@webda/core";
+import { ClientInfo, Core as Webda, HttpContext, WebdaError } from "@webda/core";
 import * as http from "http";
 const path = require("path");
 
@@ -298,7 +298,7 @@ export class WebdaServer extends Webda {
       await new Promise(resolve => setTimeout(resolve, 1000));
       time += 1000;
       if (timeout < time) {
-        throw new Error("Timeout");
+        throw new WebdaError("WAIT_FOR_TIMEOUT", "Timeout");
       }
     } while (true);
   }

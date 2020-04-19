@@ -10,7 +10,7 @@ import { ServerStatus } from "../handlers/http";
 import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import { DebuggerStatus, WebdaConsole } from "./webda";
 import { MemoryLogger, WorkerOutput } from "@webda/workout";
-import { Logger } from "@webda/core";
+import { Logger, WebdaError } from "@webda/core";
 
 class DebugLogger extends MemoryLogger {
   getLogs(start: number = 0) {
@@ -93,7 +93,7 @@ class ConsoleTest {
       await new Promise(resolve => setTimeout(resolve, 1000));
       time += 1000;
       if (timeout < time) {
-        throw new Error("Timeout");
+        throw new WebdaError("WAIT_FOR_TIMEOUT", "Timeout");
       }
     } while (true);
   }

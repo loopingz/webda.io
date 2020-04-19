@@ -1,4 +1,4 @@
-import { CoreModel, ModdaDefinition, Store } from "@webda/core";
+import { CoreModel, ModdaDefinition, Store, WebdaError } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import { CloudFormationDeployer } from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
@@ -20,7 +20,10 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
   constructor(webda, name, params) {
     super(webda, name, params);
     if (params.table === undefined) {
-      throw new Error("Need to define a table,accessKeyId,secretAccessKey at least");
+      throw new WebdaError(
+        "DYNAMODB_TABLE_PARAMETER_REQUIRED",
+        "Need to define a table,accessKeyId,secretAccessKey at least"
+      );
     }
     this._client = new (GetAWS(params).DynamoDB.DocumentClient)({
       endpoint: this._params.endpoint

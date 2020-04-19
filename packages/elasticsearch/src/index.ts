@@ -1,7 +1,3 @@
-import {
-  ElasticSearchService
-} from './elasticsearchservice';
+import { ElasticSearchService } from "./elasticsearchservice";
 
-export {
-  ElasticSearchService
-};
+export { ElasticSearchService };

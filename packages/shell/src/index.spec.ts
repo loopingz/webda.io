@@ -12,9 +12,7 @@ class TestApplication extends Application {
   }
 }
 
-export const WebdaSampleApplication = new TestApplication(
-  path.resolve(`${__dirname}/../../../sample-app/`)
-);
+export const WebdaSampleApplication = new TestApplication(path.resolve(`${__dirname}/../../../sample-app/`));
 
 /**
  * Test the sample application
@@ -60,10 +58,7 @@ export class SampleApplicationTest {
         origin: "bouzouf"
       }
     });
-    assert.equal(
-      res.headers.get("Strict-Transport-Security"),
-      "max-age=31536000; includeSubDomains; preload"
-    );
+    assert.equal(res.headers.get("Strict-Transport-Security"), "max-age=31536000; includeSubDomains; preload");
     assert.equal(res.headers.get("Access-Control-Allow-Origin"), "bouzouf");
     assert.equal(await res.text(), "Tested");
     // Create a contact
@@ -79,15 +74,9 @@ export class SampleApplicationTest {
     assert.equal(await resp.text(), "FakeTestVersion");
     resp = await fetch(`${this.baseUrl}/index.html`, {});
     assert.equal(resp.headers.get("content-type"), "text/html; charset=UTF-8");
-    assert.notEqual(
-      (await resp.text()).match(/<title>webda Sample Contact App<\/title>/g),
-      undefined
-    );
+    assert.notEqual((await resp.text()).match(/<title>webda Sample Contact App<\/title>/g), undefined);
     resp = await fetch(`${this.baseUrl}/bouzouf`, {});
     assert.equal(resp.headers.get("content-type"), "text/html; charset=UTF-8");
-    assert.notEqual(
-      (await resp.text()).match(/<title>webda Sample Contact App<\/title>/g),
-      undefined
-    );
+    assert.notEqual((await resp.text()).match(/<title>webda Sample Contact App<\/title>/g), undefined);
   }
 }

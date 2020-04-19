@@ -23,7 +23,7 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
       throw new Error("Need to define a table,accessKeyId,secretAccessKey at least");
     }
     this._client = new (GetAWS(params).DynamoDB.DocumentClient)({
-      endpoint: this._params.endpoint,
+      endpoint: this._params.endpoint
     });
   }
 
@@ -83,15 +83,15 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
     var params: any = {
       TableName: this._params.table,
       Key: {
-        uuid,
-      },
+        uuid
+      }
     };
     var attrs = {};
     attrs["#attr"] = attribute;
     attrs["#lastUpdate"] = this._lastUpdateField;
     params.ExpressionAttributeNames = attrs;
     params.ExpressionAttributeValues = {
-      ":lastUpdate": this._serializeDate(new Date()),
+      ":lastUpdate": this._serializeDate(new Date())
     };
     params.UpdateExpression = "REMOVE #attr SET #lastUpdate = :lastUpdate";
     try {
@@ -108,15 +108,15 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
     var params: any = {
       TableName: this._params.table,
       Key: {
-        uuid: uid,
-      },
+        uuid: uid
+      }
     };
     var attrs = {};
     attrs["#" + prop] = prop;
     attrs["#lastUpdate"] = this._lastUpdateField;
     params.ExpressionAttributeNames = attrs;
     params.ExpressionAttributeValues = {
-      ":lastUpdate": this._serializeDate(updateDate),
+      ":lastUpdate": this._serializeDate(updateDate)
     };
     params.UpdateExpression = "REMOVE #" + prop + "[" + index + "] SET #lastUpdate = :lastUpdate";
     if (itemWriteCondition) {
@@ -139,8 +139,8 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
     var params: any = {
       TableName: this._params.table,
       Key: {
-        uuid: uid,
-      },
+        uuid: uid
+      }
     };
     var attrValues = {};
     var attrs = {};
@@ -192,8 +192,8 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
     var params: any = {
       TableName: this._params.table,
       Key: {
-        uuid: uid,
-      },
+        uuid: uid
+      }
     };
     if (writeCondition) {
       params.WriteCondition = this._getWriteCondition(writeCondition);
@@ -226,11 +226,11 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
     var params: any = {
       TableName: this._params.table,
       Key: {
-        uuid: uid,
+        uuid: uid
       },
       UpdateExpression: expr,
       ExpressionAttributeValues: attrValues,
-      ExpressionAttributeNames: attrs,
+      ExpressionAttributeNames: attrs
     };
     // The Write Condition checks the value before writing
     if (writeCondition) {
@@ -244,7 +244,7 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
     object.uuid = uid;
     var params: any = {
       TableName: this._params.table,
-      Item: object,
+      Item: object
     };
     // The Write Condition checks the value before writing
     if (writeCondition) {
@@ -260,7 +260,7 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
         {
           TableName: this._params.table,
           Limit: this._params.scanPage,
-          ExclusiveStartKey: paging,
+          ExclusiveStartKey: paging
         },
         (err, data) => {
           if (err) {
@@ -283,15 +283,15 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
       return this._scan([]);
     }
     var params = {
-      RequestItems: {},
+      RequestItems: {}
     };
     params["RequestItems"][this._params.table] = {
-      Keys: uids.map((value) => {
+      Keys: uids.map(value => {
         return {
-          uuid: value,
+          uuid: value
         };
         return { uuid: value };
-      }),
+      })
     };
     let result = await this._client.batchGet(params).promise();
     return result.Responses[this._params.table].map(this.initModel, this);
@@ -301,8 +301,8 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
     var params = {
       TableName: this._params.table,
       Key: {
-        uuid: uid,
-      },
+        uuid: uid
+      }
     };
     return (await this._client.get(params).promise()).Item;
   }
@@ -311,17 +311,17 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
     var params = {
       TableName: this._params.table,
       Key: {
-        uuid: uid,
+        uuid: uid
       },
       UpdateExpression: "SET #a2 = :v2 ADD #a1 :v1",
       ExpressionAttributeValues: {
         ":v1": value,
-        ":v2": this._serializeDate(updateDate),
+        ":v2": this._serializeDate(updateDate)
       },
       ExpressionAttributeNames: {
         "#a1": prop,
-        "#a2": this._lastUpdateField,
-      },
+        "#a2": this._lastUpdateField
+      }
     };
     return this._client.update(params).promise();
   }
@@ -341,15 +341,15 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
         "dynamodb:PutItem",
         "dynamodb:Query",
         "dynamodb:Scan",
-        "dynamodb:UpdateItem",
+        "dynamodb:UpdateItem"
       ],
-      Resource: ["arn:aws:dynamodb:" + region + ":" + accountId + ":table/" + this._params.table],
+      Resource: ["arn:aws:dynamodb:" + region + ":" + accountId + ":table/" + this._params.table]
     };
   }
 
   async __clean() {
     var params = {
-      TableName: this._params.table,
+      TableName: this._params.table
     };
     let result = await this._client.scan(params).promise();
     var promises = [];
@@ -378,8 +378,8 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
         TableName: this._params.table,
         KeySchema,
         AttributeDefinitions,
-        Tags: deployer.getDefaultTags(this._params.CloudFormation.Table.Tags),
-      },
+        Tags: deployer.getDefaultTags(this._params.CloudFormation.Table.Tags)
+      }
     };
     // Add any Other resources with prefix of the service
     return resources;
@@ -395,25 +395,25 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
       configuration: {
         widget: {
           tag: "webda-dynamodb-configurator",
-          url: "elements/services/webda-dynamodb-configurator.html",
+          url: "elements/services/webda-dynamodb-configurator.html"
         },
         schema: {
           type: "object",
           properties: {
             table: {
               type: "string",
-              default: "table-name",
+              default: "table-name"
             },
             accessKeyId: {
-              type: "string",
+              type: "string"
             },
             secretAccessKey: {
-              type: "string",
-            },
+              type: "string"
+            }
           },
-          required: ["table", "accessKeyId", "secretAccessKey"],
-        },
-      },
+          required: ["table", "accessKeyId", "secretAccessKey"]
+        }
+      }
     };
   }
 }

@@ -32,15 +32,15 @@ export function MockAWSDeployerMethods(service: AWSDeployer<any>, test: Mockable
   test.mocks["getAWSIdentity"] = sinon.stub(service, "getAWSIdentity").callsFake(async () => ({
     Account: "666111333",
     UserId: "AR1232432433",
-    Arn: "arn:aws:sts::666111333:assumed-role",
+    Arn: "arn:aws:sts::666111333:assumed-role"
   }));
   test.mocks["getDefaultVpc"] = sinon.stub(service, "getDefaultVpc").callsFake(async () => ({
     Id: "vpc-666",
-    Subnets: [{ SubnetId: "subnet-1" }, { SubnetId: "subnet-2" }, { SubnetId: "subnet-2" }],
+    Subnets: [{ SubnetId: "subnet-1" }, { SubnetId: "subnet-2" }, { SubnetId: "subnet-2" }]
   }));
   test.mocks["getPolicyDocument"] = sinon.stub(service, "getPolicyDocument").callsFake(async () => ({
     Version: "2012-10-17",
-    Statement: [],
+    Statement: []
   }));
 }
 
@@ -58,9 +58,9 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
   @test
   async testGetPolicyDocument() {
     try {
-      AWSMock.mock("STS", "getCallerIdentity", (callback) => {
+      AWSMock.mock("STS", "getCallerIdentity", callback => {
         callback(null, {
-          Account: "test",
+          Account: "test"
         });
       });
       let result = await this.deployer.getPolicyDocument();
@@ -74,10 +74,10 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
   @test
   async testGetDefaultVpc() {
     try {
-      var vpcsSpy = sinon.stub().callsFake((c) => {
+      var vpcsSpy = sinon.stub().callsFake(c => {
         if (vpcsSpy.callCount === 1) {
           c(null, {
-            Vpcs: [],
+            Vpcs: []
           });
           return;
         }
@@ -85,25 +85,25 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
           Vpcs: [
             {
               VpcId: "vpc-667",
-              IsDefault: false,
+              IsDefault: false
             },
             {
               VpcId: "vpc-666",
-              IsDefault: true,
-            },
-          ],
+              IsDefault: true
+            }
+          ]
         });
       });
       var subnetsSpy = sinon.stub().callsFake((p, c) => {
         c(null, {
           Subnets: [
             {
-              SubnetId: "subnet-1",
+              SubnetId: "subnet-1"
             },
             {
-              SubnetId: "subnet-2",
-            },
-          ],
+              SubnetId: "subnet-2"
+            }
+          ]
         });
       });
       AWSMock.mock("EC2", "describeVpcs", vpcsSpy);
@@ -117,16 +117,16 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       result = await this.deployer.getDefaultVpc();
       assert.deepEqual(result, {
         Id: "vpc-666",
-        Subnets: [{ SubnetId: "subnet-1" }, { SubnetId: "subnet-2" }],
+        Subnets: [{ SubnetId: "subnet-1" }, { SubnetId: "subnet-2" }]
       });
       assert.equal(
         subnetsSpy.calledWith({
           Filters: [
             {
               Name: "vpc-id",
-              Values: ["vpc-666"],
-            },
-          ],
+              Values: ["vpc-666"]
+            }
+          ]
         }),
         true
       );
@@ -151,12 +151,12 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
         switch (headSpy.callCount) {
           case 2:
             callback({
-              code: "Forbidden",
+              code: "Forbidden"
             });
             return;
           case 3:
             callback({
-              code: "NotFound",
+              code: "NotFound"
             });
             return;
         }
@@ -199,7 +199,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       await this.deployer.putFilesOnBucket("plop", [
         { src: __filename },
         { src: __dirname + "/index.ts", key: "plop.ts" },
-        { key: "buffer.out", src: Buffer.from("bouzouf"), mimetype: "text/plain" },
+        { key: "buffer.out", src: Buffer.from("bouzouf"), mimetype: "text/plain" }
       ]);
       assert.equal(putSpy.callCount, 3);
       // checks call
@@ -233,18 +233,18 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
             return c(null, {
               CertificateSummaryList: [
                 {
-                  DomainName: "none.com",
-                },
+                  DomainName: "none.com"
+                }
               ],
-              NextToken: "page2",
+              NextToken: "page2"
             });
           case 2:
             return c(null, {
               CertificateSummaryList: [
                 {
-                  DomainName: "test.webda.io",
-                },
-              ],
+                  DomainName: "test.webda.io"
+                }
+              ]
             });
           default:
             return c(null, { CertificateSummaryList: [] });
@@ -284,20 +284,20 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
                 { Name: "webda.io." },
                 { Name: "bouzouf.io." },
                 { Name: "test2.test.webda.io." },
-                { Name: "test.webda.io." },
-              ],
+                { Name: "test.webda.io." }
+              ]
             });
         }
       });
       AWSMock.mock("Route53", "listHostedZones", callSpy);
       let result = await this.deployer.getZoneForDomainName("subdomain.test2.test.webda.io.");
       assert.deepEqual(result, {
-        Name: "test2.test.webda.io.",
+        Name: "test2.test.webda.io."
       });
       assert.equal(callSpy.calledTwice, true);
       result = await this.deployer.getZoneForDomainName("subdomain.webda.io");
       assert.deepEqual(result, {
-        Name: "webda.io.",
+        Name: "webda.io."
       });
       result = await this.deployer.getZoneForDomainName("loopingz.com.");
       assert.equal(result, undefined);
@@ -351,27 +351,27 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       describeCertificate.callsFake((p, c) => {});
       AWSMock.mock("ACM", "requestCertificate", requestCertificate);
       AWSMock.mock("ACM", "describeCertificate", describeCertificate);
-      waitFor.callsFake(async (callback) => {
+      waitFor.callsFake(async callback => {
         switch (waitFor.callCount) {
           case 1:
             await callback();
           case 2:
-            return new Promise((resolve) => callback(resolve));
+            return new Promise(resolve => callback(resolve));
         }
       });
       describeCertificate.callsFake((p, c) => {
         if (describeCertificate.callCount === 1) {
           return c(null, {
             Certificate: {
-              DomainValidationOptions: [{}],
-            },
+              DomainValidationOptions: [{}]
+            }
           });
         } else {
           return c(null, {
             Certificate: {
               Status: "FAILED",
-              DomainValidationOptions: [{ ResourceRecord: "bouzouf" }],
-            },
+              DomainValidationOptions: [{ ResourceRecord: "bouzouf" }]
+            }
           });
         }
       });
@@ -390,13 +390,13 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       waitFor.resetHistory();
       describeCertificate.resetHistory();
       assert.equal(createDNSEntry.notCalled, true);
-      waitFor.callsFake((c) => {
+      waitFor.callsFake(c => {
         switch (waitFor.callCount) {
           case 1:
             return {
               Status: "PENDING_VALIDATION",
               DomainValidationOptions: [{ ResourceRecord: { Value: "plop.com.", Name: "bouzouf.com" } }],
-              CertificateArn: "arn:plop",
+              CertificateArn: "arn:plop"
             };
           default:
             return new Promise(async (resolve, reject) => {
@@ -413,14 +413,14 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
         if (describeCertificate.callCount < 3) {
           return c(null, {
             Certificate: {
-              Status: "PENDING_VALIDATION",
-            },
+              Status: "PENDING_VALIDATION"
+            }
           });
         } else {
           return c(null, {
             Certificate: {
-              Status: "ISSUED",
-            },
+              Status: "ISSUED"
+            }
           });
         }
       });
@@ -473,16 +473,16 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
                 Name: "webda.io.",
                 ResourceRecords: [
                   {
-                    Value: "loopingz.com",
-                  },
+                    Value: "loopingz.com"
+                  }
                 ],
                 TTL: 360,
-                Type: "CNAME",
-              },
-            },
+                Type: "CNAME"
+              }
+            }
           ],
-          Comment: "webda-automated-deploiement",
-        },
+          Comment: "webda-automated-deploiement"
+        }
       });
     } finally {
       AWSMock.restore();

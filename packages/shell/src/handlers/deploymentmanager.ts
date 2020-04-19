@@ -25,12 +25,7 @@ export class DeploymentManager {
   output: WorkerOutput;
   logger: Logger;
 
-  constructor(
-    output: WorkerOutput,
-    folder: string,
-    deploymentName: string,
-    streams = undefined
-  ) {
+  constructor(output: WorkerOutput, folder: string, deploymentName: string, streams = undefined) {
     this.application = new Application(folder, output);
     this.application.compile();
     this.application.setCurrentDeployment(deploymentName);
@@ -98,11 +93,7 @@ export class DeploymentManager {
     let args = argv._.slice(2);
     for (let i in deployers) {
       let deployer = await this.getDeployer(deployers[i]);
-      this.logger.logTitle(
-        `Deploying ${
-          deployers[i]
-        } (${this.getApplication().getCurrentDeployment()})`
-      );
+      this.logger.logTitle(`Deploying ${deployers[i]} (${this.getApplication().getCurrentDeployment()})`);
       await deployer[command](...args);
     }
     return 0;
@@ -128,9 +119,7 @@ export class DeploymentManager {
     if (!this.deployers[name]) {
       throw new Error("Unknown deployer " + name);
     }
-    let deployer = new this.deployersDefinition[
-      this.deployers[name].type.toLowerCase()
-    ](this, this.deployers[name]);
+    let deployer = new this.deployersDefinition[this.deployers[name].type.toLowerCase()](this, this.deployers[name]);
     await deployer.defaultResources();
     deployer.replaceVariables();
     return deployer;
@@ -149,10 +138,7 @@ export class DeploymentManager {
     if (!this.deployersDefinition[type.toLowerCase()]) {
       throw new Error("Unknown deployer type " + type);
     }
-    let deployer = new this.deployersDefinition[type.toLowerCase()](
-      this,
-      resources
-    );
+    let deployer = new this.deployersDefinition[type.toLowerCase()](this, resources);
     await deployer.defaultResources();
     return deployer.deploy();
   }
@@ -166,12 +152,8 @@ export class DeploymentManager {
       cwd: this.application.getAppPath()
     };
     return {
-      commit: execSync(`git rev-parse HEAD`, options)
-        .toString()
-        .trim(),
-      branch: execSync("git symbolic-ref --short HEAD", options)
-        .toString()
-        .trim()
+      commit: execSync(`git rev-parse HEAD`, options).toString().trim(),
+      branch: execSync("git symbolic-ref --short HEAD", options).toString().trim()
     };
   }
 

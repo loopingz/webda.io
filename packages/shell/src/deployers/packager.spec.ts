@@ -14,18 +14,10 @@ class PackagerTest {
   @test("simple")
   async package() {
     // Check override is ok
-    let zipPath = path.join(
-      WebdaSampleApplication.getAppPath(),
-      "dist",
-      "package-2.zip"
-    );
+    let zipPath = path.join(WebdaSampleApplication.getAppPath(), "dist", "package-2.zip");
 
     let deployer = new Packager(
-      new DeploymentManager(
-        new WorkerOutput(),
-        WebdaSampleApplication.getAppPath(),
-        "Production"
-      ),
+      new DeploymentManager(new WorkerOutput(), WebdaSampleApplication.getAppPath(), "Production"),
       {
         name: "deployer",
         type: "Packager",
@@ -46,7 +38,7 @@ class PackagerTest {
         .createReadStream(zipPath)
         // @ts-ignore
         .pipe(unzip.Parse())
-        .on("entry", function(entry) {
+        .on("entry", function (entry) {
           var fileName = entry.path;
           files[fileName] = true;
           if (captureFiles[fileName] === undefined) {
@@ -71,18 +63,12 @@ class PackagerTest {
     let config = JSON.parse(captureFiles["webda.config.json"]);
     // Ensure CachedModules are generated for packages
     assert.notEqual(config.cachedModules, undefined);
-    assert.equal(
-      config.cachedModules.services["WebdaDemo/CustomReusableService"],
-      "./lib/services/reusable.js"
-    );
+    assert.equal(config.cachedModules.services["WebdaDemo/CustomReusableService"], "./lib/services/reusable.js");
     assert.equal(
       config.cachedModules.services["Webda/AWSSecretsManager"],
       "./node_modules/@webda/aws/lib/services/secretsmanager.js"
     );
-    assert.equal(
-      config.cachedModules.models["WebdaDemo/Contact"],
-      "./lib/models/contact.js"
-    );
+    assert.equal(config.cachedModules.models["WebdaDemo/Contact"], "./lib/models/contact.js");
     assert.deepEqual(config.cachedModules.sources, [
       "./lib/models/contact.js",
       "./lib/services/bean.js",

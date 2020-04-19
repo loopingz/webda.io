@@ -38,12 +38,7 @@ class ConsoleTest {
   }
 
   async before() {
-    let dynamicFile = path.join(
-      WebdaSampleApplication.getAppPath(),
-      "src",
-      "services",
-      "dynamic.ts"
-    );
+    let dynamicFile = path.join(WebdaSampleApplication.getAppPath(), "src", "services", "dynamic.ts");
     if (fs.existsSync(dynamicFile)) {
       fs.unlinkSync(dynamicFile);
     }
@@ -154,18 +149,13 @@ class DynamicService extends Service {
     let logs = this.logger.getLogs();
     assert.equal(logs.length, 1);
     assert.notEqual(
-      logs[0].log.args[0].match(
-        /[\w\W]*"sessionSecret":[\w\W]*"type": "Beans\/CustomService"[\w\W]*/gm
-      ),
+      logs[0].log.args[0].match(/[\w\W]*"sessionSecret":[\w\W]*"type": "Beans\/CustomService"[\w\W]*/gm),
       undefined
     );
     await this.commandLine("serviceconfig UnknownService");
     logs = this.logger.getLogs();
     assert.equal(logs.length, 1);
-    assert.equal(
-      logs[0].log.args[0],
-      "\u001b[31mThe service UnknownService is missing\u001b[39m"
-    );
+    assert.equal(logs[0].log.args[0], "\u001b[31mThe service UnknownService is missing\u001b[39m");
   }
 
   @test
@@ -200,10 +190,7 @@ class DynamicService extends Service {
     await this.commandLine("worker UnknownService");
     logs = this.logger.getLogs();
     assert.equal(logs.length, 1);
-    assert.equal(
-      logs[0].log.args[0],
-      "\u001b[31mThe service UnknownService is missing\u001b[39m"
-    );
+    assert.equal(logs[0].log.args[0], "\u001b[31mThe service UnknownService is missing\u001b[39m");
   }
 
   @test
@@ -211,24 +198,14 @@ class DynamicService extends Service {
     let info = WebdaSampleApplication.getConfiguration();
     await this.commandLine("generate-session-secret");
     let file = JSON.parse(
-      fs
-        .readFileSync(
-          path.join(WebdaSampleApplication.getAppPath(), "webda.config.json")
-        )
-        .toString()
+      fs.readFileSync(path.join(WebdaSampleApplication.getAppPath(), "webda.config.json")).toString()
     );
-    assert.notEqual(
-      info.parameters.sessionSecret,
-      file.parameters.sessionSecret
-    );
+    assert.notEqual(info.parameters.sessionSecret, file.parameters.sessionSecret);
   }
 
   @test
   async generateModule() {
-    let moduleFile = path.join(
-      WebdaSampleApplication.getAppPath(),
-      "webda.module.json"
-    );
+    let moduleFile = path.join(WebdaSampleApplication.getAppPath(), "webda.module.json");
     if (fs.existsSync(moduleFile)) {
       fs.unlinkSync(moduleFile);
     }
@@ -263,34 +240,23 @@ class DynamicService extends Service {
     WebdaConsole.webda.reinitResolvedRoutes();
     await this.commandLine(`-d Dev openapi myopenapi.yml`);
     assert.equal(fs.existsSync("./myopenapi.yml"), true);
-    assert.deepEqual(
-      YAML.parse(fs.readFileSync("./myopenapi.yml").toString()),
-      def
-    );
+    assert.deepEqual(YAML.parse(fs.readFileSync("./myopenapi.yml").toString()), def);
     WebdaConsole.webda.reinitResolvedRoutes();
     await this.commandLine(`-d Dev openapi myopenapi.yaml`);
     assert.equal(fs.existsSync("./myopenapi.yaml"), true);
-    assert.equal(
-      fs.readFileSync("./myopenapi.yaml").toString(),
-      fs.readFileSync("./myopenapi.yml").toString()
-    );
+    assert.equal(fs.readFileSync("./myopenapi.yaml").toString(), fs.readFileSync("./myopenapi.yml").toString());
     await this.commandLine(`-d Dev openapi myopenapi.txt`);
   }
 
   @test
   utilsCov() {
-    assert.notEqual(
-      WebdaConsole.getVersion().match(/\d+\.\d+\.\d+(-.*)?/),
-      undefined
-    );
+    assert.notEqual(WebdaConsole.getVersion().match(/\d+\.\d+\.\d+(-.*)?/), undefined);
   }
 
   @test
   async exporter() {
     await this.commandLine(`-d Dev --noCompile config test.exports.json`);
-    this.checkTestDeploymentConfig(
-      JSON.parse(fs.readFileSync("test.exports.json").toString())
-    );
+    this.checkTestDeploymentConfig(JSON.parse(fs.readFileSync("test.exports.json").toString()));
   }
 
   @test

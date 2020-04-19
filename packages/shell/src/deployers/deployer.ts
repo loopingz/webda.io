@@ -22,10 +22,7 @@ export abstract class Deployer<T extends DeployerResources> {
 
   constructor(manager: DeploymentManager, resources: T = undefined) {
     this.manager = manager;
-    this.logger = new Logger(
-      this.manager.getApplication().getWorkerOutput(),
-      `deployers.${this.constructor.name}`
-    );
+    this.logger = new Logger(this.manager.getApplication().getWorkerOutput(), `deployers.${this.constructor.name}`);
     this.app = this.manager.getApplication();
     this.resources = resources;
   }
@@ -58,9 +55,7 @@ export abstract class Deployer<T extends DeployerResources> {
    * @param templateString to copy
    */
   stringParameter(templateString: string) {
-    return new Function(
-      "return `" + templateString.replace(/\$\{/g, "${this.") + "`;"
-    ).call({
+    return new Function("return `" + templateString.replace(/\$\{/g, "${this.") + "`;").call({
       resources: this.resources,
       package: this.manager.getPackageDescription(),
       git: this.manager.getGitInformation()
@@ -75,7 +70,7 @@ export abstract class Deployer<T extends DeployerResources> {
   objectParameter(object: any) {
     let from = this;
     return JSON.parse(
-      JSON.stringify(object, function(key: string, value: any) {
+      JSON.stringify(object, function (key: string, value: any) {
         if (typeof this[key] === "string") {
           return from.stringParameter(value);
         }

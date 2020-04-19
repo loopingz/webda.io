@@ -13,24 +13,12 @@ class DeploymentManagerTest {
       /Not a webda application folder/g
     );
     assert.throws(
-      () =>
-        new DeploymentManager(
-          new WorkerOutput(),
-          WebdaSampleApplication.getAppPath(),
-          "test"
-        ),
+      () => new DeploymentManager(new WorkerOutput(), WebdaSampleApplication.getAppPath(), "test"),
       /Unknown deployment/g
     );
-    let deploymentManager = new DeploymentManager(
-      new WorkerOutput(),
-      WebdaSampleApplication.getAppPath(),
-      "Shell"
-    );
+    let deploymentManager = new DeploymentManager(new WorkerOutput(), WebdaSampleApplication.getAppPath(), "Shell");
     assert.equal(Object.keys(deploymentManager.deployers).length, 1);
-    assert.rejects(
-      () => deploymentManager.getDeployer("plop"),
-      /Unknown deployer/g
-    );
+    assert.rejects(() => deploymentManager.getDeployer("plop"), /Unknown deployer/g);
     assert.notEqual(await deploymentManager.getDeployer("Packager"), undefined);
   }
 }

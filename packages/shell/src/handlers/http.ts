@@ -74,16 +74,7 @@ export class WebdaServer extends Webda {
       if (req.socket && req.socket.address()) {
         port = req.socket.address().port;
       }
-      let httpContext = new HttpContext(
-        vhost,
-        method,
-        req.url,
-        protocol,
-        port,
-        req.body,
-        req.headers,
-        req.files
-      );
+      let httpContext = new HttpContext(vhost, method, req.url, protocol, port, req.body, req.headers, req.files);
       let ctx = await this.newContext(httpContext, res, true);
       ctx.clientInfo = this.getClientInfo(req);
 
@@ -102,8 +93,7 @@ export class WebdaServer extends Webda {
       //req.session.cookie.domain = vhost;
 
       // Fallback on reference as Origin is not always set by Edge
-      let origin =
-        req.headers.Origin || req.headers.origin || req.headers.Referer;
+      let origin = req.headers.Origin || req.headers.origin || req.headers.Referer;
       // Set predefined headers for CORS
 
       if (this.devMode || (await this.checkRequest(ctx))) {
@@ -119,10 +109,7 @@ export class WebdaServer extends Webda {
       }
       if (protocol === "https") {
         // Add the HSTS header
-        res.setHeader(
-          "Strict-Transport-Security",
-          "max-age=31536000; includeSubDomains; preload"
-        );
+        res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
       }
       // Add correct headers for X-scripting
       if (req.headers["x-forwarded-server"] === undefined) {
@@ -134,10 +121,7 @@ export class WebdaServer extends Webda {
         let routes = this.router.getRouteMethodsFromUrl(req.url);
         routes.push("OPTIONS");
         res.setHeader("Access-Control-Allow-Credentials", "true");
-        res.setHeader(
-          "Access-Control-Allow-Headers",
-          req.headers["access-control-request-headers"] || "content-type"
-        );
+        res.setHeader("Access-Control-Allow-Headers", req.headers["access-control-request-headers"] || "content-type");
         res.setHeader("Access-Control-Allow-Methods", routes.join(","));
         res.setHeader("Access-Control-Max-Age", 86400);
         res.setHeader("Allow", routes.join(","));
@@ -145,16 +129,7 @@ export class WebdaServer extends Webda {
         res.end();
         return;
       }
-      await this.emitSync(
-        "Webda.Request",
-        vhost,
-        method,
-        req.url,
-        ctx.getCurrentUserId(),
-        req.body,
-        req,
-        ctx
-      );
+      await this.emitSync("Webda.Request", vhost, method, req.url, ctx.getCurrentUserId(), req.body, req, ctx);
 
       res.setHeader("Access-Control-Allow-Credentials", "true");
       try {
@@ -170,10 +145,7 @@ export class WebdaServer extends Webda {
           this.flushHeaders(ctx);
           return res.end();
         } else {
-          this.output(
-            "ERROR Exception occured : " + JSON.stringify(err),
-            err.stack
-          );
+          this.output("ERROR Exception occured : " + JSON.stringify(err), err.stack);
           res.writeHead(500);
           res.end();
           throw err;
@@ -181,10 +153,7 @@ export class WebdaServer extends Webda {
       }
     } catch (err) {
       res.writeHead(500);
-      this.output(
-        "ERROR Exception occured : " + JSON.stringify(err),
-        err.stack
-      );
+      this.output("ERROR Exception occured : " + JSON.stringify(err), err.stack);
       res.end();
     }
   }
@@ -219,14 +188,7 @@ export class WebdaServer extends Webda {
    */
   serveStaticWebsite(express, app) {
     if (this.getGlobalParams().website && this.getGlobalParams().website.path) {
-      app.use(
-        express.static(
-          path.join(
-            this.application.getAppPath(),
-            this.getGlobalParams().website.path
-          )
-        )
-      );
+      app.use(express.static(path.join(this.application.getAppPath(), this.getGlobalParams().website.path)));
     }
   }
 
@@ -254,10 +216,7 @@ export class WebdaServer extends Webda {
    * @param port to listen to
    * @param websockets to enable websockets
    */
-  async serve(
-    port: number = 18080,
-    websockets: boolean = false
-  ): Promise<Object> {
+  async serve(port: number = 18080, websockets: boolean = false): Promise<Object> {
     this.serverStatus = ServerStatus.Starting;
     try {
       var express = require("express");
@@ -266,9 +225,7 @@ export class WebdaServer extends Webda {
       var multer = require("multer"); // v1.0.5
       var upload = multer(); // for parsing multipart/form-data
 
-      var requestLimit = this.getGlobalParams().requestLimit
-        ? this.getGlobalParams().requestLimit
-        : "20mb";
+      var requestLimit = this.getGlobalParams().requestLimit ? this.getGlobalParams().requestLimit : "20mb";
       var app = express();
       app.use(cookieParser());
       app.use(
@@ -332,10 +289,7 @@ export class WebdaServer extends Webda {
    * @param status to wait for
    * @param timeout max number of ms to wait for
    */
-  async waitForStatus(
-    status: ServerStatus.Stopped | ServerStatus.Started,
-    timeout: number = 60000
-  ) {
+  async waitForStatus(status: ServerStatus.Stopped | ServerStatus.Started, timeout: number = 60000) {
     let time = 0;
     do {
       if (this.getServerStatus() === status) {

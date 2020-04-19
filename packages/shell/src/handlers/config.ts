@@ -1,17 +1,9 @@
-import {
-  Application,
-  Configuration,
-  Context,
-  RequestFilter,
-  Service,
-  ServiceConstructor
-} from "@webda/core";
+import { Application, Configuration, Context, RequestFilter, Service, ServiceConstructor } from "@webda/core";
 import * as path from "path";
 import { Deployment } from "../models/deployment";
 import { WebdaServer } from "./http";
 
-export default class ConfigurationService extends Service
-  implements RequestFilter {
+export default class ConfigurationService extends Service implements RequestFilter {
   webdaApplication: Application;
 
   async checkRequest(context: Context): Promise<boolean> {
@@ -33,9 +25,7 @@ export default class ConfigurationService extends Service
 
   async init() {
     await super.init();
-    this.webdaApplication = (<WebdaConfiguration>(
-      this._webda
-    )).getWebdaApplication();
+    this.webdaApplication = (<WebdaConfiguration>this._webda).getWebdaApplication();
   }
 
   async crudConfiguration(ctx: Context) {

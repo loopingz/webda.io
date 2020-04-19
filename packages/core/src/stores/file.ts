@@ -38,7 +38,7 @@ class FileStore<T extends CoreModel> extends Store<T> {
     var self = this;
     var res = [];
     var path = require("path");
-    var files = fs.readdirSync(self._params.folder).filter(function(file) {
+    var files = fs.readdirSync(self._params.folder).filter(function (file) {
       return !fs.statSync(path.join(self._params.folder, file)).isDirectory();
     });
     for (var file in files) {

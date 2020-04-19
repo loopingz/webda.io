@@ -100,7 +100,7 @@ export default class Packager extends Deployer<PackagerResources> {
         resolve();
       });
 
-      archive.on("error", function(err) {
+      archive.on("error", function (err) {
         console.log(err);
         reject(err);
       });
@@ -112,11 +112,7 @@ export default class Packager extends Deployer<PackagerResources> {
         }
         var stat = fs.lstatSync(toPacks[i]);
         if (stat.isSymbolicLink()) {
-          this.addLinkPackage(
-            archive,
-            fs.realpathSync(toPacks[i]),
-            path.relative(appPath, toPacks[i])
-          );
+          this.addLinkPackage(archive, fs.realpathSync(toPacks[i]), path.relative(appPath, toPacks[i]));
         } else if (stat.isDirectory()) {
           archive.directory(toPacks[i], path.relative(appPath, toPacks[i]));
         } else if (stat.isFile()) {
@@ -135,12 +131,9 @@ export default class Packager extends Deployer<PackagerResources> {
         }
       }
 
-      archive.append(
-        JSON.stringify(this.getPackagedConfiguration(), undefined, 2),
-        {
-          name: "webda.config.json"
-        }
-      );
+      archive.append(JSON.stringify(this.getPackagedConfiguration(), undefined, 2), {
+        name: "webda.config.json"
+      });
       archive.finalize();
     });
     return p;

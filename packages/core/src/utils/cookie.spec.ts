@@ -12,9 +12,7 @@ class CookieTest extends WebdaTest {
   _ctx: Context;
   async before() {
     await super.before();
-    this._ctx = await this.webda.newContext(
-      new HttpContext("test.webda.io", "GET", "/")
-    );
+    this._ctx = await this.webda.newContext(new HttpContext("test.webda.io", "GET", "/"));
   }
 
   @test("No changes") testNoChanges() {

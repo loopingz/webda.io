@@ -29,33 +29,33 @@ export class DynamoDBTest extends StoreTest {
 
   static async install(TableName: string) {
     var dynamodb = new (GetAWS({}).DynamoDB)({
-      endpoint: "http://localhost:4569",
+      endpoint: "http://localhost:4569"
     });
     await dynamodb
       .describeTable({
-        TableName,
+        TableName
       })
       .promise()
-      .catch((err) => {
+      .catch(err => {
         if (err.code === "ResourceNotFoundException") {
           let createTable = {
             TableName,
             ProvisionedThroughput: {
               ReadCapacityUnits: 5,
-              WriteCapacityUnits: 5,
+              WriteCapacityUnits: 5
             },
             KeySchema: [
               {
                 AttributeName: "uuid",
-                KeyType: "HASH",
-              },
+                KeyType: "HASH"
+              }
             ],
             AttributeDefinitions: [
               {
                 AttributeName: "uuid",
-                AttributeType: "S",
-              },
-            ],
+                AttributeType: "S"
+              }
+            ]
           };
           return dynamodb.createTable(createTable).promise();
         }
@@ -71,10 +71,10 @@ export class DynamoDBTest extends StoreTest {
       subobject: {
         empty: "",
         t: {
-          plop: "",
+          plop: ""
         },
-        date: new Date(),
-      },
+        date: new Date()
+      }
     });
     let user = await userStore.get("testUpdate");
     assert.notEqual(user.date, {});
@@ -90,19 +90,19 @@ export class DynamoDBTest extends StoreTest {
         arr: [
           {
             value: "",
-            test: "oki",
+            test: "oki"
           },
           {
-            value: "",
+            value: ""
           },
           {
-            value: "Test",
-          },
+            value: "Test"
+          }
         ],
         sub: {
-          value: "",
+          value: ""
         },
-        __store: identStore,
+        __store: identStore
       },
       true
     );

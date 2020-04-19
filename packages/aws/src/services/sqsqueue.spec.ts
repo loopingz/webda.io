@@ -15,19 +15,19 @@ class SQSQueueTest extends QueueTest {
 
   async install() {
     var sqs = new (GetAWS({}).SQS)({
-      endpoint: "http://localhost:4576",
+      endpoint: "http://localhost:4576"
     });
     return sqs
       .getQueueUrl({
         QueueName: "webda-test",
-        QueueOwnerAWSAccountId: "123456789",
+        QueueOwnerAWSAccountId: "123456789"
       })
       .promise()
-      .catch((err) => {
+      .catch(err => {
         if (err.code === "AWS.SimpleQueueService.NonExistentQueue") {
           return sqs
             .createQueue({
-              QueueName: "webda-test",
+              QueueName: "webda-test"
             })
             .promise();
         }

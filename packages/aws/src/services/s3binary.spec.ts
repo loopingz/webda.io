@@ -23,24 +23,24 @@ class S3BinaryTest extends BinaryTest {
   async cleanData() {
     var s3 = new (GetAWS({}).S3)({
       endpoint: "http://localhost:4572",
-      s3ForcePathStyle: true,
+      s3ForcePathStyle: true
     });
     const Bucket = "webda-test";
     // For test we do not have more than 1k objects
     let data = await s3
       .listObjectsV2({
-        Bucket,
+        Bucket
       })
       .promise();
     var params = {
       Bucket,
       Delete: {
-        Objects: [],
-      },
+        Objects: []
+      }
     };
     for (var i in data.Contents) {
       params.Delete.Objects.push({
-        Key: data.Contents[i].Key,
+        Key: data.Contents[i].Key
       });
     }
     if (params.Delete.Objects.length === 0) {
@@ -52,22 +52,22 @@ class S3BinaryTest extends BinaryTest {
   async install() {
     var s3 = new (GetAWS({}).S3)({
       endpoint: "http://localhost:4572",
-      s3ForcePathStyle: true,
+      s3ForcePathStyle: true
     });
     const Bucket = "webda-test";
     return s3
       .headBucket({
-        Bucket,
+        Bucket
       })
       .promise()
-      .catch((err) => {
+      .catch(err => {
         if (err.code === "Forbidden") {
           this.webda.log("ERROR", "S3 bucket already exists in another account");
         } else if (err.code === "NotFound") {
           this.webda.log("INFO", "Creating S3 Bucket", Bucket);
           return s3
             .createBucket({
-              Bucket,
+              Bucket
             })
             .promise();
         }

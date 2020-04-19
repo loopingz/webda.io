@@ -29,7 +29,7 @@ export class ConsoleLogger {
     } else if (level === "DEBUG" || level === "TRACE") {
       return colors.grey;
     }
-    return (s) => s;
+    return s => s;
   }
 
   /**
@@ -46,8 +46,8 @@ export class ConsoleLogger {
           timestamp: msg.timestamp,
           log: {
             level: "INFO",
-            args: [msg.title],
-          },
+            args: [msg.title]
+          }
         },
         format
       );
@@ -69,9 +69,9 @@ export class ConsoleLogger {
         [
           msg.timestamp,
           msg.log.level,
-          ...msg.log.args.map((a) =>
+          ...msg.log.args.map(a =>
             a === undefined ? "undefined" : typeof a === "object" ? util.inspect(a) : a.toString()
-          ),
+          )
         ].join(" ")
       )
     );

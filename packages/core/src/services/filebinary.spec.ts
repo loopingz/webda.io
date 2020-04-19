@@ -18,30 +18,10 @@ class FileBinaryTest extends BinaryTest {
   @test
   isValidChallenge() {
     let binary: FileBinary = <FileBinary>this.getService("binary");
-    assert.equal(
-      binary._validChallenge(
-        "54b249c8a7c2cdc6945c5c426fbe2b4b41e5045059c43ddc5e134b17e8157980"
-      ),
-      true
-    );
-    assert.equal(
-      binary._validChallenge(
-        "54b249c8a7c2cdc6945c5c426fbe2b4b41e5045059c43ddc5e134b17e815798G"
-      ),
-      false
-    );
-    assert.equal(
-      binary._validChallenge(
-        "54b249c8a7c2cdc6945c5c426fbe2b4b41e5045059c43ddc5e134b17e815798"
-      ),
-      false
-    );
-    assert.equal(
-      binary._validChallenge(
-        "54b249c8a7c2cdc6945c5c426fbe2b4b41e5045059c43ddc5e134b17e815798."
-      ),
-      false
-    );
+    assert.equal(binary._validChallenge("54b249c8a7c2cdc6945c5c426fbe2b4b41e5045059c43ddc5e134b17e8157980"), true);
+    assert.equal(binary._validChallenge("54b249c8a7c2cdc6945c5c426fbe2b4b41e5045059c43ddc5e134b17e815798G"), false);
+    assert.equal(binary._validChallenge("54b249c8a7c2cdc6945c5c426fbe2b4b41e5045059c43ddc5e134b17e815798"), false);
+    assert.equal(binary._validChallenge("54b249c8a7c2cdc6945c5c426fbe2b4b41e5045059c43ddc5e134b17e815798."), false);
   }
 }
 

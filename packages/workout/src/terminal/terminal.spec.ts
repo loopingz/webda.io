@@ -54,7 +54,7 @@ class TerminalTest {
   }
 
   async visu() {
-    return new Promise(async (resolve) => {
+    return new Promise(async resolve => {
       let output = new WorkerOutput();
       let terminal = new Terminal(output);
       let i = 1;

@@ -5,7 +5,7 @@ import { WorkerOutput, WorkerProgress } from ".";
 function mapper([msg]) {
   let res = {};
 
-  ["type", "group", "groups", "currentProgress", "progresses", "log", "input", "progress"].forEach((a) => {
+  ["type", "group", "groups", "currentProgress", "progresses", "log", "input", "progress"].forEach(a => {
     if (msg[a] !== undefined) {
       res[a] = msg[a];
     }
@@ -29,7 +29,7 @@ class WorkerOutputTest {
   async testLog() {
     this.output.log("WARN", "Test", "plop");
     assert.deepEqual(this.calls.map(mapper), [
-      { type: "log", groups: [], progresses: {}, log: { level: "WARN", args: ["Test", "plop"] } },
+      { type: "log", groups: [], progresses: {}, log: { level: "WARN", args: ["Test", "plop"] } }
     ]);
   }
 
@@ -50,7 +50,7 @@ class WorkerOutputTest {
       { type: "log", groups: ["Group1", "Group2"], progresses: {}, log: { level: "WARN", args: ["Test", "plop"] } },
       { type: "group.close", group: "Group2", groups: ["Group1"], progresses: {} },
       { type: "log", groups: ["Group1"], progresses: {}, log: { level: "WARN", args: ["Test", "plop"] } },
-      { type: "group.close", group: "Group1", groups: [], progresses: {} },
+      { type: "group.close", group: "Group1", groups: [], progresses: {} }
     ]);
   }
 
@@ -77,28 +77,28 @@ class WorkerOutputTest {
         groups: [],
         currentProgress: "plop",
         progresses: { plop: { groups: [], current: 0, running: true, uid: "plop", total: 50, title: "Plop" } },
-        progress: "plop",
+        progress: "plop"
       },
       {
         type: "progress.update",
         groups: [],
         currentProgress: "plop",
         progresses: { plop: { groups: [], current: 10, running: true, uid: "plop", total: 50, title: "Plop" } },
-        progress: "plop",
+        progress: "plop"
       },
       {
         type: "log",
         groups: [],
         currentProgress: "plop",
         progresses: { plop: { groups: [], current: 10, running: true, uid: "plop", total: 50, title: "Plop" } },
-        log: { level: "WARN", args: ["Test", "plop"] },
+        log: { level: "WARN", args: ["Test", "plop"] }
       },
       {
         type: "group.open",
         group: "group1",
         groups: ["group1"],
         currentProgress: "plop",
-        progresses: { plop: { groups: [], current: 10, running: true, uid: "plop", total: 50, title: "Plop" } },
+        progresses: { plop: { groups: [], current: 10, running: true, uid: "plop", total: 50, title: "Plop" } }
       },
       {
         type: "progress.start",
@@ -106,9 +106,9 @@ class WorkerOutputTest {
         currentProgress: "plop2",
         progresses: {
           plop: { groups: [], current: 10, running: true, uid: "plop", total: 50, title: "Plop" },
-          plop2: { groups: ["group1"], current: 0, running: true, uid: "plop2", total: 50, title: "Plop" },
+          plop2: { groups: ["group1"], current: 0, running: true, uid: "plop2", total: 50, title: "Plop" }
         },
-        progress: "plop2",
+        progress: "plop2"
       },
       {
         type: "progress.update",
@@ -116,9 +116,9 @@ class WorkerOutputTest {
         currentProgress: "plop2",
         progresses: {
           plop: { groups: [], current: 10, running: true, uid: "plop", total: 50, title: "Plop" },
-          plop2: { groups: ["group1"], current: 20, running: true, uid: "plop2", total: 50, title: "Plop" },
+          plop2: { groups: ["group1"], current: 20, running: true, uid: "plop2", total: 50, title: "Plop" }
         },
-        progress: "plop2",
+        progress: "plop2"
       },
       {
         type: "log",
@@ -126,9 +126,9 @@ class WorkerOutputTest {
         currentProgress: "plop2",
         progresses: {
           plop: { groups: [], current: 10, running: true, uid: "plop", total: 50, title: "Plop" },
-          plop2: { groups: ["group1"], current: 20, running: true, uid: "plop2", total: 50, title: "Plop" },
+          plop2: { groups: ["group1"], current: 20, running: true, uid: "plop2", total: 50, title: "Plop" }
         },
-        log: { level: "WARN", args: ["Test", "plop"] },
+        log: { level: "WARN", args: ["Test", "plop"] }
       },
       {
         type: "group.close",
@@ -137,8 +137,8 @@ class WorkerOutputTest {
         currentProgress: "plop2",
         progresses: {
           plop: { groups: [], current: 10, running: true, uid: "plop", total: 50, title: "Plop" },
-          plop2: { groups: ["group1"], current: 20, running: true, uid: "plop2", total: 50, title: "Plop" },
-        },
+          plop2: { groups: ["group1"], current: 20, running: true, uid: "plop2", total: 50, title: "Plop" }
+        }
       },
       {
         type: "progress.update",
@@ -146,43 +146,43 @@ class WorkerOutputTest {
         currentProgress: "plop2",
         progresses: {
           plop: { groups: [], current: 30, running: true, uid: "plop", total: 50, title: "Plop" },
-          plop2: { groups: ["group1"], current: 20, running: true, uid: "plop2", total: 50, title: "Plop" },
+          plop2: { groups: ["group1"], current: 20, running: true, uid: "plop2", total: 50, title: "Plop" }
         },
-        progress: "plop",
+        progress: "plop"
       },
       {
         type: "progress.stop",
         groups: [],
         currentProgress: "plop2",
         progresses: {
-          plop2: { groups: ["group1"], current: 20, running: true, uid: "plop2", total: 50, title: "Plop" },
+          plop2: { groups: ["group1"], current: 20, running: true, uid: "plop2", total: 50, title: "Plop" }
         },
-        progress: "plop",
+        progress: "plop"
       },
       {
         type: "log",
         groups: [],
         currentProgress: "plop2",
         progresses: {
-          plop2: { groups: ["group1"], current: 20, running: true, uid: "plop2", total: 50, title: "Plop" },
+          plop2: { groups: ["group1"], current: 20, running: true, uid: "plop2", total: 50, title: "Plop" }
         },
-        log: { level: "WARN", args: ["Test", "plop"] },
+        log: { level: "WARN", args: ["Test", "plop"] }
       },
       {
         type: "progress.update",
         groups: [],
         currentProgress: "plop2",
         progresses: {
-          plop2: { groups: ["group1"], current: 35, running: true, uid: "plop2", total: 50, title: "Plop" },
+          plop2: { groups: ["group1"], current: 35, running: true, uid: "plop2", total: 50, title: "Plop" }
         },
-        progress: "plop2",
+        progress: "plop2"
       },
       {
         type: "progress.stop",
         groups: [],
         progresses: {},
-        progress: "plop2",
-      },
+        progress: "plop2"
+      }
     ]);
   }
 
@@ -222,30 +222,30 @@ class WorkerOutputTest {
         type: "input.request",
         groups: [],
         progresses: {},
-        input: { uuid: "8341a002-c5b6-4290-8064-779eac138661", title: "My Question", validators: ["\\d+"] },
+        input: { uuid: "8341a002-c5b6-4290-8064-779eac138661", title: "My Question", validators: ["\\d+"] }
       },
       {
         type: "input.timeout",
         groups: [],
         progresses: {},
-        input: { uuid: "8341a002-c5b6-4290-8064-779eac138661", title: "My Question", validators: ["\\d+"] },
+        input: { uuid: "8341a002-c5b6-4290-8064-779eac138661", title: "My Question", validators: ["\\d+"] }
       },
       {
         type: "input.request",
         groups: [],
         progresses: {},
-        input: { uuid: "e682dfb5-3a87-432f-83b9-c660bcf02fa1", title: "My Question", validators: ["\\d+"] },
+        input: { uuid: "e682dfb5-3a87-432f-83b9-c660bcf02fa1", title: "My Question", validators: ["\\d+"] }
       },
       {
         type: "input.received",
         groups: [],
         progresses: {},
-        input: { uuid: "e682dfb5-3a87-432f-83b9-c660bcf02fa1", title: "My Question", validators: ["\\d+"] },
-      },
+        input: { uuid: "e682dfb5-3a87-432f-83b9-c660bcf02fa1", title: "My Question", validators: ["\\d+"] }
+      }
     ];
-    events.forEach((e) => delete e.input.uuid);
+    events.forEach(e => delete e.input.uuid);
     let received: any[] = this.calls.map(mapper);
-    received.forEach((e) => delete e.input.uuid);
+    received.forEach(e => delete e.input.uuid);
     assert.deepEqual(received, events);
   }
 }

@@ -974,11 +974,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
   }
 
   async httpAction(ctx: Context) {
-    let action = ctx
-      .getHttpContext()
-      .getUrl()
-      .split("/")
-      .pop();
+    let action = ctx.getHttpContext().getUrl().split("/").pop();
     let body = ctx.getRequestBody();
     let uuid = ctx.parameter("uuid");
     if (!uuid) {
@@ -1011,11 +1007,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
 
   async httpGlobalAction(ctx: Context) {
     let body = ctx.getRequestBody();
-    let action = ctx
-      .getHttpContext()
-      .getUrl()
-      .split("/")
-      .pop();
+    let action = ctx.getHttpContext().getUrl().split("/").pop();
     await this.emitSync("Store.Action", {
       action: action,
       store: this,

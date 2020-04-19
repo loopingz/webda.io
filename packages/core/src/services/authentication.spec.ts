@@ -436,7 +436,7 @@ class AuthenticationTest extends WebdaTest {
   }
 
   @test("Callback") async callback() {
-    var done = function() {};
+    var done = function () {};
     var lastUsed = null;
     this.events = 0;
     let ident = Ident.init("github", "test");

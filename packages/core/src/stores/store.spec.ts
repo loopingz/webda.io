@@ -37,14 +37,16 @@ abstract class StoreTest extends WebdaTest {
       "Store.Found"
     ];
     for (let evt in events) {
-      identStore.on(events[evt], function(evt) {
+      identStore.on(events[evt], function (evt) {
         eventFired++;
       });
     }
     assert.equal(await userStore.get(undefined), undefined);
-    user1 = (await userStore.save({
-      name: "test"
-    })).uuid;
+    user1 = (
+      await userStore.save({
+        name: "test"
+      })
+    ).uuid;
     let user = await userStore.get(user1);
     // Save a user and add an ident
     assert.notEqual(user, undefined);
@@ -88,13 +90,7 @@ abstract class StoreTest extends WebdaTest {
     );
     lastUpdate = user.idents[0]._lastUpdate;
     await this.sleep(10);
-    await identStore.deleteItemFromCollection(
-      ident1.uuid,
-      "actions",
-      0,
-      "plop",
-      "type"
-    );
+    await identStore.deleteItemFromCollection(ident1.uuid, "actions", 0, "plop", "type");
     await user.refresh();
     assert.notEqual(user.idents[0]._lastUpdate.length, 0);
     this.assertLastUpdateNotEqual(
@@ -249,13 +245,7 @@ abstract class StoreTest extends WebdaTest {
       err => true
     );
     await this.assertThrowsAsync(
-      identStore.deleteItemFromCollection.bind(
-        identStore,
-        ident.uuid,
-        "actions",
-        0,
-        "action_2"
-      ),
+      identStore.deleteItemFromCollection.bind(identStore, ident.uuid, "actions", 0, "action_2"),
       err => true
     );
     await ident.refresh();
@@ -276,26 +266,12 @@ abstract class StoreTest extends WebdaTest {
       "type"
     );
     await ident.refresh();
-    this.assertLastUpdateNotEqual(
-      ident._lastUpdate,
-      lastUpdate,
-      "lastUpdate after upsertItemToColletion failed"
-    );
+    this.assertLastUpdateNotEqual(ident._lastUpdate, lastUpdate, "lastUpdate after upsertItemToColletion failed");
     lastUpdate = ident._lastUpdate;
     await this.sleep(10);
-    await identStore.deleteItemFromCollection(
-      ident.uuid,
-      "actions",
-      0,
-      "plop",
-      "type"
-    );
+    await identStore.deleteItemFromCollection(ident.uuid, "actions", 0, "plop", "type");
     ident = await identStore.get(ident.uuid);
-    this.assertLastUpdateNotEqual(
-      ident._lastUpdate,
-      lastUpdate,
-      "lastUpdate after deleteItemToColletion failed"
-    );
+    this.assertLastUpdateNotEqual(ident._lastUpdate, lastUpdate, "lastUpdate after deleteItemToColletion failed");
     assert.notEqual(ident.actions, undefined);
     assert.equal(ident.actions.length, 1);
     assert.equal(ident.actions[0].type, "plop");
@@ -345,7 +321,7 @@ abstract class StoreTest extends WebdaTest {
       "Store.Found"
     ];
     for (let evt in events) {
-      identStore.on(events[evt], function(e) {
+      identStore.on(events[evt], function (e) {
         eventFired++;
       });
     }
@@ -399,11 +375,7 @@ abstract class StoreTest extends WebdaTest {
     await identStore.incrementAttribute(ident1.uuid, "counter", 1);
     let ident = await identStore.get(ident1.uuid);
     // Verify lastUpdate is updated too
-    this.assertLastUpdateNotEqual(
-      ident._lastUpdate,
-      ident1._lastUpdate,
-      "lastUpdate after incrementAttribute failed"
-    );
+    this.assertLastUpdateNotEqual(ident._lastUpdate, ident1._lastUpdate, "lastUpdate after incrementAttribute failed");
     assert.equal(ident.counter, 1);
     await identStore.incrementAttribute(ident1.uuid, "counter", 3);
     ident1 = await identStore.get(ident1.uuid);

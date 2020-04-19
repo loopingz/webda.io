@@ -38,7 +38,7 @@ export default class S3Binary extends Binary implements CloudFormationContributo
     await super.init();
     this._s3 = new this.AWS.S3({
       endpoint: this._params.endpoint,
-      s3ForcePathStyle: this._params.s3ForcePathStyle || false,
+      s3ForcePathStyle: this._params.s3ForcePathStyle || false
     });
   }
 
@@ -59,9 +59,9 @@ export default class S3Binary extends Binary implements CloudFormationContributo
             "302": "Redirect to download url",
             "403": "You don't have permissions",
             "404": "Object does not exist or attachment does not exist",
-            "412": "Provided hash does not match",
-          },
-        },
+            "412": "Provided hash does not match"
+          }
+        }
       });
       url = this._url + "/{store}/{uid}/{property}/{index}/url";
       name = this._name === "Binary" ? "" : this._name;
@@ -74,9 +74,9 @@ export default class S3Binary extends Binary implements CloudFormationContributo
             "200": "Containing the URL",
             "403": "You don't have permissions",
             "404": "Object does not exist or attachment does not exist",
-            "412": "Provided hash does not match",
-          },
-        },
+            "412": "Provided hash does not match"
+          }
+        }
       });
     }
   }
@@ -98,13 +98,13 @@ export default class S3Binary extends Binary implements CloudFormationContributo
       Bucket: this._params.bucket,
       Key: this._getPath(body.hash),
       ContentType: "application/octet-stream",
-      ContentMD5: base64String,
+      ContentMD5: base64String
     };
     // List bucket
     let data = this._s3
       .listObjectsV2({
         Bucket: this._params.bucket,
-        Prefix: this._getPath(body.hash, ""),
+        Prefix: this._getPath(body.hash, "")
       })
       .promise();
     let foundMap = false;
@@ -130,9 +130,9 @@ export default class S3Binary extends Binary implements CloudFormationContributo
         Bucket: this._params.bucket,
         Key: this._getPath(hash, uuid),
         Metadata: {
-          "x-amz-meta-store": storeName,
-        },
-      },
+          "x-amz-meta-store": storeName
+        }
+      }
     });
     return s3obj.putObject().promise();
   }
@@ -150,7 +150,7 @@ export default class S3Binary extends Binary implements CloudFormationContributo
     await this.emitSync("Binary.Get", {
       object: info,
       service: this,
-      context: context,
+      context: context
     });
     params.ResponseContentDisposition = "attachment; filename=" + info.name;
     params.ResponseContentType = info.mimetype;
@@ -170,7 +170,7 @@ export default class S3Binary extends Binary implements CloudFormationContributo
     await obj.canAct(ctx, "get_binary");
     let url = await this.getRedirectUrlFromObject(obj, property, index, ctx);
     ctx.writeHead(302, {
-      Location: url,
+      Location: url
     });
     ctx.end();
   }
@@ -194,7 +194,7 @@ export default class S3Binary extends Binary implements CloudFormationContributo
     return this._s3
       .getObject({
         Bucket: this._params.bucket,
-        Key: this._getPath(info.hash),
+        Key: this._getPath(info.hash)
       })
       .createReadStream();
   }
@@ -204,7 +204,7 @@ export default class S3Binary extends Binary implements CloudFormationContributo
     let data = await this._s3
       .listObjects({
         Bucket: this._params.bucket,
-        Prefix: this._getPath(hash, ""),
+        Prefix: this._getPath(hash, "")
       })
       .promise();
     return data.Contents.length ? data.Contents.length - 1 : 0;
@@ -216,7 +216,7 @@ export default class S3Binary extends Binary implements CloudFormationContributo
     // Dont clean data for now
     var params = {
       Bucket: this._params.bucket,
-      Key: this._getPath(hash, uuid),
+      Key: this._getPath(hash, uuid)
     };
     return this._s3.deleteObject(params).promise();
   }
@@ -229,7 +229,7 @@ export default class S3Binary extends Binary implements CloudFormationContributo
   }
 
   async cascadeDelete(info, uuid) {
-    return this._cleanUsage(info.hash, uuid).catch(function(err) {
+    return this._cleanUsage(info.hash, uuid).catch(function (err) {
       this._webda.log("WARN", "Cascade delete failed", err);
     });
   }
@@ -262,10 +262,10 @@ export default class S3Binary extends Binary implements CloudFormationContributo
     return this._s3
       .headObject({
         Bucket: this._params.bucket,
-        Key: this._getPath(hash),
+        Key: this._getPath(hash)
       })
       .promise()
-      .catch(function(err) {
+      .catch(function (err) {
         if (err.code !== "NotFound") {
           return Promise.reject(err);
         }
@@ -280,8 +280,8 @@ export default class S3Binary extends Binary implements CloudFormationContributo
       s3ForcePathStyle: this._params.s3ForcePathStyle || false,
       params: {
         Bucket: bucket,
-        Key: key,
-      },
+        Key: key
+      }
     });
     return s3obj.getObject().createReadStream();
   }
@@ -303,7 +303,7 @@ export default class S3Binary extends Binary implements CloudFormationContributo
     let page = 0;
     var s3 = new this.AWS.S3({
       endpoint: this._params.endpoint,
-      s3ForcePathStyle: this._params.s3ForcePathStyle || false,
+      s3ForcePathStyle: this._params.s3ForcePathStyle || false
     });
     do {
       await s3
@@ -336,12 +336,12 @@ export default class S3Binary extends Binary implements CloudFormationContributo
       params: {
         Bucket: bucket,
         Key: key,
-        Metadata: metadatas,
-      },
+        Metadata: metadatas
+      }
     });
     await s3obj
       .upload({
-        Body: body,
+        Body: body
       })
       .promise();
   }
@@ -360,12 +360,12 @@ export default class S3Binary extends Binary implements CloudFormationContributo
         params: {
           Bucket: this._params.bucket,
           Key: this._getPath(file.hash),
-          Metadata: s3metas,
-        },
+          Metadata: s3metas
+        }
       });
       await s3obj
         .upload({
-          Body: file.buffer,
+          Body: file.buffer
         })
         .promise();
     }
@@ -401,9 +401,9 @@ export default class S3Binary extends Binary implements CloudFormationContributo
         "s3:PutBucketAcl",
         "s3:PutObject",
         "s3:PutObjectAcl",
-        "s3:RestoreObject",
+        "s3:RestoreObject"
       ],
-      Resource: [`arn:aws:s3:::${this._params.bucket}`, `arn:aws:s3:::${this._params.bucket}/*`],
+      Resource: [`arn:aws:s3:::${this._params.bucket}`, `arn:aws:s3:::${this._params.bucket}/*`]
     };
   }
 
@@ -419,8 +419,8 @@ export default class S3Binary extends Binary implements CloudFormationContributo
       Properties: {
         ...this._params.CloudFormation.Bucket,
         BucketName: this._params.bucketName,
-        Tags: deployer.getDefaultTags(this._params.CloudFormation.Bucket.Tags),
-      },
+        Tags: deployer.getDefaultTags(this._params.CloudFormation.Bucket.Tags)
+      }
     };
     // Add any Other resources with prefix of the service
     return resources;
@@ -440,22 +440,22 @@ export default class S3Binary extends Binary implements CloudFormationContributo
           properties: {
             expose: {
               type: "boolean",
-              default: true,
+              default: true
             },
             accessKeyId: {
-              type: "string",
+              type: "string"
             },
             secretAccessKey: {
-              type: "string",
+              type: "string"
             },
             bucket: {
               type: "string",
-              default: "YOUR S3 Bucket",
-            },
+              default: "YOUR S3 Bucket"
+            }
           },
-          required: ["accessKeyId", "secretAccessKey", "bucket"],
-        },
-      },
+          required: ["accessKeyId", "secretAccessKey", "bucket"]
+        }
+      }
     };
   }
 }

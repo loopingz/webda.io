@@ -43,11 +43,7 @@ class WebdaConfigurationServerTest {
       }
     });
     console.log(res.status, res.headers);
-    if (
-      res.status < 300 &&
-      res.status >= 200 &&
-      res.headers.get("content-type") === "application/json"
-    ) {
+    if (res.status < 300 && res.status >= 200 && res.headers.get("content-type") === "application/json") {
       return await res.json();
     }
     return res;
@@ -57,11 +53,7 @@ class WebdaConfigurationServerTest {
   async testConfigurationApi() {
     let res = await this.fetch("/configuration");
     res.parameters.sessionSecret = "PLOP";
-    let cfg = JSON.parse(
-      fs
-        .readFileSync(WebdaSampleApplication.getAppPath("/webda.config.json"))
-        .toString()
-    );
+    let cfg = JSON.parse(fs.readFileSync(WebdaSampleApplication.getAppPath("/webda.config.json")).toString());
     cfg.parameters.sessionSecret = "PLOP";
     assert.equal(JSON.stringify(res), JSON.stringify(cfg));
   }

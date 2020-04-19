@@ -34,12 +34,12 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     this.deployer.resources.AssetsPrefix = "plop/";
     this.deployer.resources.FileName = "123";
     this.deployer.template = {
-      fake: true,
+      fake: true
     };
     await this.deployer.sendCloudFormationTemplate();
     assert.deepEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
-      Key: "plop/123.json",
+      Key: "plop/123.json"
     });
     this.deployer.resources.AssetsPrefix = "/plop/";
     this.deployer.resources.FileName = "123.json";
@@ -47,7 +47,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     await this.deployer.sendCloudFormationTemplate();
     assert.deepEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
-      Key: "plop/123.json",
+      Key: "plop/123.json"
     });
     this.deployer.resources.FileName = "123";
     this.deployer.resources.Format = "YAML";
@@ -55,21 +55,21 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     await this.deployer.sendCloudFormationTemplate();
     assert.deepEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
-      Key: "plop/123.yml",
+      Key: "plop/123.yml"
     });
     this.deployer.resources.FileName = "123.yml";
     this.deployer.result = {};
     await this.deployer.sendCloudFormationTemplate();
     assert.deepEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
-      Key: "plop/123.yml",
+      Key: "plop/123.yml"
     });
     this.deployer.resources.FileName = "123.taml";
     this.deployer.result = {};
     await this.deployer.sendCloudFormationTemplate();
     assert.deepEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
-      Key: "plop/123.taml.yml",
+      Key: "plop/123.taml.yml"
     });
     this.deployer.resources.FileName = "123.yaml";
     this.deployer.result = {};
@@ -77,7 +77,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     await this.deployer.sendCloudFormationTemplate();
     assert.deepEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
-      Key: "123.yaml",
+      Key: "123.yaml"
     });
   }
 
@@ -88,7 +88,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     resources.Resources = {};
     resources.APIGateway = {};
     resources.APIGatewayDomain = {
-      DomainName: "webda.io",
+      DomainName: "webda.io"
     };
     resources.Policy = {};
     resources.Role = {};
@@ -100,7 +100,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     sendCloudFormation.callsFake(async () => {
       this.deployer.result.CloudFormation = {
         Bucket: "plop",
-        Key: "mycf.json",
+        Key: "mycf.json"
       };
     });
     await this.deployer.defaultResources();

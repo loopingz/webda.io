@@ -3,7 +3,7 @@ export const JSONUtils = {
     let stringified = [];
     return JSON.stringify(
       value,
-      function(key: string, value: any): any {
+      function (key: string, value: any): any {
         if (stringified.indexOf(value) >= 0 || key.startsWith("_")) {
           return undefined;
         }

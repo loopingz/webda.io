@@ -9,12 +9,7 @@ import * as YAML from "yamljs";
 import * as yargs from "yargs";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";
-import {
-  WorkerOutput,
-  WorkerLogLevel,
-  Terminal,
-  ConsoleLogger
-} from "@webda/workout";
+import { WorkerOutput, WorkerLogLevel, Terminal, ConsoleLogger } from "@webda/workout";
 
 export enum DebuggerStatus {
   Stopped = "STOPPED",
@@ -42,40 +37,19 @@ export default class WebdaConsole {
     lines.push("");
     lines.push("  --help                     Display this message and exit");
     lines.push("");
+    lines.push(this.bold(" config") + ": Launch the configuration UI or export a deployment config");
+    lines.push(this.bold(" serviceconfig") + ": Display the configuration of a service with its deployment");
+    lines.push(this.bold(" init") + ": Init a sample project for your current version");
+    lines.push(this.bold(" module") + ": Generate a module definition based on the script scan");
     lines.push(
-      this.bold(" config") +
-        ": Launch the configuration UI or export a deployment config"
+      this.bold(" serve") + " (DeployConfiguration): Serve current project, can serve with DeployConfiguration"
     );
-    lines.push(
-      this.bold(" serviceconfig") +
-        ": Display the configuration of a service with its deployment"
-    );
-    lines.push(
-      this.bold(" init") + ": Init a sample project for your current version"
-    );
-    lines.push(
-      this.bold(" module") +
-        ": Generate a module definition based on the script scan"
-    );
-    lines.push(
-      this.bold(" serve") +
-        " (DeployConfiguration): Serve current project, can serve with DeployConfiguration"
-    );
-    lines.push(
-      this.bold(" deploy") +
-        " DeployConfiguration: Deploy current project with DeployConfiguration name"
-    );
+    lines.push(this.bold(" deploy") + " DeployConfiguration: Deploy current project with DeployConfiguration name");
     lines.push(this.bold(" worker") + ": Launch a worker on a queue");
     lines.push(this.bold(" debug") + ": Debug current project");
     lines.push(this.bold(" openapi") + ": Generate openapi file");
-    lines.push(
-      this.bold(" generate-session-secret") +
-        ": Generate a new session secret in parameters"
-    );
-    lines.push(
-      this.bold(" launch") +
-        " ServiceName method arg1 ...: Launch the ServiceName method with arg1 ..."
-    );
+    lines.push(this.bold(" generate-session-secret") + ": Generate a new session secret in parameters");
+    lines.push(this.bold(" launch") + " ServiceName method arg1 ...: Launch the ServiceName method with arg1 ...");
     lines.forEach(line => {
       this.output(line);
     });
@@ -166,8 +140,7 @@ export default class WebdaConsole {
       return 1;
     }
     if (!service[method]) {
-      let error =
-        "The method " + method + " is missing in service " + service_name;
+      let error = "The method " + method + " is missing in service " + service_name;
       this.output(colors.red(error));
       return 1;
     }
@@ -195,7 +168,7 @@ export default class WebdaConsole {
    * @param argv
    */
   static async debug(argv: yargs.Arguments) {
-    process.on("SIGINT", function() {
+    process.on("SIGINT", function () {
       if (this.serverProcess) {
         this.serverProcess.kill();
       }
@@ -250,13 +223,7 @@ export default class WebdaConsole {
                 webdaConsole.setDebuggerStatus(DebuggerStatus.Serving);
               }
               if (line.length < 4) return;
-              webdaConsole.output(
-                "[" +
-                  colors.grey(new Date().toLocaleTimeString()) +
-                  "] " +
-                  line.trim() +
-                  "\n"
-              );
+              webdaConsole.output("[" + colors.grey(new Date().toLocaleTimeString()) + "] " + line.trim() + "\n");
             });
           callback();
         }
@@ -287,23 +254,13 @@ export default class WebdaConsole {
             // Simulate the colors , typescript compiler detect it is not on a tty
             if (info.match(/Found [1-9]\d* error/)) {
               webdaConsole.output(
-                "[" +
-                  colors.gray(info.substring(0, 11 - offset)) +
-                  "] " +
-                  colors.red(info.substring(14 - offset))
+                "[" + colors.gray(info.substring(0, 11 - offset)) + "] " + colors.red(info.substring(14 - offset))
               );
             } else {
               webdaConsole.output(
-                "[" +
-                  colors.gray(info.substring(0, 11 - offset)) +
-                  "] " +
-                  info.substring(14 - offset)
+                "[" + colors.gray(info.substring(0, 11 - offset)) + "] " + info.substring(14 - offset)
               );
-              if (
-                info.indexOf("Found 0 errors. Watching for file changes.") >=
-                  0 &&
-                modification !== 0
-              ) {
+              if (info.indexOf("Found 0 errors. Watching for file changes.") >= 0 && modification !== 0) {
                 modification = 0;
                 webdaConsole.setDebuggerStatus(DebuggerStatus.Launching);
                 launchServe();
@@ -347,9 +304,7 @@ export default class WebdaConsole {
    * Get shell package version
    */
   static getVersion() {
-    return JSON.parse(
-      fs.readFileSync(__dirname + "/../../package.json").toString()
-    ).version;
+    return JSON.parse(fs.readFileSync(__dirname + "/../../package.json").toString()).version;
   }
 
   /**
@@ -360,11 +315,7 @@ export default class WebdaConsole {
    */
   static async config(argv: yargs.Arguments): Promise<number> {
     if (argv.deployment) {
-      let json = JSON.stringify(
-        this.app.getConfiguration(argv.deployment),
-        null,
-        " "
-      );
+      let json = JSON.stringify(this.app.getConfiguration(argv.deployment), null, " ");
       if (argv._.length > 1) {
         fs.writeFileSync(argv._[1], json);
       } else {
@@ -383,11 +334,7 @@ export default class WebdaConsole {
    * @param argv
    */
   static async deploy(argv: yargs.Arguments): Promise<number> {
-    let manager = new DeploymentManager(
-      this.app.getWorkerOutput(),
-      process.cwd(),
-      argv.deployment
-    );
+    let manager = new DeploymentManager(this.app.getWorkerOutput(), process.cwd(), argv.deployment);
     argv._ = argv._.slice(1);
     return await manager.commandLine(argv);
   }
@@ -409,12 +356,7 @@ export default class WebdaConsole {
     }
     const yeoman = require("yeoman-environment");
     const env = yeoman.createEnv();
-    env.register(
-      require.resolve(
-        `generator-${generatorName}/generators/${generatorAction}/index.js`
-      ),
-      generatorName
-    );
+    env.register(require.resolve(`generator-${generatorName}/generators/${generatorAction}/index.js`), generatorName);
     await new Promise((resolve, reject) => {
       env.run(generatorName, err => {
         if (err) {
@@ -459,10 +401,7 @@ export default class WebdaConsole {
     }
 
     this.app = new Application(argv.appPath, new WorkerOutput());
-    WebdaConsole.logger = new Logger(
-      this.app.getWorkerOutput(),
-      "console/webda"
-    );
+    WebdaConsole.logger = new Logger(this.app.getWorkerOutput(), "console/webda");
 
     if (argv.notty) {
       new ConsoleLogger(this.app.getWorkerOutput());
@@ -549,16 +488,10 @@ export default class WebdaConsole {
    * Generate a new sessionSecret for the application
    */
   static async generateSessionSecret() {
-    let config =
-      JSON.parse(
-        fs.readFileSync(this.app.getAppPath("webda.config.json")).toString()
-      ) || {};
+    let config = JSON.parse(fs.readFileSync(this.app.getAppPath("webda.config.json")).toString()) || {};
     config.parameters = config.parameters || {};
     config.parameters.sessionSecret = await this.generateRandomString(256);
-    fs.writeFileSync(
-      this.app.getAppPath("webda.config.json"),
-      JSON.stringify(config, null, 2)
-    );
+    fs.writeFileSync(this.app.getAppPath("webda.config.json"), JSON.stringify(config, null, 2));
   }
 
   /**
@@ -576,10 +509,7 @@ export default class WebdaConsole {
       fs.writeFileSync(name, JSON.stringify(openapi, undefined, 2));
     } else if (name.endsWith(".yaml") || name.endsWith(".yml")) {
       // Remove null value with JSON.parse/stringify
-      fs.writeFileSync(
-        name,
-        YAML.stringify(JSON.parse(JSON.stringify(openapi)), 1000, 2)
-      );
+      fs.writeFileSync(name, YAML.stringify(JSON.parse(JSON.stringify(openapi)), 1000, 2));
     } else {
       this.log("ERROR", "Unknown format");
     }
@@ -591,11 +521,7 @@ export default class WebdaConsole {
    */
   static async typescriptWatch(stream: Transform) {
     this.output("Typescript compilation");
-    this.tscCompiler = spawn(
-      "tsc",
-      ["--watch", "-p", this.app.getAppPath(), "--listEmittedFiles"],
-      {}
-    );
+    this.tscCompiler = spawn("tsc", ["--watch", "-p", this.app.getAppPath(), "--listEmittedFiles"], {});
     this.tscCompiler.stdout.pipe(stream).pipe(process.stdout);
     return new Promise(resolve => {
       this.tscCompiler.on("exit", code => {

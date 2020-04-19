@@ -9,11 +9,7 @@ class WebdaServerTest {
   server: WebdaServer;
   port: number;
 
-  async init(
-    deployment: string = undefined,
-    startHttp: boolean = false,
-    websockets: boolean = false
-  ) {
+  async init(deployment: string = undefined, startHttp: boolean = false, websockets: boolean = false) {
     WebdaSampleApplication.loadModules();
     WebdaSampleApplication.setCurrentDeployment(deployment);
     this.server = new WebdaServer(WebdaSampleApplication);

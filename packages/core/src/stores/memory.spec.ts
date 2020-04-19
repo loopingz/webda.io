@@ -22,39 +22,15 @@ class MemoryStoreTest extends StoreTest {
       test: "ok"
     });
     await identStore.delete("toDelete");
-    executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      "/memory/idents/toDelete"
-    );
+    executor = this.getExecutor(ctx, "test.webda.io", "GET", "/memory/idents/toDelete");
     assert.notEqual(executor, undefined);
-    await this.assertThrowsAsync(
-      executor.execute.bind(executor, ctx),
-      err => err == 404
-    );
-    executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "PUT",
-      "/memory/idents/toDelete"
-    );
+    await this.assertThrowsAsync(executor.execute.bind(executor, ctx), err => err == 404);
+    executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/memory/idents/toDelete");
     assert.notEqual(executor, undefined);
-    await this.assertThrowsAsync(
-      executor.execute.bind(executor, ctx),
-      err => err == 404
-    );
-    executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "DELETE",
-      "/memory/idents/toDelete"
-    );
+    await this.assertThrowsAsync(executor.execute.bind(executor, ctx), err => err == 404);
+    executor = this.getExecutor(ctx, "test.webda.io", "DELETE", "/memory/idents/toDelete");
     assert.notEqual(executor, undefined);
-    await this.assertThrowsAsync(
-      executor.execute.bind(executor, ctx),
-      err => err == 404
-    );
+    await this.assertThrowsAsync(executor.execute.bind(executor, ctx), err => err == 404);
   }
 }
 

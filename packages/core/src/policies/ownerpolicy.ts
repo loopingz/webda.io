@@ -22,11 +22,7 @@ class OwnerPolicy {
   async canAct(ctx: Context, action: string) {
     if (action === "create") {
       return this.canCreate(ctx);
-    } else if (
-      action === "update" ||
-      action === "attach_binary" ||
-      action === "detach_binary"
-    ) {
+    } else if (action === "update" || action === "attach_binary" || action === "detach_binary") {
       return this.canUpdate(ctx);
     } else if (action === "get" || action === "get_binary") {
       return this.canGet(ctx);

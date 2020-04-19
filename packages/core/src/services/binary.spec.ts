@@ -44,7 +44,7 @@ class BinaryTest extends WebdaTest {
     var eventFired = 0;
     var events = ["binaryGet", "binaryUpdate", "binaryCreate", "binaryDelete"];
     for (let evt in events) {
-      binary.on(events[evt], function() {
+      binary.on(events[evt], function () {
         eventFired++;
       });
     }
@@ -109,17 +109,9 @@ class BinaryTest extends WebdaTest {
       "GET",
       exposePath + "/users/" + user1.uuid + "/" + map + "/0"
     );
-    await this.assertThrowsAsync(
-      executor.execute.bind(executor, ctx),
-      res => res == 403
-    );
+    await this.assertThrowsAsync(executor.execute.bind(executor, ctx), res => res == 403);
     ctx.session.userId = user1.uuid;
-    executor = this.getExecutor(
-      ctx,
-      "test.webda.io",
-      "GET",
-      exposePath + "/users/" + user1.uuid + "/" + map + "/0"
-    );
+    executor = this.getExecutor(ctx, "test.webda.io", "GET", exposePath + "/users/" + user1.uuid + "/" + map + "/0");
     await executor.execute(ctx);
     // We dont check for result as FileBinary will return datas and S3 a redirect
     if (fs.existsSync("./downloadTo.tmp")) {
@@ -127,10 +119,7 @@ class BinaryTest extends WebdaTest {
     }
     await binary.downloadTo(user1[map][0], "./downloadTo.tmp");
     // Check the result is the same
-    assert.equal(
-      fs.readFileSync("./downloadTo.tmp").toString(),
-      fs.readFileSync(this.getTestFile()).toString()
-    );
+    assert.equal(fs.readFileSync("./downloadTo.tmp").toString(), fs.readFileSync(this.getTestFile()).toString());
     await userStore.delete(user1.uuid);
     value = await binary.getUsageCount(hash);
     assert.equal(value, 0);

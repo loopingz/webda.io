@@ -37,10 +37,7 @@ const AclPolicyMixIn = Sup =>
       let groups = this.getGroups(ctx, user);
       for (let i in this.__acls) {
         if (groups.indexOf(i) >= 0) {
-          if (
-            this.__acls[i] === "all" ||
-            this.__acls[i].split(",").indexOf(action) >= 0
-          ) {
+          if (this.__acls[i] === "all" || this.__acls[i].split(",").indexOf(action) >= 0) {
             return true;
           }
         }

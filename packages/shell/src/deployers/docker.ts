@@ -187,10 +187,7 @@ RUN yarn install
     let deployment = this.manager.getDeploymentName();
     if (deployment) {
       // Export deployment
-      dockerfile +=
-        "RUN node_modules/.bin/webda -d " +
-        deployment +
-        " config webda.config.json\n";
+      dockerfile += "RUN node_modules/.bin/webda -d " + deployment + " config webda.config.json\n";
     }
     dockerfile += "RUN rm -rf deployments\n";
     dockerfile += "CMD node_modules/.bin/webda " + command + logfile + "\n";

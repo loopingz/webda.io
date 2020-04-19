@@ -30,21 +30,20 @@ abstract class Queue extends Service {
     }
     try {
       let items = await this.receiveMessage();
-      try {
-        if (items.length === 0) {
-          return this._workerResume();
-        }
-        for (var i = 0; i < items.length; i++) {
-          let msg = items[i];
-          let event = JSON.parse(msg.Body);
-          await this.callback(event);
-          await this.deleteMessage(msg.ReceiptHandle);
-        }
-        return this._workerResume();
-      } catch (err) {
-        this._webda.log("ERROR", "Notification", err);
+      if (items.length === 0) {
         return this._workerResume();
       }
+      for (var i = 0; i < items.length; i++) {
+        let msg = items[i];
+        let event = JSON.parse(msg.Body);
+        try {
+          await this.callback(event);
+          await this.deleteMessage(msg.ReceiptHandle);
+        } catch (err) {
+          this._webda.log("ERROR", "Notification", err);
+        }
+      }
+      return this._workerResume();
     } catch (err) {
       this.pause *= 2;
       this._webda.log("ERROR", err);

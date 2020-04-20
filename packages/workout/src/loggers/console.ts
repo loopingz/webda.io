@@ -71,6 +71,16 @@ export class ConsoleLogger {
    * @param format
    */
   static display(msg: WorkerMessage, format: string = ConsoleLogger.defaultFormat) {
+    console.log(ConsoleLogger.getColor(msg.log.level)(ConsoleLogger.format(msg, format)));
+  }
+
+  /**
+   * Format a log based on format string
+   *
+   * @param msg
+   * @param format
+   */
+  static format(msg: WorkerMessage, format: string = ConsoleLogger.defaultFormat) {
     let info: WorkerLogMessage = {
       m: msg.log.args
         .map(a => (a === undefined ? "undefined" : typeof a === "object" ? util.inspect(a) : a.toString()))
@@ -80,6 +90,6 @@ export class ConsoleLogger {
       d: () => new Date(msg.timestamp).toISOString()
       // TODO Add different format of dates
     };
-    console.log(ConsoleLogger.getColor(msg.log.level)(sprintf(format, info)));
+    return sprintf(format, info);
   }
 }

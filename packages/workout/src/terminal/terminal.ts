@@ -1,6 +1,14 @@
 import * as colors from "colors";
 import * as readline from "readline";
-import { LogFilter, WorkerLogLevel, WorkerLogLevelEnum, WorkerMessage, WorkerOutput, WorkerProgress } from "..";
+import {
+  LogFilter,
+  WorkerLogLevel,
+  WorkerLogLevelEnum,
+  WorkerMessage,
+  WorkerOutput,
+  WorkerProgress,
+  WorkerInput
+} from "..";
 import { ConsoleLogger } from "../loggers/console";
 import * as util from "util";
 
@@ -14,9 +22,11 @@ export class Terminal {
   progresses: { [key: string]: WorkerProgress } = {};
   title: string = "";
   format: string;
-  inputs: any[] = [];
+  inputs: WorkerInput[] = [];
+  inputValue: string = "";
   rl: readline.Interface;
   reset: boolean = false;
+  inputValid: boolean = true;
 
   constructor(
     wo: WorkerOutput,
@@ -37,9 +47,14 @@ export class Terminal {
       });
       return;
     }
+    this.wo.setInteractive(true);
     this.wo.on("message", async msg => this.router(msg));
     this.height = process.stdout.rows;
+
+    // Reset term
     process.stdout.write("\x1B[?12l\x1B[?47h");
+
+    // Ensure we restore terminal on quit
     let resetTerm = (...args) => {
       if (this.reset) {
         return;
@@ -57,11 +72,36 @@ export class Terminal {
       resetTerm();
       process.exit(0);
     });
+
+    // Update on terminal resize
     process.stdout.on("resize", size => {
       this.height = process.stdout.rows;
       if (this.hasProgress) {
         this.displayScreen();
       }
+    });
+
+    // Manage input
+    process.stdin.setEncoding("utf8");
+    process.stdin.resume();
+    process.stdin.setRawMode(true);
+    process.stdin.on("data", data => {
+      if (data.charCodeAt(0) === 3) {
+        resetTerm();
+        process.exit(0);
+      } else if (data.charCodeAt(0) === 127) {
+        if (this.inputValue.length) {
+          this.inputValue = this.inputValue.substr(0, this.inputValue.length - 1);
+        }
+      } else if (data.charCodeAt(0) === 13) {
+        // validate input
+        this.wo.returnInput(this.inputs[0].uuid, this.inputValue);
+        this.inputValue = "";
+        this.inputs.shift();
+      } else {
+        this.inputValue += data;
+      }
+      this.displayScreen();
     });
   }
 
@@ -90,9 +130,11 @@ export class Terminal {
         break;
       case "input.request":
         this.inputs.push(msg.input);
+        this.displayScreen();
         break;
       case "input.received":
-        this.inputs = this.inputs.filter(m => msg.input.id !== m.id);
+        this.inputs = this.inputs.filter(m => msg.input.uuid !== m.uuid);
+        this.displayScreen();
         break;
     }
   }
@@ -122,6 +164,9 @@ export class Terminal {
 
   getFooterSize() {
     let size = Object.keys(this.progresses).length + 1 + this.title ? 1 : 0;
+    if (this.inputs.length) {
+      size += 1;
+    }
     if (size) {
       size++;
     }
@@ -235,6 +280,10 @@ export class Terminal {
     }
     this.clearScreen();
     process.stdout.write(screen);
+    // Display input
+    if (this.inputs.length) {
+      process.stdout.write(colors.bold(this.inputs[0].title + ": ") + this.inputValue);
+    }
   }
 
   clearScreen() {

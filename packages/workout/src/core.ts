@@ -71,11 +71,7 @@ class WorkerInputEmitter extends WorkerInput {
   timeout: NodeJS.Timeout;
 
   toMessage() {
-    return {
-      uuid: this.uuid,
-      title: this.title,
-      validators: this.validators
-    };
+    return new WorkerInput(this.uuid, this.title, this.validators);
   }
 }
 
@@ -133,6 +129,7 @@ export class WorkerMessage {
   log: WorkerLog = undefined;
   timestamp: number;
   [key: string]: any;
+  input?: WorkerInput;
 
   constructor(type: WorkerMessageType, workout: WorkerOutput, infos: any = {}) {
     if (workout) {

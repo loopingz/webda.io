@@ -1,5 +1,12 @@
 import { Service } from "../services/service";
-import { Logger as WorkoutLogger, WorkerOutput, WorkerLogLevel, MemoryLogger, ConsoleLogger } from "@webda/workout";
+import {
+  Logger as WorkoutLogger,
+  WorkerOutput,
+  WorkerLogLevel,
+  MemoryLogger,
+  ConsoleLogger,
+  FileLogger
+} from "@webda/workout";
 import { Core } from "../core";
 
 export class MemoryLoggerService extends Service {
@@ -18,6 +25,19 @@ export class ConsoleLoggerService extends Service {
   }
 }
 
+export class FileLoggerService extends Service {
+  workoutLogger: ConsoleLogger;
+  constructor(webda: Core, name: string, params: any) {
+    super(webda, name, params);
+    this.workoutLogger = new FileLogger(
+      webda.getWorkerOutput(),
+      params.logLevel,
+      params.file,
+      params.sizeLimit,
+      params.format
+    );
+  }
+}
 export class Logger implements WorkoutLogger {
   output: WorkerOutput;
   clazz: string;

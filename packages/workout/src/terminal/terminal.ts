@@ -15,8 +15,8 @@ export class Terminal {
   title: string = "";
   format: string;
   inputs: any[] = [];
-  buffer: string[] = [];
   rl: readline.Interface;
+  reset: boolean = false;
 
   constructor(
     wo: WorkerOutput,
@@ -39,19 +39,20 @@ export class Terminal {
     }
     this.wo.on("message", async msg => this.router(msg));
     this.height = process.stdout.rows;
-    process.stdout.on("data", data => {
-      this.buffer.push(data);
-    });
-    process.stderr.on("data", data => {
-      this.buffer.push(data);
-    });
     process.stdout.write("\x1B[?12l\x1B[?47h");
     let resetTerm = (...args) => {
+      if (this.reset) {
+        return;
+      }
+      this.reset = true;
       process.stdout.write("\x1B[?47l");
-      process.stdout.write(this.displayHistory(50, false));
+      process.stdout.write(this.displayHistory(this.height, false));
     };
     process.on("exit", resetTerm);
-    process.on("SIGTERM", resetTerm);
+    process.on("SIGTERM", () => {
+      resetTerm();
+      process.exit(0);
+    });
     process.on("SIGINT", () => {
       resetTerm();
       process.exit(0);
@@ -85,9 +86,7 @@ export class Terminal {
         this.displayScreen();
         break;
       case "title.set":
-        this.title = msg.title;
-        this.log(msg.groups, "INFO", [msg.title || ""]);
-        this.displayScreen();
+        this.handleTitleMessage(msg);
         break;
       case "input.request":
         this.inputs.push(msg.input);
@@ -96,6 +95,12 @@ export class Terminal {
         this.inputs = this.inputs.filter(m => msg.input.id !== m.id);
         break;
     }
+  }
+
+  handleTitleMessage(msg: WorkerMessage) {
+    this.title = msg.title;
+    this.log(msg.groups, "INFO", [msg.title || ""]);
+    this.displayScreen();
   }
 
   log(groups, level: WorkerLogLevel, ...args) {
@@ -116,18 +121,23 @@ export class Terminal {
   }
 
   getFooterSize() {
-    return Object.keys(this.progresses).length + 1 + this.title ? 1 : 0;
+    let size = Object.keys(this.progresses).length + 1 + this.title ? 1 : 0;
+    if (size) {
+      size++;
+    }
+    return size;
   }
 
   displayString(str, limit: number = undefined) {
-    return str;
     if (!limit) {
       limit = process.stdout.columns;
     }
     if (str.length > limit) {
       return str.substr(0, limit - 3) + "...";
     }
-    return str.padEnd(limit - str.length);
+    // Strip colors for our calculation
+    limit += str.length - str.replace(/(\u001b\[[\d;]+m)/gm, "").length;
+    return str.padEnd(limit);
   }
 
   displayBar(ratio, barlen) {

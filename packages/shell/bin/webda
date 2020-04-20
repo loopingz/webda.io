@@ -1,10 +1,7 @@
 #!/usr/bin/env node
 "use strict";
 var fs = require("fs");
-const colors = require("colors"); // Used for console output: DO NOT REMOVE
-const path = require("path");
 var Module = require("module");
-const semver = require("semver");
 
 /**
  * Get Version of a package (version attribute of package.json)
@@ -15,6 +12,19 @@ function getVersion(packageName) {
   return require(packageName + "/package.json").version;
 }
 
+let versions = {
+  core: {
+    path: "",
+    version: "",
+    type: ""
+  },
+  shell: {
+    path: "",
+    version: "",
+    type: ""
+  }
+};
+
 /**
  * Include Webda library
  *
@@ -23,48 +33,25 @@ function getVersion(packageName) {
  *  - local folder
  *  - embedded library
  */
-let webdaVersion;
 if (fs.existsSync("node_modules/@webda/core")) {
   // Local module of webda exists use it
-  global.__webda = process.cwd() + "/node_modules/@webda/core";
-  console.log("Using local web" + "da".yellow + " - v" + getVersion(global.__webda));
-  webdaVersion = getVersion(global.__webda);
+  versions.core.path = process.cwd() + "/node_modules/@webda/core";
+  versions.core.version = getVersion(versions.core.path);
+  versions.core.type = "local";
 } else if (fs.existsSync("core.js") && fs.existsSync("services/executor.js")) {
-  console.log("Using local web" + "da".yellow + "development version");
-  // We are in a webda development directory
-  global.__webda = process.cwd();
-  webdaVersion = "dev";
+  versions.core.path = process.cwd();
+  versions.core.version = "dev";
+  versions.core.type = "development";
 } else {
   // Use the webda-shell default webda
-  global.__webda = "@webda/core";
-  console.log("Using embedded web" + "da".yellow + " - v" + getVersion(global.__webda));
-  webdaVersion = getVersion(global.__webda);
+  versions.core.path = "@webda/core";
+  versions.core.version = getVersion(versions.core.path);
+  versions.core.type = "embedded";
 }
-global.__webda = require(global.__webda);
-
+global.__webda = require(versions.core.path);
 global.__webda_shell = __dirname + "/..";
-console.log("web" + "da".yellow + "-shell - v" + getVersion(__webda_shell));
-
-// Display warning for versions mismatch
-if (!semver.satisfies(webdaVersion.replace(/-.*/, ""), "^" + getVersion(__webda_shell).replace(/-.*/, ""))) {
-  console.log("Versions mismatch: @webda/core and @webda/shell are not within patch versions".yellow);
-}
-
-/**
- * Add a Promise.each ( should add it to core.js )
- */
-if (!Promise.each) {
-  Promise.each = function(arr, fn) {
-    // take an array and a function
-    // invalid input
-    if (!Array.isArray(arr)) return Promise.reject(new Error("Non array passed to each"));
-    // empty case
-    if (arr.length === 0) return Promise.resolve();
-    return arr.reduce(function(prev, cur) {
-      return prev.then(() => fn(cur));
-    }, Promise.resolve());
-  };
-}
+versions.shell.path = __dirname + "/..";
+versions.shell.version = getVersion(__webda_shell);
 
 /**
  * Search for webda.shell.json override or use standard
@@ -86,7 +73,7 @@ var consoleService = require(global.__webda_shell + "/lib/console/webda").defaul
 /**
  * Commandline parsing
  */
-let p = consoleService.handleCommand(process.argv.slice(2));
+let p = consoleService.handleCommand(process.argv.slice(2), versions);
 if (p instanceof Promise || (p && p.then)) {
   p.then(res => {
     process.exit(res);

@@ -9,8 +9,10 @@ import * as YAML from "yamljs";
 import * as yargs from "yargs";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";
-import { WorkerOutput, WorkerLogLevel, Terminal, ConsoleLogger } from "@webda/workout";
+import { WorkerOutput, WorkerLogLevel, ConsoleLogger } from "@webda/workout";
+import { WebdaTerminal } from "./terminal";
 import * as path from "path";
+import * as semver from "semver";
 
 export type WebdaCommand = (argv: any[]) => void;
 export interface WebdaShellExtension {
@@ -31,7 +33,7 @@ export default class WebdaConsole {
   static serverProcess: ChildProcess;
   static tscCompiler: ChildProcess;
   static logger: Logger;
-  static terminal: Terminal;
+  static terminal: WebdaTerminal;
   static app: Application;
   static debuggerStatus: DebuggerStatus = DebuggerStatus.Stopped;
 
@@ -396,7 +398,7 @@ export default class WebdaConsole {
    *
    * @param args
    */
-  static async handleCommand(args, output: WorkerOutput = undefined): Promise<number> {
+  static async handleCommand(args, versions, output: WorkerOutput = undefined): Promise<number> {
     // Arguments parsing
     let argv = this.parser(args);
     await this.initLogger(argv);
@@ -412,7 +414,13 @@ export default class WebdaConsole {
     if (argv.notty) {
       new ConsoleLogger(output);
     } else {
-      new Terminal(output);
+      this.terminal = new WebdaTerminal(output, versions);
+    }
+
+    // Display warning for versions mismatch
+    if (!semver.satisfies(versions.core.version.replace(/-.*/, ""), "^" + versions.shell.version.replace(/-.*/, ""))) {
+      output.log("ERROR", "Versions mismatch: @webda/core and @webda/shell are not within patch versions");
+      return -1;
     }
 
     // Load Application

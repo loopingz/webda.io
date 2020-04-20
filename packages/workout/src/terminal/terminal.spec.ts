@@ -2,6 +2,7 @@ import { suite, test } from "mocha-typescript";
 import * as sinon from "sinon";
 import { WorkerLogLevelEnum, WorkerOutput } from "..";
 import { Terminal } from "./terminal";
+import * as assert from "assert";
 
 @suite
 class TerminalTest {
@@ -39,6 +40,14 @@ class TerminalTest {
     this.output.log("WARN", "coucou2");
     this.output.log("TRACE", "coucou3");
     let res = this.terminal.displayHistory(12);
+  }
+
+  @test
+  testDisplayString() {
+    let test = this.terminal.displayString("Test" + "plop" + " " + "yep", 50);
+    assert.equal(test.length, 50);
+    test = this.terminal.displayString("Test" + "plop".yellow + " " + "yep".blue, 50);
+    assert.equal(test.length, 70);
   }
 
   @test

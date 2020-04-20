@@ -756,8 +756,13 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     return result;
   }
 
-  static shellCommand(console, args) {
-    console.log("INFO", "Got called", args);
+  static async shellCommand(console, args) {
+    let command = args._.pop();
+    switch (command) {
+      case "init":
+        return 0;
+    }
+    console.log("INFO", "Available commands: init,check");
   }
 }
 

@@ -30,7 +30,11 @@ class ConsoleTest {
       line = `--appPath ${WebdaSampleApplication.getAppPath()} ` + line;
     }
     line = "--notty " + line;
-    return await WebdaConsole.handleCommand(line.split(" "), this.workerOutput);
+    return await WebdaConsole.handleCommand(
+      line.split(" "),
+      { core: { path: "", version: "1.0.0", type: "" }, shell: { path: "", version: "1.0.0", type: "" } },
+      this.workerOutput
+    );
   }
 
   checkTestDeploymentConfig(config) {

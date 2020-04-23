@@ -724,7 +724,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
     }
   }
 
-  async _removeAttribute(uuid: string, attribute: string) {}
+  async removeAttribute(uuid: string, attribute: string) {}
 
   async handleIndex(object: CoreModel, updates: object | string) {
     let mapUpdates = {};
@@ -739,7 +739,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
         return;
       }
     } else if (updates === "deleted") {
-      await this._removeAttribute("index", object[this._uuidField]);
+      await this.removeAttribute("index", object[this._uuidField]);
       return;
     } else if (updates === "created") {
       updates = object;
@@ -974,7 +974,11 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
   }
 
   async httpAction(ctx: Context) {
-    let action = ctx.getHttpContext().getUrl().split("/").pop();
+    let action = ctx
+      .getHttpContext()
+      .getUrl()
+      .split("/")
+      .pop();
     let body = ctx.getRequestBody();
     let uuid = ctx.parameter("uuid");
     if (!uuid) {
@@ -1007,7 +1011,11 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
 
   async httpGlobalAction(ctx: Context) {
     let body = ctx.getRequestBody();
-    let action = ctx.getHttpContext().getUrl().split("/").pop();
+    let action = ctx
+      .getHttpContext()
+      .getUrl()
+      .split("/")
+      .pop();
     await this.emitSync("Store.Action", {
       action: action,
       store: this,

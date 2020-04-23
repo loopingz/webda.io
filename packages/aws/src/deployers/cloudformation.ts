@@ -3,8 +3,10 @@ import * as YAML from "yaml";
 import { AWSDeployer, AWSDeployerResources } from ".";
 import { CloudFormationContributor } from "../services";
 import { Domain } from "domain";
-import { ConsoleLogger } from "@webda/workout";
+import { ConsoleLogger, WorkerOutput, DebugLogger } from "@webda/workout";
 import { WebdaError } from "@webda/core";
+import * as fs from "fs";
+import AWS = require("aws-sdk");
 
 interface CloudFormationDeployerResources extends AWSDeployerResources {
   repositoryNamespace: string;
@@ -103,7 +105,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
   async defaultResources() {
     await super.defaultResources();
-    this.resources.AssetsPrefix = this.resources.AssetsPrefix || "";
+    this.resources.AssetsPrefix = this.resources.AssetsPrefix || "${deployment.name}/${deploymentUnit.name}/";
     this.resources.Description = this.resources.Description || "Deployed by @webda/aws/cloudformation";
     this.resources.ZipPath = this.resources.ZipPath || "./dist/lambda-${package.version}.zip";
     this.resources.FileName = this.resources.FileName || this.resources.name;
@@ -756,13 +758,74 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     return result;
   }
 
+  static async init(console) {
+    let packageDescr = console.app.getAppPath("package.json");
+    if (!fs.existsSync(packageDescr)) {
+      return -1;
+    }
+    let pkg = JSON.parse(fs.readFileSync(packageDescr).toString());
+    pkg.webda = pkg.webda || {};
+    let sts = new AWS.STS();
+    let identity;
+    try {
+      identity = await sts.getCallerIdentity().promise();
+    } catch (ex) {
+      console.log("ERROR", "Cannot retrieve your AWS credentials, make sure to have a correct AWS setup");
+      return -1;
+    }
+    let pkgName = (pkg.name || "").replace(/@/g, "").replace(/\//g, "-");
+    let StackName = `webda-${pkgName}-global`;
+    if (!pkg.webda.aws) {
+      console.log(
+        "INFO",
+        `This will create a small CloudFormation on your AWS account (${identity.Account}) and region (${AWS.config
+          .region ||
+          process.env.AWS_DEFAULT_REGION ||
+          "us-east-1"})`
+      );
+      console.log("INFO", `The stack will be called ${StackName}`);
+      pkg.webda.aws = {
+        AssetsBucket: `webda-${pkgName}-assets`,
+        Repository: `webda-${pkgName}`
+      };
+      let cloudformation = new AWS.CloudFormation();
+      await cloudformation
+        .createStack({
+          StackName,
+          TemplateBody: JSON.stringify({
+            Resources: {
+              WebdaAssetsBucket: {
+                Type: "AWS::S3::Bucket",
+                Properties: {
+                  BucketName: pkg.webda.aws.AssetsBucket
+                }
+              },
+              WebdaECR: {
+                Type: "AWS::ECR::Repository",
+                Properties: {
+                  RepositoryName: pkg.webda.aws.Repository
+                }
+              }
+            }
+          })
+        })
+        .promise();
+      console.log("INFO", "Updating package description with default information");
+      fs.writeFileSync(packageDescr, JSON.stringify(pkg, undefined, 2));
+      return 0;
+    } else {
+      // Check if stack already exists
+      console.log("WARN", "Default information are already in your package.json");
+      return -1;
+    }
+  }
+
   static async shellCommand(console, args) {
     let command = args._.pop();
     switch (command) {
       case "init":
-        return 0;
+        return await CloudFormationDeployer.init(console);
     }
-    console.log("INFO", "Available commands: init,check");
   }
 }
 

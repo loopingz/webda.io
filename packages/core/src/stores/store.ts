@@ -724,7 +724,11 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
     }
   }
 
-  async removeAttribute(uuid: string, attribute: string) {}
+  async _removeAttribute(uuid: string, attribute: string) {}
+
+  async removeAttribute(uuid: string, attribute: string) {
+    return this._removeAttribute(uuid, attribute);
+  }
 
   async handleIndex(object: CoreModel, updates: object | string) {
     let mapUpdates = {};

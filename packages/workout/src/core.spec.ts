@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import { suite, test } from "mocha-typescript";
-import { WorkerOutput, WorkerProgress } from ".";
+import { WorkerOutput, WorkerProgress, WorkerInputType } from ".";
 
 function mapper([msg]) {
   let res = {};
@@ -202,7 +202,7 @@ class WorkerOutputTest {
   @test
   async testInputs() {
     await assert.rejects(
-      () => this.output.requestInput("My Question", ["\\d+"], false, 20),
+      () => this.output.requestInput("My Question", WorkerInputType.STRING, ["\\d+"], false, 20),
       /No interactive session registered/g
     );
     await assert.rejects(() => this.output.waitForInput("plop"), /No interactive session registered/g);
@@ -210,10 +210,10 @@ class WorkerOutputTest {
     await assert.rejects(() => this.output.waitForInput("plop"), /Unknown input/g);
     await assert.throws(() => this.output.returnInput("plop", "value"), /Unknown input/g);
     await assert.rejects(
-      async () => this.output.requestInput("My Question", ["\\d+"], true, 20),
+      async () => this.output.requestInput("My Question", WorkerInputType.STRING, ["\\d+"], true, 20),
       /Request input timeout/g
     );
-    let input = await this.output.requestInput("My Question", ["\\d+"], false, 200);
+    let input = await this.output.requestInput("My Question", WorkerInputType.STRING, ["\\d+"], false, 200);
     let ok = this.output.waitForInput(input);
     this.output.returnInput(input, "test");
     assert.equal(await ok, "test");
@@ -222,25 +222,25 @@ class WorkerOutputTest {
         type: "input.request",
         groups: [],
         progresses: {},
-        input: { uuid: "8341a002-c5b6-4290-8064-779eac138661", title: "My Question", validators: ["\\d+"] }
+        input: { uuid: "8341a002-c5b6-4290-8064-779eac138661", title: "My Question", type: 0, validators: [{}] }
       },
       {
         type: "input.timeout",
         groups: [],
         progresses: {},
-        input: { uuid: "8341a002-c5b6-4290-8064-779eac138661", title: "My Question", validators: ["\\d+"] }
+        input: { uuid: "8341a002-c5b6-4290-8064-779eac138661", title: "My Question", type: 0, validators: [{}] }
       },
       {
         type: "input.request",
         groups: [],
         progresses: {},
-        input: { uuid: "e682dfb5-3a87-432f-83b9-c660bcf02fa1", title: "My Question", validators: ["\\d+"] }
+        input: { uuid: "e682dfb5-3a87-432f-83b9-c660bcf02fa1", title: "My Question", type: 0, validators: [{}] }
       },
       {
         type: "input.received",
         groups: [],
         progresses: {},
-        input: { uuid: "e682dfb5-3a87-432f-83b9-c660bcf02fa1", title: "My Question", validators: ["\\d+"] }
+        input: { uuid: "e682dfb5-3a87-432f-83b9-c660bcf02fa1", title: "My Question", type: 0, validators: [{}] }
       }
     ];
     events.forEach(e => delete e.input.uuid);

@@ -3,6 +3,7 @@ import * as sinon from "sinon";
 import { WorkerLogLevelEnum, WorkerOutput } from "..";
 import { Terminal } from "./terminal";
 import * as assert from "assert";
+import { WorkerInputType } from "@webda/workout";
 
 @suite
 class TerminalTest {
@@ -89,7 +90,7 @@ class TerminalTest {
         output.log(<any>WorkerLogLevelEnum[Math.floor(Math.random() * 5)], "This is my log " + i++);
       }, 500);
 
-      await output.requestInput("What is?", ["\\d+"], true);
+      await output.requestInput("What is?", WorkerInputType.STRING, ["\\d+"], true);
       setTimeout(() => output.closeGroup(), 5600);
       setTimeout(() => {
         clearInterval(interval);

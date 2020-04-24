@@ -51,7 +51,6 @@ export class Terminal {
       });
       return;
     }
-    this.wo.setInteractive(true);
     this.wo.on("message", async msg => this.router(msg));
     this.height = process.stdout.rows;
 
@@ -93,7 +92,11 @@ export class Terminal {
       }
     });
 
-    // Manage input
+    // Manage input if any stdin
+    if (!process.stdin || !process.stdin.setRawMode) {
+      return;
+    }
+    this.wo.setInteractive(true);
     process.stdin.setEncoding("utf8");
     process.stdin.resume();
     process.stdin.setRawMode(true);

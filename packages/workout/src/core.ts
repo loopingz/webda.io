@@ -72,7 +72,18 @@ export class WorkerInput {
   ) {
     this.uuid = uuid;
     this.title = title;
-    this.validators = validators.map(v => (typeof v === "string" ? new RegExp(v) : v));
+    this.validators = validators.map(v => {
+      if (typeof v !== "string") {
+        return v;
+      }
+      if (!v.endsWith("$")) {
+        v += "$";
+      }
+      if (!v.startsWith("^")) {
+        v = "^" + v;
+      }
+      return new RegExp(v);
+    });
     this.type = type;
   }
 
@@ -85,6 +96,7 @@ export class WorkerInput {
         return true;
       }
     }
+    return false;
   }
 }
 
@@ -325,7 +337,7 @@ export class WorkerOutput extends EventEmitter {
     type: WorkerInputType,
     regexp: (string | RegExp)[],
     waitFor: boolean = true,
-    timeout: number = 60000
+    timeout: number = 0
   ): Promise<string> {
     if (!this.interactive) {
       throw new Error("No interactive session registered");
@@ -334,11 +346,13 @@ export class WorkerOutput extends EventEmitter {
     this.inputs[uuid] = new WorkerInputEmitter(uuid, title, type, regexp);
     this.inputs[uuid].promise = new Promise((resolve, reject) => {
       this.inputs[uuid].resolve = resolve;
-      this.inputs[uuid].timeout = setTimeout(() => {
-        this.emitMessage("input.timeout", { input: this.inputs[uuid].toMessage() });
-        delete this.inputs[uuid];
-        reject("Request input timeout");
-      }, timeout);
+      if (timeout > 0) {
+        this.inputs[uuid].timeout = setTimeout(() => {
+          this.emitMessage("input.timeout", { input: this.inputs[uuid].toMessage() });
+          delete this.inputs[uuid];
+          reject("Request input timeout");
+        }, timeout);
+      }
     });
 
     this.emitMessage("input.request", {

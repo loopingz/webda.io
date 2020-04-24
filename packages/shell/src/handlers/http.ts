@@ -15,7 +15,6 @@ export class WebdaServer extends Webda {
   protected devMode: boolean;
   protected staticIndex: string;
   protected serverStatus: ServerStatus = ServerStatus.Stopped;
-  private serverPromise: any;
 
   setDevMode(devMode: boolean) {
     this.devMode = devMode;
@@ -216,7 +215,7 @@ export class WebdaServer extends Webda {
    * @param port to listen to
    * @param websockets to enable websockets
    */
-  async serve(port: number = 18080, websockets: boolean = false): Promise<Object> {
+  async serve(port: number = 18080, websockets: boolean = false) {
     this.serverStatus = ServerStatus.Starting;
     try {
       var express = require("express");
@@ -259,6 +258,14 @@ export class WebdaServer extends Webda {
       this.serveStaticWebsite(express, app);
 
       this.http = http.createServer(app).listen(port);
+      process.on("SIGINT", function() {
+        if (this.http) {
+          this.http.close();
+        }
+      });
+      this.http.on("close", () => {
+        this.serverStatus = ServerStatus.Stopped;
+      });
       if (websockets) {
         // Activate websocket
         this.output("Activating socket.io");
@@ -268,9 +275,6 @@ export class WebdaServer extends Webda {
       this.serveIndex(express, app);
       this.output("Server running at http://0.0.0.0:" + port);
       this.serverStatus = ServerStatus.Started;
-      return new Promise(resolve => {
-        this.serverPromise = resolve;
-      });
     } catch (err) {
       this.serverStatus = ServerStatus.Stopped;
     }
@@ -324,10 +328,5 @@ export class WebdaServer extends Webda {
     }
     this.serverStatus = ServerStatus.Stopped;
     this.http = undefined;
-    if (this.serverPromise) {
-      let resolve = this.serverPromise;
-      this.serverPromise = undefined;
-      resolve();
-    }
   }
 }

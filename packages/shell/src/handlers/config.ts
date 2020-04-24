@@ -110,7 +110,7 @@ export class WebdaConfiguration extends WebdaServer {
     return this.webdaApplication;
   }
 
-  async serve(): Promise<Object> {
+  async serve() {
     return super.serve(18181, true);
   }
 }

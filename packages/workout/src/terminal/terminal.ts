@@ -59,24 +59,7 @@ export class Terminal {
     process.stdout.write("\x1B[?12l\x1B[?47h");
 
     // Ensure we restore terminal on quit
-    let resetTerm = (...args) => {
-      if (this.reset) {
-        return;
-      }
-      this.reset = true;
-      process.stdout.write("\x1B[?47l");
-      process.stdout.write(this.displayHistory(this.height, false));
-    };
-    process.on("exit", resetTerm);
-    process.on("SIGTERM", () => {
-      resetTerm();
-      process.exit(0);
-    });
-    process.on("SIGINT", () => {
-      resetTerm();
-      process.exit(0);
-    });
-
+    process.on("exit", () => this.resetTerm);
     this._refresh = setInterval(() => {
       this.progressChar++;
       if (this.progressChar >= this.progressChars.length) {
@@ -124,6 +107,20 @@ export class Terminal {
       }
       this.displayScreen();
     });
+  }
+
+  resetTerm(...args) {
+    if (this.reset) {
+      return;
+    }
+    this.reset = true;
+    process.stdout.write("\x1B[?47l");
+    process.stdout.write(this.displayHistory(this.height, false));
+  }
+
+  close() {
+    clearInterval(this._refresh);
+    this.resetTerm();
   }
 
   pushHistory(line) {

@@ -182,14 +182,6 @@ export default class WebdaConsole {
    * @param argv
    */
   static async debug(argv: yargs.Arguments) {
-    process.on("SIGINT", function() {
-      if (this.serverProcess) {
-        this.serverProcess.kill();
-      }
-      if (this.tscCompiler) {
-        this.tscCompiler.kill();
-      }
-    });
     let launchServe = () => {
       if (this.serverProcess) {
         this.logger.logTitle("Refresh webda server");
@@ -243,6 +235,9 @@ export default class WebdaConsole {
       });
       this.serverProcess = spawn("webda", args);
       this.serverProcess.stdout.pipe(addTime);
+      this.serverProcess.on("exit", () => {
+        // Might want to auto restart
+      });
     };
 
     let modification = -1;
@@ -415,6 +410,17 @@ export default class WebdaConsole {
     } else {
       this.terminal = new WebdaTerminal(output, versions, argv.logLevel, argv.logFormat);
     }
+    process.on("SIGINT", () => {
+      output.log("INFO", "Exiting on SIGINT");
+      WebdaConsole.stopDebugger();
+      if (this.webda) {
+        this.webda.stop();
+      }
+      if (this.terminal) {
+        this.terminal.close();
+      }
+      process.exit(0);
+    });
 
     // Display warning for versions mismatch
     if (!semver.satisfies(versions.core.version.replace(/-.*/, ""), "^" + versions.shell.version.replace(/-.*/, ""))) {
@@ -483,6 +489,12 @@ export default class WebdaConsole {
         return 0;
       case "openapi":
         await this.generateOpenAPI(argv);
+        return 0;
+      case "faketerm":
+        let res;
+        while ((res = await this.app.getWorkerOutput().requestInput("Give me your number input", 0, ["\\d+"]))) {
+          this.log("INFO", res);
+        }
         return 0;
       case "generate-session-secret":
         await this.generateSessionSecret();

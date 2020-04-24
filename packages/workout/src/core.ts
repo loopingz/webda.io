@@ -49,19 +49,42 @@ export function LogFilter(logLineLevel: WorkerLogLevel, loggerLevel: WorkerLogLe
   return WorkerLogLevelEnum[logLineLevel] <= WorkerLogLevelEnum[loggerLevel];
 }
 
+export enum WorkerInputType {
+  STRING,
+  CONFIRMATION,
+  LIST
+}
 /**
  * Represents a Input request
  */
 export class WorkerInput {
   title: string;
-  validators: string[];
+  validators: RegExp[];
+  type: WorkerInputType;
   uuid: string;
   value: string;
 
-  constructor(uuid: string, title: string, validators: string[]) {
+  constructor(
+    uuid: string,
+    title: string,
+    type: WorkerInputType = WorkerInputType.STRING,
+    validators: (string | RegExp)[]
+  ) {
     this.uuid = uuid;
     this.title = title;
-    this.validators = validators;
+    this.validators = validators.map(v => (typeof v === "string" ? new RegExp(v) : v));
+    this.type = type;
+  }
+
+  validate(input: string): boolean {
+    if (!this.validators.length) {
+      return true;
+    }
+    for (let i in this.validators) {
+      if (this.validators[i].exec(input)) {
+        return true;
+      }
+    }
   }
 }
 
@@ -71,7 +94,7 @@ class WorkerInputEmitter extends WorkerInput {
   timeout: NodeJS.Timeout;
 
   toMessage() {
-    return new WorkerInput(this.uuid, this.title, this.validators);
+    return new WorkerInput(this.uuid, this.title, this.type, this.validators);
   }
 }
 
@@ -299,7 +322,8 @@ export class WorkerOutput extends EventEmitter {
    */
   async requestInput(
     title: string,
-    regexp: string[],
+    type: WorkerInputType,
+    regexp: (string | RegExp)[],
     waitFor: boolean = true,
     timeout: number = 60000
   ): Promise<string> {
@@ -307,7 +331,7 @@ export class WorkerOutput extends EventEmitter {
       throw new Error("No interactive session registered");
     }
     let uuid = uuidv4();
-    this.inputs[uuid] = new WorkerInputEmitter(uuid, title, regexp);
+    this.inputs[uuid] = new WorkerInputEmitter(uuid, title, type, regexp);
     this.inputs[uuid].promise = new Promise((resolve, reject) => {
       this.inputs[uuid].resolve = resolve;
       this.inputs[uuid].timeout = setTimeout(() => {

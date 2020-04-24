@@ -11,6 +11,7 @@ import {
 } from "..";
 import { ConsoleLogger } from "../loggers/console";
 import * as util from "util";
+import { runInThisContext } from "vm";
 
 export class Terminal {
   tty: boolean;
@@ -27,6 +28,9 @@ export class Terminal {
   rl: readline.Interface;
   reset: boolean = false;
   inputValid: boolean = true;
+  progressChar: number = 0;
+  progressChars = ["\u287F", "\u28BF", "\u28FB", "\u28FD", "\u28FE", "\u28F7", "\u28EF", "\u28DF"];
+  _refresh: NodeJS.Timeout;
 
   constructor(
     wo: WorkerOutput,
@@ -73,6 +77,14 @@ export class Terminal {
       process.exit(0);
     });
 
+    this._refresh = setInterval(() => {
+      this.progressChar++;
+      if (this.progressChar >= this.progressChars.length) {
+        this.progressChar = 0;
+      }
+      this.displayScreen();
+    }, 300);
+
     // Update on terminal resize
     process.stdout.on("resize", size => {
       this.height = process.stdout.rows;
@@ -95,10 +107,15 @@ export class Terminal {
         }
       } else if (data.charCodeAt(0) === 13) {
         // validate input
-        this.wo.returnInput(this.inputs[0].uuid, this.inputValue);
-        this.inputValue = "";
-        this.inputs.shift();
+        if (this.inputs[0].validate(this.inputValue)) {
+          this.wo.returnInput(this.inputs[0].uuid, this.inputValue);
+          this.inputValue = "";
+          this.inputs.shift();
+        } else {
+          this.inputValid = false;
+        }
       } else {
+        this.inputValid = true;
         this.inputValue += data;
       }
       this.displayScreen();
@@ -227,7 +244,11 @@ export class Terminal {
   displayFooter() {
     // Separator
 
-    let res = "\u2015".repeat(process.stdout.columns) + "\n";
+    let res =
+      colors.bold(colors.yellow(this.progressChars[this.progressChar])) +
+      " " +
+      "\u2015".repeat(process.stdout.columns - 2) +
+      "\n";
     let values = Object.values(this.progresses);
     let k = values.length;
     if (this.title) {

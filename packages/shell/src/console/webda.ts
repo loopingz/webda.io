@@ -74,6 +74,9 @@ export default class WebdaConsole {
       .option("log-level", {
         default: "INFO"
       })
+      .option("log-format", {
+        default: ConsoleLogger.defaultFormat
+      })
       .option("no-compile", {
         type: "boolean"
       })
@@ -189,16 +192,10 @@ export default class WebdaConsole {
     });
     let launchServe = () => {
       if (this.serverProcess) {
-        this.output(
-          "[" + colors.grey(new Date().toLocaleTimeString()) + "]",
-          "Refresh web" + colors.yellow("da") + " server"
-        );
+        this.logger.logTitle("Refresh webda server");
         this.serverProcess.kill();
       } else {
-        this.output(
-          "[" + colors.grey(new Date().toLocaleTimeString()) + "]",
-          "Launch web" + colors.yellow("da") + " serve in debug mode"
-        );
+        this.output("Launch webda serve in debug mode");
       }
       let args = ["--noCompile"];
       if (argv.deployment) {
@@ -222,6 +219,9 @@ export default class WebdaConsole {
         args.push("--logLevels");
         args.push(argv.logLevels);
       }
+      args.push("--logFormat");
+      args.push("%(m)s");
+      args.push("--notty");
       args.push("--devMode");
       let webdaConsole = this;
       let addTime = new Transform({
@@ -232,9 +232,11 @@ export default class WebdaConsole {
             .forEach(line => {
               if (line.indexOf("Server running at") >= 0) {
                 webdaConsole.setDebuggerStatus(DebuggerStatus.Serving);
+                webdaConsole.logger.logTitle("Webda Debug " + line);
+                return;
               }
               if (line.length < 4) return;
-              webdaConsole.output("[" + colors.grey(new Date().toLocaleTimeString()) + "] " + line.trim() + "\n");
+              webdaConsole.output(line.trim());
             });
           callback();
         }
@@ -249,7 +251,7 @@ export default class WebdaConsole {
       let webdaConsole = this;
       let transform = new Transform({
         transform(chunk, encoding, callback) {
-          let info = chunk.toString().trim() + "\n";
+          let info = chunk.toString().trim();
           if (info.length < 4) {
             callback();
             return;
@@ -264,13 +266,9 @@ export default class WebdaConsole {
             let offset = 2 - info.indexOf(":");
             // Simulate the colors , typescript compiler detect it is not on a tty
             if (info.match(/Found [1-9]\d* error/)) {
-              webdaConsole.output(
-                "[" + colors.gray(info.substring(0, 11 - offset)) + "] " + colors.red(info.substring(14 - offset))
-              );
+              webdaConsole.logger.log("ERROR", info.substring(14 - offset));
             } else {
-              webdaConsole.output(
-                "[" + colors.gray(info.substring(0, 11 - offset)) + "] " + info.substring(14 - offset)
-              );
+              webdaConsole.output(info.substring(14 - offset));
               if (info.indexOf("Found 0 errors. Watching for file changes.") >= 0 && modification !== 0) {
                 modification = 0;
                 webdaConsole.setDebuggerStatus(DebuggerStatus.Launching);
@@ -411,10 +409,11 @@ export default class WebdaConsole {
 
     // Init WorkerOutput
     output = output || new WorkerOutput();
+    WebdaConsole.logger = new Logger(output, "console/webda");
     if (argv.notty) {
-      new ConsoleLogger(output);
+      new ConsoleLogger(output, argv.logLevel, argv.logFormat);
     } else {
-      this.terminal = new WebdaTerminal(output, versions);
+      this.terminal = new WebdaTerminal(output, versions, argv.logLevel, argv.logFormat);
     }
 
     // Display warning for versions mismatch
@@ -430,7 +429,7 @@ export default class WebdaConsole {
       output.log("ERROR", err.message);
       return -1;
     }
-    WebdaConsole.logger = new Logger(this.app.getWorkerOutput(), "console/webda");
+
     // Load deployment
     if (argv.deployment) {
       if (!this.app.hasDeployment(argv.deployment)) {

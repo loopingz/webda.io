@@ -85,11 +85,17 @@ export class ConsoleLogger {
       m: msg.log.args
         .map(a => (a === undefined ? "undefined" : typeof a === "object" ? util.inspect(a) : a.toString()))
         .join(" "),
-      l: msg.log.level,
+      l: msg.log.level.padEnd(5),
       t: msg.timestamp,
       d: () => new Date(msg.timestamp).toISOString()
       // TODO Add different format of dates
     };
-    return sprintf(format, info);
+    try {
+      return sprintf(format, info);
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        return "bad log format: " + format;
+      }
+    }
   }
 }

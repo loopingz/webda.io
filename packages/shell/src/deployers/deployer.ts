@@ -19,12 +19,30 @@ export abstract class Deployer<T extends DeployerResources> {
   packageDescription: any;
   _defaulted: boolean = false;
   logger: Logger;
+  name: string;
+  type: string;
 
   constructor(manager: DeploymentManager, resources: T = undefined) {
     this.manager = manager;
     this.logger = new Logger(this.manager.getApplication().getWorkerOutput(), `deployers.${this.constructor.name}`);
     this.app = this.manager.getApplication();
     this.resources = resources;
+  }
+
+  /**
+   * Set the deployer name
+   * @param name
+   */
+  setName(name: string) {
+    this.name = name;
+  }
+
+  /**
+   * Set the deployer name
+   * @param name
+   */
+  setType(type: string) {
+    this.type = type;
   }
 
   /**
@@ -58,7 +76,12 @@ export abstract class Deployer<T extends DeployerResources> {
     return new Function("return `" + templateString.replace(/\$\{/g, "${this.") + "`;").call({
       resources: this.resources,
       package: this.manager.getPackageDescription(),
-      git: this.manager.getGitInformation()
+      git: this.manager.getGitInformation(),
+      deployment: this.manager.getApplication().getCurrentDeployment(),
+      deployer: {
+        name: this.name,
+        type: this.type
+      }
     });
   }
 
@@ -70,7 +93,7 @@ export abstract class Deployer<T extends DeployerResources> {
   objectParameter(object: any) {
     let from = this;
     return JSON.parse(
-      JSON.stringify(object, function (key: string, value: any) {
+      JSON.stringify(object, function(key: string, value: any) {
         if (typeof this[key] === "string") {
           return from.stringParameter(value);
         }

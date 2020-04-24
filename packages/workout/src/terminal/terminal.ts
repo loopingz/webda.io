@@ -12,6 +12,7 @@ import {
 import { ConsoleLogger } from "../loggers/console";
 import * as util from "util";
 import { runInThisContext } from "vm";
+import { SIGINT } from "constants";
 
 export class Terminal {
   tty: boolean;
@@ -102,8 +103,8 @@ export class Terminal {
     process.stdin.setRawMode(true);
     process.stdin.on("data", data => {
       if (data.charCodeAt(0) === 3) {
-        resetTerm();
-        process.exit(0);
+        process.kill(process.pid, SIGINT);
+        return;
       } else if (data.charCodeAt(0) === 127) {
         if (this.inputValue.length) {
           this.inputValue = this.inputValue.substr(0, this.inputValue.length - 1);

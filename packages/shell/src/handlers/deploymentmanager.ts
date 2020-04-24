@@ -114,6 +114,8 @@ export class DeploymentManager {
       throw new WebdaError("DEPLOYER_UNKNOWN", "Unknown deployer " + name);
     }
     let deployer = new this.deployersDefinition[this.deployers[name].type.toLowerCase()](this, this.deployers[name]);
+    deployer.setName(name);
+    deployer.setType(this.deployers[name].type);
     await deployer.defaultResources();
     deployer.replaceVariables();
     return deployer;

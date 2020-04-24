@@ -36,6 +36,7 @@ export default class WebdaConsole {
   static terminal: WebdaTerminal;
   static app: Application;
   static debuggerStatus: DebuggerStatus = DebuggerStatus.Stopped;
+  static onSIGINT: () => never = undefined;
 
   static bold(str: string) {
     return colors.bold(colors.yellow(str));
@@ -410,7 +411,12 @@ export default class WebdaConsole {
     } else {
       this.terminal = new WebdaTerminal(output, versions, argv.logLevel, argv.logFormat);
     }
-    process.on("SIGINT", () => {
+
+    // Add SIGINT listener
+    if (WebdaConsole.onSIGINT) {
+      process.removeListener("SIGINT", WebdaConsole.onSIGINT);
+    }
+    WebdaConsole.onSIGINT = () => {
       output.log("INFO", "Exiting on SIGINT");
       WebdaConsole.stopDebugger();
       if (this.webda) {
@@ -420,7 +426,8 @@ export default class WebdaConsole {
         this.terminal.close();
       }
       process.exit(0);
-    });
+    };
+    process.on("SIGINT", WebdaConsole.onSIGINT);
 
     // Display warning for versions mismatch
     if (!semver.satisfies(versions.core.version.replace(/-.*/, ""), "^" + versions.shell.version.replace(/-.*/, ""))) {

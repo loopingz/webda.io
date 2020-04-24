@@ -105,7 +105,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
   async defaultResources() {
     await super.defaultResources();
-    this.resources.AssetsPrefix = this.resources.AssetsPrefix || "${deployment.name}/${deploymentUnit.name}/";
+    this.resources.AssetsPrefix = this.resources.AssetsPrefix || "${deployment}/${deployer.name}/";
     this.resources.Description = this.resources.Description || "Deployed by @webda/aws/cloudformation";
     this.resources.ZipPath = this.resources.ZipPath || "./dist/lambda-${package.version}.zip";
     this.resources.FileName = this.resources.FileName || this.resources.name;
@@ -250,7 +250,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
     // Dynamicly call each methods
     for (let i in this.resources) {
-      if (this[i]) {
+      if (this[i] && typeof this[i] === "function") {
         this.logger.log("TRACE", "Add CloudFormation Resource", i);
         await this[i]();
       }

@@ -19,3 +19,4 @@ export * from "./lambdaserver";
 export * from "./s3binary";
 export * from "./secretsmanager";
 export * from "./sqsqueue";
+export * from "./lambdacaller";

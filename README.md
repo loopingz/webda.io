@@ -1,10 +1,11 @@
 # webda
+
 <img src="https://webda.io/images/webda.svg" width="128" />
 
-[![Build Status](https://travis-ci.org/loopingz/webda.svg?branch=master)](https://travis-ci.org/loopingz/webda)
+[![Build Status](https://travis-ci.org/loopingz/webda.io.svg?branch=master)](https://travis-ci.org/loopingz/webda.io)
 
 [![Join the chat at https://gitter.im/loopingz/webda](https://badges.gitter.im/loopingz/webda.svg)](https://gitter.im/loopingz/webda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![SonarCloud.io](https://sonarcloud.io/api/project_badges/measure?project=webda&metric=alert_status)](https://sonarcloud.io/dashboard/index/webda)
+[![SonarCloud.io](https://sonarcloud.io/api/project_badges/measure?project=webda.io&metric=alert_status)](https://sonarcloud.io/dashboard/index/webda.io)
 
 **Composable Serverless API**
 
@@ -16,13 +17,13 @@ I have servers running for my own personal use for more than 10 years because I 
 
 Then came **Lambda**, really cool feature from AWS, but kind of tricky to turn it into a full webserver. That's one of the targets of Webda.
 
-I was bored also of always recoding the same API again and again with a few customizations for each client. So I wanted a system that leverages up the components system but on both the frontend and backend. The frontend moved a lot lately with JSF to GWT to Angular to ... ? **Polymer** ! Here is my winner, of course, it will change but it is a good one I think and I really like the WebComponents part, everything was in place to start the composable UI.
+I was bored also of always recoding the same API again and again with a few customizations for each client. So I wanted a system that leverages up the components system but on both the frontend and backend. The frontend moved a lot lately with JSF to GWT to Angular to ... ? **React** ! Here is my winner, of course, it will change but it is a good one I think and I really like the WebComponents part, everything was in place to start the composable UI.
 
 The **webda.config.json** contains the configuration of the app, defining Services, Routes, and global configuration, you can consider it as the applicationContext.xml of Spring if you prefer, with Beans=Services
 
 ## Quickstart
 
-You should checkout our demo project : [link](http://github.com/loopingz/webda-demo.git)
+You should checkout our demo project : [link](http://github.com/loopingz/webda.io/sample-app/)
 
 Check our video presentation on [Youtube](https://www.youtube.com/playlist?list=PLfn1MAL4_e7ERdqj9rWlmEkK5gMkL4bKI)
 
@@ -59,14 +60,9 @@ We will use the inline RouteHelper here, except the Lambda Route helper, the oth
 We will create a new executor, so we can map some URLs directly to the service
 
 ```javascript
-const Executor = require('webda/services/executor')
+import { Service, Route } from '@webda/core';
 
-class MyService extends Executor {
-
-   init(config) {
-        // Let's add our routes here, for Modda the URL should be dynamic
-        config['/myservice']={method:["GET", "DELETE"], _method: this.handleRequest, executor: this};
-   }
+class MyService extends Service {
 
    delete(ctx) {
      // If we don't output anything, then the default result will be a 204
@@ -79,6 +75,7 @@ class MyService extends Executor {
        otherService.send();
    }
 
+   @Route("/myservice", ["GET", "DELETE"])
    handleRequest(ctx) {
      if (ctx._route._http.method === "GET") {
          this.get(ctx);
@@ -97,7 +94,6 @@ Here is the corresponding configuration
   services: {
      ...
      "MyService": {
-       require: "./myservice.js",
        sentence: "I am a getter and I've sent a welcome email to you"
      }
      ...
@@ -167,12 +163,6 @@ getService("Store").on("Store.Save", evt => {
 this.emit("Action.Done", { object: this.target, ctx: ctx });
 ```
 
-## Executors
-
-The **executors** are services that handle some routes directly, they have **access to the request body, the session, and can write out content to the client through the context object**. Executors derive from services, that's why the framework only see the element Service.
-
-Executors is a service family that handles the request.
-
 ## Stores
 
 A Store is an executor that handle Creation, Retrieve, Update, Delete of an object, it also has basic handling for mapping and cascade delete.
@@ -234,26 +224,6 @@ The Binary services handle a challenge based on the binary data and a prefix to 
 
 The twin brother of the FileBinary, to enable you to do the same thing but in the cloud.
 
-## RouteHelpers
-
-The RouteHelpers are quick utils to test features but are not the best way to build a full application. When you define a manual API Resource, you have the choice between four kinds,
-
-#### File
-
-Specify the javascript file, you want to execute and here you go
-
-#### Inline
-
-If you have a small piece of Javascript and don't want to bother creating a file
-
-#### Lambda
-
-You can call a Lambda function directly from here, whereever you decide to host your server, on-site or in the cloud
-
-#### String
-
-For demo purpose, mainly as it is only static content served
-
 ## Moddas
 
 A Modda is a module defined and available publicly via Webda Marketplace, it allows you to define service that you can reuse in others projects and also use the one offer to you by the community.
@@ -274,43 +244,12 @@ You have the global configuration for the application, that is override by the d
 
 ![image](http://webda.io/images/schemas/configuration_resolution.png)
 
-## Configuration UI
-
-Here are some screenshots of the UI
-
-#### Routes
-
-![image](http://webda.io/images/schemas/ui_route_create.png) ![image](http://webda.io/images/schemas/ui_route_config.png)
-
-#### Services
-
-![image](http://webda.io/images/schemas/ui_service_create.png) ![image](http://webda.io/images/schemas/ui_service_config.png)
-
-#### Deployments
-
-![image](http://webda.io/images/schemas/ui_deployment_create.png) ![image](http://webda.io/images/schemas/ui_deployment_config.png) ![image](http://webda.io/images/schemas/ui_deployment_deploy.png)
-
 ## Annotations
 
 @Bean({name: "", instance: ""})
 @Inject("")
 @Route({url: "", methods: [], swagger: {}})
 
-## Google Stackdriver
-
-A module exists that allow you to us Google StackDriver on any webda application (https://github.com/loopingz/webda-stackdriver)
-
 ## Requirements
 
-Node.js >= 8.0.0
-
-## Limitation
-
-Known Lambda limitation
-
-The API Gateway limit to only one normal returnCode, so if you return any return code that is not planned, then we cannot set the cookie and update the session, nor we can send other headers.
-
-You can specify the normal return code of a route by adding a configuration for AWS :
-aws: { defaultCode: 302, headersMap: ['header1', 'header2']}
-
-Here we specify that this route will return 302 by default and will set HTTP headers header1 and header2.
+Node.js >= 12.0.0

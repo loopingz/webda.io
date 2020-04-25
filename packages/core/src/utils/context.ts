@@ -152,8 +152,30 @@ class Context extends EventEmitter {
   protected _pathParams: any = {};
   protected _serviceParams: any = {};
   files: any[];
+  protected static __globalContext: Context;
   protected _http: HttpContext;
+  private global: boolean = false;
 
+  /**
+   * Get Global Context
+   */
+  public static getGlobalContext() {
+    return Context.__globalContext;
+  }
+
+  /**
+   * Set the Global Context
+   *
+   * @param ctx to set as Global
+   */
+  public static setGlobalContext(ctx: Context) {
+    ctx.global = true;
+    Context.__globalContext = ctx;
+  }
+
+  public isGlobal() {
+    return this.global;
+  }
   /**
    * @private
    * Used in case of Buffer response ( like Lambda )
@@ -525,7 +547,9 @@ class Context extends EventEmitter {
       this._stream._write = this._write;
     }
     this.processParameters();
-    this.session = this.newSession();
+    if (httpContext) {
+      this.session = this.newSession();
+    }
   }
 
   newSession() {

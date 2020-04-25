@@ -85,14 +85,15 @@ export class Terminal {
     process.stdin.resume();
     process.stdin.setRawMode(true);
     process.stdin.on("data", data => {
-      if (data.charCodeAt(0) === 3) {
+      let str = data.toString();
+      if (str.charCodeAt(0) === 3) {
         process.kill(process.pid, SIGINT);
         return;
-      } else if (data.charCodeAt(0) === 127) {
+      } else if (str.charCodeAt(0) === 127) {
         if (this.inputValue.length) {
           this.inputValue = this.inputValue.substr(0, this.inputValue.length - 1);
         }
-      } else if (data.charCodeAt(0) === 13) {
+      } else if (str.charCodeAt(0) === 13) {
         // validate input
         if (this.inputs[0].validate(this.inputValue)) {
           this.wo.returnInput(this.inputs[0].uuid, this.inputValue);
@@ -103,7 +104,7 @@ export class Terminal {
         }
       } else {
         this.inputValid = true;
-        this.inputValue += data;
+        this.inputValue += str;
       }
       this.displayScreen();
     });

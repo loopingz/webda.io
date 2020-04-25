@@ -3,6 +3,7 @@ import * as uuid from "uuid";
 import { OwnerPolicy } from "../policies/ownerpolicy";
 import { Store } from "../stores/store";
 import { Context } from "../utils/context";
+import { Service } from "..";
 interface CoreModelDefinition {
   new (): CoreModel;
   getActions(): any;
@@ -22,31 +23,76 @@ class CoreModelMapper<T extends CoreModel> {
 }
 
 /**
- * First basic model for Ident
- * Will evolve with version 0.2 and Model addition
+ * Basic Object in Webda
+ *
+ * It is used to define a data stored
+ * Any variable starting with _ can only be set by the server
+ * Any variable starting with __ won't be exported outside of the server
  *
  * @class
  */
 class CoreModel extends OwnerPolicy {
-  static __ctx: Context;
+  static jsonExcludes = ["__store", "__ctx"];
+  /**
+   * Object context
+   */
+  __ctx: Context;
+  /**
+   * If object is attached to its store
+   */
   __store: Store<CoreModel>;
+
   _creationDate: Date;
   lastUpdate: Date;
   _lastUpdate: Date;
+  /**
+   * If an object is deleted but not removed from DB for historic
+   */
   __deleted: boolean;
 
+  /**
+   * Get actions callable on an object
+   *
+   * This will expose them by the Store with /storeUrl/{uuid}/{action}
+   */
   static getActions() {
     return {};
   }
 
-  static getUuidField() {
+  /**
+   * Get the UUID property
+   */
+  static getUuidField(): string | string[] {
     return "uuid";
   }
 
+  /**
+   * Return if an object is attached to its store
+   */
+  isAttached() {
+    return this.__store !== undefined;
+  }
+
+  /**
+   * Attach an object to a store instance
+   */
+  attach(store: Store<CoreModel>) {
+    this.__store = store;
+  }
+
+  /**
+   * Get actions available for the current instance of an object
+   */
   getAvailableActions() {
     return {};
   }
 
+  /**
+   * Load an object from RAW
+   *
+   * @param raw data
+   * @param secure if false will ignore any _ variable
+   */
   load(raw: any, secure: boolean = false) {
     if (!raw) {
       return;
@@ -60,6 +106,22 @@ class CoreModel extends OwnerPolicy {
       }
       this[prop] = raw[prop];
     }
+  }
+
+  /**
+   * Context of the request
+   */
+  setContext(ctx: Context) {
+    this.__ctx = ctx;
+  }
+
+  /**
+   * Get object context
+   *
+   * Global object does not belong to a request
+   */
+  getContext() {
+    return this.__ctx || Context.getGlobalContext();
   }
 
   /**
@@ -173,22 +235,49 @@ class CoreModel extends OwnerPolicy {
     let obj = this._toJSON(true);
     obj.__store = undefined;
     if (stringify) {
-      return JSON.stringify(obj);
+      return JSON.stringify(obj, (key, value) => {
+        if (CoreModel.jsonExcludes.indexOf(key) >= 0) {
+          return undefined;
+        }
+        return value;
+      });
     }
     return obj;
   }
 
-  _getService(service): any {
+  /**
+   * Get a service
+   *
+   * @param service to retrieve
+   * WARNING: Only object attached to a store can retrieve service
+   */
+  getService(service): any {
     if (!this.__store) {
       return undefined;
     }
     return this.__store.getService(service);
   }
 
+  /**
+   * Get a pre typed service
+   *
+   * @param service to retrieve
+   * WARNING: Only object attached to a store can retrieve service
+   */
+  getTypedService<T extends Service>(service): T {
+    if (!this.__store) {
+      return undefined;
+    }
+    return <T>this.__store.getService(service);
+  }
+
   _toJSON(secure): any {
     let obj: any = {};
     for (let i in this) {
       let value = this[i];
+      if (CoreModel.jsonExcludes.indexOf(i) >= 0) {
+        continue;
+      }
       if (!secure) {
         value = this._jsonFilter(i, this[i]);
       }

@@ -2,6 +2,7 @@ import { StoreTest } from "./store.spec";
 import { FileStore, CoreModel, Store } from "../index";
 import * as assert from "assert";
 import { suite, test } from "mocha-typescript";
+import { HttpContext } from "../utils/context";
 
 @suite
 class MemoryStoreTest extends StoreTest {
@@ -15,7 +16,7 @@ class MemoryStoreTest extends StoreTest {
 
   @test async deleteAsyncHttp() {
     let executor, ctx;
-    ctx = await this.webda.newContext(undefined);
+    ctx = await this.webda.newContext(new HttpContext("test.webda.io", "GET", "/memory/idents/ToDelete"));
     let identStore: Store<CoreModel> = this.getIdentStore();
     await identStore.save({
       uuid: "toDelete",

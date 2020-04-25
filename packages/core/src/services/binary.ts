@@ -14,10 +14,26 @@ import { Service } from "./service";
  * @class BinaryMap
  */
 class BinaryMap {
-  constructor(obj) {
+  __ctx: Context;
+  __store: Binary;
+
+  constructor(service, obj) {
     for (var i in obj) {
       this[i] = obj[i];
     }
+    this.__store = service;
+  }
+
+  get() {
+    return this.__store.get(this);
+  }
+
+  downloadTo(filename: string) {
+    return this.__store.downloadTo(this, filename);
+  }
+
+  setContext(ctx: Context) {
+    this.__ctx = ctx;
   }
 }
 
@@ -185,7 +201,7 @@ class Binary extends Service {
   }
 
   initModel(obj) {
-    return new BinaryMap(obj);
+    return new BinaryMap(this, obj);
   }
 
   _getHashes(buffer) {

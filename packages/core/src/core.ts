@@ -266,6 +266,8 @@ export class Core extends events.EventEmitter {
 
     // Load the configuration and migrate
     this.configuration = this.application.getCurrentConfiguration();
+    // Set the global context
+    Context.setGlobalContext(<Context>new (this.getModel(this.parameter("contextModel") || "WebdaCore/Context"))(this));
     // Init default values for configuration
     this.configuration.parameters = this.configuration.parameters || {};
     this.configuration.services = this.configuration.services || {};

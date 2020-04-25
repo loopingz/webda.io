@@ -2,6 +2,7 @@ import { StoreTest } from "./store.spec";
 import { FileStore, CoreModel, Store } from "../index";
 import * as assert from "assert";
 import { suite, test } from "mocha-typescript";
+import { HttpContext } from "../utils/context";
 
 @suite
 class FileStoreTest extends StoreTest {
@@ -145,7 +146,7 @@ class FileStoreTest extends StoreTest {
 
   @test("JSON Schema - Create") async schemaCreate() {
     let taskStore = this.webda.getTypedService<Store<CoreModel>>("Tasks");
-    let ctx = await this.webda.newContext(undefined);
+    let ctx = await this.webda.newContext(new HttpContext("webda.io", "GET", "/"));
     let executor = this.getExecutor(ctx, "test.webda.io", "POST", "/tasks", {
       noname: "Task #1"
     });

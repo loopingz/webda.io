@@ -233,6 +233,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
         object[this._reverseMap[i].property][j] = this._reverseMap[i].store.initModel(
           object[this._reverseMap[i].property][j]
         );
+        object[this._reverseMap[i].property][j].setContext(object.getContext());
       }
     }
     return object;
@@ -910,7 +911,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
    * @param {String} uuid to get
    * @return {Promise} the object retrieved ( can be undefined if not found )
    */
-  async get(uid: string): Promise<T> {
+  async get(uid: string, ctx: Context = undefined): Promise<T> {
     /** @ignore */
     if (!uid) {
       return undefined;
@@ -920,6 +921,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
       return undefined;
     }
     object = this.initModel(object);
+    object.setContext(ctx);
     await this.emitSync("Store.Get", {
       object: object,
       store: this
@@ -955,6 +957,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
   async httpCreate(ctx: Context) {
     let body = ctx.getRequestBody();
     var object = new this._model();
+    object.setContext(ctx);
     object.load(body);
     object[this._creationDateField] = new Date();
     await object.canAct(ctx, "create");
@@ -988,7 +991,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
     if (!uuid) {
       throw 400;
     }
-    let object = await this.get(uuid);
+    let object = await this.get(uuid, ctx);
     if (object === undefined || object.__deleted) {
       throw 404;
     }
@@ -1042,7 +1045,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
     let body = ctx.getRequestBody();
     let uuid = ctx.parameter("uuid");
     body[this._uuidField] = uuid;
-    let object = await this.get(uuid);
+    let object = await this.get(uuid, ctx);
     if (!object || object.__deleted) throw 404;
     await object.canAct(ctx, "update");
     try {
@@ -1053,6 +1056,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
     }
     if (ctx.getHttpContext().getMethod() === "PATCH") {
       let updateObject: any = new this._model();
+      updateObject.setContext(ctx);
       updateObject.load(body);
       await this.patch(updateObject);
       object = undefined;
@@ -1080,7 +1084,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
   async httpGet(ctx: Context) {
     let uuid = ctx.parameter("uuid");
     if (uuid) {
-      let object = await this.get(uuid);
+      let object = await this.get(uuid, ctx);
       if (object === undefined || object.__deleted) {
         throw 404;
       }
@@ -1102,7 +1106,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
     if (ctx.getHttpContext().getMethod() == "GET") {
       return this.httpGet(ctx);
     } else if (ctx.getHttpContext().getMethod() == "DELETE") {
-      let object = await this.get(uuid);
+      let object = await this.get(uuid, ctx);
       if (!object || object.__deleted) throw 404;
       await object.canAct(ctx, "delete");
       // http://stackoverflow.com/questions/28684209/huge-delay-on-delete-requests-with-204-response-and-no-content-in-objectve-c#

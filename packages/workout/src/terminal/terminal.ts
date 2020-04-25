@@ -56,7 +56,7 @@ export class Terminal {
     this.height = process.stdout.rows;
 
     // Reset term
-    process.stdout.write("\x1B[?12l\x1B[?47h");
+    process.stdout.write("\x1B[?12l\x1B[?47h\x1B[?25l");
 
     // Ensure we restore terminal on quit
     process.on("exit", () => this.resetTerm);
@@ -93,18 +93,23 @@ export class Terminal {
         if (this.inputValue.length) {
           this.inputValue = this.inputValue.substr(0, this.inputValue.length - 1);
         }
-      } else if (str.charCodeAt(0) === 13) {
-        // validate input
-        if (this.inputs[0].validate(this.inputValue)) {
-          this.wo.returnInput(this.inputs[0].uuid, this.inputValue);
-          this.inputValue = "";
-          this.inputs.shift();
+      } else if (this.inputs.length) {
+        if (str.charCodeAt(0) === 13) {
+          // validate input
+          if (this.inputs[0].validate(this.inputValue)) {
+            this.wo.returnInput(this.inputs[0].uuid, this.inputValue);
+            this.inputValue = "";
+            this.inputs.shift();
+            if (!this.inputs.length) {
+              process.stdout.write("\x1B[?25l");
+            }
+          } else {
+            this.inputValid = false;
+          }
         } else {
-          this.inputValid = false;
+          this.inputValid = true;
+          this.inputValue += str;
         }
-      } else {
-        this.inputValid = true;
-        this.inputValue += str;
       }
       this.displayScreen();
     });
@@ -115,7 +120,7 @@ export class Terminal {
       return;
     }
     this.reset = true;
-    process.stdout.write("\x1B[?47l");
+    process.stdout.write("\x1B[?47l\x1B[?25h");
     process.stdout.write(this.displayHistory(this.height, false));
   }
 
@@ -305,7 +310,7 @@ export class Terminal {
     process.stdout.write(screen);
     // Display input
     if (this.inputs.length) {
-      process.stdout.write(colors.bold(this.inputs[0].title + ": ") + this.inputValue);
+      process.stdout.write("\x1B[?25h" + colors.bold(this.inputs[0].title + ": ") + this.inputValue);
     }
   }
 

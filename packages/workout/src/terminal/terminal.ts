@@ -30,7 +30,9 @@ export class Terminal {
   reset: boolean = false;
   inputValid: boolean = true;
   progressChar: number = 0;
-  progressChars = ["\u287F", "\u28BF", "\u28FB", "\u28FD", "\u28FE", "\u28F7", "\u28EF", "\u28DF"];
+  progressChars = ["\u287F", "\u28BF", "\u28FB", "\u28FD", "\u28FE", "\u28F7", "\u28EF", "\u28DF"].map(c =>
+    colors.bold(colors.yellow(c))
+  );
   _refresh: NodeJS.Timeout;
 
   constructor(
@@ -46,9 +48,7 @@ export class Terminal {
     // Fallback on basic ConsoleLogger if no tty
     if (!this.tty) {
       this.wo.on("message", async msg => {
-        if (msg.type === "log" && LogFilter(msg.log.level, this.level)) {
-          ConsoleLogger.handleMessage(msg, this.level, this.format);
-        }
+        ConsoleLogger.handleMessage(msg, this.level, this.format);
       });
       return;
     }
@@ -59,7 +59,7 @@ export class Terminal {
     process.stdout.write("\x1B[?12l\x1B[?47h\x1B[?25l");
 
     // Ensure we restore terminal on quit
-    process.on("exit", () => this.resetTerm);
+    process.on("beforeExit", () => this.resetTerm);
     this._refresh = setInterval(() => {
       this.progressChar++;
       if (this.progressChar >= this.progressChars.length) {
@@ -251,11 +251,7 @@ export class Terminal {
   displayFooter() {
     // Separator
 
-    let res =
-      colors.bold(colors.yellow(this.progressChars[this.progressChar])) +
-      " " +
-      "\u2015".repeat(process.stdout.columns - 2) +
-      "\n";
+    let res = this.progressChars[this.progressChar] + " " + "\u2015".repeat(process.stdout.columns - 2) + "\n";
     let values = Object.values(this.progresses);
     let k = values.length;
     if (this.title) {

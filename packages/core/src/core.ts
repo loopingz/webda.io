@@ -715,9 +715,6 @@ export class Core extends events.EventEmitter {
       if (type === undefined) {
         type = service;
       }
-      if (type.indexOf("/") < 2) {
-        type = "Webda/" + type;
-      }
       var serviceConstructor = undefined;
       try {
         serviceConstructor = this.application.getService(type);

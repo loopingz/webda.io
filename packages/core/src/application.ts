@@ -177,6 +177,7 @@ export class Application {
     }
     if (this.baseConfiguration.version == 1) {
       this.baseConfiguration = this.migrateV1Config(this.baseConfiguration);
+      fs.writeFileSync(file, JSON.stringify(this.baseConfiguration, undefined, 2));
     }
     // Load if a module definition is included
     if (this.baseConfiguration.module) {
@@ -282,11 +283,15 @@ export class Application {
   }
 
   getService(name) {
-    name = name.toLowerCase();
-    if (!this.services[name.toLowerCase()]) {
-      throw Error("Undefined service " + name);
+    let serviceName = this.completeNamespace(name).toLowerCase();
+    if (!this.services[serviceName]) {
+      serviceName = `Webda/${name}`.toLowerCase();
+      // Try Webda namespace
+      if (!this.services[serviceName]) {
+        throw Error("Undefined service " + name);
+      }
     }
-    return this.services[name.toLowerCase()];
+    return this.services[serviceName];
   }
 
   getServices() {
@@ -488,7 +493,7 @@ export class Application {
         return serviceConstructor;
       }
     } catch (err) {
-      this.log("WARN", "Cannot resolve require", info);
+      this.log("WARN", "Cannot resolve require", info, err.message);
       return null;
     }
   }
@@ -545,6 +550,20 @@ export class Application {
     return `${this.namespace}/${info}`;
   }
 
+  extends(obj: any, className: any): boolean {
+    if (!obj) {
+      return false;
+    }
+    while (obj && obj.__proto__) {
+      // TODO Have better way
+      if (obj.__proto__.name === className || obj.__proto__ === className) {
+        return true;
+      }
+      obj = obj.__proto__;
+    }
+    return false;
+  }
+
   /**
    * Load a javascript file and check for Modda
    * @param path to load
@@ -562,21 +581,25 @@ export class Application {
     let mod = this.resolveRequire(absolutePath);
     let obj = mod;
     // Check for CoreModel
-    while (obj && obj.__proto__) {
-      // TODO Have better way
-      if (obj.__proto__.name === "CoreModel") {
-        this.appModule["models"][this.completeNamespace(obj.name)] = path.relative(this.appPath, absolutePath);
-        break;
-      }
-      obj = obj.__proto__;
+    if (this.extends(obj, CoreModel)) {
+      this.log("DEBUG", "Found new CoreModel implementation", this.completeNamespace(obj.name));
+      this.appModule["models"][this.completeNamespace(obj.name)] = path.relative(this.appPath, absolutePath);
     }
     // Check if it is a service
-    if (mod && mod.getModda) {
-      let modda: ModdaDefinition = mod.getModda();
-      if (!modda || !modda.uuid) {
-        return;
+    if (this.extends(obj, Service)) {
+      let name = obj.name;
+      let category = "services";
+      if (obj.getModda) {
+        let modda: ModdaDefinition = mod.getModda();
+        if (modda) {
+          name = modda.uuid;
+          if (modda.category) {
+            category = modda.category;
+          }
+        }
       }
-      this.appModule[modda.category || "services"][modda.uuid] = path.relative(this.appPath, absolutePath);
+      this.log("DEBUG", "Found new Service implementation", this.completeNamespace(name));
+      this.appModule[category][this.completeNamespace(name)] = path.relative(this.appPath, absolutePath);
     }
   }
 

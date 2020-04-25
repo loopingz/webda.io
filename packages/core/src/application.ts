@@ -562,16 +562,16 @@ export class Application {
     let mod = this.resolveRequire(absolutePath);
     let obj = mod;
     // Check for CoreModel
-    do {
+    while (obj && obj.__proto__) {
       // TODO Have better way
       if (obj.__proto__.name === "CoreModel") {
         this.appModule["models"][this.completeNamespace(obj.name)] = path.relative(this.appPath, absolutePath);
         break;
       }
       obj = obj.__proto__;
-    } while (obj.__proto__);
+    }
     // Check if it is a service
-    if (mod.getModda) {
+    if (mod && mod.getModda) {
       let modda: ModdaDefinition = mod.getModda();
       if (!modda || !modda.uuid) {
         return;

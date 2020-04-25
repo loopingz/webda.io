@@ -72,9 +72,7 @@ export default class WebdaConsole {
       .alias("d", "deployment")
       .alias("o", "open")
       .alias("x", "devMode")
-      .option("log-level", {
-        default: "INFO"
-      })
+      .option("log-level") // No default to fallback on env or default of workout
       .option("log-format", {
         default: ConsoleLogger.defaultFormat
       })

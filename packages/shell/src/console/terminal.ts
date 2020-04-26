@@ -1,4 +1,5 @@
 import { Terminal, WorkerOutput, WorkerLogLevel, WorkerMessage } from "@webda/workout";
+import * as colors from "colors";
 
 export class WebdaTerminal extends Terminal {
   versions;
@@ -54,6 +55,14 @@ export class WebdaTerminal extends Terminal {
 
   setTitle(title: string = "") {
     this.title = this.webdaize(title);
+  }
+
+  getBar(size: number, complete: boolean) {
+    if (complete) {
+      return "[" + colors.bold(colors.yellow("\u2836".repeat(size)));
+    } else {
+      return " ".repeat(size) + "]";
+    }
   }
 
   webdaize(str) {

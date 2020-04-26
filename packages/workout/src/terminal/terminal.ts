@@ -11,7 +11,6 @@ import {
 } from "..";
 import { ConsoleLogger } from "../loggers/console";
 import * as util from "util";
-import { runInThisContext } from "vm";
 import { SIGINT } from "constants";
 
 export class Terminal {
@@ -19,6 +18,8 @@ export class Terminal {
   wo: WorkerOutput;
   height: number;
   history: string[] = [];
+  historySize: number = 2000;
+  scrollY: number = -1;
   level: WorkerLogLevel;
   hasProgress: boolean;
   progresses: { [key: string]: WorkerProgress } = {};
@@ -117,6 +118,10 @@ export class Terminal {
     });
   }
 
+  setTitle(title: string = "") {
+    this.title = title;
+  }
+
   resetTerm(...args) {
     if (this.reset) {
       return;
@@ -133,7 +138,7 @@ export class Terminal {
 
   pushHistory(line) {
     this.history.push(line);
-    if (this.history.length > 100) {
+    if (this.history.length > this.historySize) {
       this.history.shift();
     }
   }
@@ -175,7 +180,7 @@ export class Terminal {
     if (!LogFilter(level, this.level)) {
       return;
     }
-    let color = ConsoleLogger.getColor(<any>WorkerLogLevelEnum[level]);
+    let color = ConsoleLogger.getColor(level);
     let levelColor = level.padStart(5);
     let groupsPart = "";
     if (groups.length) {
@@ -225,7 +230,15 @@ export class Terminal {
         barEmpty--;
       }
     }
-    return `[${colors.green("=".repeat(barFill))}${colors.grey("-".repeat(barEmpty))}]`;
+    return this.getBar(barFill, true) + this.getBar(barEmpty, false);
+  }
+
+  getBar(size: number, complete: boolean) {
+    if (complete) {
+      return "[" + colors.green("=".repeat(size));
+    } else {
+      return colors.grey("-".repeat(size)) + "]";
+    }
   }
 
   displayTitle() {
@@ -251,7 +264,7 @@ export class Terminal {
     if (line.length > process.stdout.columns - 2) {
       line = line.substr(0, process.stdout.columns - 2);
     }
-    return `${line}`;
+    return `${line}\n`;
   }
 
   displayFooter() {

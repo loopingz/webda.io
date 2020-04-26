@@ -306,7 +306,7 @@ class Context extends EventEmitter {
    * @param {Number} httpCode to return to the client
    * @param {Object} headers to add to the response
    */
-  writeHead(httpCode, headers) {
+  writeHead(httpCode: number, headers: { [key: string]: string } = undefined) {
     _extend(this._outputHeaders, headers);
     if (httpCode !== undefined) {
       this.statusCode = httpCode;
@@ -461,11 +461,11 @@ class Context extends EventEmitter {
   /**
    * Get the current user from session
    */
-  async getCurrentUser(): Promise<User> {
+  async getCurrentUser<T extends User>(): Promise<T> {
     if (!this.getCurrentUserId()) {
       return undefined;
     }
-    return (<Store<User>>this._webda.getService("Users")).get(this.getCurrentUserId());
+    return (<Store<T>>this._webda.getService("Users")).get(this.getCurrentUserId());
   }
 
   /**

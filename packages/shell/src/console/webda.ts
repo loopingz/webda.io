@@ -9,7 +9,7 @@ import * as YAML from "yamljs";
 import * as yargs from "yargs";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";
-import { WorkerOutput, WorkerLogLevel, ConsoleLogger } from "@webda/workout";
+import { WorkerOutput, WorkerLogLevel, ConsoleLogger, WorkerLog, WorkerLogLevelEnum } from "@webda/workout";
 import { WebdaTerminal } from "./terminal";
 import * as path from "path";
 import * as semver from "semver";
@@ -447,6 +447,30 @@ export default class WebdaConsole {
     }
   }
 
+  static async fakeTerm() {
+    let res;
+    let i = 1;
+    this.app.getWorkerOutput().startProgress("fake", 100, "Fake Progress");
+    setInterval(() => {
+      if (++i <= 100) {
+        this.app.getWorkerOutput().updateProgress(i, "fake");
+        if (i === 50) {
+          this.app.getWorkerOutput().startProgress("fake2", 100, "Fake SubProgress");
+        }
+        if (i > 50) {
+          this.app.getWorkerOutput().updateProgress((i - 50) * 2, "fake2");
+        }
+      } else if (i >= 200) {
+        this.app.getWorkerOutput().startProgress("fake", 100, "Fake Progress");
+        i = 0;
+      }
+      this.log(<any>WorkerLogLevelEnum[Math.floor(Math.random() * 5)], "Random level message");
+    }, 100);
+    while ((res = await this.app.getWorkerOutput().requestInput("Give me your number input", 0, ["\\d+"]))) {
+      this.log("INFO", res);
+    }
+  }
+
   static async handleCommandInternal(args, versions, output: WorkerOutput = undefined): Promise<number> {
     // Arguments parsing
     let argv = this.parser(args);
@@ -496,7 +520,7 @@ export default class WebdaConsole {
           argv.logFormat
         );
       } else {
-        this.terminal = new WebdaTerminal(output, versions, argv.logLevel, argv.logFormat);
+        this.terminal = new WebdaTerminal(output, versions, undefined, argv.logLevel, argv.logFormat);
       }
     }
 
@@ -586,10 +610,7 @@ export default class WebdaConsole {
         await this.generateOpenAPI(argv);
         return 0;
       case "faketerm":
-        let res;
-        while ((res = await this.app.getWorkerOutput().requestInput("Give me your number input", 0, ["\\d+"]))) {
-          this.log("INFO", res);
-        }
+        await this.fakeTerm();
         return 0;
       case "generate-session-secret":
         await this.generateSessionSecret();

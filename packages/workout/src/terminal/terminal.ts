@@ -33,6 +33,8 @@ export class Terminal {
   progressChars = ["\u287F", "\u28BF", "\u28FB", "\u28FD", "\u28FE", "\u28F7", "\u28EF", "\u28DF"].map(c =>
     colors.bold(colors.yellow(c))
   );
+  logo: string[] = [];
+  logoWidth: number = 0;
   _refresh: NodeJS.Timeout;
 
   constructor(
@@ -209,7 +211,7 @@ export class Terminal {
     return str.padEnd(limit);
   }
 
-  getTrueLength(str) {
+  getTrueLength(str): number {
     return str.replace(/(\u001b\[[\d;]+m)/gm, "").length;
   }
 
@@ -273,9 +275,20 @@ export class Terminal {
     return res;
   }
 
+  /**
+   * Set the logo to display
+   *
+   * @param logo to display
+   */
+  setLogo(logo: string[]) {
+    this.logo = logo;
+    this.logoWidth = Math.max(...this.logo.map(this.getTrueLength));
+  }
+
   displayHistory(lines: number, complete: boolean = true) {
     let res = "";
     let j = this.history.length - lines;
+    complete = complete || this.logo.length !== 0;
     if (!complete && j < 0) {
       j = 0;
     }
@@ -286,6 +299,22 @@ export class Terminal {
     for (; j < this.history.length; j++) {
       let line = this.displayString(this.history[j].padEnd(process.stdout.columns));
       res += `${line}\n`;
+    }
+    // Inserting logo
+    if (this.height > 30 && process.stdout.columns > 50 && this.logo.length) {
+      let lines = res.split("\n");
+      let i = 0;
+      for (let y in this.logo) {
+        i = parseInt(y) + this.getFooterSize();
+        if (!lines[i]) {
+          continue;
+        }
+        lines[i] =
+          this.displayString(lines[i].trim(), process.stdout.columns - this.logoWidth - 1) +
+          this.logo[y].padEnd(this.logoWidth) +
+          " ";
+      }
+      return lines.join("\n");
     }
     return res;
   }

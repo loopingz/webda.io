@@ -166,7 +166,7 @@ export class Application {
     }
     this.appPath = path.dirname(file);
     try {
-      this.baseConfiguration = JSON.parse(fs.readFileSync(file).toString());
+      this.baseConfiguration = JSON.parse(fs.readFileSync(file).toString() || "{}");
     } catch (err) {
       throw new WebdaError("INVALID_WEBDA_CONFIG", `Cannot parse JSON of: ${file}`);
     }
@@ -224,7 +224,7 @@ export class Application {
     if (config["*"]) {
       domain = config[config["*"]];
     } else {
-      domain = config[Object.keys(config)[0]];
+      domain = config[Object.keys(config)[0]] || { global: {} };
     }
     if (domain.global) {
       newConfig.parameters = domain.global.params || {};

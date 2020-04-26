@@ -391,6 +391,14 @@ export default class WebdaConsole {
    * @param args
    */
   static async handleCommand(args, versions, output: WorkerOutput = undefined): Promise<number> {
+    let res = await this.handleCommandInternal(args, versions, output);
+    if (res !== 0 && this.terminal) {
+      this.terminal.close();
+    }
+    return res;
+  }
+
+  static async handleCommandInternal(args, versions, output: WorkerOutput = undefined): Promise<number> {
     // Arguments parsing
     let argv = this.parser(args);
     await this.initLogger(argv);

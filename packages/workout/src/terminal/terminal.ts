@@ -205,8 +205,12 @@ export class Terminal {
       return str.substr(0, limit - 3) + "...";
     }
     // Strip colors for our calculation
-    limit += str.length - str.replace(/(\u001b\[[\d;]+m)/gm, "").length;
+    limit += str.length - this.getTrueLength(str);
     return str.padEnd(limit);
+  }
+
+  getTrueLength(str) {
+    return str.replace(/(\u001b\[[\d;]+m)/gm, "").length;
   }
 
   displayBar(ratio, barlen) {

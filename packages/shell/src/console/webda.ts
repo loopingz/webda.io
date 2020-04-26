@@ -19,6 +19,9 @@ export interface WebdaShellExtension {
   require: string;
   export?: string;
   description: string;
+  terminal?: string;
+  // Internal usage only
+  relPath?: string;
 }
 
 export enum DebuggerStatus {
@@ -37,6 +40,7 @@ export default class WebdaConsole {
   static app: Application;
   static debuggerStatus: DebuggerStatus = DebuggerStatus.Stopped;
   static onSIGINT: () => never = undefined;
+  static extensions: { [key: string]: WebdaShellExtension } = {};
 
   static bold(str: string) {
     return colors.bold(colors.yellow(str));
@@ -398,10 +402,81 @@ export default class WebdaConsole {
     return res;
   }
 
+  static loadExtensions(appPath) {
+    let getAppPath = function(re) {
+      return path.join(appPath, re);
+    };
+    // Search for shell override
+    if (fs.existsSync(getAppPath("node_modules"))) {
+      let files = [];
+      let rec = p => {
+        try {
+          fs.readdirSync(p).forEach(f => {
+            let ap = path.join(p, f);
+            let stat = fs.lstatSync(ap);
+            if (stat.isDirectory() || stat.isSymbolicLink()) {
+              rec(ap);
+            } else if (f === "webda.shell.json" && stat.isFile()) {
+              this.log("DEBUG", "Found shell extension", ap);
+              files.push(ap);
+            }
+          });
+        } catch (err) {
+          // skip exception
+        }
+      };
+      rec(getAppPath("node_modules"));
+      let appCustom = getAppPath("webda.shell.json");
+      if (fs.existsSync(appCustom)) {
+        files.push(appCustom);
+      }
+
+      // Load each files
+      for (let i in files) {
+        try {
+          let info = JSON.parse(fs.readFileSync(files[i]).toString());
+          for (let j in info.commands) {
+            WebdaConsole.extensions[j] = info.commands[j];
+            WebdaConsole.extensions[j].relPath = path.dirname(files[i]);
+          }
+        } catch (err) {
+          this.log("ERROR", err);
+          return -1;
+        }
+      }
+    }
+  }
+
   static async handleCommandInternal(args, versions, output: WorkerOutput = undefined): Promise<number> {
     // Arguments parsing
     let argv = this.parser(args);
+    let extension: WebdaShellExtension;
     await this.initLogger(argv);
+
+    // Init WorkerOutput
+    output = output || new WorkerOutput();
+    WebdaConsole.logger = new Logger(output, "console/webda");
+
+    if (
+      [
+        "serve",
+        "deploy",
+        "serviceconfig",
+        "worker",
+        "launch",
+        "debug",
+        "config",
+        "init",
+        "module",
+        "openapi",
+        "faketerm",
+        "generate-session-secret"
+      ].indexOf(argv._[0]) < 0
+    ) {
+      WebdaConsole.loadExtensions(argv.appPath);
+      extension = this.extensions[argv._[0]];
+    }
+
     if (["deploy", "install", "uninstall"].indexOf(argv._[0]) >= 0) {
       if (argv.deployment === undefined) {
         this.output("Need to specify an environment");
@@ -409,13 +484,20 @@ export default class WebdaConsole {
       }
     }
 
-    // Init WorkerOutput
-    output = output || new WorkerOutput();
-    WebdaConsole.logger = new Logger(output, "console/webda");
     if (argv.notty) {
       new ConsoleLogger(output, argv.logLevel, argv.logFormat);
     } else {
-      this.terminal = new WebdaTerminal(output, versions, argv.logLevel, argv.logFormat);
+      if (extension && extension.terminal) {
+        // Allow override of terminal
+        this.terminal = new (require(path.join(extension.relPath, extension.terminal)).default)(
+          output,
+          versions,
+          argv.logLevel,
+          argv.logFormat
+        );
+      } else {
+        this.terminal = new WebdaTerminal(output, versions, argv.logLevel, argv.logFormat);
+      }
     }
 
     // Add SIGINT listener
@@ -514,50 +596,18 @@ export default class WebdaConsole {
         return 0;
     }
 
-    // Search for shell override
-    let commands = [];
-    if (fs.existsSync(this.app.getAppPath("node_modules"))) {
-      let files = [];
-      let rec = p => {
-        try {
-          fs.readdirSync(p).forEach(f => {
-            let ap = path.join(p, f);
-            let stat = fs.lstatSync(ap);
-            if (stat.isDirectory() || stat.isSymbolicLink()) {
-              rec(ap);
-            } else if (f === "webda.shell.json" && stat.isFile()) {
-              this.log("DEBUG", "Found shell extension", ap);
-              files.push(ap);
-            }
-          });
-        } catch (err) {
-          // skip exception
-        }
-      };
-      rec(this.app.getAppPath("node_modules"));
-      let appCustom = this.app.getAppPath("webda.shell.json");
-      if (fs.existsSync(appCustom)) {
-        files.push(appCustom);
-      }
-
-      // Load each files
-      for (let i in files) {
-        try {
-          let info = JSON.parse(fs.readFileSync(files[i]).toString());
-          for (let j in info.commands) {
-            commands.push(" " + this.bold(j) + ": " + info.commands[j].description);
-            if (j === argv._[0]) {
-              // Load lib
-              argv._.shift();
-              return await this.executeShellExtension(info.commands[j], path.dirname(files[i]), argv);
-            }
-          }
-        } catch (err) {
-          this.log("ERROR", err);
-          return -1;
-        }
-      }
+    if (extension) {
+      this.log("DEBUG", "Launching extension" + argv._[0]);
+      // Load lib
+      argv._.shift();
+      return await this.executeShellExtension(extension, extension.relPath, argv);
     }
+
+    let commands = [];
+    for (let j in WebdaConsole.extensions) {
+      commands.push(" " + this.bold(j) + ": " + WebdaConsole.extensions[j].description);
+    }
+
     if (commands.length) {
       commands.unshift("", "Extensions", "");
       commands.push("");

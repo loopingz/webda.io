@@ -1,11 +1,9 @@
 {
   "services": {
-    "WebdaDemo/CustomReusableService": "lib/services/reusable.js"
+    "WebdaDemo/WebdaDemo/CustomReusableService": "lib/services/reusable.js"
   },
   "models": {
     "WebdaDemo/Contact": "lib/models/contact.js"
   },
-  "deployers": {
-    "WebdaDemo/CustomDeployer": "lib/services/deployer.js"
-  }
+  "deployers": {}
 }

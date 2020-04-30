@@ -17,8 +17,8 @@ export class ConsoleLogger {
   format: string;
   level: WorkerLogLevel;
 
-  constructor(output: WorkerOutput, level: WorkerLogLevel = "INFO", format: string = ConsoleLogger.defaultFormat) {
-    this.level = level;
+  constructor(output: WorkerOutput, level: WorkerLogLevel = undefined, format: string = ConsoleLogger.defaultFormat) {
+    this.level = level ? level : <any>process.env.LOG_LEVEL || "INFO";
     this.format = format;
     output.on("message", (msg: WorkerMessage) => {
       ConsoleLogger.handleMessage(msg, this.level, this.format);

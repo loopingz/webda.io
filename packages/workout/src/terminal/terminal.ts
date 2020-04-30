@@ -12,6 +12,7 @@ import {
 import { ConsoleLogger } from "../loggers/console";
 import * as util from "util";
 import { SIGINT } from "constants";
+import { fstat } from "fs";
 
 export class Terminal {
   tty: boolean;
@@ -97,7 +98,19 @@ export class Terminal {
           this.inputValue = this.inputValue.substr(0, this.inputValue.length - 1);
         }
       } else if (this.inputs.length) {
-        if (str.charCodeAt(0) === 13) {
+        if (str === "\u001B\u005B\u0035\u007e") {
+          // PageUp
+          this.scrollUp(this.height);
+        } else if (str === "\u001B\u005B\u0036\u007e") {
+          // PageDown
+          this.scrollDown(this.height);
+        } else if (str === "\u001B\u005B\u0042") {
+          // Down
+          this.scrollDown(1);
+        } else if (str === "\u001B\u005B\u0041") {
+          // Up
+          this.scrollUp(1);
+        } else if (str.charCodeAt(0) === 13) {
           // validate input
           if (this.inputs[0].validate(this.inputValue)) {
             this.wo.returnInput(this.inputs[0].uuid, this.inputValue);
@@ -111,11 +124,33 @@ export class Terminal {
           }
         } else {
           this.inputValid = true;
+          const fs = require("fs");
+          fs.writeFileSync("/tmp/key", str);
           this.inputValue += str;
         }
       }
       this.displayScreen();
     });
+  }
+
+  scrollUp(increment: number) {
+    if (this.scrollY === -1) {
+      this.scrollY = this.history.length - this.height;
+    }
+    this.scrollY -= increment;
+    if (this.scrollY < 0) {
+      this.scrollY = 0;
+    }
+  }
+
+  scrollDown(increment: number) {
+    if (this.scrollY === -1) {
+      this.scrollY = this.history.length - this.height;
+    }
+    this.scrollY += increment;
+    if (this.scrollY >= this.history.length - this.height - 1) {
+      this.scrollY = -1;
+    }
   }
 
   setTitle(title: string = "") {
@@ -204,15 +239,40 @@ export class Terminal {
     return size;
   }
 
+  stripColorString(str, limit: number) {
+    let match;
+    let regexp = /(?<before>[^\u001b]+)|(?<cmd>\u001b\[[\d;]+m)/gm;
+    let originalString = "";
+    let fullString = "";
+    let noMore = false;
+    while ((match = regexp.exec(str))) {
+      match.groups.before = match.groups.before || "";
+      match.groups.cmd = match.groups.cmd || "";
+      if (originalString.length + match.groups.before.length >= limit) {
+        fullString += match.groups.before.substr(0, limit - originalString.length - 3) + "...";
+        noMore = true;
+        continue;
+      }
+      originalString += match.groups.before;
+      if (!noMore) {
+        fullString += match.groups.before;
+      }
+      // Still pilling all commands
+      fullString += match.groups.cmd;
+    }
+    return fullString;
+  }
+
   displayString(str, limit: number = undefined) {
     if (!limit) {
       limit = process.stdout.columns;
     }
-    if (str.length > limit) {
-      return str.substr(0, limit - 3) + "...";
+    let len = this.getTrueLength(str);
+    if (len > limit) {
+      return this.stripColorString(str, limit);
     }
     // Strip colors for our calculation
-    limit += str.length - this.getTrueLength(str);
+    limit += str.length - len;
     return str.padEnd(limit);
   }
 
@@ -300,7 +360,12 @@ export class Terminal {
 
   displayHistory(lines: number, complete: boolean = true) {
     let res = "";
-    let j = this.history.length - lines;
+    let start = this.scrollY < 0 ? this.history.length - lines : this.scrollY;
+    if (start < 0) {
+      start = 0;
+    }
+    let history = this.history.slice(start, start + lines);
+    let j = history.length - lines;
     complete = complete || this.logo.length !== 0;
     if (!complete && j < 0) {
       j = 0;
@@ -309,8 +374,8 @@ export class Terminal {
       res += " ".repeat(process.stdout.columns) + "\n";
       j++;
     }
-    for (; j < this.history.length; j++) {
-      let line = this.displayString(this.history[j].padEnd(process.stdout.columns));
+    for (; j < history.length; j++) {
+      let line = this.displayString(history[j].padEnd(process.stdout.columns));
       res += `${line}\n`;
     }
     // Inserting logo

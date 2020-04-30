@@ -30,6 +30,14 @@ class TerminalTest {
   }
 
   @test
+  async testColorDisplayStripping() {
+    let str =
+      "[[33m WARN[39m] [33mCannot resolve require /datas/git/lib/handlers/batch_idents.js Not a webda application folder or webda.config.json file: ../webda.config.json[39m";
+    let res = this.terminal.displayString(str, 40);
+    assert.equal(res.endsWith("...[39m"), true);
+  }
+
+  @test
   async testFallback() {
     this.terminal = new Terminal(this.output, "INFO", "", false);
   }

@@ -9,11 +9,17 @@ export interface DockerResources extends DeployerResources {
   push?: boolean;
   file?: string;
   command?: string;
+  // Default image to derivate from
+  baseImage?: string;
 }
 
 export class Docker extends Deployer<DockerResources> {
   _copied: boolean = false;
 
+  async loadDefaults() {
+    super.loadDefaults();
+    this.resources.baseImage = this.resources.baseImage || "node:lts-alpine";
+  }
   /**
    * Build a Docker image with webda application
    *
@@ -153,7 +159,7 @@ export class Docker extends Deployer<DockerResources> {
     var cwd = process.cwd();
     var packageInfo = require(cwd + "/package.json");
     var dockerfile = `
-FROM node:lts-alpine
+FROM ${this.resources.baseImage}
 MAINTAINER docker@webda.io
 EXPOSE 18080
 
@@ -189,7 +195,8 @@ RUN yarn install
       dockerfile += "RUN node_modules/.bin/webda -d " + deployment + " config webda.config.json\n";
     }
     dockerfile += "RUN rm -rf deployments\n";
-    dockerfile += "CMD node_modules/.bin/webda " + command + logfile + "\n";
+    dockerfile += "ENV WEBDA_COMMAND=" + command;
+    dockerfile += "CMD node_modules/.bin/webda $WEBDA_COMMAND" + logfile + "\n";
     return dockerfile;
   }
 }

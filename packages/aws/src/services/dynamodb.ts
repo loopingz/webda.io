@@ -2,6 +2,8 @@ import { CoreModel, ModdaDefinition, Store, WebdaError } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import { CloudFormationDeployer } from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
+import * as AWS from "aws-sdk";
+import { WorkerOutput } from "@webda/workout";
 
 /**
  * DynamoStore handles the DynamoDB
@@ -28,6 +30,42 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
     this._client = new (GetAWS(params).DynamoDB.DocumentClient)({
       endpoint: this._params.endpoint
     });
+  }
+
+  static async copyTable(output: WorkerOutput, source, target) {
+    let db = new AWS.DynamoDB();
+    let ExclusiveStartKey;
+    let props = await db
+      .describeTable({
+        TableName: source
+      })
+      .promise();
+    output.startProgress("copyTable", props.Table.ItemCount, `Copying ${source} to ${target}`);
+    do {
+      let info = await db
+        .scan({
+          TableName: source,
+          ExclusiveStartKey
+        })
+        .promise();
+
+      do {
+        let items = [];
+        while (info.Items.length && items.length < 25) {
+          items.push(info.Items.shift());
+        }
+        if (!items.length) {
+          break;
+        }
+        let params = {
+          RequestItems: {}
+        };
+        params.RequestItems[target] = items.map(Item => ({ PutRequest: { Item } }));
+        await db.batchWriteItem(params).promise();
+        output.incrementProgress(items.length, "copyTable");
+      } while (true);
+      ExclusiveStartKey = info.LastEvaluatedKey;
+    } while (ExclusiveStartKey);
   }
 
   async exists(uid) {

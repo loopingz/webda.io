@@ -76,9 +76,7 @@ var consoleService = require(global.__webda_shell + "/lib/console/webda").defaul
 let p = consoleService.handleCommand(process.argv.slice(2), versions);
 if (p instanceof Promise || (p && p.then)) {
   p.then(res => {
-    if (res !== 0) {
-      process.exit(res);
-    }
+    process.exit(res);
   }).catch(err => {
     consoleService.log("ERROR", err);
     process.exit(1);

@@ -121,6 +121,7 @@ export default class WebdaConsole {
       this.output("Dev mode activated : wildcard CORS enabled");
     }
     await this.webda.serve(argv.port, argv.websockets);
+    return new Promise(() => {});
   }
 
   /**
@@ -254,28 +255,29 @@ export default class WebdaConsole {
             callback();
             return;
           }
-          if (info.indexOf("TSFILE:") >= 0) {
-            modification++;
-            callback();
-            return;
-          }
-          if (info.substring(0, 8).match(/\d{1,2}:\d{2}:\d{2}/)) {
-            // Might generate issue with some localization
-            let offset = 2 - info.indexOf(":");
-            // Simulate the colors , typescript compiler detect it is not on a tty
-            if (info.match(/Found [1-9]\d* error/)) {
-              webdaConsole.logger.log("ERROR", info.substring(14 - offset));
-            } else {
-              webdaConsole.output(info.substring(14 - offset));
-              if (info.indexOf("Found 0 errors. Watching for file changes.") >= 0 && modification !== 0) {
-                modification = 0;
-                webdaConsole.setDebuggerStatus(DebuggerStatus.Launching);
-                launchServe();
-              }
+          info.split("\n").forEach(line => {
+            if (line.indexOf("TSFILE:") >= 0) {
+              modification++;
+              return;
             }
-          } else {
-            webdaConsole.output(info);
-          }
+            if (line.substring(0, 8).match(/\d{1,2}:\d{2}:\d{2}/)) {
+              // Might generate issue with some localization
+              let offset = 2 - line.indexOf(":");
+              // Simulate the colors , typescript compiler detect it is not on a tty
+              if (line.match(/Found [1-9]\d* error/)) {
+                webdaConsole.logger.log("ERROR", line.substring(14 - offset));
+              } else {
+                webdaConsole.output(line.substring(14 - offset));
+                if (line.indexOf("Found 0 errors. Watching for file changes.") >= 0) {
+                  modification = 0;
+                  webdaConsole.setDebuggerStatus(DebuggerStatus.Launching);
+                  launchServe();
+                }
+              }
+            } else {
+              webdaConsole.output(line);
+            }
+          });
           callback();
         }
       });
@@ -464,7 +466,10 @@ export default class WebdaConsole {
         this.app.getWorkerOutput().startProgress("fake", 100, "Fake Progress");
         i = 0;
       }
-      this.log(<any>WorkerLogLevelEnum[Math.floor(Math.random() * 5)], "Random level message");
+      this.log(
+        <any>WorkerLogLevelEnum[Math.floor(Math.random() * 5)],
+        "Random level message".repeat(Math.floor(Math.random() * 10) + 1)
+      );
     }, 100);
     while ((res = await this.app.getWorkerOutput().requestInput("Give me your number input", 0, ["\\d+"]))) {
       this.log("INFO", res);
@@ -541,100 +546,109 @@ export default class WebdaConsole {
     };
     process.on("SIGINT", WebdaConsole.onSIGINT);
 
-    // Display warning for versions mismatch
-    if (!semver.satisfies(versions.core.version.replace(/-.*/, ""), "^" + versions.shell.version.replace(/-.*/, ""))) {
-      output.log("ERROR", "Versions mismatch: @webda/core and @webda/shell are not within patch versions");
-      return -1;
-    }
-
-    // Load Application
     try {
-      this.app = new Application(argv.appPath, output);
-    } catch (err) {
-      output.log("ERROR", err.message);
-      return -1;
-    }
-
-    // Load deployment
-    if (argv.deployment) {
-      if (!this.app.hasDeployment(argv.deployment)) {
-        this.output(`Unknown deployment: ${argv.deployment}`);
+      // Display warning for versions mismatch
+      if (
+        !semver.satisfies(versions.core.version.replace(/-.*/, ""), "^" + versions.shell.version.replace(/-.*/, ""))
+      ) {
+        output.log("ERROR", "Versions mismatch: @webda/core and @webda/shell are not within patch versions");
         return -1;
       }
+
+      // Load Application
       try {
-        this.app.setCurrentDeployment(argv.deployment);
-        // Try to load it already
-        this.app.getDeployment();
+        this.app = new Application(argv.appPath, output);
       } catch (err) {
-        this.log("ERROR", err.message);
+        output.log("ERROR", err.message);
         return -1;
       }
-    }
 
-    // Recompile project
-    if (argv.noCompile) {
-      this.app.preventCompilation(true);
-    }
+      // Load deployment
+      if (argv.deployment) {
+        if (!this.app.hasDeployment(argv.deployment)) {
+          this.output(`Unknown deployment: ${argv.deployment}`);
+          return -1;
+        }
+        try {
+          this.app.setCurrentDeployment(argv.deployment);
+          // Try to load it already
+          this.app.getDeployment();
+        } catch (err) {
+          this.log("ERROR", err.message);
+          return -1;
+        }
+      }
 
-    // Load webda module
-    this.app.loadModules();
+      // Recompile project
+      if (argv.noCompile) {
+        this.app.preventCompilation(true);
+      }
 
-    // Manage builtin commands
-    switch (argv._[0]) {
-      case "serve":
-        await this.serve(argv);
-        return 0;
-      case "serviceconfig":
-        await this.serviceConfig(argv);
-        return 0;
-      case "worker":
-      case "launch":
-        await this.worker(argv);
-        return 0;
-      case "debug":
-        await this.debug(argv);
-        return 0;
-      case "config":
-        await this.config(argv);
-        return 0;
-      case "deploy":
-        await this.deploy(argv);
-        return 0;
-      case "init":
-        await this.init(argv);
-        return 0;
-      case "module":
-        await this.app.generateModule();
-        return 0;
-      case "openapi":
-        await this.generateOpenAPI(argv);
-        return 0;
-      case "faketerm":
-        await this.fakeTerm();
-        return 0;
-      case "generate-session-secret":
-        await this.generateSessionSecret();
-        return 0;
-    }
+      // Load webda module
+      this.app.loadModules();
 
-    if (extension) {
-      this.log("DEBUG", "Launching extension" + argv._[0]);
-      // Load lib
-      argv._.shift();
-      return await this.executeShellExtension(extension, extension.relPath, argv);
-    }
+      // Manage builtin commands
+      switch (argv._[0]) {
+        case "serve":
+          await this.serve(argv);
+          return 0;
+        case "serviceconfig":
+          await this.serviceConfig(argv);
+          return 0;
+        case "worker":
+        case "launch":
+          await this.worker(argv);
+          return 0;
+        case "debug":
+          await this.debug(argv);
+          return 0;
+        case "config":
+          await this.config(argv);
+          return 0;
+        case "deploy":
+          await this.deploy(argv);
+          return 0;
+        case "init":
+          await this.init(argv);
+          return 0;
+        case "module":
+          await this.app.generateModule();
+          return 0;
+        case "openapi":
+          await this.generateOpenAPI(argv);
+          return 0;
+        case "faketerm":
+          await this.fakeTerm();
+          return 0;
+        case "generate-session-secret":
+          await this.generateSessionSecret();
+          return 0;
+      }
 
-    let commands = [];
-    for (let j in WebdaConsole.extensions) {
-      commands.push(" " + this.bold(j) + ": " + WebdaConsole.extensions[j].description);
-    }
+      if (extension) {
+        this.log("DEBUG", "Launching extension " + argv._[0]);
+        // Load lib
+        argv._.shift();
+        return await this.executeShellExtension(extension, extension.relPath, argv);
+      }
 
-    if (commands.length) {
-      commands.unshift("", "Extensions", "");
-      commands.push("");
+      let commands = [];
+      for (let j in WebdaConsole.extensions) {
+        commands.push(" " + this.bold(j) + ": " + WebdaConsole.extensions[j].description);
+      }
+
+      if (commands.length) {
+        commands.unshift("", "Extensions", "");
+        commands.push("");
+      }
+      // Display help if nothing is found
+      await this.help(commands);
+    } finally {
+      if (this.terminal) {
+        this.log("TRACE", "Closing terminal");
+        this.terminal.close();
+      }
     }
-    // Display help if nothing is found
-    await this.help(commands);
   }
 
   /**

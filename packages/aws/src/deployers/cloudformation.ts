@@ -2,12 +2,9 @@ import * as path from "path";
 import * as YAML from "yaml";
 import { AWSDeployer, AWSDeployerResources } from ".";
 import { CloudFormationContributor } from "../services";
-import { Domain } from "domain";
-import { ConsoleLogger, WorkerOutput, DebugLogger } from "@webda/workout";
 import { WebdaError } from "@webda/core";
 import * as fs from "fs";
 import AWS = require("aws-sdk");
-import { rejects } from "assert";
 import { DynamoStore } from "../services/dynamodb";
 
 interface CloudFormationDeployerResources extends AWSDeployerResources {

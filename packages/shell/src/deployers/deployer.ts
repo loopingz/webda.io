@@ -58,7 +58,6 @@ export abstract class Deployer<T extends DeployerResources> extends AbstractDepl
   /**
    * Initiate the default value for resources
    */
-  @Cache()
   async defaultResources(): Promise<void> {
     await this.loadDefaults();
   }

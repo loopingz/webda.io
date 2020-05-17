@@ -16,8 +16,7 @@
   },
   "files": [
     "bin/webda",
-    "lib",
-    "logo.json"
+    "lib"
   ],
   "scripts": {
     "build": "tsc",
@@ -25,12 +24,9 @@
     "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts"
   },
   "engines": {
-    "node": ">=6.10.0"
+    "node": ">=12.0.0"
   },
   "dependencies": {
-    "@aws-cdk/aws-apigateway": "^1.16.2",
-    "@aws-cdk/aws-iam": "^1.16.2",
-    "@aws-cdk/core": "^1.16.2",
     "@webda/core": "^1.0.0-beta.2",
     "@webda/workout": "^1.0.0-beta.2",
     "archiver": "^1.0.0",

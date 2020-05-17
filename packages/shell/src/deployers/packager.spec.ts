@@ -24,6 +24,7 @@ class PackagerTest {
         zipPath
       }
     );
+    await deployer.loadDefaults();
 
     await deployer.deploy();
 
@@ -38,7 +39,7 @@ class PackagerTest {
         .createReadStream(zipPath)
         // @ts-ignore
         .pipe(unzip.Parse())
-        .on("entry", function (entry) {
+        .on("entry", function(entry) {
           var fileName = entry.path;
           files[fileName] = true;
           if (captureFiles[fileName] === undefined) {

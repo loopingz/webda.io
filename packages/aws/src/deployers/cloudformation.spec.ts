@@ -106,7 +106,6 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     });
     await this.deployer.defaultResources();
     await this.deployer.deploy();
-    console.log(JSON.stringify(this.deployer.template, undefined, 2));
     assert.equal(sendCloudFormation.calledOnce, true);
   }
 
@@ -121,7 +120,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       }
       c(null, {});
     });
-    this.mocks["waitFor"] = sinon.stub(this.deployer, "waitFor").callsFake(async (c) => {
+    this.mocks["waitFor"] = sinon.stub(this.deployer, "waitFor").callsFake(async c => {
       await c(() => {});
       await c(() => {});
     });

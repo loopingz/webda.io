@@ -7,7 +7,12 @@ export interface PackagerResources extends DeployerResources {
   zipPath: string;
   entrypoint?: string;
   package?: {
-    ignores: string[];
+    ignores?: string[];
+    excludePatterns?: string[];
+    modules?: {
+      excludes?: string[];
+      includes?: string[];
+    };
   };
 }
 /**
@@ -18,12 +23,23 @@ export interface PackagerResources extends DeployerResources {
  * @param zipPath path to store the package
  * @param entrypoint file to integrate as entrypoint.js
  */
-export default class Packager extends Deployer<PackagerResources> {
+export default class Packager<T extends PackagerResources> extends Deployer<T> {
   packagesGenerated: { [key: string]: boolean } = {};
+
+  async loadDefaults() {
+    await super.loadDefaults();
+    this.resources.package = this.resources.package || {};
+    this.resources.package.ignores = this.resources.package.ignores || [];
+    this.resources.package.excludePatterns = this.resources.package.excludePatterns || ["\\.d\\.ts$"];
+    this.resources.package.modules = this.resources.package.modules || {};
+    this.resources.package.modules.excludes = this.resources.package.modules.excludes || [];
+    this.resources.package.modules.includes = this.resources.package.modules.includes || [];
+  }
+
   /**
    * Generate a full code package including dependencies
    */
-  deploy(): Promise<any> {
+  async deploy(): Promise<any> {
     let { zipPath, entrypoint } = this.resources;
 
     if (!zipPath) {
@@ -54,11 +70,9 @@ export default class Packager extends Deployer<PackagerResources> {
       "package.json",
       "deployments",
       "app",
-      "webda.config.json"
+      "webda.config.json",
+      ...this.resources.package.ignores
     ];
-    if (this.resources.package && this.resources.package.ignores) {
-      ignores = ignores.concat(this.resources.package.ignores);
-    }
     // Should load the ignore from a file
     var toPacks = [];
 
@@ -76,16 +90,49 @@ export default class Packager extends Deployer<PackagerResources> {
       toPacks.push(`${appPath}/${name}`);
     }
     // Ensure dependencies
+    // Get deps info
     if (toPacks.indexOf(`${appPath}/node_modules`) < 0) {
+      // Include specified modules
+      let filters = [...this.resources.package.modules.includes];
+      try {
+        let info = await this.execute("NODE_ENV=production yarn list --json 2>/dev/null", undefined, true);
+        const recDep = info => {
+          info.forEach(dep => {
+            filters.push(dep.name.replace(/@\d+\.\d+\.\d+.*/, ""));
+            if (info.children && info.children.length) {
+              recDep(info.children);
+            }
+          });
+        };
+        let parsedInfo = JSON.parse(info.output);
+        recDep(parsedInfo.data.trees);
+      } catch (err) {
+        filters = [];
+        this.logger.log("INFO", ":error", err);
+      }
+
+      // Remove any excludes modules
+      this.resources.package.modules.excludes.forEach(i => {
+        let id = filters.indexOf(i);
+        if (id >= 0) {
+          filters.splice(id, 1);
+        }
+      });
       if (fs.existsSync(`${appPath}/node_modules`)) {
         let files = fs.readdirSync(`${appPath}/node_modules`);
         files.forEach(file => {
           if (file.startsWith("@")) {
             // If namespace then check if package are linked
-            fs.readdirSync(`${appPath}/node_modules/${file}`).forEach(p =>
-              toPacks.push(`${appPath}/node_modules/${file}/${p}`)
-            );
+            fs.readdirSync(`${appPath}/node_modules/${file}`).forEach(p => {
+              if (filters.length && filters.indexOf(`${file}/${p}`) < 0) {
+                return;
+              }
+              toPacks.push(`${appPath}/node_modules/${file}/${p}`);
+            });
           } else {
+            if (filters.length && filters.indexOf(file) < 0) {
+              return;
+            }
             toPacks.push(`${appPath}/node_modules/${file}`);
           }
         });
@@ -100,10 +147,30 @@ export default class Packager extends Deployer<PackagerResources> {
         resolve();
       });
 
-      archive.on("error", function (err) {
+      archive.on("error", function(err) {
         console.log(err);
         reject(err);
       });
+
+      // Patch the archiver to allow filtering
+      const originalFile = archive._append;
+      archive._append = (from, to) => {
+        let name = from;
+        if (typeof from === "object") {
+          name = from.name;
+        }
+        let exclude = false;
+        this.resources.package.excludePatterns.forEach(r => {
+          if (exclude || new RegExp(r).exec(from)) {
+            exclude = true;
+          }
+        });
+        if (exclude) {
+          this.logger.log("INFO", "Skipping ", name);
+          return;
+        }
+        return originalFile.call(archive, from, to);
+      };
 
       archive.pipe(output);
       for (let i in toPacks) {
@@ -114,6 +181,7 @@ export default class Packager extends Deployer<PackagerResources> {
         if (stat.isSymbolicLink()) {
           this.addLinkPackage(archive, fs.realpathSync(toPacks[i]), path.relative(appPath, toPacks[i]));
         } else if (stat.isDirectory()) {
+          // Add custom recursive function
           archive.directory(toPacks[i], path.relative(appPath, toPacks[i]));
         } else if (stat.isFile()) {
           archive.file(toPacks[i], {
@@ -141,6 +209,7 @@ export default class Packager extends Deployer<PackagerResources> {
 
   protected getPackagedConfiguration(): Configuration {
     let config = this.app.getCurrentConfiguration();
+    config = this.objectParameter(config);
     config.cachedModules = this.app.getModules();
     return config;
   }

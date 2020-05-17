@@ -10,7 +10,7 @@ import { User } from "../models/user";
 import { Service } from "../services/service";
 import { Store } from "../stores/store";
 import { SessionCookie } from "../utils/cookie";
-
+import { JSONUtils } from "./json";
 /**
  * @category CoreFeatures
  */
@@ -234,7 +234,10 @@ class Context extends EventEmitter {
   }
 
   public getSession() {
-    return this.session.getProxy();
+    if (this.session) {
+      return this.session.getProxy();
+    }
+    return undefined;
   }
 
   public getServiceParameters() {
@@ -269,14 +272,7 @@ class Context extends EventEmitter {
   public write(output: any, encoding?: string, cb?: (error: Error) => void): boolean {
     if (typeof output === "object" && !(output instanceof Buffer)) {
       this.setHeader("Content-type", "application/json");
-      // @ts-ignore
-      global.WebdaContext = this;
-      try {
-        this._body = JSON.stringify(output);
-      } finally {
-        // @ts-ignore
-        global.WebdaContext = undefined;
-      }
+      this._body = JSONUtils.stringify(output);
       return true;
     } else if (typeof output == "string") {
       if (this._body == undefined) {
@@ -400,7 +396,7 @@ class Context extends EventEmitter {
       }
       return obj;
     };
-    this._sanitized = recursiveSanitize(this.getHttpContext().getBody(), sanitizedOptions);
+    this._sanitized = recursiveSanitize(this.getHttpContext().getBody(), sanitizedOptions) || {};
     return this._sanitized;
   }
 

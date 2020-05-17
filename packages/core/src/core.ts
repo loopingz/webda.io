@@ -719,7 +719,7 @@ export class Core extends events.EventEmitter {
       try {
         serviceConstructor = this.application.getService(type);
       } catch (ex) {
-        this.log("ERROR", "Create service " + service + " failed");
+        this.log("ERROR", `Create service ${service}(${type}) failed`);
         this.log("TRACE", ex.stack);
         continue;
       }

@@ -427,7 +427,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
    * @param {String} Uuid to use, if not specified take the object.uuid or generate one if not found
    * @return {Promise} with saved object
    */
-  async save(object) {
+  async save(object, ctx: Context = undefined) {
     /** @ignore */
     for (var i in this._reverseMap) {
       if (object[this._reverseMap[i].property] === undefined) {
@@ -436,6 +436,9 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
     }
     object[this._creationDateField] = object[this._lastUpdateField] = new Date();
     object = this.initModel(object);
+    if (ctx) {
+      object.setContext(ctx);
+    }
     if (!object[this._uuidField]) {
       object[this._uuidField] = object.generateUid();
       object[this._creationDateField] = new Date();
@@ -964,13 +967,13 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
     try {
       await object.validate(ctx);
     } catch (err) {
-      this.log("DEBUG", "Object is not valid", err);
+      this.log("INFO", "Object is not valid", err);
       throw 400;
     }
     if (object[this._uuidField] && (await this.exists(object[this._uuidField]))) {
       throw 409;
     }
-    await this.save(object);
+    await this.save(object, ctx);
     ctx.write(object);
     await this.emitSync("Store.WebCreate", {
       context: ctx,
@@ -1051,7 +1054,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
     try {
       await object.validate(ctx, body);
     } catch (err) {
-      this.log("Object invalid", err);
+      this.log("INFO", "Object invalid", err);
       throw 400;
     }
     if (ctx.getHttpContext().getMethod() === "PATCH") {

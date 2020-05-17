@@ -33,7 +33,6 @@ class Mailer extends Service {
       let config: any = {};
       Object.assign(config, params.config);
       if (config.transport === "ses" && !config.SES) {
-        var ses = require("nodemailer-ses-transport");
         let aws = require("aws-sdk");
         aws.config.update(config);
         config.SES = new aws.SES({

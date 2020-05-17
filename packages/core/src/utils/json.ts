@@ -3,8 +3,8 @@ export const JSONUtils = {
     let stringified = [];
     return JSON.stringify(
       value,
-      function (key: string, value: any): any {
-        if (stringified.indexOf(value) >= 0 || key.startsWith("_")) {
+      function(key: string, value: any): any {
+        if ((stringified.indexOf(value) >= 0 && typeof value === "object") || key.startsWith("__")) {
           return undefined;
         }
         stringified.push(value);

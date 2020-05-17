@@ -29,9 +29,7 @@
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
     "@webda/core": "^1.0.0-beta.2",
-    "@webda/shell": "^1.0.0-beta.4",
     "aws-sdk": "^2.311.0",
-    "aws-sdk-mock": "^5.1.0",
     "bluebird": "^3.7.2",
     "uuid": "^3.3.2",
     "yaml": "^1.8.3"
@@ -50,6 +48,8 @@
   },
   "devDependencies": {
     "sinon": "^9.0.1",
-    "tsuml": "^0.0.1-alpha.8"
+    "tsuml": "^0.0.1-alpha.8",
+    "aws-sdk-mock": "^5.1.0",
+    "@webda/shell": "^1.0.0-beta.4"
   }
 }

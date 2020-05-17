@@ -7,11 +7,13 @@ import { ConsoleLogger, WorkerOutput, DebugLogger } from "@webda/workout";
 import { WebdaError } from "@webda/core";
 import * as fs from "fs";
 import AWS = require("aws-sdk");
+import { rejects } from "assert";
+import { DynamoStore } from "../services/dynamodb";
 
 interface CloudFormationDeployerResources extends AWSDeployerResources {
   repositoryNamespace: string;
   // Where to put information
-  AssetsBucket: string;
+  AssetsBucket?: string;
   AssetsPrefix?: string;
 
   Format?: "YAML" | "JSON";
@@ -93,6 +95,9 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
 
   // Deploy images and ECR
   Workers?: [];
+
+  // Keep locally the Lambda package after S3 upload
+  KeepPackage?: boolean;
 }
 
 export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDeployerResources> {
@@ -105,10 +110,17 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
   async defaultResources() {
     await super.defaultResources();
+    let packageDesc = this.getApplication().getPackageDescription();
+    packageDesc.webda = packageDesc.webda || {};
+    packageDesc.webda.aws = packageDesc.webda.aws || {};
+    this.resources.AssetsBucket = this.resources.AssetsBucket || packageDesc.webda.aws.AssetsBucket;
     this.resources.AssetsPrefix = this.resources.AssetsPrefix || "${deployment}/${deployer.name}/";
     this.resources.Description = this.resources.Description || "Deployed by @webda/aws/cloudformation";
-    this.resources.ZipPath = this.resources.ZipPath || "./dist/lambda-${package.version}.zip";
-    this.resources.FileName = this.resources.FileName || this.resources.name;
+    this.resources.ZipPath = this.resources.ZipPath || "lambda-${package.version}.zip";
+    if (!this.resources.ZipPath.endsWith(".zip")) {
+      this.resources.ZipPath += ".zip";
+    }
+    this.resources.FileName = this.resources.FileName || `cloudformation-${this.resources.name}`;
     this.resources.StackName = this.resources.StackName || this.resources.name;
     this.resources.Format = this.resources.Format || "JSON";
     this.resources.OpenAPIFileName = this.resources.OpenAPIFileName || "${resources.name}-openapi-${package.version}";
@@ -118,7 +130,8 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       this.resources.Lambda.Runtime = this.resources.Lambda.Runtime || "nodejs12.x";
       this.resources.Lambda.MemorySize = this.resources.Lambda.MemorySize || 2048;
       this.resources.Lambda.Timeout = this.resources.Lambda.Timeout || 30;
-      this.resources.Lambda.Handler = this.resources.Lambda.Handler || "entrypoint.js";
+      this.resources.Lambda.Handler =
+        this.resources.Lambda.Handler || "node_modules/@webda/aws/lib/deployers/lambda-entrypoint.handler";
       this.resources.Lambda.FunctionName = this.resources.Lambda.FunctionName || this.resources.name;
       if (!this.resources.Lambda.Role) {
         this.resources.Lambda.Role = { "Fn::GetAtt": ["Role", "Arn"] };
@@ -130,7 +143,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
     // Default Role
     if (this.resources.Role) {
-      this.resources.Role.RoleName = `${this.resources.name}Role`;
+      this.resources.Role.RoleName = this.resources.Role.RoleName || `${this.resources.name}Role`;
       if (!this.resources.Role.Policies || this.resources.Role.Policies.length === 0) {
         this.resources.Policy = this.resources.Policy || {};
       }
@@ -145,7 +158,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
     // Default Policy
     if (this.resources.Policy) {
-      this.resources.Policy.PolicyName = `${this.resources.name}Policy`;
+      this.resources.Policy.PolicyName = this.resources.Policy.PolicyName || `${this.resources.name}Policy`;
       this.resources.Policy.Roles = this.resources.Policy.Roles || [];
       if (this.resources.Role) {
         this.resources.Policy.Roles.push({ Ref: "Role" });
@@ -427,12 +440,16 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       }
     }
     let changes = await this.waitFor(
-      async resolve => {
+      async (resolve, reject) => {
         let changes = await cloudformation
           .describeChangeSet({ ChangeSetName: "WebdaCloudFormationDeployer", StackName: this.resources.StackName })
           .promise();
         if (changes.Status === "FAILED" || changes.Status === "CREATE_COMPLETE") {
           resolve(changes);
+          return true;
+        }
+        if (changes.Status === "ROLLBACK_COMPLETE") {
+          reject();
           return true;
         }
       },
@@ -486,7 +503,10 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
           lastEvent = event;
           if (
             lastEvent.LogicalResourceId === this.resources.StackName &&
-            (lastEvent.ResourceStatus === "UPDATE_COMPLETE" || lastEvent.ResourceStatus === "CREATE_COMPLETE")
+            (lastEvent.ResourceStatus === "UPDATE_COMPLETE" ||
+              lastEvent.ResourceStatus === "CREATE_COMPLETE" ||
+              lastEvent.ResourceStatus === "ROLLBACK_COMPLETE" ||
+              lastEvent.ResourceStatus === "UPDATE_ROLLBACK_COMPLETE")
           ) {
             Timeout = false;
             break;
@@ -576,7 +596,8 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
           Bucket: this.resources.AssetsBucket,
           Key: openapiS3Object.key
         }
-      }
+      },
+      DependsOn: "LambdaFunction"
     };
     this.template.Resources.LambdaApiGatewayPermission = {
       Type: "AWS::Lambda::Permission",
@@ -595,7 +616,8 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
             ]
           ]
         }
-      }
+      },
+      DependsOn: "LambdaFunction"
     };
     this.template.Resources.APIGatewayDeployment = {
       Type: "AWS::ApiGateway::Deployment",
@@ -622,6 +644,8 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       if (this.resources.APIGatewayDomain.EndpointConfiguration.Types.indexOf("EDGE") >= 0) {
         region = "us-east-1";
       }
+    } else {
+      region = "us-east-1";
     }
     if (!this.resources.APIGatewayDomain.CertificateArn) {
       this.resources.APIGatewayDomain.CertificateArn = (
@@ -695,7 +719,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       Principal: { Service: "lambda.amazonaws.com" },
       Action: "sts:AssumeRole"
     });
-    this.template.Resources.Lambda = {
+    this.template.Resources.LambdaFunction = {
       Type: "AWS::Lambda::Function",
       Properties: {
         ...this.resources.Lambda,
@@ -736,7 +760,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   }
 
   async generateLambdaPackage(): Promise<{ S3Bucket: string; S3Key: string }> {
-    const { AssetsBucket: S3Bucket, ZipPath, AssetsPrefix = "" } = this.resources;
+    const { AssetsBucket: S3Bucket, ZipPath, AssetsPrefix = "", KeepPackage = false } = this.resources;
     let result: { S3Bucket: string; S3Key: string } = {
       S3Bucket,
       S3Key: AssetsPrefix + path.basename(ZipPath)
@@ -755,6 +779,9 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         src: ZipPath
       }
     ]);
+    if (!KeepPackage) {
+      fs.unlinkSync(ZipPath);
+    }
     return result;
   }
 
@@ -820,11 +847,21 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     }
   }
 
-  static async shellCommand(console, args) {
-    let command = args._.pop();
+  static async shellCommand(Console, args) {
+    let command = args._.shift();
     switch (command) {
       case "init":
-        return await CloudFormationDeployer.init(console);
+        return await CloudFormationDeployer.init(Console);
+      case "copyTable":
+        if (args._.length < 2) {
+          Console.logger.log("ERROR", "Require sourceTable and targetTable");
+          return 1;
+        }
+        await DynamoStore.copyTable(Console.app.getWorkerOutput(), args._[0], args._[1]);
+        return 0;
+      default:
+        Console.logger.log("ERROR", `Unknown command ${command}`);
+        return 1;
     }
   }
 }

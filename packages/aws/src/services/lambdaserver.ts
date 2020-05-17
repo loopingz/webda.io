@@ -145,7 +145,6 @@ export default class LambdaServer extends Webda {
         port = 443;
       }
     }
-
     var resourcePath = event.path;
     // Rebuild query string
     if (event.queryStringParameters) {
@@ -178,7 +177,6 @@ export default class LambdaServer extends Webda {
 
     // Debug mode
     await this.emitSync("Webda.Request", vhost, method, resourcePath, ctx.getCurrentUserId(), body);
-
     // Fallback on reference as Origin is not always set by Edge
     let origin = headers.Origin || headers.origin || ctx.clientInfo.referer;
     // Set predefined headers for CORS
@@ -192,7 +190,6 @@ export default class LambdaServer extends Webda {
       ctx.statusCode = 401;
       return this.handleLambdaReturn(ctx);
     }
-
     if (protocol === "https") {
       // Add the HSTS header
       ctx.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
@@ -201,7 +198,6 @@ export default class LambdaServer extends Webda {
     ctx.setHeader("Access-Control-Max-Age", 3600);
     ctx.setHeader("Access-Control-Allow-Credentials", "true");
     ctx.setHeader("Access-Control-Allow-Headers", headers["access-control-request-headers"] || "content-type");
-    this.log("TRACE", this.router);
     if (method === "OPTIONS") {
       // Return allow all methods for now
       let routes = this.router.getRouteMethodsFromUrl(resourcePath);
@@ -214,7 +210,6 @@ export default class LambdaServer extends Webda {
       await ctx.end();
       return this.handleLambdaReturn(ctx);
     }
-
     var executor = this.getExecutorWithContext(ctx);
 
     if (executor == null) {
@@ -222,7 +217,7 @@ export default class LambdaServer extends Webda {
       ctx.statusCode = 404;
       return this.handleLambdaReturn(ctx);
     }
-    ctx.init();
+    await ctx.init();
     try {
       await executor.execute(ctx);
       if (!ctx._ended) {

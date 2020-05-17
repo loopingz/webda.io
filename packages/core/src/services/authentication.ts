@@ -8,6 +8,7 @@ import { Service } from "../services/service";
 import { Store } from "../stores/store";
 import { Context } from "../utils/context";
 import { Mailer } from "./mailer";
+import { JSONUtils } from "../utils/json";
 
 var Strategies = {
   facebook: {
@@ -79,11 +80,12 @@ class Authentication extends Service {
     this._params.identStore = this._params.identStore || "idents";
     this._params.userStore = this._params.userStore || "users";
     this._params.providers = this._params.providers || {};
+    this._params.expose = this._params.expose || "/auth";
   }
 
   initRoutes() {
     // ROUTES
-    let url = this._params.expose || "/auth";
+    let url = this._params.expose;
     // List authentication configured
     this._addRoute(url, ["GET", "DELETE"], this._listAuthentications, {
       get: {
@@ -400,12 +402,11 @@ class Authentication extends Service {
       await this._usersStore.save(user);
     }
     // Work directly on ident argument
-    ident = new Ident();
-    ident.load(identArg);
+    ident = this._identsStore.initModel(identArg);
     ident.setUser(user.uuid);
     ident._lastUsed = new Date();
     ident.setType(provider);
-    await this._identsStore.save(ident);
+    await ident.save();
     ident.__new = true;
     await this.login(ctx, user, ident);
     this.log("TRACE", "Logged in normally should redirect to", this._params.successRedirect);
@@ -541,21 +542,14 @@ class Authentication extends Service {
     var uuid = ctx.parameter("email") + "_email";
     let ident = await this._identsStore.get(uuid);
     if (ident === undefined) {
-      // Create the ident
-      await this._identsStore.save({
-        uuid: `${ctx.parameter("email")}_email`,
-        _validation: new Date(),
-        user: ctx.parameter("user"),
-        _type: "email"
-      });
-    } else {
-      await this._identsStore.patch({
-        _validation: new Date(),
-        _user: ctx.parameter("user"),
-        _type: "email",
-        uuid: ident.uuid
+      ident = this._identsStore.initModel({
+        uuid
       });
     }
+    ident._type = "email";
+    ident._validation = new Date();
+    ident.setUser(ctx.parameter("user"));
+    await ident.save();
     ctx.writeHead(302, {
       Location: this._params.successRedirect + "?validation=email",
       "X-Webda-Authentication": "success"
@@ -592,7 +586,8 @@ class Authentication extends Service {
     replacements.url = ctx
       .getHttpContext()
       .getFullUrl(
-        "/auth/email/callback?email=" +
+        this._params.expose +
+          "/email/callback?email=" +
           email +
           "&token=" +
           this.generateEmailValidationToken(ctx.getCurrentUserId(), email)
@@ -740,18 +735,18 @@ class Authentication extends Service {
       delete body.register;
       let user = await this.registerUser(ctx, {}, body);
       user = await this._usersStore.save(user);
-      var newIdent: any = {
+      var newIdent: any = this._identsStore.initModel({
         uuid: uuid,
         _type: "email",
-        email: email,
-        _user: user.uuid
-      };
+        email: email
+      });
+      newIdent.setUser(user.uuid);
       if (validation) {
         newIdent._validation = validation;
       } else if (!mailConfig.skipEmailValidation) {
         newIdent._lastValidationEmail = Date.now();
       }
-      ident = await this._identsStore.save(newIdent);
+      ident = await newIdent.save();
       await this.login(ctx, user, ident);
       ctx.write(user);
       if (!validation && !mailConfig.skipEmailValidation) {

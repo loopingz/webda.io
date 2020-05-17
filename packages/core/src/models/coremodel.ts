@@ -172,7 +172,7 @@ class CoreModel extends OwnerPolicy {
    *
    * @throws Error if the object is not coming from a store
    */
-  async save(): Promise<void> {
+  async save(): Promise<this> {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
@@ -180,6 +180,7 @@ class CoreModel extends OwnerPolicy {
     for (var i in obj) {
       this[i] = obj[i];
     }
+    return this;
   }
 
   /**
@@ -192,7 +193,7 @@ class CoreModel extends OwnerPolicy {
       throw Error("No store linked to this object");
     }
     changes[this.__store.getModel().getUuidField()] = this[this.__store.getModel().getUuidField()];
-    let obj = await this.__store.update(changes);
+    let obj = await this.__store.patch(changes);
     for (var i in obj) {
       this[i] = obj[i];
     }
@@ -214,8 +215,14 @@ class CoreModel extends OwnerPolicy {
     if (updates) {
       this.load(updates);
     }
-    if (!ctx._webda.validate(this, schema)) {
-      throw Error(ctx._webda.validationLastErrors());
+    if (!ctx.getWebda().validate(this, schema)) {
+      throw new Error(
+        ctx
+          .getWebda()
+          .validationLastErrors()
+          .map(e => e.message)
+          .join(",")
+      );
     }
     return true;
   }

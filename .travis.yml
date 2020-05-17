@@ -15,7 +15,7 @@ before_install:
 script:
   - yarn
   - yarn build
-  - yarn webda-module
+  - ln -s node_modules sample-app/node_modules
   - echo "Waiting for LocalStack to be Ready"; while :; do docker logs localstack 2>&1
     | grep Ready > /dev/null; e=$?; if [ $e -eq 0 ]; then break; fi; sleep 1; done
   - yarn test

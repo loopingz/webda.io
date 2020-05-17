@@ -35,6 +35,7 @@ import {
 } from "./index";
 import { Deployment } from "./models/deployment";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
+import { AbstractDeployer } from "./utils/abstractdeployer";
 
 export interface ServiceConstructor<T extends Service> {
   new (webda: Core, name: string, params: any): T;
@@ -155,7 +156,10 @@ export class Application {
   constructor(file: string, logger: WorkerOutput = undefined) {
     this.logger = logger || new WorkerOutput();
     if (!fs.existsSync(file)) {
-      throw new WebdaError("NO_WEBDA_FOLDER", `Not a webda application folder or webda.config.json file: ${file}`);
+      throw new WebdaError(
+        "NO_WEBDA_FOLDER",
+        `Not a webda application folder or webda.config.json file: unexisting ${file}`
+      );
     }
     if (fs.lstatSync(file).isDirectory()) {
       file = path.join(file, "webda.config.json");
@@ -177,7 +181,6 @@ export class Application {
     }
     if (this.baseConfiguration.version == 1) {
       this.baseConfiguration = this.migrateV1Config(this.baseConfiguration);
-      fs.writeFileSync(file, JSON.stringify(this.baseConfiguration, undefined, 2));
     }
     // Load if a module definition is included
     if (this.baseConfiguration.module) {
@@ -188,7 +191,9 @@ export class Application {
       this.loadModule(this.baseConfiguration.cachedModules, this.appPath);
       // Import all modules sources to include any annotation
       if (this.baseConfiguration.cachedModules.sources) {
-        this.baseConfiguration.cachedModules.sources.forEach(require);
+        this.baseConfiguration.cachedModules.sources.forEach(src => {
+          require(path.join(process.cwd(), src));
+        });
       }
     }
     let packageJson = path.join(this.appPath, "package.json");
@@ -284,6 +289,7 @@ export class Application {
 
   getService(name) {
     let serviceName = this.completeNamespace(name).toLowerCase();
+    this.log("TRACE", "Search for service", serviceName);
     if (!this.services[serviceName]) {
       serviceName = `Webda/${name}`.toLowerCase();
       // Try Webda namespace
@@ -547,6 +553,10 @@ export class Application {
   }
 
   completeNamespace(info: string): string {
+    // Do not add a namespace if already present
+    if (info.indexOf("/") >= 0) {
+      return info;
+    }
     return `${this.namespace}/${info}`;
   }
 
@@ -554,12 +564,14 @@ export class Application {
     if (!obj) {
       return false;
     }
-    while (obj && obj.__proto__) {
+    let i = 1;
+    while (obj && Object.getPrototypeOf(obj)) {
+      let proto = Object.getPrototypeOf(obj);
       // TODO Have better way
-      if (obj.__proto__.name === className || obj.__proto__ === className) {
+      if (proto.name == className || proto == className) {
         return true;
       }
-      obj = obj.__proto__;
+      obj = proto;
     }
     return false;
   }
@@ -580,26 +592,27 @@ export class Application {
     this._loaded.push(absolutePath);
     let mod = this.resolveRequire(absolutePath);
     let obj = mod;
-    // Check for CoreModel
-    if (this.extends(obj, CoreModel)) {
-      this.log("DEBUG", "Found new CoreModel implementation", this.completeNamespace(obj.name));
-      this.appModule["models"][this.completeNamespace(obj.name)] = path.relative(this.appPath, absolutePath);
-    }
-    // Check if it is a service
-    if (this.extends(obj, Service)) {
-      let name = obj.name;
+    if (obj.getModda) {
+      let modda: ModdaDefinition = mod.getModda();
+      let name;
       let category = "services";
-      if (obj.getModda) {
-        let modda: ModdaDefinition = mod.getModda();
-        if (modda) {
-          name = modda.uuid;
-          if (modda.category) {
-            category = modda.category;
-          }
+      if (modda) {
+        name = modda.uuid;
+        if (modda.category) {
+          category = modda.category;
         }
       }
-      this.log("DEBUG", "Found new Service implementation", this.completeNamespace(name));
+      this.log("DEBUG", `Found new getModda implementation ${category} ${this.completeNamespace(name)}`);
       this.appModule[category][this.completeNamespace(name)] = path.relative(this.appPath, absolutePath);
+    } else if (this.extends(obj, CoreModel)) {
+      this.log("DEBUG", "Found new CoreModel implementation", this.completeNamespace(obj.name));
+      this.appModule["models"][this.completeNamespace(obj.name)] = path.relative(this.appPath, absolutePath);
+    } else if (this.extends(obj, Service)) {
+      this.log("DEBUG", "Found new Service implementation", this.completeNamespace(obj.name));
+      this.appModule.services[this.completeNamespace(obj.name)] = path.relative(this.appPath, absolutePath);
+    } else if (this.extends(obj, AbstractDeployer)) {
+      this.log("DEBUG", "Found new Deployer implementation", this.completeNamespace(obj.name));
+      this.appModule.deployers[this.completeNamespace(obj.name)] = path.relative(this.appPath, absolutePath);
     }
   }
 

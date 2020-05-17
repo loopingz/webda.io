@@ -28,6 +28,7 @@ export * from "./stores/file";
 export * from "./stores/memory";
 export * from "./stores/store";
 // Utils
+export * from "./utils/abstractdeployer";
 export * from "./utils/context";
 export * from "./utils/cookie";
 export * from "./utils/json";

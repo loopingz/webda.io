@@ -1,4 +1,4 @@
-import { Application, Cache, Logger } from "@webda/core";
+import { Application, Cache, Logger, AbstractDeployer } from "@webda/core";
 import { spawn } from "child_process";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 
@@ -12,7 +12,7 @@ export interface DeployerResources {
  * This is an abstract class that should be extended to implement new one
  * @module DeploymentSystem
  */
-export abstract class Deployer<T extends DeployerResources> {
+export abstract class Deployer<T extends DeployerResources> extends AbstractDeployer {
   resources: T;
   manager: DeploymentManager;
   app: Application;
@@ -21,8 +21,11 @@ export abstract class Deployer<T extends DeployerResources> {
   logger: Logger;
   name: string;
   type: string;
+  now: number;
 
   constructor(manager: DeploymentManager, resources: T = undefined) {
+    super();
+    this.now = Date.now();
     this.manager = manager;
     this.logger = new Logger(this.manager.getApplication().getWorkerOutput(), `deployers.${this.constructor.name}`);
     this.app = this.manager.getApplication();
@@ -78,6 +81,7 @@ export abstract class Deployer<T extends DeployerResources> {
       package: this.manager.getPackageDescription(),
       git: this.manager.getGitInformation(),
       deployment: this.manager.getApplication().getCurrentDeployment(),
+      now: this.now,
       deployer: {
         name: this.name,
         type: this.type
@@ -116,7 +120,8 @@ export abstract class Deployer<T extends DeployerResources> {
    */
   async execute(
     command: string,
-    stdin: string = undefined
+    stdin: string = undefined,
+    resolveOnError: boolean = false
   ): Promise<{ status: number; output: string; error: string }> {
     return new Promise((resolve, reject) => {
       let res = {
@@ -139,7 +144,11 @@ export abstract class Deployer<T extends DeployerResources> {
           resolve(res);
         } else {
           res.status = code;
-          reject(res);
+          if (resolveOnError) {
+            resolve(res);
+          } else {
+            reject(res);
+          }
         }
       });
       if (stdin) {

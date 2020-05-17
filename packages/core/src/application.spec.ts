@@ -53,6 +53,7 @@ class ApplicationTest extends WebdaTest {
     assert.equal(fs.existsSync(this.sampleApp.getAppPath("webda.module.json")), true);
     let config = fs.readJSONSync(this.sampleApp.getAppPath("webda.module.json"));
     assert.equal(config.services["WebdaDemo/CustomReusableService"], "lib/services/reusable.js");
+    // Won't be find as it is in a test context
     assert.equal(config.models["WebdaDemo/Contact"], "lib/models/contact.js");
     assert.equal(config.deployers["WebdaDemo/CustomDeployer"], "lib/services/deployer.js");
   }

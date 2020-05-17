@@ -43,7 +43,7 @@ class Task extends CoreModel {
 
   toJSON() {
     // Context should be available to the toJSON
-    if (global.WebdaContext) {
+    if (this.getContext() !== undefined) {
       this._gotContext = true;
     }
     return super.toJSON();

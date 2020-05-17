@@ -60,6 +60,7 @@ class CoreModelTest extends WebdaTest {
   @test("Verify Context access within output to server") async withContext() {
     let ctx = await this.newContext();
     let task = new Task();
+    task.setContext(ctx);
     ctx.write(task);
     let result = JSON.parse(ctx.getResponseBody());
     assert.equal(result._gotContext, true);

@@ -3,11 +3,11 @@ import * as readline from "readline";
 import {
   LogFilter,
   WorkerLogLevel,
-  WorkerLogLevelEnum,
   WorkerMessage,
   WorkerOutput,
   WorkerProgress,
-  WorkerInput
+  WorkerInput,
+  WorkerInputType
 } from "..";
 import { ConsoleLogger } from "../loggers/console";
 import * as util from "util";
@@ -124,8 +124,6 @@ export class Terminal {
           }
         } else {
           this.inputValid = true;
-          const fs = require("fs");
-          fs.writeFileSync("/tmp/key", str);
           this.inputValue += str;
         }
       }
@@ -169,6 +167,8 @@ export class Terminal {
   close() {
     clearInterval(this._refresh);
     this.resetTerm();
+    process.stdin.setRawMode(false);
+    process.stdin.pause();
   }
 
   pushHistory(line) {
@@ -417,7 +417,11 @@ export class Terminal {
     process.stdout.write(screen);
     // Display input
     if (this.inputs.length) {
-      process.stdout.write("\x1B[?25h" + colors.bold(this.inputs[0].title + ": ") + this.inputValue);
+      process.stdout.write(
+        "\x1B[?25h" +
+          colors.bold(this.inputs[0].title + ": ") +
+          (this.inputs[0].type === WorkerInputType.PASSWORD ? "*".repeat(this.inputValue.length) : this.inputValue)
+      );
     }
   }
 

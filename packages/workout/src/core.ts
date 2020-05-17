@@ -51,6 +51,7 @@ export function LogFilter(logLineLevel: WorkerLogLevel, loggerLevel: WorkerLogLe
 
 export enum WorkerInputType {
   STRING,
+  PASSWORD,
   CONFIRMATION,
   LIST
 }

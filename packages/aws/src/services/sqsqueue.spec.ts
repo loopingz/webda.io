@@ -1,6 +1,6 @@
 import { QueueTest } from "@webda/core/lib/queues/queue.spec";
 import * as assert from "assert";
-import { suite, test, timeout } from "mocha-typescript";
+import { suite, test, timeout } from "@testdeck/mocha";
 import { checkLocalStack } from "../index.spec";
 import { SQSQueue } from "./sqsqueue";
 import { GetAWS } from "./aws-mixin";

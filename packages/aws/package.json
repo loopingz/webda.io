@@ -47,8 +47,9 @@
     "access": "public"
   },
   "devDependencies": {
-    "sinon": "^9.0.1",
+    "@testdeck/mocha": "^0.1.0",
+    "@webda/shell": "^1.0.0-beta.4",
     "aws-sdk-mock": "^5.1.0",
-    "@webda/shell": "^1.0.0-beta.4"
+    "sinon": "^9.0.1"
   }
 }

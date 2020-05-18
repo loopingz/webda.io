@@ -24,9 +24,9 @@
   },
   "dependencies": {
     "@webda/aws": "link:../packages/aws/",
-    "@webda/workout": "link:../packages/workout/",
     "@webda/core": "link:../packages/core/",
     "@webda/shell": "link:../packages/shell/",
+    "@webda/workout": "link:../packages/workout/",
     "deepmerge": "^4.2.2",
     "merge": "^1.2.1"
   },
@@ -43,6 +43,7 @@
     "access": "public"
   },
   "devDependencies": {
+    "@testdeck/mocha": "^0.1.0",
     "tsuml": "^0.0.1-alpha.8"
   },
   "webda": {

@@ -1,7 +1,7 @@
 import { Application, Bean, Route, Service } from "@webda/core";
 import * as assert from "assert";
 import * as fs from "fs";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import { checkLocalStack, WebdaAwsTest } from "../index.spec";
 import { LambdaServer } from "./lambdaserver";
 

@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import { WebdaSampleApplication } from "../index.spec";
 import { DeploymentManager } from "./deploymentmanager";
 import { WorkerOutput } from "@webda/workout";

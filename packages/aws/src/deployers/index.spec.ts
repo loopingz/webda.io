@@ -3,7 +3,7 @@ import { DeployerTest } from "@webda/shell/lib/deployers/deployer.spec";
 import * as assert from "assert";
 import * as AWS from "aws-sdk";
 import * as AWSMock from "aws-sdk-mock";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import * as sinon from "sinon";
 import { MethodCacheService } from "ts-method-cache";
 import { AWSDeployer, AWSDeployerResources } from ".";

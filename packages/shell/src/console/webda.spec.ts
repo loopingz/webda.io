@@ -2,7 +2,7 @@
 import * as Webda from "@webda/core";
 import * as assert from "assert";
 import * as fs from "fs";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import * as fetch from "node-fetch";
 import * as path from "path";
 import * as YAML from "yamljs";

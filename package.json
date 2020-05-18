@@ -9,7 +9,6 @@
     "lerna": "^3.21.0",
     "merge-stream": "^2.0.0",
     "mocha": ">=6.1.4",
-    "mocha-typescript": "^1.1.17",
     "nyc": "^15.0.1",
     "prettier": "^2.0.5",
     "sinon": "^9.0.1",

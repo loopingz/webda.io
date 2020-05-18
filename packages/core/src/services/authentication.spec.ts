@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import { Authentication, Context, CoreModel, DebugMailer, Ident, PasswordRecoveryInfos, Store } from "..";
 import { WebdaTest } from "../test";
 

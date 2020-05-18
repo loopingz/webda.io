@@ -2,7 +2,7 @@
 var assert = require("assert");
 import { Store } from "../index";
 import { WebdaTest } from "../test";
-import { test } from "mocha-typescript";
+import { test } from "@testdeck/mocha";
 import * as Idents from "../../test/models/ident";
 
 abstract class StoreTest extends WebdaTest {

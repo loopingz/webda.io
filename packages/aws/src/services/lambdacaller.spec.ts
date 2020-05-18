@@ -1,5 +1,5 @@
 import { WebdaTest } from "@webda/core/lib/test";
-import { test, suite } from "mocha-typescript";
+import { test, suite } from "@testdeck/mocha";
 import * as assert from "assert";
 import { LambdaCaller } from "./lambdacaller";
 

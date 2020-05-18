@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import { GetAWS } from "../index";
 import { checkLocalStack, WebdaAwsTest } from "../index.spec";
 import { CloudWatchLogger } from "./cloudwatchlogger";

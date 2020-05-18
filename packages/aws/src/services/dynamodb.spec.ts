@@ -1,7 +1,7 @@
 import { CoreModel, Ident, Store } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import * as assert from "assert";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import { checkLocalStack } from "../index.spec";
 import { DynamoStore } from "./dynamodb";
 import { GetAWS } from "./aws-mixin";

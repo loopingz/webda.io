@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import * as fs from "fs";
 import * as streams from "memory-streams";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
 import * as unzip from "unzipper";
 import { DeploymentManager } from "../handlers/deploymentmanager";

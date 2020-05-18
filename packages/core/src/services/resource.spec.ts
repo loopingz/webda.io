@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import * as fs from "fs";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import { WebdaTest } from "../test";
 
 @suite

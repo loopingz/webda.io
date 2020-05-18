@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import { Queue } from "../index";
 import { MemoryQueue } from "./memoryqueue";
 import { QueueTest } from "./queue.spec";

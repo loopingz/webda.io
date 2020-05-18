@@ -1,7 +1,7 @@
 import { CoreModel } from "@webda/core";
 import { BinaryTest } from "@webda/core/lib/services/binary.spec";
 import * as assert from "assert";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import { checkLocalStack } from "../index.spec";
 import { DynamoStore } from "./dynamodb";
 import { S3Binary } from "./s3binary";

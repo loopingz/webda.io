@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import * as fs from "fs";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import * as fetch from "node-fetch";
 import { WebdaSampleApplication } from "../index.spec";
 import { WebdaConfiguration } from "./config";

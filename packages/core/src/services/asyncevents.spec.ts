@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import { CoreModel } from "../models/coremodel";
 import { Queue } from "../queues/queueservice";
 import { Store } from "../stores/store";

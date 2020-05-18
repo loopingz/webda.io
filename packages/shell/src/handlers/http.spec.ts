@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import * as fetch from "node-fetch";
 import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import { ServerStatus, WebdaServer } from "./http";

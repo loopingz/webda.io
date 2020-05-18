@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import * as fs from "fs-extra";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
 import { Application, Core } from "./index";
 import { WebdaTest } from "./test";

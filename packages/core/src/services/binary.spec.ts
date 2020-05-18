@@ -2,7 +2,7 @@ import { WebdaTest } from "../test";
 import * as assert from "assert";
 import * as fs from "fs";
 import { Binary, Store } from "..";
-import { test } from "mocha-typescript";
+import { test } from "@testdeck/mocha";
 
 class BinaryTest extends WebdaTest {
   getUserStore(): Store<any> {

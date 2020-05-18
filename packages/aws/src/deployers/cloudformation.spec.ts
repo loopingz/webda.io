@@ -1,6 +1,6 @@
 import { DeploymentManager } from "@webda/shell";
 import { DeployerTest } from "@webda/shell/lib/deployers/deployer.spec";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import * as sinon from "sinon";
 import { CloudFormationDeployer } from "./cloudformation";
 import { MockAWSDeployerMethods } from "./index.spec";

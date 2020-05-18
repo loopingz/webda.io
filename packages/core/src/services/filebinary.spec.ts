@@ -1,7 +1,7 @@
 import { BinaryTest } from "./binary.spec";
 import * as assert from "assert";
 import { FileBinary } from "./filebinary";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import { Binary } from "./binary";
 
 @suite

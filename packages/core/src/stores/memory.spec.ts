@@ -1,7 +1,7 @@
 import { StoreTest } from "./store.spec";
 import { FileStore, CoreModel, Store } from "../index";
 import * as assert from "assert";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import { HttpContext } from "../utils/context";
 
 @suite

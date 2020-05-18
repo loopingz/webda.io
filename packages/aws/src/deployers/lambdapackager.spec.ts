@@ -1,6 +1,6 @@
 import { DeployerTest } from "@webda/shell/lib/deployers/deployer.spec";
 import * as assert from "assert";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
 import { DeploymentManager } from "@webda/shell";
 import { LambdaPackager } from "./lambdapackager";

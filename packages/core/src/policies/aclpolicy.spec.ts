@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { suite, test } from "mocha-typescript";
+import { suite, test } from "@testdeck/mocha";
 import { AclPolicyMixIn, Application, Core, CoreModel, HttpContext, SecureCookie, User } from "../index";
 
 class AclPolicyModel extends AclPolicyMixIn(CoreModel) {}

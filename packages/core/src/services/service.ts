@@ -183,6 +183,7 @@ abstract class Service extends events.EventEmitter {
    * @abstract
    */
   __clean(): Promise<any> {
+    // @ts-ignore
     if (typeof global.it !== "function") {
       throw Error("Only for test purpose");
     }

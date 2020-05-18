@@ -48,7 +48,6 @@
   },
   "devDependencies": {
     "sinon": "^9.0.1",
-    "tsuml": "^0.0.1-alpha.8",
     "aws-sdk-mock": "^5.1.0",
     "@webda/shell": "^1.0.0-beta.4"
   }

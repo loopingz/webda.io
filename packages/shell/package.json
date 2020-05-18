@@ -73,7 +73,6 @@
   "devDependencies": {
     "memory-streams": "^0.1.3",
     "sinon": "^9.0.1",
-    "tsuml": "^0.0.1-alpha.8",
     "@istanbuljs/nyc-config-typescript": "^1.0.1"
   }
 }

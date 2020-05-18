@@ -44,7 +44,6 @@
     "access": "public"
   },
   "devDependencies": {
-    "sinon": "^9.0.1",
-    "tsuml": "^0.0.1-alpha.8"
+    "sinon": "^9.0.1"
   }
 }

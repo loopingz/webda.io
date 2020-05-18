@@ -45,7 +45,6 @@
     "iam-policy-optimizer": "^1.1.2",
     "merge": "^1.2.0",
     "mime-types": ">=2.1.4",
-    "mkdirp": "^0.5.1",
     "multer": ">=1.1.0",
     "nodejs-websocket": "^1.5.0",
     "open": "^6.0.0",

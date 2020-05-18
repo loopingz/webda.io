@@ -1,6 +1,5 @@
 import * as fs from "fs";
 import * as glob from "glob";
-import * as mkdirp from "mkdirp";
 import * as path from "path";
 import { Deployer, DeployerResources } from "./deployer";
 
@@ -94,7 +93,7 @@ export class Docker extends Deployer<DockerResources> {
         }
         let parent = path.dirname(rel_path);
         if (!fs.existsSync(parent)) {
-          mkdirp.sync(parent);
+          fs.mkdirSync(parent, { recursive: true });
         }
         fs.copyFileSync(file, rel_path);
       });

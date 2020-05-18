@@ -147,14 +147,14 @@ export class DeploymentManager {
     let options = {
       cwd: this.application.getAppPath()
     };
-    return {
-      commit: execSync(`git rev-parse HEAD`, options)
-        .toString()
-        .trim(),
-      branch: execSync("git symbolic-ref --short HEAD", options)
-        .toString()
-        .trim()
-    };
+    try {
+      return {
+        commit: execSync(`git rev-parse HEAD`, options).toString().trim(),
+        branch: execSync("git symbolic-ref --short HEAD", options).toString().trim()
+      };
+    } catch (err) {
+      return { commit: "unknown", branch: "unknown" };
+    }
   }
 
   /**

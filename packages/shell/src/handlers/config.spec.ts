@@ -42,7 +42,6 @@ class WebdaConfigurationServerTest {
         ...options.headers
       }
     });
-    console.log(res.status, res.headers);
     if (res.status < 300 && res.status >= 200 && res.headers.get("content-type") === "application/json") {
       return await res.json();
     }
@@ -61,12 +60,10 @@ class WebdaConfigurationServerTest {
   @test
   async testApplicationApi() {
     let res = await this.fetch("/application");
-    console.log(res);
   }
 
   @test
   async testWebdaApi() {
     let res = await this.fetch("/webda");
-    console.log(res);
   }
 }

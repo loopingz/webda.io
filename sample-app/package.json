@@ -43,8 +43,6 @@
     "access": "public"
   },
   "devDependencies": {
-    "@testdeck/mocha": "^0.1.0",
-    "tsuml": "^0.0.1-alpha.8"
   },
   "webda": {
     "namespace": "WebdaDemo"

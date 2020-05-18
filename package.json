@@ -40,7 +40,8 @@
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "repository": "git://github.com/loopingz/webda.io.git",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "sample-app"
   ],
   "scripts": {
     "webda-module": "lerna run webda-module",

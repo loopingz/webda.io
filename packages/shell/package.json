@@ -30,12 +30,12 @@
     "@webda/core": "^1.0.0-beta.2",
     "@webda/workout": "^1.0.0-beta.2",
     "archiver": "^1.0.0",
-    "aws-sdk": "^2.223.1",
+    "aws-sdk": "^2.678.0",
     "body-parser": ">=1.13.3",
     "cli-progress": "^2.1.0",
-    "colors": "^1.3.2",
+    "colors": "^1.4.0",
     "cookie-parser": "^1.4.1",
-    "deepmerge": "^2.2.1",
+    "deepmerge": "^4.2.2",
     "express": "^4.13.4",
     "express-session": ">=1.11.3",
     "filesize": "^3.6.1",
@@ -43,8 +43,8 @@
     "generator-webda": ">=0.9.1",
     "glob": "^7.1.2",
     "iam-policy-optimizer": "^1.1.2",
-    "merge": "^1.2.0",
-    "mime-types": ">=2.1.4",
+    "merge": "^1.2.1",
+    "mime-types": "^2.1.24",
     "multer": ">=1.1.0",
     "nodejs-websocket": "^1.5.0",
     "open": "^6.0.0",
@@ -73,6 +73,7 @@
     "memory-streams": "^0.1.3",
     "sinon": "^9.0.1",
     "tsuml": "^0.0.1-alpha.8",
-    "unzipper": "^0.10.5"
+    "unzipper": "^0.10.5",
+    "@istanbuljs/nyc-config-typescript": "^1.0.1"
   }
 }

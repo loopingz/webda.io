@@ -29,10 +29,10 @@
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
     "@webda/core": "^1.0.0-beta.2",
-    "aws-sdk": "^2.311.0",
+    "aws-sdk": "^2.678.0",
     "bluebird": "^3.7.2",
-    "uuid": "^3.3.2",
-    "yaml": "^1.8.3"
+    "uuid": "^8.0.0",
+    "yaml": "^1.10.0"
   },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",

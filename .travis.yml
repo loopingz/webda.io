@@ -3,8 +3,6 @@ node_js:
   - "12"
 cache:
   yarn: true
-  directories:
-    - node_modules
 service:
   - docker
 before_install:

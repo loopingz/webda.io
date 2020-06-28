@@ -552,7 +552,7 @@ export class Application {
     }
   }
 
-  completeNamespace(info: string): string {
+  completeNamespace(info: string = ""): string {
     // Do not add a namespace if already present
     if (info.indexOf("/") >= 0) {
       return info;
@@ -592,7 +592,7 @@ export class Application {
     this._loaded.push(absolutePath);
     let mod = this.resolveRequire(absolutePath);
     let obj = mod;
-    if (obj.getModda) {
+    if (obj && obj.getModda) {
       let modda: ModdaDefinition = mod.getModda();
       let name;
       let category = "services";

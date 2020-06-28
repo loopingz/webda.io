@@ -147,7 +147,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
         resolve();
       });
 
-      archive.on("error", function(err) {
+      archive.on("error", function (err) {
         console.log(err);
         reject(err);
       });

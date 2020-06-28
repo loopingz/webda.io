@@ -23,7 +23,7 @@ class DockerDeployerTest extends DeployerTest<Docker> {
     assert.equal(this.execs[0][0], "docker build --tag webda-deployer:test --file - .");
     this.execs = [];
     this.deployer.resources.push = true;
-    this.deployer.resources.file = "./testor";
+    this.deployer.resources.Dockerfile = "./testor";
     await this.deployer.deploy();
     assert.equal(this.execs.length, 2);
     assert.equal(this.execs[0][0], "docker build --tag webda-deployer:test --file ./testor .");

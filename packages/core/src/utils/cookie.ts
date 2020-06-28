@@ -115,12 +115,9 @@ class SecureCookie {
         path: "/",
         domain: ctx.getHttpContext().getHost(),
         httpOnly: true,
-        secure: false,
+        secure: ctx.getHttpContext().getProtocol() == "https",
         maxAge: 86400 * 7
       };
-      if (ctx.getHttpContext().getProtocol() == "https") {
-        params.secure = true;
-      }
       // Not sure here
       let cookie = ctx.parameter("cookie");
       if (cookie !== undefined) {

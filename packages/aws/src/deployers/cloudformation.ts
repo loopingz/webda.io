@@ -3,9 +3,14 @@ import * as YAML from "yaml";
 import { AWSDeployer, AWSDeployerResources } from ".";
 import { CloudFormationContributor } from "../services";
 import { WebdaError } from "@webda/core";
+import { DockerResources } from "@webda/shell";
 import * as fs from "fs";
 import AWS = require("aws-sdk");
 import { DynamoStore } from "../services/dynamodb";
+
+interface AWSDockerResources extends DockerResources {
+  includeRepository: boolean;
+}
 
 interface CloudFormationDeployerResources extends AWSDeployerResources {
   repositoryNamespace: string;
@@ -80,6 +85,7 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   Fargate?: {};
   // Workers Image
 
+  Docker?: AWSDockerResources;
   // Deploy Static website
   Statics?: [
     {
@@ -238,6 +244,18 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         conf.CloudFront.DistributionConfig = DistributionConfig;
       }
     });
+
+    // Manage Docker build
+    if (this.resources.Docker) {
+      this.resources.Docker.push = this.resources.Docker.push === undefined ? true : this.resources.Docker.push;
+      this.resources.Docker.includeRepository =
+        this.resources.Docker.includeRepository === undefined ? true : this.resources.Docker.includeRepository;
+      if (this.resources.Docker.includeRepository && this.resources.Docker.tag) {
+        let accountId = (await this.getAWSIdentity()).Account;
+        this.resources.Docker.tag =
+          accountId + ".dkr.ecr.eu-west-1.amazonaws.com/${package.webda.aws.Repository}:" + this.resources.Docker.tag;
+      }
+    }
   }
 
   async deploy(): Promise<any> {
@@ -252,6 +270,13 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     // Ensure S3 bucket exist
     this.logger.log("DEBUG", "Check assets bucket", this.resources.AssetsBucket);
     await this.createBucket(this.resources.AssetsBucket);
+
+    // Build Docker if needed
+    if (this.resources.Docker && this.resources.Docker.tag) {
+      this.logger.log("INFO", "Building Docker image", this.resources.Docker.tag);
+      await this.buildDocker();
+    }
+    process.exit();
 
     this.logger.log("INFO", "Uploading statics");
     // Upload any Statics
@@ -726,6 +751,13 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     };
   }
 
+  async buildDocker() {
+    // Launch the Docker deployment
+    await this.manager.run("WebdaDeployer/Docker", {
+      ...this.resources.Docker
+    });
+  }
+
   async Fargate() {
     this.addAssumeRolePolicyStatement({
       Effect: "Allow",
@@ -802,10 +834,9 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     if (!pkg.webda.aws) {
       console.log(
         "INFO",
-        `This will create a small CloudFormation on your AWS account (${identity.Account}) and region (${AWS.config
-          .region ||
-          process.env.AWS_DEFAULT_REGION ||
-          "us-east-1"})`
+        `This will create a small CloudFormation on your AWS account (${identity.Account}) and region (${
+          AWS.config.region || process.env.AWS_DEFAULT_REGION || "us-east-1"
+        })`
       );
       console.log("INFO", `The stack will be called ${StackName}`);
       pkg.webda.aws = {

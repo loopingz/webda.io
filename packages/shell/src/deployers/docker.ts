@@ -4,10 +4,13 @@ import * as path from "path";
 import { Deployer, DeployerResources } from "./deployer";
 
 export interface DockerResources extends DeployerResources {
-  workers?: string[];
+  // Tag the image
   tag?: string;
+  // Push image to the repository
   push?: boolean;
-  file?: string;
+  // If you want to override the Dockerfile
+  Dockerfile?: string;
+  // command to run on webda
   command?: string;
   // Default image to derivate from
   baseImage?: string;
@@ -19,6 +22,7 @@ export class Docker extends Deployer<DockerResources> {
   async loadDefaults() {
     super.loadDefaults();
     this.resources.baseImage = this.resources.baseImage || "node:lts-alpine";
+    this.resources.command = this.resources.command || "serve";
   }
   /**
    * Build a Docker image with webda application
@@ -53,16 +57,14 @@ export class Docker extends Deployer<DockerResources> {
    * Create Docker image and push
    */
   async deploy() {
-    let { tag, push, file, command } = this.resources;
+    let { tag, push, Dockerfile, command } = this.resources;
 
-    await this.buildDocker(tag, file, command);
+    await this.buildDocker(tag, Dockerfile, command);
     if (tag && push) {
       this.execute("docker push " + tag);
     }
 
-    return {
-      tag
-    };
+    return { tag };
   }
 
   /**
@@ -123,7 +125,8 @@ export class Docker extends Deployer<DockerResources> {
     if (process.env.WEBDA_SHELL_DEV) {
       let dockerfile = "";
       let includes = ["node_modules", "package.json", "lib", "bin/webda"];
-      console.log(
+      this.logger.log(
+        "INFO",
         `Development version of webda-shell (WEBDA_SHELL_DEV=${process.env.WEBDA_SHELL_DEV}), copying itself`
       );
       // Copy webda-shell into build directory
@@ -139,7 +142,7 @@ export class Docker extends Deployer<DockerResources> {
         }
         dockerfile += `ADD ${fullpath} /webda/node_modules/@webda/shell/${path}\n`;
       });
-      dockerfile += `RUN rm /webda/node_modules/.bin/webda\n`;
+      dockerfile += `RUN rm -f /webda/node_modules/.bin/webda\n`;
       dockerfile += `RUN ln -s /webda/node_modules/@webda/shell/bin/webda /webda/node_modules/.bin/webda\n`;
       return dockerfile;
     }
@@ -195,8 +198,9 @@ RUN yarn install
       dockerfile += "RUN node_modules/.bin/webda -d " + deployment + " config webda.config.json\n";
     }
     dockerfile += "RUN rm -rf deployments\n";
-    dockerfile += "ENV WEBDA_COMMAND=" + command;
+    dockerfile += "ENV WEBDA_COMMAND='" + command + "'\n";
     dockerfile += "CMD node_modules/.bin/webda $WEBDA_COMMAND" + logfile + "\n";
+    fs.writeFileSync("/tmp/webda.Dockerfile", dockerfile);
     return dockerfile;
   }
 }

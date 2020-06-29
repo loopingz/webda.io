@@ -44,7 +44,7 @@ class DockerDeployerTest extends DeployerTest<Docker> {
       "ADD ./dist/webda-shell/lib /webda/node_modules/@webda/shell/lib/",
       "RUN mkdir -p /webda/node_modules/@webda/shell/bin/",
       "ADD ./dist/webda-shell/bin/webda /webda/node_modules/@webda/shell/bin/webda",
-      "RUN rm /webda/node_modules/.bin/webda",
+      "RUN rm -f /webda/node_modules/.bin/webda",
       "RUN ln -s /webda/node_modules/@webda/shell/bin/webda /webda/node_modules/.bin/webda",
       ""
     ]);

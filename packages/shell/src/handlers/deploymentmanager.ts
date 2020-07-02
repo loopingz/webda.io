@@ -1,4 +1,4 @@
-import { Application, Core, Cache, Logger, WebdaError } from "@webda/core";
+import { Application, Core, Cache, Logger, WebdaError, Deployment } from "@webda/core";
 import { execSync } from "child_process";
 import * as merge from "merge";
 import ChainDeployer from "../deployers/chaindeployer";
@@ -6,7 +6,9 @@ import { Deployer } from "../deployers/deployer";
 import { Docker } from "../deployers/docker";
 import { Packager } from "../deployers/packager";
 import * as yargs from "yargs";
-import { WorkerOutput } from "@webda/workout";
+import { WorkerOutput, WorkerInputType } from "@webda/workout";
+import * as fs from "fs";
+import * as path from "path";
 
 export interface DeployerConstructor {
   new (manager: DeploymentManager, resources: any): Deployer<any>;
@@ -57,6 +59,44 @@ export class DeploymentManager {
         this.deployers[d.name] = merge.recursive(true, deployment.resources, d); // Load deployer
       }
     });
+  }
+
+  static async new(application: Application) {
+    console.log("test");
+    let output = application.getWorkerOutput();
+    application.loadModules();
+    application.addDeployer("WebdaDeployer/Packager", Packager);
+    application.addDeployer("WebdaDeployer/ChainDeployer", ChainDeployer);
+    application.addDeployer("WebdaDeployer/Docker", Docker);
+    let deployment: Deployment = {
+      uuid: "",
+      units: [],
+      resources: {},
+      services: {},
+      parameters: {}
+    };
+    deployment.uuid = await output.requestInput("Name");
+    while (fs.existsSync(path.join("deployments", deployment.uuid + ".json"))) {
+      output.log("ERROR", "Deployment already exists");
+      deployment.uuid = await output.requestInput("Name");
+    }
+    output.log("INFO", "You can customize the parameters,resources and services objects within the deployment");
+    fs.writeFileSync(path.join("deployments", deployment.uuid + ".json"), JSON.stringify(deployment, undefined, 2));
+    let deployersDefinition = <any>application.getDeployers();
+    output.log("INFO", "Deployers available");
+    Object.keys(deployersDefinition).forEach(t => output.log("INFO", "Deployer:", t));
+    /*
+    let type = await output.requestInput(
+      "Adding a new deployer",
+      WorkerInputType.LIST,
+      Object.keys(deployersDefinition)
+    );
+    let addMore: string;
+    do {
+
+      addMore = await output.requestInput("Add another deployer?", WorkerInputType.CONFIRMATION);
+    } while (addMore === "YES");
+    */
   }
 
   /**

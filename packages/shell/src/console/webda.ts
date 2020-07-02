@@ -405,7 +405,7 @@ export default class WebdaConsole {
   }
 
   static loadExtensions(appPath) {
-    let getAppPath = function(re) {
+    let getAppPath = function (re) {
       return path.join(appPath, re);
     };
     // Search for shell override
@@ -604,6 +604,9 @@ export default class WebdaConsole {
           return 0;
         case "config":
           await this.config(argv);
+          return 0;
+        case "new-deployment":
+          await DeploymentManager.new(this.app);
           return 0;
         case "deploy":
           await this.deploy(argv);

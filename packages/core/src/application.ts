@@ -342,14 +342,14 @@ export class Application {
   }
 
   hasDeployment(deploymentName: string): boolean {
-    return fs.existsSync(path.join(this.appPath, "deployments", deploymentName));
+    return fs.existsSync(path.join(this.appPath, "deployments", deploymentName + ".json"));
   }
 
   getDeployment(deploymentName: string = undefined): Deployment {
     if (!deploymentName) {
       deploymentName = this.currentDeployment;
     }
-    let deploymentConfig = path.join(this.appPath, "deployments", deploymentName);
+    let deploymentConfig = path.join(this.appPath, "deployments", deploymentName + ".json");
     // Load deployment
     if (!fs.existsSync(deploymentConfig)) {
       throw new WebdaError("UNKNOWN_DEPLOYMENT", "Unknown deployment");

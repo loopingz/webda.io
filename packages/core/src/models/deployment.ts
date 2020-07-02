@@ -19,7 +19,6 @@ export default interface Deployment {
   services: any;
   uuid: string;
   units: DeploymentUnit[];
-  callback: any;
 }
 
 export { Deployment };

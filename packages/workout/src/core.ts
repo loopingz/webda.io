@@ -335,8 +335,8 @@ export class WorkerOutput extends EventEmitter {
    */
   async requestInput(
     title: string,
-    type: WorkerInputType,
-    regexp: (string | RegExp)[],
+    type: WorkerInputType = WorkerInputType.STRING,
+    regexp: (string | RegExp)[] = [/.*/],
     waitFor: boolean = true,
     timeout: number = 0
   ): Promise<string> {

@@ -280,7 +280,10 @@ export class Application {
   }
 
   getAppPath(subpath: string = undefined) {
-    if (subpath) {
+    if (subpath && subpath !== "") {
+      if (subpath.startsWith("/")) {
+        return subpath;
+      }
       return path.join(this.appPath, subpath);
     }
     return this.appPath;

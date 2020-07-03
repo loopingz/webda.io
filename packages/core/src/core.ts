@@ -11,6 +11,8 @@ import { Context, HttpContext, Logger, Service, Store } from "./index";
 import { CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { Router } from "./router";
 import { WorkerOutput, WorkerLogLevel } from "@webda/workout";
+import * as path from "path";
+
 /**
  * @hidden
  */
@@ -208,7 +210,6 @@ export class Core extends events.EventEmitter {
   protected application: Application;
   protected router: Router = new Router(this);
   protected _initiated: boolean = false;
-  protected appPath: string = undefined;
   protected failedServices: { [key: string]: any } = {};
   /**
    * Init promise to ensure, webda is initiated
@@ -284,8 +285,8 @@ export class Core extends events.EventEmitter {
     this.initStatics();
   }
 
-  getAppPath(): string {
-    return this.appPath;
+  getAppPath(subpath: string = ""): string {
+    return this.application.getAppPath(subpath);
   }
 
   /**

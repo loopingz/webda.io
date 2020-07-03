@@ -1,5 +1,6 @@
 import { Service } from "./service";
 import { WebdaError } from "../core";
+import * as jsonpath from "jsonpath";
 
 interface ConfigurationProvider {
   getConfiguration(id: string): Promise<Map<string, any>>;
@@ -17,6 +18,7 @@ export default class ConfigurationService extends Service {
   protected _sourceService: any;
   protected _sourceId: string;
   private _interval: NodeJS.Timer | number;
+  protected watches: any[] = [];
 
   async init() {
     // Check interval by default every hour
@@ -50,6 +52,13 @@ export default class ConfigurationService extends Service {
     if (!this._sourceService.canTriggerConfiguration(this._sourceId, this._checkUpdate.bind(this))) {
       this._interval = setInterval(this._checkUpdate.bind(this), 1000);
     }
+
+    // Add webda info
+    this.watch("$.webda.services", this._webda.reinit.bind(this._webda));
+  }
+
+  watch(path: string, callback: (update: any) => void | Promise<void>, defaultValue: any = undefined) {
+    this.watches.push({ path, callback, defaultValue });
   }
 
   stop() {
@@ -72,9 +81,19 @@ export default class ConfigurationService extends Service {
     this.log("DEBUG", "Refreshing configuration");
     let newConfig = (await this._loadConfiguration()) || this._params.default;
     if (JSON.stringify(newConfig) !== this._configuration) {
+      this.emit("Configuration.Applying");
       this.log("DEBUG", "Apply new configuration");
       this._configuration = JSON.stringify(newConfig);
-      this._webda.reinit(newConfig);
+      let promises = [];
+      this.watches.forEach(w => {
+        this.log("TRACE", "Apply new configuration value", jsonpath.query(newConfig, w.path).pop() || w.defaultValue);
+        let p = w.callback(jsonpath.query(newConfig, w.path).pop() || w.defaultValue);
+        if (p) {
+          promises.push(p);
+        }
+      });
+      await Promise.all(promises);
+      this.emit("Configuration.Applied");
     }
     // If the ConfigurationProvider cannot trigger we check at interval
     if (this._interval) {

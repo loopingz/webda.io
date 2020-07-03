@@ -1,5 +1,7 @@
 import * as assert from "assert";
 import { Application, Context, Core, HttpContext, Service } from "./index";
+import { ConsoleLogger } from "@webda/workout";
+import { ConsoleLoggerService } from "./utils/logger";
 
 /**
  * Utility class for UnitTest
@@ -8,6 +10,7 @@ import { Application, Context, Core, HttpContext, Service } from "./index";
  */
 class WebdaTest {
   webda: Core;
+  addConsoleLogger: boolean = true;
 
   getTestConfiguration() {
     return process.cwd() + "/test/config.json";
@@ -17,7 +20,12 @@ class WebdaTest {
     let app = new Application(this.getTestConfiguration());
     app.loadLocalModule();
     this.webda = new Core(app);
+    if (this.addConsoleLogger) {
+      // @ts-ignore - Hack a ConsoleLogger in
+      this.webda.services["ConsoleLogger"] = new ConsoleLoggerService(this.webda, "ConsoleLogger", {});
+    }
   }
+
   async before(init: boolean = true) {
     this.buildWebda();
     if (init) {

@@ -49,18 +49,17 @@
     "Idents": {
       "type": "MemoryStore"
     },
-    "ConfigurationStore": {
-      "type": "FileStore",
-      "folder": "./test/data/configuration"
-    },
-    "ConfigurationService": {
-      "source": "ConfigurationStore:test",
-      "checkInterval": 2,
+    "KubernetesConfigurationService": {
+      "source": "./kube",
       "default": {
         "webda": {
           "services": {
             "Authentication.providers.email.text": "Test"
           }
+        },
+        "other": "text",
+        "yaml": {
+          "field": "test"
         }
       }
     }

@@ -25,11 +25,17 @@ class ConfigurationServiceTest extends WebdaTest {
     assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
     let test = {
       uuid: "test",
-      "Authentication.providers.email.text": "Plop"
+      webda: {
+        services: {
+          "Authentication.providers.email.text": "Plop"
+        }
+      }
     };
     let store: Store<CoreModel> = <Store<CoreModel>>this.webda.getService("ConfigurationStore");
-    await store.save(test);
-    await this.sleep(2100);
+    await new Promise(async resolve => {
+      this.webda.getService("ConfigurationService").on("Configuration.Applied", resolve);
+      await store.save(test);
+    });
     assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
     assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
   }

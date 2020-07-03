@@ -12,13 +12,17 @@ export class FileConfigurationService extends ConfigurationService {
     if (!this._params.source) {
       throw new WebdaError("FILE_CONFIGURATION_SOURCE_MISSING", "Need a source for FileConfigurationService");
     }
+
+    // Load it from where it should be
+    this._params.source = this._webda.getAppPath(this._params.source);
     if (!fs.existsSync(this._params.source)) {
       throw new WebdaError("FILE_CONFIGURATION_SOURCE_MISSING", "Need a source for FileConfigurationService");
     }
 
-    // Avoid display wrong information
-    this._params.checkInterval = "when file is modified";
     fs.watchFile(this._params.source, this._checkUpdate.bind(this));
+
+    // Add webda info
+    this.watch("$.webda.services", this._webda.reinit.bind(this._webda));
 
     await this._checkUpdate();
   }

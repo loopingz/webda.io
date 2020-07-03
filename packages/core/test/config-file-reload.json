@@ -49,13 +49,8 @@
     "Idents": {
       "type": "MemoryStore"
     },
-    "ConfigurationStore": {
-      "type": "FileStore",
-      "folder": "./test/data/configuration"
-    },
-    "ConfigurationService": {
-      "source": "ConfigurationStore:test",
-      "checkInterval": 2,
+    "FileConfigurationService": {
+      "source": "./my-cnf.json",
       "default": {
         "webda": {
           "services": {

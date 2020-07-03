@@ -889,6 +889,16 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
   }
 
   /**
+   * By default we cannot know if the store will trigger or not
+   *
+   * @param id
+   * @param callback
+   */
+  canTriggerConfiguration(id: string, callback: () => void) {
+    return false;
+  }
+
+  /**
    * Provide a way to store configuration in store
    * @param {string} id
    * @returns {Promise<Map<string, any>>}
@@ -984,11 +994,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
   }
 
   async httpAction(ctx: Context) {
-    let action = ctx
-      .getHttpContext()
-      .getUrl()
-      .split("/")
-      .pop();
+    let action = ctx.getHttpContext().getUrl().split("/").pop();
     let body = ctx.getRequestBody();
     let uuid = ctx.parameter("uuid");
     if (!uuid) {
@@ -1021,11 +1027,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
 
   async httpGlobalAction(ctx: Context) {
     let body = ctx.getRequestBody();
-    let action = ctx
-      .getHttpContext()
-      .getUrl()
-      .split("/")
-      .pop();
+    let action = ctx.getHttpContext().getUrl().split("/").pop();
     await this.emitSync("Store.Action", {
       action: action,
       store: this,

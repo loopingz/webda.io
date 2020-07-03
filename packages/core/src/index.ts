@@ -19,6 +19,8 @@ export * from "./services/asyncevents";
 export * from "./services/authentication";
 export * from "./services/binary";
 export * from "./services/configuration";
+export * from "./services/fileconfiguration";
+export * from "./services/kubernetesconfiguration";
 export * from "./services/debugmailer";
 export * from "./services/filebinary";
 export * from "./services/mailer";

@@ -3,6 +3,7 @@ import { WebdaError } from "../core";
 
 interface ConfigurationProvider {
   getConfiguration(id: string): Promise<Map<string, any>>;
+  canTriggerConfiguration(id: string, callback: () => void): boolean;
 }
 
 /**
@@ -46,7 +47,9 @@ export default class ConfigurationService extends Service {
     }
     this._configuration = JSON.stringify(this._params.default);
     await this._checkUpdate();
-    this._interval = setInterval(this._checkUpdate.bind(this), 1000);
+    if (!this._sourceService.canTriggerConfiguration(this._sourceId, this._checkUpdate.bind(this))) {
+      this._interval = setInterval(this._checkUpdate.bind(this), 1000);
+    }
   }
 
   stop() {
@@ -58,12 +61,14 @@ export default class ConfigurationService extends Service {
     // Need to prevent any reinit
   }
 
-  async _loadConfiguration(): Promise<Map<string, any>> {
+  async _loadConfiguration(): Promise<{ [key: string]: any }> {
     return this._sourceService.getConfiguration(this._sourceId);
   }
 
   async _checkUpdate() {
-    if (this._nextCheck > new Date().getTime()) return;
+    // If the ConfigurationProvider cannot trigger we check at interval
+    if (this._interval && this._nextCheck > new Date().getTime()) return;
+
     this.log("DEBUG", "Refreshing configuration");
     let newConfig = (await this._loadConfiguration()) || this._params.default;
     if (JSON.stringify(newConfig) !== this._configuration) {
@@ -71,8 +76,11 @@ export default class ConfigurationService extends Service {
       this._configuration = JSON.stringify(newConfig);
       this._webda.reinit(newConfig);
     }
-    this._updateNextCheck();
-    this.log("DEBUG", "Next configuration refresh in", this._params.checkInterval, "s");
+    // If the ConfigurationProvider cannot trigger we check at interval
+    if (this._interval) {
+      this._updateNextCheck();
+      this.log("DEBUG", "Next configuration refresh in", this._params.checkInterval, "s");
+    }
   }
 
   _updateNextCheck() {

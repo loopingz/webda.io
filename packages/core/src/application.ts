@@ -8,6 +8,8 @@ import {
   CachedModule,
   Configuration,
   ConfigurationService,
+  FileConfigurationService,
+  KubernetesConfigurationService,
   ConsoleLoggerService,
   MemoryLoggerService,
   ConfigurationV1,
@@ -113,6 +115,8 @@ export class Application {
     "webda/resourceservice": ResourceService,
     "webda/memoryqueue": MemoryQueue,
     "webda/configurationservice": ConfigurationService,
+    "webda/fileconfigurationservice": FileConfigurationService,
+    "webda/kubernetesconfigurationservice": KubernetesConfigurationService,
     "webda/consolelogger": ConsoleLoggerService,
     "webda/memorylogger": MemoryLoggerService
   };

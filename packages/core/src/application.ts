@@ -345,6 +345,16 @@ export class Application {
     return fs.existsSync(path.join(this.appPath, "deployments", deploymentName + ".json"));
   }
 
+  /**
+   * Return webda current version
+   *
+   * @returns package version
+   * @since 0.4.0
+   */
+  getWebdaVersion(): string {
+    return JSON.parse(fs.readFileSync(__dirname + "/../package.json").toString()).version;
+  }
+
   getDeployment(deploymentName: string = undefined): Deployment {
     if (!deploymentName) {
       deploymentName = this.currentDeployment;

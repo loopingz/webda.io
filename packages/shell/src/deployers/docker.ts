@@ -14,9 +14,11 @@ export interface DockerResources extends DeployerResources {
   command?: string;
   // Default image to derivate from
   baseImage?: string;
+  // Save the Dockerfile to this location
+  debugDockerfilePath?: string;
 }
 
-export class Docker extends Deployer<DockerResources> {
+export class Docker<T extends DockerResources> extends Deployer<T> {
   _copied: boolean = false;
 
   async loadDefaults() {
@@ -24,6 +26,7 @@ export class Docker extends Deployer<DockerResources> {
     this.resources.baseImage = this.resources.baseImage || "node:lts-alpine";
     this.resources.command = this.resources.command || "serve";
   }
+
   /**
    * Build a Docker image with webda application
    *
@@ -31,7 +34,7 @@ export class Docker extends Deployer<DockerResources> {
    * @param file path of Dockerfile
    * @param command webda command to run
    */
-  buildDocker(tag, file, command: string = "serve") {
+  async buildDocker(tag, file, command: string = "serve") {
     var args = [];
     let stdin;
     args.push("build");
@@ -54,14 +57,33 @@ export class Docker extends Deployer<DockerResources> {
   }
 
   /**
+   * Retrieve lerna repository
+   */
+  getLernaRepository(): string {
+    let dir = process.cwd();
+    do {
+      if (fs.existsSync(path.join(dir, ".git"))) {
+        if (fs.existsSync(path.join(dir, "lerna.json"))) {
+          return dir;
+        }
+        return undefined;
+      }
+      dir = path.join(dir, "..");
+    } while (fs.existsSync(dir));
+    return undefined;
+  }
+
+  /**
    * Create Docker image and push
    */
   async deploy() {
     let { tag, push, Dockerfile, command } = this.resources;
 
+    this.logger.log("INFO", `Building image ${tag}`);
     await this.buildDocker(tag, Dockerfile, command);
     if (tag && push) {
-      this.execute("docker push " + tag);
+      this.logger.log("INFO", `Pushing image ${tag}`);
+      await this.execute("docker push " + tag);
     }
 
     return { tag };
@@ -161,6 +183,12 @@ export class Docker extends Deployer<DockerResources> {
   getDockerfile(command, logfile = undefined) {
     var cwd = process.cwd();
     var packageInfo = require(cwd + "/package.json");
+    let lerna = this.getLernaRepository();
+    let relPath = "";
+    if (lerna) {
+      relPath = cwd.substr(lerna.length);
+      cwd = lerna;
+    }
     var dockerfile = `
 FROM ${this.resources.baseImage}
 MAINTAINER docker@webda.io
@@ -171,6 +199,18 @@ ADD package.json /webda/
 WORKDIR /webda
 RUN yarn install
 `;
+    if (lerna) {
+      dockerfile = `
+FROM ${this.resources.baseImage}
+MAINTAINER docker@webda.io
+EXPOSE 18080
+
+RUN mkdir -p /webda/deployments
+ADD package.json /webda/
+WORKDIR /webda
+RUN yarn install      
+`;
+    }
     dockerfile += this.getDockerfileWebdaShell();
     // Import webda-shell
     if (!command) {
@@ -195,12 +235,14 @@ RUN yarn install
     let deployment = this.manager.getDeploymentName();
     if (deployment) {
       // Export deployment
-      dockerfile += "RUN node_modules/.bin/webda -d " + deployment + " config webda.config.json\n";
+      dockerfile += "RUN webda -d " + deployment + " config webda.config.json\n";
     }
     dockerfile += "RUN rm -rf deployments\n";
     dockerfile += "ENV WEBDA_COMMAND='" + command + "'\n";
-    dockerfile += "CMD node_modules/.bin/webda $WEBDA_COMMAND" + logfile + "\n";
-    fs.writeFileSync("/tmp/webda.Dockerfile", dockerfile);
+    dockerfile += "CMD webda $WEBDA_COMMAND" + logfile + "\n";
+    if (this.resources.debugDockerfilePath) {
+      fs.writeFileSync(this.resources.debugDockerfilePath, dockerfile);
+    }
     return dockerfile;
   }
 }

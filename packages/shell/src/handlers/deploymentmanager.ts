@@ -9,6 +9,7 @@ import * as yargs from "yargs";
 import { WorkerOutput, WorkerInputType } from "@webda/workout";
 import * as fs from "fs";
 import * as path from "path";
+import { Kubernetes } from "../deployers/kubernetes";
 
 export interface DeployerConstructor {
   new (manager: DeploymentManager, resources: any): Deployer<any>;
@@ -36,6 +37,7 @@ export class DeploymentManager {
     this.application.addDeployer("WebdaDeployer/Packager", Packager);
     this.application.addDeployer("WebdaDeployer/ChainDeployer", ChainDeployer);
     this.application.addDeployer("WebdaDeployer/Docker", Docker);
+    this.application.addDeployer("WebdaDeployer/Kubernetes", Kubernetes);
     let deployment = this.application.getDeployment(deploymentName);
     this.webda = new Core(this.application);
     this.deployersDefinition = <any>this.application.getDeployers();
@@ -68,6 +70,7 @@ export class DeploymentManager {
     application.addDeployer("WebdaDeployer/Packager", Packager);
     application.addDeployer("WebdaDeployer/ChainDeployer", ChainDeployer);
     application.addDeployer("WebdaDeployer/Docker", Docker);
+    application.addDeployer("WebdaDeployer/Kubernetes", Kubernetes);
     let deployment: Deployment = {
       uuid: "",
       units: [],

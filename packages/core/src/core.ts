@@ -178,7 +178,7 @@ export function Route(
   allowPath: boolean = false,
   openapi: any = {}
 ) {
-  return function(target: any, executor: string, descriptor: PropertyDescriptor) {
+  return function (target: any, executor: string, descriptor: PropertyDescriptor) {
     let targetName = target.constructor.name.toLowerCase();
     beans[targetName] = beans[targetName] || {
       constructor: target.constructor
@@ -379,7 +379,7 @@ export class Core extends events.EventEmitter {
       webda: executor._webda,
       executor: executor,
       module: {},
-      require: function(mod) {
+      require: function (mod) {
         // We need to add more control here
         if (mod === "net") {
           throw Error("not allowed");
@@ -420,7 +420,7 @@ export class Core extends events.EventEmitter {
    * @since 0.4.0
    */
   getVersion(): string {
-    return JSON.parse(fs.readFileSync(__dirname + "/../package.json").toString()).version;
+    return this.getApplication().getWebdaVersion();
   }
 
   /**

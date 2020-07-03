@@ -19,7 +19,7 @@
   "FargateRegion": "eu-west-1"
  },
  "type": "aws",
- "uuid": "Production",
+ "uuid": "Shell",
  "services": {
      "contacts": {
         "type": "DynamoStore",
@@ -38,7 +38,7 @@
   {
    "name": "Packager",
    "type": "WebdaDeployer/Packager",
-   "zipFile": "plop.zip"
+   "zipPath": "dist/plop.zip"
   }
  ],
  "_type": "deployment",

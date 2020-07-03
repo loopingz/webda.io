@@ -3,10 +3,10 @@ import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { DeployerTest } from "./deployer.spec";
-import { Docker } from "./docker";
+import { Docker, DockerResources } from "./docker";
 
 @suite
-class DockerDeployerTest extends DeployerTest<Docker> {
+class DockerDeployerTest extends DeployerTest<Docker<DockerResources>> {
   async getDeployer(manager: DeploymentManager) {
     return new Docker(manager, {
       name: "deployer",

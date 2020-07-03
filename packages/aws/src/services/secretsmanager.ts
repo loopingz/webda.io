@@ -11,6 +11,10 @@ export default class AWSSecretsManager extends Service implements ConfigurationP
     });
   }
 
+  canTriggerConfiguration(id: string, callback: () => void) {
+    return false;
+  }
+
   async getConfiguration(id: string): Promise<Map<string, any>> {
     return this.get(id);
   }

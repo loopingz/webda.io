@@ -153,28 +153,23 @@ export default class WebdaConsole {
     let service = this.webda.getService(service_name);
     let method = argv._[2] || "work";
     if (!service) {
-      let error = "The service " + service_name + " is missing";
-      this.output(colors.red(error));
+      this.log("ERROR", `The service ${service_name} is missing`);
       return -1;
     }
     if (!service[method]) {
-      let error = "The method " + method + " is missing in service " + service_name;
-      this.output(colors.red(error));
+      this.log("ERROR", `The method ${method} is missing in service ${service_name}`);
       return -1;
     }
     // Launch the worker with arguments
     let timestamp = new Date().getTime();
-    let promise = service[method].apply(service, argv._.slice(3));
-    if (promise instanceof Promise) {
-      return promise.catch(err => {
-        this.output("An error occured".red, err);
+    return Promise.resolve(service[method].apply(service, argv._.slice(3)))
+      .catch(err => {
+        this.log("ERROR", "An error occured", err);
+      })
+      .then(res => {
+        this.log("INFO", "Result:", res ? JSON.stringify(res, undefined, 2) : "void");
+        this.log("TRACE", "Took", Math.ceil((Date.now() - timestamp) / 1000) + "s");
       });
-    }
-    return Promise.resolve(promise).then(res => {
-      this.output("Result:", res);
-      let seconds = (new Date().getTime() - timestamp) / 1000;
-      this.output("Took", Math.ceil(seconds) + "s");
-    });
   }
 
   /**

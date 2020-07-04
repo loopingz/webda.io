@@ -110,6 +110,64 @@ export default class ElasticSearchService extends Service {
     return objects;
   }
 
+  static getObjectSize(obj: any): number {
+    return JSON.stringify(obj).length;
+  }
+
+  static flatten(array: any[]) {
+    if (array.length == 0) return array;
+    else if (Array.isArray(array[0]))
+      return ElasticSearchService.flatten(array[0]).concat(ElasticSearchService.flatten(array.slice(1)));
+    else return [array[0]].concat(ElasticSearchService.flatten(array.slice(1)));
+  }
+
+  async bulk(index: string, objects: any) {
+    let client = await this.getClient();
+    let stats = { added: 0, updated: 0, errors: 0, errorsId: [] };
+    try {
+      if (Array.isArray(objects)) {
+        // Manage size limit
+        let items = objects.map(doc => [{ index: { _index: index, _id: doc.id } }, doc]);
+        let current = 0;
+        do {
+          let push = [];
+          let size = 0;
+          do {
+            push.push(items[current]);
+            size += ElasticSearchService.getObjectSize(items[current]);
+            current++;
+          } while (size < 256 * 1024 && current < items.length);
+          if (current < items.length - 1) {
+            current--;
+          }
+          this.log("TRACE", "Pushing", push.length, "to ES");
+          let res = await client.bulk({
+            refresh: "true",
+            body: ElasticSearchService.flatten(push)
+          });
+          res.body.items.forEach(r => {
+            stats[r.result] = stats[r.result] || 0;
+            stats[r.result]++;
+          });
+        } while (current < items.length);
+      } else {
+        await client.create({
+          index,
+          id: objects.uuid,
+          body: objects
+        });
+      }
+    } catch (err) {
+      if (err.statusCode === 409) {
+        return stats;
+      }
+      if (err.statusCode !== 409) {
+        this.log("ERROR", "Cannot index", objects, err, JSON.stringify(err, undefined, 2));
+      }
+    }
+    return stats;
+  }
+
   async exists(index: string, uuid: string) {
     if (!this._params.indexes[index]) {
       throw new WebdaError("ES_UNKOWN_INDEX", "Unknown index");

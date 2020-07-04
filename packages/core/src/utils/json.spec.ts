@@ -2,8 +2,24 @@ import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { JSONUtils } from "./json";
 
+const TEST_FOLDER = __dirname + "/../../test/jsonutils/";
 @suite
 class UtilsTest {
+  @test("LoadJSON File")
+  fileJson() {
+    assert.deepEqual(JSONUtils.loadFile(TEST_FOLDER + "test.json"), { test: "ok" });
+  }
+
+  @test("LoadYAML File")
+  fileYml() {
+    assert.deepEqual(JSONUtils.loadFile(TEST_FOLDER + "test.yml"), { test: { ok: "plop" }, tab: ["ok", "item2"] });
+  }
+
+  @test("LoadYAML Multiple Docs File")
+  fileYaml() {
+    assert.equal(JSONUtils.loadFile(TEST_FOLDER + "mdocs.yaml").length, 2);
+  }
+
   @test("CircularJSON")
   ciruclarJSON() {
     let a: any = {

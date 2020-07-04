@@ -32,12 +32,11 @@ export const JSONUtils = {
     }
     let content = readFileSync(filename, "utf-8");
     if (filename.match(/\.ya?ml$/i)) {
-      let res = yaml.parse(content);
-      return res;
+      let res = yaml.parseAllDocuments(content);
       if (res.length === 1) {
-        return res.pop();
+        return res.pop().toJSON();
       }
-      return res;
+      return res.map(d => d.toJSON());
     } else if (filename.match(/\.json$/i)) {
       return JSON.parse(content);
     }

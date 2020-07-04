@@ -1,6 +1,7 @@
 import { Application, Cache, Logger, AbstractDeployer } from "@webda/core";
 import { spawn } from "child_process";
 import { DeploymentManager } from "../handlers/deploymentmanager";
+import { WorkerLogLevel } from "@webda/workout";
 
 export interface DeployerResources {
   name: string;
@@ -96,7 +97,7 @@ export abstract class Deployer<T extends DeployerResources> extends AbstractDepl
   objectParameter(object: any) {
     let from = this;
     return JSON.parse(
-      JSON.stringify(object, function(key: string, value: any) {
+      JSON.stringify(object, function (key: string, value: any) {
         if (typeof this[key] === "string") {
           return from.stringParameter(value);
         }
@@ -120,7 +121,8 @@ export abstract class Deployer<T extends DeployerResources> extends AbstractDepl
   async execute(
     command: string,
     stdin: string = undefined,
-    resolveOnError: boolean = false
+    resolveOnError: boolean = false,
+    logLevel: WorkerLogLevel = "TRACE"
   ): Promise<{ status: number; output: string; error: string }> {
     return new Promise((resolve, reject) => {
       let res = {
@@ -131,10 +133,12 @@ export abstract class Deployer<T extends DeployerResources> extends AbstractDepl
       var ls = spawn(command, { shell: true });
 
       ls.stdout.on("data", data => {
+        this.logger.log(logLevel, data.toString());
         res.output += data.toString();
       });
 
       ls.stderr.on("data", data => {
+        this.logger.log("ERROR", data.toString());
         res.error += data.toString();
       });
 

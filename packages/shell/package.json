@@ -52,6 +52,7 @@
     "request": "^2.81.0",
     "request-promise": "^4.2.0",
     "semver": "^6.2.0",
+    "semver-intersect": "^1.4.0",
     "socket.io": "^2.0.3",
     "unzipper": "^0.10.5",
     "yamljs": "^0.3.0",

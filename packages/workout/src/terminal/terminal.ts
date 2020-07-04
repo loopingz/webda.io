@@ -167,7 +167,9 @@ export class Terminal {
   close() {
     clearInterval(this._refresh);
     this.resetTerm();
-    process.stdin.setRawMode(false);
+    if (process.stdin.setRawMode) {
+      process.stdin.setRawMode(false);
+    }
     process.stdin.pause();
   }
 
@@ -317,9 +319,9 @@ export class Terminal {
       .padStart(5);
     let numberLength = p.total.toString().length;
     let line = this.displayString(
-      `${bar} ${Math.floor(p.current)
-        .toString()
-        .padStart(numberLength)}/${p.total} ${p.title || ""}`.padEnd(process.stdout.columns - 2)
+      `${bar} ${Math.floor(p.current).toString().padStart(numberLength)}/${p.total} ${p.title || ""}`.padEnd(
+        process.stdout.columns - 2
+      )
     );
     if (line.length > process.stdout.columns - 2) {
       line = line.substr(0, process.stdout.columns - 2);

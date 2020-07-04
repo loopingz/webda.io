@@ -1,7 +1,11 @@
-import { Configuration } from "@webda/core";
+import { Configuration, JSONUtils } from "@webda/core";
 import * as fs from "fs";
 import * as path from "path";
 import { Deployer, DeployerResources } from "./deployer";
+import * as semver from "semver";
+import { intersect } from "semver-intersect";
+import * as glob from "glob";
+import * as crypto from "crypto";
 
 export interface PackagerResources extends DeployerResources {
   zipPath: string;
@@ -25,6 +29,129 @@ export interface PackagerResources extends DeployerResources {
  */
 export default class Packager<T extends PackagerResources> extends Deployer<T> {
   packagesGenerated: { [key: string]: boolean } = {};
+
+  static loadPackageInfo(dir): any {
+    return JSONUtils.loadFile(path.join(dir, "package.json"));
+  }
+
+  static getWorkspacesPackages(dir: string = ""): string[] {
+    if (dir === "") {
+      dir = process.cwd();
+    }
+    let result = [];
+    if (fs.existsSync(path.join(dir, "lerna.json"))) {
+      result = JSONUtils.loadFile(path.join(dir, "lerna.json")).packages;
+    } else {
+      result = this.loadPackageInfo(dir).workspaces;
+    }
+    result = result || ["packages/*"];
+    return result
+      .map(r => glob.sync(path.join(dir, r)))
+      .flat()
+      .map(r => path.relative(dir, r));
+  }
+
+  /**
+   * Retrieve Yarn workspaces root
+   */
+  static getWorkspacesRoot(dir: string = ""): string {
+    if (dir === "") {
+      dir = process.cwd();
+    }
+    do {
+      if (fs.existsSync(path.join(dir, "lerna.json"))) {
+        return dir;
+      }
+
+      if (fs.existsSync(path.join(dir, "package.json"))) {
+        try {
+          let pkg = JSONUtils.loadFile(path.join(dir, "package.json"));
+          if (pkg.workspaces) {
+            return dir;
+          }
+        } catch (err) {}
+      }
+      // Does not make sense to go upper than the .git repo
+      if (fs.existsSync(path.join(dir, ".git")) || path.resolve(dir) === "/") {
+        return undefined;
+      }
+      dir = path.join(dir, "..");
+    } while (fs.existsSync(dir));
+    return undefined;
+  }
+
+  static getPackageLastChanges(pkg: string, includeWorkspace: boolean = false): string {
+    let hash = crypto.createHash("md5");
+    if (includeWorkspace) {
+      let root = this.getWorkspacesRoot(pkg);
+      if (root) {
+        this.getWorkspacesPackages(root).forEach(p => {
+          if (fs.existsSync(path.join(root, p, "package.json"))) {
+            hash.update(this.getPackageLastChanges(path.join(root, p), false));
+          }
+        });
+        return hash.digest("hex");
+      }
+    }
+    let main = Packager.loadPackageInfo(pkg);
+    main.files = main.files || [];
+    main.files.forEach(p => {
+      let includeDir = path.join(pkg, p);
+      if (fs.existsSync(includeDir)) {
+        glob.sync(includeDir).forEach(src => {
+          let stat = fs.lstatSync(src);
+          if (stat.isDirectory()) {
+            return glob.sync(src + "/**").forEach(f => hash.update(fs.lstatSync(f).mtime + f));
+          } else {
+            hash.update(stat.mtime + src);
+          }
+        });
+      }
+    });
+    return hash.digest("hex");
+  }
+
+  static getDependencies(pkg: string): { [key: string]: string } {
+    let deps: { [key: string]: any[] } = {};
+    let wrk = Packager.getWorkspacesRoot();
+    let main = Packager.loadPackageInfo(pkg);
+    main.resolutions = main.resolutions || {};
+    let browse = (p: string, depth: number) => {
+      let info = Packager.loadPackageInfo(p);
+      info.dependencies = info.dependencies || {};
+      Object.keys(info.dependencies).forEach(name => {
+        let version = info.dependencies[name];
+        if (main.resolutions[name]) {
+          version = main.resolutions[name];
+        }
+        deps[name] = deps[name] || [];
+        //if (deps[name].indexOf(version) < 0) {
+        deps[name].push({ name: p, version });
+        //}
+        if (fs.existsSync(`node_modules/${name}`)) {
+          browse(`node_modules/${name}`, depth + 1);
+        } else if (wrk && fs.existsSync(`${wrk}/node_modules/${name}`)) {
+          browse(`${wrk}/node_modules/${name}`, depth + 1);
+        }
+      });
+    };
+    browse(pkg, 0);
+    let resolutions: { [key: string]: string } = {};
+    for (let i in deps) {
+      if (deps[i].length > 1) {
+        try {
+          resolutions[i] = intersect(
+            ...deps[i].filter(v => semver.validRange(v.version) && v.version !== "*").map(v => v.version)
+          );
+        } catch (err) {
+          console.log("Cannot simplify", i, deps[i]);
+        }
+      } else {
+        resolutions[i] = deps[i][0].version;
+      }
+    }
+    return resolutions;
+  }
 
   async loadDefaults() {
     await super.loadDefaults();

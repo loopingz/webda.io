@@ -26,6 +26,7 @@ export interface KubernetesResources extends DockerResources {
   resources?: any;
   patchResources?: any; //{ [key: string]: any };
   resourcesFile?: string;
+  cronTemplate?: any;
 }
 
 const DEFAULT_API = {
@@ -43,6 +44,16 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     jsonpath.value(spec, '$.metadata.annotations["webda.io/deployer"]', this.name);
     jsonpath.value(spec, '$.metadata.annotations["webda.io/deployment"]', this.manager.getDeploymentName());
     jsonpath.value(spec, '$.metadata.annotations["webda.io/version"]', this.getApplication().getWebdaVersion());
+    jsonpath.value(
+      spec,
+      '$.metadata.annotations["webda.io/application"]',
+      this.getApplication().getPackageDescription().name
+    );
+    jsonpath.value(
+      spec,
+      '$.metadata.annotations["webda.io/application/version"]',
+      this.getApplication().getPackageDescription().version
+    );
   }
 
   completeResource(resource: KubernetesObject): boolean {

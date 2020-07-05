@@ -197,7 +197,11 @@ export class Docker<T extends DockerResources> extends Deployer<T> {
 
   getDockerfileHeader() {
     return `FROM ${this.resources.baseImage}
-LABEL webda.io=docker@webda.io
+LABEL webda.io/deployer=${this.name}
+LABEL webda.io/deployment=${this.manager.getDeploymentName()}
+LABEL webda.io/version=${this.getApplication().getWebdaVersion()}
+LABEL webda.io/application=${this.getApplication().getPackageDescription().name}
+LABEL webda.io/application/version=${this.getApplication().getPackageDescription().version}
 EXPOSE 18080
 RUN mkdir -p /webda
 WORKDIR /webda

@@ -558,6 +558,24 @@ export default class WebdaConsole {
         return -1;
       }
 
+      // Update logo
+      if (this.app.getPackageDescription().webda && this.app.getPackageDescription().webda.logo) {
+        let logo = this.app.getPackageDescription().webda.logo;
+        this.log("TRACE", "Updating logo", logo);
+        if (Array.isArray(logo)) {
+          this.terminal.setLogo(logo);
+        } else if (typeof logo === "string") {
+          if (fs.existsSync(this.app.getAppPath(logo))) {
+            this.terminal.setLogo(fs.readFileSync(this.app.getAppPath(logo)).toString().split("\n"));
+          } else {
+            this.log("WARN", "Cannot find logo", this.app.getAppPath(logo));
+          }
+        }
+      }
+      if (this.terminal.getLogo() === undefined) {
+        this.terminal.setDefaultLogo();
+      }
+
       // Load deployment
       if (argv.deployment) {
         if (!this.app.hasDeployment(argv.deployment)) {

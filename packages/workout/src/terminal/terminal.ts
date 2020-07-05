@@ -357,11 +357,26 @@ export class Terminal {
   /**
    * Set the logo to display
    *
+   * How to create logo:
+   *
    * @param logo to display
    */
   setLogo(logo: string[]) {
     this.logo = logo;
-    this.logoWidth = Math.max(...this.logo.map(this.getTrueLength));
+    if (this.logo) {
+      this.logoWidth = Math.max(...this.logo.map(this.getTrueLength));
+    } else {
+      this.logoWidth = 0;
+    }
+  }
+
+  /**
+   * Retrieve current logo
+   *
+   * Usefull to add some versions
+   */
+  getLogo(): string[] {
+    return this.logo;
   }
 
   displayHistory(lines: number, complete: boolean = true) {

@@ -366,6 +366,7 @@ export class Terminal {
     if (this.logo) {
       this.logoWidth = Math.max(...this.logo.map(this.getTrueLength));
     } else {
+      this.logo = [];
       this.logoWidth = 0;
     }
   }

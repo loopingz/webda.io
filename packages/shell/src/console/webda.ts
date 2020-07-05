@@ -559,8 +559,8 @@ export default class WebdaConsole {
       }
 
       // Update logo
-      if (this.app.getPackageDescription().webda && this.app.getPackageDescription().webda.logo) {
-        let logo = this.app.getPackageDescription().webda.logo;
+      if (this.app.getPackageWebda().logo) {
+        let logo = this.app.getPackageWebda().logo;
         this.log("TRACE", "Updating logo", logo);
         if (Array.isArray(logo)) {
           this.terminal.setLogo(logo);

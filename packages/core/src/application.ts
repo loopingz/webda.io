@@ -38,6 +38,7 @@ import {
 import { Deployment } from "./models/deployment";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import { AbstractDeployer } from "./utils/abstractdeployer";
+import * as deepmerge from "deepmerge";
 
 export interface ServiceConstructor<T extends Service> {
   new (webda: Core, name: string, params: any): T;
@@ -148,6 +149,10 @@ export class Application {
    */
   protected packageDescription: any = {};
   /**
+   * Contains webda section of package.json and workspaces if exist
+   */
+  protected packageWebda: any = {};
+  /**
    * Webda namespace
    */
   protected namespace: string;
@@ -200,15 +205,58 @@ export class Application {
         });
       }
     }
-    let packageJson = path.join(this.appPath, "package.json");
-    if (fs.existsSync(packageJson)) {
-      this.packageDescription = JSON.parse(fs.readFileSync(packageJson).toString());
-    }
+    this.loadPackageInfos();
     this.namespace = this.packageDescription.webda
       ? this.packageDescription.webda.namespace
       : this.packageDescription.name | this.packageDescription.name;
   }
 
+  /**
+   * Check package.json
+   */
+  loadPackageInfos() {
+    let packageJson = path.join(this.appPath, "package.json");
+    if (fs.existsSync(packageJson)) {
+      this.packageDescription = JSON.parse(fs.readFileSync(packageJson).toString());
+    } else {
+      this.log("WARN", "Application does not have a package.json");
+      return;
+    }
+    this.packageWebda = this.packageDescription.webda || {};
+    let parent = path.join(this.appPath, "..");
+    do {
+      packageJson = path.join(parent, "package.json");
+      if (fs.existsSync(packageJson)) {
+        let info = JSON.parse(fs.readFileSync(packageJson).toString());
+        if (info.workspaces) {
+          this.log("DEBUG", "Application is running within a workspace");
+          // Replace any relative path by absolute one
+          for (let i in info.webda) {
+            if (info.webda[i].startsWith("./")) {
+              info.webda[i] = path.resolve(parent) + "/" + info.webda[i].substr(2);
+            }
+          }
+          this.packageWebda = deepmerge(info.webda || {}, this.packageWebda);
+          this.packageWebda.workspaces = {
+            packages: info.workspaces,
+            parent: info,
+            path: path.resolve(parent)
+          };
+          return;
+        }
+      }
+      parent = path.join(parent, "..");
+    } while (path.resolve(parent) !== "/");
+  }
+
+  /**
+   * Retrieve specific webda conf from package.json
+   *
+   * In case of workspaces the object is combined
+   */
+  getPackageWebda() {
+    return this.packageWebda;
+  }
   /**
    * Retrieve content of package.json
    */

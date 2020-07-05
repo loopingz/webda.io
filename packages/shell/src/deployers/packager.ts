@@ -38,13 +38,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     if (dir === "") {
       dir = process.cwd();
     }
-    let result = [];
-    if (fs.existsSync(path.join(dir, "lerna.json"))) {
-      result = JSONUtils.loadFile(path.join(dir, "lerna.json")).packages;
-    } else {
-      result = this.loadPackageInfo(dir).workspaces;
-    }
-    result = result || ["packages/*"];
+    let result = this.loadPackageInfo(dir).workspaces || ["packages/*"];
     return result
       .map(r => glob.sync(path.join(dir, r)))
       .flat()

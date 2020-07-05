@@ -41,7 +41,7 @@ export class Docker<T extends DockerResources> extends Deployer<T> {
     this.resources.command = this.resources.command || "serve";
     this.resources.excludePackages = this.resources.excludePackages || [];
     if (!this.resources.workDirectory && this.resources.includeWorkspaces) {
-      let workspacePath = Packager.getWorkspacesRoot();
+      let workspacePath = this.getApplication().getPackageWebda().workspaces.path;
       if (workspacePath) {
         this.workspaces = true;
         this.logger.log("INFO", `Workspaces detected using ${workspacePath} as workingDirectory`);
@@ -211,15 +211,8 @@ ADD package.json /webda/\n\n`;
   getWorkspacesDockerfile() {
     let appPath = this.manager.getApplication().getAppPath();
     let relPath = path.relative(process.cwd(), appPath);
-    let lerna = fs.existsSync(path.join(process.cwd(), "lerna.json"));
 
     let dockerfile = this.getDockerfileHeader();
-    if (lerna) {
-      dockerfile += `# Lerna Workspace
-RUN yarn global add lerna
-ADD lerna.json /webda/\n\n`;
-    }
-
     let packages = Packager.getWorkspacesPackages();
     packages.forEach(pack => {
       dockerfile += `ADD ${pack}/package.json /webda/${pack}/package.json\n`;

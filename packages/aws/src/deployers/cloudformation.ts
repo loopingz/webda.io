@@ -276,7 +276,6 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       this.logger.log("INFO", "Building Docker image", this.resources.Docker.tag);
       await this.buildDocker();
     }
-    process.exit();
 
     this.logger.log("INFO", "Uploading statics");
     // Upload any Statics

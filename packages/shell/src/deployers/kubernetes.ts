@@ -4,6 +4,8 @@ import * as fs from "fs";
 import * as yaml from "yaml";
 import * as jsonpath from "jsonpath";
 import { Deployer } from "./deployer";
+import { CronService, JSONUtils } from "@webda/core";
+import * as crypto from "crypto";
 
 export interface KubernetesObject {
   kind: string;
@@ -15,6 +17,31 @@ export interface KubernetesObject {
   [key: string]: any;
 }
 
+const DEFAULT_CRON_DEFINITION = `apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: \${cron.serviceName}-\${cron.method.toLowerCase()}-\${cron.cronId}
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - image: \${resources.tag}
+              imagePullPolicy: Always
+              name: scheduled-job
+              resources: {}
+          imagePullSecrets:
+            - name: docker-registry-key
+          restartPolicy: Never
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+  schedule: \${cron.cron}
+  successfulJobsHistoryLimit: 3
+`;
+
 export function KubernetesObjectToURI({ apiVersion, metadata: { name, namespace }, kind }: KubernetesObject) {
   return `${apiVersion || "v1"}/${namespace || "default"}/${kind.toLowerCase()}s/${name}`;
 }
@@ -23,10 +50,10 @@ export interface KubernetesResources extends DockerResources {
   context?: string;
   config?: string | Object;
   defaultNamespace?: string;
-  resources?: any;
+  resources?: KubernetesObject[];
   patchResources?: any; //{ [key: string]: any };
   resourcesFile?: string;
-  cronTemplate?: any;
+  cronTemplate?: string | KubernetesObject;
 }
 
 const DEFAULT_API = {
@@ -46,12 +73,12 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     jsonpath.value(spec, '$.metadata.annotations["webda.io/version"]', this.getApplication().getWebdaVersion());
     jsonpath.value(
       spec,
-      '$.metadata.annotations["webda.io/application"]',
+      '$.metadata.annotations["webda.io/application.name"]',
       this.getApplication().getPackageDescription().name
     );
     jsonpath.value(
       spec,
-      '$.metadata.annotations["webda.io/application/version"]',
+      '$.metadata.annotations["webda.io/application.version"]',
       this.getApplication().getPackageDescription().version
     );
   }
@@ -72,11 +99,22 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     return true;
   }
 
+  getCronId(cron) {
+    let hash = crypto.createHash("md5");
+    return hash
+      .update(JSON.stringify(cron) + this.name + this.manager.getDeploymentName())
+      .digest("hex")
+      .substr(0, 8);
+  }
+
   async deploy() {
     // Create the Docker image
     if (this.resources.tag && this.resources.push) {
+      this.logger.log("INFO", "Launching subdeployer Docker");
       await this.manager.run("webdadeployer/docker", this.resources);
     }
+
+    this.logger.log("INFO", "Initializing Kubernetes Client");
     // Initiate Kubernetes
     const kc = new k8s.KubeConfig();
     // Load all type of configuration
@@ -101,6 +139,40 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     }
     this.client = k8s.KubernetesObjectApi.makeApiClient(kc);
 
+    // Manage CronJob - add resource if required
+    if (this.resources.cronTemplate) {
+      this.logger.log("INFO", "Adding CronJob resources");
+      let crons = CronService.loadAnnotations(this.manager.getWebda().getServices());
+      let resource;
+      if (typeof this.resources.cronTemplate === "boolean") {
+        resource = yaml.parse(DEFAULT_CRON_DEFINITION);
+      } else if (typeof this.resources.cronTemplate === "string") {
+        resource = JSONUtils.loadFile(this.resources.cronTemplate);
+      } else {
+        resource = this.resources.cronTemplate;
+      }
+      this.completeResource(resource);
+      let cronDeployerId = crypto
+        .createHash("md5")
+        .update(this.name + this.manager.getDeploymentName())
+        .digest("hex");
+      jsonpath.value(resource, '$.metadata.annotations["webda.io/crondeployer"]', cronDeployerId);
+
+      this.resources.resources = this.resources.resources || [];
+      let ids = [];
+      crons.forEach(cron => {
+        this.parameters.cron = { ...cron, cronId: this.getCronId(cron) };
+        jsonpath.value(resource, '$.metadata.annotations["webda.io/cronid"]', this.parameters.cron.cronId);
+        ids.push(this.parameters.cron.cronId);
+        this.resources.resources.push(this.objectParameter(resource));
+      });
+      this.parameters.cron = undefined;
+      //await this.client.
+      // Search for any cron that was deployed by us
+      this.logger.log("INFO", JSON.stringify(this.resources.resources, undefined, 2));
+    }
+
+    this.logger.log("INFO", "Manage patch resources");
     // Patch resource
     for (let i in this.resources.patchResources) {
       let resource: KubernetesObject = this.resources.patchResources[i];
@@ -126,30 +198,27 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       }
     }
 
+    this.logger.log("INFO", "Manage inline resources");
     // Inline resource
     for (let i in this.resources.resources) {
-      let resource: KubernetesObject = this.resources.patchResources[i];
+      let resource: KubernetesObject = this.resources.resources[i];
 
-      if (!resource.kind || !resource.metadata || !resource.metadata.name) {
+      if (!this.completeResource(resource)) {
         this.logger.log("ERROR", `Resource #${i} of resources is incorrect (kind,metadata.name) are required`);
         continue;
       }
-
+      this.addAnnotation(resource);
       await this.upsertKubernetesObject(resource);
     }
 
+    this.logger.log("INFO", "Manage file resources");
     // File resource
     if (this.resources.resourcesFile) {
       if (this.resources.resourcesFile.match(/\.(ya?ml|json)$/i) && fs.existsSync(this.resources.resourcesFile)) {
-        let resources = [];
-        if (this.resources.resourcesFile.endsWith(".json")) {
-          resources = JSON.parse(fs.readFileSync(this.resources.resourcesFile, "utf8"));
-        } else {
-          resources = yaml.parseAllDocuments(fs.readFileSync(this.resources.resourcesFile, "utf8"));
-        }
+        let resources = JSONUtils.loadFile(this.resources.resourcesFile);
         if (Array.isArray(resources)) {
           for (let i in resources) {
-            let resource = resources[i];
+            let resource = this.objectParameter(resources[i]);
             if (!this.completeResource(resource)) {
               this.logger.log("ERROR", `Resource invalid #${i} of resourcesFile`);
               continue;
@@ -170,8 +239,17 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       // try to get the resource, if it does not exist an error will be thrown and we will end up in the catch
       // block.
       await this.client.read(resource);
-      // we got the resource, so it exists, so patch it
-      await this.client.patch(resource);
+      this.logger.log("INFO", "Updating", resource.metadata);
+      try {
+        if (resource.kind === "Certificate" && resource.apiVersion === "certmanager.k8s.io/v1alpha1") {
+          // Certificate are not patchable
+          return;
+        }
+        // we got the resource, so it exists, so patch it
+        await this.client.patch(resource);
+      } catch (e) {
+        this.logger.log("ERROR", "Cannot patch", resource.metadata, e);
+      }
     } catch (e) {
       // we did not get the resource, so it does not exist, so create it
       await this.client.create(resource);

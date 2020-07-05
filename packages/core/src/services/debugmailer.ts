@@ -1,6 +1,5 @@
 import { ModdaDefinition } from "../core";
 import { Service } from "./service";
-import e = require("express");
 
 export default class DebugMailer extends Service {
   sent: any[] = [];

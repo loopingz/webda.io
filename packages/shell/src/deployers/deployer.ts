@@ -23,6 +23,8 @@ export abstract class Deployer<T extends DeployerResources> extends AbstractDepl
   name: string;
   type: string;
   now: number;
+  // Additional parameters
+  parameters: any;
 
   constructor(manager: DeploymentManager, resources: T = undefined) {
     super();
@@ -31,6 +33,7 @@ export abstract class Deployer<T extends DeployerResources> extends AbstractDepl
     this.logger = new Logger(this.manager.getApplication().getWorkerOutput(), `deployers.${this.constructor.name}`);
     this.app = this.manager.getApplication();
     this.resources = resources;
+    this.parameters = {};
   }
 
   /**
@@ -85,7 +88,8 @@ export abstract class Deployer<T extends DeployerResources> extends AbstractDepl
       deployer: {
         name: this.name,
         type: this.type
-      }
+      },
+      ...this.parameters
     });
   }
 
@@ -124,6 +128,7 @@ export abstract class Deployer<T extends DeployerResources> extends AbstractDepl
     resolveOnError: boolean = false,
     logLevel: WorkerLogLevel = "TRACE"
   ): Promise<{ status: number; output: string; error: string }> {
+    this.logger.log("DEBUG", "Command", command, stdin ? "with stdin" + stdin : undefined);
     return new Promise((resolve, reject) => {
       let res = {
         status: 0,

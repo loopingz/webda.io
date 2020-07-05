@@ -1,7 +1,6 @@
-import { Service, Bean, Cache } from "..";
 import * as crontab from "node-cron";
+import { Service } from "./service";
 
-@Bean
 class CronService extends Service {
   enable: boolean;
   crons: {
@@ -26,7 +25,6 @@ class CronService extends Service {
     };
   }
 
-  @Cache()
   static loadAnnotations(services) {
     let cronsResult = [];
     for (let i in services) {

@@ -559,7 +559,7 @@ export default class WebdaConsole {
       }
 
       // Update logo
-      if (this.app.getPackageWebda().logo) {
+      if (this.app.getPackageWebda().logo && this.terminal) {
         let logo = this.app.getPackageWebda().logo;
         this.log("TRACE", "Updating logo", logo);
         if (Array.isArray(logo)) {
@@ -572,7 +572,7 @@ export default class WebdaConsole {
           }
         }
       }
-      if (this.terminal.getLogo() === undefined) {
+      if (this.terminal && this.terminal.getLogo() === undefined) {
         this.terminal.setDefaultLogo();
       }
 

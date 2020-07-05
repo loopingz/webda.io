@@ -80,6 +80,7 @@ export class Docker<T extends DockerResources> extends Deployer<T> {
         stdin = this.getDockerfile();
       }
     }
+    this.logger.log("INFO", `Launching Docker build`);
     return this.execute("docker " + args.join(" "), stdin, false, "INFO");
   }
 
@@ -96,12 +97,12 @@ export class Docker<T extends DockerResources> extends Deployer<T> {
         this.logger.log("INFO", `Copy linked modules into link_modules`);
         fs.emptyDirSync("link_modules");
       }
-      this.logger.log("INFO", `Building image ${tag}`);
       await this.buildDocker(tag, Dockerfile);
       if (tag && push) {
         this.logger.log("INFO", `Pushing image ${tag}`);
         await this.execute("docker push " + tag);
       }
+      this.logger.log("INFO", `Docker deployment finished`);
     } finally {
       process.chdir(cwd);
     }
@@ -208,7 +209,7 @@ WORKDIR /webda
 ADD package.json /webda/\n\n`;
   }
 
-  getWorkspacesDockerfile() {
+  getWorkspacesDockerfile(): string {
     let appPath = this.manager.getApplication().getAppPath();
     let relPath = path.relative(process.cwd(), appPath);
 
@@ -277,7 +278,8 @@ ADD package.json /webda/\n\n`;
     if (this.resources.debugDockerfilePath) {
       fs.writeFileSync(this.resources.debugDockerfilePath, dockerfile);
     }
-    throw new Error("plop");
+
+    return dockerfile;
   }
 
   addDeploymentToImage(localPath: string = "deployments", appPath: string = "/webda/") {
@@ -348,7 +350,7 @@ CMD webda --noCompile $WEBDA_COMMAND ${logFile} ${errorFile}\n\n`;
   /**
    * Generate a dynamic Dockerfile with webda application
    */
-  getDockerfile() {
+  getDockerfile(): string {
     var cwd = process.cwd();
 
     var dockerfile = this.getDockerfileHeader() + "RUN yarn install --production\n\n";

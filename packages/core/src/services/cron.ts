@@ -13,6 +13,7 @@ class CronService extends Service {
     args?: any[];
     cb?: () => void;
   }[] = [];
+  private _scanned: boolean = false;
 
   static Annotation(cron: string, description: string = "", ...args) {
     return (target: any, property: string, descriptor: PropertyDescriptor) => {
@@ -26,8 +27,8 @@ class CronService extends Service {
   }
 
   @Cache()
-  loadAnnotations() {
-    let services = this._webda.getServices();
+  static loadAnnotations(services) {
+    let cronsResult = [];
     for (let i in services) {
       let props = Object.getOwnPropertyDescriptors(services[i].constructor.prototype);
       for (let method in props) {
@@ -35,16 +36,25 @@ class CronService extends Service {
         let crons = props[method].value.cron;
         if (crons) {
           crons.forEach(cron => {
-            this.crons.push({ ...cron, method, serviceName: i });
+            cronsResult.push({ ...cron, method, serviceName: i });
           });
         }
       }
     }
+    return cronsResult;
+  }
+
+  addAnnotations() {
+    if (this._scanned) {
+      return;
+    }
+    this._scanned = true;
+    this.crons.push(...CronService.loadAnnotations(this._webda.getServices()));
   }
 
   getCrontab() {
     // Load all annotations
-    this.loadAnnotations();
+    this.addAnnotations();
     return this.crons;
   }
 
@@ -56,7 +66,7 @@ class CronService extends Service {
     this.log("INFO", "Running crontab with" + (annotations ? "" : "out"), "annotations");
     // Load all annotations
     if (annotations) {
-      this.loadAnnotations();
+      this.addAnnotations();
     }
     this.enable = true;
     // Run schedule

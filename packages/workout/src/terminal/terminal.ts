@@ -223,10 +223,14 @@ export class Terminal {
     if (groups.length) {
       groupsPart = `[${groups.map(g => `${color(g)}`).join(colors.grey(">"))}] `;
     }
-    let line = `[${color(levelColor)}] ${groupsPart}${color(
-      args.map(a => (typeof a === "object" ? util.inspect(a) : a.toString())).join(" ")
-    )}`;
-    this.pushHistory(line);
+    args
+      .map(a => (typeof a === "object" ? util.inspect(a) : a.toString()))
+      .join(" ")
+      .split("\n")
+      .forEach(info => {
+        let line = `[${color(levelColor)}] ${groupsPart}${color(info)}`;
+        this.pushHistory(line);
+      });
     this.displayScreen();
   }
 

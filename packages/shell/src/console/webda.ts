@@ -167,7 +167,11 @@ export default class WebdaConsole {
         this.log("ERROR", "An error occured", err);
       })
       .then(res => {
-        this.log("INFO", "Result:", res ? JSON.stringify(res, undefined, 2) : "void");
+        this.log(
+          res !== undefined ? "INFO" : "DEBUG",
+          "Result:",
+          res !== undefined ? JSON.stringify(res, undefined, 2) : "void"
+        );
         this.log("TRACE", "Took", Math.ceil((Date.now() - timestamp) / 1000) + "s");
       });
   }

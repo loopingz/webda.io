@@ -19,6 +19,7 @@ export default class ConfigurationService extends Service {
   protected _sourceId: string;
   private _interval: NodeJS.Timer | number;
   protected watches: any[] = [];
+  protected configuration: any;
 
   async init() {
     // Check interval by default every hour
@@ -66,6 +67,10 @@ export default class ConfigurationService extends Service {
     clearInterval(this._interval);
   }
 
+  getConfiguration() {
+    return this.configuration || {};
+  }
+
   async reinit(config: any): Promise<void> {
     // Need to prevent any reinit
   }
@@ -84,6 +89,7 @@ export default class ConfigurationService extends Service {
       this.emit("Configuration.Applying");
       this.log("DEBUG", "Apply new configuration");
       this._configuration = JSON.stringify(newConfig);
+      this.configuration = newConfig;
       let promises = [];
       this.watches.forEach(w => {
         this.log("TRACE", "Apply new configuration value", jsonpath.query(newConfig, w.path).pop() || w.defaultValue);

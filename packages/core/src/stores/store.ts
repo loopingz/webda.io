@@ -836,7 +836,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
       // Should deactiate the mapping in that case
       for (let i in this._cascade) {
         if (typeof this._cascade[i] != "object" || to_delete[this._cascade[i].name] == undefined) continue;
-        var targetStore: Store<CoreModel> = this.getTypedService<Store<CoreModel>>(this._cascade[i].store);
+        var targetStore: Store<CoreModel> = this.getService<Store<CoreModel>>(this._cascade[i].store);
         if (targetStore == undefined) continue;
         for (var item in to_delete[this._cascade[i].name]) {
           promises.push(targetStore.cascadeDelete(to_delete[this._cascade[i].name][item], to_delete[this._uuidField]));

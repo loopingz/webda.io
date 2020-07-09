@@ -187,7 +187,10 @@ export class Docker<T extends DockerResources> extends Deployer<T> {
         fs.copySync(path.join(__dirname, "../../../.."), ".webda-shell");
         fs.writeFileSync(".webda-shell/hash", currentSign);
       }
-      dockerfile += "ADD .webda-shell /devshell\nENV PATH=${PATH}:/devshell/packages/shell/bin\n";
+      dockerfile += `ADD .webda-shell /devshell
+ADD .webda-shell/node_modules /devshell/node_modules/
+ADD .webda-shell/node_modules /webda/node_modules/
+ENV PATH=\${PATH}:/devshell/packages/shell/bin\n`;
       return dockerfile + "\n";
     }
 
@@ -355,12 +358,12 @@ CMD webda --noCompile $WEBDA_COMMAND ${logFile} ${errorFile}\n\n`;
 
     var dockerfile = this.getDockerfileHeader() + "RUN yarn install --production\n\n";
 
-    dockerfile += this.copyPackageFilesTo(cwd, "/webda", ["webda.config.json"]);
+    dockerfile += this.copyPackageFilesTo(".", "/webda", ["webda.config.json"]);
     // Import webda-shell
     dockerfile += this.getDockerfileWebdaShell();
 
     // Add deployment
-    dockerfile += this.addDeploymentToImage("/webda");
+    dockerfile += this.addDeploymentToImage("deployments", "/webda");
     dockerfile += this.addCommandToImage();
     if (this.resources.debugDockerfilePath) {
       fs.writeFileSync(this.resources.debugDockerfilePath, dockerfile);

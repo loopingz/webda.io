@@ -159,12 +159,8 @@ abstract class Service extends events.EventEmitter {
    * Return a webda service
    * @param service name to retrieve
    */
-  getService(service: string): Service {
-    return this._webda.getService(service);
-  }
-
-  getTypedService<T extends Service>(service: string): T {
-    return <T>this.getService(service);
+  getService<T extends Service>(service: string): T {
+    return this._webda.getService<T>(service);
   }
 
   /**

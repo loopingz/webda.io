@@ -7,16 +7,16 @@ import { HttpContext } from "../utils/context";
 @suite
 class FileStoreTest extends StoreTest {
   getUserStore(): Store<any> {
-    return <Store<any>>this.getService("Users");
+    return this.getService<Store<any>>("Users");
   }
 
   getIdentStore(): Store<any> {
-    return <Store<any>>this.getService("Idents");
+    return this.getService<Store<any>>("Idents");
   }
 
   @test
   async modelActions() {
-    let identStore: FileStore<CoreModel> = <FileStore<CoreModel>>this.getService("idents");
+    let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
     let eventFired = 0;
     let executor, ctx;
     identStore.on("Store.Action", evt => {
@@ -45,7 +45,7 @@ class FileStoreTest extends StoreTest {
 
   @test
   async modelStaticActions() {
-    let identStore: FileStore<CoreModel> = <FileStore<CoreModel>>this.getService("idents");
+    let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
     let ctx, executor;
     let eventFired = 0;
     identStore.on("Store.Action", evt => {
@@ -145,7 +145,7 @@ class FileStoreTest extends StoreTest {
   }
 
   @test("JSON Schema - Create") async schemaCreate() {
-    let taskStore = this.webda.getTypedService<Store<CoreModel>>("Tasks");
+    let taskStore = this.webda.getService<Store<CoreModel>>("Tasks");
     let ctx = await this.webda.newContext(new HttpContext("webda.io", "GET", "/"));
     let executor = this.getExecutor(ctx, "test.webda.io", "POST", "/tasks", {
       noname: "Task #1"

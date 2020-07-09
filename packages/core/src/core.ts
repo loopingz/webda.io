@@ -353,7 +353,7 @@ export class Core extends events.EventEmitter {
           } catch (err) {
             this.services[service]._initException = err;
             this.failedServices[service] = { _initException: err };
-            this.log("ERROR", "Init service " + service + " failed", err);
+            this.log("ERROR", "Init service " + service + " failed: " + err.message);
             this.log("TRACE", err.stack);
           }
         }
@@ -482,19 +482,11 @@ export class Core extends events.EventEmitter {
    *
    * @param {String} name The service name to retrieve
    */
-  getService(name: string = ""): Service {
+  getService<T extends Service>(name: string = ""): T {
     name = name.toLowerCase();
     if (this.services !== undefined) {
-      return this.services[name];
+      return <T>this.services[name];
     }
-  }
-
-  /**
-   * Return a service with this type
-   * @param service typed service
-   */
-  getTypedService<T extends Service>(service: string): T {
-    return <T>this.getService(service);
   }
 
   /**
@@ -720,7 +712,7 @@ export class Core extends events.EventEmitter {
       try {
         serviceConstructor = this.application.getService(type);
       } catch (ex) {
-        this.log("ERROR", `Create service ${service}(${type}) failed`);
+        this.log("ERROR", `Create service ${service}(${type}) failed ${ex.message}`);
         this.log("TRACE", ex.stack);
         continue;
       }

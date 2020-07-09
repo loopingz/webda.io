@@ -74,7 +74,7 @@ class WebdaTest {
     });
   }
 
-  getService(service: string) {
+  getService<T extends Service>(service: string): T {
     return this.webda.getService(service);
   }
 

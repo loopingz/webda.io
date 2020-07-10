@@ -178,7 +178,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
   async handleRequestOriginCSRF() {
     this.evt.headers.Origin = "https://test3.webda.io";
     this.evt.headers.Host = "test3.webda.io";
-    let res = await this.handler.handleRequest(this.evt, context);
+    let res = await this.handler.handleRequest(this.evt, this.context);
     assert.equal(res.statusCode, 401);
   }
 
@@ -186,7 +186,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
   async handleRequestRefererCSRF() {
     this.evt.headers.Referer = "https://test3.webda.io";
     this.evt.headers.Host = "test3.webda.io";
-    let res = await this.handler.handleRequest(this.evt, context);
+    let res = await this.handler.handleRequest(this.evt, this.context);
     assert.equal(res.statusCode, 401);
   }
 
@@ -194,7 +194,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
   async handleRequestRefererGoodCORS() {
     this.evt.headers.Referer = "https://test.webda.io";
     this.evt.headers.Host = "test.webda.io";
-    let res = await this.handler.handleRequest(this.evt, context);
+    let res = await this.handler.handleRequest(this.evt, this.context);
     assert.equal(res.headers["Access-Control-Allow-Origin"], this.evt.headers.Referer);
   }
 
@@ -215,7 +215,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     for (let f in files) {
       let file = files[f];
       let event = JSON.parse(fs.readFileSync(__dirname + "/../../test/aws-events/" + file).toString());
-      await this.handler.handleRequest(event, context);
+      await this.handler.handleRequest(event, this.context);
       if (file === "api-gateway-aws-proxy.json") {
         assert.equal(service.getEvents().length, 0, "API Gateway should go throught the normal request handling");
       } else {

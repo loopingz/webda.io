@@ -52,7 +52,7 @@ class WebdaConfigurationServerTest {
   async testConfigurationApi() {
     let res = await this.fetch("/configuration");
     res.parameters.sessionSecret = "PLOP";
-    let cfg = JSON.parse(fs.readFileSync(WebdaSampleApplication.getAppPath("/webda.config.json")).toString());
+    let cfg = JSON.parse(fs.readFileSync(WebdaSampleApplication.getAppPath("webda.config.json")).toString());
     cfg.parameters.sessionSecret = "PLOP";
     assert.equal(JSON.stringify(res), JSON.stringify(cfg));
   }

@@ -166,37 +166,35 @@ class DynamicService extends Service {
 
   @test
   async workerCommandLine() {
+    this.logger.setLogLevel("TRACE");
     // Test launch aswell
     await this.commandLine("launch CustomService");
     let logs = this.logger.getLogs();
-    assert.equal(logs.length, 2);
-    assert.equal(logs[0].log.args.length, 2);
-    assert.equal(logs[0].log.args[0], "Result:");
-    assert.equal(logs[1].log.args.length, 2);
-    assert.equal(logs[1].log.args[0], "Took");
+    let ind = logs.length - 2;
+
+    assert.equal(logs[ind].log.args.length, 1);
+    assert.equal(logs[ind].log.args[0], "Result: void");
+    ind++;
+    assert.equal(logs[ind].log.args.length, 2);
+    assert.equal(logs[ind].log.args[0], "Took");
+
+    this.logger.setLogLevel("INFO");
     await this.commandLine("worker CustomService output DEBUG_MSG");
     logs = this.logger.getLogs();
-    logs.forEach(p => console.log(p.log.args.join(" ")));
-    assert.equal(logs[0].log.args.length, 2);
-    assert.equal(logs[0].log.args[0], "Result:");
-    assert.equal(logs[0].log.args[1], "YOUR MESSAGE IS 'DEBUG_MSG'");
-    assert.equal(logs[1].log.args.length, 2);
-    assert.equal(logs[1].log.args[0], "Took");
+    assert.equal(logs[0].log.args.length, 1);
+    assert.equal(logs[0].log.args[0], "YOUR MESSAGE IS 'DEBUG_MSG'");
     await this.commandLine("worker CustomService badMethod");
     logs = this.logger.getLogs();
     assert.equal(logs.length, 1);
-    assert.equal(logs[0].log.args[0], "\u001b[31mAn error occured\u001b[39m");
+    assert.equal(logs[0].log.args[0], "An error occured");
     await this.commandLine("worker CustomService unknownMethod");
     logs = this.logger.getLogs();
     assert.equal(logs.length, 1);
-    assert.equal(
-      logs[0].log.args[0],
-      "\u001b[31mThe method unknownMethod is missing in service CustomService\u001b[39m"
-    );
+    assert.equal(logs[0].log.args[0], "The method unknownMethod is missing in service CustomService");
     await this.commandLine("worker UnknownService");
     logs = this.logger.getLogs();
     assert.equal(logs.length, 1);
-    assert.equal(logs[0].log.args[0], "\u001b[31mThe service UnknownService is missing\u001b[39m");
+    assert.equal(logs[0].log.args[0], "The service UnknownService is missing");
   }
 
   @test

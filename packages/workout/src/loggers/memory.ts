@@ -6,14 +6,16 @@ import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "..";
 export class MemoryLogger {
   protected messages: WorkerMessage[] = [];
   protected includeAll: boolean;
+  protected level: WorkerLogLevel;
 
   constructor(output: WorkerOutput, level: WorkerLogLevel = "DEBUG", limit = 2000, includeAll: boolean = false) {
     this.includeAll = includeAll;
+    this.level = level;
     output.on("message", (msg: WorkerMessage) => {
       if (!includeAll && msg.type !== "log") {
         return;
       }
-      if (msg.type === "log" && !LogFilter(msg.log.level, level)) {
+      if (msg.type === "log" && !LogFilter(msg.log.level, this.level)) {
         return;
       }
       this.messages.push(msg);
@@ -21,6 +23,13 @@ export class MemoryLogger {
         this.messages.shift();
       }
     });
+  }
+
+  /**
+   * Set LogLevel
+   */
+  setLogLevel(level: WorkerLogLevel) {
+    this.level = level;
   }
 
   /**

@@ -184,7 +184,10 @@ export class Docker<T extends DockerResources> extends Deployer<T> {
       if (currentSign !== sign) {
         this.logger.log("INFO", "Updating @webda/shell version as development version is different");
         fs.emptyDirSync(".webda-shell");
-        fs.copySync(path.join(__dirname, "../../../.."), ".webda-shell");
+        // Prevent to copy if in webda repo - only useful for test
+        if (path.relative(path.resolve(path.join(__dirname, "../../../..")), process.cwd()) !== "packages/shell") {
+          fs.copySync(path.join(__dirname, "../../../.."), ".webda-shell");
+        }
         fs.writeFileSync(".webda-shell/hash", currentSign);
       }
       dockerfile += `ADD .webda-shell /devshell

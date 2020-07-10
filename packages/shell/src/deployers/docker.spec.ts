@@ -33,22 +33,24 @@ class DockerDeployerTest extends DeployerTest<Docker<DockerResources>> {
   @test
   testGetDockerfileWebdaShell() {
     let tag = require(__dirname + "/../../package.json").version;
-    assert.equal(this.deployer.getDockerfileWebdaShell(), `RUN yarn global add @webda/shell@${tag}\n`);
+    assert.equal(
+      this.deployer.getDockerfileWebdaShell(),
+      `# Install current @webda/shell version\nRUN yarn global add @webda/shell@${tag}\n\n`
+    );
     process.env.WEBDA_SHELL_DEV = path.resolve(path.join(__dirname, "/../../"));
     assert.deepEqual(this.deployer.getDockerfileWebdaShell().split("\n"), [
-      "RUN mkdir -p /webda/node_modules/@webda/shell/node_modules/",
-      "ADD ./dist/webda-shell/node_modules /webda/node_modules/@webda/shell/node_modules/",
-      "RUN mkdir -p /webda/node_modules/@webda/shell/",
-      "ADD ./dist/webda-shell/package.json /webda/node_modules/@webda/shell/package.json",
-      "RUN mkdir -p /webda/node_modules/@webda/shell/lib/",
-      "ADD ./dist/webda-shell/lib /webda/node_modules/@webda/shell/lib/",
-      "RUN mkdir -p /webda/node_modules/@webda/shell/bin/",
-      "ADD ./dist/webda-shell/bin/webda /webda/node_modules/@webda/shell/bin/webda",
-      "RUN rm -f /webda/node_modules/.bin/webda",
-      "RUN ln -s /webda/node_modules/@webda/shell/bin/webda /webda/node_modules/.bin/webda",
+      "# Use development Webda Shell version",
+      "ADD .webda-shell /devshell",
+      "ADD .webda-shell/node_modules /devshell/node_modules/",
+      "ADD .webda-shell/node_modules /webda/node_modules/",
+      "ENV PATH=${PATH}:/devshell/packages/shell/bin",
+      "",
       ""
     ]);
     process.env.WEBDA_SHELL_DEPLOY_VERSION = "0.1.0";
-    assert.equal(this.deployer.getDockerfileWebdaShell(), "RUN yarn global add @webda/shell@0.1.0\n");
+    assert.equal(
+      this.deployer.getDockerfileWebdaShell(),
+      "# Install enforced @webda/shell version\nRUN yarn global add @webda/shell@0.1.0\n\n"
+    );
   }
 }

@@ -66,13 +66,14 @@ class PackagerTest {
         .on("close", resolve)
     );
     //
-    console.log("Files", files);
     assert.notEqual(files["lib/models/contact.js"], undefined);
     assert.notEqual(files["lib/services/custom.js"], undefined);
     // As this fake app is in our repo the node_modules are incorrect
     // Manage workspaces
-    //assert.notEqual(files["node_modules/@webda/aws/package.json"], undefined);
-    //assert.notEqual(files["node_modules/@webda/core/package.json"], undefined);
+    assert.notEqual(files["node_modules/@webda/aws/package.json"], undefined, "Cannot find @webda/aws package");
+    assert.notEqual(files["node_modules/@webda/core/package.json"], undefined, "Cannot find @webda/core package");
+    // Should get the module
+    assert.notEqual(files["node_modules/uuid/package.json"], undefined, "Cannot find uuid package");
     let config = JSON.parse(captureFiles["webda.config.json"]);
     // Ensure CachedModules are generated for packages
     assert.notEqual(config.cachedModules, undefined);

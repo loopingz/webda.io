@@ -105,12 +105,17 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     return hash.digest("hex");
   }
 
-  static getDependencies(pkg: string): { [key: string]: string } {
+  static getDependencies(pkg: string): { [key: string]: { name: string; version: string }[] } {
     let deps: { [key: string]: any[] } = {};
+    let scanned = [];
     let wrk = Packager.getWorkspacesRoot();
     let main = Packager.loadPackageInfo(pkg);
     main.resolutions = main.resolutions || {};
     let browse = (p: string, depth: number) => {
+      if (scanned.indexOf(p) >= 0) {
+        return;
+      }
+      scanned.push(p);
       let info = Packager.loadPackageInfo(p);
       info.dependencies = info.dependencies || {};
       Object.keys(info.dependencies).forEach(name => {
@@ -130,6 +135,11 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
       });
     };
     browse(pkg, 0);
+    return deps;
+  }
+
+  static getResolvedDependencies(pkg: string): { [key: string]: string } {
+    const deps = Packager.getDependencies(pkg);
     let resolutions: { [key: string]: string } = {};
     for (let i in deps) {
       if (deps[i].length > 1) {
@@ -210,55 +220,35 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
       if (ignores.indexOf(name) >= 0) continue;
       toPacks.push(`${appPath}/${name}`);
     }
+    if (toPacks.indexOf(`${appPath}/node_modules`) >= 0) {
+      toPacks = toPacks.filter(p => p !== `${appPath}/node_modules`);
+    }
     // Ensure dependencies
     // Get deps info
-    if (toPacks.indexOf(`${appPath}/node_modules`) < 0) {
-      // Include specified modules
-      let filters = [...this.resources.package.modules.includes];
-      try {
-        let info = await this.execute("NODE_ENV=production yarn list --json 2>/dev/null", undefined, true);
-        const recDep = info => {
-          info.forEach(dep => {
-            filters.push(dep.name.replace(/@\d+\.\d+\.\d+.*/, ""));
-            if (info.children && info.children.length) {
-              recDep(info.children);
-            }
-          });
-        };
-        let parsedInfo = JSON.parse(info.output);
-        recDep(parsedInfo.data.trees);
-      } catch (err) {
-        filters = [];
-        this.logger.log("INFO", ":error", err);
+    // Include specified modules
+    let deps = [...this.resources.package.modules.includes];
+    deps.push(...Object.keys(Packager.getDependencies(appPath)));
+    // Remove any excludes modules
+    this.resources.package.modules.excludes.forEach(i => {
+      let id = deps.indexOf(i);
+      if (id >= 0) {
+        deps.splice(id, 1);
       }
+    });
 
-      // Remove any excludes modules
-      this.resources.package.modules.excludes.forEach(i => {
-        let id = filters.indexOf(i);
-        if (id >= 0) {
-          filters.splice(id, 1);
-        }
-      });
-      if (fs.existsSync(`${appPath}/node_modules`)) {
-        let files = fs.readdirSync(`${appPath}/node_modules`);
-        files.forEach(file => {
-          if (file.startsWith("@")) {
-            // If namespace then check if package are linked
-            fs.readdirSync(`${appPath}/node_modules/${file}`).forEach(p => {
-              if (filters.length && filters.indexOf(`${file}/${p}`) < 0) {
-                return;
-              }
-              toPacks.push(`${appPath}/node_modules/${file}/${p}`);
-            });
-          } else {
-            if (filters.length && filters.indexOf(file) < 0) {
-              return;
-            }
-            toPacks.push(`${appPath}/node_modules/${file}`);
-          }
-        });
+    // Include workspace deps
+    let workspace = Packager.getWorkspacesRoot();
+    deps.forEach(dep => {
+      // Include package dep
+      if (fs.existsSync(`${appPath}/node_modules/${dep}`)) {
+        toPacks.push(`${appPath}/node_modules/${dep}`);
+      } else if (workspace && fs.existsSync(`${workspace}/node_modules/${dep}`)) {
+        toPacks.push(`${workspace}/node_modules/${dep}`);
+      } else {
+        this.logger.log("WARN", "Cannot find package", dep);
       }
-    }
+    });
+
     var output = fs.createWriteStream(zipPath);
     var archive = archiver("zip");
 
@@ -299,14 +289,15 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
           continue;
         }
         var stat = fs.lstatSync(toPacks[i]);
+        let dstPath = path.relative(appPath, toPacks[i]).replace(/\.\.\//g, "");
         if (stat.isSymbolicLink()) {
-          this.addLinkPackage(archive, fs.realpathSync(toPacks[i]), path.relative(appPath, toPacks[i]));
+          this.addLinkPackage(archive, fs.realpathSync(toPacks[i]), dstPath);
         } else if (stat.isDirectory()) {
           // Add custom recursive function
-          archive.directory(toPacks[i], path.relative(appPath, toPacks[i]));
+          archive.directory(toPacks[i], dstPath);
         } else if (stat.isFile()) {
           archive.file(toPacks[i], {
-            name: path.relative(appPath, path.relative(appPath, toPacks[i]))
+            name: path.relative(appPath, dstPath)
           });
         }
       }

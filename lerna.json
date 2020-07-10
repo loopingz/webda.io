@@ -1,5 +1,5 @@
 {
-  "packages": ["packages/*"],
+  "packages": ["packages/*", "sample-app"],
   "npmClient": "yarn",
   "version": "independent",
   "publish": {

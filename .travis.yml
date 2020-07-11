@@ -1,4 +1,7 @@
 language: node_js
+addons:
+  sonarcloud:
+    organization: loopingz-github
 node_js:
   - "12"
 cache:

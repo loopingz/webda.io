@@ -42,7 +42,6 @@
   "publishConfig": {
     "access": "public"
   },
-  "devDependencies": {},
   "webda": {
     "namespace": "WebdaDemo"
   }

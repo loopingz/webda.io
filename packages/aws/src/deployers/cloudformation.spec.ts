@@ -104,7 +104,9 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
         Key: "mycf.json"
       };
     });
+    console.log("Launch default resources");
     await this.deployer.defaultResources();
+    console.log("Launch deploy", this.deployer.uploadStatics);
     await this.deployer.deploy();
     assert.equal(sendCloudFormation.calledOnce, true);
   }

@@ -597,7 +597,8 @@ export class Application {
         continue;
       }
       this.addService(key, service);
-      this.cachedModules.services[key] = "./" + path.relative(this.appPath, path.join(parent, info.services[key]));
+      this.cachedModules.services[key] =
+        "./" + path.relative(this.appPath, path.resolve(path.join(parent, info.services[key])));
     }
 
     // Load models definition
@@ -607,7 +608,8 @@ export class Application {
         continue;
       }
       this.addModel(key, service);
-      this.cachedModules.models[key] = "./" + path.relative(this.appPath, path.join(parent, info.models[key]));
+      this.cachedModules.models[key] =
+        "./" + path.relative(this.appPath, path.resolve(path.join(parent, info.models[key])));
     }
 
     // Load deployers definition
@@ -617,7 +619,8 @@ export class Application {
         continue;
       }
       this.addDeployer(key, service);
-      this.cachedModules.deployers[key] = "./" + path.relative(this.appPath, path.join(parent, info.deployers[key]));
+      this.cachedModules.deployers[key] =
+        "./" + path.relative(this.appPath, path.resolve(path.join(parent, info.deployers[key])));
     }
   }
 

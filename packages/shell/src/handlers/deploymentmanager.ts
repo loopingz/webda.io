@@ -191,12 +191,19 @@ export class DeploymentManager {
       cwd: this.application.getAppPath()
     };
     try {
+      let tags = execSync(`git tag --points-at HEAD`, options).toString().trim().split("\n");
+      // Search for what would be the tag
+      // packageName@version
+      // or version if single repo
+      // if not included create a nextVersion+SNAPSHOT.${commit}.${now}
       return {
         commit: execSync(`git rev-parse HEAD`, options).toString().trim(),
-        branch: execSync("git symbolic-ref --short HEAD", options).toString().trim()
+        branch: execSync("git symbolic-ref --short HEAD", options).toString().trim(),
+        tag: "",
+        tags
       };
     } catch (err) {
-      return { commit: "unknown", branch: "unknown" };
+      return { commit: "unknown", branch: "unknown", tag: "" };
     }
   }
 

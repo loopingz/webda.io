@@ -17,10 +17,10 @@
   "scripts": {
     "build": "tsc",
     "pretest": "npm run build",
-    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register test/**/*.test.js src/**/*.spec.ts"
+    "test": "echo 'No test sample available yet'"
   },
   "engines": {
-    "node": ">=6.10.0"
+    "node": ">=12.0.0"
   },
   "dependencies": {
     "@webda/aws": "link:../packages/aws/",
@@ -42,8 +42,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "devDependencies": {
-  },
+  "devDependencies": {},
   "webda": {
     "namespace": "WebdaDemo"
   }

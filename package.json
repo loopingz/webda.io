@@ -29,7 +29,7 @@
   "scripts": {
     "webda-module": "lerna run webda-module",
     "build": "lerna run build",
-    "test": "lerna run test",
+    "test": "lerna run test --ignore @webda/sample-app",
     "new-version": "lerna version",
     "lerna:publish": "lerna publish"
   },

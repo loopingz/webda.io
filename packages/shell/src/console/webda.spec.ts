@@ -136,6 +136,8 @@ class DynamicService extends Service {
 `
     );
     try {
+      console.log("Pausing 5s to let fs react");
+      await new Promise(resolve => setTimeout(resolve, 5000));
       console.log("Waiting for Launching");
       await this.waitForStatus(DebuggerStatus.Launching);
       console.log("Waiting for Serving");

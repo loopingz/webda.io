@@ -535,7 +535,11 @@ export class Application {
     this._loaded = [];
     // Read all files
     this.getPackagesLocations().forEach(p => {
-      let absPath = path.join(this.appPath, p);
+      let absPath = path.resolve(path.join(this.appPath, p));
+      if (this._loaded.indexOf(absPath) >= 0) {
+        return;
+      }
+      this._loaded.push(absPath);
       if (fs.existsSync(absPath) && fs.lstatSync(absPath).isDirectory()) {
         absPath += "/**/*.js";
       }
@@ -646,15 +650,16 @@ export class Application {
    * @param path to load
    */
   protected loadJavascriptFile(absolutePath: string) {
-    if (this._loaded.indexOf(absolutePath) >= 0) {
+    let marker = path.resolve(absolutePath);
+    if (this._loaded.indexOf(marker) >= 0) {
       return;
     }
+    this._loaded.push(marker);
     let source = "./" + path.relative(this.appPath, absolutePath);
     if (this.cachedModules.sources.indexOf(source) < 0) {
       this.cachedModules.sources.push(source);
     }
 
-    this._loaded.push(absolutePath);
     let mod = this.resolveRequire(absolutePath);
     let obj = mod;
     if (obj && obj.getModda) {

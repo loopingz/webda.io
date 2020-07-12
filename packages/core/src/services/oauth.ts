@@ -37,12 +37,13 @@ export abstract class OAuthService extends Service implements RequestFilter {
   initRoutes() {
     super.initRoutes();
     this._params.url = this._params.url || `${this.getDefaultUrl()}{?redirect}`;
+    let name = this.getName();
 
     this._addRoute(this._params.url, ["GET"], this._redirect, {
       get: {
-        description: "Log with a Google account",
-        summary: "Redirect to your Google Application OAuth consent screen",
-        operationId: "logInWithGoogle",
+        description: `Log with a ${name} account`,
+        summary: `Redirect to ${name}`,
+        operationId: `logInWith${name}`,
         responses: {
           "302": "",
           "400": "Missing token"
@@ -56,9 +57,9 @@ export abstract class OAuthService extends Service implements RequestFilter {
       this._callback,
       {
         get: {
-          description: "Get result from Google Authentication",
-          summary: "Use the token provide to validate with Google the user",
-          operationId: "callbackFromGoogle",
+          description: `Get result from ${name} Authentication`,
+          summary: `Use the token provide to validate with ${name} the user`,
+          operationId: `callbackFrom${name}`,
           responses: {
             "204": "",
             "400": "Missing token"
@@ -70,9 +71,9 @@ export abstract class OAuthService extends Service implements RequestFilter {
     if (this.hasToken()) {
       this._addRoute(this._params.url + "/token", ["POST"], this._token, {
         post: {
-          description: "Log with a Google Auth token",
-          summary: "Use the token provide to validate with Google the user",
-          operationId: "verifyGoogleToken",
+          description: `Log with a ${name} token`,
+          summary: `Use the token provide to validate with ${name} the user`,
+          operationId: `verify${name}Token`,
           responses: {
             "204": "",
             "400": "Missing token"
@@ -84,9 +85,9 @@ export abstract class OAuthService extends Service implements RequestFilter {
     if (this._params.exposeScope) {
       this._addRoute(this._params.url + "/scope", ["GET"], this._scope, {
         get: {
-          description: "List Google auth scope for this apps",
+          description: `List ${name} auth scope for this apps`,
           summary: "Retrieve the scope intended to be used with this auth",
-          operationId: "getGoogleScope",
+          operationId: `get${name}Scope`,
           responses: {
             "204": "",
             "400": "Missing token"
@@ -107,7 +108,6 @@ export abstract class OAuthService extends Service implements RequestFilter {
   _redirect(ctx: Context) {
     // implement default behavior
     let redirect_uri = this._params.redirect_uri || `${ctx.getHttpContext().getFullUrl()}/callback`;
-    this.log("INFO");
     if (this._params.authorized_uris) {
       if (this._params.authorized_uris.indexOf(redirect_uri) < 0) {
         // The redirect_uri is not authorized , might be forging HOST request
@@ -134,7 +134,7 @@ export abstract class OAuthService extends Service implements RequestFilter {
   async handleReturn(ctx: Context, identId: string, profile: any) {
     if (this._authenticationService) {
       // Should call the onIdentLogin()
-      await this._authenticationService.onIdentLogin(ctx, "google", identId, profile);
+      await this._authenticationService.onIdentLogin(ctx, this.getName().toLowerCase(), identId, profile);
     } else {
       // Login in session
       ctx.getSession().login(identId, identId);
@@ -146,4 +146,6 @@ export abstract class OAuthService extends Service implements RequestFilter {
   abstract getDefaultUrl(): string;
 
   abstract getCallbackReferer(): RegExp[];
+
+  abstract getName(): string;
 }

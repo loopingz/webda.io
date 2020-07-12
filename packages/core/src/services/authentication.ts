@@ -36,7 +36,7 @@ class PasswordRecoveryInfos {
  *   email: {
  *	    postValidation: true|false   // If postValidation=true, account created without email verification
  *   }
- *   expose: 'url' // By default /auth
+ *   url: 'url' // By default /auth
  *
  * @category CoreServices
  */
@@ -45,23 +45,20 @@ class Authentication extends Service {
   _identsStore: Store<Ident>;
   _usersStore: Store<User>;
   _passwordVerifier: PasswordVerifier;
-  _aliases: Map<string, string> = new Map();
   _emailDelay: number;
-  // TODO refactor
-  _oauth1: any;
+  providers: Set<string> = new Set<string>();
 
   constructor(webda: Core, name: string, params: any) {
     super(webda, name, params);
 
     this._params.identStore = this._params.identStore || "idents";
     this._params.userStore = this._params.userStore || "users";
-    this._params.providers = this._params.providers || {};
-    this._params.expose = this._params.expose || "/auth";
+    this._params.url = this._params.url || "/auth";
   }
 
   initRoutes() {
     // ROUTES
-    let url = this._params.expose;
+    let url = this._params.url;
     // List authentication configured
     this._addRoute(url, ["GET", "DELETE"], this._listAuthentications, {
       get: {
@@ -91,7 +88,8 @@ class Authentication extends Service {
         operationId: "getCurrentUser"
       }
     });
-    if (this._params.providers.email) {
+    if (this._params.email) {
+      this.addProvider("email");
       // Add static for email for now, if set before it should have priority
       this._addRoute(url + "/email", ["POST"], this._handleEmail, {
         post: {
@@ -159,6 +157,10 @@ class Authentication extends Service {
     }
   }
 
+  getUrl() {
+    return this._params.url;
+  }
+
   setIdents(identStore) {
     this._identsStore = identStore;
   }
@@ -193,7 +195,7 @@ class Authentication extends Service {
   }
 
   addProvider(name: string) {
-    this._params.providers[name] = name;
+    this.providers.add(name);
   }
 
   async _sendEmailValidation(ctx) {
@@ -241,7 +243,7 @@ class Authentication extends Service {
       ctx.write("GoodBye");
       return;
     }
-    ctx.write(Object.keys(this._params.providers));
+    ctx.write(Array.from(this.providers));
   }
 
   async _registerNewEmail(ctx) {
@@ -430,7 +432,7 @@ class Authentication extends Service {
     if (!locale) {
       locale = ctx.getLocale();
     }
-    let replacements = _extend({}, this._params.providers.email);
+    let replacements = _extend({}, this._params.email);
     replacements.infos = infos;
     replacements.to = email;
     replacements.context = ctx;
@@ -448,12 +450,12 @@ class Authentication extends Service {
 
   async sendValidationEmail(ctx: Context, email: string) {
     var mailer: Mailer = this.getMailMan();
-    let replacements = _extend({}, this._params.providers.email);
+    let replacements = _extend({}, this._params.email);
     replacements.context = ctx;
     replacements.url = ctx
       .getHttpContext()
       .getFullUrl(
-        this._params.expose +
+        this._params.url +
           "/email/callback?email=" +
           email +
           "&token=" +
@@ -502,9 +504,7 @@ class Authentication extends Service {
   }
 
   getMailMan(): Mailer {
-    return <Mailer>(
-      this.getService(this._params.providers.email.mailer ? this._params.providers.email.mailer : "Mailer")
-    );
+    return <Mailer>this.getService(this._params.email.mailer ? this._params.email.mailer : "Mailer");
   }
 
   protected async handleLogin(ctx: Context, ident: Ident) {
@@ -557,7 +557,7 @@ class Authentication extends Service {
     if (body.password === undefined || body.login === undefined) {
       throw 400;
     }
-    var mailConfig = this._params.providers.email;
+    var mailConfig = this._params.email;
     var mailerService = this.getMailMan();
     if (mailerService === undefined) {
       // Bad configuration ( might want to use other than 500 )
@@ -628,13 +628,6 @@ class Authentication extends Service {
     return this.hashPassword(email + "_" + this._webda.getSecret() + user);
   }
 
-  _getProviderName(name: string) {
-    if (this._aliases[name]) {
-      return this._aliases[name];
-    }
-    return name;
-  }
-
   static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/Authentication",
@@ -647,8 +640,8 @@ class Authentication extends Service {
         schema: {
           type: "object",
           properties: {
-            expose: {
-              type: "boolean"
+            url: {
+              type: "string"
             },
             successRedirect: {
               type: "string",
@@ -666,8 +659,7 @@ class Authentication extends Service {
                 }
               }
             }
-          },
-          required: ["successRedirect", "failureRedirect"]
+          }
         }
       }
     };

@@ -49,20 +49,13 @@
     "Authentication": {
       "successRedirect": "https://webda.io/user.html",
       "failureRedirect": "/login-error",
-      "providers": {
-        "facebook": {},
-        "email": {
-          "from": "",
-          "subject": "",
-          "html": "",
-          "text": "",
-          "mailer": "DefinedMailer",
-          "postValidation": false
-        },
-        "phone": {},
-        "twitter": {},
-        "google": {},
-        "github": {}
+      "email": {
+        "from": "",
+        "subject": "",
+        "html": "",
+        "text": "",
+        "mailer": "DefinedMailer",
+        "postValidation": false
       }
     },
     "DefinedMailer": {

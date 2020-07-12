@@ -631,7 +631,7 @@ export default class WebdaConsole {
           await this.init(argv);
           return 0;
         case "module":
-          await this.app.generateModule();
+          this.app.generateModule();
           return 0;
         case "openapi":
           await this.generateOpenAPI(argv);

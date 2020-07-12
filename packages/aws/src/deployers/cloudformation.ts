@@ -42,9 +42,9 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   };
   APIGatewayBasePathMapping?: {
     BasePath?: string;
-    DomainName?: String;
-    RestApiId?: String;
-    Stage?: String;
+    DomainName?: string;
+    RestApiId?: string;
+    Stage?: string;
   };
 
   Role?: {
@@ -279,7 +279,6 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
     this.logger.log("INFO", "Uploading statics");
     // Upload any Statics
-    let statics = [];
     await this.uploadStatics();
 
     // Dynamicly call each methods
@@ -301,8 +300,6 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     await this.sendCloudFormationTemplate();
     // Load the stack
     await this.createCloudFormation();
-    // Finish upload
-    await statics;
     return this.result;
   }
 
@@ -319,7 +316,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   }
 
   async createStatic(info: any) {
-    const { DomainName, CloudFront, Bucket, AssetsPath } = info;
+    const { DomainName, CloudFront, Bucket } = info;
     info.Bucket = info.Bucket || {};
     // Create bucket
     let resPrefix = `Static${DomainName.replace(/\./g, "")}`;

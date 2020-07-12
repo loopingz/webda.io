@@ -213,6 +213,10 @@ class DynamicService extends Service {
       fs.readFileSync(path.join(WebdaSampleApplication.getAppPath(), "webda.config.json")).toString()
     );
     assert.notEqual(info.parameters.sessionSecret, file.parameters.sessionSecret);
+    fs.writeFileSync(
+      path.join(WebdaSampleApplication.getAppPath(), "webda.config.json"),
+      JSON.stringify(info, undefined, 2)
+    );
   }
 
   @test

@@ -57,7 +57,7 @@ class AuthenticationTest extends WebdaTest {
       }
     );
     ctx.newSession();
-    executor._params.providers.email.postValidation = true;
+    executor._params.email.postValidation = true;
     await executor.execute(ctx);
   }
 
@@ -122,7 +122,7 @@ class AuthenticationTest extends WebdaTest {
     let ident = await this.identStore.get("test@webda.io_email");
     assert.equal(ident, undefined);
     // Not registered as postValidation is not set
-    executor._params.providers.email.postValidation = true;
+    executor._params.email.postValidation = true;
     await this.registerTest2(ctx);
     assert.equal(this.events, 2); // Register + Login
     userId = ctx.getSession().getUserId();
@@ -137,7 +137,7 @@ class AuthenticationTest extends WebdaTest {
     executor = this.getExecutor(ctx, "test.webda.io", "DELETE", "/auth");
     await executor.execute(ctx);
     // Now validate first user
-    executor._params.providers.email.postValidation = false;
+    executor._params.email.postValidation = false;
     assert.equal(ctx.getSession().getUserId(), undefined);
     var match = this.mailer.sent[0].replacements.url.match(validationUrl);
     assert.notEqual(match, undefined);
@@ -188,8 +188,8 @@ class AuthenticationTest extends WebdaTest {
       password: "testtest",
       register: true
     });
-    executor._params.providers.email.postValidation = true;
-    executor._params.providers.email.skipEmailValidation = true;
+    executor._params.email.postValidation = true;
+    executor._params.email.skipEmailValidation = true;
     await executor.execute(ctx);
     // No new email has been sent
     assert.equal(this.mailer.sent.length, 3);
@@ -216,7 +216,7 @@ class AuthenticationTest extends WebdaTest {
       }
     );
     // Activate post validation
-    executor._params.providers.email.postValidation = true;
+    executor._params.email.postValidation = true;
     var error = false;
     await this.assertThrowsAsync(executor.execute.bind(executor, ctx), res => res == 400);
   }
@@ -231,7 +231,7 @@ class AuthenticationTest extends WebdaTest {
       register: true,
       plop: "yep"
     });
-    executor._params.providers.email.postValidation = true;
+    executor._params.email.postValidation = true;
     await executor.execute(ctx);
     // Get me on known user
     executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/me");
@@ -428,7 +428,6 @@ class AuthenticationTest extends WebdaTest {
     assert.equal(ctx.statusCode, 302);
     assert.equal(ctx.getResponseHeaders().Location, "https://webda.io/user.html?validation=email");
   }
-
 
   /*
   @test("AWS Compatibility") async awsCompatibility() {

@@ -11,21 +11,20 @@ service:
 before_install:
   - curl -o- -L https://yarnpkg.com/install.sh | bash -s
   - export PATH="$HOME/.yarn/bin:$PATH"
-  - docker run --name localstack -e SERVICES="s3,dynamodb,secretsmanager,sqs,logs,elasticsearch"
-    -d -p 4567-4600:4567-4600 localstack/localstack
+  - yarn
 jobs:
   include:
     - stage: test
       name: workout
-      script: lerna run test --scope @webda/workout
-    - script: lerna run test --scope @webda/core
+      script: .ci/build.sh @webda/workout
+    - script: .ci/build.sh @webda/core
       name: core
-    - script: lerna run test --scope @webda/aws
+    - script: .ci/build.sh @webda/aws
       name: aws
-    - script: lerna run test --scope @webda/shell
+    - script: .ci/build.sh @webda/shell
       name: shell
-    - script: env
-      name: test
+    - script: .ci/build.sh @webda/elasticsearch
+      name: elasticsearch
 after_success:
   - sonar-scanner
 deploy:

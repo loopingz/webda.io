@@ -22,6 +22,7 @@ export * from "./services/configuration";
 export * from "./services/cron";
 export * from "./services/fileconfiguration";
 export * from "./services/kubernetesconfiguration";
+export * from "./services/oauth";
 export * from "./services/debugmailer";
 export * from "./services/filebinary";
 export * from "./services/mailer";

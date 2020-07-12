@@ -1,0 +1,34 @@
+{
+  "name": "@webda/codemod",
+  "version": "0.0.1",
+  "description": "Migration helper",
+  "keywords": [
+    "webda"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "homepage": "https://github.com/loopingz/webda.io/tree/master/packages/codemod#readme",
+  "license": "ISC",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "*.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git"
+  },
+  "scripts": {
+    "test": "exit 0"
+  },
+  "bugs": {
+    "url": "https://github.com/loopingz/webda.io/issues"
+  },
+  "dependencies": {
+    "jscodeshift-add-imports": "^1.0.3"
+  },
+  "devDependencies": {
+    "openapi-types": "^1.3.5"
+  }
+}

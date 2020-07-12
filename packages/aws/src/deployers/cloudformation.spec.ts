@@ -98,17 +98,25 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     let uploadStatics = sinon.stub(this.deployer, "uploadStatics");
     let createCloudFormation = sinon.stub(this.deployer, "createCloudFormation");
     let sendCloudFormation = sinon.stub(this.deployer, "sendCloudFormationTemplate");
+    let generateLambdaPackage = sinon.stub(this.deployer, "generateLambdaPackage");
     sendCloudFormation.callsFake(async () => {
       this.deployer.result.CloudFormation = {
         Bucket: "plop",
         Key: "mycf.json"
       };
     });
-    console.log("Launch default resources");
+    generateLambdaPackage.callsFake(async () => {
+      return {
+        Bucket: "fake",
+        Key: "lambda.zip"
+      };
+    });
     await this.deployer.defaultResources();
     console.log("Launch deploy", this.deployer.uploadStatics);
     await this.deployer.deploy();
+    console.log("Launch deploy done");
     assert.equal(sendCloudFormation.calledOnce, true);
+    assert.equal(generateLambdaPackage.calledOnce, true);
   }
 
   @test

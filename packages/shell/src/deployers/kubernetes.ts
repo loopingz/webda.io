@@ -248,7 +248,11 @@ export class Kubernetes extends Deployer<KubernetesResources> {
         // we got the resource, so it exists, so patch it
         await this.client.patch(resource);
       } catch (e) {
-        this.logger.log("ERROR", "Cannot patch", resource.metadata, e);
+        if (e.body && e.body.kind === "Status") {
+          this.logger.log("ERROR", "Cannot patch", resource.metadata, e.body.message);
+        } else {
+          this.logger.log("ERROR", "Cannot patch", resource.metadata, e);
+        }
       }
     } catch (e) {
       // we did not get the resource, so it does not exist, so create it

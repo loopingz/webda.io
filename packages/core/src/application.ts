@@ -158,6 +158,11 @@ export class Application {
   protected namespace: string;
 
   /**
+   * Detect if running as workspace
+   */
+  protected workspacesPath: string = "";
+
+  /**
    *
    * @param {string} fileOrFolder to load Webda Application from
    * @param {Logger} logger
@@ -230,6 +235,7 @@ export class Application {
         let info = JSON.parse(fs.readFileSync(packageJson).toString());
         if (info.workspaces) {
           this.log("DEBUG", "Application is running within a workspace");
+          this.workspacesPath = path.resolve(parent);
           // Replace any relative path by absolute one
           for (let i in info.webda) {
             if (info.webda[i].startsWith("./")) {
@@ -507,6 +513,13 @@ export class Application {
     let nodeModules = path.join(this.appPath, "node_modules");
     if (fs.existsSync(nodeModules)) {
       files = Finder.from(nodeModules).findFiles("webda.module.json");
+    }
+    // Search workspace for webda.module.json
+    if (this.workspacesPath !== "") {
+      nodeModules = path.join(this.workspacesPath, "node_modules");
+      if (fs.existsSync(nodeModules)) {
+        files.push(...Finder.from(nodeModules).findFiles("webda.module.json"));
+      }
     }
     // Generate module
     this.generateModule();

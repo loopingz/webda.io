@@ -121,6 +121,7 @@ class ConsoleTest {
     // CSRF is disabled by default in debug mode
     console.log("test API");
     await app.testApi(200);
+    let p = this.waitForStatus(DebuggerStatus.Launching);
     // Add a new .ts
     fs.writeFileSync(
       this.dynamicFile,
@@ -136,10 +137,8 @@ class DynamicService extends Service {
 `
     );
     try {
-      console.log("Pausing 5s to let fs react");
-      await new Promise(resolve => setTimeout(resolve, 5000));
       console.log("Waiting for Launching");
-      await this.waitForStatus(DebuggerStatus.Launching);
+      await p;
       console.log("Waiting for Serving");
       await this.waitForStatus(DebuggerStatus.Serving);
     } catch (err) {

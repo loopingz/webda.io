@@ -11,13 +11,19 @@ service:
 before_install:
   - curl -o- -L https://yarnpkg.com/install.sh | bash -s
   - export PATH="$HOME/.yarn/bin:$PATH"
-  - docker run --name localstack -e SERVICES="s3,dynamodb,secretsmanager,sqs,logs,elasticsearch" -d -p 4567-4600:4567-4600 localstack/localstack
   - yarn
-script:
   - lerna run build
-  - echo "Waiting for LocalStack to be Ready"; while :; do docker logs localstack 2>&1
-    | grep Ready > /dev/null; e=$?; if [ $e -eq 0 ]; then break; fi; sleep 1; done
-  - lerna run test
+jobs:
+  include:
+    - stage: test
+      name: workout
+      script: .ci/build.sh @webda/workout
+    - script: .ci/build.sh @webda/core
+      name: core
+    - script: .ci/build.sh @webda/aws
+      name: aws
+    - script: .ci/build.sh @webda/shell
+      name: shell
 after_success:
   - sonar-scanner
 deploy:

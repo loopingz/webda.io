@@ -28,7 +28,8 @@
     "@webda/shell": "link:../packages/shell/",
     "@webda/workout": "link:../packages/workout/",
     "deepmerge": "^4.2.2",
-    "merge": "^1.2.1"
+    "merge": "^1.2.1",
+    "yaml": "^1.10.0"
   },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",

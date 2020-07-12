@@ -1,6 +1,5 @@
 "use strict";
 import * as crypto from "crypto";
-import * as passport from "passport";
 import { Core, ModdaDefinition, _extend } from "../core";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
@@ -9,29 +8,6 @@ import { Store } from "../stores/store";
 import { Context } from "../utils/context";
 import { Mailer } from "./mailer";
 import { JSONUtils } from "../utils/json";
-
-var Strategies = {
-  facebook: {
-    strategy: require("passport-facebook").Strategy,
-    promise: false
-  },
-  google: {
-    strategy: require("passport-google-oauth").OAuth2Strategy,
-    promise: false
-  },
-  amazon: {
-    strategy: require("passport-amazon").Strategy,
-    promise: false
-  },
-  github: {
-    strategy: require("passport-github2").Strategy,
-    promise: false
-  },
-  twitter: {
-    strategy: require("passport-twitter").Strategy,
-    promise: true
-  }
-};
 
 interface PasswordVerifier extends Service {
   validate(password: string): Promise<void>;
@@ -181,55 +157,6 @@ class Authentication extends Service {
         }
       });
     }
-    this._addRoute(url + "/google/token", ["POST"], this._googleToken, {
-      post: {
-        description: "Log with a Google Auth token",
-        summary: "Use the token provide to validate with Google the user",
-        operationId: "verifyGoogleToken",
-        responses: {
-          "204": "",
-          "400": "Missing token"
-        }
-      }
-    });
-    // Handle the lost password here
-    url += "/{provider}";
-    this._addRoute(url, ["GET"], this._authenticate, {
-      get: {
-        description: "Authenticate with a configured OAuth provider",
-        summary: "Authenticate with OAuth",
-        operationId: "oauthWith",
-        responses: {
-          "302": "Redirect to OAuth provider",
-          "404": "Provider does not exist"
-        }
-      }
-    });
-    this._addRoute(url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}", ["GET"], this._callback, {
-      hidden: true
-    });
-  }
-
-  async _googleToken(context: Context) {
-    let token = context.getRequestBody().token;
-    if (!token) {
-      throw 400;
-    }
-    // Verify a google token
-    const CLIENT_ID = this._params.providers.google.clientID;
-    const { OAuth2Client } = require("google-auth-library");
-    const client = new OAuth2Client();
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: CLIENT_ID
-    });
-    const payload = ticket.getPayload();
-    context.getRequestParameters().name = "google";
-    this.handleOAuthReturn(context, Ident.init("google", payload["sub"], "", "", payload), () => {});
-    await this.emitSync("GoogleToken", {
-      user: payload,
-      ctx: context
-    });
   }
 
   setIdents(identStore) {
@@ -265,9 +192,8 @@ class Authentication extends Service {
     }
   }
 
-  addProvider(name: string, strategy, config) {
-    Strategies[name] = strategy;
-    this._params.providers[name] = config;
+  addProvider(name: string) {
+    this._params.providers[name] = name;
   }
 
   async _sendEmailValidation(ctx) {
@@ -297,31 +223,6 @@ class Authentication extends Service {
     await this.sendValidationEmail(ctx, ctx._params.email);
   }
 
-  _callback(ctx: Context) {
-    let provider = ctx.parameter("provider");
-    this.log("TRACE", "Callback from OAuth called");
-    var providerConfig = this._params.providers[provider];
-    if (!providerConfig) {
-      throw 404;
-    }
-    return new Promise((resolve, reject) => {
-      var done = (err, user, info) => {
-        this.log("TRACE", "Callback from OAuth done", err, user, info);
-        resolve();
-      };
-      this.setupOAuth(ctx, providerConfig, provider);
-      this.log("TRACE", "OAuth Setup authenticate", this._getProviderName(provider));
-      passport.authenticate(
-        this._getProviderName(provider),
-        {
-          successRedirect: this._params.successRedirect,
-          failureRedirect: this._params.failureRedirect
-        },
-        done
-      )(ctx, ctx, done);
-    });
-  }
-
   async _getMe(ctx: Context) {
     let user = await ctx.getCurrentUser();
     if (user === undefined) {
@@ -343,20 +244,6 @@ class Authentication extends Service {
     ctx.write(Object.keys(this._params.providers));
   }
 
-  getCallbackUrl(ctx: Context) {
-    let provider = ctx.parameter("provider");
-    if (this._params.providers[provider].callbackURL) {
-      return this._params.providers[provider].callbackURL;
-    }
-    // TODO Issue with specified port for now
-    var url = ctx.getHttpContext().getFullUrl();
-
-    if (url.endsWith("/callback")) {
-      return url;
-    }
-    return url + "/callback";
-  }
-
   async _registerNewEmail(ctx) {
     if (!ctx.getCurrentUserId()) {
       throw 403;
@@ -376,61 +263,41 @@ class Authentication extends Service {
     await this.sendValidationEmail(ctx, ctx.body.email);
   }
 
-  async handleOAuthReturn(ctx: Context, identArg: any, done, noRedirect = false) {
-    let provider = ctx.parameter("provider");
-    this.log("TRACE", "Handle OAuth return", identArg);
-    let ident: Ident = await this._identsStore.get(identArg.uuid);
+  async onIdentLogin(ctx: Context, provider: string, identId: string, profile: any) {
+    if (!identId.endsWith(`_${provider}`)) {
+      identId += `_${provider}`;
+    }
+    let ident: Ident = await this._identsStore.get(identId);
+    // Ident is known
     if (ident) {
       await this.login(ctx, ident.getUser(), ident);
       await this._identsStore.patch({
         _lastUsed: new Date(),
         uuid: ident.uuid
       });
-      ctx.writeHead(302, {
-        Location: this._params.successRedirect + "?validation=" + provider,
-        "X-Webda-Authentication": "success"
-      });
-      ctx.end();
-      done(ident);
+      // Redirect to?
       return;
     }
     let user;
+    // If already login
     if (ctx.getCurrentUserId()) {
       user = await ctx.getCurrentUser();
     } else {
-      user = await this.registerUser(ctx, identArg.__profile);
+      // If no user, register a new user automatically
+      user = await this.registerUser(ctx, profile);
       await this._usersStore.save(user);
     }
     // Work directly on ident argument
-    ident = this._identsStore.initModel(identArg);
+    ident = this._identsStore.initModel({
+      uuid: identId,
+      profile
+    });
     ident.setUser(user.uuid);
     ident._lastUsed = new Date();
     ident.setType(provider);
     await ident.save();
     ident.__new = true;
     await this.login(ctx, user, ident);
-    this.log("TRACE", "Logged in normally should redirect to", this._params.successRedirect);
-    if (!noRedirect) {
-      ctx.writeHead(302, {
-        Location: this._params.successRedirect + "?validation=" + provider,
-        "X-Webda-Authentication": "success"
-      });
-      ctx.end();
-      done(ident);
-    }
-  }
-
-  setupOAuth(ctx: Context, config, name: string) {
-    let provider = ctx.parameter("provider");
-    config.callbackURL = this.getCallbackUrl(ctx);
-    let strategy = new Strategies[provider].strategy(config, (accessToken, refreshToken, profile, done) => {
-      this.log("TRACE", "OAuth return is", provider, profile.id, accessToken, refreshToken, profile);
-      this.handleOAuthReturn(ctx, Ident.init(provider, profile.id, accessToken, refreshToken, profile._json), done);
-    });
-    if (strategy.name !== name) {
-      this._aliases[name] = strategy.name;
-    }
-    passport.use(strategy);
   }
 
   async registerUser(ctx: Context, datas, user: any = {}): Promise<any> {
@@ -768,45 +635,6 @@ class Authentication extends Service {
     return name;
   }
 
-  async _authenticate(ctx: Context) {
-    // Handle Logout
-    let provider = ctx.parameter("provider");
-    if (provider == "logout") {
-      await this.logout(ctx);
-      if (this._params.logoutRedirect) {
-        ctx.writeHead(302, {
-          Location: this._params.logoutRedirect
-        });
-      }
-      throw 204;
-    }
-    var providerConfig = this._params.providers[provider];
-    if (providerConfig) {
-      if (!Strategies[provider].promise) {
-        this.setupOAuth(ctx, providerConfig, provider);
-        return passport.authenticate(this._getProviderName(provider), {
-          scope: providerConfig.scope
-        })(ctx, ctx);
-      }
-      return new Promise((resolve, reject) => {
-        throw Error("OAuth 1 disabled");
-        // TODO Fix oauth1
-        /*
-        ctx._end = ctx.end;
-        ctx.end = (obj) => {
-          ctx.end = ctx._end;
-          resolve(obj);
-          return
-        };
-        this.setupOAuth(ctx, providerConfig);
-        passport.authenticate(ctx._params.provider, {
-          'scope': providerConfig.scope
-        }, this._oauth1)(ctx, ctx, ctx._oauth1);
-        */
-      });
-    }
-    throw 404;
-  }
   static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/Authentication",
@@ -830,21 +658,16 @@ class Authentication extends Service {
               type: "string",
               default: "YOUR WEBSITE FAILURE PAGE"
             },
-            providers: {
+            email: {
               type: "object",
-              default: {
-                facebook: {
-                  clientID: "",
-                  clientSecret: "",
-                  scope: ["email", "public_profile"]
-                },
-                email: {
-                  postValidation: false
+              properties: {
+                postValidation: {
+                  type: "boolean"
                 }
               }
             }
           },
-          required: ["successRedirect", "failureRedirect", "providers"]
+          required: ["successRedirect", "failureRedirect"]
         }
       }
     };

@@ -13,13 +13,19 @@ before_install:
   - export PATH="$HOME/.yarn/bin:$PATH"
   - docker run --name localstack -e SERVICES="s3,dynamodb,secretsmanager,sqs,logs,elasticsearch"
     -d -p 4567-4600:4567-4600 localstack/localstack
-script:
-  - yarn
-  - yarn build
-  - ln -s ../node_modules sample-app/node_modules
-  - echo "Waiting for LocalStack to be Ready"; while :; do docker logs localstack 2>&1
-    | grep Ready > /dev/null; e=$?; if [ $e -eq 0 ]; then break; fi; sleep 1; done
-  - yarn test
+jobs:
+  include:
+    - stage: test
+      name: workout
+      script: lerna run test --scope @webda/workout
+    - script: lerna run test --scope @webda/core
+      name: core
+    - script: lerna run test --scope @webda/aws
+      name: aws
+    - script: lerna run test --scope @webda/shell
+      name: shell
+    - script: env
+      name: test
 after_success:
   - sonar-scanner
 deploy:

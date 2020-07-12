@@ -230,34 +230,23 @@ class CoreTest extends WebdaTest {
   }
 
   @test
-  passportExecutor() {
-    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/auth/facebook");
-    assert.notEqual(executor, undefined);
-    executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/auth/facebook/callback?code=xxx&plop=test");
-    assert.notEqual(executor, undefined);
-    assert.equal(this.ctx.getParameters().code, "xxx");
-    assert.equal(this.ctx.getParameters().provider, "facebook");
-  }
-
-  @test
   slashInQueryString() {
+    this.webda.addRoute("/callback{?code}", ["GET"]);
     let executor = this.getExecutor(
       this.ctx,
       "test.webda.io",
       "GET",
-      "/auth/google/callback?code=4/5FGBh9iF5CxUkekcWQ8ZykvQnjRskeLZ9gFN3uTjLy8"
+      "/urltemplate/callback?code=4/5FGBh9iF5CxUkekcWQ8ZykvQnjRskeLZ9gFN3uTjLy8"
     );
     assert.notEqual(executor, undefined);
     assert.equal(this.ctx.getParameters().code, "4/5FGBh9iF5CxUkekcWQ8ZykvQnjRskeLZ9gFN3uTjLy8");
-    assert.equal(this.ctx.getParameters().provider, "google");
     executor = this.getExecutor(
       this.ctx,
       "test.webda.io",
       "GET",
-      "/auth/google/callback?code=4/kS_0n1xLdgh47kNTNY064vUMNR0ZJtHUzy9jFxHRY_k#"
+      "/urltemplate/callback?code=4/kS_0n1xLdgh47kNTNY064vUMNR0ZJtHUzy9jFxHRY_k#"
     );
     assert.equal(this.ctx.getParameters().code, "4/kS_0n1xLdgh47kNTNY064vUMNR0ZJtHUzy9jFxHRY_k#");
-    assert.equal(this.ctx.getParameters().provider, "google");
   }
 
   @test

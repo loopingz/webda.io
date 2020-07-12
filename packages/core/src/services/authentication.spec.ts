@@ -429,12 +429,13 @@ class AuthenticationTest extends WebdaTest {
     assert.equal(ctx.getResponseHeaders().Location, "https://webda.io/user.html?validation=email");
   }
 
+
+  /*
   @test("AWS Compatibility") async awsCompatibility() {
     let ctx = await this.newContext();
     let executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/github");
     assert.notEqual(executor, undefined);
   }
-  /*
   @test("Callback") async callback() {
     var done = function () {};
     var lastUsed = null;

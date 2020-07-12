@@ -14,11 +14,14 @@ class VoidStore extends Webda.Store {
     this._addRoute("/broken/{type}", "GET", this._brokenRoute);
     this._addRoute("/", ["GET", "POST"], this._default);
     this._addRoute("/urltemplate/{id}", "GET", this._template);
+    this._addRoute("/urltemplate/callback{?code}", "GET", this._query);
   }
 
   _template() {}
 
   _default(ctx) {}
+
+  _query(ctx) {}
 
   checkRequest(context) {
     if (context.getHttpContext().uri === "/bouzouf/route" && context.getHttpContext().host === "csrf.com") {

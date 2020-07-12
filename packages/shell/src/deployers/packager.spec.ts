@@ -60,7 +60,12 @@ class PackagerTest {
           var writer = new streams.WritableStream();
           entry.pipe(writer);
           entry.on("end", () => {
-            captureFiles[fileName] = writer.toBuffer().toString();
+            // Do not cache in memory all files
+            if (fileName === "webda.config.json") {
+              captureFiles[fileName] = writer.toBuffer().toString();
+            } else {
+              captureFiles[fileName] = true;
+            }
           });
         })
         .on("close", resolve)

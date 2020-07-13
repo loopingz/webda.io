@@ -245,6 +245,9 @@ export class Kubernetes extends Deployer<KubernetesResources> {
           // Certificate are not patchable
           return;
         }
+        let count = 1;
+        while (fs.existsSync(`/tmp/resource.${count}.json`)) count++;
+        fs.writeFileSync(`/tmp/resource.${count}.json`, JSON.stringify(resource, undefined, 2));
         // we got the resource, so it exists, so patch it
         await this.client.patch(resource);
       } catch (e) {

@@ -11,8 +11,8 @@ export class DynamoDBTest extends StoreTest {
   async before() {
     await checkLocalStack();
     this.buildWebda();
-    DynamoDBTest.install("webda-test-idents");
-    DynamoDBTest.install("webda-test-users");
+    await DynamoDBTest.install("webda-test-idents");
+    await DynamoDBTest.install("webda-test-users");
     await super.before();
   }
 

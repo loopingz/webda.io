@@ -26,7 +26,7 @@ When a user register, the Authentication service send a Register event, so you c
 
 ```javascript
 // Datas is the profile coming from the OAuth or the Register form
-this.emit("Register", {"user": user, "datas": datas, "ctx": ctx});
+this.emit("Register", { user: user, datas: datas, ctx: ctx });
 ```
 
 ## Email authentication
@@ -35,24 +35,21 @@ To use this feature you need to have a configured Mailer service, you can define
 
 The email authentication has two modes, one that register the user without waiting for the email validation, and the other one that register the user only when the registration form contains the right validation token sent by email.
 
-
 ```javascript
 ...
-"providers": {
-  "email": {
-     "from": "", // Email sender
-     "subject": "", // Email subject
-     "html": "", // HTML to send by email for email validation
-     "text": "", // Text to send by email for email validation
-     "mailer": "DefinedMailer", // Defined mailer to use
-     "postValidation": false, // If true, create user without email validation
-     "skipEmailValidation": true // Don't even send a validation email, must be set along with postValidation=true
-  },
-}
+"email": {
+    "from": "", // Email sender
+    "subject": "", // Email subject
+    "html": "", // HTML to send by email for email validation
+    "text": "", // Text to send by email for email validation
+    "mailer": "DefinedMailer", // Defined mailer to use
+    "postValidation": false, // If true, create user without email validation
+    "skipEmailValidation": true // Don't even send a validation email, must be set along with postValidation=true
+},
 ...
 ```
 
-The email authentication expose 
+The email authentication expose
 POST /auth/email
 if the body contains register=true then it will perform registration, if not then only login returning 404 if unknown user, 403 for bad password, 204 for successful login
 GET /auth/callback
@@ -76,8 +73,3 @@ You can setup differents types of OAuth, we integrate for now only Facebook, Ama
 ```
 
 This is the same for the other providers, except **Twitter** where the fields are OAuth1 : consumerKey and consumerSecret
-
-## Polymer
-
-You have a Polymer behavior that implement the Authentication : ...
-

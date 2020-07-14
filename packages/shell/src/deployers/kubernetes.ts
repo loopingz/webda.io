@@ -54,6 +54,7 @@ export interface KubernetesResources extends DockerResources {
   patchResources?: any; //{ [key: string]: any };
   resourcesFile?: string;
   cronTemplate?: string | KubernetesObject;
+  debug?: boolean;
 }
 
 const DEFAULT_API = {
@@ -167,7 +168,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
         this.resources.resources.push(this.objectParameter(resource));
       });
       this.parameters.cron = undefined;
-      //await this.client.
+      // TODO Clean other cronjob await this.client.
       // Search for any cron that was deployed by us
       this.logger.log("INFO", JSON.stringify(this.resources.resources, undefined, 2));
     }
@@ -216,17 +217,16 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     if (this.resources.resourcesFile) {
       if (this.resources.resourcesFile.match(/\.(ya?ml|json)$/i) && fs.existsSync(this.resources.resourcesFile)) {
         let resources = JSONUtils.loadFile(this.resources.resourcesFile);
-        if (Array.isArray(resources)) {
-          for (let i in resources) {
-            let resource = this.objectParameter(resources[i]);
-            if (!this.completeResource(resource)) {
-              this.logger.log("ERROR", `Resource invalid #${i} of resourcesFile`);
-              continue;
-            }
-            await this.upsertKubernetesObject(resource);
+        if (!Array.isArray(resources)) {
+          resources = [resources];
+        }
+        for (let i in resources) {
+          let resource = this.objectParameter(resources[i]);
+          if (!this.completeResource(resource)) {
+            this.logger.log("ERROR", `Resource invalid #${i} of resourcesFile`);
+            continue;
           }
-        } else {
-          this.logger.log("ERROR", `Resource file #${this.resources.resourcesFile} should contain an array`);
+          await this.upsertKubernetesObject(resource);
         }
       } else {
         this.logger.log("ERROR", `Resource file #${this.resources.resourcesFile} does not exist or invalid format`);
@@ -245,9 +245,11 @@ export class Kubernetes extends Deployer<KubernetesResources> {
           // Certificate are not patchable
           return;
         }
-        let count = 1;
-        while (fs.existsSync(`/tmp/resource.${count}.json`)) count++;
-        fs.writeFileSync(`/tmp/resource.${count}.json`, JSON.stringify(resource, undefined, 2));
+        if (this.resources.debug) {
+          let count = 1;
+          while (fs.existsSync(`/tmp/resource.${count}.json`)) count++;
+          fs.writeFileSync(`/tmp/resource.${count}.json`, JSON.stringify(resource, undefined, 2));
+        }
         // we got the resource, so it exists, so patch it
         await this.client.patch(resource);
       } catch (e) {
@@ -258,6 +260,11 @@ export class Kubernetes extends Deployer<KubernetesResources> {
         }
       }
     } catch (e) {
+      if (this.resources.debug) {
+        let count = 1;
+        while (fs.existsSync(`/tmp/resource.${count}.json`)) count++;
+        fs.writeFileSync(`/tmp/resource.${count}.json`, JSON.stringify(resource, undefined, 2));
+      }
       // we did not get the resource, so it does not exist, so create it
       await this.client.create(resource);
     }

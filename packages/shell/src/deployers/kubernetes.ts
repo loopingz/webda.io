@@ -169,6 +169,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       });
       this.parameters.cron = undefined;
       // TODO Clean other cronjob await this.client.
+      this.logger.log("TRACE", `Check into crontab id ${ids}`);
       // Search for any cron that was deployed by us
       this.logger.log("INFO", JSON.stringify(this.resources.resources, undefined, 2));
     }

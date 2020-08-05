@@ -421,9 +421,9 @@ export class Terminal {
   async displayScreen() {
     // Reset terminal
     let screen = ""; //"\x1Bc";
-    let footer = this.getFooterSize();
     // Calculate where to start if move cursorTo
     /*
+    let footer = this.getFooterSize();
     let start = this.height - this.history.length + footer;
     if (start < 0) {
       start = 0;

@@ -1,4 +1,4 @@
-import { Application, Cache, Logger, AbstractDeployer } from "@webda/core";
+import { Application, Logger, AbstractDeployer } from "@webda/core";
 import { spawn } from "child_process";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WorkerLogLevel } from "@webda/workout";

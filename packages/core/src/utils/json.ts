@@ -6,15 +6,15 @@ export const JSONUtils = {
     let stringified = [];
     return JSON.stringify(
       value,
-      function (key: string, value: any): any {
-        if ((stringified.indexOf(value) >= 0 && typeof value === "object") || key.startsWith("__")) {
+      function (key: string, val: any): any {
+        if ((stringified.indexOf(val) >= 0 && typeof val === "object") || key.startsWith("__")) {
           return undefined;
         }
-        stringified.push(value);
+        stringified.push(val);
         if (replacer) {
-          return replacer.bind(this, key, value)();
+          return replacer.bind(this, key, val)();
         }
-        return value;
+        return val;
       },
       space
     );

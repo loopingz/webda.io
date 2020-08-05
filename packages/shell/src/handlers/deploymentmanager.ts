@@ -6,7 +6,7 @@ import { Deployer } from "../deployers/deployer";
 import { Docker } from "../deployers/docker";
 import { Packager } from "../deployers/packager";
 import * as yargs from "yargs";
-import { WorkerOutput, WorkerInputType } from "@webda/workout";
+import { WorkerOutput } from "@webda/workout";
 import * as fs from "fs";
 import * as path from "path";
 import { Kubernetes } from "../deployers/kubernetes";

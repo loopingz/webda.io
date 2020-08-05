@@ -12,7 +12,6 @@ import {
 import { ConsoleLogger } from "../loggers/console";
 import * as util from "util";
 import { SIGINT } from "constants";
-import { fstat } from "fs";
 
 export class Terminal {
   tty: boolean;
@@ -323,9 +322,9 @@ export class Terminal {
       .padStart(5);
     let numberLength = p.total.toString().length;
     let line = this.displayString(
-      `${bar} ${Math.floor(p.current).toString().padStart(numberLength)}/${p.total} ${p.title || ""}`.padEnd(
-        process.stdout.columns - 2
-      )
+      `${bar} ${Math.floor(p.current).toString().padStart(numberLength)}/${p.total} ${percent}% ${
+        p.title || ""
+      }`.padEnd(process.stdout.columns - 2)
     );
     if (line.length > process.stdout.columns - 2) {
       line = line.substr(0, process.stdout.columns - 2);
@@ -402,19 +401,19 @@ export class Terminal {
     }
     // Inserting logo
     if (this.height > 30 && process.stdout.columns > 50 && this.logo.length) {
-      let lines = res.split("\n");
+      let linesData = res.split("\n");
       let i = 0;
       for (let y in this.logo) {
         i = parseInt(y) + this.getFooterSize();
-        if (!lines[i]) {
+        if (!linesData[i]) {
           continue;
         }
-        lines[i] =
-          this.displayString(lines[i].trim(), process.stdout.columns - this.logoWidth - 1) +
+        linesData[i] =
+          this.displayString(linesData[i].trim(), process.stdout.columns - this.logoWidth - 1) +
           this.logo[y].padEnd(this.logoWidth) +
           " ";
       }
-      return lines.join("\n");
+      return linesData.join("\n");
     }
     return res;
   }
@@ -423,12 +422,14 @@ export class Terminal {
     // Reset terminal
     let screen = ""; //"\x1Bc";
     let footer = this.getFooterSize();
-    // Calculate where to start
+    // Calculate where to start if move cursorTo
+    /*
     let start = this.height - this.history.length + footer;
     if (start < 0) {
       start = 0;
     }
-    //readline.cursorTo(process.stdout, 0, start);
+    readline.cursorTo(process.stdout, 0, start);
+    */
     screen += this.displayHistory(this.height - this.getFooterSize());
 
     // Display footer

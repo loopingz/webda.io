@@ -268,7 +268,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       IdempotencyToken: "Webda_" + this.md5(domain).substr(0, 26)
     };
     let certificate = await acm.requestCertificate(params).promise();
-    let cert: ACM.CertificateDetail = <any>await this.waitFor(
+    let cert: ACM.CertificateDetail = await this.waitFor(
       async resolve => {
         let res = await acm.describeCertificate({ CertificateArn: certificate.CertificateArn }).promise();
         if (res.Certificate.DomainValidationOptions && res.Certificate.DomainValidationOptions[0].ResourceRecord) {

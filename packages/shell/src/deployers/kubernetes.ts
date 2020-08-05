@@ -1,4 +1,4 @@
-import { Docker, DockerResources } from "./docker";
+import { DockerResources } from "./docker";
 import * as k8s from "@kubernetes/client-node";
 import * as fs from "fs";
 import * as yaml from "yaml";
@@ -185,12 +185,12 @@ export class Kubernetes extends Deployer<KubernetesResources> {
 
       try {
         let spec = (await this.client.read(resource)).body;
-        for (let i in resource.patch) {
-          let path = i;
-          if (!i.startsWith("$.")) {
+        for (let prop in resource.patch) {
+          let path = prop;
+          if (!prop.startsWith("$.")) {
             path = "$." + path;
           }
-          jsonpath.value(spec, path, resource.patch[i]);
+          jsonpath.value(spec, path, resource.patch[prop]);
         }
         this.addAnnotation(spec);
         await this.client.patch(spec);

@@ -253,29 +253,16 @@ class CoreModel extends OwnerPolicy {
   }
 
   /**
-   * Get a service
-   *
-   * @param service to retrieve
-   * WARNING: Only object attached to a store can retrieve service
-   */
-  getService(service): any {
-    if (!this.__store) {
-      return undefined;
-    }
-    return this.__store.getService(service);
-  }
-
-  /**
    * Get a pre typed service
    *
    * @param service to retrieve
    * WARNING: Only object attached to a store can retrieve service
    */
-  getTypedService<T extends Service>(service): T {
+  getService<T extends Service>(service): T {
     if (!this.__store) {
       return undefined;
     }
-    return <T>this.__store.getService(service);
+    return this.__store.getService<T>(service);
   }
 
   _toJSON(secure): any {

@@ -2,7 +2,6 @@ import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "..";
 import * as fs from "fs";
 import { ConsoleLogger } from "..";
 import * as path from "path";
-import * as zlib from "zlib";
 
 /**
  * Record all messages in memory

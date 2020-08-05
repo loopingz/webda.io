@@ -357,8 +357,6 @@ CMD webda --noCompile $WEBDA_COMMAND ${logFile} ${errorFile}\n\n`;
    * Generate a dynamic Dockerfile with webda application
    */
   getDockerfile(): string {
-    var cwd = process.cwd();
-
     var dockerfile = this.getDockerfileHeader() + "RUN yarn install --production\n\n";
 
     dockerfile += this.copyPackageFilesTo(".", "/webda", ["webda.config.json"]);

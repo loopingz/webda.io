@@ -16,7 +16,7 @@ export default class ElasticSearchService extends Service {
     for (let i in this._params.indexes) {
       let index = this._params.indexes[i];
       index.name = i;
-      let store = (index._store = <Store<CoreModel>>this.getService(index.store));
+      let store = (index._store = this.getService<Store<CoreModel>>(index.store));
       if (!store) {
         this.log("ERROR", "Cannot initiate index", index.index, ": missing store", index.store);
         return;
@@ -217,7 +217,7 @@ export default class ElasticSearchService extends Service {
     for (let i in this._params.indexes) {
       let index = this._params.indexes[i];
       index.name = i;
-      let store = (index._store = <Store<CoreModel>>this.getService(index.store));
+      let store = (index._store = this.getService<Store<CoreModel>>(index.store));
       if (!store) {
         continue;
       }

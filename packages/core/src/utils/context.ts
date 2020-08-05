@@ -64,9 +64,7 @@ class HttpContext {
       }
     }
     let portUrl = "";
-    if (port !== undefined && port !== 80 && protocol === "http") {
-      portUrl = ":" + port;
-    } else if (port !== undefined && port !== 443 && protocol === "https") {
+    if (port !== undefined && ((port !== 80 && protocol === "http") || (port !== 443 && protocol === "https"))) {
       portUrl = ":" + port;
     }
     this.root = this.protocol + "://" + this.host + portUrl;

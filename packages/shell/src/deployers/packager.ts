@@ -215,7 +215,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     }
     files = files || fs.readdirSync(appPath);
     for (let i in files) {
-      var name = files[i];
+      let name = files[i];
       if (name.startsWith(".")) continue;
       if (ignores.indexOf(name) >= 0) continue;
       toPacks.push(`${appPath}/${name}`);
@@ -252,7 +252,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     var output = fs.createWriteStream(zipPath);
     var archive = archiver("zip");
 
-    var p = new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       output.on("finish", () => {
         this.packagesGenerated[zipPath + entrypoint || ""] = true;
         resolve();
@@ -316,7 +316,6 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
       });
       archive.finalize();
     });
-    return p;
   }
 
   protected getPackagedConfiguration(): Configuration {

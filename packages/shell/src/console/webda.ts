@@ -1,5 +1,5 @@
 "use strict";
-import { Application, Logger, WebdaError } from "@webda/core";
+import { Application, Logger } from "@webda/core";
 import { ChildProcess, spawn } from "child_process";
 import * as colors from "colors";
 import * as crypto from "crypto";
@@ -9,7 +9,7 @@ import * as YAML from "yamljs";
 import * as yargs from "yargs";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";
-import { WorkerOutput, WorkerLogLevel, ConsoleLogger, WorkerLog, WorkerLogLevelEnum } from "@webda/workout";
+import { WorkerOutput, WorkerLogLevel, ConsoleLogger, WorkerLogLevelEnum } from "@webda/workout";
 import { WebdaTerminal } from "./terminal";
 import * as path from "path";
 import * as semver from "semver";
@@ -290,11 +290,11 @@ export default class WebdaConsole {
         }
       };
       // glob files
-      this.app.getPackagesLocations().forEach(path => {
-        if (fs.existsSync(path) && fs.lstatSync(path).isDirectory()) {
+      this.app.getPackagesLocations().forEach(packPath => {
+        if (fs.existsSync(packPath) && fs.lstatSync(packPath).isDirectory()) {
           // Linux limitation, the recursive does not work
           fs.watch(
-            path,
+            packPath,
             <Object>{
               resursive: true
             },

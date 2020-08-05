@@ -1,5 +1,5 @@
 "use strict";
-import * as uuid from "uuid";
+import { v4 as uuidv4 } from "uuid";
 import { OwnerPolicy } from "../policies/ownerpolicy";
 import { Store } from "../stores/store";
 import { Context } from "../utils/context";
@@ -228,7 +228,7 @@ class CoreModel extends OwnerPolicy {
   }
 
   generateUid(object: any = undefined): string {
-    return uuid.v4().toString();
+    return uuidv4().toString();
   }
 
   _jsonFilter(key, value): any {

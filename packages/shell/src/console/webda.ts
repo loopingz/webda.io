@@ -661,7 +661,7 @@ export default class WebdaConsole {
         commands.push("");
       }
       // Display help if nothing is found
-      await this.help(commands);
+      this.help(commands);
     } finally {
       if (this.terminal) {
         this.log("TRACE", "Closing terminal");

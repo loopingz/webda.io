@@ -1,4 +1,3 @@
-import { Service } from "@webda/core";
 const AWS = require("aws-sdk");
 
 export function GetAWS(params: any) {

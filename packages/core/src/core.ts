@@ -449,7 +449,7 @@ export class Core extends events.EventEmitter {
           break;
         }
       }
-      className += (<Service>clazz).getName();
+      className += clazz.getName();
     }
     return new Logger(this.workerOutput, <string>className);
   }
@@ -917,8 +917,8 @@ export class Core extends events.EventEmitter {
       let schema = new modelDescription()._getSchema();
       if (schema) {
         schema = JSON.parse(fs.readFileSync(schema).toString());
-        for (let i in schema.definitions) {
-          openapi.definitions[i] = schema.definitions[i];
+        for (let j in schema.definitions) {
+          openapi.definitions[j] = schema.definitions[j];
         }
         delete schema.definitions;
         desc = schema;

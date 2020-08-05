@@ -465,7 +465,7 @@ class Binary extends Service {
     if (Array.isArray(map) && map.indexOf(property) == -1) {
       throw 404;
     }
-    var targetStore: Store<CoreModel> = <Store<CoreModel>>this.getService(store);
+    var targetStore: Store<CoreModel> = this.getService<Store<CoreModel>>(store);
     if (targetStore === undefined) {
       throw 404;
     }

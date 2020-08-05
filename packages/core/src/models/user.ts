@@ -1,5 +1,5 @@
 "use strict";
-import { CoreModel, CoreModelDefinition } from "./coremodel";
+import { CoreModel } from "./coremodel";
 
 /**
  * First basic model for Ident

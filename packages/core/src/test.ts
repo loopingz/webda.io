@@ -67,10 +67,10 @@ class WebdaTest {
     }
     if (this.webda.updateContextWithRoute(ctx)) {
       return {
-        execute: async (ctx: Context) => {
-          if (typeof ctx._route._method === "function") {
+        execute: async (argCtx: Context) => {
+          if (typeof argCtx._route._method === "function") {
             return new Promise(resolve => {
-              resolve(ctx.getExecutor()[ctx._route._method.name](ctx));
+              resolve(argCtx.getExecutor()[argCtx._route._method.name](argCtx));
             });
           }
         }

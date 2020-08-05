@@ -433,7 +433,7 @@ class Context extends EventEmitter {
    * @param {String} name of the service
    */
   getService<T extends Service>(name): T {
-    return <T>this._webda.getService(name);
+    return this._webda.getService<T>(name);
   }
 
   /**
@@ -451,7 +451,7 @@ class Context extends EventEmitter {
     if (!this.getCurrentUserId()) {
       return undefined;
     }
-    return (<Store<T>>this._webda.getService("Users")).get(this.getCurrentUserId());
+    return this._webda.getService<Store<T>>("Users").get(this.getCurrentUserId());
   }
 
   /**

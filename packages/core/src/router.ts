@@ -224,21 +224,21 @@ export class Router {
             description: "Operation success"
           }
         };
-        for (let i in responses) {
-          if (typeof responses[i] === "string") {
-            responses[i] = {
-              description: responses[i]
+        for (let j in responses) {
+          if (typeof responses[j] === "string") {
+            responses[j] = {
+              description: responses[j]
             };
           }
-          if (!responses[i].schema && responses[i].model) {
-            responses[i].schema = {
-              $ref: "#/definitions/" + responses[i].model
+          if (!responses[j].schema && responses[j].model) {
+            responses[j].schema = {
+              $ref: "#/definitions/" + responses[j].model
             };
-            delete responses[i].model;
+            delete responses[j].model;
           }
-          let code = parseInt(i);
-          if (code < 300 && code >= 200 && !responses[i].description) {
-            responses[i].description = "Operation success";
+          let code = parseInt(j);
+          if (code < 300 && code >= 200 && !responses[j].description) {
+            responses[j].description = "Operation success";
           }
         }
         let desc: any = {

@@ -7,7 +7,6 @@ import { Service } from "../services/service";
 import { Store } from "../stores/store";
 import { Context } from "../utils/context";
 import { Mailer } from "./mailer";
-import { JSONUtils } from "../utils/json";
 
 interface PasswordVerifier extends Service {
   validate(password: string): Promise<void>;
@@ -175,18 +174,18 @@ class Authentication extends Service {
    */
   async init(): Promise<void> {
     if (this._params.identStore) {
-      this._identsStore = <Store<Ident>>this.getService(this._params.identStore);
+      this._identsStore = this.getService<Store<Ident>>(this._params.identStore);
     }
 
     if (this._params.userStore) {
-      this._usersStore = <Store<User>>this.getService(this._params.userStore);
+      this._usersStore = this.getService<Store<User>>(this._params.userStore);
     }
 
     this._emailDelay = this._params.emailDelay || 3600000 * 4; // 4 hours by default
     this._params.passwordRegexp = this._params.passwordRegexp || ".{8,}";
 
     if (this._params.passwordVerifier) {
-      this._passwordVerifier = <PasswordVerifier>this.getService(this._params.passwordVerifier);
+      this._passwordVerifier = this.getService<PasswordVerifier>(this._params.passwordVerifier);
     }
 
     if (this._identsStore === undefined || this._usersStore === undefined) {
@@ -504,7 +503,7 @@ class Authentication extends Service {
   }
 
   getMailMan(): Mailer {
-    return <Mailer>this.getService(this._params.email.mailer ? this._params.email.mailer : "Mailer");
+    return this.getService<Mailer>(this._params.email.mailer ? this._params.email.mailer : "Mailer");
   }
 
   protected async handleLogin(ctx: Context, ident: Ident) {

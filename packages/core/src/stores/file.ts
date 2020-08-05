@@ -1,5 +1,6 @@
 "use strict";
 import * as fs from "fs";
+import * as path from "path";
 import { ModdaDefinition, WebdaError } from "../core";
 import { CoreModel } from "../models/coremodel";
 import { Store } from "./store";
@@ -35,16 +36,10 @@ class FileStore<T extends CoreModel> extends Store<T> {
   }
 
   async _find(request, offset, limit): Promise<any> {
-    var self = this;
-    var res = [];
-    var path = require("path");
-    var files = fs.readdirSync(self._params.folder).filter(function(file) {
-      return !fs.statSync(path.join(self._params.folder, file)).isDirectory();
+    var files = fs.readdirSync(this._params.folder).filter(file => {
+      return !fs.statSync(path.join(this._params.folder, file)).isDirectory();
     });
-    for (var file in files) {
-      res.push(this._get(files[file]));
-    }
-    return Promise.all(res);
+    return Promise.all(files.map(f => this._get(f)));
   }
 
   _save(object) {

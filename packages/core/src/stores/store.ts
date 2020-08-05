@@ -1,5 +1,5 @@
 "use strict";
-import * as uuid from "uuid";
+import { v4 as uuidv4 } from "uuid";
 import { ConfigurationProvider } from "../index";
 import { CoreModel, CoreModelDefinition } from "../models/coremodel";
 import { Service } from "../services/service";
@@ -395,7 +395,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
       return;
     }
     for (var prop in map) {
-      var reverseStore: Store<CoreModel> = <Store<CoreModel>>this._webda.getService(prop);
+      var reverseStore: Store<CoreModel> = this._webda.getService<Store<CoreModel>>(prop);
       if (reverseStore === undefined || !(reverseStore instanceof Store)) {
         map[prop]["-onerror"] = "NoStore";
         this.log("WARN", "Can't setup mapping as store \"", prop, "\" doesn't exist");
@@ -417,7 +417,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
   }
 
   generateUid() {
-    return uuid.v4();
+    return uuidv4();
   }
 
   /**
@@ -774,7 +774,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
       ) {
         continue;
       }
-      let store: Store<CoreModel> = <Store<CoreModel>>this.getService(prop);
+      let store: Store<CoreModel> = this.getService<Store<CoreModel>>(prop);
       // Cant find the store for this collection
       if (store == undefined) {
         continue;

@@ -49,7 +49,7 @@ class EventService extends Service {
         if (!this._defaultQueue) {
           this._defaultQueue = key;
         }
-        this._queues[key] = <Queue>this.getService(this._params.queues[key]);
+        this._queues[key] = this.getService<Queue>(this._params.queues[key]);
       });
     }
     this._async = !this._params.sync;

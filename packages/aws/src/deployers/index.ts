@@ -123,10 +123,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    * @param format hex or b64
    */
   protected hash(str: string, type: string = "md5", format: "hex" | "base64" = "hex"): string {
-    return crypto
-      .createHash("md5")
-      .update(str)
-      .digest(format);
+    return crypto.createHash("md5").update(str).digest(format);
   }
 
   _replaceForAWS(id) {
@@ -253,7 +250,6 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    * @param zone
    */
   async doCreateCertificate(domain: string, zone: AWS.Route53.HostedZone) {
-    let uuid = `doCreateCertificate${domain}`;
     let acm: AWS.ACM = new this.AWS.ACM({
       endpoint: this.resources.endpoints.S3
     });

@@ -457,16 +457,17 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         return;
       }
     }
+    this.logger.log("TRACE", `ChangeSet: ${changeSet}`);
     let changes = await this.waitFor(
       async (resolve, reject) => {
-        let changes = await cloudformation
+        let localChanges = await cloudformation
           .describeChangeSet({ ChangeSetName: "WebdaCloudFormationDeployer", StackName: this.resources.StackName })
           .promise();
-        if (changes.Status === "FAILED" || changes.Status === "CREATE_COMPLETE") {
-          resolve(changes);
+        if (localChanges.Status === "FAILED" || localChanges.Status === "CREATE_COMPLETE") {
+          resolve(localChanges);
           return true;
         }
-        if (changes.Status === "ROLLBACK_COMPLETE") {
+        if (localChanges.Status === "ROLLBACK_COMPLETE") {
           reject();
           return true;
         }
@@ -490,7 +491,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       }
       return;
     }
-    changes.Changes.filter(i => i.Type === "Resource").forEach(({ ResourceChange: info }) =>
+    changes.Changes.filter(j => j.Type === "Resource").forEach(({ ResourceChange: info }) =>
       this.logger.log(
         "INFO",
         `${info.Action.toUpperCase().padEnd(38)} ${info.ResourceType.padEnd(30)} ${info.LogicalResourceId}`
@@ -542,15 +543,14 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   }
 
   async Resources() {
-    let me = await this.getAWSIdentity();
     let services = this.manager.getWebda().getServices();
     // Build policy
     for (let i in services) {
       if ("getCloudFormation" in services[i]) {
         // Update to match recuring policy - might need to split if policy too big
         let res = (<CloudFormationContributor>(<any>services[i])).getCloudFormation(this);
-        for (let i in res) {
-          this.template.Resources[`Service${i}`] = res[i];
+        for (let j in res) {
+          this.template.Resources[`Service${i}_${j}`] = res[j];
         }
       }
     }

@@ -1,6 +1,7 @@
 "use strict";
 import events = require("events");
-import { Context, Core, Logger } from "../index";
+import { Core, Logger } from "../index";
+import { EventService } from "./asyncevents";
 
 /**
  * Use this object for representing a service in the application
@@ -132,7 +133,7 @@ abstract class Service extends events.EventEmitter {
    * @param queue Name of queue to use, can be undefined, queue name are used to define differents priorities
    */
   onAsync(event, callback, queue: string = undefined) {
-    (<any>this._webda.getService("AsyncEvents")).bindAsyncListener(this, event, callback, queue);
+    this._webda.getService<EventService>("AsyncEvents").bindAsyncListener(this, event, callback, queue);
   }
 
   /**

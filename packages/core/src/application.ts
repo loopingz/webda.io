@@ -22,7 +22,6 @@ import {
   FileBinary,
   FileStore,
   Ident,
-  Logger,
   Mailer,
   MemoryQueue,
   MemoryStore,

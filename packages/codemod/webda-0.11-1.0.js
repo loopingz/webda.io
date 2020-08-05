@@ -18,7 +18,9 @@ const packagesReplaceMap = {
 export default function transformer(fileInfo, api, options) {
   const j = api.jscodeshift;
   // eslint-disable-next-line global-require, import/no-dynamic-require
-  const printOptions = options.printOptions || {};
+  const printOptions = options.printOptions || {
+    createParenthesizedExpressions: false
+  };
   let root = j(fileInfo.source);
 
   let identifiers = [];
@@ -47,7 +49,6 @@ export default function transformer(fileInfo, api, options) {
   }
 
   identifiers.forEach(i => {
-    api.report("Should replace " + i.name + " by " + i.replace);
     let replace = i.replace;
     root.find(j.Identifier, { name: i.name }).replaceWith(path => {
       if (path.name === "superClass" || path.name === "typeName") {
@@ -60,19 +61,23 @@ export default function transformer(fileInfo, api, options) {
   // Change registerCorsFilter
   root.find(j.CallExpression, { callee: { property: { name: "registerCorsFilter" } } }).replaceWith(path => {
     path.value.callee.property.name = "registerRequestFilter";
+    return path.node;
   });
-
   // Update method for RequestFilter
-  root
-    .find(j.ClassMethod)
-    .find(j.Identifier, { name: "checkCSRF" })
-    .replaceWith(path => {
-      api.report(util.inspect(path));
-      path.value.name = "checkRequest";
-      return path.node;
-    });
+  root.find(j.MethodDefinition, { key: { name: "checkCSRF" } }).replaceWith(path => {
+    path.value.key.name = "checkRequest";
+    return path.node;
+  });
   // Rename _getService to getService
+  root.find(j.CallExpression, { callee: { property: { name: "_getService" } } }).replaceWith(path => {
+    path.value.callee.property.name = "getService";
+    return path.node;
+  });
   // Rename getTypedService to getService
+  root.find(j.CallExpression, { callee: { property: { name: "getTypedService" } } }).replaceWith(path => {
+    path.value.callee.property.name = "getService";
+    return path.node;
+  });
   // Replace any
   return root.toSource(printOptions);
 }

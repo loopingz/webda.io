@@ -83,19 +83,12 @@ class PackagerTest {
     // Ensure CachedModules are generated for packages
     assert.notEqual(config.cachedModules, undefined);
     assert.equal(config.cachedModules.services["WebdaDemo/CustomReusableService"], "./lib/services/reusable.js");
-    if (!process.env.TRAVIS) {
-      assert.equal(
-        config.cachedModules.services["Webda/AWSSecretsManager"],
-        "./node_modules/@webda/aws/lib/services/secretsmanager.js"
-      );
-    } else {
-      assert.equal(
-        config.cachedModules.services["Webda/AWSSecretsManager"].endsWith(
-          "node_modules/@webda/aws/lib/services/secretsmanager.js"
-        ),
-        true
-      );
-    }
+    assert.equal(
+      config.cachedModules.services["Webda/AWSSecretsManager"].endsWith(
+        "node_modules/@webda/aws/lib/services/secretsmanager.js"
+      ),
+      true
+    );
     assert.equal(config.cachedModules.models["WebdaDemo/Contact"], "./lib/models/contact.js");
     assert.deepEqual(config.cachedModules.sources, [
       "./lib/models/contact.js",

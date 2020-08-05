@@ -19,7 +19,7 @@ class ContextTest extends WebdaTest {
     this.ctx.logIn();
     console.log(this.ctx.getRoute());
     assert.notEqual(this.ctx.getService("Users"), undefined);
-    assert.notEqual(this.ctx.getTypedService<Service>("Users"), undefined);
+    assert.notEqual(this.ctx.getService<Service>("Users"), undefined);
     this.ctx = new Context(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     this.ctx.setPathParameters({ id: "plop" });
     this.ctx.setServiceParameters({ id: "service" });

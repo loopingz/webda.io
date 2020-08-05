@@ -432,17 +432,7 @@ class Context extends EventEmitter {
    * @see Webda
    * @param {String} name of the service
    */
-  getService(name): Service {
-    return this._webda.getService(name);
-  }
-
-  /**
-   * Get a service from webda
-   *
-   * @see Webda
-   * @param {String} name of the service
-   */
-  getTypedService<T extends Service>(name): T {
+  getService<T extends Service>(name): T {
     return <T>this._webda.getService(name);
   }
 
@@ -472,6 +462,25 @@ class Context extends EventEmitter {
       return this.session.getUserId();
     }
     return undefined;
+  }
+
+  /**
+   * Return the service handling the request
+   */
+  getExecutor(): Service {
+    return this._executor;
+  }
+
+  /**
+   * Execute the target route
+   */
+  async execute() {
+    if (this.getExecutor() && typeof this._route._method === "function") {
+      return new Promise((resolve, reject) => {
+        resolve(this.getExecutor()[this._route._method.name](this));
+      });
+    }
+    return Promise.reject(Error("Not implemented"));
   }
 
   /**

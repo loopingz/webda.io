@@ -11,7 +11,6 @@ import { Context, HttpContext, Logger, Service, Store } from "./index";
 import { CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { Router } from "./router";
 import { WorkerOutput, WorkerLogLevel } from "@webda/workout";
-import * as path from "path";
 
 /**
  * @hidden
@@ -101,15 +100,15 @@ export interface Configuration {
  *
  * If one of the filter replies with "true" then the request will go through
  */
-export interface RequestFilter {
-  checkRequest(context: Context): Promise<boolean>;
+export interface RequestFilter<T extends Context> {
+  checkRequest(context: T): Promise<boolean>;
 }
 
 /**
  *
  * @category CoreFeatures
  */
-export class OriginFilter implements RequestFilter {
+export class OriginFilter implements RequestFilter<Context> {
   origins: string[];
   constructor(origins: string[]) {
     this.origins = origins;
@@ -136,7 +135,7 @@ export class OriginFilter implements RequestFilter {
   }
 }
 
-export class WebsiteOriginFilter implements RequestFilter {
+export class WebsiteOriginFilter implements RequestFilter<Context> {
   websites: string[] = [];
   constructor(website: any) {
     if (!Array.isArray(website)) {
@@ -248,7 +247,7 @@ export class Core extends events.EventEmitter {
    * Added via [[Webda.registerRequestFilter]]
    * See [[CorsFilter]]
    */
-  protected _requestFilters: RequestFilter[] = [];
+  protected _requestFilters: RequestFilter<Context>[] = [];
   private workerOutput: WorkerOutput;
 
   /**
@@ -364,8 +363,8 @@ export class Core extends events.EventEmitter {
     return this._init;
   }
 
-  registerRequestFilter(filter: any) {
-    this._requestFilters.push(<RequestFilter>filter);
+  registerRequestFilter(filter: RequestFilter<Context>) {
+    this._requestFilters.push(filter);
   }
 
   /**
@@ -550,28 +549,6 @@ export class Core extends events.EventEmitter {
   }
 
   /**
-   * Get the executor corresponding to a request
-   * It can be usefull in unit test so you can test the all stack
-   *
-   * @protected
-   * @param {String} vhost The host for the request
-   * @param {String} method The http method
-   * @param {String} url The url path
-   * @param {String} protocol http or https
-   * @param {String} port Port can be usefull for auto redirection
-   * @param {Object} headers The headers of the request
-   */
-  getExecutorWithContext(ctx: Context): Service {
-    let http = ctx.getHttpContext();
-    // Check mapping
-    var route = this.router.getRouteFromUrl(ctx, http.getMethod(), http.getUrl());
-    if (route === undefined) {
-      return;
-    }
-    return this.getServiceWithRoute(ctx, route);
-  }
-
-  /**
    * This should return a "turning" secret with cache and a service to modify it every x mins
    * WARNING The security is lower without this "turning" secret, you can still set the global.secret parameter
    *
@@ -596,17 +573,22 @@ export class Core extends events.EventEmitter {
   }
 
   /**
-   * @hidden
+   * Add to context information and executor based on the http context
    */
-  protected getServiceWithRoute(ctx: Context, route): Service {
-    var name = route.executor;
-    var executor = this.getService(name);
+  public updateContextWithRoute(ctx: Context): boolean {
+    let http = ctx.getHttpContext();
+    // Check mapping
+    var route = this.router.getRouteFromUrl(ctx, http.getMethod(), http.getUrl());
+    if (route === undefined) {
+      return false;
+    }
+    var executor = this.getService(route.executor);
     if (executor === undefined) {
-      return;
+      return false;
     }
     ctx.setRoute(this.extendParams(route, this.configuration));
-    executor.updateContext(ctx);
-    return executor;
+    ctx.setExecutor(executor);
+    return true;
   }
 
   /**

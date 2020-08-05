@@ -75,26 +75,6 @@ abstract class Service extends events.EventEmitter {
   }
 
   /**
-   * Main method called by the webda framework if the route don't specify a _method
-   */
-  execute(ctx: Context): Promise<any> {
-    if (typeof ctx._route._method === "function") {
-      return new Promise((resolve, reject) => {
-        resolve(this[ctx._route._method.name](ctx));
-      });
-    }
-    return Promise.reject(Error("Not implemented"));
-  }
-
-  /**
-   * Use this method to enhance the context if needed
-   *
-   */
-  updateContext(ctx: Context) {
-    ctx.setExecutor(this);
-  }
-
-  /**
    * Init the routes
    */
   initRoutes() {}

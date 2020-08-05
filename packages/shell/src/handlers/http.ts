@@ -77,10 +77,9 @@ export class WebdaServer extends Webda {
       let ctx = await this.newContext(httpContext, res, true);
       ctx.clientInfo = this.getClientInfo(req);
 
-      var executor = this.getExecutorWithContext(ctx);
-      if (executor == null) {
+      if (!this.updateContextWithRoute(ctx)) {
         let routes = this.router.getRouteMethodsFromUrl(req.url);
-        if (routes.length == 0) {
+        if (routes.length === 0) {
           return next();
         }
       }
@@ -132,7 +131,7 @@ export class WebdaServer extends Webda {
 
       res.setHeader("Access-Control-Allow-Credentials", "true");
       try {
-        await executor.execute(ctx);
+        await ctx.execute();
         await this.emitSync("Webda.Result", ctx);
         if (!ctx._ended) {
           await ctx.end();
@@ -258,7 +257,7 @@ export class WebdaServer extends Webda {
       this.serveStaticWebsite(express, app);
 
       this.http = http.createServer(app).listen(port);
-      process.on("SIGINT", function() {
+      process.on("SIGINT", function () {
         if (this.http) {
           this.http.close();
         }

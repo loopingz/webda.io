@@ -3,7 +3,7 @@ import * as path from "path";
 import { Deployment } from "../models/deployment";
 import { WebdaServer } from "./http";
 
-export default class ConfigurationService extends Service implements RequestFilter {
+export default class ConfigurationService extends Service implements RequestFilter<Context> {
   webdaApplication: Application;
 
   async checkRequest(context: Context): Promise<boolean> {

@@ -1,7 +1,20 @@
 import * as assert from "assert";
 import { Application, Context, Core, HttpContext, Service } from "./index";
-import { ConsoleLogger } from "@webda/workout";
 import { ConsoleLoggerService } from "./utils/logger";
+
+export class Executor {
+  /**
+   * Main method called by the webda framework if the route don't specify a _method
+   */
+  execute(ctx: Context): Promise<any> {
+    if (typeof ctx._route._method === "function") {
+      return new Promise((resolve, reject) => {
+        resolve(ctx.getExecutor()[ctx._route._method.name](ctx));
+      });
+    }
+    return Promise.reject(Error("Not implemented"));
+  }
+}
 
 /**
  * Utility class for UnitTest
@@ -46,13 +59,23 @@ class WebdaTest {
     url: string = "/",
     body: object = {},
     headers: object = {}
-  ): Service {
+  ): Executor {
     if (!ctx) {
       ctx = new Context(this.webda, new HttpContext(host, method, url, "http", 80, body, headers));
     } else {
       ctx.setHttpContext(new HttpContext(host, method, url, "http", 80, body, headers));
     }
-    return this.webda.getExecutorWithContext(ctx);
+    if (this.webda.updateContextWithRoute(ctx)) {
+      return {
+        execute: async (ctx: Context) => {
+          if (typeof ctx._route._method === "function") {
+            return new Promise(resolve => {
+              resolve(ctx.getExecutor()[ctx._route._method.name](ctx));
+            });
+          }
+        }
+      };
+    }
   }
 
   async assertThrowsAsync(fn, regExp = undefined) {

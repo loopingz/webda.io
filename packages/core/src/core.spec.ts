@@ -197,8 +197,9 @@ class CoreTest extends WebdaTest {
     let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/");
     assert.notEqual(executor, undefined);
     assert.equal(this.ctx.getParameters()["TEST_ADD"], undefined);
-    assert.equal(executor._params["accessKeyId"], "LOCAL_ACCESS_KEY");
-    assert.equal(executor._params["secretAccessKey"], "LOCAL_SECRET_KEY");
+    let service = this.ctx.getExecutor();
+    assert.equal(service._params["accessKeyId"], "LOCAL_ACCESS_KEY");
+    assert.equal(service._params["secretAccessKey"], "LOCAL_SECRET_KEY");
   }
 
   @test
@@ -206,8 +207,9 @@ class CoreTest extends WebdaTest {
     let executor = this.getExecutor(this.ctx, "test.webda.io", "POST", "/");
     assert.notEqual(executor, undefined);
     assert.equal(this.ctx["_params"]["TEST_ADD"], undefined);
-    assert.equal(executor._params["accessKeyId"], "LOCAL_ACCESS_KEY");
-    assert.equal(executor._params["secretAccessKey"], "LOCAL_SECRET_KEY");
+    let service = this.ctx.getExecutor();
+    assert.equal(service._params["accessKeyId"], "LOCAL_ACCESS_KEY");
+    assert.equal(service._params["secretAccessKey"], "LOCAL_SECRET_KEY");
   }
 
   @test
@@ -225,8 +227,9 @@ class CoreTest extends WebdaTest {
     let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/urltemplate/666");
     assert.notEqual(executor, undefined);
     assert.equal(this.ctx.getParameters()["id"], 666);
-    assert.equal(executor._params["accessKeyId"], "LOCAL_ACCESS_KEY");
-    assert.equal(executor._params["secretAccessKey"], "LOCAL_SECRET_KEY");
+    let service = this.ctx.getExecutor();
+    assert.equal(service._params["accessKeyId"], "LOCAL_ACCESS_KEY");
+    assert.equal(service._params["secretAccessKey"], "LOCAL_SECRET_KEY");
   }
 
   @test

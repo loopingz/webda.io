@@ -4,7 +4,7 @@ import { Authentication } from "./authentication";
 
 import { v4 as uuidv4 } from "uuid";
 
-export abstract class OAuthService extends Service implements RequestFilter {
+export abstract class OAuthService extends Service implements RequestFilter<Context> {
   _authenticationService: Authentication;
 
   async checkRequest(context: Context): Promise<boolean> {
@@ -108,6 +108,7 @@ export abstract class OAuthService extends Service implements RequestFilter {
   _redirect(ctx: Context) {
     // implement default behavior
     let redirect_uri = this._params.redirect_uri || `${ctx.getHttpContext().getFullUrl()}/callback`;
+
     if (this._params.authorized_uris) {
       if (this._params.authorized_uris.indexOf(redirect_uri) < 0) {
         // The redirect_uri is not authorized , might be forging HOST request

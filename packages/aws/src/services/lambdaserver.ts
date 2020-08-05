@@ -210,16 +210,15 @@ export default class LambdaServer extends Webda {
       await ctx.end();
       return this.handleLambdaReturn(ctx);
     }
-    var executor = this.getExecutorWithContext(ctx);
 
-    if (executor == null) {
+    if (!this.updateContextWithRoute(ctx)) {
       this.emitSync("Webda.404", vhost, method, resourcePath, ctx.getCurrentUserId(), body);
       ctx.statusCode = 404;
       return this.handleLambdaReturn(ctx);
     }
     await ctx.init();
     try {
-      await executor.execute(ctx);
+      await ctx.execute();
       if (!ctx._ended) {
         await ctx.end();
       }

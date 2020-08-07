@@ -1,5 +1,9 @@
 // Export a default Cache - we might recode this to be able to specify custom provider
 export { MemoryCache as Cache } from "ts-method-cache";
+import { MethodCacheService } from "ts-method-cache";
+const CacheService = new MethodCacheService();
+export { CacheService };
+
 export * from "./application";
 export * from "./core";
 // Models

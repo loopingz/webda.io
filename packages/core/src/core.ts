@@ -795,7 +795,11 @@ export class Core extends events.EventEmitter {
    * @param stream - The request output stream if any
    * @return A new context object to pass along
    */
-  public async newContext(httpContext: HttpContext, stream = undefined, noInit: boolean = false): Promise<Context> {
+  public async newContext<T extends Context>(
+    httpContext: HttpContext,
+    stream = undefined,
+    noInit: boolean = false
+  ): Promise<T> {
     let res: Context = <Context>(
       new (this.getModel(this.parameter("contextModel") || "WebdaCore/Context"))(this, httpContext, stream)
     );
@@ -803,7 +807,7 @@ export class Core extends events.EventEmitter {
       await res.init();
     }
     this.emit("Webda.NewContext", res);
-    return res;
+    return <T>res;
   }
 
   /**

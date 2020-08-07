@@ -43,6 +43,9 @@ class MemoryStore<T extends CoreModel> extends Store<T> {
   async _patch(object, uuid) {
     let uid = uuid || object[this._uuidField];
     let obj = this._getSync(uid);
+    if (!obj) {
+      return Promise.reject(Error("NotFound"));
+    }
     for (let prop in object) {
       obj[prop] = object[prop];
     }

@@ -46,8 +46,8 @@ class WebdaTest {
     }
   }
 
-  async newContext(body: any = {}): Promise<Context> {
-    let res = await this.webda.newContext(new HttpContext("test.webda.io", "GET", "/"));
+  async newContext<T extends Context>(body: any = {}): Promise<T> {
+    let res = await this.webda.newContext<T>(new HttpContext("test.webda.io", "GET", "/"));
     res.getHttpContext().setBody(body);
     return res;
   }
@@ -98,7 +98,7 @@ class WebdaTest {
   }
 
   getService<T extends Service>(service: string): T {
-    return this.webda.getService(service);
+    return this.webda.getService<T>(service);
   }
 
   consumeAllModdas() {

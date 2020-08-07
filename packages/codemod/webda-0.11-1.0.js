@@ -10,7 +10,8 @@ const packagesReplaceMap = {
   "webda-aws": { pkg: "@webda/aws" },
   "webda-shell": { pkg: "@webda/shell" },
   "webda-elasticsearch": { pkg: "@webda/elasticsearch" },
-  "mocha-typescript": { pkg: "@testdeck/mocha" }
+  "mocha-typescript": { pkg: "@testdeck/mocha" },
+  "webda/lib/test": { pkg: "@webda/core/lib/test" }
 };
 
 // Update package.json?

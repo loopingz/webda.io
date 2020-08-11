@@ -211,12 +211,13 @@ export class DeploymentManager {
       return {
         commit: execSync(`git rev-parse HEAD`, options).toString().trim(),
         branch: execSync("git symbolic-ref --short HEAD", options).toString().trim(),
+        short: execSync(`git rev-parse --short HEAD`, options).toString().trim(),
         tag,
         tags,
         version
       };
     } catch (err) {
-      return { commit: "unknown", branch: "unknown", tag: "" };
+      return { commit: "unknown", branch: "unknown", tag: "", short: "0000000" };
     }
   }
 

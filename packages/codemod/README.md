@@ -18,6 +18,10 @@ It will also update any reference of `Executor` from `webda` to `Service` from `
 
 It upgrade methods `checkCSRF` to `checkRequest`
 
+#### Warning
+
+MemoryQueue return now a stringified version of the message, you have to parse it
+
 # Recast issue
 
 If you see parenthesis with destructed assignement

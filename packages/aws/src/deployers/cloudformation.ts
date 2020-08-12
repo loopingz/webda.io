@@ -101,11 +101,15 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
 
   // Keep locally the Lambda package after S3 upload
   KeepPackage?: boolean;
+
+  // Any additional CloudFormation resources
+  CustomResources: any;
 }
 
 export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDeployerResources> {
   template: any = {};
   result: any = {};
+  openapiS3Object: { key: any; src: any };
 
   constructor(manager, resources) {
     super(manager, resources);
@@ -256,6 +260,10 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
           accountId + ".dkr.ecr.eu-west-1.amazonaws.com/${package.webda.aws.Repository}:" + this.resources.Docker.tag;
       }
     }
+
+    if (this.resources.CustomResources) {
+      this.template.Resources = { ...this.template.Resources, ...this.resources.CustomResources };
+    }
   }
 
   async deploy(): Promise<any> {
@@ -270,6 +278,11 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     // Ensure S3 bucket exist
     this.logger.log("DEBUG", "Check assets bucket", this.resources.AssetsBucket);
     await this.createBucket(this.resources.AssetsBucket);
+
+    // Check if we need OpenAPI export
+    let openapi = await this.completeOpenAPI(this.manager.getWebda().exportOpenAPI(false));
+    this.openapiS3Object = this.getStringified(openapi, this.resources.OpenAPIFileName);
+    this.putFilesOnBucket(this.resources.AssetsBucket, [this.openapiS3Object]);
 
     // Build Docker if needed
     if (this.resources.Docker && this.resources.Docker.tag) {
@@ -601,10 +614,6 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   }
 
   async APIGateway() {
-    // Get openapi
-    let openapi = await this.completeOpenAPI(this.manager.getWebda().exportOpenAPI(false));
-    let openapiS3Object = this.getStringified(openapi, this.resources.OpenAPIFileName);
-    this.putFilesOnBucket(this.resources.AssetsBucket, [openapiS3Object]);
     this.template.Resources.APIGateway = {
       Type: "AWS::ApiGateway::RestApi",
       Properties: {
@@ -612,7 +621,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         Tags: this.getDefaultTags("APIGateway"),
         BodyS3Location: {
           Bucket: this.resources.AssetsBucket,
-          Key: openapiS3Object.key
+          Key: this.openapiS3Object.key
         }
       },
       DependsOn: "LambdaFunction"

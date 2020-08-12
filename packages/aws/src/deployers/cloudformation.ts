@@ -69,6 +69,7 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   };
 
   OpenAPIFileName?: string;
+  OpenAPITitle?: string;
   Description?: string;
 
   // Lambda specific
@@ -131,6 +132,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     this.resources.StackName = this.resources.StackName || this.resources.name;
     this.resources.Format = this.resources.Format || "JSON";
     this.resources.OpenAPIFileName = this.resources.OpenAPIFileName || "${resources.name}-openapi-${package.version}";
+    this.resources.OpenAPITitle = this.resources.OpenAPITitle || this.resources.name;
     let autoRole;
     // Default Lambda value
     if (this.resources.Lambda) {
@@ -570,7 +572,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   }
 
   async completeOpenAPI(openapi) {
-    openapi.info.title = this.resources.APIGateway.Name;
+    openapi.info.title = this.resources.OpenAPITitle;
     let info = await this.getAWSIdentity();
     let arn = `arn:aws:lambda:${this.AWS.config.region}:${info.Account}:function:${this.resources.Lambda.FunctionName}`;
     for (let p in openapi.paths) {

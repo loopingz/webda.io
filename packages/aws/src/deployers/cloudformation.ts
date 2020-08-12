@@ -598,7 +598,15 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       key = key.substr(1);
     }
     let src;
-    if (this.resources.Format === "YAML") {
+    // Default to Format parameter
+    let format = this.resources.Format;
+    // Auto guess format
+    if (filename.endsWith(".yml") || filename.endsWith(".yaml")) {
+      format = "YAML";
+    } else if (filename.endsWith(".json")) {
+      format = "JSON";
+    }
+    if (format === "YAML") {
       src = Buffer.from(YAML.stringify(object));
       if (!key.endsWith(".yml") && !key.endsWith(".yaml")) {
         key += ".yml";

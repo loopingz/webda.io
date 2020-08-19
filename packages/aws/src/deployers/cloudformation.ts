@@ -18,6 +18,9 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   AssetsBucket?: string;
   AssetsPrefix?: string;
 
+  ChangeSetType?: "CREATE" | "IMPORT";
+  ResourcesToImport?: any[];
+
   Format?: "YAML" | "JSON";
   // How to name CloudFormation.json on AssetsBucket
   StackName?: string;
@@ -121,6 +124,16 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     let packageDesc = this.getApplication().getPackageDescription();
     packageDesc.webda = packageDesc.webda || {};
     packageDesc.webda.aws = packageDesc.webda.aws || {};
+
+    if (this.resources.ResourcesToImport) {
+      if (!this.resources.ChangeSetType) {
+        this.resources.ChangeSetType = "IMPORT";
+      }
+      if (this.resources.ChangeSetType !== "IMPORT") {
+        throw new Error("ChangeSetType cannot be anything else than IMPORT if you have ResourcesToImport set");
+      }
+    }
+    this.resources.ChangeSetType = this.resources.ChangeSetType || "CREATE";
     this.resources.AssetsBucket = this.resources.AssetsBucket || packageDesc.webda.aws.AssetsBucket;
     this.resources.AssetsPrefix = this.resources.AssetsPrefix || "${deployment}/${deployer.name}/";
     this.resources.Description = this.resources.Description || "Deployed by @webda/aws/cloudformation";
@@ -422,7 +435,8 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       ChangeSetName: "WebdaCloudFormationDeployer",
       Capabilities: ["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM"],
       Tags: this.getDefaultTags("StackOptions"),
-      TemplateURL: `https://${this.result.CloudFormation.Bucket}.s3.amazonaws.com/${this.result.CloudFormation.Key}`
+      TemplateURL: `https://${this.result.CloudFormation.Bucket}.s3.amazonaws.com/${this.result.CloudFormation.Key}`,
+      ResourcesToImport: this.resources.ResourcesToImport
     };
     let changeSet;
     try {
@@ -431,9 +445,13 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       if (err.message.endsWith(" is in ROLLBACK_COMPLETE state and can not be updated.")) {
         this.logger.log("WARN", "Deleting buguous stack");
         await this.deleteCloudFormation();
-        changeSet = await cloudformation.createChangeSet({ ...changeSetParams, ChangeSetType: "CREATE" }).promise();
+        changeSet = await cloudformation
+          .createChangeSet({ ...changeSetParams, ChangeSetType: this.resources.ChangeSetType })
+          .promise();
       } else if (err.message === `Stack [${this.resources.StackName}] does not exist`) {
-        changeSet = await cloudformation.createChangeSet({ ...changeSetParams, ChangeSetType: "CREATE" }).promise();
+        changeSet = await cloudformation
+          .createChangeSet({ ...changeSetParams, ChangeSetType: this.resources.ChangeSetType })
+          .promise();
       } else if (err.message.endsWith(" state and can not be updated.")) {
         await this.waitFor(
           async resolve => {
@@ -445,7 +463,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
             if (res.Stacks.length === 0) {
               // If it disapeared, recreate
               changeSet = await cloudformation
-                .createChangeSet({ ...changeSetParams, ChangeSetType: "CREATE" })
+                .createChangeSet({ ...changeSetParams, ChangeSetType: this.resources.ChangeSetType })
                 .promise();
               resolve();
               return;

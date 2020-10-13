@@ -543,29 +543,29 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     } while (Params.ContinuationToken);
     // Should implement multithread here - cleaning too
     let uuid = uuidv4();
+    let fullSize = 0;
+    files = files.filter(info => {
+      if (typeof info.src === "string") {
+        let s3obj = currentFiles[info.key];
+        let stat = fs.statSync(info.src);
+        if (s3obj && stat.size === s3obj.Size) {
+          let md5 = `"${this.hash(fs.readFileSync(info.src).toString(), "md5", "hex")}"`;
+          if (md5 === s3obj.ETag) {
+            this.logger.log("TRACE", "Skipping upload of", info.src, "file with same hash already on bucket");
+            return false;
+          }
+        }
+        fullSize += stat.size;
+      }
+      return true;
+    });
     this.logger.logProgressStart(uuid, files.length, "Uploading to S3 bucket " + bucket);
     await bluebird.map(
       files,
       async info => {
-        // Check if upload is needed
-        if (currentFiles[info.key]) {
-          let s3obj = currentFiles[info.key];
-          if (typeof info.src === "string") {
-            let stat = fs.statSync(info.src);
-            if (stat.size === s3obj.Size) {
-              let md5 = `"${this.hash(fs.readFileSync(info.src).toString(), "md5", "hex")}"`;
-              if (md5 === s3obj.ETag) {
-                this.logger.log("TRACE", "Skipping upload of", info.src, "file with same hash already on bucket");
-                this.logger.logProgressIncrement(1, uuid);
-                return;
-              }
-            }
-          } else {
-            // Dynamic content need to do something else
-          }
-        }
         // Need to have mimetype to serve the content correctly
         let mimetype = info.mimetype || mime.contentType(path.extname(info.key)) || "application/octet-stream";
+        // use of upload and get size length
         await s3
           .putObject({
             Bucket: bucket,

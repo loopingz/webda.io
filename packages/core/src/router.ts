@@ -197,7 +197,8 @@ export class Router {
             return;
           }
           openapi.paths[i].parameters.push({
-            name: varName,
+            // ^[a-zA-Z0-9._$-]+$] is the official regex of AWS
+            name: varName.replace(/[^a-zA-Z0-9._$-]/g, ""),
             in: "path",
             required: true
           });

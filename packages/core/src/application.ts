@@ -689,7 +689,7 @@ export class Application {
       }
       this.log("DEBUG", `Found new getModda implementation ${category} ${this.completeNamespace(name)}`);
       this.appModule[category][this.completeNamespace(name)] = path.relative(this.appPath, absolutePath);
-    } else if (this.extends(obj, CoreModel)) {
+    } else if (this.extends(obj, CoreModel) || this.extends(obj, Context)) {
       this.log("DEBUG", "Found new CoreModel implementation", this.completeNamespace(obj.name));
       this.appModule["models"][this.completeNamespace(obj.name)] = path.relative(this.appPath, absolutePath);
     } else if (this.extends(obj, Service)) {

@@ -337,6 +337,27 @@ export default class WebdaConsole {
   }
 
   /**
+   * If deployment in argument: display or export the configuration
+   * Otherwise launch the configuration UI
+   *
+   * @param argv
+   */
+  static async migrateConfig(argv: yargs.Arguments): Promise<number> {
+    let json = JSON.stringify(this.app.getConfiguration(), null, " ");
+
+    if (argv._.length > 1) {
+      fs.writeFileSync(argv._[1], json);
+    } else {
+      this.output(json);
+    }
+    /*
+    webda = await this._getNewConfig();
+    await webda.serve(18181, argv.open);
+    */
+    return 0;
+  }
+
+  /**
    * Deploy the new code
    * @param argv
    */
@@ -493,6 +514,7 @@ export default class WebdaConsole {
         "launch",
         "debug",
         "config",
+        "migrate-config",
         "init",
         "module",
         "openapi",
@@ -620,6 +642,9 @@ export default class WebdaConsole {
           return 0;
         case "config":
           await this.config(argv);
+          return 0;
+        case "migrate-config":
+          await this.migrateConfig(argv);
           return 0;
         case "new-deployment":
           await DeploymentManager.new(this.app);

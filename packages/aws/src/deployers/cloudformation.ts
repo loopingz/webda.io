@@ -100,6 +100,8 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
     }
   ];
 
+  // Import Open API to APIGateway
+  APIGatewayImportOpenApi?: string;
   // Deploy images and ECR
   Workers?: [];
 
@@ -275,10 +277,6 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
           accountId + ".dkr.ecr.eu-west-1.amazonaws.com/${package.webda.aws.Repository}:" + this.resources.Docker.tag;
       }
     }
-
-    if (this.resources.CustomResources) {
-      this.template.Resources = { ...this.template.Resources, ...this.resources.CustomResources };
-    }
   }
 
   async deploy(): Promise<any> {
@@ -286,8 +284,9 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
     this.template = {
       Description,
-      Resources: {}
+      Resources: { ...this.resources.CustomResources }
     };
+
     this.result = {};
 
     // Ensure S3 bucket exist
@@ -297,7 +296,12 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     // Check if we need OpenAPI export
     let openapi = await this.completeOpenAPI(this.manager.getWebda().exportOpenAPI(false));
     this.openapiS3Object = this.getStringified(openapi, this.resources.OpenAPIFileName);
-    this.putFilesOnBucket(this.resources.AssetsBucket, [this.openapiS3Object]);
+    await this.putFilesOnBucket(this.resources.AssetsBucket, [this.openapiS3Object]);
+    // If APIGatewayImportOpenApi update REST API
+    if (this.resources.APIGatewayImportOpenApi) {
+      this.logger.log("INFO", "Importing open api");
+      await this.importOpenApi(openapi);
+    }
 
     // Build Docker if needed
     if (this.resources.Docker && this.resources.Docker.tag) {
@@ -425,6 +429,19 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         HostedZoneId: zone.Id
       }
     };
+  }
+
+  async importOpenApi(openapi) {
+    let apigateway = new this.AWS.APIGateway();
+    console.log("Creating API Gateway");
+    await apigateway
+      .putRestApi({
+        body: JSON.stringify(openapi, undefined, 2),
+        failOnWarnings: false,
+        restApiId: this.resources.APIGatewayImportOpenApi,
+        mode: "overwrite"
+      })
+      .promise();
   }
 
   async createCloudFormation() {
@@ -643,7 +660,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
   async APIGateway() {
     this.template.Resources.APIGateway = {
-      Type: "AWS::ApiGateway::RestApi",
+      Type: "AWS::ApiGatewayV2::Api",
       Properties: {
         ...this.resources.APIGateway,
         Tags: this.getDefaultTags("APIGateway"),
@@ -675,16 +692,17 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       DependsOn: "LambdaFunction"
     };
     this.template.Resources.APIGatewayDeployment = {
-      Type: "AWS::ApiGateway::Deployment",
+      Type: "AWS::ApiGatewayV2::Deployment",
       Properties: {
         ...this.resources.APIGatewayDeployment,
-        RestApiId: { Ref: "APIGateway" }
+        ApiId: { Ref: "APIGateway" }
       }
     };
     // SourceArn: "arn:aws:execute-api:" + this.AWS.config.region + ":" + awsId + ":" + this.restApiId + "/*"
     this.template.Resources.APIGatewayStage = {
-      Type: "AWS::ApiGateway::Stage",
+      Type: "AWS::ApiGatewayV2::Stage",
       Properties: {
+        AutoDeploy: true,
         ...this.resources.APIGatewayStage,
         Tags: this.getDefaultTags("APIGatewayStage"),
         DeploymentId: { Ref: "APIGatewayDeployment" },
@@ -709,14 +727,14 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     }
 
     this.template.Resources.APIGatewayDomain = {
-      Type: "AWS::ApiGateway::DomainName",
+      Type: "AWS::ApiGatewayV2::DomainName",
       Properties: {
         ...this.resources.APIGatewayDomain,
         Tags: this.getDefaultTags("APIGatewayDomain")
       }
     };
     this.template.Resources.APIGatewayBasePathMapping = {
-      Type: "AWS::ApiGateway::BasePathMapping",
+      Type: "AWS::ApiGatewayV2::BasePathMapping",
       Properties: {
         ...this.resources.APIGatewayBasePathMapping,
         DomainName: { Ref: "APIGatewayDomain" },

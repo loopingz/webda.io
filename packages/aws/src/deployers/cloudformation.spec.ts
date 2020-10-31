@@ -95,6 +95,9 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     resources.Role = {};
     resources.Fargate = {};
     resources.Tags = [{ Key: "test", Value: "test" }];
+    resources.CustomResources = {
+      MyResource: { Type: "Test" }
+    };
     let uploadStatics = sinon.stub(this.deployer, "uploadStatics");
     let createCloudFormation = sinon.stub(this.deployer, "createCloudFormation");
     let sendCloudFormation = sinon.stub(this.deployer, "sendCloudFormationTemplate");

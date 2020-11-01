@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as mime from "mime";
 import * as path from "path";
+import { Context } from "../utils/context";
 import { Service } from "./service";
 
 /**
@@ -56,9 +57,25 @@ export default class ResourceService extends Service {
       },
       true
     );
+    if (this._params.rootRedirect) {
+      this._addRoute("/", ["GET"], this._redirect, {
+        get: {
+          description: "Redirect / to the exposed url",
+          summary: "Serve resource",
+          operationId: "redirectRoottoResources",
+          responses: {
+            "302": ""
+          }
+        }
+      });
+    }
   }
 
-  _serve(ctx) {
+  _redirect(ctx: Context) {
+    ctx.redirect(ctx.getHttpContext().getAbsoluteUrl(this._params.url));
+  }
+
+  _serve(ctx: Context) {
     // TODO Add file only
     let resource = ctx.parameter("resource") || "index.html";
     let file = this._params.folder + resource;

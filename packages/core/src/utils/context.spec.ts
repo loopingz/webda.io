@@ -39,6 +39,9 @@ class ContextTest extends WebdaTest {
     assert.strictEqual(ctx.getFullUrl(), "http://test.webda.io:18080/uritemplate/plop");
     ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "https", 443);
     assert.strictEqual(ctx.getFullUrl("/test"), "https://test.webda.io/test");
+    assert.strictEqual(ctx.getFullUrl("ftp://test"), "ftp://test");
+    assert.strictEqual(ctx.getFullUrl("test/ftp://test"), "https://test.webda.io/test/ftp://test");
+    assert.strictEqual(ctx.getFullUrl("https://www.loopingz.com"), "https://www.loopingz.com");
   }
 
   @test

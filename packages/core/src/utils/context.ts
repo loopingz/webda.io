@@ -112,6 +112,12 @@ class HttpContext {
   }
 
   getFullUrl(uri: string = this.uri) {
+    if (uri.match(/^[\d\w]{1,10}:\/\//)) {
+      return uri;
+    }
+    if (!uri.startsWith("/")) {
+      uri = "/" + uri;
+    }
     if ((this.port !== 80 && this.protocol === "http") || (this.port !== 443 && this.protocol === "https")) {
       return `${this.protocol}://${this.host}:${this.port}${uri}`;
     }

@@ -26,6 +26,34 @@ class ContextTest extends WebdaTest {
     assert.equal(this.ctx.getServiceParameters().id, "service");
     assert.equal(this.ctx.getPathParameters().id, "plop");
   }
+
+  @test
+  getFullUrl() {
+    let ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "http", 80);
+    assert.strictEqual(ctx.getFullUrl("/test"), "http://test.webda.io/test");
+    ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "https", 80);
+    assert.strictEqual(ctx.getFullUrl(), "https://test.webda.io:80/uritemplate/plop");
+    ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "http", 443);
+    assert.strictEqual(ctx.getFullUrl("/test"), "http://test.webda.io:443/test");
+    ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "http", 18080);
+    assert.strictEqual(ctx.getFullUrl(), "http://test.webda.io:18080/uritemplate/plop");
+    ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "https", 443);
+    assert.strictEqual(ctx.getFullUrl("/test"), "https://test.webda.io/test");
+  }
+
+  @test
+  expressCompatibility() {
+    this.ctx = new Context(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
+    assert.strictEqual(this.ctx.statusCode, 204);
+    assert.strictEqual(this.ctx.status(403), this.ctx);
+    assert.strictEqual(this.ctx.statusCode, 403);
+    this.ctx = new Context(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
+    assert.strictEqual(this.ctx.statusCode, 204);
+    assert.strictEqual(this.ctx.json({ plop: "test" }), this.ctx);
+    assert.strictEqual(this.ctx.getResponseBody(), '{"plop":"test"}');
+    assert.strictEqual(this.ctx.statusCode, 200);
+  }
+
   @test
   async redirect() {
     this.ctx.init();

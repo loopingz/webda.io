@@ -112,7 +112,10 @@ class HttpContext {
   }
 
   getFullUrl(uri: string = this.uri) {
-    return this.protocol + "://" + this.host + uri;
+    if ((this.port !== 80 && this.protocol === "http") || (this.port !== 443 && this.protocol === "https")) {
+      return `${this.protocol}://${this.host}:${this.port}${uri}`;
+    }
+    return `${this.protocol}://${this.host}${uri}`;
   }
 }
 
@@ -268,6 +271,9 @@ class Context extends EventEmitter {
    */
   // @ts-ignore
   public write(output: any, encoding?: string, cb?: (error: Error) => void): boolean {
+    if (this.statusCode === 204) {
+      this.statusCode = 200;
+    }
     if (typeof output === "object" && !(output instanceof Buffer)) {
       this.setHeader("Content-type", "application/json");
       this._body = JSONUtils.stringify(output, undefined, 0);
@@ -297,14 +303,15 @@ class Context extends EventEmitter {
    * Write the http return code and some headers
    * Those headers are not flushed yet so can still be overwritten
    *
-   * @param {Number} httpCode to return to the client
+   * @param {Number} statusCode to return to the client
    * @param {Object} headers to add to the response
    */
-  writeHead(httpCode: number, headers: { [key: string]: string } = undefined) {
+  writeHead(statusCode: number, headers: http.OutgoingHttpHeaders = undefined): this {
     _extend(this._outputHeaders, headers);
-    if (httpCode !== undefined) {
-      this.statusCode = httpCode;
+    if (statusCode !== undefined) {
+      this.statusCode = statusCode;
     }
+    return this;
   }
 
   /**
@@ -338,6 +345,30 @@ class Context extends EventEmitter {
 
   isEnded() {
     return this._ended;
+  }
+
+  /******************************
+   *
+   * Express Compatibiliy method
+   *
+   ******************************/
+
+  /**
+   * Express response allow statusCode to be defined this was
+   * @param code to return
+   */
+  public status(code: number): this {
+    this.statusCode = code;
+    return this;
+  }
+
+  /**
+   * Express response allow answer to be sent this w
+   * @param code to return
+   */
+  public json(obj: any): this {
+    this.write(obj);
+    return this;
   }
 
   /**

@@ -59,6 +59,9 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
       model = "Webda/CoreModel";
     }
     this._model = this._webda.getModel(model);
+    if (!this._model) {
+      throw new Error(`${model} model is not found`);
+    }
     this._uuidField = this._model.getUuidField();
   }
 

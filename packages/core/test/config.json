@@ -86,7 +86,7 @@
     },
     "MemoryUsers": {
       "expose": {
-        "url": "/users"
+        "url": "/memory/users"
       },
       "type": "MemoryStore"
     },

@@ -453,7 +453,7 @@ class Authentication extends Service {
     replacements.context = ctx;
     replacements.url = ctx
       .getHttpContext()
-      .getFullUrl(
+      .getAbsoluteUrl(
         this._params.url +
           "/email/callback?email=" +
           email +

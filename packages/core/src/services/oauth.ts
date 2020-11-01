@@ -19,21 +19,7 @@ export abstract class OAuthService extends Service implements RequestFilter<Cont
     }
     return valid;
   }
-  /*
-    getCallbackUrl(ctx: Context) {
-      let provider = ctx.parameter("provider");
-      if (this._params.providers[provider].callbackURL) {
-        return this._params.providers[provider].callbackURL;
-      }
-      // TODO Issue with specified port for now
-      var url = ctx.getHttpContext().getFullUrl();
-  
-      if (url.endsWith("/callback")) {
-        return url;
-      }
-      return url + "/callback";
-    }
-  */
+
   initRoutes() {
     super.initRoutes();
     this._params.url = this._params.url || `${this.getDefaultUrl()}{?redirect}`;
@@ -107,7 +93,7 @@ export abstract class OAuthService extends Service implements RequestFilter<Cont
 
   _redirect(ctx: Context) {
     // implement default behavior
-    let redirect_uri = this._params.redirect_uri || `${ctx.getHttpContext().getFullUrl()}/callback`;
+    let redirect_uri = this._params.redirect_uri || `${ctx.getHttpContext().getAbsoluteUrl()}/callback`;
 
     if (this._params.authorized_uris) {
       if (this._params.authorized_uris.indexOf(redirect_uri) < 0) {

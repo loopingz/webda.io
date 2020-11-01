@@ -28,20 +28,20 @@ class ContextTest extends WebdaTest {
   }
 
   @test
-  getFullUrl() {
+  getAbsoluteUrl() {
     let ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "http", 80);
-    assert.strictEqual(ctx.getFullUrl("/test"), "http://test.webda.io/test");
+    assert.strictEqual(ctx.getAbsoluteUrl("/test"), "http://test.webda.io/test");
     ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "https", 80);
-    assert.strictEqual(ctx.getFullUrl(), "https://test.webda.io:80/uritemplate/plop");
+    assert.strictEqual(ctx.getAbsoluteUrl(), "https://test.webda.io:80/uritemplate/plop");
     ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "http", 443);
-    assert.strictEqual(ctx.getFullUrl("/test"), "http://test.webda.io:443/test");
+    assert.strictEqual(ctx.getAbsoluteUrl("/test"), "http://test.webda.io:443/test");
     ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "http", 18080);
-    assert.strictEqual(ctx.getFullUrl(), "http://test.webda.io:18080/uritemplate/plop");
+    assert.strictEqual(ctx.getAbsoluteUrl(), "http://test.webda.io:18080/uritemplate/plop");
     ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "https", 443);
-    assert.strictEqual(ctx.getFullUrl("/test"), "https://test.webda.io/test");
-    assert.strictEqual(ctx.getFullUrl("ftp://test"), "ftp://test");
-    assert.strictEqual(ctx.getFullUrl("test/ftp://test"), "https://test.webda.io/test/ftp://test");
-    assert.strictEqual(ctx.getFullUrl("https://www.loopingz.com"), "https://www.loopingz.com");
+    assert.strictEqual(ctx.getAbsoluteUrl("/test"), "https://test.webda.io/test");
+    assert.strictEqual(ctx.getAbsoluteUrl("ftp://test"), "ftp://test");
+    assert.strictEqual(ctx.getAbsoluteUrl("test/ftp://test"), "https://test.webda.io/test/ftp://test");
+    assert.strictEqual(ctx.getAbsoluteUrl("https://www.loopingz.com"), "https://www.loopingz.com");
   }
 
   @test

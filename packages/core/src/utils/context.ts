@@ -111,7 +111,11 @@ class HttpContext {
     this.body = body;
   }
 
-  getFullUrl(uri: string = this.uri) {
+  /**
+   *
+   * @param uri to return absolute url from
+   */
+  getAbsoluteUrl(uri: string = this.uri) {
     if (uri.match(/^[\d\w]{1,10}:\/\//)) {
       return uri;
     }

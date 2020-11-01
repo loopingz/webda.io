@@ -1,4 +1,5 @@
 "use strict";
+import { WorkerLogLevel } from "@webda/workout";
 import * as acceptLanguage from "accept-language";
 import { parse as cookieParse } from "cookie";
 import { EventEmitter } from "events";
@@ -566,6 +567,15 @@ class Context extends EventEmitter {
    * Used for compatibility with express module
    */
   logIn() {}
+
+  /**
+   * Proxy for simplification
+   * @param level
+   * @param args
+   */
+  log(level: WorkerLogLevel, ...args: any[]) {
+    this._webda.log(level, ...args);
+  }
 
   /**
    * @ignore

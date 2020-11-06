@@ -331,7 +331,6 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
         return {
           uuid: value
         };
-        return { uuid: value };
       })
     };
     let result = await this._client.batchGet(params).promise();

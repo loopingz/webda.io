@@ -168,6 +168,9 @@ export default class LambdaServer extends Webda {
     }
     this.log("INFO", event.httpMethod || "GET", event.path);
     let httpContext = new HttpContext(vhost, method, resourcePath, protocol, port, body, headers);
+    if (event.path !== event.resource) {
+      httpContext.setPrefix(event.path.substr(0, event.path.length - event.resource.length));
+    }
     var ctx = await this.newContext(httpContext);
     // TODO Get all client info
     // event['requestContext']['identity']['sourceIp']
@@ -200,7 +203,7 @@ export default class LambdaServer extends Webda {
     ctx.setHeader("Access-Control-Allow-Headers", headers["access-control-request-headers"] || "content-type");
     if (method === "OPTIONS") {
       // Return allow all methods for now
-      let routes = this.router.getRouteMethodsFromUrl(resourcePath);
+      let routes = this.router.getRouteMethodsFromUrl(ctx.getHttpContext().getRelativeUri());
       if (routes.length == 0) {
         ctx.statusCode = 404;
         return this.handleLambdaReturn(ctx);

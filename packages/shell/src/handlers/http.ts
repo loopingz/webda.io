@@ -78,7 +78,7 @@ export class WebdaServer extends Webda {
       ctx.clientInfo = this.getClientInfo(req);
 
       if (!this.updateContextWithRoute(ctx)) {
-        let routes = this.router.getRouteMethodsFromUrl(req.url);
+        let routes = this.router.getRouteMethodsFromUrl(httpContext.getRelativeUri());
         if (routes.length === 0) {
           return next();
         }
@@ -116,7 +116,7 @@ export class WebdaServer extends Webda {
         }
       }
       if (req.method === "OPTIONS") {
-        let routes = this.router.getRouteMethodsFromUrl(req.url);
+        let routes = this.router.getRouteMethodsFromUrl(httpContext.getRelativeUri());
         routes.push("OPTIONS");
         res.setHeader("Access-Control-Allow-Credentials", "true");
         res.setHeader("Access-Control-Allow-Headers", req.headers["access-control-request-headers"] || "content-type");

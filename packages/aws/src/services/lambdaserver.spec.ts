@@ -49,7 +49,8 @@ class LambdaHandlerTest extends WebdaAwsTest {
       requestContext: {
         identity: {}
       },
-      path: "/route/string",
+      path: "/prefix/route/string",
+      resource: "/route/string",
       body: JSON.stringify({})
     };
     this.debugMailer = this.handler.getService("DebugMailer");
@@ -66,7 +67,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
       },
       {}
     );
-    assert.equal(this.debugMailer.sent[0], "test");
+    assert.strictEqual(this.debugMailer.sent[0], "test");
   }
 
   @test
@@ -80,7 +81,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
       },
       {}
     );
-    assert.equal(this.debugMailer.sent.length, 0);
+    assert.strictEqual(this.debugMailer.sent.length, 0);
   }
 
   @test
@@ -93,31 +94,33 @@ class LambdaHandlerTest extends WebdaAwsTest {
       },
       {}
     );
-    assert.equal(this.debugMailer.sent.length, 0);
+    assert.strictEqual(this.debugMailer.sent.length, 0);
   }
 
   @test
   async handleRequestKnownRoute() {
     this.ensureGoodCSRF();
     let res = await this.handler.handleRequest(this.evt, this.context);
-    assert.equal(res.body, "CodeCoverage");
+    assert.strictEqual(res.body, "CodeCoverage");
   }
 
   @test
   async handleRequestUnknownRoute() {
     this.ensureGoodCSRF();
     this.evt.path = "/route/unknown";
+    this.evt.resource = "/route/unknown";
     delete this.evt.headers.Cookie;
     let res = await this.handler.handleRequest(this.evt, this.context);
-    assert.equal(res.statusCode, 404);
+    assert.strictEqual(res.statusCode, 404);
   }
 
   @test
   async handleRequestThrow401() {
     this.ensureGoodCSRF();
     this.evt.path = "/route/broken/401";
+    this.evt.resource = "/route/broken/401";
     let res = await this.handler.handleRequest(this.evt, this.context);
-    assert.equal(res.statusCode, 401);
+    assert.strictEqual(res.statusCode, 401);
   }
 
   @test
@@ -125,7 +128,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.ensureGoodCSRF();
     this.evt.path = "/route/broken/Error";
     let res = await this.handler.handleRequest(this.evt, this.context);
-    assert.equal(res.statusCode, 500);
+    assert.strictEqual(res.statusCode, 500);
   }
 
   @test
@@ -133,8 +136,8 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.ensureGoodCSRF();
     this.evt.httpMethod = "OPTIONS";
     let res = await this.handler.handleRequest(this.evt, this.context);
-    assert.equal(res.statusCode, 204);
-    assert.equal(res.headers["Access-Control-Allow-Methods"], "GET,OPTIONS");
+    assert.strictEqual(res.statusCode, 204);
+    assert.strictEqual(res.headers["Access-Control-Allow-Methods"], "GET,OPTIONS");
   }
 
   @test
@@ -143,7 +146,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.evt.path = "/route/unknown";
     this.evt.httpMethod = "OPTIONS";
     let res = await this.handler.handleRequest(this.evt, this.context);
-    assert.equal(res.statusCode, 404);
+    assert.strictEqual(res.statusCode, 404);
   }
 
   @test
@@ -170,8 +173,8 @@ class LambdaHandlerTest extends WebdaAwsTest {
       });
     });
     let res = await this.handler.handleRequest(this.evt, this.context);
-    assert.equal(res.headers["Access-Control-Allow-Origin"], this.evt.headers.Origin);
-    assert.equal(wait, true);
+    assert.strictEqual(res.headers["Access-Control-Allow-Origin"], this.evt.headers.Origin);
+    assert.strictEqual(wait, true);
   }
 
   @test
@@ -179,7 +182,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.evt.headers.Origin = "https://test3.webda.io";
     this.evt.headers.Host = "test3.webda.io";
     let res = await this.handler.handleRequest(this.evt, this.context);
-    assert.equal(res.statusCode, 401);
+    assert.strictEqual(res.statusCode, 401);
   }
 
   @test
@@ -187,7 +190,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.evt.headers.Referer = "https://test3.webda.io";
     this.evt.headers.Host = "test3.webda.io";
     let res = await this.handler.handleRequest(this.evt, this.context);
-    assert.equal(res.statusCode, 401);
+    assert.strictEqual(res.statusCode, 401);
   }
 
   @test
@@ -195,7 +198,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.evt.headers.Referer = "https://test.webda.io";
     this.evt.headers.Host = "test.webda.io";
     let res = await this.handler.handleRequest(this.evt, this.context);
-    assert.equal(res.headers["Access-Control-Allow-Origin"], this.evt.headers.Referer);
+    assert.strictEqual(res.headers["Access-Control-Allow-Origin"], this.evt.headers.Referer);
   }
 
   ensureGoodCSRF() {
@@ -217,9 +220,9 @@ class LambdaHandlerTest extends WebdaAwsTest {
       let event = JSON.parse(fs.readFileSync(__dirname + "/../../test/aws-events/" + file).toString());
       await this.handler.handleRequest(event, this.context);
       if (file === "api-gateway-aws-proxy.json") {
-        assert.equal(service.getEvents().length, 0, "API Gateway should go throught the normal request handling");
+        assert.strictEqual(service.getEvents().length, 0, "API Gateway should go throught the normal request handling");
       } else {
-        assert.notEqual(service.getEvents().length, 0, "Should have get some events:" + JSON.stringify(event));
+        assert.notStrictEqual(service.getEvents().length, 0, "Should have get some events:" + JSON.stringify(event));
       }
     }
   }

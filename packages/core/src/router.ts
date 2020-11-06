@@ -6,6 +6,8 @@ import { Context } from "./utils/context";
 export interface RouteInfo {
   method: string[] | string;
 }
+
+export type HttpMethodType = "GET" | "OPTIONS" | "POST" | "PUT" | "PATCH" | "DELETE";
 /**
  * Manage Route resolution
  * @category CoreFeatures
@@ -108,8 +110,8 @@ export class Router {
    * @param method
    * @param url
    */
-  getRouteMethodsFromUrl(url): string[] {
-    let methods = [];
+  getRouteMethodsFromUrl(url): HttpMethodType[] {
+    let methods = new Set<HttpMethodType>();
     for (let i in this.pathMap) {
       var routeUrl = this.pathMap[i].url;
       var map = this.pathMap[i].config;
@@ -121,9 +123,9 @@ export class Router {
         continue;
       }
 
-      methods = methods.concat(map["method"]);
+      map["method"].forEach(m => methods.add(m));
     }
-    return methods;
+    return Array.from(methods);
   }
 
   /**

@@ -578,7 +578,7 @@ export class Core extends events.EventEmitter {
   public updateContextWithRoute(ctx: Context): boolean {
     let http = ctx.getHttpContext();
     // Check mapping
-    var route = this.router.getRouteFromUrl(ctx, http.getMethod(), http.getUrl());
+    var route = this.router.getRouteFromUrl(ctx, http.getMethod(), http.getRelativeUri());
     if (route === undefined) {
       return false;
     }

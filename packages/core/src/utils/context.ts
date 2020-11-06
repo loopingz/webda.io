@@ -37,6 +37,10 @@ class HttpContext {
   body: any;
   cookies: any;
   files: any[];
+  /**
+   * URI prefix in case it is exposed through something that prefix the uri
+   */
+  prefix: string = "";
 
   constructor(
     host: string,
@@ -70,6 +74,24 @@ class HttpContext {
     }
     this.root = this.protocol + "://" + this.host + portUrl;
     this.origin = this.host + portUrl;
+  }
+
+  /**
+   *
+   * @param prefix uri to not consider
+   */
+  setPrefix(prefix: string) {
+    if (prefix.endsWith("/")) {
+      prefix = prefix.substr(0, prefix.length - 1);
+    }
+    this.prefix = prefix;
+  }
+
+  /**
+   * Return Uri without prefix
+   */
+  getRelativeUri() {
+    return this.uri.substr(this.prefix.length);
   }
 
   getUrl() {

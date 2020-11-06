@@ -38,9 +38,9 @@ class ConsoleTest {
   }
 
   checkTestDeploymentConfig(config) {
-    assert.notEqual(config, undefined);
-    assert.equal(config.parameters.accessKeyId, "DEV_ACCESS");
-    assert.equal(config.services.contacts.table, "dev-table");
+    assert.notStrictEqual(config, undefined);
+    assert.strictEqual(config.parameters.accessKeyId, "DEV_ACCESS");
+    assert.strictEqual(config.services.contacts.table, "dev-table");
   }
 
   async before() {
@@ -76,7 +76,7 @@ class ConsoleTest {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     await WebdaConsole.webda.waitForStatus(ServerStatus.Started);
-    assert.equal(WebdaConsole.webda.getServerStatus(), ServerStatus.Started);
+    assert.strictEqual(WebdaConsole.webda.getServerStatus(), ServerStatus.Started);
     let app = new SampleApplicationTest(`http://localhost:28080`);
     await app.testApi();
     await WebdaConsole.webda.stop();
@@ -147,7 +147,7 @@ class DynamicService extends Service {
     console.log("Test new route");
     try {
       let res = await fetch(`http://localhost:28080/myNewRoute`);
-      assert.equal(res.status, 200);
+      assert.strictEqual(res.status, 200);
     } catch (err) {
       // Skip this part on Travis for now
       if (!process.env.TRAVIS) {
@@ -161,15 +161,15 @@ class DynamicService extends Service {
   async serviceconfigCommandLine() {
     await this.commandLine("serviceconfig CustomService");
     let logs = this.logger.getLogs();
-    assert.equal(logs.length, 1);
-    assert.notEqual(
+    assert.strictEqual(logs.length, 1);
+    assert.notStrictEqual(
       logs[0].log.args[0].match(/[\w\W]*"sessionSecret":[\w\W]*"type": "Beans\/CustomService"[\w\W]*/gm),
       undefined
     );
     await this.commandLine("serviceconfig UnknownService");
     logs = this.logger.getLogs();
-    assert.equal(logs.length, 1);
-    assert.equal(logs[0].log.args[0], "\u001b[31mThe service UnknownService is missing\u001b[39m");
+    assert.strictEqual(logs.length, 1);
+    assert.strictEqual(logs[0].log.args[0], "\u001b[31mThe service UnknownService is missing\u001b[39m");
   }
 
   @test
@@ -180,29 +180,29 @@ class DynamicService extends Service {
     let logs = this.logger.getLogs();
     let ind = logs.length - 2;
 
-    assert.equal(logs[ind].log.args.length, 1);
-    assert.equal(logs[ind].log.args[0], "Result: void");
+    assert.strictEqual(logs[ind].log.args.length, 1);
+    assert.strictEqual(logs[ind].log.args[0], "Result: void");
     ind++;
-    assert.equal(logs[ind].log.args.length, 2);
-    assert.equal(logs[ind].log.args[0], "Took");
+    assert.strictEqual(logs[ind].log.args.length, 2);
+    assert.strictEqual(logs[ind].log.args[0], "Took");
 
     this.logger.setLogLevel("INFO");
     await this.commandLine("worker CustomService output DEBUG_MSG");
     logs = this.logger.getLogs();
-    assert.equal(logs[0].log.args.length, 1);
-    assert.equal(logs[0].log.args[0], "YOUR MESSAGE IS 'DEBUG_MSG'");
+    assert.strictEqual(logs[0].log.args.length, 1);
+    assert.strictEqual(logs[0].log.args[0], "YOUR MESSAGE IS 'DEBUG_MSG'");
     await this.commandLine("worker CustomService badMethod");
     logs = this.logger.getLogs();
-    assert.equal(logs.length, 1);
-    assert.equal(logs[0].log.args[0], "An error occured");
+    assert.strictEqual(logs.length, 1);
+    assert.strictEqual(logs[0].log.args[0], "An error occured");
     await this.commandLine("worker CustomService unknownMethod");
     logs = this.logger.getLogs();
-    assert.equal(logs.length, 1);
-    assert.equal(logs[0].log.args[0], "The method unknownMethod is missing in service CustomService");
+    assert.strictEqual(logs.length, 1);
+    assert.strictEqual(logs[0].log.args[0], "The method unknownMethod is missing in service CustomService");
     await this.commandLine("worker UnknownService");
     logs = this.logger.getLogs();
-    assert.equal(logs.length, 1);
-    assert.equal(logs[0].log.args[0], "The service UnknownService is missing");
+    assert.strictEqual(logs.length, 1);
+    assert.strictEqual(logs[0].log.args[0], "The service UnknownService is missing");
   }
 
   @test
@@ -212,7 +212,7 @@ class DynamicService extends Service {
     let file = JSON.parse(
       fs.readFileSync(path.join(WebdaSampleApplication.getAppPath(), "webda.config.json")).toString()
     );
-    assert.notEqual(info.parameters.sessionSecret, file.parameters.sessionSecret);
+    assert.notStrictEqual(info.parameters.sessionSecret, file.parameters.sessionSecret);
     fs.writeFileSync(
       path.join(WebdaSampleApplication.getAppPath(), "webda.config.json"),
       JSON.stringify(info, undefined, 2)
@@ -226,7 +226,7 @@ class DynamicService extends Service {
       fs.unlinkSync(moduleFile);
     }
     await this.commandLine(`module`);
-    assert.equal(fs.existsSync(moduleFile), true);
+    assert.strictEqual(fs.existsSync(moduleFile), true);
   }
 
   @test
@@ -236,7 +236,7 @@ class DynamicService extends Service {
       fallback = true;
     };
     await this.commandLine("--noCompile bouzouf", true);
-    assert.equal(fallback, true);
+    assert.strictEqual(fallback, true);
   }
 
   @test
@@ -249,24 +249,24 @@ class DynamicService extends Service {
 
     WebdaConsole.webda.reinitResolvedRoutes();
     await this.commandLine(`-d Dev openapi`, true);
-    assert.equal(fs.existsSync("./openapi.json"), true);
+    assert.strictEqual(fs.existsSync("./openapi.json"), true);
     let def = JSON.parse(fs.readFileSync("./openapi.json").toString());
-    assert.notEqual(def.paths["/test"], undefined);
-    assert.notEqual(def.paths["/msg/{msg}"], undefined);
+    assert.notStrictEqual(def.paths["/test"], undefined);
+    assert.notStrictEqual(def.paths["/msg/{msg}"], undefined);
     WebdaConsole.webda.reinitResolvedRoutes();
     await this.commandLine(`-d Dev openapi myopenapi.yml`);
-    assert.equal(fs.existsSync("./myopenapi.yml"), true);
-    assert.deepEqual(YAML.parse(fs.readFileSync("./myopenapi.yml").toString()), def);
+    assert.strictEqual(fs.existsSync("./myopenapi.yml"), true);
+    assert.deepStrictEqual(YAML.parse(fs.readFileSync("./myopenapi.yml").toString()), def);
     WebdaConsole.webda.reinitResolvedRoutes();
     await this.commandLine(`-d Dev openapi myopenapi.yaml`);
-    assert.equal(fs.existsSync("./myopenapi.yaml"), true);
-    assert.equal(fs.readFileSync("./myopenapi.yaml").toString(), fs.readFileSync("./myopenapi.yml").toString());
+    assert.strictEqual(fs.existsSync("./myopenapi.yaml"), true);
+    assert.strictEqual(fs.readFileSync("./myopenapi.yaml").toString(), fs.readFileSync("./myopenapi.yml").toString());
     await this.commandLine(`-d Dev openapi myopenapi.txt`);
   }
 
   @test
   utilsCov() {
-    assert.notEqual(WebdaConsole.getVersion().match(/\d+\.\d+\.\d+(-.*)?/), undefined);
+    assert.notStrictEqual(WebdaConsole.getVersion().match(/\d+\.\d+\.\d+(-.*)?/), undefined);
   }
 
   @test
@@ -284,8 +284,8 @@ class DynamicService extends Service {
   @test
   async exporterBadDeployment() {
     let res = await this.commandLine("-d TestLambda config test.export.json");
-    assert.equal(res, -1);
+    assert.strictEqual(res, -1);
     let logs = this.logger.getLogs();
-    assert.equal(logs[0].log.args[0], "Unknown deployment: TestLambda");
+    assert.strictEqual(logs[0].log.args[0], "Unknown deployment: TestLambda");
   }
 }

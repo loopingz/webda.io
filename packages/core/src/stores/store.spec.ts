@@ -1,5 +1,5 @@
 "use strict";
-var assert = require("assert");
+import * as assert from "assert";
 import { Store } from "../index";
 import { WebdaTest } from "../test";
 import { test } from "@testdeck/mocha";
@@ -41,7 +41,7 @@ abstract class StoreTest extends WebdaTest {
         eventFired++;
       });
     }
-    assert.equal(await userStore.get(undefined), undefined);
+    assert.strictEqual(await userStore.get(undefined), undefined);
     user1 = (
       await userStore.save({
         name: "test"
@@ -49,7 +49,7 @@ abstract class StoreTest extends WebdaTest {
     ).uuid;
     let user = await userStore.get(user1);
     // Save a user and add an ident
-    assert.notEqual(user, undefined);
+    assert.notStrictEqual(user, undefined);
     user1 = user.uuid;
     ident1 = await identStore.save({
       type: "facebook",
@@ -57,18 +57,18 @@ abstract class StoreTest extends WebdaTest {
     });
     user = await userStore.get(user1);
     // Verify the ident is on the user
-    assert.notEqual(user, undefined);
-    assert.notEqual(user.idents, undefined);
-    assert.equal(user.idents.length, 1);
+    assert.notStrictEqual(user, undefined);
+    assert.notStrictEqual(user.idents, undefined);
+    assert.strictEqual(user.idents.length, 1);
     // Retrieve index to verify it is in it too
     let index = await identStore.get("index");
-    assert.notEqual(index[ident1.uuid], undefined);
-    assert.equal(index[ident1.uuid].type, "facebook");
+    assert.notStrictEqual(index[ident1.uuid], undefined);
+    assert.strictEqual(index[ident1.uuid].type, "facebook");
     let lastUpdate = user.idents[0]._lastUpdate;
     await this.sleep(10);
     await identStore.incrementAttribute(ident1.uuid, "counter", 1);
     await user.refresh();
-    assert.notEqual(user.idents[0]._lastUpdate, 0);
+    assert.notStrictEqual(user.idents[0]._lastUpdate, 0);
     this.assertLastUpdateNotEqual(
       user.idents[0]._lastUpdate,
       lastUpdate,
@@ -82,7 +82,7 @@ abstract class StoreTest extends WebdaTest {
       date: new Date()
     });
     await user.refresh();
-    assert.notEqual(user.idents[0]._lastUpdate.length, 0);
+    assert.notStrictEqual(user.idents[0]._lastUpdate.length, 0);
     this.assertLastUpdateNotEqual(
       user.idents[0]._lastUpdate,
       lastUpdate,
@@ -92,7 +92,7 @@ abstract class StoreTest extends WebdaTest {
     await this.sleep(10);
     await identStore.deleteItemFromCollection(ident1.uuid, "actions", 0, "plop", "type");
     await user.refresh();
-    assert.notEqual(user.idents[0]._lastUpdate.length, 0);
+    assert.notStrictEqual(user.idents[0]._lastUpdate.length, 0);
     this.assertLastUpdateNotEqual(
       user.idents[0]._lastUpdate,
       lastUpdate,
@@ -105,11 +105,11 @@ abstract class StoreTest extends WebdaTest {
     });
     // Add a second ident and check it is on the user aswell
     user = await userStore.get(user1);
-    assert.equal(user.idents.length, 2);
+    assert.strictEqual(user.idents.length, 2);
 
     // Check index
     await index.refresh();
-    assert.notEqual(index[ident2.uuid], undefined);
+    assert.notStrictEqual(index[ident2.uuid], undefined);
 
     ident2.type = "google2";
     // Update ident2 to check mapper update
@@ -117,21 +117,21 @@ abstract class StoreTest extends WebdaTest {
       uuid: ident2.uuid,
       type: "google2"
     });
-    assert.equal(res.type, "google2");
-    assert.equal(res._user, user1);
+    assert.strictEqual(res.type, "google2");
+    assert.strictEqual(res._user, user1);
 
     // Check index
     await index.refresh();
-    assert.equal(index[ident2.uuid].type, "google2");
+    assert.strictEqual(index[ident2.uuid].type, "google2");
 
     user = await userStore.get(user1);
-    assert.equal(user.idents.length, 2);
-    assert.equal(user.idents[1].type, "google2");
-    assert.equal(user.idents[1] instanceof this.getModelClass(), true);
+    assert.strictEqual(user.idents.length, 2);
+    assert.strictEqual(user.idents[1].type, "google2");
+    assert.strictEqual(user.idents[1] instanceof this.getModelClass(), true);
     await identStore.delete(ident1.uuid);
     user = await userStore.get(user1);
-    assert.equal(user.idents.length, 1);
-    assert.equal(user.idents[0].type, "google2");
+    assert.strictEqual(user.idents.length, 1);
+    assert.strictEqual(user.idents[0].type, "google2");
     // Add a second user to play
     user = await userStore.save({
       name: "test2"
@@ -144,11 +144,11 @@ abstract class StoreTest extends WebdaTest {
     });
     // Check user1 has no more ident
     user = await userStore.get(user1);
-    assert.equal(user.idents.length, 0);
+    assert.strictEqual(user.idents.length, 0);
     // Check user2 has one ident
     user = await userStore.get(user2);
-    assert.equal(user.idents.length, 1);
-    assert.equal(user.idents[0].type, "google2");
+    assert.strictEqual(user.idents.length, 1);
+    assert.strictEqual(user.idents[0].type, "google2");
     // Verify you cannot update a collection from patch
     await userStore.patch(
       {
@@ -157,7 +157,7 @@ abstract class StoreTest extends WebdaTest {
       user2
     );
     user = await userStore.get(user2);
-    assert.equal(user.idents.length, 1);
+    assert.strictEqual(user.idents.length, 1);
     // Verify you cannot update a collection from update
     await userStore.update(
       {
@@ -166,28 +166,28 @@ abstract class StoreTest extends WebdaTest {
       user2
     );
     user = await userStore.get(user2);
-    assert.equal(user.idents.length, 1);
-    assert.equal(user.idents[0].type, "google2");
+    assert.strictEqual(user.idents.length, 1);
+    assert.strictEqual(user.idents[0].type, "google2");
     // Verify delete cascade with empty collection
     await userStore.delete(user1);
     user = await userStore.get(user2);
-    assert.equal(user.idents.length, 1);
-    assert.equal(user.idents[0].type, "google2");
+    assert.strictEqual(user.idents.length, 1);
+    assert.strictEqual(user.idents[0].type, "google2");
     // Verify delete cascade
     await userStore.delete(user2);
     let ident = await identStore.get(ident2.uuid);
-    assert.equal(ident.__deleted, true);
+    assert.strictEqual(ident.__deleted, true);
 
     // Check index
     await index.refresh();
-    assert.equal(index[ident2.uuid], undefined);
-    assert.equal(index[ident1.uuid], undefined);
+    assert.strictEqual(index[ident2.uuid], undefined);
+    assert.strictEqual(index[ident1.uuid], undefined);
 
-    assert.equal(eventFired, 13);
+    assert.strictEqual(eventFired, 13);
     await identStore.delete(ident2.uuid, true);
     ident = await identStore.get(ident2.uuid);
-    assert.equal(ident, undefined);
-    assert.equal(eventFired, 15);
+    assert.strictEqual(ident, undefined);
+    assert.strictEqual(eventFired, 15);
   }
 
   @test
@@ -203,16 +203,16 @@ abstract class StoreTest extends WebdaTest {
       date: new Date()
     });
     await ident.refresh();
-    assert.notEqual(ident.actions, undefined);
-    assert.equal(ident.actions.length, 1);
+    assert.notStrictEqual(ident.actions, undefined);
+    assert.strictEqual(ident.actions.length, 1);
     await identStore.upsertItemToCollection(ident.uuid, "actions", {
       uuid: "action_2",
       type: "plop",
       date: new Date()
     });
     await ident.refresh();
-    assert.notEqual(ident.actions, undefined);
-    assert.equal(ident.actions.length, 2);
+    assert.notStrictEqual(ident.actions, undefined);
+    assert.strictEqual(ident.actions.length, 2);
     await identStore.upsertItemToCollection(
       ident.uuid,
       "actions",
@@ -224,10 +224,10 @@ abstract class StoreTest extends WebdaTest {
       0
     );
     await ident.refresh();
-    assert.notEqual(ident.actions, undefined);
-    assert.equal(ident.actions.length, 2);
-    assert.equal(ident.actions[0].type, "plop2");
-    assert.equal(ident.actions[0].uuid, "action_1");
+    assert.notStrictEqual(ident.actions, undefined);
+    assert.strictEqual(ident.actions.length, 2);
+    assert.strictEqual(ident.actions[0].type, "plop2");
+    assert.strictEqual(ident.actions[0].uuid, "action_1");
     await this.assertThrowsAsync(
       identStore.upsertItemToCollection.bind(
         identStore,
@@ -249,8 +249,8 @@ abstract class StoreTest extends WebdaTest {
       err => true
     );
     await ident.refresh();
-    assert.equal(ident.actions.length, 2);
-    assert.equal(ident.actions[0].type, "plop2");
+    assert.strictEqual(ident.actions.length, 2);
+    assert.strictEqual(ident.actions[0].type, "plop2");
     let lastUpdate = ident._lastUpdate;
     await this.sleep(10);
     await identStore.upsertItemToCollection(
@@ -272,10 +272,10 @@ abstract class StoreTest extends WebdaTest {
     await identStore.deleteItemFromCollection(ident.uuid, "actions", 0, "plop", "type");
     ident = await identStore.get(ident.uuid);
     this.assertLastUpdateNotEqual(ident._lastUpdate, lastUpdate, "lastUpdate after deleteItemToColletion failed");
-    assert.notEqual(ident.actions, undefined);
-    assert.equal(ident.actions.length, 1);
-    assert.equal(ident.actions[0].type, "plop");
-    assert.equal(ident.actions[0].uuid, "action_2");
+    assert.notStrictEqual(ident.actions, undefined);
+    assert.strictEqual(ident.actions.length, 1);
+    assert.strictEqual(ident.actions[0].type, "plop");
+    assert.strictEqual(ident.actions[0].uuid, "action_2");
   }
 
   @test
@@ -293,14 +293,14 @@ abstract class StoreTest extends WebdaTest {
       name: "test3"
     });
     let users = await userStore.getAll();
-    assert.equal(users.length, 3);
-    assert.equal(users[0] instanceof userStore._model, true);
-    assert.equal(users[1] instanceof userStore._model, true);
-    assert.equal(users[2] instanceof userStore._model, true);
+    assert.strictEqual(users.length, 3);
+    assert.strictEqual(users[0] instanceof userStore._model, true);
+    assert.strictEqual(users[1] instanceof userStore._model, true);
+    assert.strictEqual(users[2] instanceof userStore._model, true);
     users = await userStore.getAll([user1.uuid, user3.uuid]);
-    assert.equal(users.length, 2);
-    assert.equal(users[0] instanceof userStore._model, true);
-    assert.equal(users[1] instanceof userStore._model, true);
+    assert.strictEqual(users.length, 2);
+    assert.strictEqual(users[0] instanceof userStore._model, true);
+    assert.strictEqual(users[1] instanceof userStore._model, true);
   }
 
   @test
@@ -337,17 +337,17 @@ abstract class StoreTest extends WebdaTest {
         yop: "pouf"
       }
     });
-    assert.equal(eventFired, 2);
-    assert.notEqual(ident1, undefined);
+    assert.strictEqual(eventFired, 2);
+    assert.notStrictEqual(ident1, undefined);
     eventFired = 0;
     let getter = await identStore.get(ident1.uuid);
-    assert.equal(eventFired, 1);
+    assert.strictEqual(eventFired, 1);
     eventFired = 0;
-    assert.notEqual(getter, undefined);
-    assert.notEqual(getter.lastUsed, undefined);
-    assert.notEqual(getter._lastUpdate, undefined);
-    assert.equal(getter.uuid, ident1.uuid);
-    assert.equal(getter.test, ident1.test);
+    assert.notStrictEqual(getter, undefined);
+    assert.notStrictEqual(getter.lastUsed, undefined);
+    assert.notStrictEqual(getter._lastUpdate, undefined);
+    assert.strictEqual(getter.uuid, ident1.uuid);
+    assert.strictEqual(getter.test, ident1.test);
 
     // Check UPDATE
     getter.test = "plop2";
@@ -357,46 +357,46 @@ abstract class StoreTest extends WebdaTest {
     getter.empty = [];
     let object;
     await identStore.update(getter);
-    assert.equal(eventFired, 2);
+    assert.strictEqual(eventFired, 2);
     eventFired = 0;
     getter = {};
     getter.uuid = ident1.uuid;
     getter.bouzouf = "test";
     await identStore.patch(getter);
-    assert.equal(eventFired, 2);
+    assert.strictEqual(eventFired, 2);
     eventFired = 0;
     object = await identStore.get(ident1.uuid);
-    assert.equal(object.test, "plop2");
-    assert.equal(object.details.plop, "plop2");
+    assert.strictEqual(object.test, "plop2");
+    assert.strictEqual(object.details.plop, "plop2");
     getter = await identStore.get(object.uuid);
-    assert.equal(eventFired, 2);
-    assert.equal(getter.test, "plop2");
+    assert.strictEqual(eventFired, 2);
+    assert.strictEqual(getter.test, "plop2");
     await this.sleep(10);
     await identStore.incrementAttribute(ident1.uuid, "counter", 1);
     let ident = await identStore.get(ident1.uuid);
     // Verify lastUpdate is updated too
     this.assertLastUpdateNotEqual(ident._lastUpdate, ident1._lastUpdate, "lastUpdate after incrementAttribute failed");
-    assert.equal(ident.counter, 1);
+    assert.strictEqual(ident.counter, 1);
     await identStore.incrementAttribute(ident1.uuid, "counter", 3);
     ident1 = await identStore.get(ident1.uuid);
-    assert.equal(ident1.counter, 4);
+    assert.strictEqual(ident1.counter, 4);
     await identStore.incrementAttribute(ident1.uuid, "counter", -6);
     let res = await identStore.exists(ident1.uuid);
-    assert.equal(res, true);
+    assert.strictEqual(res, true);
     ident1 = await identStore.get(ident1.uuid);
-    assert.equal(ident1.counter, -2);
+    assert.strictEqual(ident1.counter, -2);
     // Check DELETE
     eventFired = 0;
     await identStore.delete(ident1.uuid, true);
-    assert.equal(eventFired, 2);
+    assert.strictEqual(eventFired, 2);
     eventFired = 0;
     ident = await identStore.get(ident1.uuid);
-    assert.equal(ident, undefined);
+    assert.strictEqual(ident, undefined);
     res = await identStore.exists(ident1.uuid);
-    assert.equal(res, false);
+    assert.strictEqual(res, false);
   }
   assertLastUpdateNotEqual(d1, d2, msg) {
-    assert.notEqual(d1, d2, msg);
+    assert.notStrictEqual(d1, d2, msg);
   }
 }
 

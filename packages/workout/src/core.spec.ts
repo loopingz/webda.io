@@ -28,7 +28,7 @@ class WorkerOutputTest {
   @test
   async testLog() {
     this.output.log("WARN", "Test", "plop");
-    assert.deepEqual(this.calls.map(mapper), [
+    assert.deepStrictEqual(this.calls.map(mapper), [
       { type: "log", groups: [], progresses: {}, log: { level: "WARN", args: ["Test", "plop"] } }
     ]);
   }
@@ -43,7 +43,7 @@ class WorkerOutputTest {
     this.output.log("WARN", "Test", "plop");
     this.output.closeGroup();
     this.output.closeGroup();
-    assert.deepEqual(this.calls.map(mapper), [
+    assert.deepStrictEqual(this.calls.map(mapper), [
       { type: "group.open", group: "Group1", groups: ["Group1"], progresses: {} },
       { type: "log", groups: ["Group1"], progresses: {}, log: { level: "WARN", args: ["Test", "plop"] } },
       { type: "group.open", group: "Group2", groups: ["Group1", "Group2"], progresses: {} },
@@ -71,7 +71,7 @@ class WorkerOutputTest {
     this.output.incrementProgress(15, "plop2");
     assert.throws(() => this.output.incrementProgress(1, "nope"), /Unknown progress/g);
     assert.throws(() => this.output.updateProgress(1, "nope"), /Unknown progress/g);
-    assert.deepEqual(this.calls.map(mapper), [
+    assert.deepStrictEqual(this.calls.map(mapper), [
       {
         type: "progress.start",
         groups: [],
@@ -193,10 +193,10 @@ class WorkerOutputTest {
     this.output.setInteractive(true);
     let ratio = new WorkerProgress("yop", 100, []);
     ratio.incrementProgress(10);
-    assert.equal(ratio.getRatio(), 0.1);
+    assert.strictEqual(ratio.getRatio(), 0.1);
     ratio.incrementProgress(40);
-    assert.equal(ratio.getRatio(), 0.5);
-    assert.deepEqual(this.calls.map(mapper), [{ type: "title.set", groups: [], progresses: {} }]);
+    assert.strictEqual(ratio.getRatio(), 0.5);
+    assert.deepStrictEqual(this.calls.map(mapper), [{ type: "title.set", groups: [], progresses: {} }]);
   }
 
   @test
@@ -216,7 +216,7 @@ class WorkerOutputTest {
     let input = await this.output.requestInput("My Question", WorkerInputType.STRING, ["\\d+"], false, 200);
     let ok = this.output.waitForInput(input);
     this.output.returnInput(input, "test");
-    assert.equal(await ok, "test");
+    assert.strictEqual(await ok, "test");
     let events = [
       {
         type: "input.request",
@@ -246,6 +246,6 @@ class WorkerOutputTest {
     events.forEach(e => delete e.input.uuid);
     let received: any[] = this.calls.map(mapper);
     received.forEach(e => delete e.input.uuid);
-    assert.deepEqual(received, events);
+    assert.deepStrictEqual(received, events);
   }
 }

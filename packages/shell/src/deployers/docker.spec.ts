@@ -19,26 +19,26 @@ class DockerDeployerTest extends DeployerTest<Docker<DockerResources>> {
   async deploy() {
     this.deployer.execute = this.mockExecute;
     await this.deployer.deploy();
-    assert.equal(this.execs.length, 1);
-    assert.equal(this.execs[0][0], "docker build --tag webda-deployer:test --file - .");
+    assert.strictEqual(this.execs.length, 1);
+    assert.strictEqual(this.execs[0][0], "docker build --tag webda-deployer:test --file - .");
     this.execs = [];
     this.deployer.resources.push = true;
     this.deployer.resources.Dockerfile = "./testor";
     await this.deployer.deploy();
-    assert.equal(this.execs.length, 2);
-    assert.equal(this.execs[0][0], "docker build --tag webda-deployer:test --file ./testor .");
-    assert.deepEqual(this.execs[1], ["docker push webda-deployer:test"]);
+    assert.strictEqual(this.execs.length, 2);
+    assert.strictEqual(this.execs[0][0], "docker build --tag webda-deployer:test --file ./testor .");
+    assert.deepStrictEqual(this.execs[1], ["docker push webda-deployer:test"]);
   }
 
   @test
   testGetDockerfileWebdaShell() {
     let tag = require(__dirname + "/../../package.json").version;
-    assert.equal(
+    assert.strictEqual(
       this.deployer.getDockerfileWebdaShell(),
       `# Install current @webda/shell version\nRUN yarn global add @webda/shell@${tag}\n\n`
     );
     process.env.WEBDA_SHELL_DEV = path.resolve(path.join(__dirname, "/../../"));
-    assert.deepEqual(this.deployer.getDockerfileWebdaShell().split("\n"), [
+    assert.deepStrictEqual(this.deployer.getDockerfileWebdaShell().split("\n"), [
       "# Use development Webda Shell version",
       "ADD .webda-shell /devshell",
       "ADD .webda-shell/node_modules /devshell/node_modules/",
@@ -48,7 +48,7 @@ class DockerDeployerTest extends DeployerTest<Docker<DockerResources>> {
       ""
     ]);
     process.env.WEBDA_SHELL_DEPLOY_VERSION = "0.1.0";
-    assert.equal(
+    assert.strictEqual(
       this.deployer.getDockerfileWebdaShell(),
       "# Install enforced @webda/shell version\nRUN yarn global add @webda/shell@0.1.0\n\n"
     );

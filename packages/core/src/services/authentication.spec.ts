@@ -25,8 +25,8 @@ class AuthenticationTest extends WebdaTest {
     await super.before();
     this.userStore = this.getUserStore();
     this.identStore = this.getIdentStore();
-    assert.notEqual(this.userStore, undefined);
-    assert.notEqual(this.identStore, undefined);
+    assert.notStrictEqual(this.userStore, undefined);
+    assert.notStrictEqual(this.identStore, undefined);
     await this.userStore.__clean();
     await this.identStore.__clean();
     this.authentication = <Authentication>this.getService("Authentication");
@@ -66,7 +66,7 @@ class AuthenticationTest extends WebdaTest {
     this.authentication.addProvider("plop2");
     let ctx = await this.newContext();
     ctx.setPathParameters({ provider: "plop" });
-    //assert.equal(this.authentication.getCallbackUrl(ctx), "/plop");
+    //assert.strictEqual(this.authentication.getCallbackUrl(ctx), "/plop");
   }
 
   @test("register") async register() {
@@ -117,31 +117,31 @@ class AuthenticationTest extends WebdaTest {
     );
     ctx.newSession();
     await executor.execute(ctx);
-    assert.equal(ctx.getSession().identId, undefined);
-    assert.equal(this.mailer.sent.length, 1);
+    assert.strictEqual(ctx.getSession().identId, undefined);
+    assert.strictEqual(this.mailer.sent.length, 1);
     let ident = await this.identStore.get("test@webda.io_email");
-    assert.equal(ident, undefined);
+    assert.strictEqual(ident, undefined);
     // Not registered as postValidation is not set
     ctx.getExecutor()._params.email.postValidation = true;
     await this.registerTest2(ctx);
-    assert.equal(this.events, 2); // Register + Login
+    assert.strictEqual(this.events, 2); // Register + Login
     userId = ctx.getSession().getUserId();
-    assert.notEqual(ctx.getSession().getUserId(), undefined);
-    assert.equal(this.mailer.sent.length, 2);
+    assert.notStrictEqual(ctx.getSession().getUserId(), undefined);
+    assert.strictEqual(this.mailer.sent.length, 2);
     let user: any = await this.userStore.get(ctx.getSession().getUserId());
-    assert.notEqual(user, undefined);
-    assert.notEqual(user.getPassword(), undefined);
-    assert.equal(user.locale, "en");
-    assert.equal(user.test, "TESTOR"); // Verify that the listener on Register has done something
+    assert.notStrictEqual(user, undefined);
+    assert.notStrictEqual(user.getPassword(), undefined);
+    assert.strictEqual(user.locale, "en");
+    assert.strictEqual(user.test, "TESTOR"); // Verify that the listener on Register has done something
     // Now logout
     executor = this.getExecutor(ctx, "test.webda.io", "DELETE", "/auth");
     await executor.execute(ctx);
     // Now validate first user
     ctx.getExecutor()._params.email.postValidation = false;
-    assert.equal(ctx.getSession().getUserId(), undefined);
+    assert.strictEqual(ctx.getSession().getUserId(), undefined);
     var match = this.mailer.sent[0].replacements.url.match(validationUrl);
-    assert.notEqual(match, undefined);
-    assert.equal(match[1], "test@webda.io");
+    assert.notStrictEqual(match, undefined);
+    assert.strictEqual(match[1], "test@webda.io");
     executor = this.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", {
       token: match[2],
       password: "testtest",
@@ -151,11 +151,11 @@ class AuthenticationTest extends WebdaTest {
     });
     await executor.execute(ctx);
     // Should create it with the dat provided
-    assert.notEqual(ctx.getSession().getUserId(), undefined);
+    assert.notStrictEqual(ctx.getSession().getUserId(), undefined);
     ident = await this.identStore.get(ctx.getSession().getIdentUsed());
     // Email should be already validate
-    assert.notEqual(ident._validation, undefined);
-    assert.equal(this.mailer.sent.length, 2);
+    assert.notStrictEqual(ident._validation, undefined);
+    assert.strictEqual(this.mailer.sent.length, 2);
     // Resend email
     executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/email/test2@webda.io/validate");
     ctx.getSession().login(userId, "fake");
@@ -166,11 +166,11 @@ class AuthenticationTest extends WebdaTest {
     await ident.save();
     // Should be ok now to send an email
     await executor.execute(ctx);
-    assert.equal(this.mailer.sent.length, 3);
+    assert.strictEqual(this.mailer.sent.length, 3);
     // Validate email for test2 now
     match = this.mailer.sent[1].replacements.url.match(validationUrl);
-    assert.notEqual(match, undefined);
-    assert.equal(match[1], "test2@webda.io");
+    assert.notStrictEqual(match, undefined);
+    assert.strictEqual(match[1], "test2@webda.io");
     ctx.newSession();
     executor = this.getExecutor(
       ctx,
@@ -179,7 +179,7 @@ class AuthenticationTest extends WebdaTest {
       "/auth/email/callback?email=" + match[1] + "&token=" + match[2]
     );
     await executor.execute(ctx);
-    assert.equal(ctx.statusCode, 302);
+    assert.strictEqual(ctx.statusCode, 302);
     // Verify the skipEmailValidation parameter
     this.events = 0;
     ctx.newSession();
@@ -192,9 +192,9 @@ class AuthenticationTest extends WebdaTest {
     ctx.getExecutor()._params.email.skipEmailValidation = true;
     await executor.execute(ctx);
     // No new email has been sent
-    assert.equal(this.mailer.sent.length, 3);
-    assert.equal(this.events, 2); // Register + Login
-    assert.notEqual(ctx.getSession().getUserId(), undefined);
+    assert.strictEqual(this.mailer.sent.length, 3);
+    assert.strictEqual(this.events, 2); // Register + Login
+    assert.notStrictEqual(ctx.getSession().getUserId(), undefined);
   }
 
   @test("register - bad password") async registerBadPassword() {
@@ -236,10 +236,10 @@ class AuthenticationTest extends WebdaTest {
     executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/me");
     await executor.execute(ctx);
     let user = JSON.parse(ctx.getResponseBody());
-    assert.equal(user.plop, "yep");
-    assert.equal(user.register, undefined);
-    assert.equal(user.locale, "es-ES");
-    assert.notEqual(user, undefined);
+    assert.strictEqual(user.plop, "yep");
+    assert.strictEqual(user.register, undefined);
+    assert.strictEqual(user.locale, "es-ES");
+    assert.notStrictEqual(user, undefined);
   }
 
   @test("login") async login() {
@@ -252,7 +252,7 @@ class AuthenticationTest extends WebdaTest {
       password: "testtest"
     });
     await this.assertThrowsAsync(executor.execute.bind(executor, ctx), res => res == 404);
-    assert.equal(ctx.getSession().getUserId(), undefined);
+    assert.strictEqual(ctx.getSession().getUserId(), undefined);
     // As it has not been validate
     ctx.getHttpContext().setBody({
       login: "test2@webda.io",
@@ -261,11 +261,11 @@ class AuthenticationTest extends WebdaTest {
     ctx.reinit();
     ctx.newSession();
     await executor.execute(ctx);
-    assert.equal(this.events, 1); // Login
-    assert.notEqual(ctx.getSession().getUserId(), undefined);
+    assert.strictEqual(this.events, 1); // Login
+    assert.notStrictEqual(ctx.getSession().getUserId(), undefined);
     // Verify ident type
     let ident = await this.identStore.get(ctx.getSession().getIdentUsed());
-    assert.equal(ident._type, "email");
+    assert.strictEqual(ident._type, "email");
     ctx.getHttpContext().setBody({
       login: "test2@webda.io",
       password: "bouzouf"
@@ -273,8 +273,8 @@ class AuthenticationTest extends WebdaTest {
     ctx.reinit();
     ctx.newSession();
     await this.assertThrowsAsync(executor.execute.bind(executor, ctx), res => res == 403);
-    assert.equal(ctx.getSession().getUserId(), undefined);
-    assert.equal(this.events, 1);
+    assert.strictEqual(ctx.getSession().getUserId(), undefined);
+    assert.strictEqual(this.events, 1);
   }
 
   @test("passwordRecovery") async testPasswordRecovery() {
@@ -320,14 +320,14 @@ class AuthenticationTest extends WebdaTest {
       password: "retesttest"
     });
     await executor.execute(ctx);
-    assert.notEqual(ctx.getSession().getUserId(), undefined);
+    assert.notStrictEqual(ctx.getSession().getUserId(), undefined);
     executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/email/test2@webda.io/recover");
     await executor.execute(ctx);
-    assert.equal(this.mailer.sent.length, 1);
-    assert.equal(this.mailer.sent[0].to, "test2@webda.io");
-    assert.notEqual(this.mailer.sent[0].replacements.infos, undefined);
-    assert.notEqual(this.mailer.sent[0].replacements.infos.expire, undefined);
-    assert.notEqual(this.mailer.sent[0].replacements.infos.token, undefined);
+    assert.strictEqual(this.mailer.sent.length, 1);
+    assert.strictEqual(this.mailer.sent[0].to, "test2@webda.io");
+    assert.notStrictEqual(this.mailer.sent[0].replacements.infos, undefined);
+    assert.notStrictEqual(this.mailer.sent[0].replacements.infos.expire, undefined);
+    assert.notStrictEqual(this.mailer.sent[0].replacements.infos.token, undefined);
     await this.assertThrowsAsync(executor.execute.bind(executor, ctx), res => res == 429);
   }
 
@@ -341,19 +341,19 @@ class AuthenticationTest extends WebdaTest {
       password: "testtest"
     });
     await executor.execute(ctx);
-    assert.notEqual(ctx.getSession().getUserId(), undefined);
+    assert.notStrictEqual(ctx.getSession().getUserId(), undefined);
     executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/email/newtest@webda.io/validate", {
       login: "test2@webda.io",
       password: "retesttest"
     });
     await executor.execute(ctx);
     let ident = await this.identStore.get("newtest@webda.io_email");
-    assert.notEqual(ident, undefined);
-    assert.equal(ident._validation, undefined);
+    assert.notStrictEqual(ident, undefined);
+    assert.strictEqual(ident._validation, undefined);
     userId = ctx.getCurrentUserId();
     var match = this.mailer.sent[0].replacements.url.match(validationUrl);
-    assert.notEqual(match, undefined);
-    assert.equal(match[1], "newtest@webda.io");
+    assert.notStrictEqual(match, undefined);
+    assert.strictEqual(match[1], "newtest@webda.io");
     // Send another one on newtest2
     executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/email/newtest2@webda.io/validate", {
       login: "test2@webda.io",
@@ -361,8 +361,8 @@ class AuthenticationTest extends WebdaTest {
     });
     await executor.execute(ctx);
     var match2 = this.mailer.sent[1].replacements.url.match(validationUrl);
-    assert.notEqual(match2, undefined);
-    assert.equal(match2[1], "newtest2@webda.io");
+    assert.notStrictEqual(match2, undefined);
+    assert.strictEqual(match2[1], "newtest2@webda.io");
 
     // Try to validate with wrong email
     ctx.getSession().userId = "anotheruser";
@@ -373,8 +373,8 @@ class AuthenticationTest extends WebdaTest {
       "/auth/email/callback?email=" + match[1] + "&token=" + match[2] + "&user=" + match[4]
     );
     await executor.execute(ctx);
-    assert.equal(ctx.statusCode, 302);
-    assert.equal(ctx.getResponseHeaders().Location, "/login-error?reason=badUser");
+    assert.strictEqual(ctx.statusCode, 302);
+    assert.strictEqual(ctx.getResponseHeaders().Location, "/login-error?reason=badUser");
     // Right user
     ctx.getSession().userId = userId;
     executor = this.getExecutor(
@@ -384,8 +384,8 @@ class AuthenticationTest extends WebdaTest {
       "/auth/email/callback?email=" + match[1] + "&token=bouzouf" + "&user=" + match[4]
     );
     await executor.execute(ctx);
-    assert.equal(ctx.statusCode, 302);
-    assert.equal(ctx.getResponseHeaders().Location, "/login-error?reason=badToken");
+    assert.strictEqual(ctx.statusCode, 302);
+    assert.strictEqual(ctx.getResponseHeaders().Location, "/login-error?reason=badToken");
     executor = this.getExecutor(
       ctx,
       "test.webda.io",
@@ -393,10 +393,10 @@ class AuthenticationTest extends WebdaTest {
       "/auth/email/callback?email=" + match[1] + "&token=" + match[2] + "&user=" + match[4]
     );
     await executor.execute(ctx);
-    assert.equal(ctx.statusCode, 302);
-    assert.equal(ctx.getResponseHeaders().Location, "https://webda.io/user.html?validation=email");
+    assert.strictEqual(ctx.statusCode, 302);
+    assert.strictEqual(ctx.getResponseHeaders().Location, "https://webda.io/user.html?validation=email");
     ident = await this.identStore.get("newtest@webda.io_email");
-    assert.notEqual(ident._validation, undefined);
+    assert.notStrictEqual(ident._validation, undefined);
     // Verify exception if same user try to revalidate
     executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/email/newtest@webda.io/validate");
     await this.assertThrowsAsync(executor.execute.bind(executor, ctx), res => res == 412);
@@ -404,7 +404,7 @@ class AuthenticationTest extends WebdaTest {
     // TODO Redo this one
     /*
     let user = await ctx.getCurrentUser();
-    assert.equal(
+    assert.strictEqual(
       user.getIdents().filter(item => item.uuid === "newtest@webda.io_email")
         .length,
       1
@@ -424,15 +424,15 @@ class AuthenticationTest extends WebdaTest {
       "/auth/email/callback?email=" + match2[1] + "&token=" + match2[2] + "&user=" + match2[4]
     );
     await executor.execute(ctx);
-    assert.equal(ctx.statusCode, 302);
-    assert.equal(ctx.getResponseHeaders().Location, "https://webda.io/user.html?validation=email");
+    assert.strictEqual(ctx.statusCode, 302);
+    assert.strictEqual(ctx.getResponseHeaders().Location, "https://webda.io/user.html?validation=email");
   }
 
   /*
   @test("AWS Compatibility") async awsCompatibility() {
     let ctx = await this.newContext();
     let executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/github");
-    assert.notEqual(executor, undefined);
+    assert.notStrictEqual(executor, undefined);
   }
   @test("Callback") async callback() {
     var done = function () {};
@@ -442,36 +442,36 @@ class AuthenticationTest extends WebdaTest {
     let ctx = await this.newContext();
     this.getExecutor(ctx, "test.webda.io", "GET", "/auth/github/callback?code=blahblah");
     await this.authentication.handleOAuthReturn(ctx, ident, done);
-    assert.equal(ctx.statusCode, 302);
-    assert.equal(ctx.parameter("code"), "blahblah");
-    assert.equal(ctx.getResponseHeaders().Location, "https://webda.io/user.html?validation=github");
+    assert.strictEqual(ctx.statusCode, 302);
+    assert.strictEqual(ctx.parameter("code"), "blahblah");
+    assert.strictEqual(ctx.getResponseHeaders().Location, "https://webda.io/user.html?validation=github");
     ident = await this.identStore.get(ident.uuid);
     // The ident must have been created and have a last used
-    assert.notEqual(ident._lastUsed, lastUsed);
+    assert.notStrictEqual(ident._lastUsed, lastUsed);
     lastUsed = ident._lastUsed;
     // Set by the store
-    assert.notEqual(ident._lastUpdate, undefined);
+    assert.notStrictEqual(ident._lastUpdate, undefined);
     // Login + Register
-    assert.equal(this.events, 2);
+    assert.strictEqual(this.events, 2);
     this.events = 0;
-    assert.equal(ctx.getSession().isLogged(), true);
+    assert.strictEqual(ctx.getSession().isLogged(), true);
     await this.sleep(50);
     await this.authentication.handleOAuthReturn(ctx, ident, done);
     await ident.refresh();
-    assert.equal(this.events, 1); // Only Login
-    assert.notEqual(ident._lastUsed, lastUsed);
+    assert.strictEqual(this.events, 1); // Only Login
+    assert.notStrictEqual(ident._lastUsed, lastUsed);
     let user: any = await this.userStore.get(ident._user);
     this.events = 0;
-    assert.equal(user.idents.length, 1); // Only one github login
-    assert.equal(user.idents[0].uuid, "test_github"); // Only one github login
-    assert.equal(user.test, "TESTOR"); // Verify that the listener on Register has done something
+    assert.strictEqual(user.idents.length, 1); // Only one github login
+    assert.strictEqual(user.idents[0].uuid, "test_github"); // Only one github login
+    assert.strictEqual(user.test, "TESTOR"); // Verify that the listener on Register has done something
     await this.authentication.handleOAuthReturn(ctx, Ident.init("github", "retest"), done);
-    assert.equal(this.events, 1); // Only Login
-    assert.equal(ctx.statusCode, 302);
-    assert.equal(ctx.getResponseHeaders().Location, "https://webda.io/user.html?validation=github");
+    assert.strictEqual(this.events, 1); // Only Login
+    assert.strictEqual(ctx.statusCode, 302);
+    assert.strictEqual(ctx.getResponseHeaders().Location, "https://webda.io/user.html?validation=github");
     user = await this.userStore.get(ident._user);
-    assert.equal(user.idents.length, 2); // Two github login
-    assert.equal(user.idents[1].uuid, "retest_github");
+    assert.strictEqual(user.idents.length, 2); // Two github login
+    assert.strictEqual(user.idents[1].uuid, "retest_github");
   }
   */
 }

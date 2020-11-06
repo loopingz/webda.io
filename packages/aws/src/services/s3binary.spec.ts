@@ -78,7 +78,7 @@ class S3BinaryTest extends BinaryTest {
   getARN() {
     let policies = (<S3Binary>this.getBinary()).getARNPolicy("plop");
 
-    assert.equal(policies.Resource[0], "arn:aws:s3:::webda-test");
-    assert.equal(policies.Resource[1], "arn:aws:s3:::webda-test/*");
+    assert.strictEqual(policies.Resource[0], "arn:aws:s3:::webda-test");
+    assert.strictEqual(policies.Resource[1], "arn:aws:s3:::webda-test/*");
   }
 }

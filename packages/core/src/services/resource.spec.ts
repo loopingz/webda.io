@@ -18,42 +18,42 @@ class ResourceTest extends WebdaTest {
   @test
   async parentFolder() {
     let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/../config.json");
-    assert.notEqual(executor, undefined);
+    assert.notStrictEqual(executor, undefined);
     await assert.rejects(executor.execute.bind(executor, this.ctx), err => err == 401);
   }
 
   @test
   async unknownFile() {
     let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/config.unknown.json");
-    assert.notEqual(executor, undefined);
+    assert.notStrictEqual(executor, undefined);
     await assert.rejects(executor.execute.bind(executor, this.ctx), err => err == 404);
   }
 
   @test
   async jsonFile() {
     let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/config.json");
-    assert.notEqual(executor, undefined);
+    assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
-    assert.equal(this.ctx.getResponseBody(), fs.readFileSync("./test/config.json").toString());
-    assert.equal(this.ctx.getResponseHeaders()["Content-Type"], "application/json");
+    assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/config.json").toString());
+    assert.strictEqual(this.ctx.getResponseHeaders()["Content-Type"], "application/json");
   }
 
   @test
   async jsFile() {
     let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/moddas/voidstore.js");
-    assert.notEqual(executor, undefined);
+    assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
-    assert.equal(this.ctx.getResponseBody(), fs.readFileSync("./test/moddas/voidstore.js").toString());
-    assert.equal(this.ctx.getResponseHeaders()["Content-Type"], "application/javascript");
+    assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/moddas/voidstore.js").toString());
+    assert.strictEqual(this.ctx.getResponseHeaders()["Content-Type"], "application/javascript");
   }
 
   @test
   async textFile() {
     let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/data/test.txt");
-    assert.notEqual(executor, undefined);
+    assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
-    assert.equal(this.ctx.getResponseBody(), fs.readFileSync("./test/data/test.txt").toString());
-    assert.equal(this.ctx.getResponseHeaders()["Content-Type"], "text/plain");
+    assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/data/test.txt").toString());
+    assert.strictEqual(this.ctx.getResponseHeaders()["Content-Type"], "text/plain");
   }
   // Check Store HTTP mapping
   @test
@@ -64,12 +64,12 @@ class ResourceTest extends WebdaTest {
       "GET",
       "/templates/PASSPORT_EMAIL_RECOVERY/html.mustache"
     );
-    assert.notEqual(executor, undefined);
+    assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
-    assert.equal(
-      this.ctx.getResponseBody(),
+    assert.strictEqual(
+      this.ctx.getResponseBody().toString(),
       fs.readFileSync("./templates/PASSPORT_EMAIL_RECOVERY/html.mustache").toString()
     );
-    assert.equal(this.ctx.getResponseHeaders()["Content-Type"], "application/octet-stream");
+    assert.strictEqual(this.ctx.getResponseHeaders()["Content-Type"], "application/octet-stream");
   }
 }

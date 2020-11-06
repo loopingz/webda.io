@@ -18,7 +18,7 @@ class ConsoleLoggerTest {
       this.output.log("INFO", "Testor");
       this.output.log("DEBUG", "Testor");
       this.output.log("TRACE", "Testor");
-      assert.equal(log.callCount, 3);
+      assert.strictEqual(log.callCount, 3);
       this.output.removeAllListeners();
       log.resetHistory();
       new ConsoleLogger(this.output, "TRACE");
@@ -27,7 +27,7 @@ class ConsoleLoggerTest {
       this.output.log("INFO", "Testor");
       this.output.log("DEBUG", "Testor");
       this.output.log("TRACE", "Testor");
-      assert.equal(log.callCount, 5);
+      assert.strictEqual(log.callCount, 5);
     } finally {
       log.restore();
     }

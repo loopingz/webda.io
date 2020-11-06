@@ -21,8 +21,8 @@ class OwnerPolicyTest extends WebdaTest {
     };
     this._taskStore = <Store<CoreModel>>this.webda.getService("Tasks");
     this._userStore = <Store<CoreModel>>this.webda.getService("Users");
-    assert.notEqual(this._taskStore, undefined);
-    assert.notEqual(this._userStore, undefined);
+    assert.notStrictEqual(this._taskStore, undefined);
+    assert.notStrictEqual(this._userStore, undefined);
   }
 
   async beforeEach() {
@@ -50,7 +50,7 @@ class OwnerPolicyTest extends WebdaTest {
     let executor = this.getExecutor(this._ctx, "test.webda.io", "POST", "/tasks", {
       name: "Task #1"
     });
-    assert.notEqual(executor, undefined);
+    assert.notStrictEqual(executor, undefined);
     await assert.rejects(executor.execute.bind(executor, this._ctx), res => res == 403);
   }
 
@@ -61,7 +61,7 @@ class OwnerPolicyTest extends WebdaTest {
     this._ctx.session.login("fake_user", "fake_ident");
     await executor.execute(this._ctx);
     let task = JSON.parse(this._ctx.getResponseBody());
-    assert.equal(task.name, "Task #1");
+    assert.strictEqual(task.name, "Task #1");
   }
 
   @test("GET - wrong owner") async getWrongOwner() {
@@ -82,8 +82,8 @@ class OwnerPolicyTest extends WebdaTest {
     let executor = this.getExecutor(this._ctx, "test.webda.io", "PUT", "/tasks/task_user1", { public: true });
     await executor.execute(this._ctx);
     let result = JSON.parse(this._ctx.getResponseBody());
-    assert.equal(result.uuid, "task_user1");
-    assert.equal(result.public, true);
+    assert.strictEqual(result.uuid, "task_user1");
+    assert.strictEqual(result.public, true);
   }
   @test("GET - public") async getPublic() {
     await this.beforeEach();
@@ -91,7 +91,7 @@ class OwnerPolicyTest extends WebdaTest {
     let executor = this.getExecutor(this._ctx, "test.webda.io", "GET", "/tasks/task_public");
     await executor.execute(this._ctx);
     let result = JSON.parse(this._ctx.getResponseBody());
-    assert.equal(result.uuid, "task_public");
+    assert.strictEqual(result.uuid, "task_public");
   }
   @test("Actions") async actioms() {
     await this.beforeEach();

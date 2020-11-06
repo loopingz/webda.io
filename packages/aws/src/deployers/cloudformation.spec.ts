@@ -38,7 +38,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       fake: true
     };
     await this.deployer.sendCloudFormationTemplate();
-    assert.deepEqual(this.deployer.result.CloudFormation, {
+    assert.deepStrictEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
       Key: "plop/123.json"
     });
@@ -46,7 +46,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     this.deployer.resources.FileName = "123.json";
     this.deployer.result = {};
     await this.deployer.sendCloudFormationTemplate();
-    assert.deepEqual(this.deployer.result.CloudFormation, {
+    assert.deepStrictEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
       Key: "plop/123.json"
     });
@@ -54,21 +54,21 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     this.deployer.resources.Format = "YAML";
     this.deployer.result = {};
     await this.deployer.sendCloudFormationTemplate();
-    assert.deepEqual(this.deployer.result.CloudFormation, {
+    assert.deepStrictEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
       Key: "plop/123.yml"
     });
     this.deployer.resources.FileName = "123.yml";
     this.deployer.result = {};
     await this.deployer.sendCloudFormationTemplate();
-    assert.deepEqual(this.deployer.result.CloudFormation, {
+    assert.deepStrictEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
       Key: "plop/123.yml"
     });
     this.deployer.resources.FileName = "123.taml";
     this.deployer.result = {};
     await this.deployer.sendCloudFormationTemplate();
-    assert.deepEqual(this.deployer.result.CloudFormation, {
+    assert.deepStrictEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
       Key: "plop/123.taml.yml"
     });
@@ -76,7 +76,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     this.deployer.result = {};
     this.deployer.resources.AssetsPrefix = "";
     await this.deployer.sendCloudFormationTemplate();
-    assert.deepEqual(this.deployer.result.CloudFormation, {
+    assert.deepStrictEqual(this.deployer.result.CloudFormation, {
       Bucket: "webda",
       Key: "123.yaml"
     });
@@ -118,8 +118,8 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     console.log("Launch deploy", this.deployer.uploadStatics);
     await this.deployer.deploy();
     console.log("Launch deploy done");
-    assert.equal(sendCloudFormation.calledOnce, true);
-    assert.equal(generateLambdaPackage.calledOnce, true);
+    assert.strictEqual(sendCloudFormation.calledOnce, true);
+    assert.strictEqual(generateLambdaPackage.calledOnce, true);
   }
 
   @test
@@ -141,9 +141,9 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       AWSMock.mock("CloudFormation", "deleteStack", this.mocks["deleteStack"]);
       AWSMock.mock("CloudFormation", "describeStacks", this.mocks["describeStacks"]);
       await this.deployer.deleteCloudFormation();
-      assert.equal(this.mocks["deleteStack"].calledOnce, true);
-      assert.equal(this.mocks["waitFor"].calledOnce, true);
-      assert.equal(this.mocks["describeStacks"].calledTwice, true);
+      assert.strictEqual(this.mocks["deleteStack"].calledOnce, true);
+      assert.strictEqual(this.mocks["waitFor"].calledOnce, true);
+      assert.strictEqual(this.mocks["describeStacks"].calledTwice, true);
     } finally {
       AWSMock.restore();
     }

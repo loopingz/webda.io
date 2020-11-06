@@ -71,32 +71,32 @@ class PackagerTest {
         .on("close", resolve)
     );
     //
-    assert.notEqual(files["lib/models/contact.js"], undefined);
-    assert.notEqual(files["lib/services/custom.js"], undefined);
+    assert.notStrictEqual(files["lib/models/contact.js"], undefined);
+    assert.notStrictEqual(files["lib/services/custom.js"], undefined);
     // As this fake app is in our repo the node_modules are incorrect
     // Manage workspaces
-    assert.notEqual(files["node_modules/@webda/aws/package.json"], undefined, "Cannot find @webda/aws package");
-    assert.notEqual(files["node_modules/@webda/core/package.json"], undefined, "Cannot find @webda/core package");
+    assert.notStrictEqual(files["node_modules/@webda/aws/package.json"], undefined, "Cannot find @webda/aws package");
+    assert.notStrictEqual(files["node_modules/@webda/core/package.json"], undefined, "Cannot find @webda/core package");
     // Should get the module
-    assert.notEqual(files["node_modules/uuid/package.json"], undefined, "Cannot find uuid package");
+    assert.notStrictEqual(files["node_modules/uuid/package.json"], undefined, "Cannot find uuid package");
     let config = JSON.parse(captureFiles["webda.config.json"]);
     // Ensure CachedModules are generated for packages
-    assert.notEqual(config.cachedModules, undefined);
-    assert.equal(config.cachedModules.services["WebdaDemo/CustomReusableService"], "./lib/services/reusable.js");
-    assert.equal(
+    assert.notStrictEqual(config.cachedModules, undefined);
+    assert.strictEqual(config.cachedModules.services["WebdaDemo/CustomReusableService"], "./lib/services/reusable.js");
+    assert.strictEqual(
       config.cachedModules.services["Webda/AWSSecretsManager"].endsWith(
         "node_modules/@webda/aws/lib/services/secretsmanager.js"
       ),
       true
     );
-    assert.equal(config.cachedModules.models["WebdaDemo/Contact"], "./lib/models/contact.js");
-    assert.deepEqual(config.cachedModules.sources, [
+    assert.strictEqual(config.cachedModules.models["WebdaDemo/Contact"], "./lib/models/contact.js");
+    assert.deepStrictEqual(config.cachedModules.sources, [
       "./lib/models/contact.js",
       "./lib/services/bean.js",
       "./lib/services/custom.js",
       "./lib/services/deployer.js",
       "./lib/services/reusable.js"
     ]);
-    assert.equal(config.parameters.accessKeyId, "PROD_KEY");
+    assert.strictEqual(config.parameters.accessKeyId, "PROD_KEY");
   }
 }

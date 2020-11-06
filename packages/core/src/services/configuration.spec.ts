@@ -21,8 +21,8 @@ class ConfigurationServiceTest extends WebdaTest {
   }
   @test
   async initialLoad() {
-    assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
-    assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
     let test = {
       uuid: "test",
       webda: {
@@ -36,7 +36,7 @@ class ConfigurationServiceTest extends WebdaTest {
       this.webda.getService("ConfigurationService").on("Configuration.Applied", resolve);
       await store.save(test);
     });
-    assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
-    assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
   }
 }

@@ -65,7 +65,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       });
       let result = await this.deployer.getPolicyDocument();
       console.log(result.Statement);
-      assert.equal(result.Statement.length, 4);
+      assert.strictEqual(result.Statement.length, 4);
     } finally {
       AWSMock.restore();
     }
@@ -109,17 +109,17 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       AWSMock.mock("EC2", "describeVpcs", vpcsSpy);
       AWSMock.mock("EC2", "describeSubnets", subnetsSpy);
       let result = await this.deployer.getDefaultVpc();
-      assert.equal(vpcsSpy.calledOnce, true);
-      assert.equal(subnetsSpy.notCalled, true);
-      assert.equal(result, undefined);
+      assert.strictEqual(vpcsSpy.calledOnce, true);
+      assert.strictEqual(subnetsSpy.notCalled, true);
+      assert.strictEqual(result, undefined);
 
       new MethodCacheService().clearAllCache();
       result = await this.deployer.getDefaultVpc();
-      assert.deepEqual(result, {
+      assert.deepStrictEqual(result, {
         Id: "vpc-666",
         Subnets: [{ SubnetId: "subnet-1" }, { SubnetId: "subnet-2" }]
       });
-      assert.equal(
+      assert.strictEqual(
         subnetsSpy.calledWith({
           Filters: [
             {
@@ -137,9 +137,9 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
 
   @test
   async testCommonPrefix() {
-    assert.equal(this.deployer.commonPrefix("/test/bouzf", "/test/reffff"), "/test/");
-    assert.equal(this.deployer.commonPrefix("test/bouzf", "/test/reffff"), "");
-    assert.equal(this.deployer.commonPrefix("/tes", "/test/reffff"), "/tes");
+    assert.strictEqual(this.deployer.commonPrefix("/test/bouzf", "/test/reffff"), "/test/");
+    assert.strictEqual(this.deployer.commonPrefix("test/bouzf", "/test/reffff"), "");
+    assert.strictEqual(this.deployer.commonPrefix("/tes", "/test/reffff"), "/tes");
   }
 
   @test
@@ -170,20 +170,23 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       AWSMock.mock("S3", "putBucketTagging", tagSpy);
       await this.deployer.createBucket("plop");
       // Bucket exists
-      assert.equal(headSpy.callCount, 1);
-      assert.equal(headSpy.calledWith({ Bucket: "plop" }), true);
-      assert.equal(createSpy.notCalled, true);
-      assert.equal(tagSpy.notCalled, true);
+      assert.strictEqual(headSpy.callCount, 1);
+      assert.strictEqual(headSpy.calledWith({ Bucket: "plop" }), true);
+      assert.strictEqual(createSpy.notCalled, true);
+      assert.strictEqual(tagSpy.notCalled, true);
       // Bucket exists in another account or we do not have rights
       await this.deployer.createBucket("plop");
-      assert.equal(headSpy.callCount, 2);
-      assert.equal(createSpy.notCalled, true);
+      assert.strictEqual(headSpy.callCount, 2);
+      assert.strictEqual(createSpy.notCalled, true);
       await this.deployer.createBucket("plop");
-      assert.equal(headSpy.callCount, 3);
-      assert.equal(createSpy.calledOnce, true);
-      assert.equal(createSpy.calledWith({ Bucket: "plop" }), true);
-      assert.equal(tagSpy.calledOnce, true);
-      assert.equal(tagSpy.calledWith({ Bucket: "plop", Tagging: { TagSet: [{ Key: "test", Value: "mytag" }] } }), true);
+      assert.strictEqual(headSpy.callCount, 3);
+      assert.strictEqual(createSpy.calledOnce, true);
+      assert.strictEqual(createSpy.calledWith({ Bucket: "plop" }), true);
+      assert.strictEqual(tagSpy.calledOnce, true);
+      assert.strictEqual(
+        tagSpy.calledWith({ Bucket: "plop", Tagging: { TagSet: [{ Key: "test", Value: "mytag" }] } }),
+        true
+      );
     } finally {
       AWSMock.restore();
     }
@@ -206,13 +209,13 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
         { src: __dirname + "/index.ts", key: "plop.ts" },
         { key: "buffer.out", src: Buffer.from("bouzouf"), mimetype: "text/plain" }
       ]);
-      assert.equal(putSpy.callCount, 3);
+      assert.strictEqual(putSpy.callCount, 3);
       // checks call
-      assert.equal(putSpy.firstCall.firstArg.Body.constructor.name, "ReadStream");
-      assert.equal(putSpy.secondCall.firstArg.Body.constructor.name, "ReadStream");
-      assert.deepEqual(putSpy.thirdCall.firstArg.Body.constructor.name, "Buffer");
-      assert.deepEqual(putSpy.thirdCall.firstArg.Body.toString(), "bouzouf");
-      assert.equal(createBucket.calledOnce, true);
+      assert.strictEqual(putSpy.firstCall.firstArg.Body.constructor.name, "ReadStream");
+      assert.strictEqual(putSpy.secondCall.firstArg.Body.constructor.name, "ReadStream");
+      assert.deepStrictEqual(putSpy.thirdCall.firstArg.Body.constructor.name, "Buffer");
+      assert.deepStrictEqual(putSpy.thirdCall.firstArg.Body.toString(), "bouzouf");
+      assert.strictEqual(createBucket.calledOnce, true);
       // TODO Check upload optimization
     } finally {
       AWSMock.restore();
@@ -258,18 +261,18 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       });
       AWSMock.mock("ACM", "listCertificates", putSpy);
       let certificate = await this.deployer.getCertificate("test.webda.io.");
-      assert.equal(putSpy.calledTwice, true);
-      assert.equal(doCreateCertificate.notCalled, true);
-      assert.equal(getZoneForDomainName.notCalled, true);
-      assert.deepEqual(certificate, { DomainName: "test.webda.io" });
+      assert.strictEqual(putSpy.calledTwice, true);
+      assert.strictEqual(doCreateCertificate.notCalled, true);
+      assert.strictEqual(getZoneForDomainName.notCalled, true);
+      assert.deepStrictEqual(certificate, { DomainName: "test.webda.io" });
       await assert.rejects(
         async () => await this.deployer.getCertificate("test.webda.io"),
         /Cannot create certificate as Route53 Zone was not found/g
       );
-      assert.equal(getZoneForDomainName.calledWith("test.webda.io"), true);
-      assert.equal(doCreateCertificate.notCalled, true);
+      assert.strictEqual(getZoneForDomainName.calledWith("test.webda.io"), true);
+      assert.strictEqual(doCreateCertificate.notCalled, true);
       await this.deployer.getCertificate("test.webda.io", "us-east-1");
-      assert.equal(doCreateCertificate.calledWith("test.webda.io", { Id: "1234" }), true);
+      assert.strictEqual(doCreateCertificate.calledWith("test.webda.io", { Id: "1234" }), true);
     } finally {
       AWSMock.restore();
     }
@@ -296,16 +299,16 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       });
       AWSMock.mock("Route53", "listHostedZones", callSpy);
       let result = await this.deployer.getZoneForDomainName("subdomain.test2.test.webda.io.");
-      assert.deepEqual(result, {
+      assert.deepStrictEqual(result, {
         Name: "test2.test.webda.io."
       });
-      assert.equal(callSpy.calledTwice, true);
+      assert.strictEqual(callSpy.calledTwice, true);
       result = await this.deployer.getZoneForDomainName("subdomain.webda.io");
-      assert.deepEqual(result, {
+      assert.deepStrictEqual(result, {
         Name: "webda.io."
       });
       result = await this.deployer.getZoneForDomainName("loopingz.com.");
-      assert.equal(result, undefined);
+      assert.strictEqual(result, undefined);
     } finally {
       AWSMock.restore();
     }
@@ -319,10 +322,10 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
         async () => await this.deployer.waitFor(() => {}, 1, 3, "title"),
         /Timeout while waiting for title/g
       );
-      assert.equal(consoleSpy.callCount, 3);
-      assert.equal(consoleSpy.calledWith("DEBUG", "[1/3]", "title"), true);
-      assert.equal(consoleSpy.calledWith("DEBUG", "[2/3]", "title"), true);
-      assert.equal(consoleSpy.calledWith("DEBUG", "[3/3]", "title"), true);
+      assert.strictEqual(consoleSpy.callCount, 3);
+      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[1/3]", "title"), true);
+      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[2/3]", "title"), true);
+      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[3/3]", "title"), true);
       consoleSpy.resetHistory();
       let res = await this.deployer.waitFor(
         (resolve, reject) => {
@@ -335,11 +338,11 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
         3,
         "title"
       );
-      assert.equal(consoleSpy.callCount, 2);
-      assert.equal(consoleSpy.calledWith("DEBUG", "[1/3]", "title"), true);
-      assert.equal(consoleSpy.calledWith("DEBUG", "[2/3]", "title"), true);
-      assert.equal(consoleSpy.calledWith("DEBUG", "[3/3]", "title"), false);
-      assert.deepEqual(res, { myobject: "test" });
+      assert.strictEqual(consoleSpy.callCount, 2);
+      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[1/3]", "title"), true);
+      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[2/3]", "title"), true);
+      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[3/3]", "title"), false);
+      assert.deepStrictEqual(res, { myobject: "test" });
     } finally {
       consoleSpy.restore();
     }
@@ -394,7 +397,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       );
       waitFor.resetHistory();
       describeCertificate.resetHistory();
-      assert.equal(createDNSEntry.notCalled, true);
+      assert.strictEqual(createDNSEntry.notCalled, true);
       waitFor.callsFake(c => {
         switch (waitFor.callCount) {
           case 1:
@@ -430,8 +433,8 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
         }
       });
       await this.deployer.doCreateCertificate("test.webda.io.", <any>{ Id: "1234" });
-      assert.equal(createDNSEntry.calledWith("bouzouf.com", "CNAME", "plop.com.", { Id: "1234" }), true);
-      assert.equal(describeCertificate.callCount, 3);
+      assert.strictEqual(createDNSEntry.calledWith("bouzouf.com", "CNAME", "plop.com.", { Id: "1234" }), true);
+      assert.strictEqual(describeCertificate.callCount, 3);
       waitFor.resetHistory();
       describeCertificate.callsFake((p, c) => c(null, { Certificate: { Status: "ERROR" } }));
       let exception = false;
@@ -439,10 +442,10 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
         // Should be able to use assert.rejects
         await this.deployer.doCreateCertificate("test.webda.io.", <any>{ Id: "1234" });
       } catch (err) {
-        assert.deepEqual(err, { Status: "ERROR" });
+        assert.deepStrictEqual(err, { Status: "ERROR" });
         exception = true;
       }
-      assert.equal(exception, true);
+      assert.strictEqual(exception, true);
     } finally {
       AWSMock.restore();
     }
@@ -465,10 +468,10 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
         async () => await this.deployer.restrictedCall("createDNSEntry", "webda.io", "CNAME", "loopingz.com"),
         /Domain is not handled on AWS/g
       );
-      assert.equal(callSpy.notCalled, true);
+      assert.strictEqual(callSpy.notCalled, true);
       await this.deployer.restrictedCall("createDNSEntry", "webda.io.", "CNAME", "loopingz.com");
-      assert.equal(callSpy.calledOnce, true);
-      assert.deepEqual(callSpy.firstCall.firstArg, {
+      assert.strictEqual(callSpy.calledOnce, true);
+      assert.deepStrictEqual(callSpy.firstCall.firstArg, {
         HostedZoneId: "1234",
         ChangeBatch: {
           Changes: [
@@ -496,10 +499,13 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
 
   @test
   async testHash() {
-    assert.equal(await this.deployer.restrictedCall("md5", "bouzouf"), "fc45f69f910da129848cd265448a5d00");
-    assert.equal(await this.deployer.restrictedCall("hash", "bouzouf"), "fc45f69f910da129848cd265448a5d00");
-    assert.equal(await this.deployer.restrictedCall("hash", "bouzouf", "md5", "base64"), "/EX2n5ENoSmEjNJlRIpdAA==");
-    assert.equal(
+    assert.strictEqual(await this.deployer.restrictedCall("md5", "bouzouf"), "fc45f69f910da129848cd265448a5d00");
+    assert.strictEqual(await this.deployer.restrictedCall("hash", "bouzouf"), "fc45f69f910da129848cd265448a5d00");
+    assert.strictEqual(
+      await this.deployer.restrictedCall("hash", "bouzouf", "md5", "base64"),
+      "/EX2n5ENoSmEjNJlRIpdAA=="
+    );
+    assert.strictEqual(
       await this.deployer.restrictedCall("hash", "bouzouf", "sha256", "hex"),
       "fc45f69f910da129848cd265448a5d00"
     );

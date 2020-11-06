@@ -9,7 +9,7 @@ class SecretsManagerTest extends WebdaAwsTest {
   async before() {
     await super.before();
     this.service = <AWSSecretsManager>this.getService("AWSSecretsManager");
-    assert.notEqual(this.service, undefined);
+    assert.notStrictEqual(this.service, undefined);
     try {
       await this.service.delete("webda-test-unit-test", 7, true);
     } catch (err) {
@@ -31,20 +31,20 @@ class SecretsManagerTest extends WebdaAwsTest {
   @test
   async basic() {
     let result = await this.service.get("webda-test-manual");
-    assert.equal(result["webda-test-1"], "Test1");
-    assert.equal(result["webda-test-2"], "Test2");
+    assert.strictEqual(result["webda-test-1"], "Test1");
+    assert.strictEqual(result["webda-test-2"], "Test2");
     let config = await this.service.getConfiguration("webda-test-manual");
-    assert.equal(config["webda-test-1"], result["webda-test-1"]);
-    assert.equal(config["webda-test-2"], result["webda-test-2"]);
+    assert.strictEqual(config["webda-test-1"], result["webda-test-1"]);
+    assert.strictEqual(config["webda-test-2"], result["webda-test-2"]);
     await this.service.create("webda-test-unit-test", {
       "Authentication.providers.email.text": "Bouzouf"
     });
     result = await this.service.get("webda-test-unit-test");
-    assert.equal(result["Authentication.providers.email.text"], "Bouzouf");
+    assert.strictEqual(result["Authentication.providers.email.text"], "Bouzouf");
     await this.service.put("webda-test-unit-test", {
       "Authentication.providers.email.text": "Bouzouf2"
     });
     result = await this.service.get("webda-test-unit-test");
-    assert.equal(result["Authentication.providers.email.text"], "Bouzouf2");
+    assert.strictEqual(result["Authentication.providers.email.text"], "Bouzouf2");
   }
 }

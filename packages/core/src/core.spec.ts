@@ -296,7 +296,6 @@ class CoreTest extends WebdaTest {
     await this.webda.reinit({
       "Authentication.email.text": "New Text"
     });
-    /*
     let newService = this.webda.getService("Authentication");
     assert.strictEqual(newService._params.email.text, "New Text");
     assert.strictEqual(newService._params.email.mailer, "DefinedMailer");
@@ -307,7 +306,6 @@ class CoreTest extends WebdaTest {
         }),
       Error
     );
-    */
   }
 
   assertInitError(service, msg) {

@@ -46,8 +46,8 @@ class SQSQueueTest extends QueueTest {
   ARN() {
     let queue: SQSQueue = <SQSQueue>this.webda.getService("sqsqueue");
     let arn = queue.getARNPolicy();
-    assert.equal(arn.Action.indexOf("sqs:SendMessage") >= 0, true);
-    assert.equal(arn.Resource[0], "arn:aws:sqs:us-east-1:queue:webda-test");
+    assert.strictEqual(arn.Action.indexOf("sqs:SendMessage") >= 0, true);
+    assert.strictEqual(arn.Resource[0], "arn:aws:sqs:us-east-1:queue:webda-test");
   }
 
   @test
@@ -60,6 +60,6 @@ class SQSQueueTest extends QueueTest {
     } catch (ex) {
       error = true;
     }
-    assert.equal(error, true);
+    assert.strictEqual(error, true);
   }
 }

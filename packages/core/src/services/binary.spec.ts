@@ -29,8 +29,8 @@ class BinaryTest extends WebdaTest {
     await super.before(init);
     let userStore = this.getUserStore();
     let binary = this.getBinary();
-    assert.notEqual(userStore, undefined);
-    assert.notEqual(binary, undefined);
+    assert.notStrictEqual(userStore, undefined);
+    assert.notStrictEqual(binary, undefined);
     await userStore.__clean();
     await binary.__clean();
   }
@@ -71,11 +71,11 @@ class BinaryTest extends WebdaTest {
       {}
     );
     user1 = await userStore.get(user1.uuid);
-    assert.notEqual(user1[map], undefined);
-    assert.equal(user1[map].length, 1);
+    assert.notStrictEqual(user1[map], undefined);
+    assert.strictEqual(user1[map].length, 1);
     hash = user1[map][0].hash;
     let value = await binary.getUsageCount(hash);
-    assert.equal(value, 1);
+    assert.strictEqual(value, 1);
     await binary.store(
       userStore,
       user2,
@@ -86,17 +86,17 @@ class BinaryTest extends WebdaTest {
       {}
     );
     user = await userStore.get(user2.uuid);
-    assert.notEqual(user[map], undefined);
-    assert.equal(user[map].length, 1);
-    assert.equal(user[map][0].constructor.name, "BinaryMap");
+    assert.notStrictEqual(user[map], undefined);
+    assert.strictEqual(user[map].length, 1);
+    assert.strictEqual(user[map][0].constructor.name, "BinaryMap");
     hash = user[map][0].hash;
     value = await binary.getUsageCount(hash);
-    assert.equal(value, 2);
+    assert.strictEqual(value, 2);
     await binary.delete(userStore, user, map, 0);
     user = await userStore.get(user2.uuid);
-    assert.equal(user[map].length, 0);
+    assert.strictEqual(user[map].length, 0);
     value = await binary.getUsageCount(hash);
-    assert.equal(value, 1);
+    assert.strictEqual(value, 1);
     // Try to get images on user1 as user2
     ctx = await this.newContext({
       type: "CRUD",
@@ -119,10 +119,10 @@ class BinaryTest extends WebdaTest {
     }
     await binary.downloadTo(user1[map][0], "./downloadTo.tmp");
     // Check the result is the same
-    assert.equal(fs.readFileSync("./downloadTo.tmp").toString(), fs.readFileSync(this.getTestFile()).toString());
+    assert.strictEqual(fs.readFileSync("./downloadTo.tmp").toString(), fs.readFileSync(this.getTestFile()).toString());
     await userStore.delete(user1.uuid);
     value = await binary.getUsageCount(hash);
-    assert.equal(value, 0);
+    assert.strictEqual(value, 0);
   }
 
   @test
@@ -168,10 +168,10 @@ class BinaryTest extends WebdaTest {
       {}
     );
     user = await userStore.get(user1.uuid);
-    assert.notEqual(user[map], undefined);
-    assert.equal(user[map].length, 1);
+    assert.notStrictEqual(user[map], undefined);
+    assert.strictEqual(user[map].length, 1);
     let value = await binary.getUsageCount(user[map][0].hash);
-    assert.equal(value, 1);
+    assert.strictEqual(value, 1);
     await binary.update(
       userStore,
       user,
@@ -183,17 +183,17 @@ class BinaryTest extends WebdaTest {
       {}
     );
     value = await binary.getUsageCount(user[map][0].hash);
-    assert.equal(value, 1);
+    assert.strictEqual(value, 1);
     user = await userStore.get(user1.uuid);
-    assert.notEqual(user[map], undefined);
-    assert.equal(user[map].length, 1);
-    assert.notEqual(hash, user[map][0].hash);
-    assert.equal(user[map][0].mimetype, "text/plain");
-    assert.equal(user[map][0].name, "Dockerfile.txt");
+    assert.notStrictEqual(user[map], undefined);
+    assert.strictEqual(user[map].length, 1);
+    assert.notStrictEqual(hash, user[map][0].hash);
+    assert.strictEqual(user[map][0].mimetype, "text/plain");
+    assert.strictEqual(user[map][0].name, "Dockerfile.txt");
     value = await binary.getUsageCount(hash);
-    assert.equal(value, 0);
+    assert.strictEqual(value, 0);
     value = await binary.getUsageCount(user[map][0].hash);
-    assert.equal(value, 1);
+    assert.strictEqual(value, 1);
   }
 }
 

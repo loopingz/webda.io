@@ -38,17 +38,17 @@ class CommonDeployerTest extends DeployerTest<TestDeployer> {
   }
   @test
   testStringParameter() {
-    assert.equal(this.deployer.stringParameter("Test${resources.replace}"), "TestPlop");
+    assert.strictEqual(this.deployer.stringParameter("Test${resources.replace}"), "TestPlop");
   }
 
   @test
   testGetApplication() {
-    assert.equal(this.deployer.getApplication(), this.deployer.app);
+    assert.strictEqual(this.deployer.getApplication(), this.deployer.app);
   }
 
   @test
   testObjectParameter() {
-    assert.deepEqual(
+    assert.deepStrictEqual(
       this.deployer.objectParameter({
         test: true,
         bouzouf: {
@@ -74,7 +74,7 @@ class CommonDeployerTest extends DeployerTest<TestDeployer> {
       }
     };
     this.deployer.replaceVariables();
-    assert.deepEqual(this.deployer.resources, {
+    assert.deepStrictEqual(this.deployer.resources, {
       replace: "bouzouf",
       test: true,
       bouzouf: {
@@ -86,11 +86,11 @@ class CommonDeployerTest extends DeployerTest<TestDeployer> {
   @test
   async testExecute() {
     let info = await this.deployer.execute("ls -alh");
-    assert.equal(info.status, 0);
+    assert.strictEqual(info.status, 0);
     assert.rejects(this.deployer.execute("[ 0 = 1 ]"));
     info = await this.deployer.execute("cat", "bouzouf");
-    assert.equal(info.output, "bouzouf");
+    assert.strictEqual(info.output, "bouzouf");
     info = await this.deployer.execute("cat 1>&2", "bouzouf");
-    assert.equal(info.error, "bouzouf");
+    assert.strictEqual(info.error, "bouzouf");
   }
 }

@@ -18,10 +18,10 @@ class ShellDeployerTest extends DeployerTest<ShellDeployer> {
   async deploy() {
     this.deployer.execute = this.mockExecute;
     await this.deployer.deploy();
-    assert.deepEqual(this.execs, [["ls -alh"], ["cp plop"]]);
+    assert.deepStrictEqual(this.execs, [["ls -alh"], ["cp plop"]]);
     this.deployer.resources.scripts = undefined;
     this.execs = [];
     await this.deployer.deploy();
-    assert.deepEqual(this.execs, []);
+    assert.deepStrictEqual(this.execs, []);
   }
 }

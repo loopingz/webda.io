@@ -68,8 +68,8 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
 
   @test
   async updatedConfigMap() {
-    assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop0");
-    assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop0");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
     await new Promise(resolve => {
       this.webda.getService("KubernetesConfigurationService").on("Configuration.Applied", resolve);
       this.updateConfigMap({
@@ -81,8 +81,8 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
         })
       });
     });
-    assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
-    assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
     await new Promise(resolve => {
       this.webda.getService("KubernetesConfigurationService").on("Configuration.Applied", resolve);
       this.updateConfigMap({
@@ -94,8 +94,8 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
         })
       });
     });
-    assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop2");
-    assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop2");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
   }
 }
 
@@ -103,7 +103,7 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
 class EmptyKubernetesConfigurationServiceTest extends AbstractKubernetesConfigurationServiceTest {
   @test
   async unmountedConfigMap() {
-    assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
-    assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
   }
 }

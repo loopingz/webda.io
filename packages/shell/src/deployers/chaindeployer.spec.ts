@@ -35,11 +35,11 @@ class ChainDeployerTest extends DeployerTest<ChainDeployer> {
 
   @test
   async getChain() {
-    assert.deepEqual(this.deployer.getChain(), []);
+    assert.deepStrictEqual(this.deployer.getChain(), []);
     this.deployer.resources.chain = ["testA", "testB"];
-    assert.deepEqual(this.deployer.getChain(), ["testA", "testB"]);
+    assert.deepStrictEqual(this.deployer.getChain(), ["testA", "testB"]);
     this.deployer.resources.chain = ["testA", "testB"].join(",");
-    assert.deepEqual(this.deployer.getChain(), ["testA", "testB"]);
+    assert.deepStrictEqual(this.deployer.getChain(), ["testA", "testB"]);
   }
 
   @test
@@ -55,7 +55,7 @@ class ChainDeployerTest extends DeployerTest<ChainDeployer> {
     this.deployer.resources.chain = "BOuzouf,Plop";
     this.deployer.resources.bouzouf = { yop: "plop" };
     await this.deployer.deploy();
-    assert.deepEqual(BouzoufDeployer.lastResources, {
+    assert.deepStrictEqual(BouzoufDeployer.lastResources, {
       plop: "bouzouf",
       chain: "BOuzouf,Plop",
       name: "deployer",

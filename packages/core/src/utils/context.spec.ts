@@ -18,13 +18,13 @@ class ContextTest extends WebdaTest {
     // Get the last lines
     this.ctx.logIn();
     console.log(this.ctx.getRoute());
-    assert.notEqual(this.ctx.getService("Users"), undefined);
-    assert.notEqual(this.ctx.getService<Service>("Users"), undefined);
+    assert.notStrictEqual(this.ctx.getService("Users"), undefined);
+    assert.notStrictEqual(this.ctx.getService<Service>("Users"), undefined);
     this.ctx = new Context(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));
     this.ctx.setPathParameters({ id: "plop" });
     this.ctx.setServiceParameters({ id: "service" });
-    assert.equal(this.ctx.getServiceParameters().id, "service");
-    assert.equal(this.ctx.getPathParameters().id, "plop");
+    assert.strictEqual(this.ctx.getServiceParameters().id, "service");
+    assert.strictEqual(this.ctx.getPathParameters().id, "plop");
   }
 
   @test
@@ -61,30 +61,30 @@ class ContextTest extends WebdaTest {
   async redirect() {
     this.ctx.init();
     this.ctx.redirect("https://www.loopingz.com");
-    assert.equal(this.ctx.getResponseHeaders().Location, "https://www.loopingz.com");
-    assert.equal(this.ctx.statusCode, 302);
+    assert.strictEqual(this.ctx.getResponseHeaders().Location, "https://www.loopingz.com");
+    assert.strictEqual(this.ctx.statusCode, 302);
   }
   @test
   generic() {
     this.ctx.init();
-    assert.notEqual(this.ctx.getWebda(), undefined);
+    assert.notStrictEqual(this.ctx.getWebda(), undefined);
     // @ts-ignore
     this.ctx.session = undefined;
-    assert.equal(this.ctx.getCurrentUserId(), undefined);
-    assert.notEqual(this.ctx.getStream(), undefined);
+    assert.strictEqual(this.ctx.getCurrentUserId(), undefined);
+    assert.notStrictEqual(this.ctx.getStream(), undefined);
     this.ctx._cookie = undefined;
     this.ctx.cookie("test", "plop");
     this.ctx.cookie("test2", "plop2");
-    assert.equal(this.ctx._cookie["test"].value, "plop");
-    assert.equal(this.ctx._cookie["test2"].value, "plop2");
+    assert.strictEqual(this.ctx._cookie["test"].value, "plop");
+    assert.strictEqual(this.ctx._cookie["test2"].value, "plop2");
     this.ctx.writeHead(undefined, {
       test: "plop"
     });
-    assert.equal(this.ctx.getResponseHeaders()["test"], "plop");
+    assert.strictEqual(this.ctx.getResponseHeaders()["test"], "plop");
     this.ctx.setHeader("X-Webda", "HEAD");
-    assert.equal(this.ctx.getResponseHeaders()["X-Webda"], "HEAD");
+    assert.strictEqual(this.ctx.getResponseHeaders()["X-Webda"], "HEAD");
     this.ctx.write(400);
-    assert.equal(this.ctx.getResponseBody(), 400);
+    assert.strictEqual(this.ctx.getResponseBody(), 400);
     // @ts-ignore
     this.ctx.session = new SecureCookie(
       "test",
@@ -102,14 +102,14 @@ class ContextTest extends WebdaTest {
         }
       ]);
       // @ts-ignore
-      assert.equal(this.ctx.session._changed, false);
+      assert.strictEqual(this.ctx.session._changed, false);
       callback([
         {
           name: "zzz"
         }
       ]);
       // @ts-ignore
-      assert.equal(this.ctx.session._changed, true);
+      assert.strictEqual(this.ctx.session._changed, true);
     };
     this.ctx.getSession();
     // @ts-ignore
@@ -118,25 +118,25 @@ class ContextTest extends WebdaTest {
 
   @test
   defaultLocale() {
-    assert.equal(this.ctx.getLocale(), "es-ES");
+    assert.strictEqual(this.ctx.getLocale(), "es-ES");
   }
 
   @test
   approxLocale() {
     this.ctx.getHttpContext().getHeaders()["Accept-Language"] = "en-US;q=0.6,en;q=0.4,es;q=0.2";
-    assert.equal(this.ctx.getLocale(), "en");
+    assert.strictEqual(this.ctx.getLocale(), "en");
   }
 
   @test
   exactLocale() {
     this.ctx.getHttpContext().getHeaders()["Accept-Language"] = "fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4,es;q=0.2";
-    assert.equal(this.ctx.getLocale(), "fr-FR");
+    assert.strictEqual(this.ctx.getLocale(), "fr-FR");
   }
 
   @test
   fallbackLocale() {
     this.ctx.getHttpContext().getHeaders()["Accept-Language"] = "zn-CH,zn;q=0.8,en-US;q=0.6,en;q=0.4,es;q=0.2";
-    assert.equal(this.ctx.getLocale(), "en");
+    assert.strictEqual(this.ctx.getLocale(), "en");
   }
 }
 
@@ -145,8 +145,8 @@ class HttpContextTest {
   @test
   lowerCaseHeader() {
     let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, {}, { "X-Test": "weBda" });
-    assert.equal(ctx.getHeader("X-Test"), "weBda");
-    assert.equal(ctx.getHeader("X-Test"), ctx.getHeader("x-test"));
-    assert.equal(ctx.getPort(), 80);
+    assert.strictEqual(ctx.getHeader("X-Test"), "weBda");
+    assert.strictEqual(ctx.getHeader("X-Test"), ctx.getHeader("x-test"));
+    assert.strictEqual(ctx.getPort(), 80);
   }
 }

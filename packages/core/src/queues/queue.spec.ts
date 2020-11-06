@@ -9,7 +9,7 @@ class QueueTest extends WebdaTest {
     });
     let size = await queue.size();
     if (!inconsistentSize) {
-      assert.equal(size, 1);
+      assert.strictEqual(size, 1);
     }
     await queue.sendMessage({
       type: 2
@@ -18,12 +18,12 @@ class QueueTest extends WebdaTest {
     await this.sleep(1000);
     size = await queue.size();
     if (!inconsistentSize) {
-      assert.equal(size, 2);
+      assert.strictEqual(size, 2);
     }
     msg = await queue.receiveMessage();
     size = await queue.size();
     if (!inconsistentSize) {
-      assert.equal(size, 2);
+      assert.strictEqual(size, 2);
     }
     if (msg.length > 0) {
       await queue.deleteMessage(msg[0].ReceiptHandle);
@@ -32,7 +32,7 @@ class QueueTest extends WebdaTest {
     await this.sleep(1000);
     msg = await queue.receiveMessage();
     if (!inconsistentSize) {
-      assert.equal(msg.length, 1);
+      assert.strictEqual(msg.length, 1);
     }
     if (msg.length > 0) {
       await queue.deleteMessage(msg[0].ReceiptHandle);

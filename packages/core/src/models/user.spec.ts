@@ -7,23 +7,23 @@ class UserTest {
   @test("Verify groups in user") groupManagement() {
     let user: User = new User();
     user.addGroup("test");
-    assert.equal(user.inGroup("test"), true);
+    assert.strictEqual(user.inGroup("test"), true);
     user.addGroup("test");
-    assert.equal(user.inGroup("test"), true);
+    assert.strictEqual(user.inGroup("test"), true);
     user.removeGroup("test");
-    assert.equal(user.inGroup("test"), false);
-    assert.equal(user.inGroup("all"), true);
+    assert.strictEqual(user.inGroup("test"), false);
+    assert.strictEqual(user.inGroup("all"), true);
     user.removeGroup("unknown");
   }
 
   @test("Verify roles in user") roleManagement() {
     let user: User = new User();
     user.addRole("test");
-    assert.equal(user.hasRole("test"), true);
+    assert.strictEqual(user.hasRole("test"), true);
     user.addRole("test");
-    assert.equal(user.hasRole("test"), true);
+    assert.strictEqual(user.hasRole("test"), true);
     user.removeRole("test");
-    assert.equal(user.hasRole("test"), false);
+    assert.strictEqual(user.hasRole("test"), false);
     user.removeRole("unknown");
   }
 

@@ -25,30 +25,30 @@ export class SampleApplicationTest {
 
   async testApi(noCsrf: number = 401) {
     let res = await fetch(`${this.baseUrl}/test`, {});
-    assert.equal(res.status, noCsrf);
+    assert.strictEqual(res.status, noCsrf);
     // Status 401 as CSRF protection is on
     // Check OPTIONS
     res = await fetch(`${this.baseUrl}/test`, {
       headers: { host: "dev.webda-demo.com" },
       method: "OPTIONS"
     });
-    assert.equal(res.status, 200);
+    assert.strictEqual(res.status, 200);
     // Check OPTIONS
     res = await fetch(`${this.baseUrl}/test2`, {
       headers: { host: "dev.webda-demo.com" },
       method: "OPTIONS"
     });
-    assert.equal(res.status, 404);
+    assert.strictEqual(res.status, 404);
     // Test default answer
     res = await fetch(`${this.baseUrl}/test`, {
       headers: { host: "dev.webda-demo.com" }
     });
-    assert.equal(await res.text(), "Tested");
+    assert.strictEqual(await res.text(), "Tested");
     // Message
     res = await fetch(`${this.baseUrl}/msg/bouzouf`, {
       headers: { host: "dev.webda-demo.com" }
     });
-    assert.equal(await res.text(), "YOUR MESSAGE IS 'bouzouf'");
+    assert.strictEqual(await res.text(), "YOUR MESSAGE IS 'bouzouf'");
     // on purpose change the host and rely on the x-forwarded-*
     res = await fetch(`${this.baseUrl}/test`, {
       headers: {
@@ -58,9 +58,9 @@ export class SampleApplicationTest {
         origin: "bouzouf"
       }
     });
-    assert.equal(res.headers.get("Strict-Transport-Security"), "max-age=31536000; includeSubDomains; preload");
-    assert.equal(res.headers.get("Access-Control-Allow-Origin"), "bouzouf");
-    assert.equal(await res.text(), "Tested");
+    assert.strictEqual(res.headers.get("Strict-Transport-Security"), "max-age=31536000; includeSubDomains; preload");
+    assert.strictEqual(res.headers.get("Access-Control-Allow-Origin"), "bouzouf");
+    assert.strictEqual(await res.text(), "Tested");
     // Create a contact
     // Get a contact
     // Update a contact
@@ -70,13 +70,13 @@ export class SampleApplicationTest {
 
   async testStatic() {
     let resp = await fetch(`${this.baseUrl}/version.txt`, {});
-    assert.equal(resp.headers.get("content-type"), "text/plain; charset=UTF-8");
-    assert.equal(await resp.text(), "FakeTestVersion");
+    assert.strictEqual(resp.headers.get("content-type"), "text/plain; charset=UTF-8");
+    assert.strictEqual(await resp.text(), "FakeTestVersion");
     resp = await fetch(`${this.baseUrl}/index.html`, {});
-    assert.equal(resp.headers.get("content-type"), "text/html; charset=UTF-8");
-    assert.notEqual((await resp.text()).match(/<title>webda Sample Contact App<\/title>/g), undefined);
+    assert.strictEqual(resp.headers.get("content-type"), "text/html; charset=UTF-8");
+    assert.notStrictEqual((await resp.text()).match(/<title>webda Sample Contact App<\/title>/g), undefined);
     resp = await fetch(`${this.baseUrl}/bouzouf`, {});
-    assert.equal(resp.headers.get("content-type"), "text/html; charset=UTF-8");
-    assert.notEqual((await resp.text()).match(/<title>webda Sample Contact App<\/title>/g), undefined);
+    assert.strictEqual(resp.headers.get("content-type"), "text/html; charset=UTF-8");
+    assert.notStrictEqual((await resp.text()).match(/<title>webda Sample Contact App<\/title>/g), undefined);
   }
 }

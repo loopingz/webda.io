@@ -31,36 +31,36 @@ class AsyncEventsTest extends WebdaTest {
       type: 1
     });
     let size = await defaultQueue.size();
-    assert.equal(size, 1);
+    assert.strictEqual(size, 1);
     size = await priorityQueue.size();
-    assert.equal(size, 0);
+    assert.strictEqual(size, 0);
     await users.delete("test");
     size = await priorityQueue.size();
-    assert.equal(size, 1);
+    assert.strictEqual(size, 1);
     size = await defaultQueue.size();
-    assert.equal(size, 1);
+    assert.strictEqual(size, 1);
     // Now that we have queued all messages see if they unqueue correctly
     // We need to emulate the worker as it wont stop pulling from the queue
-    assert.equal(eventsCount, 0);
-    assert.equal(priorityEventsCount, 0);
+    assert.strictEqual(eventsCount, 0);
+    assert.strictEqual(priorityEventsCount, 0);
     let evt = await defaultQueue.receiveMessage();
     await eventService._handleEvents(evt);
-    assert.equal(eventsCount, 1);
-    assert.equal(priorityEventsCount, 0);
+    assert.strictEqual(eventsCount, 1);
+    assert.strictEqual(priorityEventsCount, 0);
     evt = await priorityQueue.receiveMessage();
     await eventService._handleEvents(evt);
-    assert.equal(eventsCount, 1);
-    assert.equal(priorityEventsCount, 1);
+    assert.strictEqual(eventsCount, 1);
+    assert.strictEqual(priorityEventsCount, 1);
     // Disable async and verify that it directly update now
     eventService._async = false;
     await users.save({
       uuid: "test",
       type: 1
     });
-    assert.equal(eventsCount, 2);
-    assert.equal(priorityEventsCount, 1);
+    assert.strictEqual(eventsCount, 2);
+    assert.strictEqual(priorityEventsCount, 1);
     await users.delete("test");
-    assert.equal(eventsCount, 2);
-    assert.equal(priorityEventsCount, 2);
+    assert.strictEqual(eventsCount, 2);
+    assert.strictEqual(priorityEventsCount, 2);
   }
 }

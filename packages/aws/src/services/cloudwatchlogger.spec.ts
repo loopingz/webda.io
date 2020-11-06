@@ -31,7 +31,7 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
     }
     await super.before();
     this.service = <CloudWatchLogger>this.getService("CloudWatchLogger");
-    assert.notEqual(this.service, undefined);
+    assert.notStrictEqual(this.service, undefined);
   }
 
   @test
@@ -47,8 +47,8 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
         logGroupName: "webda-test"
       })
       .promise();
-    assert.equal(res.logStreams.length, 1);
-    assert.notEqual(res.logStreams[0].lastEventTimestamp, undefined);
+    assert.strictEqual(res.logStreams.length, 1);
+    assert.notStrictEqual(res.logStreams[0].lastEventTimestamp, undefined);
   }
 
   @test
@@ -63,8 +63,8 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
         logGroupName: "webda-test"
       })
       .promise();
-    assert.equal(res.logStreams.length, 1);
-    assert.notEqual(res.logStreams[0].lastEventTimestamp, undefined);
+    assert.strictEqual(res.logStreams.length, 1);
+    assert.notStrictEqual(res.logStreams[0].lastEventTimestamp, undefined);
     this.webda.log("DEBUG", "Plop 2", "Test");
     this.webda.log("DEBUG", "Plop 3", "Test");
     this.webda.log("DEBUG", "Plop 4", "Test");
@@ -74,6 +74,6 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
         logGroupName: "webda-test"
       })
       .promise();
-    assert.equal(res.logStreams.length, 1);
+    assert.strictEqual(res.logStreams.length, 1);
   }
 }

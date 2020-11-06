@@ -7,17 +7,20 @@ const TEST_FOLDER = __dirname + "/../../test/jsonutils/";
 class UtilsTest {
   @test("LoadJSON File")
   fileJson() {
-    assert.deepEqual(JSONUtils.loadFile(TEST_FOLDER + "test.json"), { test: "ok" });
+    assert.deepStrictEqual(JSONUtils.loadFile(TEST_FOLDER + "test.json"), { test: "ok" });
   }
 
   @test("LoadYAML File")
   fileYml() {
-    assert.deepEqual(JSONUtils.loadFile(TEST_FOLDER + "test.yml"), { test: { ok: "plop" }, tab: ["ok", "item2"] });
+    assert.deepStrictEqual(JSONUtils.loadFile(TEST_FOLDER + "test.yml"), {
+      test: { ok: "plop" },
+      tab: ["ok", "item2"]
+    });
   }
 
   @test("LoadYAML Multiple Docs File")
   fileYaml() {
-    assert.equal(JSONUtils.loadFile(TEST_FOLDER + "mdocs.yaml").length, 2);
+    assert.strictEqual(JSONUtils.loadFile(TEST_FOLDER + "mdocs.yaml").length, 2);
   }
 
   @test("CircularJSON")
@@ -27,8 +30,8 @@ class UtilsTest {
       c: {}
     };
     a.c.a = a;
-    assert.deepEqual(JSONUtils.stringify(a), JSON.stringify({ b: "test", c: {} }, undefined, 2));
-    assert.deepEqual(
+    assert.deepStrictEqual(JSONUtils.stringify(a), JSON.stringify({ b: "test", c: {} }, undefined, 2));
+    assert.deepStrictEqual(
       JSONUtils.stringify(
         a,
         (key, value) => {

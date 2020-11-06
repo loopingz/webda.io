@@ -34,7 +34,7 @@ class TerminalTest {
     let str =
       "[[33m WARN[39m] [33mCannot resolve require /datas/git/lib/handlers/batch_idents.js Not a webda application folder or webda.config.json file: ../webda.config.json[39m";
     let res = this.terminal.displayString(str, 40);
-    assert.equal(res.endsWith("...[39m"), true);
+    assert.strictEqual(res.endsWith("...[39m"), true);
   }
 
   @test
@@ -54,9 +54,9 @@ class TerminalTest {
   @test
   testDisplayString() {
     let test = this.terminal.displayString("Test" + "plop" + " " + "yep", 50);
-    assert.equal(test.length, 50);
+    assert.strictEqual(test.length, 50);
     test = this.terminal.displayString("Test" + "plop".yellow + " " + "yep".blue, 50);
-    assert.equal(test.length, 70);
+    assert.strictEqual(test.length, 70);
   }
 
   @test

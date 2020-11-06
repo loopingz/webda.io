@@ -12,8 +12,8 @@ class CoreModelTest extends WebdaTest {
       _test: "plop",
       test: "plop"
     });
-    assert.equal(object._test, undefined);
-    assert.equal(object.test, "plop");
+    assert.strictEqual(object._test, undefined);
+    assert.strictEqual(object.test, "plop");
   }
 
   @test("Verify secure constructor") secureConstructor() {
@@ -26,35 +26,35 @@ class CoreModelTest extends WebdaTest {
       },
       true
     );
-    assert.equal(object._test, "plop");
-    assert.equal(object.test, "plop");
+    assert.strictEqual(object._test, "plop");
+    assert.strictEqual(object.test, "plop");
     return object;
   }
 
   @test("Verify JSON export") jsonExport() {
     let object = this.secureConstructor();
     let exported = JSON.parse(JSON.stringify(object));
-    assert.equal(exported.__serverOnly, undefined);
-    assert.equal(exported._test, "plop");
-    assert.equal(exported.test, "plop");
-    assert.equal(exported._gotContext, undefined);
+    assert.strictEqual(exported.__serverOnly, undefined);
+    assert.strictEqual(exported._test, "plop");
+    assert.strictEqual(exported.test, "plop");
+    assert.strictEqual(exported._gotContext, undefined);
   }
 
   @test("Verify JSON stored export") jsonStoredExport() {
     let object = this.secureConstructor();
     let exported = object.toStoredJSON();
-    assert.equal(exported.__serverOnly, "server");
-    assert.equal(exported._test, "plop");
-    assert.equal(exported.test, "plop");
+    assert.strictEqual(exported.__serverOnly, "server");
+    assert.strictEqual(exported._test, "plop");
+    assert.strictEqual(exported.test, "plop");
   }
 
   @test("Verify JSON stored export - stringify") jsonStoredExportStringify() {
     let object = this.secureConstructor();
     let exported = JSON.parse(object.toStoredJSON(true));
-    assert.equal(exported.__serverOnly, "server");
-    assert.equal(exported._test, "plop");
-    assert.equal(exported.test, "plop");
-    assert.equal(exported._gotContext, undefined);
+    assert.strictEqual(exported.__serverOnly, "server");
+    assert.strictEqual(exported._test, "plop");
+    assert.strictEqual(exported.test, "plop");
+    assert.strictEqual(exported._gotContext, undefined);
   }
 
   @test("Verify Context access within output to server") async withContext() {
@@ -63,6 +63,6 @@ class CoreModelTest extends WebdaTest {
     task.setContext(ctx);
     ctx.write(task);
     let result = JSON.parse(ctx.getResponseBody());
-    assert.equal(result._gotContext, true);
+    assert.strictEqual(result._gotContext, true);
   }
 }

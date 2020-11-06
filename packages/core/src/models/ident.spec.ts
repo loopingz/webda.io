@@ -8,6 +8,6 @@ class IdentTest {
     // Just for COV
     let user: Ident = new Ident();
     user.setType("plop");
-    assert.equal(user.getType(), "plop");
+    assert.strictEqual(user.getType(), "plop");
   }
 }

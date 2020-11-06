@@ -29,8 +29,8 @@ class FileConfigurationServiceTest extends WebdaTest {
 
   @test
   async initialLoad() {
-    assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
-    assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
     await new Promise(resolve => {
       this.webda.getService("FileConfigurationService").on("Configuration.Applied", resolve);
       writeFileSync(
@@ -49,7 +49,7 @@ class FileConfigurationServiceTest extends WebdaTest {
       );
     });
 
-    assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
-    assert.equal(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
   }
 }

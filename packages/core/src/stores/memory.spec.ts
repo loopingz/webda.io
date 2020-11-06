@@ -24,13 +24,13 @@ class MemoryStoreTest extends StoreTest {
     });
     await identStore.delete("toDelete");
     executor = this.getExecutor(ctx, "test.webda.io", "GET", "/memory/idents/toDelete");
-    assert.notEqual(executor, undefined);
+    assert.notStrictEqual(executor, undefined);
     await this.assertThrowsAsync(executor.execute.bind(executor, ctx), err => err == 404);
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/memory/idents/toDelete");
-    assert.notEqual(executor, undefined);
+    assert.notStrictEqual(executor, undefined);
     await this.assertThrowsAsync(executor.execute.bind(executor, ctx), err => err == 404);
     executor = this.getExecutor(ctx, "test.webda.io", "DELETE", "/memory/idents/toDelete");
-    assert.notEqual(executor, undefined);
+    assert.notStrictEqual(executor, undefined);
     await this.assertThrowsAsync(executor.execute.bind(executor, ctx), err => err == 404);
   }
 }

@@ -14,9 +14,9 @@ class LambdaPackagerTest extends DeployerTest<LambdaPackager> {
   @test
   async loadDefault() {
     await this.deployer.loadDefaults();
-    assert.equal(this.deployer.resources.entrypoint, path.join(__dirname, "lambda-entrypoint.js"));
+    assert.strictEqual(this.deployer.resources.entrypoint, path.join(__dirname, "lambda-entrypoint.js"));
     this.deployer.resources.entrypoint = "mine.js";
     await this.deployer.loadDefaults();
-    assert.equal(this.deployer.resources.entrypoint, "mine.js");
+    assert.strictEqual(this.deployer.resources.entrypoint, "mine.js");
   }
 }

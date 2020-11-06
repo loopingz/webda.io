@@ -2,10 +2,10 @@ import { WebdaTest } from "../test";
 import { SecureCookie, Context } from "../index";
 import { HttpContext } from "./context";
 import { test, suite } from "@testdeck/mocha";
+import * as assert from "assert";
 
 const SECRET =
   "Lp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5EN";
-var assert = require("assert");
 
 @suite
 class CookieTest extends WebdaTest {
@@ -27,9 +27,9 @@ class CookieTest extends WebdaTest {
         desc: "DESCRIPTION"
       }
     ).getProxy();
-    assert.equal(cookie["title"], "TITLE");
-    assert.equal(cookie["desc"], "DESCRIPTION");
-    assert.equal(cookie.needSave(), false);
+    assert.strictEqual(cookie["title"], "TITLE");
+    assert.strictEqual(cookie["desc"], "DESCRIPTION");
+    assert.strictEqual(cookie.needSave(), false);
   }
 
   @test("Add a value") testAddValue() {
@@ -45,10 +45,10 @@ class CookieTest extends WebdaTest {
       }
     ).getProxy();
     cookie.test = "PLOP";
-    assert.equal(cookie["title"], "TITLE");
-    assert.equal(cookie["desc"], "DESCRIPTION");
-    assert.equal(cookie["test"], "PLOP");
-    assert.equal(cookie.needSave(), true);
+    assert.strictEqual(cookie["title"], "TITLE");
+    assert.strictEqual(cookie["desc"], "DESCRIPTION");
+    assert.strictEqual(cookie["test"], "PLOP");
+    assert.strictEqual(cookie.needSave(), true);
   }
 
   @test("Change a value") testChangeValue() {
@@ -64,9 +64,9 @@ class CookieTest extends WebdaTest {
       }
     ).getProxy();
     cookie.title = "TITLE2";
-    assert.equal(cookie["title"], "TITLE2");
-    assert.equal(cookie["desc"], "DESCRIPTION");
-    assert.equal(cookie.needSave(), true);
+    assert.strictEqual(cookie["title"], "TITLE2");
+    assert.strictEqual(cookie["desc"], "DESCRIPTION");
+    assert.strictEqual(cookie.needSave(), true);
   }
 
   @test("Delete a value") testDeleteValue() {
@@ -82,9 +82,9 @@ class CookieTest extends WebdaTest {
       }
     ).getProxy();
     cookie["title"] = undefined;
-    assert.equal(cookie["title"], undefined);
-    assert.equal(cookie["desc"], "DESCRIPTION");
-    assert.equal(cookie.needSave(), true);
+    assert.strictEqual(cookie["title"], undefined);
+    assert.strictEqual(cookie["desc"], "DESCRIPTION");
+    assert.strictEqual(cookie.needSave(), true);
   }
 
   @test("Empty cookie") testEmptyCookie() {
@@ -96,7 +96,7 @@ class CookieTest extends WebdaTest {
       this._ctx,
       {}
     );
-    assert.equal(cookie.needSave(), false);
+    assert.strictEqual(cookie.needSave(), false);
   }
 
   @test("Normal enc/dec") testEncryption() {
@@ -111,8 +111,8 @@ class CookieTest extends WebdaTest {
         desc: "DESCRIPTION"
       }
     ).getProxy();
-    assert.equal(cookie["title"], "TITLE");
-    assert.equal(cookie["desc"], "DESCRIPTION");
+    assert.strictEqual(cookie["title"], "TITLE");
+    assert.strictEqual(cookie["desc"], "DESCRIPTION");
     // Force encryption
     cookie._changed = true;
     cookie.save(this._ctx);
@@ -129,9 +129,9 @@ class CookieTest extends WebdaTest {
       },
       this._ctx
     );
-    assert.equal(cookie.title, cookie2.title);
-    assert.equal(cookie2.needSave(), false);
-    assert.equal(cookie.desc, cookie2.desc);
+    assert.strictEqual(cookie.title, cookie2.title);
+    assert.strictEqual(cookie2.needSave(), false);
+    assert.strictEqual(cookie.desc, cookie2.desc);
   }
 
   @test("Bad secret") testBadSecret() {
@@ -146,8 +146,8 @@ class CookieTest extends WebdaTest {
         desc: "DESCRIPTION"
       }
     ).getProxy();
-    assert.equal(cookie["title"], "TITLE");
-    assert.equal(cookie["desc"], "DESCRIPTION");
+    assert.strictEqual(cookie["title"], "TITLE");
+    assert.strictEqual(cookie["desc"], "DESCRIPTION");
     cookie.save(this._ctx);
     var exception = false;
     try {
@@ -161,7 +161,7 @@ class CookieTest extends WebdaTest {
     } catch (err) {
       exception = true;
     }
-    assert.equal(exception, false);
+    assert.strictEqual(exception, false);
     // TODO Add test for s_fid=3C43F8B5AAFA0B87-0087E6884E64AFFD; s_dslv=1462619672626; s_dslv_s=Less%20than%201%20day;
   }
 
@@ -178,6 +178,6 @@ class CookieTest extends WebdaTest {
     } catch (err) {
       exception = true;
     }
-    assert.equal(exception, true);
+    assert.strictEqual(exception, true);
   }
 }

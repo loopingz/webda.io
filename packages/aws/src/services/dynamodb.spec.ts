@@ -77,7 +77,7 @@ export class DynamoDBTest extends StoreTest {
       }
     });
     let user = await userStore.get("testUpdate");
-    assert.notEqual(user.date, {});
+    assert.notStrictEqual(user.date, {});
   }
 
   @test
@@ -107,20 +107,26 @@ export class DynamoDBTest extends StoreTest {
       true
     );
     let clean = identStore._cleanObject(ident);
-    assert.equal(clean.sub.value, undefined);
-    assert.equal(clean.__store, undefined);
-    assert.equal(clean.arr instanceof Array, true);
-    assert.equal(clean.arr[0].value, undefined);
-    assert.equal(clean.arr[1].value, undefined);
-    assert.notEqual(clean.arr[2].value, undefined);
+    assert.strictEqual(clean.sub.value, undefined);
+    assert.strictEqual(clean.__store, undefined);
+    assert.strictEqual(clean.arr instanceof Array, true);
+    assert.strictEqual(clean.arr[0].value, undefined);
+    assert.strictEqual(clean.arr[1].value, undefined);
+    assert.notStrictEqual(clean.arr[2].value, undefined);
   }
 
   @test
   ARNPolicy() {
     let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
     userStore._params.region = "eu-west-1";
-    assert.equal(userStore.getARNPolicy("666").Resource[0], "arn:aws:dynamodb:eu-west-1:666:table/webda-test-users");
+    assert.strictEqual(
+      userStore.getARNPolicy("666").Resource[0],
+      "arn:aws:dynamodb:eu-west-1:666:table/webda-test-users"
+    );
     userStore._params.region = undefined;
-    assert.equal(userStore.getARNPolicy("777").Resource[0], "arn:aws:dynamodb:us-east-1:777:table/webda-test-users");
+    assert.strictEqual(
+      userStore.getARNPolicy("777").Resource[0],
+      "arn:aws:dynamodb:us-east-1:777:table/webda-test-users"
+    );
   }
 }

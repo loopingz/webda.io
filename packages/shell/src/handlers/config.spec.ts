@@ -54,7 +54,7 @@ class WebdaConfigurationServerTest {
     res.parameters.sessionSecret = "PLOP";
     let cfg = JSON.parse(fs.readFileSync(WebdaSampleApplication.getAppPath("webda.config.json")).toString());
     cfg.parameters.sessionSecret = "PLOP";
-    assert.equal(JSON.stringify(res), JSON.stringify(cfg));
+    assert.strictEqual(JSON.stringify(res), JSON.stringify(cfg));
   }
 
   @test

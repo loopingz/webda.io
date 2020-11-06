@@ -71,7 +71,7 @@ class ApplicationTest extends WebdaTest {
     assert.throws(() => this.sampleApp.getDeployment("Dev1"), /Unknown deployment/);
     this.sampleApp.setCurrentDeployment("Production");
     assert.strictEqual(this.sampleApp.hasDeployment("Production"), true);
-    assert.deepEqual(this.sampleApp.getDeployment(), deployment);
+    assert.deepStrictEqual(this.sampleApp.getDeployment(), deployment);
   }
 
   @test
@@ -105,7 +105,7 @@ class ApplicationTest extends WebdaTest {
     // Check custom route migration
     let ctx = await this.newContext();
     let executor = this.getExecutor(ctx, "test.webda.io", "GET", "/urltemplate/666");
-    assert.notEqual(executor, undefined);
+    assert.notStrictEqual(executor, undefined);
   }
 
   @test
@@ -129,6 +129,6 @@ class ApplicationTest extends WebdaTest {
     // Check custom route migration
     let ctx = await this.newContext();
     let executor = this.getExecutor(ctx, "test.webda.io", "GET", "/urltemplate/666");
-    assert.notEqual(executor, undefined);
+    assert.notStrictEqual(executor, undefined);
   }
 }

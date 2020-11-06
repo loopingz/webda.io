@@ -34,16 +34,16 @@ class MailerTest extends WebdaTest {
   @test
   unknownTemplate() {
     this.mailer._getTemplate("plop");
-    assert.equal(this.lastLevel, "WARN");
-    assert.equal(this.lastInfo[0], "No template found for");
-    assert.equal(this.lastInfo[1], "plop");
+    assert.strictEqual(this.lastLevel, "WARN");
+    assert.strictEqual(this.lastInfo[0], "No template found for");
+    assert.strictEqual(this.lastInfo[1], "plop");
   }
   @test
   knownTemplate() {
     this.mailer._getTemplate("PASSPORT_EMAIL_RECOVERY");
-    assert.equal(this.lastLevel, undefined);
+    assert.strictEqual(this.lastLevel, undefined);
     this.mailer._getTemplate("PASSPORT_EMAIL_RECOVERY");
-    assert.equal(this.lastLevel, undefined);
+    assert.strictEqual(this.lastLevel, undefined);
   }
   @test
   knownTemplateOnSend() {
@@ -53,10 +53,10 @@ class MailerTest extends WebdaTest {
         from: "test@webda.io"
       })
       .then(() => {
-        assert.notEqual(this.lastOptions, undefined);
-        assert.notEqual(this.lastOptions.subject, undefined);
-        assert.notEqual(this.lastOptions.html, undefined);
-        assert.notEqual(this.lastOptions.text, undefined);
+        assert.notStrictEqual(this.lastOptions, undefined);
+        assert.notStrictEqual(this.lastOptions.subject, undefined);
+        assert.notStrictEqual(this.lastOptions.html, undefined);
+        assert.notStrictEqual(this.lastOptions.text, undefined);
       });
   }
   @test
@@ -72,8 +72,8 @@ class MailerTest extends WebdaTest {
         error = err;
       })
       .then(() => {
-        assert.notEqual(error, undefined);
-        assert.equal(this.lastLevel, "ERROR");
+        assert.notStrictEqual(error, undefined);
+        assert.strictEqual(this.lastLevel, "ERROR");
       });
   }
 }

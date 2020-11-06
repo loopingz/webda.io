@@ -42,9 +42,9 @@ class WebdaServerTest {
     let res = await fetch(`http://localhost:${this.port}/test`, {
       headers: { origin: "bouzouf" }
     });
-    assert.equal(res.status, 200);
-    assert.equal(res.headers.get("Access-Control-Allow-Origin"), "bouzouf");
-    assert.equal(await res.text(), "Tested");
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.headers.get("Access-Control-Allow-Origin"), "bouzouf");
+    assert.strictEqual(await res.text(), "Tested");
   }
 
   @test

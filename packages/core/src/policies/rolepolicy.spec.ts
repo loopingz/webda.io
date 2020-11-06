@@ -45,19 +45,19 @@ class RolePolicyTest {
     assert.rejects(() => this.permissive.canAct(this._ctx, "get"), /403/g);
   }
   @test async get() {
-    assert.equal(await this.permissive.canAct(this._ctx, "get"), this.permissive);
-    assert.equal(await this.nonPermissive.canAct(this._ctx, "get"), this.nonPermissive);
+    assert.strictEqual(await this.permissive.canAct(this._ctx, "get"), this.permissive);
+    assert.strictEqual(await this.nonPermissive.canAct(this._ctx, "get"), this.nonPermissive);
   }
   @test async action() {
-    assert.equal(await this.permissive.canAct(this._ctx, "action"), this.permissive);
+    assert.strictEqual(await this.permissive.canAct(this._ctx, "action"), this.permissive);
     await assert.rejects(this.nonPermissive.canAct.bind(this.nonPermissive, this._ctx, "action"));
   }
 
   @test async delete() {
-    assert.equal(await this.permissive.canAct(this._ctx, "delete"), this.permissive);
+    assert.strictEqual(await this.permissive.canAct(this._ctx, "delete"), this.permissive);
     await assert.rejects(this.nonPermissive.canAct.bind(this.nonPermissive, this._ctx, "delete"));
     this._user.addRole("admin");
     this._session.roles = undefined;
-    assert.equal(await this.nonPermissive.canAct(this._ctx, "delete"), this.nonPermissive);
+    assert.strictEqual(await this.nonPermissive.canAct(this._ctx, "delete"), this.nonPermissive);
   }
 }

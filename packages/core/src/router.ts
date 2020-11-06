@@ -1,13 +1,35 @@
 import { OpenAPIV3 } from "openapi-types";
 import * as uriTemplates from "uri-templates";
 import { Core } from "./core";
-import { Context } from "./utils/context";
+import { Context, HttpMethodType } from "./utils/context";
 
 export interface RouteInfo {
-  method: string[] | string;
+  /**
+   * HTTP Method to expose
+   */
+  methods: HttpMethodType[];
+  /**
+   * Executor name
+   */
+  executor: string;
+  /**
+   * Method name on the executor
+   */
+  _method?: string | Function;
+  /**
+   * Allow path in path variable
+   */
+  allowPath?: boolean;
+  /**
+   * OpenAPI definition
+   */
+  openapi?: any;
+  /**
+   * URI Template parser
+   */
+  _uriTemplateParse?: { fromUri: (uri: string) => any; varNames: any };
 }
 
-export type HttpMethodType = "GET" | "OPTIONS" | "POST" | "PUT" | "PATCH" | "DELETE";
 /**
  * Manage Route resolution
  * @category CoreFeatures
@@ -15,7 +37,7 @@ export type HttpMethodType = "GET" | "OPTIONS" | "POST" | "PUT" | "PATCH" | "DEL
 export class Router {
   protected routes: Map<string, RouteInfo[]> = new Map();
   protected initiated: boolean = false;
-  protected pathMap: { url: string; config: RouteInfo[] }[];
+  protected pathMap: { url: string; config: RouteInfo }[];
   protected webda: Core;
 
   constructor(webda: Core) {
@@ -28,13 +50,10 @@ export class Router {
    * @param {Object} info the type of executor
    */
   addRoute(url: string, info: RouteInfo): void {
-    if (!Array.isArray(info.method)) {
-      info.method = [info.method];
-    }
     if (this.routes[url]) {
       // Check and add warning if same method is ued
-      let methods = this.routes[url].map(r => r.method).flat();
-      info.method.forEach(m => {
+      let methods = this.routes[url].map((r: RouteInfo) => r.methods).flat();
+      info.methods.forEach(m => {
         if (methods.indexOf(m) >= 0) {
           this.webda.log("WARN", `${m} ${url} overlap with another defined route`);
         }
@@ -66,7 +85,7 @@ export class Router {
     this.pathMap = [];
     for (var i in this.routes) {
       // Might need to trail the query string
-      this.routes[i].forEach(config => {
+      this.routes[i].forEach((config: RouteInfo) => {
         this.pathMap.push({
           url: i,
           config
@@ -98,8 +117,8 @@ export class Router {
   protected initURITemplates(config: any): void {
     // Prepare tbe URI parser
     for (var map in config) {
-      if (map.indexOf("{") != -1) {
-        config[map].forEach(e => (e["_uri-template-parse"] = uriTemplates(map)));
+      if (map.indexOf("{") !== -1) {
+        config[map].forEach((e: RouteInfo) => (e._uriTemplateParse = uriTemplates(map)));
       }
     }
   }
@@ -118,12 +137,12 @@ export class Router {
 
       if (
         routeUrl !== url &&
-        (map["_uri-template-parse"] === undefined || map["_uri-template-parse"].fromUri(url) === undefined)
+        (map._uriTemplateParse === undefined || map._uriTemplateParse.fromUri(url) === undefined)
       ) {
         continue;
       }
 
-      map["method"].forEach(m => methods.add(m));
+      map.methods.forEach(m => methods.add(m));
     }
     return Array.from(methods);
   }
@@ -131,14 +150,14 @@ export class Router {
   /**
    * Get the route from a method / url
    */
-  public getRouteFromUrl(ctx: Context, method, url): any {
+  public getRouteFromUrl(ctx: Context, method: HttpMethodType, url: string): any {
     let parameters = this.webda.getConfiguration().parameters;
     for (let i in this.pathMap) {
       var routeUrl = this.pathMap[i].url;
       var map = this.pathMap[i].config;
 
       // Check method
-      if (map["method"].indexOf(method) === -1) {
+      if (map.methods.indexOf(method) === -1) {
         continue;
       }
 
@@ -147,10 +166,10 @@ export class Router {
         return map;
       }
 
-      if (map["_uri-template-parse"] === undefined) {
+      if (map._uriTemplateParse === undefined) {
         continue;
       }
-      var parse_result = map["_uri-template-parse"].fromUri(url);
+      var parse_result = map._uriTemplateParse.fromUri(url);
       if (parse_result !== undefined) {
         ctx.setServiceParameters(parameters);
         ctx.setPathParameters(parse_result);
@@ -176,7 +195,7 @@ export class Router {
       return false;
     };
     for (let i in this.routes) {
-      this.routes[i].forEach(route => {
+      this.routes[i].forEach((route: RouteInfo) => {
         if (!route.openapi) {
           route.openapi = {
             methods: {}
@@ -192,9 +211,9 @@ export class Router {
           i = i.substr(0, i.indexOf("{?"));
         }
         openapi.paths[i] = openapi.paths[i] || {};
-        if (route["_uri-template-parse"]) {
+        if (route._uriTemplateParse) {
           openapi.paths[i].parameters = [];
-          route["_uri-template-parse"].varNames.forEach(varName => {
+          route._uriTemplateParse.varNames.forEach(varName => {
             if (urlParameters.indexOf(varName) >= 0) {
               let name = varName;
               if (name.startsWith("*")) {
@@ -215,7 +234,7 @@ export class Router {
             });
           });
         }
-        route.method.forEach(method => {
+        route.methods.forEach(method => {
           let responses;
           let schema;
           let description;

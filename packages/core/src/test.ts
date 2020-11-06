@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { Application, Context, Core, HttpContext, Service } from "./index";
+import { Application, Context, Core, HttpContext, HttpMethodType, Service } from "./index";
 import { ConsoleLoggerService } from "./utils/logger";
 
 export class Executor {
@@ -55,7 +55,7 @@ class WebdaTest {
   getExecutor(
     ctx: Context = undefined,
     host: string = "test.webda.io",
-    method: string = "GET",
+    method: HttpMethodType = "GET",
     url: string = "/",
     body: object = {},
     headers: object = {}

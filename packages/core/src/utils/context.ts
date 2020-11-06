@@ -12,6 +12,9 @@ import { Service } from "../services/service";
 import { Store } from "../stores/store";
 import { SessionCookie } from "../utils/cookie";
 import { JSONUtils } from "./json";
+
+export type HttpMethodType = "GET" | "OPTIONS" | "POST" | "PUT" | "PATCH" | "DELETE";
+
 /**
  * @category CoreFeatures
  */
@@ -27,7 +30,7 @@ class ClientInfo extends Map<string, any> {
  */
 class HttpContext {
   host: string;
-  method: string;
+  method: HttpMethodType;
   uri: string;
   protocol: string;
   port: number;
@@ -44,7 +47,7 @@ class HttpContext {
 
   constructor(
     host: string,
-    method: string,
+    method: HttpMethodType,
     uri: string,
     protocol: string = "http",
     port: number = 80,
@@ -80,7 +83,7 @@ class HttpContext {
    *
    * @param prefix uri to not consider
    */
-  setPrefix(prefix: string) {
+  setPrefix(prefix: string): void {
     if (prefix.endsWith("/")) {
       prefix = prefix.substr(0, prefix.length - 1);
     }
@@ -90,11 +93,11 @@ class HttpContext {
   /**
    * Return Uri without prefix
    */
-  getRelativeUri() {
+  getRelativeUri(): string {
     return this.uri.substr(this.prefix.length);
   }
 
-  getUrl() {
+  getUrl(): string {
     return this.uri;
   }
 
@@ -102,19 +105,19 @@ class HttpContext {
     return this.cookies;
   }
 
-  getPort() {
+  getPort(): number {
     return this.port;
   }
 
-  getHost() {
+  getHost(): string {
     return this.host;
   }
 
-  getMethod() {
+  getMethod(): HttpMethodType {
     return this.method;
   }
 
-  getProtocol() {
+  getProtocol(): string {
     return this.protocol;
   }
 
@@ -126,7 +129,7 @@ class HttpContext {
     return this.headers;
   }
 
-  getHeader(name: string) {
+  getHeader(name: string): string {
     return this.headers[name.toLowerCase()];
   }
 
@@ -138,7 +141,7 @@ class HttpContext {
    *
    * @param uri to return absolute url from
    */
-  getAbsoluteUrl(uri: string = this.uri) {
+  getAbsoluteUrl(uri: string = this.uri): string {
     if (uri.match(/^[\d\w]{1,10}:\/\//)) {
       return uri;
     }

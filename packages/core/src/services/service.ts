@@ -1,6 +1,7 @@
 "use strict";
 import events = require("events");
 import { Core, Logger } from "../index";
+import { HttpMethodType } from "../utils/context";
 import { EventService } from "./asyncevents";
 
 /**
@@ -65,14 +66,26 @@ abstract class Service extends events.EventEmitter {
    * @param {Array[]} methods
    * @param {Function} executer Method to execute for this route
    */
-  _addRoute(url: string, methods: string[], executer: Function, openapi: object = {}, allowPath: boolean = false) {
+  _addRoute(
+    url: string,
+    methods: HttpMethodType[],
+    executer: Function,
+    openapi: object = {},
+    allowPath: boolean = false
+  ) {
     let info: any = {};
     info._method = executer;
     info.method = methods;
     info.executor = this._name;
     info.allowPath = allowPath;
     info.openapi = openapi;
-    this._webda.addRoute(url, info);
+    this._webda.addRoute(url, {
+      _method: executer,
+      executor: this._name,
+      allowPath,
+      openapi,
+      methods
+    });
   }
 
   /**

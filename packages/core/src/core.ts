@@ -9,7 +9,7 @@ import * as vm from "vm";
 import { Application } from "./application";
 import { Context, HttpContext, Logger, Service, Store } from "./index";
 import { CoreModel, CoreModelDefinition } from "./models/coremodel";
-import { Router } from "./router";
+import { RouteInfo, Router } from "./router";
 import { WorkerOutput, WorkerLogLevel } from "@webda/workout";
 
 /**
@@ -460,7 +460,7 @@ export class Core extends events.EventEmitter {
    * @param {String} url of the route can contains dynamic part like {uuid}
    * @param {Object} info the type of executor
    */
-  addRoute(url, info): void {
+  addRoute(url: string, info: RouteInfo): void {
     this.router.addRoute(url, info);
   }
 
@@ -469,13 +469,17 @@ export class Core extends events.EventEmitter {
    *
    * @param {String} url to remove
    */
-  removeRoute(url): void {
+  removeRoute(url: string): void {
     this.router.removeRoute(url);
   }
 
-  getRouter() {
+  /**
+   * Return current Router object
+   */
+  getRouter(): Router {
     return this.router;
   }
+
   /**
    * Check for a service name and return the wanted singleton or undefined if none found
    *
@@ -582,6 +586,7 @@ export class Core extends events.EventEmitter {
     if (route === undefined) {
       return false;
     }
+
     var executor = this.getService(route.executor);
     if (executor === undefined) {
       return false;
@@ -641,6 +646,7 @@ export class Core extends events.EventEmitter {
         let serviceBean = this.services[service];
         await serviceBean.reinit(this.getServiceParams(serviceBean._name));
       } catch (err) {
+        console.log(this.configuration, err, err.stack);
         this.configuration._services[service]._reinitException = err;
         this.log("ERROR", "Re-Init service " + service + " failed", err);
         this.log("TRACE", err.stack);
@@ -776,7 +782,7 @@ export class Core extends events.EventEmitter {
           continue;
         }
         this.addRoute(j, {
-          method: route.methods, // HTTP methods
+          methods: route.methods, // HTTP methods
           _method: this.services[service][route.executor], // Link to service method
           allowPath: route.allowPath || false, // Allow / in parser
           openapi: route.openapi,

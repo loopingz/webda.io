@@ -25,6 +25,11 @@ class ExceptionExecutor extends Service {
   async onString(ctx) {
     ctx.write(`CodeCoverage${ctx.getParameters().test || ""}`);
   }
+
+  @Route("/route/param/{uuid}{?test}")
+  async onParamString(ctx) {
+    ctx.write(`CodeCoverage${ctx.getParameters().uuid}${ctx.getParameters().test || ""}`);
+  }
 }
 
 @suite
@@ -105,7 +110,28 @@ class LambdaHandlerTest extends WebdaAwsTest {
   }
 
   @test
+  async handleRequestKnownRouteWithParamAndQuery() {
+    this.ensureGoodCSRF();
+    this.evt.queryStringParameters = { test: "Plop" };
+    this.evt.path = "/prefix/route/param/myid";
+    this.evt.resource = "/route/param/{uuid}";
+    this.evt.pathParameters = { uuid: "myid" };
+    let res = await this.handler.handleRequest(this.evt, this.context);
+    assert.strictEqual(res.body, "CodeCoveragemyidPlop");
+  }
+
+  @test
   async handleRequestKnownRouteWithParam() {
+    this.ensureGoodCSRF();
+    this.evt.path = "/prefix/route/param/myid";
+    this.evt.resource = "/route/param/{uuid}";
+    this.evt.pathParameters = { uuid: "myid" };
+    let res = await this.handler.handleRequest(this.evt, this.context);
+    assert.strictEqual(res.body, "CodeCoveragemyid");
+  }
+
+  @test
+  async handleRequestKnownRouteWithQuery() {
     this.ensureGoodCSRF();
     this.evt.queryStringParameters = { test: "Plop" };
     let res = await this.handler.handleRequest(this.evt, this.context);

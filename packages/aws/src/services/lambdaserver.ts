@@ -169,7 +169,13 @@ export default class LambdaServer extends Webda {
     this.log("INFO", event.httpMethod || "GET", event.path);
     let httpContext = new HttpContext(vhost, method, resourcePath, protocol, port, body, headers);
     if (event.path !== event.resource) {
-      httpContext.setPrefix(event.path.substr(0, event.path.length - event.resource.length));
+      let relativeUri = event.resource;
+      for (let i in event.pathParameters) {
+        relativeUri = relativeUri.replace(`\{${i}\}`, event.pathParameters[i]);
+      }
+      if (relativeUri !== event.path) {
+        httpContext.setPrefix(event.path.substr(0, event.path.length - relativeUri.length));
+      }
     }
     var ctx = await this.newContext(httpContext);
     // TODO Get all client info

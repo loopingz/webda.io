@@ -24,6 +24,9 @@ class MemoryQueue extends Queue {
     this._params.expire *= 1000;
   }
 
+  /**
+   * Return queue size
+   */
   async size(): Promise<number> {
     return Object.keys(this._queue).length;
   }

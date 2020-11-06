@@ -69,7 +69,7 @@ export class WorkerInput {
     uuid: string,
     title: string,
     type: WorkerInputType = WorkerInputType.STRING,
-    validators: (string | RegExp)[]
+    validators: (string | RegExp)[] = []
   ) {
     this.uuid = uuid;
     this.title = title;

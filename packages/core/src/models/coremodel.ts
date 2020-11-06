@@ -13,7 +13,8 @@ interface CoreModelDefinition {
 class CoreModelMapper<T extends CoreModel> {
   private __store: Store<CoreModel>;
 
-  constructor(uuid, properties = {}, store) {
+  constructor(uuid, store, properties = {}) {
+    this.__store = store;
     this[this.__store.getModel().getUuidField()] = uuid;
   }
 

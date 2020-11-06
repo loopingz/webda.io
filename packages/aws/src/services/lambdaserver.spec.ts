@@ -21,9 +21,9 @@ class ExceptionExecutor extends Service {
     }
   }
 
-  @Route("/route/string")
+  @Route("/route/string{?test}")
   async onString(ctx) {
-    ctx.write("CodeCoverage");
+    ctx.write(`CodeCoverage${ctx.getParameters().test || ""}`);
   }
 }
 
@@ -102,6 +102,14 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.ensureGoodCSRF();
     let res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.body, "CodeCoverage");
+  }
+
+  @test
+  async handleRequestKnownRouteWithParam() {
+    this.ensureGoodCSRF();
+    this.evt.queryStringParameters = { test: "Plop" };
+    let res = await this.handler.handleRequest(this.evt, this.context);
+    assert.strictEqual(res.body, "CodeCoveragePlop");
   }
 
   @test

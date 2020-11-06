@@ -1,6 +1,6 @@
 {
   "name": "@webda/shell",
-  "version": "1.0.0-beta.10",
+  "version": "1.0.0-beta.11",
   "description": "Deploy a Webda app or configure it",
   "keywords": [
     "aws",
@@ -28,8 +28,8 @@
   },
   "dependencies": {
     "@kubernetes/client-node": "^0.12.0",
-    "@webda/core": "^1.0.0-beta.8",
-    "@webda/workout": "^1.0.0-beta.6",
+    "@webda/core": "^1.0.0-beta.9",
+    "@webda/workout": "^1.0.0-beta.7",
     "archiver": "^1.0.0",
     "aws-sdk": "^2.678.0",
     "body-parser": ">=1.13.3",

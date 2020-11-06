@@ -20,6 +20,7 @@
     "@webda/workout": "^1.0.0-beta.5",
     "accept-language": "3.0.18",
     "ajv": "^6.10.0",
+    "bcryptjs": "^2.4.3",
     "cookie": ">=0.2.3",
     "deepmerge": "^4.2.2",
     "email-templates": "^5.0.4",

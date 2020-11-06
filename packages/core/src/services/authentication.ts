@@ -1,5 +1,6 @@
 "use strict";
 import * as crypto from "crypto";
+import * as bcrypt from "bcryptjs";
 import { Core, ModdaDefinition, _extend } from "../core";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
@@ -324,7 +325,8 @@ class Authentication extends Service {
     }
     return {
       expire: expire,
-      token: this.hashPassword(user.uuid + expire + user.getPassword()),
+      // Might want to add more alea not coming from the db to avoid exploitation of stolen db
+      token: this.hashInfo(user.uuid + expire + user.getPassword()),
       login: user.uuid
     };
   }
@@ -372,7 +374,7 @@ class Authentication extends Service {
     if (!user) {
       throw 403;
     }
-    if (body.token !== this.hashPassword(body.login.toLowerCase() + body.expire + user.getPassword())) {
+    if (body.token !== this.hashInfo(body.login.toLowerCase() + body.expire + user.getPassword())) {
       throw 403;
     }
     if (body.expire < Date.now()) {
@@ -473,9 +475,32 @@ class Authentication extends Service {
     return mailer.send(mailOptions);
   }
 
-  hashPassword(pass: string): string {
+  /**
+   * Create a SHA256 of the info
+   *
+   * @param info to hash
+   */
+  hashInfo(info: string): string {
     var hash = crypto.createHash("sha256");
-    return hash.update(pass + this._webda.getSalt()).digest("hex");
+    return hash.update(info).digest("hex");
+  }
+
+  /**
+   * Check the password match the stored hash
+   * @param hash generate prior by hashPassword
+   * @param password as entered by the user
+   */
+  checkPassword(hash, pass): boolean {
+    return bcrypt.compareSync(pass, hash);
+  }
+
+  /**
+   * Hash the password according to good practices
+   *
+   * @param pass to hash
+   */
+  hashPassword(pass: string): string {
+    return bcrypt.hashSync(pass, this._params.salt || 10);
   }
 
   async logout(ctx: Context) {
@@ -510,7 +535,7 @@ class Authentication extends Service {
     let updates: any = {};
     let user: User = await this._usersStore.get(ident.getUser());
     // Check password
-    if (user.getPassword() === this.hashPassword(ctx.getRequestBody().password)) {
+    if (this.checkPassword(user.getPassword(), ctx.getRequestBody().password)) {
       if (ident._failedLogin > 0) {
         ident._failedLogin = 0;
       }
@@ -624,7 +649,7 @@ class Authentication extends Service {
   }
 
   generateEmailValidationToken(user: string, email: string) {
-    return this.hashPassword(email + "_" + this._webda.getSecret() + user);
+    return this.hashInfo(email + "_" + this._webda.getSecret() + user);
   }
 
   static getModda(): ModdaDefinition {

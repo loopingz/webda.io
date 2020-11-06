@@ -186,7 +186,7 @@ export function Route(
     };
     beans[targetName].routes = beans[targetName].routes || {};
     beans[targetName].routes[route] = {
-      methods,
+      methods: Array.isArray(methods) ? methods : [methods],
       executor,
       allowPath,
       openapi

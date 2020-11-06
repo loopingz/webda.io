@@ -1,6 +1,6 @@
 {
   "name": "@webda/elasticsearch",
-  "version": "1.0.0-beta.7",
+  "version": "1.0.0-beta.8",
   "description": "Webda ElasticSearch implementation",
   "main": "lib/index.js",
   "scripts": {
@@ -28,7 +28,7 @@
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
-    "@webda/core": "^1.0.0-beta.7",
+    "@webda/core": "^1.0.0-beta.8",
     "elasticsearch": "^15.1.1",
     "yaml": "^1.10.0"
   },

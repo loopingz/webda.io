@@ -4,7 +4,7 @@ import * as fs from "fs";
 import * as yaml from "yaml";
 import * as jsonpath from "jsonpath";
 import { Deployer } from "./deployer";
-import { CronService, JSONUtils } from "@webda/core";
+import { CronService, JSONUtils, CronDefinition } from "@webda/core";
 import * as crypto from "crypto";
 
 export interface KubernetesObject {
@@ -100,7 +100,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     return true;
   }
 
-  getCronId(cron) {
+  getCronId(cron: CronDefinition) {
     let hash = crypto.createHash("md5");
     return hash
       .update(JSON.stringify(cron) + this.name + this.manager.getDeploymentName())
@@ -143,7 +143,9 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     // Manage CronJob - add resource if required
     if (this.resources.cronTemplate) {
       this.logger.log("INFO", "Adding CronJob resources");
+      // Load all existing Cron annotations
       let crons = CronService.loadAnnotations(this.manager.getWebda().getServices());
+      // Load CronJob resource template
       let resource;
       if (typeof this.resources.cronTemplate === "boolean") {
         resource = yaml.parse(DEFAULT_CRON_DEFINITION);
@@ -152,26 +154,50 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       } else {
         resource = this.resources.cronTemplate;
       }
+      // Namespace where cronjob resource are created
+      let cronNamespace = resource.metadata.namespace || "default";
+      // Add annotations to the CronJob template
       this.completeResource(resource);
       let cronDeployerId = crypto
         .createHash("md5")
-        .update(this.name + this.manager.getDeploymentName())
+        .update(this.name + this.manager.getDeploymentName() + this.getApplication().getPackageDescription().name)
         .digest("hex");
       jsonpath.value(resource, '$.metadata.annotations["webda.io/crondeployer"]', cronDeployerId);
 
+      const k8sApi = kc.makeApiClient(k8s.BatchV1beta1Api);
+      let currentJobs = (
+        await k8sApi.listNamespacedCronJob(resource.metadata.namespace || "default")
+      ).body.items.filter(i => i.metadata.annotations["webda.io/crondeployer"] === cronDeployerId);
+      let currentJobsNamesMap = {};
+      currentJobs.forEach(
+        i =>
+          (currentJobsNamesMap[
+            i.metadata.name
+          ] = `${i.spec.schedule} ${i.metadata.annotations["webda.io/crondescription"]}`)
+      );
       this.resources.resources = this.resources.resources || [];
       let ids = [];
       crons.forEach(cron => {
         this.parameters.cron = { ...cron, cronId: this.getCronId(cron) };
         jsonpath.value(resource, '$.metadata.annotations["webda.io/cronid"]', this.parameters.cron.cronId);
-        ids.push(this.parameters.cron.cronId);
-        this.resources.resources.push(this.objectParameter(resource));
+        jsonpath.value(resource, '$.metadata.annotations["webda.io/crondescription"]', cron.toString());
+        let cronResource = this.objectParameter(resource);
+        this.resources.resources.push(cronResource);
+        ids.push(cronResource.metadata.name);
+        if (currentJobsNamesMap[cronResource.metadata.name] !== undefined) {
+          delete currentJobsNamesMap[cronResource.metadata.name];
+          this.logger.log("INFO", `Updating CronJob ${cronResource.metadata.name}: ${cron.toString()}`);
+        } else {
+          this.logger.log("INFO", `Adding CronJob ${cronResource.metadata.name}: ${cron.toString()}`);
+        }
       });
       this.parameters.cron = undefined;
-      // TODO Clean other cronjob await this.client.
-      this.logger.log("TRACE", `Check into crontab id ${ids}`);
-      // Search for any cron that was deployed by us
-      this.logger.log("INFO", JSON.stringify(this.resources.resources, undefined, 2));
+      // Remove any cronjob created by this deployer that is not required anymore
+      for (let i in currentJobsNamesMap) {
+        this.logger.log("INFO", `Deleting CronJob ${i}: ${currentJobsNamesMap[i]}`);
+        // Delete resource
+        await k8sApi.deleteNamespacedCronJob(i, cronNamespace);
+      }
     }
 
     this.logger.log("INFO", "Manage patch resources");

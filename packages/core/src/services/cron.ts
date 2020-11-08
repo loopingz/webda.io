@@ -1,6 +1,55 @@
 import * as crontab from "node-cron";
 import { Service } from "./service";
 
+/**
+ * Cron item
+ */
+export class CronDefinition {
+  /**
+   * Cron definition
+   * * * * 0 3
+   */
+  cron: string;
+
+  /**
+   * Description of the task
+   */
+  description: string;
+  /**
+   * Argument to be passed to the function
+   */
+  args: any[];
+  /**
+   * Method to call
+   */
+  method: string;
+  /**
+   * Webda service name
+   */
+  serviceName: string;
+
+  /**
+   *
+   * @param cron
+   * @param args
+   * @param serviceName
+   * @param method
+   * @param description
+   */
+  constructor(cron: string, args: any[], serviceName: string = "", method: string = "", description: string = "") {
+    this.cron = cron;
+    this.serviceName = serviceName;
+    this.method = method;
+    this.description = description;
+    this.args = args;
+  }
+
+  toString() {
+    return `${this.cron}: ${this.serviceName}.${this.method}(${this.args.map(a => a.toString()).join(",")})${
+      this.description !== "" ? ` # ${this.description}` : ""
+    }`;
+  }
+}
 class CronService extends Service {
   enable: boolean;
   crons: {
@@ -17,24 +66,22 @@ class CronService extends Service {
   static Annotation(cron: string, description: string = "", ...args) {
     return (target: any, property: string, descriptor: PropertyDescriptor) => {
       descriptor.value.cron = descriptor.value.cron || [];
-      descriptor.value.cron.push({
-        cron,
-        description,
-        args
-      });
+      descriptor.value.cron.push(new CronDefinition(cron, args, "", property, description));
     };
   }
 
-  static loadAnnotations(services) {
-    let cronsResult = [];
+  static loadAnnotations(services): CronDefinition[] {
+    let cronsResult: CronDefinition[] = [];
     for (let i in services) {
       let props = Object.getOwnPropertyDescriptors(services[i].constructor.prototype);
       for (let method in props) {
         // @ts-ignore
-        let crons = props[method].value.cron;
+        let crons: CronDefinition[] = props[method].value.cron;
         if (crons) {
           crons.forEach(cron => {
-            cronsResult.push({ ...cron, method, serviceName: i });
+            cron.method = method;
+            cron.serviceName = i;
+            cronsResult.push(cron);
           });
         }
       }

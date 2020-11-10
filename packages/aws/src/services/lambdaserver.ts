@@ -170,8 +170,8 @@ export default class LambdaServer extends Webda {
     let httpContext = new HttpContext(vhost, method, resourcePath, protocol, port, body, headers);
     if (event.path !== event.resource) {
       let relativeUri = event.resource;
-      for (let i in event.pathParameters) {
-        relativeUri = relativeUri.replace(`\{${i}\}`, event.pathParameters[i]);
+      for (let j in event.pathParameters) {
+        relativeUri = relativeUri.replace(`\{${j}\}`, event.pathParameters[j]);
       }
       if (relativeUri !== event.path) {
         httpContext.setPrefix(event.path.substr(0, event.path.length - relativeUri.length));

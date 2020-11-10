@@ -2,6 +2,11 @@ import { Service, ModdaDefinition } from "@webda/core";
 import * as AWSXRay from "aws-xray-sdk";
 
 export default class AWSXRayService extends Service {
+  launch() {
+    // Depending on the OS
+    // https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon.html
+  }
+
   resolve() {
     const getMethods = obj => {
       let properties = new Set();

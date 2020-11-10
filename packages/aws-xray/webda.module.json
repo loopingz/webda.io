@@ -1,0 +1,8 @@
+{
+  "services": {
+    "Webda/CloudWatchLogger": "./lib/services/xray.js"
+  },
+  "models": {},
+  "deployers": {},
+  "commands": {}
+}

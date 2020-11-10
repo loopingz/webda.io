@@ -127,7 +127,7 @@ export class WebdaServer extends Webda {
         res.end();
         return;
       }
-      await this.emitSync("Webda.Request", vhost, method, req.url, ctx.getCurrentUserId(), req.body, req, ctx);
+      await this.emitSync("Webda.Request", ctx, vhost, method, req.url, ctx.getCurrentUserId(), req.body, req);
 
       res.setHeader("Access-Control-Allow-Credentials", "true");
       try {

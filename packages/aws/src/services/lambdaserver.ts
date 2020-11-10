@@ -185,7 +185,7 @@ export default class LambdaServer extends Webda {
     ctx.clientInfo.referer = headers["Referer"] || headers.referer;
 
     // Debug mode
-    await this.emitSync("Webda.Request", vhost, method, resourcePath, ctx.getCurrentUserId(), body);
+    await this.emitSync("Webda.Request", ctx, vhost, method, resourcePath, ctx.getCurrentUserId(), body);
     // Fallback on reference as Origin is not always set by Edge
     let origin = headers.Origin || headers.origin || ctx.clientInfo.referer;
     // Set predefined headers for CORS

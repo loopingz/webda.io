@@ -50,6 +50,30 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
     Stage?: string;
   };
 
+  APIGatewayV2?: {};
+  APIGatewayV2Deployment?: {};
+  APIGatewayV2Stage?: {};
+  APIGatewayV2Domain?: {
+    DomainName: string;
+    DomainNameConfigurations?: {
+      CertificateArn?: string;
+      CertificateName?: string;
+      EndpointType?: string;
+      SecurityPolicy?: string;
+    }[];
+    MutualTlsAuthentication: {
+      TruststoreUri?: string;
+      TruststoreVersion?: string;
+    };
+    Tags?: any;
+  };
+  APIGatewayV2ApiMapping?: {
+    BasePath?: string;
+    DomainName?: string;
+    ApiId?: string;
+    Stage?: string;
+  };
+
   Role?: {
     AssumeRolePolicyDocument?: {
       Statement: any[];
@@ -190,23 +214,13 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       this.resources.Policy.PolicyDocument = this.resources.Policy.PolicyDocument || { Statement: [] };
     }
 
-    if (this.resources.APIGateway) {
-      this.resources.APIGateway.Name = this.resources.APIGateway.Name || this.resources.name;
-    }
-
-    this.resources.Tags = this.transformTags(this.resources.Tags || []);
+    this.resources.Tags = this.transformMapTagsToArray(this.resources.Tags || []);
 
     if (this.resources.APIGatewayStage) {
       this.resources.APIGatewayStage.StageName =
         // @ts-ignore
         this.resources.APIGatewayStage.StageName || this.getApplication().currentDeployment;
     }
-    // Activate Domain
-    if (this.resources.APIGatewayDomain) {
-      // Enable BasePathMapping if does not exist
-      this.resources.APIGatewayBasePathMapping = this.resources.APIGatewayBasePathMapping || {};
-    }
-
     // Default BasePathMapping
     if (this.resources.APIGatewayBasePathMapping) {
       this.resources.APIGatewayBasePathMapping.BasePath = this.resources.APIGatewayBasePathMapping.BasePath || "";
@@ -216,6 +230,27 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         this.resources.APIGatewayBasePathMapping.DomainName = this.resources.APIGatewayBasePathMapping.DomainName.substr(
           0,
           this.resources.APIGatewayBasePathMapping.DomainName.length - 1
+        );
+      }
+    }
+
+    // Activate Domain
+    if (this.resources.APIGatewayV2Domain) {
+      // Enable BasePathMapping if does not exist
+      this.resources.APIGatewayV2ApiMapping = this.resources.APIGatewayV2ApiMapping || {};
+      this.resources.APIGatewayV2Domain.DomainNameConfigurations =
+        this.resources.APIGatewayV2Domain.DomainNameConfigurations || [];
+    }
+
+    // Default BasePathMapping
+    if (this.resources.APIGatewayV2ApiMapping) {
+      this.resources.APIGatewayV2ApiMapping.BasePath = this.resources.APIGatewayV2ApiMapping.BasePath || "";
+      this.resources.APIGatewayV2ApiMapping.DomainName =
+        this.resources.APIGatewayV2ApiMapping.DomainName || this.resources.APIGatewayDomain.DomainName;
+      if (this.resources.APIGatewayV2ApiMapping.DomainName.endsWith(".")) {
+        this.resources.APIGatewayV2ApiMapping.DomainName = this.resources.APIGatewayV2ApiMapping.DomainName.substr(
+          0,
+          this.resources.APIGatewayV2ApiMapping.DomainName.length - 1
         );
       }
     }
@@ -457,7 +492,12 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     };
     let changeSet;
     try {
-      changeSet = await cloudformation.createChangeSet({ ...changeSetParams, ChangeSetType: "UPDATE" }).promise();
+      changeSet = await cloudformation
+        .createChangeSet({
+          ...changeSetParams,
+          ChangeSetType: this.resources.ChangeSetType === "IMPORT" ? "IMPORT" : "UPDATE"
+        })
+        .promise();
     } catch (err) {
       if (err.message.endsWith(" is in ROLLBACK_COMPLETE state and can not be updated.")) {
         this.logger.log("WARN", "Deleting buguous stack");
@@ -487,7 +527,10 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
             }
             if (res.Stacks[0].StackStatus.endsWith("COMPLETE")) {
               changeSet = await cloudformation
-                .createChangeSet({ ...changeSetParams, ChangeSetType: "UPDATE" })
+                .createChangeSet({
+                  ...changeSetParams,
+                  ChangeSetType: this.resources.ChangeSetType === "IMPORT" ? "IMPORT" : "UPDATE"
+                })
                 .promise();
               resolve();
             }
@@ -501,7 +544,12 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         await cloudformation
           .deleteChangeSet({ StackName: this.resources.StackName, ChangeSetName: "WebdaCloudFormationDeployer" })
           .promise();
-        changeSet = await cloudformation.createChangeSet({ ...changeSetParams, ChangeSetType: "UPDATE" }).promise();
+        changeSet = await cloudformation
+          .createChangeSet({
+            ...changeSetParams,
+            ChangeSetType: this.resources.ChangeSetType === "IMPORT" ? "IMPORT" : "UPDATE"
+          })
+          .promise();
       } else {
         this.logger.log("ERROR", err);
         return;
@@ -660,7 +708,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
   async APIGateway() {
     this.template.Resources.APIGateway = {
-      Type: "AWS::ApiGatewayV2::Api",
+      Type: "AWS::ApiGateway::RestApi",
       Properties: {
         ...this.resources.APIGateway,
         Tags: this.getDefaultTags("APIGateway"),
@@ -692,17 +740,16 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       DependsOn: "LambdaFunction"
     };
     this.template.Resources.APIGatewayDeployment = {
-      Type: "AWS::ApiGatewayV2::Deployment",
+      Type: "AWS::ApiGateway::Deployment",
       Properties: {
         ...this.resources.APIGatewayDeployment,
-        ApiId: { Ref: "APIGateway" }
+        RestApiId: { Ref: "APIGateway" }
       }
     };
     // SourceArn: "arn:aws:execute-api:" + this.AWS.config.region + ":" + awsId + ":" + this.restApiId + "/*"
     this.template.Resources.APIGatewayStage = {
-      Type: "AWS::ApiGatewayV2::Stage",
+      Type: "AWS::ApiGateway::Stage",
       Properties: {
-        AutoDeploy: true,
         ...this.resources.APIGatewayStage,
         Tags: this.getDefaultTags("APIGatewayStage"),
         DeploymentId: { Ref: "APIGatewayDeployment" },
@@ -727,14 +774,14 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     }
 
     this.template.Resources.APIGatewayDomain = {
-      Type: "AWS::ApiGatewayV2::DomainName",
+      Type: "AWS::ApiGateway::DomainName",
       Properties: {
         ...this.resources.APIGatewayDomain,
         Tags: this.getDefaultTags("APIGatewayDomain")
       }
     };
     this.template.Resources.APIGatewayBasePathMapping = {
-      Type: "AWS::ApiGatewayV2::BasePathMapping",
+      Type: "AWS::ApiGateway::BasePathMapping",
       Properties: {
         ...this.resources.APIGatewayBasePathMapping,
         DomainName: { Ref: "APIGatewayDomain" },

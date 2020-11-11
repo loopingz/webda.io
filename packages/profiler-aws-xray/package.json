@@ -1,5 +1,5 @@
 {
-  "name": "@webda/aws-xray",
+  "name": "@webda/profiler-aws-xray",
   "version": "1.0.0-alpha1",
   "description": "Webda AWS XRay implementation",
   "main": "lib/index.js",

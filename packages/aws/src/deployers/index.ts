@@ -212,7 +212,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    *
    * @param tags
    */
-  transformTags(tags: TagsDefinition): { Key: string; Value: string }[] {
+  transformMapTagsToArray(tags: TagsDefinition): { Key: string; Value: string }[] {
     if (Array.isArray(tags)) {
       return tags;
     }
@@ -224,14 +224,28 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
   }
 
   /**
+   * Transform a tag array into a tag map
+   *
+   * @param tags
+   */
+  transformArrayTagsToMap(tags: TagsDefinition): { [key: string]: string } {
+    if (!Array.isArray(tags)) {
+      return tags;
+    }
+    let res = {};
+    tags.forEach(t => (res[t.Key] = t.Value));
+    return res;
+  }
+
+  /**
    * Take this.resources[key].Tags and add all remaining Tags from this.resources.Tags
    *
    * @param key of the resources to add
    */
-  getDefaultTags(key: string | object[]): any[] {
+  getDefaultTags(key: string | object[] = undefined): { Key: string; Value: string }[] {
     let Tags;
     if (typeof key === "string") {
-      Tags = this.resources[key] ? this.transformTags(this.resources[key].Tags) || [] : [];
+      Tags = this.resources[key] ? this.transformMapTagsToArray(this.resources[key].Tags) || [] : [];
     } else {
       Tags = key || [];
     }
@@ -240,6 +254,25 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       Tags.push(...(<any[]>this.resources.Tags).filter(t => TagKeys.indexOf(t.Key) < 0));
     }
     return Tags;
+  }
+
+  /**
+   * Take this.resources[key].Tags and add all remaining Tags from this.resources.Tags
+   *
+   * @param key of the resources to add
+   */
+  getDefaultTagsAsMap(key: string | object[] = undefined): { [key: string]: string } {
+    return this.transformArrayTagsToMap(this.getDefaultTags(key));
+  }
+
+  /**
+   * Return the S3 Tagging string
+   * @param key of the resources to add
+   */
+  getDefaultTagsAsS3Tagging(key: string | object[] = undefined) {
+    return this.getDefaultTags(key)
+      .map(tag => `${encodeURIComponent(tag.Key)}=${encodeURIComponent(tag.Value)}`)
+      .join("&");
   }
 
   /**
@@ -571,7 +604,8 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
             Bucket: bucket,
             Body: typeof info.src === "string" ? fs.createReadStream(info.src) : info.src,
             Key: info.key,
-            ContentType: mimetype
+            ContentType: mimetype,
+            Tagging: this.getDefaultTagsAsS3Tagging()
           })
           .promise();
         this.logger.logProgressIncrement(1, uuid);

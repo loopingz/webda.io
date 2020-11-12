@@ -73,6 +73,9 @@ export class WebdaServer extends Webda {
       if (req.socket && req.socket.address()) {
         port = req.socket.address().port;
       }
+      if (req.headers["x-forwarded-port"] !== undefined) {
+        port = req.headers["x-forwarded-port"];
+      }
       let httpContext = new HttpContext(vhost, method, req.url, protocol, port, req.body, req.headers, req.files);
       let ctx = await this.newContext(httpContext, res, true);
       ctx.clientInfo = this.getClientInfo(req);

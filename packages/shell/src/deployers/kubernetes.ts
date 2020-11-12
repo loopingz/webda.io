@@ -53,6 +53,7 @@ export interface KubernetesResources extends DockerResources {
   resources?: KubernetesObject[];
   patchResources?: any; //{ [key: string]: any };
   resourcesFile?: string;
+  resourcesFiles?: string[];
   cronTemplate?: string | KubernetesObject;
   debug?: boolean;
 }
@@ -66,6 +67,12 @@ export class Kubernetes extends Deployer<KubernetesResources> {
   async loadDefaults() {
     await super.loadDefaults();
     this.resources.defaultNamespace = this.resources.defaultNamespace || "default";
+    // Ensure resourcesFile is always an array
+    this.resources.resourcesFiles = this.resources.resourcesFiles || [];
+    // Push resourcesFile to resourcesFiles array
+    if (this.resources.resourcesFile && !this.resources.resourcesFiles.includes(this.resources.resourcesFile)) {
+      this.resources.resourcesFiles.push(this.resources.resourcesFile);
+    }
   }
 
   addAnnotation(spec) {
@@ -118,11 +125,17 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     this.logger.log("INFO", "Initializing Kubernetes Client");
     // Initiate Kubernetes
     const kc = new k8s.KubeConfig();
+    // Check all resource
+    this.resources.resourcesFiles.forEach(resourcesFile => {
+      if (!resourcesFile.match(/\.(ya?ml|json)$/i) || !fs.existsSync(resourcesFile)) {
+        throw new Error(`Resource file #${resourcesFile} does not exist or invalid format`);
+      }
+    });
     // Load all type of configuration
     if (this.resources.config) {
       if (typeof this.resources.config === "string") {
-        if (!this.resources.resourcesFile.match(/\.(ya?ml|json)$/i) || !fs.existsSync(this.resources.config)) {
-          throw new Error("Configuration file does not exist");
+        if (!this.resources.config.match(/\.(ya?ml|json)$/i) || !fs.existsSync(this.resources.config)) {
+          throw new Error(`Configuration file does not exist or invalid format`);
         }
         if (this.resources.config.endsWith("json")) {
           kc.loadFromOptions(JSON.parse(fs.readFileSync(this.resources.config, "utf8")));
@@ -241,22 +254,20 @@ export class Kubernetes extends Deployer<KubernetesResources> {
 
     this.logger.log("INFO", "Manage file resources");
     // File resource
-    if (this.resources.resourcesFile) {
-      if (this.resources.resourcesFile.match(/\.(ya?ml|json)$/i) && fs.existsSync(this.resources.resourcesFile)) {
-        let resources = JSONUtils.loadFile(this.resources.resourcesFile);
-        if (!Array.isArray(resources)) {
-          resources = [resources];
+
+    for (let i in this.resources.resourcesFiles) {
+      let resourcesFile = this.resources.resourcesFiles[i];
+      let resources = JSONUtils.loadFile(resourcesFile);
+      if (!Array.isArray(resources)) {
+        resources = [resources];
+      }
+      for (let i in resources) {
+        let resource = this.objectParameter(resources[i]);
+        if (!this.completeResource(resource)) {
+          this.logger.log("ERROR", `Resource invalid #${i} of resourcesFile`);
+          continue;
         }
-        for (let i in resources) {
-          let resource = this.objectParameter(resources[i]);
-          if (!this.completeResource(resource)) {
-            this.logger.log("ERROR", `Resource invalid #${i} of resourcesFile`);
-            continue;
-          }
-          await this.upsertKubernetesObject(resource);
-        }
-      } else {
-        this.logger.log("ERROR", `Resource file #${this.resources.resourcesFile} does not exist or invalid format`);
+        await this.upsertKubernetesObject(resource);
       }
     }
   }

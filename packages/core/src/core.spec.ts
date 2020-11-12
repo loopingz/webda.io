@@ -22,7 +22,13 @@ class ExceptionExecutor extends Service {
   async onString(ctx) {
     ctx.write("CodeCoverage");
   }
+
+  @Route("/route/string", ["POST"])
+  async onPostString(ctx) {
+    ctx.write("CodeCoveragePOST");
+  }
 }
+
 @suite
 class CSRFTest extends WebdaTest {
   ctx: Context;
@@ -158,6 +164,14 @@ class CoreTest extends WebdaTest {
     let exec = this.getExecutor(ctx, "test.webda.io", "GET", "/route/string");
     exec.execute(ctx);
     assert.strictEqual(ctx.getResponseBody(), "CodeCoverage");
+  }
+
+  @test
+  async getStringPostRoute() {
+    let ctx = await this.newContext();
+    let exec = this.getExecutor(ctx, "test.webda.io", "POST", "/route/string");
+    exec.execute(ctx);
+    assert.strictEqual(ctx.getResponseBody(), "CodeCoveragePOST");
   }
 
   @test

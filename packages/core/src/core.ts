@@ -185,12 +185,13 @@ export function Route(
       constructor: target.constructor
     };
     beans[targetName].routes = beans[targetName].routes || {};
-    beans[targetName].routes[route] = {
+    beans[targetName].routes[route] = beans[targetName].routes[route] || [];
+    beans[targetName].routes[route].push({
       methods: Array.isArray(methods) ? methods : [methods],
       executor,
       allowPath,
       openapi
-    };
+    });
   };
 }
 
@@ -295,7 +296,7 @@ export class Core extends events.EventEmitter {
     for (let i in beans) {
       if (beans[i].routes) {
         for (let j in beans[i].routes) {
-          beans[i].routes[j].resolved = false;
+          beans[i].routes[j].forEach(r => (r.resolved = false));
         }
       }
     }
@@ -777,18 +778,19 @@ export class Core extends events.EventEmitter {
     if (beans[service] !== undefined && beans[service].routes) {
       for (let j in beans[service].routes) {
         this.log("TRACE", "Adding route", j, "for bean", service);
-        let route = beans[service].routes[j];
-        if (route.resolved) {
-          continue;
-        }
-        this.addRoute(j, {
-          methods: route.methods, // HTTP methods
-          _method: this.services[service][route.executor], // Link to service method
-          allowPath: route.allowPath || false, // Allow / in parser
-          openapi: route.openapi,
-          executor: beans[service].constructor.name // Name of the service
+        beans[service].routes[j].forEach(route => {
+          if (route.resolved) {
+            return;
+          }
+          this.addRoute(j, {
+            methods: route.methods, // HTTP methods
+            _method: this.services[service][route.executor], // Link to service method
+            allowPath: route.allowPath || false, // Allow / in parser
+            openapi: route.openapi,
+            executor: beans[service].constructor.name // Name of the service
+          });
+          route.resolved = true;
         });
-        route.resolved = true;
       }
     }
   }

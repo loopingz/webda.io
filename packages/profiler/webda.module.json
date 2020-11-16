@@ -1,0 +1,8 @@
+{
+  "services": {
+    "Webda/Profiler": "./lib/index.js"
+  },
+  "models": {},
+  "deployers": {},
+  "commands": {}
+}

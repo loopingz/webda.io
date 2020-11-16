@@ -343,7 +343,6 @@ class CoreTest extends WebdaTest {
     assert.strictEqual(this.webda.getLocales().indexOf("en-GB"), 0);
     this.webda.getConfiguration().parameters.locales = local;
     assert.strictEqual(this.webda.getService("plop"), undefined);
-    this.webda.getConfiguration()._models = undefined;
     assert.strictEqual(JSON.stringify(this.webda.getModels()), "{}");
     process.env.WEBDA_CONFIG = __dirname + "/../test/config.broken.json";
     // assertInitError("ConfigurationService", "Need a source for");

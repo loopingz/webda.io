@@ -92,7 +92,16 @@ export interface Configuration {
   cachedModules?: CachedModule;
   module: Module;
   services?: any;
-  [key: string]: any;
+  parameters?: {
+    cookie?: {
+      sameSite: "None" | "Strict" | "Lax";
+      domain: string;
+      maxAge: number;
+      path: string;
+    };
+    [key: string]: any;
+  };
+  openapi?: any;
 }
 
 /**
@@ -647,8 +656,6 @@ export class Core extends events.EventEmitter {
         let serviceBean = this.services[service];
         await serviceBean.reinit(this.getServiceParams(serviceBean._name));
       } catch (err) {
-        console.log(this.configuration, err, err.stack);
-        this.configuration._services[service]._reinitException = err;
         this.log("ERROR", "Re-Init service " + service + " failed", err);
         this.log("TRACE", err.stack);
       }

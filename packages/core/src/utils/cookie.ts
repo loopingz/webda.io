@@ -116,19 +116,13 @@ class SecureCookie {
         domain: ctx.getHttpContext().getHost(),
         httpOnly: true,
         secure: ctx.getHttpContext().getProtocol() == "https",
-        maxAge: 86400 * 7
+        maxAge: 86400 * 7,
+        sameSite: "Lax"
       };
-      // Not sure here
+      // Get default cookie value from config
       let cookie = ctx.parameter("cookie");
       if (cookie !== undefined) {
-        if (cookie.domain) {
-          params.domain = cookie.domain;
-        } else {
-          params.domain = ctx.getHttpContext().getHost();
-        }
-        if (cookie.maxAge) {
-          params.maxAge = cookie.maxAge;
-        }
+        params = { ...params, ...cookie };
       }
       let value = jwt.sign(JSON.parse(JSON.stringify(this)), this._secret);
       this.sendCookie(ctx, this._name, value, params);

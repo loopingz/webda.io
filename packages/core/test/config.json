@@ -1,6 +1,9 @@
 {
   "version": 2,
   "parameters": {
+    "cookie": {
+      "sameSite": "None"
+    },
     "TEST": "Global",
     "region": "us-east-1",
     "website": ["test.webda.io", "test2.webda.io"],

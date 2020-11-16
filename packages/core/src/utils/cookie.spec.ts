@@ -13,6 +13,7 @@ class CookieTest extends WebdaTest {
   async before() {
     await super.before();
     this._ctx = await this.webda.newContext(new HttpContext("test.webda.io", "GET", "/"));
+    this.webda.updateContextWithRoute(this._ctx);
   }
 
   @test("No changes") testNoChanges() {
@@ -97,6 +98,43 @@ class CookieTest extends WebdaTest {
       {}
     );
     assert.strictEqual(cookie.needSave(), false);
+  }
+
+  @test("Cookie parameters") testCookieParameters() {
+    var cookie = new SecureCookie(
+      "test",
+      {
+        secret: SECRET
+      },
+      this._ctx,
+      {}
+    ).getProxy();
+    cookie["title"] = "plop";
+    assert.strictEqual(cookie.needSave(), true);
+    cookie.save(this._ctx);
+    assert.deepStrictEqual(this._ctx.getResponseCookies()["test"].options, {
+      path: "/",
+      domain: "test.webda.io",
+      httpOnly: true,
+      secure: false,
+      maxAge: 604800,
+      sameSite: "None"
+    });
+    cookie["title"] = "plop2";
+    assert.strictEqual(cookie.needSave(), true);
+    // @ts-ignore
+    this._ctx._params.cookie = {
+      maxAge: 3600
+    };
+    cookie.save(this._ctx);
+    assert.deepStrictEqual(this._ctx.getResponseCookies()["test"].options, {
+      path: "/",
+      domain: "test.webda.io",
+      httpOnly: true,
+      secure: false,
+      maxAge: 3600,
+      sameSite: "Lax"
+    });
   }
 
   @test("Normal enc/dec") testEncryption() {

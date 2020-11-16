@@ -6,7 +6,7 @@ import { EventEmitter } from "events";
 import * as http from "http";
 import * as sanitizeHtml from "sanitize-html";
 import { Writable } from "stream";
-import { Core, _extend } from "../core";
+import { Core } from "../core";
 import { User } from "../models/user";
 import { Service } from "../services/service";
 import { Store } from "../stores/store";
@@ -343,7 +343,7 @@ class Context extends EventEmitter {
    * @param {Object} headers to add to the response
    */
   writeHead(statusCode: number, headers: http.OutgoingHttpHeaders = undefined): this {
-    _extend(this._outputHeaders, headers);
+    this._outputHeaders = {...this._outputHeaders, ...headers};
     if (statusCode !== undefined) {
       this.statusCode = statusCode;
     }
@@ -574,7 +574,7 @@ class Context extends EventEmitter {
    */
   setRoute(route) {
     this._route = route;
-    this._params = _extend(this._params, route.params);
+    this._params = {...route.params, ...this._params};
   }
 
   getRoute() {

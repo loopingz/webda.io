@@ -1,6 +1,6 @@
 "use strict";
 // Load the AWS SDK for Node.js
-import { Binary, Context, ModdaDefinition, _extend, WebdaError } from "@webda/core";
+import { Binary, Context, ModdaDefinition, WebdaError } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
@@ -349,7 +349,7 @@ export default class S3Binary extends Binary implements CloudFormationContributo
   async store(targetStore, object, property, file, metadatas, index = "add"): Promise<any> {
     this._checkMap(targetStore._name, property);
     this._prepareInput(file);
-    file = _extend(file, this._getHashes(file.buffer));
+    file = {...file, ...this._getHashes(file.buffer)};
     let data = await this._getS3(file.hash);
     if (data === undefined) {
       let s3metas: any = {};

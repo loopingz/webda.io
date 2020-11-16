@@ -1,5 +1,5 @@
 import * as jwt from "jsonwebtoken";
-import { _extend, WebdaError } from "../core";
+import { WebdaError } from "../core";
 import { Context } from "./context";
 
 /**
@@ -44,9 +44,9 @@ class SecureCookie {
       cookies = ctx.getHttpContext().getCookies();
     }
     this._raw = this.getRaw(name, cookies);
-    _extend(this, datas);
+    Object.assign(this, datas);
     try {
-      _extend(this, jwt.verify(this._raw, this._secret));
+      Object.assign(this, jwt.verify(this._raw, this._secret));
     } catch (err) {
       // We ignore bad cookies
     }

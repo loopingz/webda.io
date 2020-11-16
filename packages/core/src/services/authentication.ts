@@ -1,7 +1,7 @@
 "use strict";
 import * as crypto from "crypto";
 import * as bcrypt from "bcryptjs";
-import { Core, ModdaDefinition, _extend } from "../core";
+import { Core, ModdaDefinition } from "../core";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
 import { Service } from "../services/service";
@@ -433,10 +433,7 @@ class Authentication extends Service {
     if (!locale) {
       locale = ctx.getLocale();
     }
-    let replacements = _extend({}, this._params.email);
-    replacements.infos = infos;
-    replacements.to = email;
-    replacements.context = ctx;
+    let replacements = {...this._params.email, infos, to: email, context: ctx};
     let mailOptions = {
       to: email,
       locale: locale,
@@ -451,9 +448,7 @@ class Authentication extends Service {
 
   async sendValidationEmail(ctx: Context, email: string) {
     var mailer: Mailer = this.getMailMan();
-    let replacements = _extend({}, this._params.email);
-    replacements.context = ctx;
-    replacements.url = ctx
+    let replacements = {...this._params.email, context: ctx, url: ctx
       .getHttpContext()
       .getAbsoluteUrl(
         this._params.url +
@@ -461,7 +456,7 @@ class Authentication extends Service {
           email +
           "&token=" +
           this.generateEmailValidationToken(ctx.getCurrentUserId(), email)
-      );
+      )};
     let userId = ctx.getCurrentUserId();
     if (userId && userId.length > 0) {
       replacements.url += "&user=" + userId;

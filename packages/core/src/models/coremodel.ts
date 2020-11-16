@@ -4,6 +4,7 @@ import { OwnerPolicy } from "../policies/ownerpolicy";
 import { Store } from "../stores/store";
 import { Context } from "../utils/context";
 import { Service } from "..";
+
 interface CoreModelDefinition {
   new (): CoreModel;
   getActions(): any;

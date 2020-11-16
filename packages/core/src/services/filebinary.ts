@@ -1,6 +1,5 @@
 import * as fs from "fs";
 import { ModdaDefinition } from "../core";
-import { _extend } from "../index";
 import { Context } from "../utils/context";
 import { Binary } from "./binary";
 
@@ -206,7 +205,7 @@ class FileBinary extends Binary {
   store(targetStore, object, property, file, metadatas, index = "add") {
     this._checkMap(targetStore._name, property);
     this._prepareInput(file);
-    file = _extend(file, this._getHashes(file.buffer));
+    file = { ...file, ...this._getHashes(file.buffer)};
     if (fs.existsSync(this._getPath(file.hash))) {
       this._touch(this._getPath(file.hash, targetStore._name + "_" + object.uuid));
       return this.updateSuccess(targetStore, object, property, "add", file, metadatas);
@@ -218,7 +217,7 @@ class FileBinary extends Binary {
   update(targetStore, object, property, index, file, metadatas) {
     this._checkMap(targetStore._name, property);
     this._prepareInput(file);
-    file = _extend(file, this._getHashes(file.buffer));
+    file = { ...file, ...this._getHashes(file.buffer)};
     if (fs.existsSync(this._getPath(file.hash))) {
       this._touch(this._getPath(file.hash, targetStore._name + "_" + object.uuid));
       return this.updateSuccess(targetStore, object, property, index, file, metadatas);

@@ -13,21 +13,24 @@ import { RouteInfo, Router } from "./router";
 import { WorkerOutput, WorkerLogLevel } from "@webda/workout";
 
 /**
- * @hidden
- */
-export const _extend = require("util")._extend;
-
-/**
  * Error with a code
  */
 export class WebdaError extends Error {
   code: string;
 
+  /**
+   * 
+   * @param code 
+   * @param message 
+   */
   constructor(code: string, message: string) {
     super(message);
     this.code = code;
   }
 
+  /**
+   * Return error code
+   */
   getCode() {
     return this.code;
   }
@@ -44,15 +47,35 @@ export class WebdaError extends Error {
  */
 export interface ModdaDefinition {
   uuid: string;
+  /**
+   * Label of the service
+   */
   label: string;
+  /**
+   * Description of your service
+   */
   description: string;
+  /**
+   * Documentation page must be available online
+   */
   documentation?: string;
+  /**
+   * Type of services
+   */
   category?: "services" | "models" | "deployers";
+  /**
+   * URL of the logo to display
+   */
   logo: string;
+  /**
+   * Schema of the configuration
+   * 
+   * If defined as string we will try to extract it with typescript-json-schema
+   */
   configuration: {
-    schema?: JSONSchema6;
-    widget?: any;
-  };
+    schema?: JSONSchema6 | string;
+    widget? : any;
+  }
 }
 
 /**
@@ -601,7 +624,7 @@ export class Core extends events.EventEmitter {
     if (executor === undefined) {
       return false;
     }
-    ctx.setRoute(this.extendParams(route, this.configuration));
+    ctx.setRoute({...this.configuration, ...route});
     ctx.setExecutor(executor);
     return true;
   }
@@ -622,14 +645,6 @@ export class Core extends events.EventEmitter {
    */
   public isDebug(): boolean {
     return false;
-  }
-
-  /**
-   * @hidden
-   */
-  protected extendParams(local, wider): any {
-    var params = _extend({}, wider);
-    return _extend(params, local);
   }
 
   /**
@@ -663,7 +678,7 @@ export class Core extends events.EventEmitter {
   }
 
   protected getServiceParams(service: string): any {
-    var params = this.extendParams(this.configuration.services[service], this.configuration.parameters);
+    var params = {...this.configuration.parameters, ...this.configuration.services[service]};
     delete params.require;
     return params;
   }

@@ -30,7 +30,8 @@ class PackagerTest {
       {
         name: "deployer",
         type: "Packager",
-        zipPath
+        zipPath,
+        includeLinkModules: true
       }
     );
     await deployer.loadDefaults();

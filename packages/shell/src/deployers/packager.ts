@@ -18,6 +18,7 @@ export interface PackagerResources extends DeployerResources {
       includes?: string[];
     };
   };
+  includeLinkModules?: boolean;
 }
 /**
  * Generate a ZIP Package of the application
@@ -290,7 +291,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
         }
         var stat = fs.lstatSync(toPacks[i]);
         let dstPath = path.relative(appPath, toPacks[i]).replace(/\.\.\//g, "");
-        if (stat.isSymbolicLink()) {
+        if (stat.isSymbolicLink() && this.resources.includeLinkModules) {
           this.addLinkPackage(archive, fs.realpathSync(toPacks[i]), dstPath);
         } else if (stat.isDirectory()) {
           // Add custom recursive function

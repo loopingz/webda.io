@@ -125,7 +125,13 @@ export class Docker<T extends DockerResources> extends Deployer<T> {
       let includeDir = path.join(pkg, p);
       glob.sync(includeDir).forEach(src => {
         let rel = path.relative(pkg, src);
-        fs.copySync(src, `link_modules/${packageInfo.name}/${rel}`);
+        this.logger.log("INFO", "Copying", src, `link_modules/${packageInfo.name}/${rel}`);
+        fs.copySync(src, `link_modules/${packageInfo.name}/${rel}`, {
+          filter: f => {
+            // Do not copy symbolic link as they seems to pose problem
+            return !fs.lstatSync(f).isSymbolicLink();
+          }
+        });
       });
     });
 

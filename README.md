@@ -9,51 +9,35 @@
 
 **Composable Serverless API**
 
-[http://webda.io](http://webda.io)
+[https://webda.io](https://webda.io)
 
 ## Goals
 
-I have servers running for my own personal use for more than 10 years because I wanted to have few websites and APIs online, but most of the time those servers are sitting and waiting.
+Back in 2014, I had servers running for my own personal use for more than 10 years because I wanted to have few websites and APIs online, but most of the time those servers are sitting and waiting. Then came **Lambda**, really cool feature from AWS, but it was tricky to turn it into a full webserver. That's one of the targets of Webda.
 
-Then came **Lambda**, really cool feature from AWS, but kind of tricky to turn it into a full webserver. That's one of the targets of Webda.
-
-I was bored also of always recoding the same API again and again with a few customizations for each client. So I wanted a system that leverages up the components system but on both the frontend and backend. The frontend moved a lot lately with JSF to GWT to Angular to ... ? **React** ! Here is my winner, of course, it will change but it is a good one I think and I really like the WebComponents part, everything was in place to start the composable UI.
+Since AWS became better with nice framework like Amplify or Serverless. Webda stayed useful as it does provide a true framework of development with some vague inspiration from Spring. It does the heavy lifting for you to abstract NoSQL, to abstract the run environment (Lambda or Kubernetes or custom)
 
 The **webda.config.json** contains the configuration of the app, defining Services, Routes, and global configuration, you can consider it as the applicationContext.xml of Spring if you prefer, with Beans=Services
 
 ## Quickstart
 
-You should checkout our demo project : [link](http://github.com/loopingz/webda.io/sample-app/)
+You should checkout our demo project : [link](https://github.com/loopingz/webda.io/sample-app/)
 
 Check our video presentation on [Youtube](https://www.youtube.com/playlist?list=PLfn1MAL4_e7ERdqj9rWlmEkK5gMkL4bKI)
 
 #### Create a project
 
 ```
-npm install -g webda-shell
-webda config
+npx @webda/shell config
+# Or install it globally
+npm install -g @webda/shell
+# or with yarn
+yarn global add @webda/shell
 ```
 
 You have the configuration UI available, where you can create a service, use a service, or create a custom API resource. You can also manually edit the webda.config.json if you prefer
 
 Below is the manual step with the manual modification, I would recommend to use the configuration UI to modify the webda.config.json
-
-#### Create a new route
-
-We will use the inline RouteHelper here, except the Lambda Route helper, the others are mainly helpers for quick and easy tests but you should use `Service` when you can as they are easier to unit test and make code cleaner.
-
-```javascript
-{
-  "*": "demo.webda.io",
-  "demo.webda.io": {
-      ...
-      "/myurl": {
-        "type": "inline",
-        "callback": "function(ctx) { ctx.write('I am an inline route'); }"
-      }
-  }
-}
-```
 
 #### Create a new service
 
@@ -124,14 +108,14 @@ First, you need to create a deployment, from the configuration UI
 Then just use the Deploy button on the UI or the webda bin :
 
 ```
-webda deploy Test
+webda deploy -d Test
 ```
 
 Your new API is ready to rock!
 
 Now, go checkout the webcomponents available
 
-### Lambda
+### CloudFormationDeployer
 
 True serverless application in a click, we will deploy your code on Lambda, do the API Gateway mapping and as much as we can so you can deploy in a glimpse of an eye
 
@@ -149,7 +133,7 @@ You can also create and publish on Docker choosing the deployment configuration 
 
 ## Services
 
-A service is a singleton component that can have access to others services, put some listeners in place, and do its own logic. It is not supposed to handle direct request from the external world so, therefore, doesn't have access to write method for output to the client.
+A service is a singleton component that can have access to others services, put some listeners in place, and do its own logic.
 
 Service implement the **EventEmitter** of NodeJS so you can emit a message to let trap for other business services
 
@@ -247,7 +231,6 @@ You have the global configuration for the application, that is override by the d
 ## Annotations
 
 @Bean({name: "", instance: ""})
-@Inject("")
 @Route({url: "", methods: [], swagger: {}})
 
 ## Requirements

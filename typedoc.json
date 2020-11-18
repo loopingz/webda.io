@@ -1,0 +1,12 @@
+{
+    "mode": "file",
+    "excludeNotExported": true,
+    "excludePrivate": true,
+    "ignoreCompilerErrors": true,
+    "exclude": [
+        "node_modules",
+        "packages/*/node_modules",
+        "packages/*/src/**/*.spec.ts",
+        "sample-app"
+    ]
+}

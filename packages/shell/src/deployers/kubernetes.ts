@@ -194,7 +194,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
         this.parameters.cron = { ...cron, cronId: this.getCronId(cron) };
         jsonpath.value(resource, '$.metadata.annotations["webda.io/cronid"]', this.parameters.cron.cronId);
         jsonpath.value(resource, '$.metadata.annotations["webda.io/crondescription"]', cron.toString());
-        let cronResource = this.objectParameter(resource);
+        let cronResource = this.replaceVariables(resource);
         this.resources.resources.push(cronResource);
         ids.push(cronResource.metadata.name);
         if (currentJobsNamesMap[cronResource.metadata.name] !== undefined) {
@@ -262,7 +262,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
         resources = [resources];
       }
       for (let i in resources) {
-        let resource = this.objectParameter(resources[i]);
+        let resource = this.replaceVariables(resources[i]);
         if (!this.completeResource(resource)) {
           this.logger.log("ERROR", `Resource invalid #${i} of resourcesFile`);
           continue;

@@ -321,7 +321,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
 
   protected getPackagedConfiguration(): Configuration {
     let config = this.app.getCurrentConfiguration();
-    config = this.objectParameter(config);
+    config = this.replaceVariables(config);
     config.cachedModules = this.app.getModules();
     return config;
   }

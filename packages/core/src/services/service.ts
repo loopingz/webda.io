@@ -3,6 +3,7 @@ import events = require("events");
 import { Core, Logger } from "../index";
 import { HttpMethodType } from "../utils/context";
 import { EventService } from "./asyncevents";
+import { WorkerLogLevel } from "@webda/workout";
 
 /**
  * Use this object for representing a service in the application
@@ -53,6 +54,10 @@ abstract class Service extends events.EventEmitter {
     return this._webda;
   }
 
+  /**
+   * Resolve parameters
+   * Call initRoutes and initBeanRoutes
+   */
   resolve() {
     this.normalizeParams();
     this.initRoutes();
@@ -117,10 +122,14 @@ abstract class Service extends events.EventEmitter {
    */
   normalizeParams() {}
 
+  /**
+   * 
+   * @param config new parameters for the service
+   */
   async reinit(config): Promise<void> {
     this._params = config;
     this.normalizeParams();
-    this.init();
+    return this.init();
   }
 
   /**
@@ -163,6 +172,9 @@ abstract class Service extends events.EventEmitter {
    */
   static getModda() {}
 
+  /**
+   * Get service name
+   */
   getName(): string {
     return this._name;
   }
@@ -187,7 +199,12 @@ abstract class Service extends events.EventEmitter {
     return Promise.resolve();
   }
 
-  log(level, ...args) {
+  /**
+   * 
+   * @param level to log
+   * @param args 
+   */
+  log(level: WorkerLogLevel, ...args: any[]) {
     this.logger.log(level, ...args);
   }
 }

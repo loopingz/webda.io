@@ -17,3 +17,10 @@ It has 3 main sections:
 ```
 
 ## Parameters
+
+Each service will be injected with its parameters.
+
+## Services
+
+This is a map with all Services name. If the `type` is not defined, then it will default
+to `type = name`, and add default namespace if it does not have a namespace.

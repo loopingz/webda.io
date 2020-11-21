@@ -9,15 +9,27 @@ import {
 } from "@webda/workout";
 import { Core } from "../core";
 
-export class MemoryLoggerService extends Service {
+/**
+ * LoggerService is useful for inheritance
+ */
+export class LoggerService extends Service {};
+
+/**
+ * MemoryLoggerService expose MemoryLogger from @webda/workout
+ */
+export class MemoryLoggerService extends LoggerService {
   workoutLogger: MemoryLogger;
   constructor(webda: Core, name: string, params: any) {
     super(webda, name, params);
-    this.workoutLogger = new MemoryLogger(webda.getWorkerOutput(), params.includeAll, params.logLevel, params.limit);
+    this.workoutLogger = new MemoryLogger(webda.getWorkerOutput(), params.logLevel, params.limit);
   }
 }
 
-export class ConsoleLoggerService extends Service {
+
+/**
+ * ConsoleLoggerService expose ConsoleLogger from @webda/workout
+ */
+export class ConsoleLoggerService extends LoggerService {
   workoutLogger: ConsoleLogger;
   constructor(webda: Core, name: string, params: any) {
     super(webda, name, params);
@@ -25,7 +37,11 @@ export class ConsoleLoggerService extends Service {
   }
 }
 
-export class FileLoggerService extends Service {
+
+/**
+ * FileLoggerService expose FileLogger from `@webda/workout`
+ */
+export class FileLoggerService extends LoggerService {
   workoutLogger: ConsoleLogger;
   constructor(webda: Core, name: string, params: any) {
     super(webda, name, params);
@@ -38,6 +54,10 @@ export class FileLoggerService extends Service {
     );
   }
 }
+
+/**
+ * 
+ */
 export class Logger implements WorkoutLogger {
   output: WorkerOutput;
   clazz: string;

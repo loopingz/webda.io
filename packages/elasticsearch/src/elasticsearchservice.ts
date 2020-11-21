@@ -240,27 +240,8 @@ export default class ElasticSearchService extends Service {
       uuid: "Webda/ElasticSearchService",
       label: "ElasticSearchService",
       description: "Index a Store allowing you to query it through ES",
-      webcomponents: [],
-      logo: "images/icons/.png",
       documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
-      configuration: {
-        default: {
-          table: "table-name"
-        },
-        widget: {
-          tag: "myservice-configurator",
-          url: "elements/services/webda-dynamodb-configurator.html"
-        },
-        schema: {
-          type: "object",
-          properties: {
-            someprop: {
-              type: "string"
-            }
-          },
-          required: ["someprop"]
-        }
-      }
+      configuration: {}
     };
   }
 }

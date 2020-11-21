@@ -66,7 +66,7 @@ export interface ModdaDefinition {
   /**
    * URL of the logo to display
    */
-  logo: string;
+  logo?: string;
   /**
    * Schema of the configuration
    * 
@@ -478,11 +478,10 @@ export class Core extends events.EventEmitter {
       let definitions = this.application.getServices();
       for (let i in definitions) {
         if (definitions[i] === clazz.constructor) {
-          className = i.replace(/\//g, ".") + ".";
+          className = i.replace(/\//g, ".");
           break;
         }
       }
-      className += clazz.getName();
     }
     return new Logger(this.workerOutput, <string>className);
   }

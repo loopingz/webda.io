@@ -56,7 +56,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     let url = this._url + "/upload/data/{hash}";
     let name = this._name === "Binary" ? "" : this._name;
     if (!this.parameters.expose.restrict.create) {
-      this._addRoute(url, ["PUT"], this.storeBinary, {
+      this.addRoute(url, ["PUT"], this.storeBinary, {
         put: {
           operationId: `put${name}Binary`,
           description: "Upload a binary to an object after challenge",

@@ -42,7 +42,7 @@ export default class ResourceService<T extends ResourceServiceParameters = Resou
   }
 
   initRoutes() {
-    this._addRoute(this.parameters.url, ["GET"], this._serve, {
+    this.addRoute(this.parameters.url, ["GET"], this._serve, {
       get: {
         description: "Get resources",
         summary: "Get file",
@@ -54,7 +54,7 @@ export default class ResourceService<T extends ResourceServiceParameters = Resou
         }
       }
     });
-    this._addRoute(
+    this.addRoute(
       this.parameters.url + "{resource}",
       ["GET"],
       this._serve,
@@ -73,7 +73,7 @@ export default class ResourceService<T extends ResourceServiceParameters = Resou
       true
     );
     if (this.parameters.rootRedirect) {
-      this._addRoute("/", ["GET"], this._redirect, {
+      this.addRoute("/", ["GET"], this._redirect, {
         get: {
           description: "Redirect / to the exposed url",
           summary: "Serve resource",

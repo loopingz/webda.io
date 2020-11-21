@@ -11,10 +11,10 @@ class VoidStore extends Webda.Store {
 
   initRoutes() {
     if (this.parameters.brokenInit) throw Error();
-    this._addRoute("/broken/{type}", ["GET"], this._brokenRoute);
-    this._addRoute("/", ["GET", "POST"], this._default);
-    this._addRoute("/urltemplate/{id}", ["GET"], this._template);
-    this._addRoute("/urltemplate/callback{?code}", ["GET"], this._query);
+    this.addRoute("/broken/{type}", ["GET"], this._brokenRoute);
+    this.addRoute("/", ["GET", "POST"], this._default);
+    this.addRoute("/urltemplate/{id}", ["GET"], this._template);
+    this.addRoute("/urltemplate/callback{?code}", ["GET"], this._query);
   }
 
   _template() {}

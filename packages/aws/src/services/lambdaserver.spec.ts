@@ -8,8 +8,8 @@ import { LambdaServer } from "./lambdaserver";
 @Bean
 class ExceptionExecutor extends Service {
   initRoutes() {
-    this._addRoute("/broken/{type}", ["GET"], this._brokenRoute);
-    this._addRoute("/route/string", ["GET"], this.onString);
+    this.addRoute("/broken/{type}", ["GET"], this._brokenRoute);
+    this.addRoute("/route/string", ["GET"], this.onString);
   }
 
   @Route("/route/broken/{type}")

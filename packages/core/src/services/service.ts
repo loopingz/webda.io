@@ -107,7 +107,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
    * @param {Array[]} methods
    * @param {Function} executer Method to execute for this route
    */
-  protected _addRoute(
+  protected addRoute(
     url: string,
     methods: HttpMethodType[],
     executer: Function,

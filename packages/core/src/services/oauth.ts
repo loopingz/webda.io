@@ -49,7 +49,7 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
     this.parameters.url = this.parameters.url || `${this.getDefaultUrl()}{?redirect}`;
     let name = this.getName();
 
-    this._addRoute(this.parameters.url, ["GET"], this._redirect, {
+    this.addRoute(this.parameters.url, ["GET"], this._redirect, {
       get: {
         description: `Log with a ${name} account`,
         summary: `Redirect to ${name}`,
@@ -61,7 +61,7 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
       }
     });
 
-    this._addRoute(
+    this.addRoute(
       this.parameters.url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}",
       ["GET"],
       this._callback,
@@ -79,7 +79,7 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
     );
 
     if (this.hasToken()) {
-      this._addRoute(this.parameters.url + "/token", ["POST"], this._token, {
+      this.addRoute(this.parameters.url + "/token", ["POST"], this._token, {
         post: {
           description: `Log with a ${name} token`,
           summary: `Use the token provide to validate with ${name} the user`,
@@ -93,7 +93,7 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
     }
 
     if (this.parameters.exposeScope) {
-      this._addRoute(this.parameters.url + "/scope", ["GET"], this._scope, {
+      this.addRoute(this.parameters.url + "/scope", ["GET"], this._scope, {
         get: {
           description: `List ${name} auth scope for this apps`,
           summary: "Retrieve the scope intended to be used with this auth",

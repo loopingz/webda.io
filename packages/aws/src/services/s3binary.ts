@@ -62,7 +62,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     var url = this._url + "/{store}/{uid}/{property}/{index}";
     let name = this._name === "Binary" ? "" : this._name;
     if (!this.parameters.expose.restrict.get) {
-      this._addRoute(url, ["GET"], this.getRedirectUrl, {
+      this.addRoute(url, ["GET"], this.getRedirectUrl, {
         get: {
           description: "Download a binary linked to an object",
           summary: "Download a binary",
@@ -77,7 +77,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       });
       url = this._url + "/{store}/{uid}/{property}/{index}/url";
       name = this._name === "Binary" ? "" : this._name;
-      this._addRoute(url, ["GET"], this.getRedirectUrlInfo, {
+      this.addRoute(url, ["GET"], this.getRedirectUrlInfo, {
         get: {
           description: "Get a redirect url to binary linked to an object",
           summary: "Get redirect url of a binary",

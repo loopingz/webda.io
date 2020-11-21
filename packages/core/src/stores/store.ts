@@ -140,7 +140,7 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> ex
     const expose = this.parameters.expose;
 
     if (!expose.restrict.create) {
-      this._addRoute(expose.url, ["POST"], this.httpCreate, {
+      this.addRoute(expose.url, ["POST"], this.httpCreate, {
         model: this._model.name,
         post: {
           description: `The way to create a new ${this._model.name} model`,
@@ -172,7 +172,7 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> ex
     }
     this._exposeUrl = expose.url;
     if (methods.length) {
-      this._addRoute(expose.url + "/{uuid}", methods, this.httpRoute, {
+      this.addRoute(expose.url + "/{uuid}", methods, this.httpRoute, {
         model: this._model.name,
         get: {
           description: `Retrieve ${this._model.name} model if permissions allow`,
@@ -245,7 +245,7 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> ex
             }
             action._method = this.httpGlobalAction;
           }
-          this._addRoute(expose.url + "/" + action.name, action.method, action._method, action.openapi);
+          this.addRoute(expose.url + "/" + action.name, action.method, action._method, action.openapi);
         } else {
           // By default will grab the object and then call the action
           if (!action._method) {
@@ -254,7 +254,7 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> ex
             }
             action._method = this.httpAction;
           }
-          this._addRoute(expose.url + "/{uuid}/" + action.name, action.method, action._method, action.openapi);
+          this.addRoute(expose.url + "/{uuid}/" + action.name, action.method, action._method, action.openapi);
         }
       });
     }

@@ -90,7 +90,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     // ROUTES
     let url = this.parameters.url;
     // List authentication configured
-    this._addRoute(url, ["GET", "DELETE"], this._listAuthentications, {
+    this.addRoute(url, ["GET", "DELETE"], this._listAuthentications, {
       get: {
         description: "Retrieve the list of available authentication",
         summary: "Get available auths",
@@ -111,7 +111,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       }
     });
     // Get the current user
-    this._addRoute(url + "/me", ["GET"], this._getMe, {
+    this.addRoute(url + "/me", ["GET"], this._getMe, {
       get: {
         description: "Retrieve the current user from the session",
         summary: "Get current user",
@@ -121,17 +121,17 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     if (this.parameters.email) {
       this.addProvider("email");
       // Add static for email for now, if set before it should have priority
-      this._addRoute(url + "/email", ["POST"], this._handleEmail, {
+      this.addRoute(url + "/email", ["POST"], this._handleEmail, {
         post: {
           description: "Authenticate with an email and password",
           summary: "Authenticate with email",
           operationId: `authWithEmail`
         }
       });
-      this._addRoute(url + "/email/callback{?email,token,user}", ["GET"], this._handleEmailCallback, {
+      this.addRoute(url + "/email/callback{?email,token,user}", ["GET"], this._handleEmailCallback, {
         hidden: true
       });
-      this._addRoute(url + "/email/passwordRecovery", ["POST"], this._passwordRecovery, {
+      this.addRoute(url + "/email/passwordRecovery", ["POST"], this._passwordRecovery, {
         post: {
           description: "Reinit the password if we have the right token, expire",
           summary: "Reinit password",
@@ -159,7 +159,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
           }
         }
       });
-      this._addRoute(url + "/email/{email}/recover", ["GET"], this._passwordRecoveryEmail, {
+      this.addRoute(url + "/email/{email}/recover", ["GET"], this._passwordRecoveryEmail, {
         get: {
           description: "The password reset process will be start",
           summary: "Start password recovery",
@@ -171,7 +171,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
           }
         }
       });
-      this._addRoute(url + "/email/{email}/validate", ["GET"], this._sendEmailValidation, {
+      this.addRoute(url + "/email/{email}/validate", ["GET"], this._sendEmailValidation, {
         get: {
           description: "The email validation process will be start",
           summary: "Restart email validation",

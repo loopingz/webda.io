@@ -16,11 +16,11 @@ export default class ConfigurationService extends Service implements RequestFilt
   resolve() {
     super.resolve();
     this._webda.registerRequestFilter(this);
-    this._addRoute("/configuration", ["GET", "PUT"], this.crudConfiguration);
-    this._addRoute("/application", ["GET"], this.getApplication);
-    this._addRoute("/npm", ["POST"], this.npmSearch);
-    this._addRoute("/npm/search", ["POST"], this.npmSearch);
-    this._addRoute("/webda", ["GET"], this.getWebdaVersions);
+    this.addRoute("/configuration", ["GET", "PUT"], this.crudConfiguration);
+    this.addRoute("/application", ["GET"], this.getApplication);
+    this.addRoute("/npm", ["POST"], this.npmSearch);
+    this.addRoute("/npm/search", ["POST"], this.npmSearch);
+    this.addRoute("/webda", ["GET"], this.getWebdaVersions);
   }
 
   async init() {

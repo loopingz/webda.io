@@ -29,7 +29,7 @@ export default class ElasticSearchService<
         return;
       }
       if (index.url) {
-        this._addRoute(index.url, ["POST"], this._httpSearch);
+        this.addRoute(index.url, ["POST"], this._httpSearch);
       }
       this.log("INFO", "Setup the Store listeners");
       // Plug on every modification on the store to update the index accordingly

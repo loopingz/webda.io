@@ -399,7 +399,7 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
 
     if (!this.parameters.expose.restrict.get) {
       url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}";
-      this._addRoute(url, ["GET"], this.httpRoute, {
+      this.addRoute(url, ["GET"], this.httpRoute, {
         get: {
           operationId: `get${name}Binary`,
           description: "Download a binary linked to an object",
@@ -417,7 +417,7 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
     if (!this.parameters.expose.restrict.create) {
       // No need the index to add file
       url = this.parameters.expose.url + "/{store}/{uid}/{property}";
-      this._addRoute(url, ["POST"], this.httpPost, {
+      this.addRoute(url, ["POST"], this.httpPost, {
         post: {
           operationId: `add${name}Binary`,
           description: "Add a binary linked to an object",
@@ -439,7 +439,7 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
     if (!this.parameters.expose.restrict.create) {
       // Add file with challenge
       url = this.parameters.expose.url + "/upload/{store}/{uid}/{property}/{index}";
-      this._addRoute(url, ["PUT"], this.httpChallenge, {
+      this.addRoute(url, ["PUT"], this.httpChallenge, {
         put: {
           operationId: `put${name}Binary`,
           description: "Add a binary to an object after challenge",
@@ -457,7 +457,7 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
     if (!this.parameters.expose.restrict.delete) {
       // Need hash to avoid concurrent delete
       url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
-      this._addRoute(url, ["DELETE"], this.httpRoute, {
+      this.addRoute(url, ["DELETE"], this.httpRoute, {
         delete: {
           operationId: `delete${name}Binary`,
           description: "Delete a binary linked to an object",

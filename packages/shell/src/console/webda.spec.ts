@@ -108,7 +108,7 @@ class ConsoleTest {
   async debugCommandLine() {
     WebdaSampleApplication.clean();
     console.log("Launch debug command line");
-    this.commandLine(`debug -d Dev --port 28080`);
+    this.commandLine(`debug -d Dev -b 127.0.0.1 --port 28080`);
     for (let i = 0; i < 100; i++) {
       if (WebdaConsole.webda) {
         break;
@@ -149,8 +149,8 @@ class DynamicService extends Service {
       let res = await fetch(`http://localhost:28080/myNewRoute`);
       assert.strictEqual(res.status, 200);
     } catch (err) {
-      // Skip this part on Travis for now
-      if (!process.env.TRAVIS) {
+      // Skip this part on Travis and GitHub actions for now
+      if (!process.env.TRAVIS && !process.env.CI) {
         throw err;
       }
     }

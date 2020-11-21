@@ -56,6 +56,10 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       region: this.resources.region
     });
     this.resources.endpoints = this.resources.endpoints || {};
+    this.resources.Tags = this.resources.Tags || {};
+    if (Array.isArray(this.resources.Tags)) {
+      this.resources.Tags = this.transformMapTagsToArray(this.resources.Tags);
+    }
     this.AWS = AWS;
     this.resources.createMissingResources = this.resources.createMissingResources || false;
   }

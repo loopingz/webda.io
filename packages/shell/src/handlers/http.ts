@@ -259,7 +259,7 @@ export class WebdaServer extends Webda {
       app.use(this.handleRequest.bind(this));
       this.serveStaticWebsite(express, app);
 
-      this.http = http.createServer(app).listen(port);
+      this.http = http.createServer(app).listen(port, "127.0.0.1");
       process.on("SIGINT", function () {
         if (this.http) {
           this.http.close();

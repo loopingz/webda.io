@@ -149,6 +149,7 @@ export default class ProfilingService extends Service {
     });
   }
 
+  /** @inheritdoc */
   static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/Profiler",

@@ -90,6 +90,9 @@ export default class WebdaConsole {
         alias: "p",
         default: 18080
       })
+      .option("bind", {
+        alias: "b"
+      })
       .option("websockets", {
         alias: "w",
         default: false
@@ -202,6 +205,11 @@ export default class WebdaConsole {
       if (argv.port) {
         args.push("--port");
         args.push(argv.port);
+      }
+
+      if (argv.bind) {
+        args.push("--bind");
+        args.push(argv.bind);
       }
 
       args.push("serve");

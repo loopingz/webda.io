@@ -145,7 +145,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
   @test
   async testCreateBucket() {
     try {
-      this.deployer.resources.Tags = this.deployer.transformTags({ test: "mytag" });
+      this.deployer.resources.Tags = this.deployer.transformMapTagsToArray({ test: "mytag" });
       var headSpy = sinon.stub();
       headSpy.callsFake((params, callback) => {
         let res = {};

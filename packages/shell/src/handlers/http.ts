@@ -216,8 +216,9 @@ export class WebdaServer extends Webda {
    *
    * @param port to listen to
    * @param websockets to enable websockets
+   * @param bind address to bind
    */
-  async serve(port: number = 18080, websockets: boolean = false) {
+  async serve(port: number = 18080, websockets: boolean = false, bind: string = undefined) {
     this.serverStatus = ServerStatus.Starting;
     try {
       var express = require("express");
@@ -259,7 +260,7 @@ export class WebdaServer extends Webda {
       app.use(this.handleRequest.bind(this));
       this.serveStaticWebsite(express, app);
 
-      this.http = http.createServer(app).listen(port, "127.0.0.1");
+      this.http = http.createServer(app).listen(port, bind);
       process.on("SIGINT", function () {
         if (this.http) {
           this.http.close();

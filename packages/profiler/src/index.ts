@@ -44,9 +44,9 @@ export default class ProfilingService extends Service {
   postprocessor(service: Service, method: string, data?: any, err?: any) {
     let duration = Date.now() - data.start;
     if (err) {
-      this.log(`${service._name}.${method}: ${duration}ms - ERROR ${err}`);
+      this.logMetrics(`${service._name}.${method}: ${duration}ms - ERROR ${err}`);
     } else {
-      this.log(`${service._name}.${method}: ${duration}ms`);
+      this.logMetrics(`${service._name}.${method}: ${duration}ms`);
     }
   }
 
@@ -68,7 +68,6 @@ export default class ProfilingService extends Service {
       for (let mi in methods) {
         let m: string = methods[mi];
         ((service, method) => {
-          const name = `${services[service]._name}.${method}`;
           const originalMethod = services[service][method];
           services[service][method] = (...args) => {
             let data = this.preprocessor(services[service], method);
@@ -124,9 +123,9 @@ export default class ProfilingService extends Service {
         throw err;
       } finally {
         if (error) {
-          this.log("TRACE", `Request took ${Date.now() - start}ms with error '${error.message}'`);
+          this.logMetrics(`Request took ${Date.now() - start}ms with error '${error.message}'`);
         } else {
-          this.log("TRACE", `Request took ${Date.now() - start}ms`);
+          this.logMetrics(`Request took ${Date.now() - start}ms`);
         }
       }
     };

@@ -5,6 +5,6 @@ import { Application } from "@webda/core";
 
 var lambda = new aws.LambdaServer(new Application(process.cwd()));
 
-exports.handler = async function(event, context) {
+exports.handler = async function (event, context) {
   return await lambda.handleRequest(event, context);
 };

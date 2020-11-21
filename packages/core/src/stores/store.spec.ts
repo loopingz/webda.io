@@ -374,6 +374,7 @@ abstract class StoreTest extends WebdaTest {
     await this.sleep(10);
     await identStore.incrementAttribute(ident1.uuid, "counter", 1);
     let ident = await identStore.get(ident1.uuid);
+
     // Verify lastUpdate is updated too
     this.assertLastUpdateNotEqual(ident._lastUpdate, ident1._lastUpdate, "lastUpdate after incrementAttribute failed");
     assert.strictEqual(ident.counter, 1);
@@ -385,6 +386,7 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(res, true);
     ident1 = await identStore.get(ident1.uuid);
     assert.strictEqual(ident1.counter, -2);
+
     // Check DELETE
     eventFired = 0;
     await identStore.delete(ident1.uuid, true);

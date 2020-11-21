@@ -182,7 +182,7 @@ class Context extends EventEmitter {
   _ended: Promise<any> = undefined;
   _stream: any;
   _promises: Promise<any>[];
-  _executor: Service;
+  _executor: Service<any>;
   _flushHeaders: boolean;
   _sanitized: any;
   protected _params: any = undefined;
@@ -343,7 +343,7 @@ class Context extends EventEmitter {
    * @param {Object} headers to add to the response
    */
   writeHead(statusCode: number, headers: http.OutgoingHttpHeaders = undefined): this {
-    this._outputHeaders = {...this._outputHeaders, ...headers};
+    this._outputHeaders = { ...this._outputHeaders, ...headers };
     if (statusCode !== undefined) {
       this.statusCode = statusCode;
     }
@@ -418,7 +418,7 @@ class Context extends EventEmitter {
     if (this._ended) {
       return this._ended;
     }
-    this._ended = new Promise(async resolve => {
+    this._ended = new Promise<void>(async resolve => {
       this.emit("end");
       await Promise.all(this._promises);
       if (this._buffered && this._stream._body !== undefined) {
@@ -516,7 +516,7 @@ class Context extends EventEmitter {
     if (!this.getCurrentUserId()) {
       return undefined;
     }
-    return this._webda.getService<Store<T>>("Users").get(this.getCurrentUserId());
+    return this._webda.getService<Store<T, any>>("Users").get(this.getCurrentUserId());
   }
 
   /**
@@ -532,7 +532,7 @@ class Context extends EventEmitter {
   /**
    * Return the service handling the request
    */
-  getExecutor(): Service {
+  getExecutor(): Service<any> {
     return this._executor;
   }
 
@@ -574,7 +574,7 @@ class Context extends EventEmitter {
    */
   setRoute(route) {
     this._route = route;
-    this._params = {...route.params, ...this._params};
+    this._params = { ...route.params, ...this._params };
   }
 
   getRoute() {

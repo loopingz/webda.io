@@ -1,10 +1,18 @@
-import { CoreModel, ModdaDefinition, Store, WebdaError } from "@webda/core";
+import { CoreModel, ModdaDefinition, ServiceParameters, Store, StoreParameters, WebdaError } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import { CloudFormationDeployer } from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
 import * as AWS from "aws-sdk";
 import { WorkerOutput } from "@webda/workout";
 
+export class DynamoStoreParameters extends StoreParameters {
+  table: string;
+  endpoint: string;
+  CloudFormation: any;
+  CloudFormationSkip: boolean;
+  region: string;
+  scanPage: number;
+}
 /**
  * DynamoStore handles the DynamoDB
  *
@@ -15,19 +23,32 @@ import { WorkerOutput } from "@webda/workout";
  *   region: ''
  *
  */
-export default class DynamoStore<T extends CoreModel> extends Store<T> implements CloudFormationContributor {
+export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParameters = DynamoStoreParameters>
+  extends Store<T, K>
+  implements CloudFormationContributor {
   _client: any;
 
-  /** @ignore */
-  constructor(webda, name, params) {
-    super(webda, name, params);
-    if (params.table === undefined) {
+  /**
+   * Load the parameters
+   *
+   * @param params
+   */
+  loadParameters(params: any) {
+    return new DynamoStoreParameters(params, this);
+  }
+
+  /**
+   * Create the AWS client
+   */
+  computeParameters() {
+    super.computeParameters();
+    if (this._params.table === undefined) {
       throw new WebdaError(
         "DYNAMODB_TABLE_PARAMETER_REQUIRED",
         "Need to define a table,accessKeyId,secretAccessKey at least"
       );
     }
-    this._client = new (GetAWS(params).DynamoDB.DocumentClient)({
+    this._client = new (GetAWS(this._params).DynamoDB.DocumentClient)({
       endpoint: this._params.endpoint
     });
   }
@@ -226,7 +247,7 @@ export default class DynamoStore<T extends CoreModel> extends Store<T> implement
     if (writeCondition instanceof Date) {
       writeCondition = this._serializeDate(writeCondition);
     }
-    return this._writeConditionField + " = " + writeCondition;
+    return this._lastUpdateField + " = " + writeCondition;
   }
 
   async _delete(uid, writeCondition = undefined) {

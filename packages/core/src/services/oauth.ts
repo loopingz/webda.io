@@ -1,11 +1,35 @@
 import { Context, RequestFilter } from "../";
-import { Service } from "./service";
+import { Service, ServiceParameters } from "./service";
 import { Authentication } from "./authentication";
 
 import { v4 as uuidv4 } from "uuid";
 
-export abstract class OAuthService extends Service implements RequestFilter<Context> {
+class OAuthServiceParameters extends ServiceParameters {
+  url: string;
+  scope: string[];
+  exposeScope: boolean;
+  authorized_uris: string[];
+  redirect_uri: string;
+
+  constructor(params: any) {
+    super(params);
+    this.scope = this.scope ?? ["email"];
+    this.exposeScope = this.exposeScope ?? false;
+    this.authorized_uris = this.authorized_uris ?? [];
+  }
+}
+export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServiceParameters> extends Service<T>
+  implements RequestFilter<Context> {
   _authenticationService: Authentication;
+
+  /**
+   * Load parameters
+   *
+   * @param params
+   */
+  loadParameters(params: any): ServiceParameters {
+    return new OAuthServiceParameters(params);
+  }
 
   async checkRequest(context: Context): Promise<boolean> {
     let regexps = this.getCallbackReferer();

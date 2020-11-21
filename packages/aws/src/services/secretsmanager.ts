@@ -1,11 +1,25 @@
-import { ConfigurationProvider, ModdaDefinition, Service } from "@webda/core";
+import { ConfigurationProvider, ModdaDefinition, Service, ServiceParameters } from "@webda/core";
 import { GetAWS } from "./aws-mixin";
 
-export default class AWSSecretsManager extends Service implements ConfigurationProvider {
+export class AWSSecretsManagerParameters extends ServiceParameters {
+  endpoint: string;
+  region: string;
+}
+export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = AWSSecretsManagerParameters>
+  extends Service<T>
+  implements ConfigurationProvider {
   _client: any;
 
-  async init(): Promise<void> {
-    await super.init();
+  /**
+   * Load the parameters
+   *
+   * @param params
+   */
+  loadParameters(params: any) {
+    return new AWSSecretsManagerParameters(params);
+  }
+
+  computeParameters() {
     this._client = new (GetAWS(this._params).SecretsManager)({
       endpoint: this._params.endpoint
     });

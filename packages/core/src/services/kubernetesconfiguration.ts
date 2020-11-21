@@ -1,4 +1,4 @@
-import ConfigurationService from "./configuration";
+import { ConfigurationService, ConfigurationServiceParameters } from "./configuration";
 import { WebdaError } from "../core";
 import * as fs from "fs";
 import * as path from "path";
@@ -7,7 +7,7 @@ import { JSONUtils } from "../utils/json";
 /**
  * Allow for dynamic configuration
  */
-export class KubernetesConfigurationService extends ConfigurationService {
+export class KubernetesConfigurationService<T extends ConfigurationServiceParameters> extends ConfigurationService<T> {
   async init() {
     // Do not call super as we diverged
     if (!this._params.source) {

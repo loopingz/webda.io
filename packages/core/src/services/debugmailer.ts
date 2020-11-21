@@ -14,9 +14,9 @@ export default class DebugMailer extends Service {
 
   /**
    * Fakely send a message saving it to memory to test later on
-   * 
-   * @param options 
-   * @param callback 
+   *
+   * @param options
+   * @param callback
    */
   send(options, callback = undefined) {
     this.log("DEBUG", "Send a fake email", options);
@@ -37,12 +37,10 @@ export default class DebugMailer extends Service {
     throw new Error("FakeError");
   }
 
-
   /**
    * Empty async method
    */
-  async async() : Promise<void> {}
-  
+  async async(): Promise<void> {}
 
   /** @inheritdoc */
   static getModda(): ModdaDefinition {

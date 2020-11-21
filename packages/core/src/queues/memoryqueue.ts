@@ -1,6 +1,7 @@
 "use strict";
 import * as uuid from "uuid";
 import { ModdaDefinition } from "../core";
+import { Service, ServiceParameters } from "../services/service";
 import { JSONUtils } from "../utils/json";
 import { Queue } from "./queueservice";
 
@@ -8,20 +9,31 @@ interface QueueMap {
   [key: string]: any;
 }
 
+export class MemoryQueueParameters extends ServiceParameters {
+  expire: number;
+
+  constructor(params: any) {
+    super(params);
+    this.expire = this.expire ?? 30;
+    this.expire *= 1000;
+  }
+}
+
 /**
  * FIFO Queue in Memory
  * @category CoreServices
  */
-class MemoryQueue extends Queue {
-  private _queue: QueueMap;
+class MemoryQueue<T extends MemoryQueueParameters = MemoryQueueParameters> extends Queue<T> {
+  private _queue: QueueMap = {};
 
-  async init(): Promise<void> {
-    await super.init();
-    this._queue = {};
-    if (!this._params.expire) {
-      this._params.expire = 30;
-    }
-    this._params.expire *= 1000;
+  /**
+   * Load parameters
+   *
+   * @param params
+   * @ignore
+   */
+  loadParameters(params: any): ServiceParameters {
+    return new MemoryQueueParameters(params);
   }
 
   /**
@@ -33,6 +45,14 @@ class MemoryQueue extends Queue {
 
   async sendMessage(params) {
     var uid = uuid.v4();
+    if (!this._queue) {
+      console.log("weird");
+      try {
+        throw new Error();
+      } catch (err) {
+        console.log(err);
+      }
+    }
     // Avoid duplication
     while (this._queue[uid]) {
       uid = uuid.v4();

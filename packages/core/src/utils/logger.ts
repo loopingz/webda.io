@@ -1,4 +1,4 @@
-import { Service } from "../services/service";
+import { Service, ServiceParameters } from "../services/service";
 import {
   Logger as WorkoutLogger,
   WorkerOutput,
@@ -9,15 +9,24 @@ import {
 } from "@webda/workout";
 import { Core } from "../core";
 
+export class LoggerServiceParameters extends ServiceParameters {
+  logLevel: WorkerLogLevel = "INFO";
+}
+
 /**
  * LoggerService is useful for inheritance
  */
-export class LoggerService extends Service {};
+export class LoggerService<T extends LoggerServiceParameters = LoggerServiceParameters> extends Service<T> {}
 
+export class MemoryLoggerServiceParameters extends LoggerServiceParameters {
+  limit: number;
+}
 /**
  * MemoryLoggerService expose MemoryLogger from @webda/workout
  */
-export class MemoryLoggerService extends LoggerService {
+export class MemoryLoggerService<
+  T extends MemoryLoggerServiceParameters = MemoryLoggerServiceParameters
+> extends LoggerService<T> {
   workoutLogger: MemoryLogger;
   constructor(webda: Core, name: string, params: any) {
     super(webda, name, params);
@@ -25,11 +34,15 @@ export class MemoryLoggerService extends LoggerService {
   }
 }
 
-
+export class ConsoleLoggerServiceParameters extends LoggerServiceParameters {
+  format: string;
+}
 /**
  * ConsoleLoggerService expose ConsoleLogger from @webda/workout
  */
-export class ConsoleLoggerService extends LoggerService {
+export class ConsoleLoggerService<
+  T extends ConsoleLoggerServiceParameters = ConsoleLoggerServiceParameters
+> extends LoggerService<T> {
   workoutLogger: ConsoleLogger;
   constructor(webda: Core, name: string, params: any) {
     super(webda, name, params);
@@ -37,11 +50,17 @@ export class ConsoleLoggerService extends LoggerService {
   }
 }
 
-
+export class FileLoggerServiceParameters extends LoggerServiceParameters {
+  format: string;
+  file: string;
+  sizeLimit: number;
+}
 /**
  * FileLoggerService expose FileLogger from `@webda/workout`
  */
-export class FileLoggerService extends LoggerService {
+export class FileLoggerService<
+  T extends FileLoggerServiceParameters = FileLoggerServiceParameters
+> extends LoggerService<T> {
   workoutLogger: ConsoleLogger;
   constructor(webda: Core, name: string, params: any) {
     super(webda, name, params);
@@ -56,7 +75,7 @@ export class FileLoggerService extends LoggerService {
 }
 
 /**
- * 
+ *
  */
 export class Logger implements WorkoutLogger {
   output: WorkerOutput;

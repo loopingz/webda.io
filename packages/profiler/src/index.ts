@@ -1,9 +1,9 @@
-import { Service, ModdaDefinition, Context, LoggerService } from "@webda/core";
+import { Service, ModdaDefinition, Context, LoggerService, ServiceParameters } from "@webda/core";
 
 /**
  * Profiler Parameters
  */
-export class ProfilerParameters {
+export class ProfilerParameters extends ServiceParameters {
   /**
    * Disable the service
    */
@@ -14,7 +14,7 @@ export class ProfilerParameters {
  *
  * Mesure timing of each method and display them in TRACE
  */
-export default class Profiler extends Service {
+export default class Profiler<T extends ProfilerParameters = ProfilerParameters> extends Service<T> {
   /**
    * Return all methods from an object
    *
@@ -70,12 +70,11 @@ export default class Profiler extends Service {
   /**
    * Return true if the service should not be instrumentalized
    * Logger service are excluded
-   * 
+   *
    * @param service to check
    */
-  excludeService(service: Service) : boolean {
+  excludeService(service: Service): boolean {
     return service instanceof LoggerService || this === service;
-
   }
   /**
    * Patch all services method: interlacing our pre/post processor

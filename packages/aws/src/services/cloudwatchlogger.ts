@@ -1,16 +1,40 @@
-import { ModdaDefinition, Service } from "@webda/core";
-import { LogFilter, WorkerMessage } from "@webda/workout";
+import { ModdaDefinition, Service, ServiceParameters } from "@webda/core";
+import { LogFilter, WorkerLogLevel, WorkerMessage } from "@webda/workout";
 import * as uuid from "uuid";
 import { CloudFormationContributor } from ".";
 import { GetAWS } from "./aws-mixin";
 
-export default class CloudWatchLogger extends Service implements CloudFormationContributor {
+export class CloudWatchLoggerParameters extends ServiceParameters {
+  logGroupName: string;
+  logStreamNamePrefix: string;
+  endpoint: string;
+  kmsKeyId: string;
+  tags: any;
+  logLevel: WorkerLogLevel;
+  singlePush: boolean;
+  CloudFormation: any;
+  CloudFormationSkip: boolean;
+  region: string;
+}
+
+export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = CloudWatchLoggerParameters>
+  extends Service<T>
+  implements CloudFormationContributor {
   _logGroupName: string;
   _logStreamName: string;
   _seqToken: string;
   _logStream: any;
   _cloudwatch: any;
   _bufferedLogs: any[] = [];
+
+  /**
+   * Load the parameters
+   *
+   * @param params
+   */
+  loadParameters(params: any) {
+    return new CloudWatchLoggerParameters(params);
+  }
 
   async init(): Promise<void> {
     await super.init();

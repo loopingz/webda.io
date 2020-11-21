@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { CoreModel, HttpContext, SecureCookie, Store, User } from "../index";
+import { CoreModel, HttpContext, SecureCookie, Store, User, StoreParameters } from "../index";
 import { WebdaTest } from "../test";
 
 @suite
@@ -8,8 +8,8 @@ class OwnerPolicyTest extends WebdaTest {
   _ctx;
   _session: SecureCookie;
   _user: User;
-  _taskStore: Store<CoreModel>;
-  _userStore: Store<CoreModel>;
+  _taskStore: Store<CoreModel, any>;
+  _userStore: Store<CoreModel, any>;
 
   async before() {
     await super.before();
@@ -19,8 +19,8 @@ class OwnerPolicyTest extends WebdaTest {
     this._ctx.getCurrentUser = async () => {
       return this._user;
     };
-    this._taskStore = <Store<CoreModel>>this.webda.getService("Tasks");
-    this._userStore = <Store<CoreModel>>this.webda.getService("Users");
+    this._taskStore = this.webda.getService<Store<CoreModel, any>>("Tasks");
+    this._userStore = <Store<CoreModel, any>>this.webda.getService("Users");
     assert.notStrictEqual(this._taskStore, undefined);
     assert.notStrictEqual(this._userStore, undefined);
   }

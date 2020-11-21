@@ -4,7 +4,7 @@ import * as bcrypt from "bcryptjs";
 import { Core, ModdaDefinition } from "../core";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
-import { Service } from "../services/service";
+import { Service, ServiceParameters } from "../services/service";
 import { Store } from "../stores/store";
 import { Context } from "../utils/context";
 import { Mailer } from "./mailer";
@@ -19,6 +19,38 @@ class PasswordRecoveryInfos {
   public login: string;
 }
 
+export class AuthenticationParameters extends ServiceParameters {
+  identStore: string;
+  userStore: string;
+  url: string;
+  email?: {
+    mailer?: string;
+    postValidation: boolean;
+    skipEmailValidation: boolean;
+    delay: number;
+    text?: string;
+  };
+  password: {
+    verifier?: string;
+    regexp: string;
+  };
+  salt: string;
+  failureRedirect: string;
+  successRedirect: string;
+
+  constructor(params: any) {
+    super(params);
+    this.identStore = this.identStore ?? "idents";
+    this.userStore = this.userStore ?? "users";
+    this.url = this.url ?? "/auth";
+    this.password = this.password ?? {
+      regexp: ".{8,}"
+    };
+    if (this.email) {
+      this.email.delay = this.email.delay || 3600000 * 4;
+    }
+  }
+}
 /**
  * This class is known as the Authentication module
  * It handles OAuth for several providers for now (Facebook, Google, Amazon, GitHub and Twitter)
@@ -40,20 +72,18 @@ class PasswordRecoveryInfos {
  *
  * @category CoreServices
  */
-class Authentication extends Service {
+class Authentication<T extends AuthenticationParameters = AuthenticationParameters> extends Service<T> {
   /** @ignore */
   _identsStore: Store<Ident>;
   _usersStore: Store<User>;
   _passwordVerifier: PasswordVerifier;
-  _emailDelay: number;
   providers: Set<string> = new Set<string>();
 
-  constructor(webda: Core, name: string, params: any) {
-    super(webda, name, params);
-
-    this._params.identStore = this._params.identStore || "idents";
-    this._params.userStore = this._params.userStore || "users";
-    this._params.url = this._params.url || "/auth";
+  /**
+   * Load the parameters for a service
+   */
+  loadParameters(params: any): AuthenticationParameters {
+    return new AuthenticationParameters(params);
   }
 
   initRoutes() {
@@ -173,20 +203,13 @@ class Authentication extends Service {
    * @ignore
    * Setup the default routes
    */
-  async init(): Promise<void> {
-    if (this._params.identStore) {
-      this._identsStore = this.getService<Store<Ident>>(this._params.identStore);
-    }
+  computeParameters(): void {
+    super.computeParameters();
+    this._identsStore = this.getService<Store<Ident>>(this._params.identStore);
+    this._usersStore = this.getService<Store<User>>(this._params.userStore);
 
-    if (this._params.userStore) {
-      this._usersStore = this.getService<Store<User>>(this._params.userStore);
-    }
-
-    this._emailDelay = this._params.emailDelay || 3600000 * 4; // 4 hours by default
-    this._params.passwordRegexp = this._params.passwordRegexp || ".{8,}";
-
-    if (this._params.passwordVerifier) {
-      this._passwordVerifier = this.getService<PasswordVerifier>(this._params.passwordVerifier);
+    if (this._params.password.verifier) {
+      this._passwordVerifier = this.getService<PasswordVerifier>(this._params.password.verifier);
     }
 
     if (this._identsStore === undefined || this._usersStore === undefined) {
@@ -214,7 +237,7 @@ class Authentication extends Service {
       if (ident._validation) {
         throw 412;
       }
-      if (ident._lastValidationEmail >= Date.now() - this._emailDelay) {
+      if (ident._lastValidationEmail >= Date.now() - this._params.email.delay) {
         throw 429;
       }
       await this._identsStore.patch({
@@ -312,7 +335,10 @@ class Authentication extends Service {
     return user;
   }
 
-  async getPasswordRecoveryInfos(uuid: string | User, interval = this._emailDelay): Promise<PasswordRecoveryInfos> {
+  async getPasswordRecoveryInfos(
+    uuid: string | User,
+    interval = this._params.email.delay
+  ): Promise<PasswordRecoveryInfos> {
     var expire = Date.now() + interval;
     let user;
     if (typeof uuid === "string") {
@@ -339,7 +365,7 @@ class Authentication extends Service {
     }
     let user: User = await this._usersStore.get(ident.getUser());
     // Dont allow to do too many request
-    if (!user.lastPasswordRecoveryBefore(Date.now() - 3600000 * 4)) {
+    if (!user.lastPasswordRecoveryBefore(Date.now() - this._params.email.delay)) {
       throw 429;
     }
     await this._usersStore.patch({
@@ -353,7 +379,7 @@ class Authentication extends Service {
     if (this._passwordVerifier) {
       return this._passwordVerifier.validate(password);
     }
-    let regexp = new RegExp(this._params.passwordRegexp);
+    let regexp = new RegExp(this._params.password.regexp);
     if (!regexp.exec(password)) {
       throw 400;
     }
@@ -433,7 +459,7 @@ class Authentication extends Service {
     if (!locale) {
       locale = ctx.getLocale();
     }
-    let replacements = {...this._params.email, infos, to: email, context: ctx};
+    let replacements = { ...this._params.email, infos, to: email, context: ctx };
     let mailOptions = {
       to: email,
       locale: locale,
@@ -448,15 +474,19 @@ class Authentication extends Service {
 
   async sendValidationEmail(ctx: Context, email: string) {
     var mailer: Mailer = this.getMailMan();
-    let replacements = {...this._params.email, context: ctx, url: ctx
-      .getHttpContext()
-      .getAbsoluteUrl(
-        this._params.url +
-          "/email/callback?email=" +
-          email +
-          "&token=" +
-          this.generateEmailValidationToken(ctx.getCurrentUserId(), email)
-      )};
+    let replacements = {
+      ...this._params.email,
+      context: ctx,
+      url: ctx
+        .getHttpContext()
+        .getAbsoluteUrl(
+          this._params.url +
+            "/email/callback?email=" +
+            email +
+            "&token=" +
+            this.generateEmailValidationToken(ctx.getCurrentUserId(), email)
+        )
+    };
     let userId = ctx.getCurrentUserId();
     if (userId && userId.length > 0) {
       replacements.url += "&user=" + userId;

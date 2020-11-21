@@ -3,8 +3,12 @@ import * as fs from "fs";
 import * as path from "path";
 import { ModdaDefinition, WebdaError } from "../core";
 import { CoreModel } from "../models/coremodel";
-import { Store } from "./store";
+import { Store, StoreParameters } from "./store";
 
+class FileStoreParameters extends StoreParameters {
+  folder: string;
+  beautify: string | number;
+}
 /**
  * Simple file storage of object
  *
@@ -17,12 +21,21 @@ import { Store } from "./store";
  *
  * @category CoreServices
  */
-class FileStore<T extends CoreModel> extends Store<T> {
-  /** @ignore */
-  constructor(webda, name, options) {
-    super(webda, name, options);
-    if (!fs.existsSync(options.folder)) {
-      fs.mkdirSync(options.folder);
+class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStoreParameters> extends Store<T, K> {
+  /**
+   * Load the parameters for a service
+   */
+  loadParameters(params: any): FileStoreParameters {
+    return new FileStoreParameters(params, this);
+  }
+
+  /**
+   * Create the storage folder if does not exist
+   */
+  async computeParameters() {
+    super.computeParameters();
+    if (!fs.existsSync(this._params.folder)) {
+      fs.mkdirSync(this._params.folder);
     }
   }
 
@@ -94,9 +107,9 @@ class FileStore<T extends CoreModel> extends Store<T> {
     return this._save(res);
   }
 
-  async _delete(uid, writeCondition) {
+  async _delete(uid, writeCondition, writeConditionField) {
     let res = await this._get(uid);
-    if (writeCondition && res && res[this._writeConditionField] != writeCondition) {
+    if (writeCondition && res && res[writeConditionField] != writeCondition) {
       return Promise.reject(Error("UpdateCondition not met"));
     }
     if (res) {
@@ -105,12 +118,12 @@ class FileStore<T extends CoreModel> extends Store<T> {
     return Promise.resolve();
   }
 
-  async _patch(object, uid, writeCondition) {
+  async _patch(object, uid, writeCondition, writeConditionField) {
     let stored = await this._get(uid || object[this._uuidField]);
     if (!stored) {
       return Promise.reject(Error("NotFound"));
     }
-    if (writeCondition && stored[this._writeConditionField] != writeCondition) {
+    if (writeCondition && stored[writeConditionField] != writeCondition) {
       return Promise.reject(Error("UpdateCondition not met"));
     }
     for (var prop in object) {
@@ -119,12 +132,13 @@ class FileStore<T extends CoreModel> extends Store<T> {
     return this._save(stored);
   }
 
-  async _update(object, uid, writeCondition = undefined) {
+  async _update(object, uid, writeCondition, writeConditionField) {
     let stored = await this._get(uid || object[this._uuidField]);
     if (!stored) {
       throw new WebdaError("STORE_NOTFOUND", "NotFound");
     }
-    if (writeCondition && stored[this._writeConditionField] != writeCondition) {
+    if (writeCondition && stored[writeConditionField] != writeCondition) {
+      console.log(stored[this._lastUpdateField], writeCondition, this._lastUpdateField, object[writeCondition]);
       throw new WebdaError("STORE_UPDATE_CONDITION_NOT_MET", "UpdateCondition not met");
     }
     let coreModel = new CoreModel();
@@ -179,7 +193,7 @@ class FileStore<T extends CoreModel> extends Store<T> {
     for (var file in files) {
       let filename = this._params.folder + "/" + files[file];
       promises.push(
-        new Promise((resolve, reject) => {
+        new Promise<void>((resolve, reject) => {
           fs.unlink(filename, err => {
             if (err) {
               reject(err);
@@ -203,10 +217,6 @@ class FileStore<T extends CoreModel> extends Store<T> {
       documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
       logo: "images/icons/filedb.png",
       configuration: {
-        widget: {
-          tag: "webda-store-configurator",
-          url: "elements/services/webda-store-configurator.html"
-        },
         schema: {
           type: "object",
           properties: {

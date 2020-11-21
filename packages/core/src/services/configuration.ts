@@ -1,4 +1,4 @@
-import { Service } from "./service";
+import { Service, ServiceParameters } from "./service";
 import { WebdaError } from "../core";
 import * as jsonpath from "jsonpath";
 
@@ -7,12 +7,23 @@ interface ConfigurationProvider {
   canTriggerConfiguration(id: string, callback: () => void): boolean;
 }
 
+export class ConfigurationServiceParameters extends ServiceParameters {
+  checkInterval: number;
+  source: string;
+  default: any;
+  constructor(params: any) {
+    super(params);
+    this.checkInterval = this.checkInterval ?? 3600;
+  }
+}
 /**
  * Handle sessionSecret ( rolling between two secrets ) expire every hour
  * Handle longTermSecret ( rolling between two longer secret ) expire every month
  * @category CoreServices
  */
-export default class ConfigurationService extends Service {
+export default class ConfigurationService<
+  T extends ConfigurationServiceParameters = ConfigurationServiceParameters
+> extends Service<T> {
   protected _configuration: any;
   protected _nextCheck: number;
   protected _sourceService: any;
@@ -21,11 +32,18 @@ export default class ConfigurationService extends Service {
   protected watches: any[] = [];
   protected configuration: any;
 
+  /**
+   * Load parameters
+   *
+   * @param params
+   * @ignore
+   */
+  loadParameters(params: any): ServiceParameters {
+    return new ConfigurationServiceParameters(params);
+  }
+
   async init() {
     // Check interval by default every hour
-    if (!this._params.checkInterval) {
-      this._params.checkInterval = 3600;
-    }
 
     if (!this._params.source) {
       throw new WebdaError("CONFIGURATION_SOURCE_MISSING", "Need a source for ConfigurationService");

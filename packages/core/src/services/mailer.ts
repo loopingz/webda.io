@@ -3,7 +3,7 @@ import * as Email from "email-templates";
 import * as fs from "fs";
 import * as nodemailer from "nodemailer";
 import { ModdaDefinition } from "../core";
-import { Service } from "./service";
+import { Service, ServiceParameters } from "./service";
 
 interface IEmailTemplate {
   renderAll(file: string, options: any);
@@ -11,6 +11,18 @@ interface IEmailTemplate {
 
 interface TemplatesMap {
   [key: string]: IEmailTemplate;
+}
+
+class MailerParameters extends ServiceParameters {
+  templates: string;
+  templatesEngine: string;
+  sender: string;
+
+  constructor(params: any) {
+    super(params);
+    this.templates = this.templates ?? "templates";
+    this.templatesEngine = this.templatesEngine ?? "mustache";
+  }
 }
 /**
  * A basic Mailer based on the nodemailer module
@@ -23,15 +35,27 @@ interface TemplatesMap {
  * config: { ... }
  * @category CoreServices
  */
-class Mailer extends Service {
+class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
   _transporter: any;
   _templates: TemplatesMap = {};
-  /** @ignore */
-  constructor(webda, name, params) {
-    super(webda, name, params);
+
+  /**
+   * Load parameters
+   *
+   * @param params
+   * @ignore
+   */
+  loadParameters(params: any): ServiceParameters {
+    return new MailerParameters(params);
+  }
+
+  /**
+   * Compute parameters
+   */
+  computeParameters() {
     try {
       let config: any = {};
-      Object.assign(config, params.config);
+      Object.assign(config, this._params);
       if (config.transport === "ses" && !config.SES) {
         let aws = require("aws-sdk");
         aws.config.update(config);

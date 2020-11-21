@@ -1,7 +1,14 @@
 import { CoreModel, Service, Store, WebdaError } from "@webda/core";
 import * as elasticsearch from "elasticsearch";
+import { ServiceParameters } from "../../core/lib/services/service";
 
-export default class ElasticSearchService extends Service {
+class ElasticSearchServiceParameters extends ServiceParameters {
+  server: string;
+  indexes: any;
+}
+export default class ElasticSearchService<
+  T extends ElasticSearchServiceParameters = ElasticSearchServiceParameters
+> extends Service<T> {
   _client: elasticsearch.Client;
   _asyncCount: number = 0;
   _refreshMode: string = "false";
@@ -198,7 +205,7 @@ export default class ElasticSearchService extends Service {
   }
 
   async wait(timeout: number = 10000) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise<void>(async (resolve, reject) => {
       for (let i = 0; i < timeout; i += 100) {
         let res = await this._wait();
         if (res) {

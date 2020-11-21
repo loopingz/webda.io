@@ -7,11 +7,11 @@ class AnnotedService extends Webda.Store {
   constructor(webda, name, params) {
     super(webda, name, params);
     webda.registerRequestFilter(this);
-    if (this._params.brokenConstructor) throw Error();
+    if (this.parameters.brokenConstructor) throw Error();
   }
 
   init() {
-    if (this._params.brokenInit) throw Error();
+    if (this.parameters.brokenInit) throw Error();
     this._addRoute("/broken/{type}", ["GET"], this._brokenRoute);
   }
 

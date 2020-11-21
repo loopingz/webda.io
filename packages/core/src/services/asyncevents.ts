@@ -58,19 +58,19 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
    * Setup the default routes
    */
   async computeParameters(): Promise<void> {
-    if (this._params.queues) {
-      Object.keys(this._params.queues).forEach(key => {
+    if (this.parameters.queues) {
+      Object.keys(this.parameters.queues).forEach(key => {
         // Define default as first queue
         if (!this._defaultQueue) {
           this._defaultQueue = key;
         }
-        this._queues[key] = this.getService<Queue>(this._params.queues[key]);
+        this._queues[key] = this.getService<Queue>(this.parameters.queues[key]);
       });
     }
-    this._async = !this._params.sync;
+    this._async = !this.parameters.sync;
     // Check we have at least one queue to handle asynchronous
     if (this._async && Object.keys(this._queues).length < 1) {
-      this._webda.log("ERROR", "Need at least one queue for async to be ready", this._params);
+      this._webda.log("ERROR", "Need at least one queue for async to be ready", this.parameters);
       throw Error("Need at least one queue for async to be ready");
     }
   }

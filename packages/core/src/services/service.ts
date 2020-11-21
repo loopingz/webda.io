@@ -27,7 +27,12 @@ export class ServiceParameters {
 abstract class Service<T extends ServiceParameters = ServiceParameters> extends events.EventEmitter {
   _webda: Core;
   _name: string;
-  _params: T;
+  /**
+   * Hold the parameters for your service
+   *
+   * It will be bring from the `webda.config.json`
+   */
+  parameters: T;
   _createException: string;
   _initTime: number;
   _initException: any = undefined;
@@ -46,7 +51,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
     this._initTime = new Date().getTime();
     this._webda = webda;
     this._name = name;
-    this._params = <T>this.loadParameters(params);
+    this.parameters = <T>this.loadParameters(params);
   }
 
   /**
@@ -65,7 +70,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
    * Get the service parameters
    */
   getParameters() {
-    return this._params;
+    return this.parameters;
   }
 
   /**
@@ -144,7 +149,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
    * @param config new parameters for the service
    */
   async reinit(config): Promise<void> {
-    this._params = <T>this.loadParameters(config);
+    this.parameters = <T>this.loadParameters(config);
     this.computeParameters();
     return this.init();
   }

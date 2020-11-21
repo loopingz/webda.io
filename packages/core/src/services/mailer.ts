@@ -55,7 +55,7 @@ class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
   computeParameters() {
     try {
       let config: any = {};
-      Object.assign(config, this._params);
+      Object.assign(config, this.parameters);
       if (config.transport === "ses" && !config.SES) {
         let aws = require("aws-sdk");
         aws.config.update(config);
@@ -70,13 +70,13 @@ class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
   }
 
   async init(): Promise<void> {
-    this._params.templates = this._params.templates || "./templates";
+    this.parameters.templates = this.parameters.templates || "./templates";
   }
 
   _getTemplate(name) {
     if (!this._templates[name]) {
       // Load template
-      let templateDir = this._params.templates + "/";
+      let templateDir = this.parameters.templates + "/";
       if (!fs.existsSync(templateDir)) {
         templateDir = __dirname + "/../templates/";
         if (!fs.existsSync(templateDir)) {
@@ -92,7 +92,7 @@ class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
         views: {
           root: templateDir,
           options: {
-            extension: this._params.templatesEngine || "mustache"
+            extension: this.parameters.templatesEngine || "mustache"
           }
         }
       });
@@ -111,7 +111,7 @@ class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
       return Promise.reject("Cannot send email as no transporter is defined");
     }
     if (!options.from) {
-      options.from = this._params.sender;
+      options.from = this.parameters.sender;
     }
     if (options.template) {
       if (!options.replacements) {

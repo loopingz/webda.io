@@ -31,15 +31,15 @@ class EchoService extends Service<EchoServiceParameter> {
   }
   /** @ignore */
   execute(ctx: Context): Promise<any> {
-    if (this._params.mime) {
+    if (this.parameters.mime) {
       ctx.writeHead(200, {
-        "Content-Type": this._params.mime
+        "Content-Type": this.parameters.mime
       });
     }
-    if (typeof this._params.result != "string") {
-      ctx.write(JSON.stringify(this._params.result));
+    if (typeof this.parameters.result != "string") {
+      ctx.write(JSON.stringify(this.parameters.result));
     } else {
-      ctx.write(this._params.result);
+      ctx.write(this.parameters.result);
     }
     ctx.end();
     return Promise.resolve();

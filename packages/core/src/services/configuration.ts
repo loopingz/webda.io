@@ -45,10 +45,10 @@ export default class ConfigurationService<
   async init() {
     // Check interval by default every hour
 
-    if (!this._params.source) {
+    if (!this.parameters.source) {
       throw new WebdaError("CONFIGURATION_SOURCE_MISSING", "Need a source for ConfigurationService");
     }
-    let source = this._params.source.split(":");
+    let source = this.parameters.source.split(":");
     this._sourceService = this.getService(source[0]);
     if (!this._sourceService) {
       throw new WebdaError(
@@ -66,7 +66,7 @@ export default class ConfigurationService<
         `Service ${source[0]} is not implementing ConfigurationProvider interface`
       );
     }
-    this._configuration = JSON.stringify(this._params.default);
+    this._configuration = JSON.stringify(this.parameters.default);
     await this._checkUpdate();
     if (!this._sourceService.canTriggerConfiguration(this._sourceId, this._checkUpdate.bind(this))) {
       this._interval = setInterval(this._checkUpdate.bind(this), 1000);
@@ -102,7 +102,7 @@ export default class ConfigurationService<
     if (this._interval && this._nextCheck > new Date().getTime()) return;
 
     this.log("DEBUG", "Refreshing configuration");
-    let newConfig = (await this._loadConfiguration()) || this._params.default;
+    let newConfig = (await this._loadConfiguration()) || this.parameters.default;
     if (JSON.stringify(newConfig) !== this._configuration) {
       this.emit("Configuration.Applying");
       this.log("DEBUG", "Apply new configuration");
@@ -122,12 +122,12 @@ export default class ConfigurationService<
     // If the ConfigurationProvider cannot trigger we check at interval
     if (this._interval) {
       this._updateNextCheck();
-      this.log("DEBUG", "Next configuration refresh in", this._params.checkInterval, "s");
+      this.log("DEBUG", "Next configuration refresh in", this.parameters.checkInterval, "s");
     }
   }
 
   _updateNextCheck() {
-    this._nextCheck = new Date().getTime() + this._params.checkInterval * 1000;
+    this._nextCheck = new Date().getTime() + this.parameters.checkInterval * 1000;
   }
 }
 

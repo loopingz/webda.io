@@ -66,7 +66,7 @@ class MemoryQueue<T extends MemoryQueueParameters = MemoryQueueParameters> exten
 
   async receiveMessage() {
     for (var i in this._queue) {
-      if (this._queue[i].Claimed < new Date().getTime() - this._params.expire) {
+      if (this._queue[i].Claimed < new Date().getTime() - this.parameters.expire) {
         this._queue[i].Claimed = new Date().getTime();
         return [this._queue[i]];
       }

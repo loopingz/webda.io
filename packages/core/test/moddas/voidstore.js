@@ -6,11 +6,11 @@ class VoidStore extends Webda.Store {
   constructor(webda, name, params) {
     super(webda, name, params);
     webda.registerRequestFilter(this);
-    if (this._params.brokenConstructor) throw Error();
+    if (this.parameters.brokenConstructor) throw Error();
   }
 
   initRoutes() {
-    if (this._params.brokenInit) throw Error();
+    if (this.parameters.brokenInit) throw Error();
     this._addRoute("/broken/{type}", ["GET"], this._brokenRoute);
     this._addRoute("/", ["GET", "POST"], this._default);
     this._addRoute("/urltemplate/{id}", ["GET"], this._template);
@@ -31,9 +31,9 @@ class VoidStore extends Webda.Store {
   }
 
   _brokenRoute(ctx) {
-    if (ctx._params.type === "401") {
+    if (ctx.getParameters().type === "401") {
       throw 401;
-    } else if (ctx._params.type === "Error") {
+    } else if (ctx.getParameters().type === "Error") {
       throw new Error();
     }
   }

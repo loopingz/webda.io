@@ -185,7 +185,7 @@ class Context extends EventEmitter {
   _executor: Service<any>;
   _flushHeaders: boolean;
   _sanitized: any;
-  protected _params: any = undefined;
+  protected parameters: any = undefined;
   protected _pathParams: any = {};
   protected _serviceParams: any = {};
   files: any[];
@@ -254,7 +254,7 @@ class Context extends EventEmitter {
   }
 
   public getRequestParameters() {
-    return this._params;
+    return this.parameters;
   }
 
   public parameter(name: string) {
@@ -262,12 +262,12 @@ class Context extends EventEmitter {
   }
 
   public getParameters() {
-    return this._params;
+    return this.parameters;
   }
 
   private processParameters() {
-    this._params = Object.assign({}, this._serviceParams);
-    this._params = Object.assign(this._params, this._pathParams);
+    this.parameters = Object.assign({}, this._serviceParams);
+    this.parameters = Object.assign(this.parameters, this._pathParams);
   }
 
   public getSession() {
@@ -574,7 +574,7 @@ class Context extends EventEmitter {
    */
   setRoute(route) {
     this._route = route;
-    this._params = { ...route.params, ...this._params };
+    this.parameters = { ...route.params, ...this.parameters };
   }
 
   getRoute() {
@@ -618,7 +618,7 @@ class Context extends EventEmitter {
     this.statusCode = 204;
     this._stream = stream;
     this._buffered = false;
-    this._params = {};
+    this.parameters = {};
     this.headers = new Map();
     if (stream === undefined) {
       this._stream = new Writable();

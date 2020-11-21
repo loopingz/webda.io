@@ -33,8 +33,8 @@ export default class SQSQueue<T extends SQSQueueParameters = SQSQueueParameters>
 
   async init(): Promise<void> {
     await super.init();
-    this.sqs = new (GetAWS(this._params).SQS)({
-      endpoint: this._params.endpoint
+    this.sqs = new (GetAWS(this.parameters).SQS)({
+      endpoint: this.parameters.endpoint
     });
   }
 
@@ -42,7 +42,7 @@ export default class SQSQueue<T extends SQSQueueParameters = SQSQueueParameters>
     let res = await this.sqs
       .getQueueAttributes({
         AttributeNames: ["ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"],
-        QueueUrl: this._params.queue
+        QueueUrl: this.parameters.queue
       })
       .promise();
     return (
@@ -53,9 +53,9 @@ export default class SQSQueue<T extends SQSQueueParameters = SQSQueueParameters>
 
   async sendMessage(params) {
     var sqsParams: any = {};
-    sqsParams.QueueUrl = this._params.queue;
-    if (this._params.MessageGroupId) {
-      sqsParams.MessageGroupId = this._params.MessageGroupId;
+    sqsParams.QueueUrl = this.parameters.queue;
+    if (this.parameters.MessageGroupId) {
+      sqsParams.MessageGroupId = this.parameters.MessageGroupId;
     }
     sqsParams.MessageBody = JSON.stringify(params);
 
@@ -64,8 +64,8 @@ export default class SQSQueue<T extends SQSQueueParameters = SQSQueueParameters>
 
   async receiveMessage() {
     let queueArg = {
-      QueueUrl: this._params.queue,
-      WaitTimeSeconds: this._params.WaitTimeSeconds,
+      QueueUrl: this.parameters.queue,
+      WaitTimeSeconds: this.parameters.WaitTimeSeconds,
       AttributeNames: ["MessageGroupId"]
     };
     let data = await this.sqs.receiveMessage(queueArg).promise();
@@ -75,7 +75,7 @@ export default class SQSQueue<T extends SQSQueueParameters = SQSQueueParameters>
   async deleteMessage(receipt) {
     return this.sqs
       .deleteMessage({
-        QueueUrl: this._params.queue,
+        QueueUrl: this.parameters.queue,
         ReceiptHandle: receipt
       })
       .promise();
@@ -89,7 +89,7 @@ export default class SQSQueue<T extends SQSQueueParameters = SQSQueueParameters>
     try {
       await this.sqs
         .purgeQueue({
-          QueueUrl: this._params.queue
+          QueueUrl: this.parameters.queue
         })
         .promise();
     } catch (err) {
@@ -108,10 +108,10 @@ export default class SQSQueue<T extends SQSQueueParameters = SQSQueueParameters>
   }
 
   _getQueueInfosFromUrl() {
-    let found = this._params.queue.match(/.*sqs\.(.*)\.amazonaws.com\/([0-9]+)\/(.*)/i);
+    let found = this.parameters.queue.match(/.*sqs\.(.*)\.amazonaws.com\/([0-9]+)\/(.*)/i);
     if (!found) {
       // Check for LocalStack
-      found = this._params.queue.match(/http:\/\/(localhost):\d+\/(.*)\/(.*)/i);
+      found = this.parameters.queue.match(/http:\/\/(localhost):\d+\/(.*)\/(.*)/i);
       if (!found) {
         throw new WebdaError("SQS_PARAMETER_MALFORMED", "SQS Queue URL malformed");
       }
@@ -142,19 +142,19 @@ export default class SQSQueue<T extends SQSQueueParameters = SQSQueueParameters>
   }
 
   getCloudFormation(deployer: CloudFormationDeployer) {
-    if (this._params.CloudFormationSkip) {
+    if (this.parameters.CloudFormationSkip) {
       return {};
     }
     let { name: QueueName } = this._getQueueInfosFromUrl();
     let resources = {};
-    this._params.CloudFormation = this._params.CloudFormation || {};
-    this._params.CloudFormation.Queue = this._params.CloudFormation.Queue || {};
+    this.parameters.CloudFormation = this.parameters.CloudFormation || {};
+    this.parameters.CloudFormation.Queue = this.parameters.CloudFormation.Queue || {};
     resources[this._name + "Queue"] = {
       Type: "AWS::SQS::Queue",
       Properties: {
-        ...this._params.CloudFormation.Queue,
+        ...this.parameters.CloudFormation.Queue,
         QueueName,
-        Tags: deployer.getDefaultTags(this._params.CloudFormation.Queue.Tags)
+        Tags: deployer.getDefaultTags(this.parameters.CloudFormation.Queue.Tags)
       }
     };
     // Add any Other resources with prefix of the service

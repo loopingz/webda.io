@@ -53,7 +53,7 @@ class SQSQueueTest extends QueueTest {
   @test
   getQueueInfos() {
     let queue: SQSQueue = <SQSQueue>this.webda.getService("sqsqueue");
-    queue._params.queue = "none";
+    queue.parameters.queue = "none";
     let error = false;
     try {
       let info = queue._getQueueInfosFromUrl();

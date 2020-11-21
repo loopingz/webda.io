@@ -46,10 +46,10 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
 
   initRoutes() {
     super.initRoutes();
-    this._params.url = this._params.url || `${this.getDefaultUrl()}{?redirect}`;
+    this.parameters.url = this.parameters.url || `${this.getDefaultUrl()}{?redirect}`;
     let name = this.getName();
 
-    this._addRoute(this._params.url, ["GET"], this._redirect, {
+    this._addRoute(this.parameters.url, ["GET"], this._redirect, {
       get: {
         description: `Log with a ${name} account`,
         summary: `Redirect to ${name}`,
@@ -62,7 +62,7 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
     });
 
     this._addRoute(
-      this._params.url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}",
+      this.parameters.url + "/callback{?code,oauth_token,oauth_verifier,*otherQuery}",
       ["GET"],
       this._callback,
       {
@@ -79,7 +79,7 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
     );
 
     if (this.hasToken()) {
-      this._addRoute(this._params.url + "/token", ["POST"], this._token, {
+      this._addRoute(this.parameters.url + "/token", ["POST"], this._token, {
         post: {
           description: `Log with a ${name} token`,
           summary: `Use the token provide to validate with ${name} the user`,
@@ -92,8 +92,8 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
       });
     }
 
-    if (this._params.exposeScope) {
-      this._addRoute(this._params.url + "/scope", ["GET"], this._scope, {
+    if (this.parameters.exposeScope) {
+      this._addRoute(this.parameters.url + "/scope", ["GET"], this._scope, {
         get: {
           description: `List ${name} auth scope for this apps`,
           summary: "Retrieve the scope intended to be used with this auth",
@@ -108,7 +108,7 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
   }
 
   _scope(ctx: Context) {
-    ctx.write(this._params.scope || ["email"]);
+    ctx.write(this.parameters.scope || ["email"]);
   }
 
   hasToken(): boolean {
@@ -117,10 +117,10 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
 
   _redirect(ctx: Context) {
     // implement default behavior
-    let redirect_uri = this._params.redirect_uri || `${ctx.getHttpContext().getAbsoluteUrl()}/callback`;
+    let redirect_uri = this.parameters.redirect_uri || `${ctx.getHttpContext().getAbsoluteUrl()}/callback`;
 
-    if (this._params.authorized_uris) {
-      if (this._params.authorized_uris.indexOf(redirect_uri) < 0) {
+    if (this.parameters.authorized_uris) {
+      if (this.parameters.authorized_uris.indexOf(redirect_uri) < 0) {
         // The redirect_uri is not authorized , might be forging HOST request
         throw 401;
       }

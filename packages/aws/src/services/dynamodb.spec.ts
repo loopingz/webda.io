@@ -118,12 +118,12 @@ export class DynamoDBTest extends StoreTest {
   @test
   ARNPolicy() {
     let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
-    userStore._params.region = "eu-west-1";
+    userStore.parameters.region = "eu-west-1";
     assert.strictEqual(
       userStore.getARNPolicy("666").Resource[0],
       "arn:aws:dynamodb:eu-west-1:666:table/webda-test-users"
     );
-    userStore._params.region = undefined;
+    userStore.parameters.region = undefined;
     assert.strictEqual(
       userStore.getARNPolicy("777").Resource[0],
       "arn:aws:dynamodb:us-east-1:777:table/webda-test-users"

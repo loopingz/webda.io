@@ -8,6 +8,8 @@ This package provides helper to migrate from one version to another
 yarn add --dev @webda/codemod
 # If typescript
 npx jscodeshift --parser ts -t node_modules/@webda/codemod/${script}.js src/**/*.ts
+# Or
+find . -name \*.ts | grep -v node_modules | grep -v \.d\.ts | xargs jscodeshift --parser ts -t node_modules/@webda/codemod/${script}.js
 ```
 
 ### webda-0.11-1.0
@@ -17,6 +19,8 @@ This script will move all imports `webda` or `webda-*` to `@webda/core` or `@web
 It will also update any reference of `Executor` from `webda` to `Service` from `@webda/core`
 
 It upgrade methods `checkCSRF` to `checkRequest`
+
+Rename all `_params` to `parameters`
 
 #### Warning
 

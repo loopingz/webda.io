@@ -79,6 +79,14 @@ export default function transformer(fileInfo, api, options) {
     path.value.callee.property.name = "getService";
     return path.node;
   });
+  // Rename _params to parameters
+  root.find(j.Identifier).replaceWith(path => {
+    if (path.value.name === "_params") {
+      path.value.name = "parameters";
+    }
+    return path.node;
+  });
+
   // Replace any
   return root.toSource(printOptions);
 }

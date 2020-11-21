@@ -10,18 +10,18 @@ import { JSONUtils } from "../utils/json";
 export class KubernetesConfigurationService<T extends ConfigurationServiceParameters> extends ConfigurationService<T> {
   async init() {
     // Do not call super as we diverged
-    if (!this._params.source) {
+    if (!this.parameters.source) {
       throw new WebdaError("KUBE_CONFIGURATION_SOURCE_MISSING", "Need a source for KubernetesConfigurationService");
     }
-    this._params.source = this._webda.getAppPath(this._params.source);
-    if (!fs.existsSync(this._params.source)) {
+    this.parameters.source = this._webda.getAppPath(this.parameters.source);
+    if (!fs.existsSync(this.parameters.source)) {
       throw new WebdaError("KUBE_CONFIGURATION_SOURCE_MISSING", "Need a source for KubernetesConfigurationService");
     }
 
     // Add webda info
     this.watch("$.webda.services", this._webda.reinit.bind(this._webda));
 
-    fs.watchFile(path.join(this._params.source, "..data"), this._checkUpdate.bind(this));
+    fs.watchFile(path.join(this.parameters.source, "..data"), this._checkUpdate.bind(this));
     await this._checkUpdate();
   }
 
@@ -29,10 +29,10 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
 
   async _loadConfiguration(): Promise<{ [key: string]: any }> {
     let result = {};
-    fs.readdirSync(this._params.source)
+    fs.readdirSync(this.parameters.source)
       .filter(f => !f.startsWith("."))
       .forEach(f => {
-        let filePath = path.join(this._params.source, f);
+        let filePath = path.join(this.parameters.source, f);
         // Auto parse JSON and YAML
         if (f.match(/\.(json|ya?ml)$/i)) {
           result[f.replace(/\.(json|ya?ml)$/i, "")] = JSONUtils.loadFile(filePath);

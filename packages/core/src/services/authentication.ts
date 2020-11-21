@@ -88,7 +88,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
 
   initRoutes() {
     // ROUTES
-    let url = this._params.url;
+    let url = this.parameters.url;
     // List authentication configured
     this._addRoute(url, ["GET", "DELETE"], this._listAuthentications, {
       get: {
@@ -118,7 +118,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
         operationId: "getCurrentUser"
       }
     });
-    if (this._params.email) {
+    if (this.parameters.email) {
       this.addProvider("email");
       // Add static for email for now, if set before it should have priority
       this._addRoute(url + "/email", ["POST"], this._handleEmail, {
@@ -188,7 +188,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
   }
 
   getUrl() {
-    return this._params.url;
+    return this.parameters.url;
   }
 
   setIdents(identStore) {
@@ -205,11 +205,11 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
    */
   computeParameters(): void {
     super.computeParameters();
-    this._identsStore = this.getService<Store<Ident>>(this._params.identStore);
-    this._usersStore = this.getService<Store<User>>(this._params.userStore);
+    this._identsStore = this.getService<Store<Ident>>(this.parameters.identStore);
+    this._usersStore = this.getService<Store<User>>(this.parameters.userStore);
 
-    if (this._params.password.verifier) {
-      this._passwordVerifier = this.getService<PasswordVerifier>(this._params.password.verifier);
+    if (this.parameters.password.verifier) {
+      this._passwordVerifier = this.getService<PasswordVerifier>(this.parameters.password.verifier);
     }
 
     if (this._identsStore === undefined || this._usersStore === undefined) {
@@ -222,11 +222,11 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
   }
 
   async _sendEmailValidation(ctx) {
-    let identKey = ctx._params.email + "_email";
+    let identKey = ctx.parameters.email + "_email";
     let ident = await this._identsStore.get(identKey);
     if (!ident) {
       await this._identsStore.save({
-        uuid: `${ctx._params.email}_email`,
+        uuid: `${ctx.parameters.email}_email`,
         _lastValidationEmail: Date.now(),
         _type: "email"
       });
@@ -237,7 +237,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       if (ident._validation) {
         throw 412;
       }
-      if (ident._lastValidationEmail >= Date.now() - this._params.email.delay) {
+      if (ident._lastValidationEmail >= Date.now() - this.parameters.email.delay) {
         throw 429;
       }
       await this._identsStore.patch({
@@ -245,7 +245,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
         uuid: identKey
       });
     }
-    await this.sendValidationEmail(ctx, ctx._params.email);
+    await this.sendValidationEmail(ctx, ctx.parameters.email);
   }
 
   async _getMe(ctx: Context) {
@@ -337,7 +337,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
 
   async getPasswordRecoveryInfos(
     uuid: string | User,
-    interval = this._params.email.delay
+    interval = this.parameters.email.delay
   ): Promise<PasswordRecoveryInfos> {
     var expire = Date.now() + interval;
     let user;
@@ -365,7 +365,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     }
     let user: User = await this._usersStore.get(ident.getUser());
     // Dont allow to do too many request
-    if (!user.lastPasswordRecoveryBefore(Date.now() - this._params.email.delay)) {
+    if (!user.lastPasswordRecoveryBefore(Date.now() - this.parameters.email.delay)) {
       throw 429;
     }
     await this._usersStore.patch({
@@ -379,7 +379,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     if (this._passwordVerifier) {
       return this._passwordVerifier.validate(password);
     }
-    let regexp = new RegExp(this._params.password.regexp);
+    let regexp = new RegExp(this.parameters.password.regexp);
     if (!regexp.exec(password)) {
       throw 400;
     }
@@ -420,7 +420,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     let validation = ctx.parameter("token");
     if (validation !== this.generateEmailValidationToken(ctx.parameter("user"), ctx.parameter("email"))) {
       ctx.writeHead(302, {
-        Location: this._params.failureRedirect + "?reason=badToken"
+        Location: this.parameters.failureRedirect + "?reason=badToken"
       });
       return;
     }
@@ -431,7 +431,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       ctx.getCurrentUserId() !== undefined
     ) {
       ctx.writeHead(302, {
-        Location: this._params.failureRedirect + "?reason=badUser"
+        Location: this.parameters.failureRedirect + "?reason=badUser"
       });
       return;
     }
@@ -447,7 +447,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     ident.setUser(ctx.parameter("user"));
     await ident.save();
     ctx.writeHead(302, {
-      Location: this._params.successRedirect + "?validation=email",
+      Location: this.parameters.successRedirect + "?validation=email",
       "X-Webda-Authentication": "success"
     });
   }
@@ -459,7 +459,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     if (!locale) {
       locale = ctx.getLocale();
     }
-    let replacements = { ...this._params.email, infos, to: email, context: ctx };
+    let replacements = { ...this.parameters.email, infos, to: email, context: ctx };
     let mailOptions = {
       to: email,
       locale: locale,
@@ -475,12 +475,12 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
   async sendValidationEmail(ctx: Context, email: string) {
     var mailer: Mailer = this.getMailMan();
     let replacements = {
-      ...this._params.email,
+      ...this.parameters.email,
       context: ctx,
       url: ctx
         .getHttpContext()
         .getAbsoluteUrl(
-          this._params.url +
+          this.parameters.url +
             "/email/callback?email=" +
             email +
             "&token=" +
@@ -525,7 +525,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
    * @param pass to hash
    */
   hashPassword(pass: string): string {
-    return bcrypt.hashSync(pass, this._params.salt || 10);
+    return bcrypt.hashSync(pass, this.parameters.salt || 10);
   }
 
   async logout(ctx: Context) {
@@ -553,7 +553,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
   }
 
   getMailMan(): Mailer {
-    return this.getService<Mailer>(this._params.email.mailer ? this._params.email.mailer : "Mailer");
+    return this.getService<Mailer>(this.parameters.email.mailer ? this.parameters.email.mailer : "Mailer");
   }
 
   protected async handleLogin(ctx: Context, ident: Ident) {
@@ -606,7 +606,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     if (body.password === undefined || body.login === undefined) {
       throw 400;
     }
-    var mailConfig = this._params.email;
+    var mailConfig = this.parameters.email;
     var mailerService = this.getMailMan();
     if (mailerService === undefined) {
       // Bad configuration ( might want to use other than 500 )

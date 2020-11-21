@@ -2,7 +2,7 @@
 import { Context } from "../index";
 
 const mixin = (Sup, rolesMap, permissive: boolean = false) =>
-  class extends Sup {
+  (class extends Sup {
     async getRoles(ctx: Context) {
       if (!ctx.getCurrentUserId()) {
         throw 403;
@@ -31,6 +31,6 @@ const mixin = (Sup, rolesMap, permissive: boolean = false) =>
       }
       throw 403;
     }
-  };
+  });
 
 export { mixin as RolePolicyMixIn };

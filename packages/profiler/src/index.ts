@@ -123,7 +123,7 @@ export default class Profiler<T extends ProfilerParameters = ProfilerParameters>
    * Return if Profiler is enable
    */
   isEnabled() {
-    return !this._params.disabled;
+    return !this.parameters.disabled;
   }
 
   /**

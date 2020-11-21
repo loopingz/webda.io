@@ -14,9 +14,9 @@ class ExceptionExecutor extends Service {
 
   @Route("/route/broken/{type}")
   async _brokenRoute(ctx) {
-    if (ctx._params.type === "401") {
+    if (ctx.parameters.type === "401") {
       throw 401;
-    } else if (ctx._params.type === "Error") {
+    } else if (ctx.parameters.type === "Error") {
       throw new Error();
     }
   }

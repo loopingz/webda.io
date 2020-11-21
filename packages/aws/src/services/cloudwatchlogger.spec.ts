@@ -54,7 +54,7 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
   @test
   async secondRun() {
     // Update config to use the stepper
-    this.service._params.singlePush = true;
+    this.service.parameters.singlePush = true;
     this.webda.log("INFO", "Plop 0", "Test");
     this.webda.log("DEBUG", "Plop 1", "Test");
     await this.sleep(1000);

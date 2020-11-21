@@ -108,7 +108,7 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> ex
    */
   computeParameters(): void {
     super.computeParameters();
-    const p = this._params;
+    const p = this.parameters;
     this._model = this._webda.getModel(p.model);
     if (!this._model) {
       throw new Error(`${p.model} model is not found`);
@@ -127,17 +127,17 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> ex
   }
 
   async init(): Promise<void> {
-    this.initMap(this._params.map);
-    if (this._params.index) {
+    this.initMap(this.parameters.map);
+    if (this.parameters.index) {
       await this.createIndex();
     }
   }
 
   initRoutes() {
-    if (!this._params.expose) {
+    if (!this.parameters.expose) {
       return;
     }
-    const expose = this._params.expose;
+    const expose = this.parameters.expose;
 
     if (!expose.restrict.create) {
       this._addRoute(expose.url, ["POST"], this.httpCreate, {
@@ -297,10 +297,10 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> ex
     if (property === undefined) {
       return false;
     }
-    if (!this._params.map) {
+    if (!this.parameters.map) {
       return false;
     }
-    let map = this._params.map;
+    let map = this.parameters.map;
     for (let prop in map) {
       // No mapped property or not in the object
       if (map[prop].key === undefined) {
@@ -374,7 +374,7 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> ex
       if (this.isMapped(prop)) {
         updates[prop] = object.prop;
       }
-      await this.handleMap(object, this._params.map, updates);
+      await this.handleMap(object, this.parameters.map, updates);
     }
   }
 
@@ -425,7 +425,7 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> ex
   }
 
   async createIndex() {
-    if (!this._params.index || (await this.exists("index"))) {
+    if (!this.parameters.index || (await this.exists("index"))) {
       return;
     }
     let index = {};
@@ -457,7 +457,7 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> ex
   }
 
   toString() {
-    return this._params.type + "[" + this._name + "]";
+    return this.parameters.type + "[" + this._name + "]";
   }
 
   generateUid() {
@@ -503,11 +503,11 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> ex
       store: this
     });
     await object._onSaved();
-    if (this._params.map != undefined) {
-      await this.handleMap(object, this._params.map, "created");
+    if (this.parameters.map != undefined) {
+      await this.handleMap(object, this.parameters.map, "created");
     }
     // Handle index
-    if (this._params.index && object[this._uuidField] !== "index" && object[this._uuidField]) {
+    if (this.parameters.index && object[this._uuidField] !== "index" && object[this._uuidField]) {
       await this.handleIndex(object, "created");
     }
     return object;
@@ -548,9 +548,9 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> ex
     object[this._lastUpdateField] = new Date();
     let load = await this._get(object[this._uuidField]);
     loaded = this.initModel(load);
-    await this.handleMap(loaded, this._params.map, object);
+    await this.handleMap(loaded, this.parameters.map, object);
     // Handle index
-    if (this._params.index && loaded[this._uuidField] !== "index" && loaded[this._uuidField]) {
+    if (this.parameters.index && loaded[this._uuidField] !== "index" && loaded[this._uuidField]) {
       await this.handleIndex(loaded, object);
     }
     await this.emitSync(`Store.${partialEvent}Update`, {
@@ -780,7 +780,7 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> ex
     if (typeof updates === "object") {
       let toUpdate = false;
       for (let i in updates) {
-        if (this._params.index.indexOf(i) >= 0) {
+        if (this.parameters.index.indexOf(i) >= 0) {
           toUpdate = true;
         }
       }
@@ -794,7 +794,7 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> ex
       updates = object;
     }
     let mapper = {};
-    this._params.index.forEach(id => {
+    this.parameters.index.forEach(id => {
       mapper[id] = updates[id];
     });
     mapUpdates[object[this._uuidField]] = mapper;
@@ -875,11 +875,11 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> ex
       store: this
     });
     await to_delete._onDelete();
-    if (this._params.map != undefined) {
-      await this.handleMap(to_delete, this._params.map, "deleted");
+    if (this.parameters.map != undefined) {
+      await this.handleMap(to_delete, this.parameters.map, "deleted");
     }
     // Handle index
-    if (this._params.index && to_delete[this._uuidField] !== "index" && to_delete[this._uuidField]) {
+    if (this.parameters.index && to_delete[this._uuidField] !== "index" && to_delete[this._uuidField]) {
       await this.handleIndex(to_delete, "deleted");
     }
     if (this._cascade != undefined && to_delete !== undefined) {
@@ -895,7 +895,7 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> ex
       }
       await Promise.all(promises);
     }
-    if (this._params.asyncDelete && !sync) {
+    if (this.parameters.asyncDelete && !sync) {
       await this._patch(
         {
           __deleted: true

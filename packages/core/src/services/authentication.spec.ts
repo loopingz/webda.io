@@ -57,7 +57,7 @@ class AuthenticationTest extends WebdaTest {
       }
     );
     ctx.newSession();
-    ctx.getExecutor()._params.email.postValidation = true;
+    ctx.getExecutor().parameters.email.postValidation = true;
     await executor.execute(ctx);
   }
 
@@ -122,7 +122,7 @@ class AuthenticationTest extends WebdaTest {
     let ident = await this.identStore.get("test@webda.io_email");
     assert.strictEqual(ident, undefined);
     // Not registered as postValidation is not set
-    ctx.getExecutor()._params.email.postValidation = true;
+    ctx.getExecutor().parameters.email.postValidation = true;
     await this.registerTest2(ctx);
     assert.strictEqual(this.events, 2); // Register + Login
     userId = ctx.getSession().getUserId();
@@ -137,7 +137,7 @@ class AuthenticationTest extends WebdaTest {
     executor = this.getExecutor(ctx, "test.webda.io", "DELETE", "/auth");
     await executor.execute(ctx);
     // Now validate first user
-    ctx.getExecutor()._params.email.postValidation = false;
+    ctx.getExecutor().parameters.email.postValidation = false;
     assert.strictEqual(ctx.getSession().getUserId(), undefined);
     var match = this.mailer.sent[0].replacements.url.match(validationUrl);
     assert.notStrictEqual(match, undefined);
@@ -188,8 +188,8 @@ class AuthenticationTest extends WebdaTest {
       password: "testtest",
       register: true
     });
-    ctx.getExecutor()._params.email.postValidation = true;
-    ctx.getExecutor()._params.email.skipEmailValidation = true;
+    ctx.getExecutor().parameters.email.postValidation = true;
+    ctx.getExecutor().parameters.email.skipEmailValidation = true;
     await executor.execute(ctx);
     // No new email has been sent
     assert.strictEqual(this.mailer.sent.length, 3);
@@ -216,7 +216,7 @@ class AuthenticationTest extends WebdaTest {
       }
     );
     // Activate post validation
-    ctx.getExecutor()._params.email.postValidation = true;
+    ctx.getExecutor().parameters.email.postValidation = true;
     await this.assertThrowsAsync(executor.execute.bind(executor, ctx), res => res == 400);
   }
 
@@ -230,7 +230,7 @@ class AuthenticationTest extends WebdaTest {
       register: true,
       plop: "yep"
     });
-    ctx.getExecutor()._params.email.postValidation = true;
+    ctx.getExecutor().parameters.email.postValidation = true;
     await executor.execute(ctx);
     // Get me on known user
     executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/me");

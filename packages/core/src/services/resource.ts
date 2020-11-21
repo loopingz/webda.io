@@ -42,7 +42,7 @@ export default class ResourceService<T extends ResourceServiceParameters = Resou
   }
 
   initRoutes() {
-    this._addRoute(this._params.url, ["GET"], this._serve, {
+    this._addRoute(this.parameters.url, ["GET"], this._serve, {
       get: {
         description: "Get resources",
         summary: "Get file",
@@ -55,7 +55,7 @@ export default class ResourceService<T extends ResourceServiceParameters = Resou
       }
     });
     this._addRoute(
-      this._params.url + "{resource}",
+      this.parameters.url + "{resource}",
       ["GET"],
       this._serve,
       {
@@ -72,7 +72,7 @@ export default class ResourceService<T extends ResourceServiceParameters = Resou
       },
       true
     );
-    if (this._params.rootRedirect) {
+    if (this.parameters.rootRedirect) {
       this._addRoute("/", ["GET"], this._redirect, {
         get: {
           description: "Redirect / to the exposed url",
@@ -87,14 +87,14 @@ export default class ResourceService<T extends ResourceServiceParameters = Resou
   }
 
   _redirect(ctx: Context) {
-    ctx.redirect(ctx.getHttpContext().getAbsoluteUrl(this._params.url));
+    ctx.redirect(ctx.getHttpContext().getAbsoluteUrl(this.parameters.url));
   }
 
   _serve(ctx: Context) {
     // TODO Add file only
     let resource = ctx.parameter("resource") || "index.html";
-    let file = path.join(this._params.folder, resource);
-    if (!path.resolve(file).startsWith(this._params._resolved)) {
+    let file = path.join(this.parameters.folder, resource);
+    if (!path.resolve(file).startsWith(this.parameters._resolved)) {
       throw 401;
     }
     if (!fs.existsSync(file)) {

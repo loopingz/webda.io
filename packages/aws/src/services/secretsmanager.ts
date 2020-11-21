@@ -20,8 +20,8 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
   }
 
   computeParameters() {
-    this._client = new (GetAWS(this._params).SecretsManager)({
-      endpoint: this._params.endpoint
+    this._client = new (GetAWS(this.parameters).SecretsManager)({
+      endpoint: this.parameters.endpoint
     });
   }
 
@@ -74,7 +74,7 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
   }
 
   getARNPolicy(accountId) {
-    let region = this._params.region || "us-east-1";
+    let region = this.parameters.region || "us-east-1";
     return {
       Sid: this.constructor.name + this._name,
       Effect: "Allow",

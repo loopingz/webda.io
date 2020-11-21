@@ -123,7 +123,7 @@ class CookieTest extends WebdaTest {
     cookie["title"] = "plop2";
     assert.strictEqual(cookie.needSave(), true);
     // @ts-ignore
-    this._ctx._params.cookie = {
+    this._ctx.parameters.cookie = {
       maxAge: 3600
     };
     cookie.save(this._ctx);

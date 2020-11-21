@@ -71,7 +71,7 @@ export default class AWSXRayService<T extends AWSXRayServiceParameters = AWSXRay
     });
     this._webda.addListener("Webda.Request", async (ctx, ...args) => {
       var segment = new AWSXRay.Segment(
-        this._params.name || this._webda.getApplication().getPackageDescription().name || "Webda.Request"
+        this.parameters.name || this._webda.getApplication().getPackageDescription().name || "Webda.Request"
       );
 
       var ns = AWSXRay.getNamespace();

@@ -9,17 +9,17 @@ import { JSONUtils } from "..";
 export class FileConfigurationService<T extends ConfigurationServiceParameters> extends ConfigurationService<T> {
   async init() {
     // Do not call super as we diverged
-    if (!this._params.source) {
+    if (!this.parameters.source) {
       throw new WebdaError("FILE_CONFIGURATION_SOURCE_MISSING", "Need a source for FileConfigurationService");
     }
 
     // Load it from where it should be
-    this._params.source = this._webda.getAppPath(this._params.source);
-    if (!fs.existsSync(this._params.source)) {
+    this.parameters.source = this._webda.getAppPath(this.parameters.source);
+    if (!fs.existsSync(this.parameters.source)) {
       throw new WebdaError("FILE_CONFIGURATION_SOURCE_MISSING", "Need a source for FileConfigurationService");
     }
 
-    fs.watchFile(this._params.source, this._checkUpdate.bind(this));
+    fs.watchFile(this.parameters.source, this._checkUpdate.bind(this));
 
     // Add webda info
     this.watch("$.webda.services", this._webda.reinit.bind(this._webda));
@@ -30,6 +30,6 @@ export class FileConfigurationService<T extends ConfigurationServiceParameters> 
   stop() {}
 
   async _loadConfiguration(): Promise<{ [key: string]: any }> {
-    return JSONUtils.loadFile(this._params.source);
+    return JSONUtils.loadFile(this.parameters.source);
   }
 }

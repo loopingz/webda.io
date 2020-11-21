@@ -191,7 +191,7 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
 
   /** @ignore */
   async init(): Promise<void> {
-    this.initMap(this._params.map);
+    this.initMap(this.parameters.map);
   }
 
   _getUrl(info, ctx: Context) {
@@ -264,7 +264,7 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
   }
 
   _checkMap(name, property) {
-    var map = this._params.map[this._lowercaseMaps[name.toLowerCase()]];
+    var map = this.parameters.map[this._lowercaseMaps[name.toLowerCase()]];
     if (map === undefined) {
       throw Error("Unknown mapping");
     }
@@ -383,22 +383,22 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
    */
   _initRoutes(): boolean {
     let url;
-    if (!this._params.expose) {
+    if (!this.parameters.expose) {
       return false;
     }
 
-    this._url = this._params.expose.url;
+    this._url = this.parameters.expose.url;
     let name = this._name;
     if (name === "Binary") {
       name = "";
     }
 
-    if (!this._params.expose.url) {
+    if (!this.parameters.expose.url) {
       return false;
     }
 
-    if (!this._params.expose.restrict.get) {
-      url = this._params.expose.url + "/{store}/{uid}/{property}/{index}";
+    if (!this.parameters.expose.restrict.get) {
+      url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}";
       this._addRoute(url, ["GET"], this.httpRoute, {
         get: {
           operationId: `get${name}Binary`,
@@ -414,9 +414,9 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
       });
     }
 
-    if (!this._params.expose.restrict.create) {
+    if (!this.parameters.expose.restrict.create) {
       // No need the index to add file
-      url = this._params.expose.url + "/{store}/{uid}/{property}";
+      url = this.parameters.expose.url + "/{store}/{uid}/{property}";
       this._addRoute(url, ["POST"], this.httpPost, {
         post: {
           operationId: `add${name}Binary`,
@@ -436,9 +436,9 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
       });
     }
 
-    if (!this._params.expose.restrict.create) {
+    if (!this.parameters.expose.restrict.create) {
       // Add file with challenge
-      url = this._params.expose.url + "/upload/{store}/{uid}/{property}/{index}";
+      url = this.parameters.expose.url + "/upload/{store}/{uid}/{property}/{index}";
       this._addRoute(url, ["PUT"], this.httpChallenge, {
         put: {
           operationId: `put${name}Binary`,
@@ -454,9 +454,9 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
       });
     }
 
-    if (!this._params.expose.restrict.delete) {
+    if (!this.parameters.expose.restrict.delete) {
       // Need hash to avoid concurrent delete
-      url = this._params.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
+      url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
       this._addRoute(url, ["DELETE"], this.httpRoute, {
         delete: {
           operationId: `delete${name}Binary`,
@@ -484,7 +484,7 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
   _verifyMapAndStore(ctx: Context): Store<CoreModel> {
     let store = ctx.parameter("store").toLowerCase();
     // To avoid any probleme lowercase everything
-    var map = this._params.map[this._lowercaseMaps[store]];
+    var map = this.parameters.map[this._lowercaseMaps[store]];
     if (map === undefined) {
       throw 404;
     }

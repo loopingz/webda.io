@@ -16,12 +16,12 @@ export default class ElasticSearchService<
   resolve() {
     super.resolve();
     this._client = new elasticsearch.Client({
-      host: this._params.server
+      host: this.parameters.server
     });
-    this.log("INFO", "Indexes", this._params.indexes);
-    this._params.indexes = this._params.indexes || {};
-    for (let i in this._params.indexes) {
-      let index = this._params.indexes[i];
+    this.log("INFO", "Indexes", this.parameters.indexes);
+    this.parameters.indexes = this.parameters.indexes || {};
+    for (let i in this.parameters.indexes) {
+      let index = this.parameters.indexes[i];
       index.name = i;
       let store = (index._store = this.getService<Store<CoreModel>>(index.store));
       if (!store) {
@@ -97,7 +97,7 @@ export default class ElasticSearchService<
   _httpSearch(ctx) {}
 
   async search(index: string, query: any, from: number = 0) {
-    if (!this._params.indexes[index]) {
+    if (!this.parameters.indexes[index]) {
       throw new WebdaError("ES_UNKOWN_INDEX", "Unknown index");
     }
     let q: any = {};
@@ -112,7 +112,7 @@ export default class ElasticSearchService<
     for (let i in result.hits.hits) {
       let hit = result.hits.hits[i];
       // Get the model from the Store linked to the index
-      objects.push(this._params.indexes[index]._store.initModel(hit._source));
+      objects.push(this.parameters.indexes[index]._store.initModel(hit._source));
     }
     return objects;
   }
@@ -176,7 +176,7 @@ export default class ElasticSearchService<
   }
 
   async exists(index: string, uuid: string) {
-    if (!this._params.indexes[index]) {
+    if (!this.parameters.indexes[index]) {
       throw new WebdaError("ES_UNKOWN_INDEX", "Unknown index");
     }
     return await this._client.exists({
@@ -190,7 +190,7 @@ export default class ElasticSearchService<
     if (!index) {
       return (await this._client.count()).count;
     }
-    if (!this._params.indexes[index]) {
+    if (!this.parameters.indexes[index]) {
       throw new WebdaError("ES_UNKOWN_INDEX", "Unknown index");
     }
     return (await this._client.count({ index: index })).count;
@@ -221,8 +221,8 @@ export default class ElasticSearchService<
   }
 
   async __clean() {
-    for (let i in this._params.indexes) {
-      let index = this._params.indexes[i];
+    for (let i in this.parameters.indexes) {
+      let index = this.parameters.indexes[i];
       index.name = i;
       let store = (index._store = this.getService<Store<CoreModel>>(index.store));
       if (!store) {

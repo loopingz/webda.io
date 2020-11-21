@@ -2,10 +2,11 @@
 
 <img src="https://webda.io/images/webda.svg" width="128" />
 
-[![Build Status](https://travis-ci.org/loopingz/webda.io.svg?branch=master)](https://travis-ci.com/github/loopingz/webda.io)
+![CI](https://github.com/loopingz/webda.io/workflows/CI/badge.svg)
 
 [![Join the chat at https://gitter.im/loopingz/webda](https://badges.gitter.im/loopingz/webda.svg)](https://gitter.im/loopingz/webda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![SonarCloud.io](https://sonarcloud.io/api/project_badges/measure?project=webda.io&metric=alert_status)](https://sonarcloud.io/dashboard/index/webda.io)
+![CodeQL](https://github.com/loopingz/webda.io/workflows/CodeQL/badge.svg)
 
 **Composable Serverless API**
 

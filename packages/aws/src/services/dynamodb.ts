@@ -42,14 +42,14 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
    */
   computeParameters() {
     super.computeParameters();
-    if (this._params.table === undefined) {
+    if (this.parameters.table === undefined) {
       throw new WebdaError(
         "DYNAMODB_TABLE_PARAMETER_REQUIRED",
         "Need to define a table,accessKeyId,secretAccessKey at least"
       );
     }
-    this._client = new (GetAWS(this._params).DynamoDB.DocumentClient)({
-      endpoint: this._params.endpoint
+    this._client = new (GetAWS(this.parameters).DynamoDB.DocumentClient)({
+      endpoint: this.parameters.endpoint
     });
   }
 
@@ -104,7 +104,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
       request = {};
       scan = true;
     }
-    request.TableName = this._params.table;
+    request.TableName = this.parameters.table;
     let result;
     if (scan) {
       result = await this._client.scan(request).promise();
@@ -143,7 +143,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
 
   async _removeAttribute(uuid: string, attribute: string) {
     var params: any = {
-      TableName: this._params.table,
+      TableName: this.parameters.table,
       Key: {
         uuid
       }
@@ -168,7 +168,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
 
   async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     var params: any = {
-      TableName: this._params.table,
+      TableName: this.parameters.table,
       Key: {
         uuid: uid
       }
@@ -199,7 +199,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
 
   async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     var params: any = {
-      TableName: this._params.table,
+      TableName: this.parameters.table,
       Key: {
         uuid: uid
       }
@@ -252,7 +252,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
 
   async _delete(uid, writeCondition = undefined) {
     var params: any = {
-      TableName: this._params.table,
+      TableName: this.parameters.table,
       Key: {
         uuid: uid
       }
@@ -286,7 +286,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
       return;
     }
     var params: any = {
-      TableName: this._params.table,
+      TableName: this.parameters.table,
       Key: {
         uuid: uid
       },
@@ -305,7 +305,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     object = this._cleanObject(object);
     object.uuid = uid;
     var params: any = {
-      TableName: this._params.table,
+      TableName: this.parameters.table,
       Item: object
     };
     // The Write Condition checks the value before writing
@@ -320,8 +320,8 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     return new Promise((resolve, reject) => {
       this._client.scan(
         {
-          TableName: this._params.table,
-          Limit: this._params.scanPage,
+          TableName: this.parameters.table,
+          Limit: this.parameters.scanPage,
           ExclusiveStartKey: paging
         },
         (err, data) => {
@@ -347,7 +347,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     var params = {
       RequestItems: {}
     };
-    params["RequestItems"][this._params.table] = {
+    params["RequestItems"][this.parameters.table] = {
       Keys: uids.map(value => {
         return {
           uuid: value
@@ -355,12 +355,12 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
       })
     };
     let result = await this._client.batchGet(params).promise();
-    return result.Responses[this._params.table].map(this.initModel, this);
+    return result.Responses[this.parameters.table].map(this.initModel, this);
   }
 
   async _get(uid) {
     var params = {
-      TableName: this._params.table,
+      TableName: this.parameters.table,
       Key: {
         uuid: uid
       }
@@ -370,7 +370,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
 
   _incrementAttribute(uid, prop, value, updateDate: Date) {
     var params = {
-      TableName: this._params.table,
+      TableName: this.parameters.table,
       Key: {
         uuid: uid
       },
@@ -388,7 +388,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
   }
 
   getARNPolicy(accountId) {
-    let region = this._params.region || "us-east-1";
+    let region = this.parameters.region || "us-east-1";
     return {
       Sid: this.constructor.name + this._name,
       Effect: "Allow",
@@ -404,13 +404,13 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
         "dynamodb:Scan",
         "dynamodb:UpdateItem"
       ],
-      Resource: ["arn:aws:dynamodb:" + region + ":" + accountId + ":table/" + this._params.table]
+      Resource: ["arn:aws:dynamodb:" + region + ":" + accountId + ":table/" + this.parameters.table]
     };
   }
 
   async __clean() {
     var params = {
-      TableName: this._params.table
+      TableName: this.parameters.table
     };
     let result = await this._client.scan(params).promise();
     var promises = [];
@@ -422,24 +422,24 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
   }
 
   getCloudFormation(deployer: CloudFormationDeployer) {
-    if (this._params.CloudFormationSkip) {
+    if (this.parameters.CloudFormationSkip) {
       return {};
     }
     let resources = {};
-    this._params.CloudFormation = this._params.CloudFormation || {};
-    this._params.CloudFormation.Table = this._params.CloudFormation.Table || {};
-    let KeySchema = this._params.CloudFormation.KeySchema || [{ KeyType: "HASH", AttributeName: "uuid" }];
-    let AttributeDefinitions = this._params.CloudFormation.AttributeDefinitions || [];
-    this._params.CloudFormation.Table.BillingMode = this._params.CloudFormation.Table.BillingMode || "PAY_PER_REQUEST";
+    this.parameters.CloudFormation = this.parameters.CloudFormation || {};
+    this.parameters.CloudFormation.Table = this.parameters.CloudFormation.Table || {};
+    let KeySchema = this.parameters.CloudFormation.KeySchema || [{ KeyType: "HASH", AttributeName: "uuid" }];
+    let AttributeDefinitions = this.parameters.CloudFormation.AttributeDefinitions || [];
+    this.parameters.CloudFormation.Table.BillingMode = this.parameters.CloudFormation.Table.BillingMode || "PAY_PER_REQUEST";
     AttributeDefinitions.push({ AttributeName: "uuid", AttributeType: "S" });
     resources[this._name + "DynamoTable"] = {
       Type: "AWS::DynamoDB::Table",
       Properties: {
-        ...this._params.CloudFormation.Table,
-        TableName: this._params.table,
+        ...this.parameters.CloudFormation.Table,
+        TableName: this.parameters.table,
         KeySchema,
         AttributeDefinitions,
-        Tags: deployer.getDefaultTags(this._params.CloudFormation.Table.Tags)
+        Tags: deployer.getDefaultTags(this.parameters.CloudFormation.Table.Tags)
       }
     };
     // Add any Other resources with prefix of the service

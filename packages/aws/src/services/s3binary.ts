@@ -44,13 +44,13 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   }
 
   computeParameters() {
-    this.AWS = GetAWS(this._params);
-    if (this._params.bucket === undefined) {
+    this.AWS = GetAWS(this.parameters);
+    if (this.parameters.bucket === undefined) {
       throw new WebdaError("S3BUCKET_PARAMETER_REQUIRED", "Need to define a bucket at least");
     }
     this._s3 = new this.AWS.S3({
-      endpoint: this._params.endpoint,
-      s3ForcePathStyle: this._params.s3ForcePathStyle ?? false
+      endpoint: this.parameters.endpoint,
+      s3ForcePathStyle: this.parameters.s3ForcePathStyle ?? false
     });
   }
 
@@ -61,7 +61,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     // Will use getRedirectUrl so override the default route
     var url = this._url + "/{store}/{uid}/{property}/{index}";
     let name = this._name === "Binary" ? "" : this._name;
-    if (!this._params.expose.restrict.get) {
+    if (!this.parameters.expose.restrict.get) {
       this._addRoute(url, ["GET"], this.getRedirectUrl, {
         get: {
           description: "Download a binary linked to an object",
@@ -107,7 +107,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     await object.canAct(ctx, "attach_binary");
     var base64String = new Buffer(body.hash, "hex").toString("base64");
     var params = {
-      Bucket: this._params.bucket,
+      Bucket: this.parameters.bucket,
       Key: this._getPath(body.hash),
       ContentType: "application/octet-stream",
       ContentMD5: base64String
@@ -115,7 +115,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     // List bucket
     let data = this._s3
       .listObjectsV2({
-        Bucket: this._params.bucket,
+        Bucket: this.parameters.bucket,
         Prefix: this._getPath(body.hash, "")
       })
       .promise();
@@ -136,10 +136,10 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
 
   putMarker(hash, uuid, storeName) {
     var s3obj = new this.AWS.S3({
-      endpoint: this._params.endpoint,
-      s3ForcePathStyle: this._params.s3ForcePathStyle || false,
+      endpoint: this.parameters.endpoint,
+      s3ForcePathStyle: this.parameters.s3ForcePathStyle || false,
       params: {
-        Bucket: this._params.bucket,
+        Bucket: this.parameters.bucket,
         Key: this._getPath(hash, uuid),
         Metadata: {
           "x-amz-meta-store": storeName
@@ -150,7 +150,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   }
 
   getSignedUrl(key: string, action: string = "getObject", params: any = {}): string {
-    params.Bucket = params.Bucket || this._params.bucket;
+    params.Bucket = params.Bucket || this.parameters.bucket;
     params.Key = key;
     return this._s3.getSignedUrl(action, params);
   }
@@ -205,7 +205,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   _get(info) {
     return this._s3
       .getObject({
-        Bucket: this._params.bucket,
+        Bucket: this.parameters.bucket,
         Key: this._getPath(info.hash)
       })
       .createReadStream();
@@ -215,7 +215,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     // Not efficient if more than 1000 docs
     let data = await this._s3
       .listObjects({
-        Bucket: this._params.bucket,
+        Bucket: this.parameters.bucket,
         Prefix: this._getPath(hash, "")
       })
       .promise();
@@ -227,7 +227,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   async _cleanUsage(hash, uuid) {
     // Dont clean data for now
     var params = {
-      Bucket: this._params.bucket,
+      Bucket: this.parameters.bucket,
       Key: this._getPath(hash, uuid)
     };
     return this._s3.deleteObject(params).promise();
@@ -273,7 +273,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   async _getS3(hash) {
     return this._s3
       .headObject({
-        Bucket: this._params.bucket,
+        Bucket: this.parameters.bucket,
         Key: this._getPath(hash)
       })
       .promise()
@@ -286,10 +286,10 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   }
 
   getObject(key: string, bucket: string = undefined) {
-    bucket = bucket || this._params.bucket;
+    bucket = bucket || this.parameters.bucket;
     var s3obj = new this.AWS.S3({
-      endpoint: this._params.endpoint,
-      s3ForcePathStyle: this._params.s3ForcePathStyle || false,
+      endpoint: this.parameters.endpoint,
+      s3ForcePathStyle: this.parameters.s3ForcePathStyle || false,
       params: {
         Bucket: bucket,
         Key: key
@@ -314,8 +314,8 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     let params: any = { Bucket, Prefix };
     let page = 0;
     var s3 = new this.AWS.S3({
-      endpoint: this._params.endpoint,
-      s3ForcePathStyle: this._params.s3ForcePathStyle || false
+      endpoint: this.parameters.endpoint,
+      s3ForcePathStyle: this.parameters.s3ForcePathStyle || false
     });
     do {
       await s3
@@ -341,10 +341,10 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     metadatas = {},
     bucket: string = undefined
   ) {
-    bucket = bucket || this._params.bucket;
+    bucket = bucket || this.parameters.bucket;
     var s3obj = new this.AWS.S3({
-      endpoint: this._params.endpoint,
-      s3ForcePathStyle: this._params.s3ForcePathStyle || false,
+      endpoint: this.parameters.endpoint,
+      s3ForcePathStyle: this.parameters.s3ForcePathStyle || false,
       params: {
         Bucket: bucket,
         Key: key,
@@ -367,10 +367,10 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       let s3metas: any = {};
       s3metas["x-amz-meta-challenge"] = file.challenge;
       var s3obj = new this.AWS.S3({
-        endpoint: this._params.endpoint,
-        s3ForcePathStyle: this._params.s3ForcePathStyle || false,
+        endpoint: this.parameters.endpoint,
+        s3ForcePathStyle: this.parameters.s3ForcePathStyle || false,
         params: {
-          Bucket: this._params.bucket,
+          Bucket: this.parameters.bucket,
           Key: this._getPath(file.hash),
           Metadata: s3metas
         }
@@ -415,23 +415,23 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         "s3:PutObjectAcl",
         "s3:RestoreObject"
       ],
-      Resource: [`arn:aws:s3:::${this._params.bucket}`, `arn:aws:s3:::${this._params.bucket}/*`]
+      Resource: [`arn:aws:s3:::${this.parameters.bucket}`, `arn:aws:s3:::${this.parameters.bucket}/*`]
     };
   }
 
   getCloudFormation(deployer: CloudFormationDeployer) {
-    if (this._params.CloudFormationSkip) {
+    if (this.parameters.CloudFormationSkip) {
       return {};
     }
     let resources = {};
-    this._params.CloudFormation = this._params.CloudFormation || {};
-    this._params.CloudFormation.Bucket = this._params.CloudFormation.Bucket || {};
+    this.parameters.CloudFormation = this.parameters.CloudFormation || {};
+    this.parameters.CloudFormation.Bucket = this.parameters.CloudFormation.Bucket || {};
     resources[this._name + "Bucket"] = {
       Type: "AWS::S3::Bucket",
       Properties: {
-        ...this._params.CloudFormation.Bucket,
-        BucketName: this._params.bucket,
-        Tags: deployer.getDefaultTags(this._params.CloudFormation.Bucket.Tags)
+        ...this.parameters.CloudFormation.Bucket,
+        BucketName: this.parameters.bucket,
+        Tags: deployer.getDefaultTags(this.parameters.CloudFormation.Bucket.Tags)
       }
     };
     // Add any Other resources with prefix of the service

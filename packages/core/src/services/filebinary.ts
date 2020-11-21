@@ -43,8 +43,8 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
    */
   computeParameters() {
     super.computeParameters();
-    if (!fs.existsSync(this._params.folder)) {
-      fs.mkdirSync(this._params.folder, { recursive: true });
+    if (!fs.existsSync(this.parameters.folder)) {
+      fs.mkdirSync(this.parameters.folder, { recursive: true });
     }
   }
 
@@ -55,7 +55,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     // Will redirect to this URL for direct upload
     let url = this._url + "/upload/data/{hash}";
     let name = this._name === "Binary" ? "" : this._name;
-    if (!this._params.expose.restrict.create) {
+    if (!this.parameters.expose.restrict.create) {
       this._addRoute(url, ["PUT"], this.storeBinary, {
         put: {
           operationId: `put${name}Binary`,
@@ -83,9 +83,9 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
 
   _getPath(hash, postfix = undefined) {
     if (postfix === undefined) {
-      return this._params.folder + hash;
+      return this.parameters.folder + hash;
     }
-    return this._params.folder + hash + "/" + postfix;
+    return this.parameters.folder + hash + "/" + postfix;
   }
 
   _touch(path) {
@@ -246,14 +246,14 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
   }
 
   ___cleanData() {
-    var ids = fs.readdirSync(this._params.folder);
+    var ids = fs.readdirSync(this.parameters.folder);
     for (var i in ids) {
       var hash = ids[i];
-      var files = fs.readdirSync(this._params.folder + hash);
+      var files = fs.readdirSync(this.parameters.folder + hash);
       for (var file in files) {
-        fs.unlinkSync(this._params.folder + hash + "/" + files[file]);
+        fs.unlinkSync(this.parameters.folder + hash + "/" + files[file]);
       }
-      fs.rmdirSync(this._params.folder + hash + "/");
+      fs.rmdirSync(this.parameters.folder + hash + "/");
     }
     return Promise.resolve();
   }

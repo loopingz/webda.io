@@ -38,13 +38,13 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
 
   async init(): Promise<void> {
     await super.init();
-    this._logGroupName = this._params.logGroupName;
+    this._logGroupName = this.parameters.logGroupName;
     if (!this._logGroupName) {
       throw Error("Require a log group `logGroupName` parameter");
     }
-    this._logStreamName = this._params.logStreamNamePrefix + uuid.v4();
-    this._cloudwatch = new (GetAWS(this._params).CloudWatchLogs)({
-      endpoint: this._params.endpoint
+    this._logStreamName = this.parameters.logStreamNamePrefix + uuid.v4();
+    this._cloudwatch = new (GetAWS(this.parameters).CloudWatchLogs)({
+      endpoint: this.parameters.endpoint
     });
     let res = await this._cloudwatch
       .describeLogGroups({
@@ -55,8 +55,8 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
       await this._cloudwatch
         .createLogGroup({
           logGroupName: this._logGroupName,
-          kmsKeyId: this._params.kmsKeyId,
-          tags: this._params.tags
+          kmsKeyId: this.parameters.kmsKeyId,
+          tags: this.parameters.tags
         })
         .promise();
     }
@@ -70,7 +70,7 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
       if (msg.type !== "log") {
         return;
       }
-      if (LogFilter(msg.log.level, this._params.logLevel)) {
+      if (LogFilter(msg.log.level, this.parameters.logLevel)) {
         this._log(msg.log.level, ...msg.log.args);
       }
     });
@@ -107,35 +107,35 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
       message: msg,
       timestamp: new Date().getTime()
     });
-    if (this._params.singlePush) {
+    if (this.parameters.singlePush) {
       this.sendLogs(true);
     }
   }
 
   getARNPolicy(accountId) {
-    let region = this._params.region || "us-east-1";
+    let region = this.parameters.region || "us-east-1";
     return {
       Sid: this.constructor.name + this._name,
       Effect: "Allow",
       Action: ["logs:*"],
       Resource: [
-        "arn:aws:logs:" + region + ":" + accountId + ":log-group:" + this._params.logGroupName,
-        "arn:aws:logs:" + region + ":" + accountId + ":log-group:" + this._params.logGroupName + ":*:*"
+        "arn:aws:logs:" + region + ":" + accountId + ":log-group:" + this.parameters.logGroupName,
+        "arn:aws:logs:" + region + ":" + accountId + ":log-group:" + this.parameters.logGroupName + ":*:*"
       ]
     };
   }
 
   getCloudFormation() {
-    if (this._params.CloudFormationSkip) {
+    if (this.parameters.CloudFormationSkip) {
       return {};
     }
     let resources = {};
-    this._params.CloudFormation = this._params.CloudFormation || {};
+    this.parameters.CloudFormation = this.parameters.CloudFormation || {};
     resources[this._name + "LogGroup"] = {
       Type: "AWS::Logs::LogGroup",
       Properties: {
-        ...this._params.CloudFormation.LogGroup,
-        LogGroupName: this._params.logGroupName
+        ...this.parameters.CloudFormation.LogGroup,
+        LogGroupName: this.parameters.logGroupName
       }
     };
     // Add any Other resources with prefix of the service

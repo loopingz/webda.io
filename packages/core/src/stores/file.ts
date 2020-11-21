@@ -34,13 +34,13 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
    */
   async computeParameters() {
     super.computeParameters();
-    if (!fs.existsSync(this._params.folder)) {
-      fs.mkdirSync(this._params.folder);
+    if (!fs.existsSync(this.parameters.folder)) {
+      fs.mkdirSync(this.parameters.folder);
     }
   }
 
   file(uid) {
-    return this._params.folder + "/" + uid;
+    return this.parameters.folder + "/" + uid;
   }
 
   async exists(uid) {
@@ -49,8 +49,8 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   }
 
   async _find(request, offset, limit): Promise<any> {
-    var files = fs.readdirSync(this._params.folder).filter(file => {
-      return !fs.statSync(path.join(this._params.folder, file)).isDirectory();
+    var files = fs.readdirSync(this.parameters.folder).filter(file => {
+      return !fs.statSync(path.join(this.parameters.folder, file)).isDirectory();
     });
     return Promise.all(files.map(f => this._get(f)));
   }
@@ -58,7 +58,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   _save(object) {
     fs.writeFileSync(
       this.file(object[this._uuidField]),
-      JSON.stringify(object.toStoredJSON(), undefined, this._params.beautify)
+      JSON.stringify(object.toStoredJSON(), undefined, this.parameters.beautify)
     );
     return Promise.resolve(object);
   }
@@ -149,7 +149,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   async getAll(uids): Promise<any> {
     if (!uids) {
       uids = [];
-      var files = fs.readdirSync(this._params.folder);
+      var files = fs.readdirSync(this.parameters.folder);
       for (var file in files) {
         uids.push(files[file]);
       }
@@ -185,13 +185,13 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   }
 
   async __clean() {
-    if (!fs.existsSync(this._params.folder)) {
+    if (!fs.existsSync(this.parameters.folder)) {
       return;
     }
-    var files = fs.readdirSync(this._params.folder);
+    var files = fs.readdirSync(this.parameters.folder);
     var promises = [];
     for (var file in files) {
-      let filename = this._params.folder + "/" + files[file];
+      let filename = this.parameters.folder + "/" + files[file];
       promises.push(
         new Promise<void>((resolve, reject) => {
           fs.unlink(filename, err => {
@@ -204,7 +204,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
       );
     }
     await Promise.all(promises);
-    if (this._params.index) {
+    if (this.parameters.index) {
       await this.createIndex();
     }
   }

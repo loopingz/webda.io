@@ -1,12 +1,60 @@
 {
-    "mode": "file",
-    "excludeNotExported": true,
-    "excludePrivate": true,
-    "ignoreCompilerErrors": true,
-    "exclude": [
-        "node_modules",
-        "packages/*/node_modules",
-        "packages/*/src/**/*.spec.ts",
-        "sample-app"
-    ]
+  "mode": "modules",
+  "excludeNotExported": true,
+  "excludePrivate": true,
+  "ignoreCompilerErrors": true,
+  "excludeExternals": true,
+  "excludeReferences": true,
+  "exclude": ["**/node_modules", "packages/*/node_modules", "packages/*/src/**/*.spec.ts", "sample-app"],
+  "readme": "./readme.md",
+  "pages": {
+    "groups": [
+      {
+        "title": "Pages",
+        "source": "./docs/pages/",
+        "pages": [
+          {
+            "title": "Quick Start",
+            "source": "QuickStart.md"
+          },
+          {
+            "title": "Guides",
+            "source": "Guides.md",
+            "children": [
+              {
+                "source": "Authentication.md"
+              },
+              {
+                "source": "AWS.md"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "replaceGlobalsPage": true,
+    "reflectionNavigationTitle": "Modules",
+    "useMarkdownTitle": true
+  },
+
+  "theme": "./node_modules/typedoc-loopingz-theme/bin/default",
+  "source": [
+    {
+      "path": "https://github.com/loopingz/webda.io/blob/master/",
+      "line": "L"
+    }
+  ],
+  "name": "webda.io",
+  "includeVersion": true,
+
+  "links": [
+    {
+      "label": "Guides",
+      "url": "/pages/Pages/Guides.html"
+    },
+    {
+      "label": "GitHub",
+      "url": "https://github.com/loopingz/webda.io"
+    }
+  ]
 }

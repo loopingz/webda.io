@@ -20,6 +20,31 @@ class ApplicationTest extends WebdaTest {
   }
 
   @test
+  testObjectParameter() {
+    assert.deepStrictEqual(
+      this.sampleApp.replaceVariables(
+        {
+          test: true,
+          bouzouf: {
+            yop: "${resources.replace}"
+          }
+        },
+        {
+          resources: {
+            replace: "Plop"
+          }
+        }
+      ),
+      {
+        test: true,
+        bouzouf: {
+          yop: "Plop"
+        }
+      }
+    );
+  }
+
+  @test
   getAppPath() {
     assert.strictEqual(this.sampleApp.getAppPath(), path.join(__dirname, "..", "..", "..", "sample-app"));
     assert.strictEqual(this.sampleApp.getAppPath("lib"), path.join(__dirname, "..", "..", "..", "sample-app", "lib"));

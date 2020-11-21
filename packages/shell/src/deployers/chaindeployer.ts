@@ -30,7 +30,7 @@ export default class ChainDeployer extends Deployer<ChainDeployerResources> {
     // Run all deployers one after the other
     for (let i in deployers) {
       let result = (await this.manager.run(deployers[i], resources)) || {};
-      resources = merge.recursive(resources, this.objectParameter(result));
+      resources = merge.recursive(resources, this.replaceVariables(result));
     }
   }
 }

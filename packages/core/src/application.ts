@@ -12,6 +12,7 @@ import {
   KubernetesConfigurationService,
   ConsoleLoggerService,
   MemoryLoggerService,
+  Cache,
   ConfigurationV1,
   Context,
   Core,
@@ -38,7 +39,59 @@ import { Deployment } from "./models/deployment";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import { AbstractDeployer } from "./utils/abstractdeployer";
 import * as deepmerge from "deepmerge";
+import * as semver from "semver";
+import * as dateFormat from "dateformat";
 
+/**
+ * Return the gather information from the repository
+ */
+export interface GitInformation {
+  /**
+   * Current commit reference
+   *
+   * `git rev-parse HEAD`
+   */
+  commit: string;
+  /**
+   * Current branch
+   *
+   * `git symbolic-ref --short HEAD`
+   */
+  branch: string;
+  /**
+   * Current commit short reference
+   *
+   * `git rev-parse --short HEAD`
+   */
+  short: string;
+  /**
+   * Current tag name that match the package version
+   */
+  tag: string;
+  /**
+   * Return all tags that point to the current HEAD
+   *
+   * `git tag --points-at HEAD`
+   */
+  tags: string[];
+  /**
+   * Current version as return by package.json with auto snapshot
+   *
+   * If the version return by package is not in the current `tags`, the version is
+   * incremented to the next patch version with a +{date}
+   *
+   * Example:
+   *
+   * with package.json version = "1.1.0" name = "mypackage"
+   * if a tag "v1.1.0" or "mypackage@1.1.0" then version = "1.1.0"
+   * else version = "1.1.1+20201110163014178"
+   */
+  version: string;
+}
+
+/**
+ * Helper to define a ServiceContrustor
+ */
 export interface ServiceConstructor<T extends Service> {
   new (webda: Core, name: string, params: any): T;
   getModda();
@@ -162,12 +215,18 @@ export class Application {
   protected workspacesPath: string = "";
 
   /**
+   * When the application got initiated
+   */
+  protected initTime: number;
+
+  /**
    *
    * @param {string} fileOrFolder to load Webda Application from
    * @param {Logger} logger
    */
   constructor(file: string, logger: WorkerOutput = undefined) {
     this.logger = logger || new WorkerOutput();
+    this.initTime = Date.now();
     if (!fs.existsSync(file)) {
       throw new WebdaError(
         "NO_WEBDA_FOLDER",
@@ -269,10 +328,22 @@ export class Application {
     return this.packageDescription;
   }
 
+  /**
+   * Set the status of the compilation
+   *
+   * @param compile true will avoid trigger new compilation
+   */
   preventCompilation(compile: boolean) {
     this.compiled = compile;
   }
 
+  /**
+   * Migrate from v0 to v1 configuration
+   *
+   * A V0 is a webda.config.json that does not contain any version tag
+   *
+   * @param config
+   */
   migrateV0Config(config: any): Configuration {
     this.log("WARN", "Old V0 webda.config.json format, trying to migrate");
     let newConfig: any = {
@@ -302,6 +373,11 @@ export class Application {
     return newConfig;
   }
 
+  /**
+   * Migrate from v1 to v2 configuration format
+   *
+   * @param config
+   */
   migrateV1Config(config: ConfigurationV1): Configuration {
     this.log("WARN", "Old V1 webda.config.json format, trying to migrate");
     let newConfig: Configuration = {
@@ -437,17 +513,205 @@ export class Application {
     return deploymentModel;
   }
 
+  /**
+   * Retrieve Git Repository information
+   *
+   * {@link GitInformation} for more details on how the information is gathered
+   * @return the git information
+   */
+  @Cache()
+  getGitInformation(): GitInformation {
+    let options = {
+      cwd: this.getAppPath()
+    };
+    let info = this.getPackageDescription();
+    try {
+      let tags = execSync(`git tag --points-at HEAD`, options).toString().trim().split("\n");
+      let tag = "";
+      let version = info.version;
+      if (tags.includes(`${info.name}@${info.version}`)) {
+        tag = `${info.name}@${info.version}`;
+      } else if (tags.includes(`v${info.version}`)) {
+        tag = `v${info.version}`;
+      } else {
+        version = semver.inc(info.version, "patch") + "+" + dateFormat(new Date(), "yyyymmddHHMMssl");
+      }
+      // Search for what would be the tag
+      // packageName@version
+      // or version if single repo
+      // if not included create a nextVersion+SNAPSHOT.${commit}.${now}
+      return {
+        commit: execSync(`git rev-parse HEAD`, options).toString().trim(),
+        branch: execSync("git symbolic-ref --short HEAD", options).toString().trim(),
+        short: execSync(`git rev-parse --short HEAD`, options).toString().trim(),
+        tag,
+        tags,
+        version
+      };
+    } catch (err) {
+      return {
+        commit: "unknown",
+        branch: "unknown",
+        tag: "",
+        short: "0000000",
+        tags: [],
+        version: info.version
+      };
+    }
+  }
+
+  /**
+   * Allow variable inside of string
+   *
+   * @param templateString to copy
+   * @param replacements additional replacements to run
+   */
+  protected stringParameter(templateString: string, replacements: any = {}) {
+    // Optimization if no parameter is found just skip the costy function
+    if (templateString.indexOf("${") < 0) {
+      return templateString;
+    }
+    return new Function("return `" + templateString.replace(/\$\{/g, "${this.") + "`;").call({
+      package: this.getPackageDescription(),
+      git: this.getGitInformation(),
+      deployment: this.getCurrentDeployment(),
+      now: this.initTime,
+      ...replacements
+    });
+  }
+
+  /**
+   * Allow variable inside object strings
+   *
+   * Example
+   * ```js
+   * replaceVariables({
+   *  myobj: "${test.replace}"
+   * }, {
+   *  test: {
+   *    replace: 'plop'
+   *  }
+   * })
+   * ```
+   * will return
+   * ```
+   * {
+   *  myobj: 'plop'
+   * }
+   * ```
+   *
+   * By default the replacements map contains
+   * ```
+   * {
+   *  git: GitInformation,
+   *  package: 'package.json content',
+   *  deployment: string,
+   *  now: number,
+   *  ...replacements
+   * }
+   * ```
+   *
+   * See: {@link GitInformation}
+   *
+   * @param object a duplicated object with replacement done
+   * @param replacements additional replacements to run
+   */
+  replaceVariables(object: any, replacements: any = {}) {
+    if (typeof this[object] === "string") {
+      return this.stringParameter(object);
+    }
+    let app = this;
+    return JSON.parse(
+      JSON.stringify(object, function (key: string, value: any) {
+        if (typeof this[key] === "string") {
+          return app.stringParameter(value, replacements);
+        }
+        return value;
+      })
+    );
+  }
+
+  /**
+   * Return the application Configuration for a deployment
+   *
+   * Given this inputs:
+   *
+   * webda.config.json
+   * ```json
+   * {
+   *  "parameters": {
+   *    "param3": "test"
+   *  },
+   *  "services": {
+   *    "MyService": {
+   *      "param1": {
+   *        "sub": "test"
+   *      },
+   *      "param2": "value"
+   *    }
+   *  }
+   * }
+   * ```
+   *
+   * deployment.json
+   * ```json
+   * {
+   *  "parameters": {
+   *    "param4": "deployment"
+   *  }
+   *  "services": {
+   *    "MyService": {
+   *      "param1": {
+   *        "sub2": "deploymentSub"
+   *      },
+   *      "param2": "${package.version}"
+   *    }
+   *  }
+   * }
+   * ```
+   *
+   * The result would be:
+   * ```json
+   * {
+   *  "parameters": {
+   *    "param3": "test",
+   *    "param4": "deployment"
+   *  },
+   *  "services": {
+   *    "MyService": {
+   *      "param1": {
+   *        "sub": "test",
+   *        "sub2": "deploymentSub"
+   *      },
+   *      "param2": "1.1.0"
+   *    }
+   *  }
+   * }
+   * ```
+   * This map can also use parameters {@link replaceVariables}
+   *
+   * @param deploymentName to use for the Configuration
+   */
   getConfiguration(deploymentName: string = undefined): Configuration {
     if (!deploymentName) {
       return this.baseConfiguration;
     }
     let config = JSON.parse(JSON.stringify(this.baseConfiguration));
     let deploymentModel = this.getDeployment(deploymentName);
-    config.parameters = merge.recursive(config.parameters, deploymentModel.parameters);
-    config.services = merge.recursive(config.services, deploymentModel.services);
+    config.parameters = this.replaceVariables(merge.recursive(config.parameters, deploymentModel.parameters));
+    config.services = this.replaceVariables(merge.recursive(config.services, deploymentModel.services));
     return config;
   }
 
+  /**
+   * Return current Configuration of the Application
+   *
+   * Same as calling
+   *
+   * ```js
+   * getConfiguration(this.currentDeployment);
+   * ```
+   */
   getCurrentConfiguration(): Configuration {
     return this.getConfiguration(this.currentDeployment);
   }
@@ -636,12 +900,21 @@ export class Application {
     }
   }
 
-  completeNamespace(info: string = ""): string {
+  /**
+   * Return the full name including namespace
+   *
+   * In Webda the ServiceType include namespace `Webda/Store` or `Webda/Test`
+   * This method will make sure the namespace is present, adding it if no '/'
+   * is found in the name
+   *
+   * @param name
+   */
+  completeNamespace(name: string = ""): string {
     // Do not add a namespace if already present
-    if (info.indexOf("/") >= 0) {
-      return info;
+    if (name.indexOf("/") >= 0) {
+      return name;
     }
-    return `${this.namespace}/${info}`;
+    return `${this.namespace}/${name}`;
   }
 
   extends(obj: any, className: any): boolean {

@@ -74,17 +74,13 @@ export abstract class Deployer<T extends DeployerResources> extends AbstractDepl
   abstract async deploy(): Promise<any>;
 
   /**
-   * Allow variable inside of string
+   * Replace variables in resources
    *
-   * @param templateString to copy
+   * @param obj to replace variables from
    */
-  stringParameter(templateString: string) {
-    return new Function("return `" + templateString.replace(/\$\{/g, "${this.") + "`;").call({
+  replaceVariables(obj: any): any {
+    return this.getApplication().replaceVariables(obj, {
       resources: this.resources,
-      package: this.manager.getPackageDescription(),
-      git: this.manager.getGitInformation(),
-      deployment: this.manager.getApplication().getCurrentDeployment(),
-      now: this.now,
       deployer: {
         name: this.name,
         type: this.type
@@ -94,27 +90,14 @@ export abstract class Deployer<T extends DeployerResources> extends AbstractDepl
   }
 
   /**
-   * Allow variable inside object strings
+   * Replace the resources variables
    *
-   * @param object a duplicated object with replacement done
+   * ```
+   * this.resources = this.replaceVariables(this.resources);
+   * ```
    */
-  objectParameter(object: any) {
-    let from = this;
-    return JSON.parse(
-      JSON.stringify(object, function (key: string, value: any) {
-        if (typeof this[key] === "string") {
-          return from.stringParameter(value);
-        }
-        return value;
-      })
-    );
-  }
-
-  /**
-   * Replace variables in resources
-   */
-  replaceVariables() {
-    this.resources = this.objectParameter(this.resources);
+  replaceResourcesVariables() {
+    this.resources = this.replaceVariables(this.resources);
   }
 
   /**

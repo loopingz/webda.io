@@ -10,8 +10,6 @@ import { WorkerOutput } from "@webda/workout";
 import * as fs from "fs";
 import * as path from "path";
 import { Kubernetes } from "../deployers/kubernetes";
-import * as semver from "semver";
-import * as dateFormat from "dateformat";
 
 export interface DeployerConstructor {
   new (manager: DeploymentManager, resources: any): Deployer<any>;
@@ -162,7 +160,7 @@ export class DeploymentManager {
     deployer.setName(name);
     deployer.setType(this.deployers[name].type);
     await deployer.defaultResources();
-    deployer.replaceVariables();
+    deployer.replaceResourcesVariables();
     return deployer;
   }
 
@@ -182,43 +180,6 @@ export class DeploymentManager {
     let deployer = new this.deployersDefinition[type.toLowerCase()](this, resources);
     await deployer.defaultResources();
     return deployer.deploy();
-  }
-
-  /**
-   * Retrieve Git Repository information
-   */
-  @Cache()
-  getGitInformation() {
-    let options = {
-      cwd: this.application.getAppPath()
-    };
-    let info = this.getPackageDescription();
-    try {
-      let tags = execSync(`git tag --points-at HEAD`, options).toString().trim().split("\n");
-      let tag = "";
-      let version = info.version;
-      if (tags.includes(`${info.name}@${info.version}`)) {
-        tag = `${info.name}@${info.version}`;
-      } else if (tags.includes(`v${info.version}`)) {
-        tag = `v${info.version}`;
-      } else {
-        version = semver.inc(info.version, "patch") + "+" + dateFormat(new Date(), "yyyymmddHHMMssl");
-      }
-      // Search for what would be the tag
-      // packageName@version
-      // or version if single repo
-      // if not included create a nextVersion+SNAPSHOT.${commit}.${now}
-      return {
-        commit: execSync(`git rev-parse HEAD`, options).toString().trim(),
-        branch: execSync("git symbolic-ref --short HEAD", options).toString().trim(),
-        short: execSync(`git rev-parse --short HEAD`, options).toString().trim(),
-        tag,
-        tags,
-        version
-      };
-    } catch (err) {
-      return { commit: "unknown", branch: "unknown", tag: "", short: "0000000" };
-    }
   }
 
   /**

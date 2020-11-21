@@ -3,9 +3,14 @@ import { Service, ModdaDefinition, Context } from "@webda/core";
 /**
  * Profiling service
  *
- * Mesure timing of each method
+ * Mesure timing of each method and display them in TRACE
  */
 export default class ProfilingService extends Service {
+  /**
+   * Return all methods from an object
+   *
+   * @param obj to return methods from
+   */
   getMethods(obj) {
     let properties = new Set();
     let currentObj = Object.getPrototypeOf(obj);
@@ -20,7 +25,7 @@ export default class ProfilingService extends Service {
 
   /**
    * Method to call before original function
-   * @param service being patched
+   * @param {Service} service being patched
    * @param method method being patch
    */
   preprocessor(service: Service, method: string) {
@@ -93,22 +98,43 @@ export default class ProfilingService extends Service {
     }
   }
 
+  /**
+   * Return if Profiler is enable
+   */
   isEnabled() {
     return !this._params.disabled;
   }
 
-  instrumentRequest(ctx: Context, ...args) {
+  /**
+   * Instrument Request to display request duration in ms
+   *
+   * @param {Context} request to instrument
+   * @param {any[]}
+   */
+  instrumentRequest(ctx: Context, ...args: any[]) {
     const exec = ctx.execute.bind(ctx);
     // Dynamic replace the execute functionc
     ctx.execute = async () => {
       let start = Date.now();
+      let error;
       try {
         await exec();
+      } catch (err) {
+        error = err;
+        throw err;
       } finally {
+        if (error) {
+          this.log("TRACE", `Request took ${Date.now() - start}ms with error '${error.message}'`);
+        } else {
+          this.log("TRACE", `Request took ${Date.now() - start}ms`);
+        }
       }
     };
   }
 
+  /**
+   * Add listeners on `Webda.Init.Services` and `Webda.Request`
+   */
   resolve() {
     if (!this.isEnabled()) {
       return;

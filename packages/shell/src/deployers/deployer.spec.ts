@@ -36,32 +36,10 @@ class CommonDeployerTest extends DeployerTest<TestDeployer> {
   async getDeployer(manager) {
     return new TestDeployer(manager, { replace: "Plop" });
   }
-  @test
-  testStringParameter() {
-    assert.strictEqual(this.deployer.stringParameter("Test${resources.replace}"), "TestPlop");
-  }
 
   @test
   testGetApplication() {
     assert.strictEqual(this.deployer.getApplication(), this.deployer.app);
-  }
-
-  @test
-  testObjectParameter() {
-    assert.deepStrictEqual(
-      this.deployer.objectParameter({
-        test: true,
-        bouzouf: {
-          yop: "${resources.replace}"
-        }
-      }),
-      {
-        test: true,
-        bouzouf: {
-          yop: "Plop"
-        }
-      }
-    );
   }
 
   @test
@@ -73,7 +51,7 @@ class CommonDeployerTest extends DeployerTest<TestDeployer> {
         yop: "${resources.replace}"
       }
     };
-    this.deployer.replaceVariables();
+    this.deployer.replaceResourcesVariables();
     assert.deepStrictEqual(this.deployer.resources, {
       replace: "bouzouf",
       test: true,

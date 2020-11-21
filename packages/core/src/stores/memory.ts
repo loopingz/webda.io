@@ -1,6 +1,6 @@
 import { ModdaDefinition } from "../core";
 import { CoreModel } from "../models/coremodel";
-import { Store } from "./store";
+import { Store, StoreParameters } from "./store";
 
 interface StorageMap {
   [key: string]: any;
@@ -11,7 +11,7 @@ interface StorageMap {
  *
  * @category CoreServices
  */
-class MemoryStore<T extends CoreModel> extends Store<T> {
+class MemoryStore<T extends CoreModel, K extends StoreParameters = StoreParameters> extends Store<T, K> {
   storage: StorageMap = {};
 
   async init(): Promise<void> {

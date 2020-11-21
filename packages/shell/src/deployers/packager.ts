@@ -253,7 +253,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     var output = fs.createWriteStream(zipPath);
     var archive = archiver("zip");
 
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       output.on("finish", () => {
         this.packagesGenerated[zipPath + entrypoint || ""] = true;
         resolve();

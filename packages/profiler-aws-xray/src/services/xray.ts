@@ -1,7 +1,18 @@
-import { Service, ModdaDefinition } from "@webda/core";
+import { Service, ModdaDefinition, ServiceParameters } from "@webda/core";
 import * as AWSXRay from "aws-xray-sdk";
 
-export default class AWSXRayService extends Service {
+export class AWSXRayServiceParameters extends ServiceParameters {
+  name: string;
+}
+export default class AWSXRayService<T extends AWSXRayServiceParameters = AWSXRayServiceParameters> extends Service<T> {
+  /**
+   *
+   * @param params
+   */
+  loadParameters(params: any) {
+    return new AWSXRayServiceParameters(params);
+  }
+
   launch() {
     // Depending on the OS
     // https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon.html

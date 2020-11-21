@@ -1,5 +1,5 @@
 import { Queue } from "../queues/queueservice";
-import { Service } from "./service";
+import { Service, ServiceParameters } from "./service";
 
 class AsyncEvent {
   service: Service;
@@ -29,20 +29,35 @@ interface QueueMap {
   [key: string]: Queue;
 }
 
+export class EventServiceParameters extends ServiceParameters {
+  queues?: { [key: string]: string };
+  sync: boolean = false;
+}
+
 /**
  * @category CoreServices
  */
-class EventService extends Service {
+class EventService<T extends EventServiceParameters = EventServiceParameters> extends Service<T> {
   _callbacks: any = {};
   _queues: QueueMap = {};
   _defaultQueue: string = "";
   _async: boolean;
 
   /**
+   * Load parameters
+   *
+   * @param params
+   * @ignore
+   */
+  loadParameters(params: any): ServiceParameters {
+    return new EventServiceParameters(params);
+  }
+
+  /**
    * @ignore
    * Setup the default routes
    */
-  async init(): Promise<void> {
+  async computeParameters(): Promise<void> {
     if (this._params.queues) {
       Object.keys(this._params.queues).forEach(key => {
         // Define default as first queue

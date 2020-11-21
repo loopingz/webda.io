@@ -1,21 +1,21 @@
-import { Service } from "../services/service";
+import { Service, ServiceParameters } from "../services/service";
 
 /**
  * @category CoreServices
  */
-abstract class Queue extends Service {
+abstract class Queue<T extends ServiceParameters = ServiceParameters> extends Service<T> {
   _timeout: any;
   _interrupt: boolean;
   callback: Function;
   pause: number;
 
-  abstract async sendMessage(params: any);
+  abstract sendMessage(params: any): Promise<void>;
 
-  abstract async receiveMessage(): Promise<any>;
+  abstract receiveMessage(): Promise<any>;
 
-  abstract async deleteMessage(id: string);
+  abstract deleteMessage(id: string): Promise<void>;
 
-  abstract async size(): Promise<number>;
+  abstract size(): Promise<number>;
 
   async _workerResume() {
     if (this._timeout) {

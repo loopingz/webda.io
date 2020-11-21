@@ -6,7 +6,7 @@ import * as path from "path";
 import { CoreModel } from "../models/coremodel";
 import { Store } from "../stores/store";
 import { Context } from "../utils/context";
-import { Service } from "./service";
+import { Service, ServiceParameters } from "./service";
 
 /**
  * This is a map used to retrieve binary
@@ -37,6 +37,35 @@ class BinaryMap {
   }
 }
 
+export class BinaryParameters extends ServiceParameters {
+  map: { [key: string]: string };
+  expose: {
+    url: string;
+    restrict?: {
+      get?: boolean;
+      create?: boolean;
+      delete?: boolean;
+    };
+  };
+
+  constructor(params: any, service: Service) {
+    super(params);
+    if (typeof params.expose == "boolean") {
+      if (params.expose) {
+        this.expose = {
+          url: "/" + service.getName().toLowerCase()
+        };
+      }
+    } else if (typeof params.expose == "string") {
+      this.expose = {
+        url: params.expose
+      };
+    }
+    if (this.expose) {
+      this.expose.restrict = this.expose.restrict || {};
+    }
+  }
+}
 /**
  * This is an abstract service to represent a storage of files
  * The binary allow you to expose this service as HTTP ( therefore is an executor )
@@ -52,9 +81,19 @@ class BinaryMap {
  * @abstract
  * @class Binary
  */
-class Binary extends Service {
+class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
   _lowercaseMaps: any;
   _url: string;
+
+  /**
+   * Load parameters
+   *
+   * @param params
+   */
+  loadParameters(params: any): ServiceParameters {
+    return new BinaryParameters(params, this);
+  }
+
   /**
    * When you store a binary to be able to retrieve it you need to store the information into another object
    *
@@ -134,7 +173,7 @@ class Binary extends Service {
   downloadTo(info, filename) {
     var readStream: any = this._get(info);
     var writeStream = fs.createWriteStream(filename);
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       writeStream.on("finish", src => {
         return resolve();
       });
@@ -331,32 +370,23 @@ class Binary extends Service {
     return file;
   }
 
+  /**
+   * Init the Binary system routes
+   */
   initRoutes() {
     // Use a private method with boolean
     this._initRoutes();
   }
 
+  /**
+   * This is used to allow subclasses to add more route
+   */
   _initRoutes(): boolean {
     let url;
     if (!this._params.expose) {
       return false;
     }
-    if (typeof this._params.expose == "boolean") {
-      if (!this._params.expose) {
-        return false;
-      }
-      this._params.expose = {};
-      this._params.expose.url = "/" + this._name.toLowerCase();
-    } else if (typeof this._params.expose == "string") {
-      url = this._params.expose;
-      this._params.expose = {};
-      this._params.expose.url = url;
-    } else if (typeof this._params.expose == "object" && this._params.expose.url === undefined) {
-      this._params.expose.url = "/" + this._name.toLowerCase();
-    }
-    if (this._params.expose.restrict === undefined) {
-      this._params.expose.restrict = {};
-    }
+
     this._url = this._params.expose.url;
     let name = this._name;
     if (name === "Binary") {
@@ -521,7 +551,7 @@ class Binary extends Service {
         "Content-Length": file.size
       });
       let readStream: any = await this.get(file);
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         // We replaced all the event handlers with a simple call to readStream.pipe()
         ctx._stream.on("finish", src => {
           return resolve();

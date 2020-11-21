@@ -1,15 +1,34 @@
 "use strict";
-import { ModdaDefinition, Queue, WebdaError } from "@webda/core";
+import { ModdaDefinition, Queue, Service, ServiceParameters, WebdaError } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
 
-// TODO Readd AWS Mixin
-export default class SQSQueue extends Queue implements CloudFormationContributor {
-  sqs: any;
+export class SQSQueueParameters extends ServiceParameters {
+  WaitTimeSeconds: number;
+  endpoint: string;
+  queue: string;
+  MessageGroupId: string;
+  CloudFormationSkip: boolean;
+  CloudFormation: any;
 
-  normalizeParams() {
-    this._params.WaitTimeSeconds = this._params.WaitTimeSeconds || 20;
+  constructor(params: any) {
+    super(params);
+    this.WaitTimeSeconds = this.WaitTimeSeconds ?? 20;
+    this.queue = this.queue ?? "";
+  }
+}
+// TODO Readd AWS Mixin
+export default class SQSQueue<T extends SQSQueueParameters = SQSQueueParameters> extends Queue<T>
+  implements CloudFormationContributor {
+  sqs: any;
+  /**
+   * Load the parameters
+   *
+   * @param params
+   */
+  loadParameters(params: any) {
+    return new SQSQueueParameters(params);
   }
 
   async init(): Promise<void> {
@@ -89,11 +108,10 @@ export default class SQSQueue extends Queue implements CloudFormationContributor
   }
 
   _getQueueInfosFromUrl() {
-    let re = new RegExp(/.*sqs\.(.*)\.amazonaws.com\/([0-9]+)\/(.*)/, "i");
-    let found = re.exec(this._params.queue);
+    let found = this._params.queue.match(/.*sqs\.(.*)\.amazonaws.com\/([0-9]+)\/(.*)/i);
     if (!found) {
       // Check for LocalStack
-      found = this._params.queue.match(/http:\/\/(localhost):\d+\/(.*)\/(.*)/, "i");
+      found = this._params.queue.match(/http:\/\/(localhost):\d+\/(.*)\/(.*)/i);
       if (!found) {
         throw new WebdaError("SQS_PARAMETER_MALFORMED", "SQS Queue URL malformed");
       }
@@ -150,24 +168,7 @@ export default class SQSQueue extends Queue implements CloudFormationContributor
       description: "Implements a Queue stored in SQS",
       documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
       logo: "images/icons/sqs.png",
-      configuration: {
-        schema: {
-          type: "object",
-          properties: {
-            accessKeyId: {
-              type: "string"
-            },
-            secretAccessKey: {
-              type: "string"
-            },
-            queue: {
-              type: "string",
-              default: "YOUR QUEUE URL"
-            }
-          },
-          required: ["accessKeyId", "secretAccessKey", "queue"]
-        }
-      }
+      configuration: {}
     };
   }
 }

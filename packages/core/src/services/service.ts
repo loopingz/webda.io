@@ -6,6 +6,14 @@ import { EventService } from "./asyncevents";
 import { WorkerLogLevel } from "@webda/workout";
 import { ModdaDefinition } from "../core";
 
+export class ServiceParameters {
+  type: string;
+
+  constructor(params: any) {
+    Object.assign(this, params);
+  }
+}
+
 /**
  * Use this object for representing a service in the application
  * A Service is a singleton in the application, that is init after all others services are created
@@ -16,10 +24,10 @@ import { ModdaDefinition } from "../core";
  * @abstract
  * @class Service
  */
-abstract class Service extends events.EventEmitter {
+abstract class Service<T extends ServiceParameters = ServiceParameters> extends events.EventEmitter {
   _webda: Core;
   _name: string;
-  _params: any;
+  _params: T;
   _createException: string;
   _initTime: number;
   _initException: any = undefined;
@@ -32,14 +40,26 @@ abstract class Service extends events.EventEmitter {
    * @param {String} name - The name of the service
    * @param {Object} params - The parameters block define in the configuration file
    */
-  constructor(webda: Core, name: string, params: any) {
+  constructor(webda: Core, name: string, params: any = {}) {
     super();
     this.logger = webda ? webda.getLogger(this) : undefined;
     this._initTime = new Date().getTime();
     this._webda = webda;
     this._name = name;
-    this._params = params;
+    this._params = <T>this.loadParameters(params);
   }
+
+  /**
+   * Load the parameters for a service
+   */
+  loadParameters(params: any): ServiceParameters {
+    return new ServiceParameters(params);
+  }
+
+  /**
+   * Used to compute or derivate input parameter to attribute
+   */
+  computeParameters(): void {}
 
   /**
    * Get the service parameters
@@ -60,7 +80,8 @@ abstract class Service extends events.EventEmitter {
    * Call initRoutes and initBeanRoutes
    */
   resolve() {
-    this.normalizeParams();
+    // We wait for all services to be created before calling computeParameters
+    this.computeParameters();
     this.initRoutes();
     this._webda.initBeanRoutes(this);
   }
@@ -119,17 +140,12 @@ abstract class Service extends events.EventEmitter {
   async init(): Promise<void> {}
 
   /**
-   * Handle cleaning of params
-   */
-  normalizeParams() {}
-
-  /**
-   * 
+   *
    * @param config new parameters for the service
    */
   async reinit(config): Promise<void> {
-    this._params = config;
-    this.normalizeParams();
+    this._params = <T>this.loadParameters(config);
+    this.computeParameters();
     return this.init();
   }
 
@@ -163,7 +179,7 @@ abstract class Service extends events.EventEmitter {
    * Return a webda service
    * @param service name to retrieve
    */
-  getService<T extends Service>(service: string): T {
+  getService<T extends Service<ServiceParameters>>(service: string): T {
     return this._webda.getService<T>(service);
   }
 
@@ -171,7 +187,7 @@ abstract class Service extends events.EventEmitter {
    * Return the Modda definition if any
    *
    */
-  static getModda() : ModdaDefinition | void {}
+  static getModda(): ModdaDefinition | void {}
 
   /**
    * Get service name
@@ -201,9 +217,9 @@ abstract class Service extends events.EventEmitter {
   }
 
   /**
-   * 
+   *
    * @param level to log
-   * @param args 
+   * @param args
    */
   log(level: WorkerLogLevel, ...args: any[]) {
     this.logger.log(level, ...args);

@@ -1,9 +1,17 @@
 "use strict";
 // Load the AWS SDK for Node.js
-import { Binary, Context, ModdaDefinition, WebdaError } from "@webda/core";
+import { Binary, BinaryParameters, Context, ModdaDefinition, WebdaError } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
+
+export class S3BinaryParameters extends BinaryParameters {
+  endpoint: string;
+  s3ForcePathStyle: boolean;
+  bucket: string;
+  CloudFormation: any;
+  CloudFormationSkip: boolean;
+}
 
 /**
  * S3Binary handles the storage of binary on a S3 bucket
@@ -21,24 +29,28 @@ import { GetAWS } from "./aws-mixin";
  *
  * See Binary the general interface
  */
-export default class S3Binary extends Binary implements CloudFormationContributor {
+export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters> extends Binary<T>
+  implements CloudFormationContributor {
   AWS: any;
   _s3: any;
 
-  /** @ignore */
-  constructor(webda, name, params) {
-    super(webda, name, params);
-    if (params.bucket === undefined) {
-      throw new WebdaError("S3BUCKET_PARAMETER_REQUIRED", "Need to define a bucket at least");
-    }
-    this.AWS = GetAWS(params);
+  /**
+   * Load the parameters
+   *
+   * @param params
+   */
+  loadParameters(params: any) {
+    return new S3BinaryParameters(params, this);
   }
 
-  async init(): Promise<void> {
-    await super.init();
+  computeParameters() {
+    this.AWS = GetAWS(this._params);
+    if (this._params.bucket === undefined) {
+      throw new WebdaError("S3BUCKET_PARAMETER_REQUIRED", "Need to define a bucket at least");
+    }
     this._s3 = new this.AWS.S3({
       endpoint: this._params.endpoint,
-      s3ForcePathStyle: this._params.s3ForcePathStyle || false
+      s3ForcePathStyle: this._params.s3ForcePathStyle ?? false
     });
   }
 
@@ -229,7 +241,7 @@ export default class S3Binary extends Binary implements CloudFormationContributo
   }
 
   async cascadeDelete(info, uuid) {
-    return this._cleanUsage(info.hash, uuid).catch(function(err) {
+    return this._cleanUsage(info.hash, uuid).catch(function (err) {
       this._webda.log("WARN", "Cascade delete failed", err);
     });
   }
@@ -265,7 +277,7 @@ export default class S3Binary extends Binary implements CloudFormationContributo
         Key: this._getPath(hash)
       })
       .promise()
-      .catch(function(err) {
+      .catch(function (err) {
         if (err.code !== "NotFound") {
           return Promise.reject(err);
         }
@@ -349,7 +361,7 @@ export default class S3Binary extends Binary implements CloudFormationContributo
   async store(targetStore, object, property, file, metadatas, index = "add"): Promise<any> {
     this._checkMap(targetStore._name, property);
     this._prepareInput(file);
-    file = {...file, ...this._getHashes(file.buffer)};
+    file = { ...file, ...this._getHashes(file.buffer) };
     let data = await this._getS3(file.hash);
     if (data === undefined) {
       let s3metas: any = {};
@@ -418,7 +430,7 @@ export default class S3Binary extends Binary implements CloudFormationContributo
       Type: "AWS::S3::Bucket",
       Properties: {
         ...this._params.CloudFormation.Bucket,
-        BucketName: this._params.bucketName,
+        BucketName: this._params.bucket,
         Tags: deployer.getDefaultTags(this._params.CloudFormation.Bucket.Tags)
       }
     };

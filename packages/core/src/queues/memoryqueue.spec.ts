@@ -44,7 +44,7 @@ class MemoryQueueTest extends QueueTest {
             resolve(queue.stop());
         }
       };
-      queue.deleteMessage = handle => {
+      queue.deleteMessage = async handle => {
         // Should only have the msg1 handle in deleteMessage as msg2 is fake error
         assert.strictEqual(handle, "msg1");
       };
@@ -67,10 +67,10 @@ class MemoryQueueTest extends QueueTest {
   async basic() {
     let queue: MemoryQueue = <MemoryQueue>this.getService("memoryqueue");
     // For coverage
-    assert.strictEqual(queue._params.expire, 1000);
+    assert.strictEqual(queue._params.expire, 1000, "1s should be convert to ms");
     queue._params.expire = undefined;
-    await queue.init();
-    assert.strictEqual(queue._params.expire, 30000);
+    await queue.reinit({});
+    assert.strictEqual(queue._params.expire, 30000, "default should be 30s");
     queue._params.expire = 1000;
     queue.__clean();
     assert.strictEqual((await queue.receiveMessage()).length, 0);

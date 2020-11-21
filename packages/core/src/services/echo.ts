@@ -1,5 +1,10 @@
 import { Context, Service } from "../index";
+import { ServiceParameters } from "./service";
 
+class EchoServiceParameter extends ServiceParameters {
+  mime: string;
+  result: string | any;
+}
 /**
  * Return a static string with a static mime type
  * Not really usefully i concede
@@ -14,7 +19,16 @@ import { Context, Service } from "../index";
  * }
  *
  */
-class EchoService extends Service {
+class EchoService extends Service<EchoServiceParameter> {
+  /**
+   * Load parameters
+   *
+   * @param params
+   * @ignore
+   */
+  loadParameters(params: any): ServiceParameters {
+    return new EchoServiceParameter(params);
+  }
   /** @ignore */
   execute(ctx: Context): Promise<any> {
     if (this._params.mime) {

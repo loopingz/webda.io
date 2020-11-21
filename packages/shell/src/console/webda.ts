@@ -393,7 +393,7 @@ export default class WebdaConsole {
     const yeoman = require("yeoman-environment");
     const env = yeoman.createEnv();
     env.register(require.resolve(`generator-${generatorName}/generators/${generatorAction}/index.js`), generatorName);
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       env.run(generatorName, err => {
         if (err) {
           reject(err);
@@ -770,7 +770,7 @@ export default class WebdaConsole {
     this.output("Typescript compilation");
     this.tscCompiler = spawn("tsc", ["--watch", "-p", this.app.getAppPath(), "--listEmittedFiles"], {});
     this.tscCompiler.stdout.pipe(stream).pipe(process.stdout);
-    return new Promise(resolve => {
+    return new Promise<void>(resolve => {
       this.tscCompiler.on("exit", code => {
         this.tscCompiler = undefined;
         this.setDebuggerStatus(DebuggerStatus.Stopped);

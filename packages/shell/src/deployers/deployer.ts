@@ -71,7 +71,7 @@ export abstract class Deployer<T extends DeployerResources> extends AbstractDepl
   /**
    * Deploy the application
    */
-  abstract async deploy(): Promise<any>;
+  abstract deploy(): Promise<any>;
 
   /**
    * Replace variables in resources

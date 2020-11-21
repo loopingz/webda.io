@@ -2,8 +2,53 @@
 import { v4 as uuidv4 } from "uuid";
 import { ConfigurationProvider } from "../index";
 import { CoreModel, CoreModelDefinition } from "../models/coremodel";
-import { Service } from "../services/service";
+import { Service, ServiceParameters } from "../services/service";
 import { Context } from "../utils/context";
+
+export class StoreParameters extends ServiceParameters {
+  lastUpdateField: string;
+  creationDateField: string;
+  model: string;
+  index: string[] | undefined;
+  map: {
+    [key: string]: {
+      key: string;
+      fields: string;
+    };
+  };
+  asyncDelete: boolean;
+  expose?: {
+    url: string;
+    restrict: {
+      create?: boolean;
+      update?: boolean;
+      get?: boolean;
+      delete?: boolean;
+    };
+  };
+
+  constructor(params: any, service: Service<any>) {
+    super(params);
+    this.lastUpdateField = this.lastUpdateField ?? "_lastUpdate";
+    this.creationDateField = this.creationDateField ?? "_creationDate";
+    this.model = this.model ?? "Webda/CoreModel";
+    let expose = params.expose;
+    if (typeof expose == "boolean") {
+      expose = {};
+      expose.url = "/" + service.getName().toLowerCase();
+    } else if (typeof expose == "string") {
+      expose = {
+        url: expose
+      };
+    } else if (typeof expose == "object" && expose.url == undefined) {
+      expose.url = "/" + service.getName().toLowerCase();
+    }
+    if (expose) {
+      expose.restrict = expose.restrict || {};
+      this.expose = expose;
+    }
+  }
+}
 
 /**
  * This class handle NoSQL storage and mapping (duplication) between NoSQL object
@@ -39,30 +84,38 @@ import { Context } from "../utils/context";
  *   }
  * @category CoreServices
  */
-class Store<T extends CoreModel> extends Service implements ConfigurationProvider {
+class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> extends Service<K>
+  implements ConfigurationProvider {
   _reverseMap: any[] = [];
   _cascade: any[] = [];
-  _writeConditionField: string;
   _model: CoreModelDefinition;
   _exposeUrl: string;
   _lastUpdateField: string;
   _creationDateField: string;
   protected _uuidField: string = "uuid";
 
-  /** @ignore */
-  normalizeParams() {
-    this._lastUpdateField = this._params.lastUpdateField || "_lastUpdate";
-    this._creationDateField = this._params.creationDateField || "_creationDate";
-    this._writeConditionField = this._lastUpdateField;
-    let model = this._params.model;
-    if (!model) {
-      model = "Webda/CoreModel";
-    }
-    this._model = this._webda.getModel(model);
+  /**
+   * Load the parameters for a service
+   */
+  loadParameters(params: any): StoreParameters {
+    return new StoreParameters(params, this);
+  }
+
+  /**
+   * Retrieve the Model
+   *
+   * @throws Error if model is not found
+   */
+  computeParameters(): void {
+    super.computeParameters();
+    const p = this._params;
+    this._model = this._webda.getModel(p.model);
     if (!this._model) {
-      throw new Error(`${model} model is not found`);
+      throw new Error(`${p.model} model is not found`);
     }
     this._uuidField = this._model.getUuidField();
+    this._lastUpdateField = p.lastUpdateField || "_lastUpdate";
+    this._creationDateField = p.creationDateField || "_creationDate";
   }
 
   getModel() {
@@ -74,7 +127,6 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
   }
 
   async init(): Promise<void> {
-    this.normalizeParams();
     this.initMap(this._params.map);
     if (this._params.index) {
       await this.createIndex();
@@ -82,22 +134,11 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
   }
 
   initRoutes() {
-    this.normalizeParams();
     if (!this._params.expose) {
       return;
     }
-    let expose = this._params.expose;
-    if (typeof expose == "boolean") {
-      expose = {};
-      expose.url = "/" + this._name.toLowerCase();
-    } else if (typeof expose == "string") {
-      expose = {
-        url: expose
-      };
-    } else if (typeof expose == "object" && expose.url == undefined) {
-      expose.url = "/" + this._name.toLowerCase();
-    }
-    expose.restrict = expose.restrict || {};
+    const expose = this._params.expose;
+
     if (!expose.restrict.create) {
       this._addRoute(expose.url, ["POST"], this.httpCreate, {
         model: this._model.name,
@@ -398,7 +439,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
       return;
     }
     for (var prop in map) {
-      var reverseStore: Store<CoreModel> = this._webda.getService<Store<CoreModel>>(prop);
+      var reverseStore: Store<CoreModel, any> = this._webda.getService<Store<CoreModel, any>>(prop);
       if (reverseStore === undefined || !(reverseStore instanceof Store)) {
         map[prop]["-onerror"] = "NoStore";
         this.log("WARN", "Can't setup mapping as store \"", prop, "\" doesn't exist");
@@ -503,10 +544,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
     if (Object.keys(object).length === 0) {
       return {};
     }
-    let writeCondition;
-    if (this._params.lastUpdate) {
-      writeCondition = this._lastUpdateField;
-    }
+
     object[this._lastUpdateField] = new Date();
     let load = await this._get(object[this._uuidField]);
     loaded = this.initModel(load);
@@ -523,14 +561,14 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
     await loaded._onUpdate(object);
     let res: any;
     if (partial) {
-      await this._patch(object, object[this._uuidField], writeCondition);
+      await this._patch(object, object[this._uuidField], load[this._lastUpdateField], this._lastUpdateField);
       res = object;
     } else {
       // Copy back the mappers
       for (let i in this._reverseMap) {
         object[this._reverseMap[i].property] = loaded[this._reverseMap[i].property];
       }
-      res = await this._update(object, object[this._uuidField], writeCondition);
+      res = await this._update(object, object[this._uuidField], load[this._lastUpdateField], this._lastUpdateField);
     }
     // Return updated
     for (let i in res) {
@@ -777,7 +815,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
       ) {
         continue;
       }
-      let store: Store<CoreModel> = this.getService<Store<CoreModel>>(prop);
+      let store: Store<CoreModel, any> = this.getService<Store<CoreModel, any>>(prop);
       // Cant find the store for this collection
       if (store == undefined) {
         continue;
@@ -787,11 +825,21 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
     return Promise.all(promises);
   }
 
-  async _update(object, uid, writeCondition?): Promise<any> {
+  async _update(
+    object,
+    uid,
+    itemWriteCondition: any = undefined,
+    itemWriteConditionField: string = undefined
+  ): Promise<any> {
     throw Error("Virtual abstract class - concrete only for MixIn usage");
   }
 
-  async _patch(object: any, uid: string, writeCondition?): Promise<any> {
+  async _patch(
+    object: any,
+    uid: string,
+    itemWriteCondition: any = undefined,
+    itemWriteConditionField: string = undefined
+  ): Promise<any> {
     throw Error("Virtual abstract class - concrete only for MixIn usage");
   }
 
@@ -839,7 +887,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
       // Should deactiate the mapping in that case
       for (let i in this._cascade) {
         if (typeof this._cascade[i] != "object" || to_delete[this._cascade[i].name] == undefined) continue;
-        var targetStore: Store<CoreModel> = this.getService<Store<CoreModel>>(this._cascade[i].store);
+        var targetStore: Store<CoreModel, any> = this.getService<Store<CoreModel, any>>(this._cascade[i].store);
         if (targetStore == undefined) continue;
         for (var item in to_delete[this._cascade[i].name]) {
           promises.push(targetStore.cascadeDelete(to_delete[this._cascade[i].name][item], to_delete[this._uuidField]));
@@ -873,7 +921,7 @@ class Store<T extends CoreModel> extends Service implements ConfigurationProvide
     throw Error("Virtual abstract class - concrete only for MixIn usage");
   }
 
-  async _delete(uid: string, writeCondition?): Promise<void> {
+  async _delete(uid: string, writeCondition?, itemWriteConditionField?: string): Promise<void> {
     throw Error("Virtual abstract class - concrete only for MixIn usage");
   }
 

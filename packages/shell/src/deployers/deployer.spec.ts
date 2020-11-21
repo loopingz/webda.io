@@ -15,7 +15,7 @@ export abstract class DeployerTest<T extends Deployer<any>> {
     return { status: 0, output: "", error: "" };
   };
 
-  abstract async getDeployer(manager: DeploymentManager): Promise<T>;
+  abstract getDeployer(manager: DeploymentManager): Promise<T>;
 
   async before(logger: WorkerLogLevel = "INFO") {
     let workerOutput = new WorkerOutput();

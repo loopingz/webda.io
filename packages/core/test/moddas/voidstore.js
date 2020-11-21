@@ -9,7 +9,7 @@ class VoidStore extends Webda.Store {
     if (this._params.brokenConstructor) throw Error();
   }
 
-  init() {
+  initRoutes() {
     if (this._params.brokenInit) throw Error();
     this._addRoute("/broken/{type}", ["GET"], this._brokenRoute);
     this._addRoute("/", ["GET", "POST"], this._default);

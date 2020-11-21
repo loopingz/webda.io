@@ -2,7 +2,7 @@ import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
 import { Core, WebsiteOriginFilter } from "./core";
-import { Application, Bean, Route, Service } from "./index";
+import { Application, Authentication, Bean, Route, Service } from "./index";
 import { Store } from "./stores/store";
 import { WebdaTest } from "./test";
 import { Context, HttpContext } from "./utils/context";
@@ -304,13 +304,13 @@ class CoreTest extends WebdaTest {
 
   @test
   async updateConfiguration() {
-    let service = this.webda.getService("Authentication");
+    let service = this.webda.getService<Authentication>("Authentication");
     assert.strictEqual(service._params.email.text, "");
     assert.strictEqual(service._params.email.mailer, "DefinedMailer");
     await this.webda.reinit({
       "Authentication.email.text": "New Text"
     });
-    let newService = this.webda.getService("Authentication");
+    let newService = this.webda.getService<Authentication>("Authentication");
     assert.strictEqual(newService._params.email.text, "New Text");
     assert.strictEqual(newService._params.email.mailer, "DefinedMailer");
     await assert.rejects(

@@ -19,9 +19,9 @@ export class WebdaError extends Error {
   code: string;
 
   /**
-   * 
-   * @param code 
-   * @param message 
+   *
+   * @param code
+   * @param message
    */
   constructor(code: string, message: string) {
     super(message);
@@ -69,13 +69,13 @@ export interface ModdaDefinition {
   logo?: string;
   /**
    * Schema of the configuration
-   * 
+   *
    * If defined as string we will try to extract it with typescript-json-schema
    */
   configuration: {
     schema?: JSONSchema6 | string;
-    widget? : any;
-  }
+    widget?: any;
+  };
 }
 
 /**
@@ -623,7 +623,7 @@ export class Core extends events.EventEmitter {
     if (executor === undefined) {
       return false;
     }
-    ctx.setRoute({...this.configuration, ...route});
+    ctx.setRoute({ ...this.configuration, ...route });
     ctx.setExecutor(executor);
     return true;
   }
@@ -677,7 +677,7 @@ export class Core extends events.EventEmitter {
   }
 
   protected getServiceParams(service: string): any {
-    var params = {...this.configuration.parameters, ...this.configuration.services[service]};
+    var params = { ...this.configuration.parameters, ...this.configuration.services[service] };
     delete params.require;
     return params;
   }
@@ -738,7 +738,6 @@ export class Core extends events.EventEmitter {
     }
 
     this.autoConnectServices();
-
     this.emit("Webda.Create.Services", this.services);
   }
 

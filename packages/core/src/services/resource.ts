@@ -2,28 +2,43 @@ import * as fs from "fs";
 import * as mime from "mime";
 import * as path from "path";
 import { Context } from "../utils/context";
-import { Service } from "./service";
+import { Service, ServiceParameters } from "./service";
+
+export class ResourceServiceParameters extends ServiceParameters {
+  url: string;
+  folder: string;
+  rootRedirect: boolean;
+  _resolved: string;
+
+  constructor(params: any) {
+    super(params);
+    this.url = this.url ?? "resources";
+    this.rootRedirect = this.rootRedirect ?? false;
+    if (!this.url.startsWith("/")) {
+      this.url = "/" + this.url;
+    }
+    if (!this.url.endsWith("/")) {
+      this.url += "/";
+    }
+    this.folder = this.folder ?? "." + this.url;
+    if (!this.folder.endsWith("/")) {
+      this.folder += "/";
+    }
+    this._resolved = path.resolve(this.folder);
+  }
+}
 
 /**
  * @category CoreServices
  */
-export default class ResourceService extends Service {
-  _resolved: string;
-
-  normalizeParams() {
-    this._params.url = this._params.url || "resources";
-    if (!this._params.url.startsWith("/")) {
-      this._params.url = "/" + this._params.url;
-    }
-    if (!this._params.url.endsWith("/")) {
-      this._params.url += "/";
-    }
-
-    this._params.folder = this._params.folder || "." + this._params.url;
-    if (!this._params.folder.endsWith("/")) {
-      this._params.folder += "/";
-    }
-    this._resolved = path.resolve(this._params.folder) + "/";
+export default class ResourceService<T extends ResourceServiceParameters = ResourceServiceParameters> extends Service<
+  T
+> {
+  /**
+   * Load the parameters for a service
+   */
+  loadParameters(params: any): ResourceServiceParameters {
+    return new ResourceServiceParameters(params);
   }
 
   initRoutes() {
@@ -78,8 +93,8 @@ export default class ResourceService extends Service {
   _serve(ctx: Context) {
     // TODO Add file only
     let resource = ctx.parameter("resource") || "index.html";
-    let file = this._params.folder + resource;
-    if (!path.resolve(file).startsWith(this._resolved)) {
+    let file = path.join(this._params.folder, resource);
+    if (!path.resolve(file).startsWith(this._params._resolved)) {
       throw 401;
     }
     if (!fs.existsSync(file)) {

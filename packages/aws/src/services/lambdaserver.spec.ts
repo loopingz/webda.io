@@ -198,7 +198,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.evt.headers.Host = "test.webda.io";
     let wait = false;
     this.handler.on("Webda.Result", () => {
-      return new Promise((resolve, reject) => {
+      return new Promise<void>((resolve, reject) => {
         // Delay 100ms to ensure it waited
         setTimeout(() => {
           wait = true;

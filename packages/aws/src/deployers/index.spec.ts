@@ -5,9 +5,8 @@ import * as AWS from "aws-sdk";
 import * as AWSMock from "aws-sdk-mock";
 import { suite, test } from "@testdeck/mocha";
 import * as sinon from "sinon";
-import { MethodCacheService } from "ts-method-cache";
 import { AWSDeployer, AWSDeployerResources } from ".";
-
+import { CacheService } from "@webda/core";
 class TestAWSDeployer extends AWSDeployer<AWSDeployerResources> {
   async deploy(): Promise<any> {}
 
@@ -113,7 +112,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       assert.strictEqual(subnetsSpy.notCalled, true);
       assert.strictEqual(result, undefined);
 
-      new MethodCacheService().clearAllCache();
+      CacheService.clearAllCache();
       result = await this.deployer.getDefaultVpc();
       assert.deepStrictEqual(result, {
         Id: "vpc-666",

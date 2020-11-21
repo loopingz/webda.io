@@ -319,7 +319,7 @@ export class WebdaServer extends Webda {
     }
     this.serverStatus = ServerStatus.Stopping;
     if (this.http) {
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         this.http.close(err => {
           if (err) {
             reject(err);

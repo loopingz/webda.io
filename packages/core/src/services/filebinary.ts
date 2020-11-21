@@ -1,8 +1,19 @@
 import * as fs from "fs";
 import { ModdaDefinition } from "../core";
 import { Context } from "../utils/context";
-import { Binary } from "./binary";
+import { Binary, BinaryParameters } from "./binary";
+import { Service, ServiceParameters } from "./service";
 
+export class FileBinaryParameters extends BinaryParameters {
+  folder: string;
+
+  constructor(params: any, service: Service) {
+    super(params, service);
+    if (!this.folder.endsWith("/")) {
+      this.folder += "/";
+    }
+  }
+}
 /**
  * FileBinary handles the storage of binary on a hard drive
  *
@@ -17,15 +28,23 @@ import { Binary } from "./binary";
  * See Binary the general interface
  * @category CoreServices
  */
-class FileBinary extends Binary {
-  /** @ignore */
-  constructor(webda, name, params) {
-    super(webda, name, params);
-    if (!fs.existsSync(params.folder)) {
-      fs.mkdirSync(params.folder, { recursive: true });
-    }
-    if (!this._params.folder.endsWith("/")) {
-      this._params.folder += "/";
+class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends Binary<T> {
+  /**
+   * Load parameters
+   *
+   * @param params
+   */
+  loadParameters(params: any): ServiceParameters {
+    return new FileBinaryParameters(params, this);
+  }
+
+  /**
+   * Create the storage folder if needed
+   */
+  computeParameters() {
+    super.computeParameters();
+    if (!fs.existsSync(this._params.folder)) {
+      fs.mkdirSync(this._params.folder, { recursive: true });
     }
   }
 
@@ -205,7 +224,7 @@ class FileBinary extends Binary {
   store(targetStore, object, property, file, metadatas, index = "add") {
     this._checkMap(targetStore._name, property);
     this._prepareInput(file);
-    file = { ...file, ...this._getHashes(file.buffer)};
+    file = { ...file, ...this._getHashes(file.buffer) };
     if (fs.existsSync(this._getPath(file.hash))) {
       this._touch(this._getPath(file.hash, targetStore._name + "_" + object.uuid));
       return this.updateSuccess(targetStore, object, property, "add", file, metadatas);
@@ -217,7 +236,7 @@ class FileBinary extends Binary {
   update(targetStore, object, property, index, file, metadatas) {
     this._checkMap(targetStore._name, property);
     this._prepareInput(file);
-    file = { ...file, ...this._getHashes(file.buffer)};
+    file = { ...file, ...this._getHashes(file.buffer) };
     if (fs.existsSync(this._getPath(file.hash))) {
       this._touch(this._getPath(file.hash, targetStore._name + "_" + object.uuid));
       return this.updateSuccess(targetStore, object, property, index, file, metadatas);

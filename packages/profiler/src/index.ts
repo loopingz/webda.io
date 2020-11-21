@@ -1,11 +1,20 @@
-import { Service, ModdaDefinition, Context } from "@webda/core";
+import { Service, ModdaDefinition, Context, LoggerService } from "@webda/core";
 
+/**
+ * Profiler Parameters
+ */
+export class ProfilerParameters {
+  /**
+   * Disable the service
+   */
+  disabled: boolean = false;
+}
 /**
  * Profiling service
  *
  * Mesure timing of each method and display them in TRACE
  */
-export default class ProfilingService extends Service {
+export default class Profiler extends Service {
   /**
    * Return all methods from an object
    *
@@ -59,10 +68,24 @@ export default class ProfilingService extends Service {
   }
 
   /**
+   * Return true if the service should not be instrumentalized
+   * Logger service are excluded
+   * 
+   * @param service to check
+   */
+  excludeService(service: Service) : boolean {
+    return service instanceof LoggerService || this === service;
+
+  }
+  /**
    * Patch all services method: interlacing our pre/post processor
    */
   patchServices(services) {
     for (let i in services) {
+      // Check if service is excluded
+      if (this.excludeService(services[i])) {
+        continue;
+      }
       this.log("TRACE", `Profiling patching ${services[i]._name}`);
       let methods: string[] = <any>this.getMethods(services[i]);
       for (let mi in methods) {
@@ -85,7 +108,7 @@ export default class ProfilingService extends Service {
                   return r;
                 })
                 .catch(r => {
-                  this.postprocessor(services[service], method, data, r);
+                  this.postprocessor(services[service], method, data, r.message);
                   throw r;
                 });
             }
@@ -123,7 +146,7 @@ export default class ProfilingService extends Service {
         throw err;
       } finally {
         if (error) {
-          this.logMetrics(`Request took ${Date.now() - start}ms with error '${error.message}'`);
+          this.logMetrics(`Request took ${Date.now() - start}ms - ERROR ${error.message}`);
         } else {
           this.logMetrics(`Request took ${Date.now() - start}ms`);
         }
@@ -155,11 +178,10 @@ export default class ProfilingService extends Service {
       uuid: "Webda/Profiler",
       label: "Profiler",
       description: "Implements basic profiler",
-      logo: "images/icons/dynamodb.png",
       documentation: "https://raw.githubusercontent.com/loopingz/webda.io/master/readmes/Profiler.md",
       configuration: {}
     };
   }
 }
 
-export { ProfilingService };
+export { Profiler };

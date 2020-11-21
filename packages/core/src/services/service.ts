@@ -4,6 +4,7 @@ import { Core, Logger } from "../index";
 import { HttpMethodType } from "../utils/context";
 import { EventService } from "./asyncevents";
 import { WorkerLogLevel } from "@webda/workout";
+import { ModdaDefinition } from "../core";
 
 /**
  * Use this object for representing a service in the application
@@ -170,7 +171,7 @@ abstract class Service extends events.EventEmitter {
    * Return the Modda definition if any
    *
    */
-  static getModda() {}
+  static getModda() : ModdaDefinition | void {}
 
   /**
    * Get service name

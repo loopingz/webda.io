@@ -53,9 +53,9 @@ export default class Profiler<T extends ProfilerParameters = ProfilerParameters>
   postprocessor(service: Service, method: string, data?: any, err?: any) {
     let duration = Date.now() - data.start;
     if (err) {
-      this.logMetrics(`${service._name}.${method}: ${duration}ms - ERROR ${err}`);
+      this.logMetrics(`${service.getName()}.${method}: ${duration}ms - ERROR ${err}`);
     } else {
-      this.logMetrics(`${service._name}.${method}: ${duration}ms`);
+      this.logMetrics(`${service.getName()}.${method}: ${duration}ms`);
     }
   }
 
@@ -89,6 +89,10 @@ export default class Profiler<T extends ProfilerParameters = ProfilerParameters>
       let methods: string[] = <any>this.getMethods(services[i]);
       for (let mi in methods) {
         let m: string = methods[mi];
+        // Skip getName as we use it
+        if (["getName"].includes(m)) {
+          continue;
+        }
         ((service, method) => {
           const originalMethod = services[service][method];
           services[service][method] = (...args) => {

@@ -212,8 +212,8 @@ class CoreTest extends WebdaTest {
     assert.notStrictEqual(executor, undefined);
     assert.strictEqual(this.ctx.getParameters()["TEST_ADD"], undefined);
     let service = this.ctx.getExecutor();
-    assert.strictEqual(service.parameters["accessKeyId"], "LOCAL_ACCESS_KEY");
-    assert.strictEqual(service.parameters["secretAccessKey"], "LOCAL_SECRET_KEY");
+    assert.strictEqual(service.getParameters()["accessKeyId"], "LOCAL_ACCESS_KEY");
+    assert.strictEqual(service.getParameters()["secretAccessKey"], "LOCAL_SECRET_KEY");
   }
 
   @test
@@ -222,8 +222,8 @@ class CoreTest extends WebdaTest {
     assert.notStrictEqual(executor, undefined);
     assert.strictEqual(this.ctx["parameters"]["TEST_ADD"], undefined);
     let service = this.ctx.getExecutor();
-    assert.strictEqual(service.parameters["accessKeyId"], "LOCAL_ACCESS_KEY");
-    assert.strictEqual(service.parameters["secretAccessKey"], "LOCAL_SECRET_KEY");
+    assert.strictEqual(service.getParameters()["accessKeyId"], "LOCAL_ACCESS_KEY");
+    assert.strictEqual(service.getParameters()["secretAccessKey"], "LOCAL_SECRET_KEY");
   }
 
   @test
@@ -242,8 +242,8 @@ class CoreTest extends WebdaTest {
     assert.notStrictEqual(executor, undefined);
     assert.strictEqual(this.ctx.getParameters()["id"], "666");
     let service = this.ctx.getExecutor();
-    assert.strictEqual(service.parameters["accessKeyId"], "LOCAL_ACCESS_KEY");
-    assert.strictEqual(service.parameters["secretAccessKey"], "LOCAL_SECRET_KEY");
+    assert.strictEqual(service.getParameters()["accessKeyId"], "LOCAL_ACCESS_KEY");
+    assert.strictEqual(service.getParameters()["secretAccessKey"], "LOCAL_SECRET_KEY");
   }
 
   @test
@@ -305,14 +305,14 @@ class CoreTest extends WebdaTest {
   @test
   async updateConfiguration() {
     let service = this.webda.getService<Authentication>("Authentication");
-    assert.strictEqual(service.parameters.email.text, "");
-    assert.strictEqual(service.parameters.email.mailer, "DefinedMailer");
+    assert.strictEqual(service.getParameters().email.text, "");
+    assert.strictEqual(service.getParameters().email.mailer, "DefinedMailer");
     await this.webda.reinit({
       "Authentication.email.text": "New Text"
     });
     let newService = this.webda.getService<Authentication>("Authentication");
-    assert.strictEqual(newService.parameters.email.text, "New Text");
-    assert.strictEqual(newService.parameters.email.mailer, "DefinedMailer");
+    assert.strictEqual(newService.getParameters().email.text, "New Text");
+    assert.strictEqual(newService.getParameters().email.mailer, "DefinedMailer");
     await assert.rejects(
       () =>
         this.webda.reinit({

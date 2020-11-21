@@ -668,7 +668,7 @@ export class Core extends events.EventEmitter {
         // TODO Define parralel initialization
         this.log("TRACE", "Re-Initializing service", service);
         let serviceBean = this.services[service];
-        await serviceBean.reinit(this.getServiceParams(serviceBean._name));
+        await serviceBean.reinit(this.getServiceParams(serviceBean.getName()));
       } catch (err) {
         this.log("ERROR", "Re-Init service " + service + " failed", err);
         this.log("TRACE", err.stack);
@@ -767,7 +767,7 @@ export class Core extends events.EventEmitter {
       setters.forEach(setter => {
         let targetService = this.services[setter.substr(3).toLowerCase()];
         if (targetService) {
-          this.log("TRACE", "Auto-connecting", serviceBean._name, targetService._name);
+          this.log("TRACE", "Auto-connecting", serviceBean.getName(), targetService.getName());
           serviceBean[setter](targetService);
         }
       });
@@ -794,7 +794,7 @@ export class Core extends events.EventEmitter {
    * Init Routes declare by @Route annotation
    */
   initBeanRoutes(serviceBean: Service) {
-    let service = serviceBean._name.toLowerCase();
+    let service = serviceBean.getName().toLowerCase();
     if (beans[service] !== undefined && beans[service].routes) {
       for (let j in beans[service].routes) {
         this.log("TRACE", "Adding route", j, "for bean", service);

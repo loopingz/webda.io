@@ -11,6 +11,7 @@ class MemoryQueueTest extends QueueTest {
     await new Promise(resolve => {
       let queue: Queue = new MemoryQueue(undefined, undefined, undefined);
       let seq = 0;
+      // @ts-ignore
       queue._webda = <any>{
         log: () => {}
       };
@@ -67,11 +68,11 @@ class MemoryQueueTest extends QueueTest {
   async basic() {
     let queue: MemoryQueue = <MemoryQueue>this.getService("memoryqueue");
     // For coverage
-    assert.strictEqual(queue.parameters.expire, 1000, "1s should be convert to ms");
-    queue.parameters.expire = undefined;
+    assert.strictEqual(queue.getParameters().expire, 1000, "1s should be convert to ms");
+    queue.getParameters().expire = undefined;
     await queue.reinit({});
-    assert.strictEqual(queue.parameters.expire, 30000, "default should be 30s");
-    queue.parameters.expire = 1000;
+    assert.strictEqual(queue.getParameters().expire, 30000, "default should be 30s");
+    queue.getParameters().expire = 1000;
     queue.__clean();
     assert.strictEqual((await queue.receiveMessage()).length, 0);
     return this.simple(queue);

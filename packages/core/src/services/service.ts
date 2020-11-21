@@ -25,18 +25,27 @@ export class ServiceParameters {
  * @class Service
  */
 abstract class Service<T extends ServiceParameters = ServiceParameters> extends events.EventEmitter {
-  _webda: Core;
-  _name: string;
+  /**
+   * Webda Core object
+   */
+  protected _webda: Core;
+  /**
+   * Service name
+   */
+  protected _name: string;
   /**
    * Hold the parameters for your service
    *
    * It will be bring from the `webda.config.json`
    */
-  parameters: T;
+  protected parameters: T;
   _createException: string;
   _initTime: number;
   _initException: any = undefined;
-  logger: Logger;
+  /**
+   * Logger with class context
+   */
+  protected logger: Logger;
   /**
    *
    *
@@ -69,14 +78,14 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
   /**
    * Get the service parameters
    */
-  getParameters() {
+  getParameters(): T {
     return this.parameters;
   }
 
   /**
    * Return WebdaCore
    */
-  getWebda() {
+  getWebda(): Core {
     return this._webda;
   }
 
@@ -84,7 +93,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
    * Resolve parameters
    * Call initRoutes and initBeanRoutes
    */
-  resolve() {
+  resolve(): void {
     // We wait for all services to be created before calling computeParameters
     this.computeParameters();
     this.initRoutes();
@@ -98,7 +107,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
    * @param {Array[]} methods
    * @param {Function} executer Method to execute for this route
    */
-  _addRoute(
+  protected _addRoute(
     url: string,
     methods: HttpMethodType[],
     executer: Function,

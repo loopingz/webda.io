@@ -8,22 +8,62 @@ import * as fs from "fs";
 import AWS = require("aws-sdk");
 import { DynamoStore } from "../services/dynamodb";
 
+/**
+ * Build Docker image for AWS
+ * 
+ * @todo Add X-Ray agent
+ */
 interface AWSDockerResources extends DockerResources {
+  /**
+   * Create the ECR automatically
+   */
   includeRepository: boolean;
 }
 
+/**
+ * CloudFormation deployer resources
+ * 
+ * Define how to generate CloudFormation resources
+ */
 interface CloudFormationDeployerResources extends AWSDeployerResources {
+  /**
+   * @todo
+   */
   repositoryNamespace: string;
   // Where to put information
+  /**
+   * AssetsBucket to copy Lambda package, CloudFormation template and OpenAPI definitions
+   */
   AssetsBucket?: string;
+  /**
+   * Prefix to use when copying to the AssetsBucket
+   */
   AssetsPrefix?: string;
 
+  /**
+   * CREATE is the default
+   * 
+   * IMPORT is not well supported as AWS support seems weak aswell
+   */
   ChangeSetType?: "CREATE" | "IMPORT";
+  /**
+   * Resources to import in the template
+   */
   ResourcesToImport?: any[];
 
-  Format?: "YAML" | "JSON";
-  // How to name CloudFormation.json on AssetsBucket
+  /**
+   * Format for CloudFormation template
+   * 
+   * YAML format can generate issue
+   */
+  Format?: "JSON" | "YAML";
+  /**
+   * How to name CloudFormation.json on AssetsBucket
+   */
   StackName?: string;
+  /**
+   * 
+   */
   FileName?: string;
   // Default DomainName
   DomainName?: string;
@@ -87,7 +127,17 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
 
   Resources?: {};
 
+  /**
+   * Policy to create
+   * 
+   * This deployer can automatically create the policy tailored to your application needs
+   * All the AWS services from this package advertise the type of permissions they need
+   * 
+   */
   Policy?: {
+    /**
+     * PolicyName to use
+     */
     PolicyName?;
     PolicyDocument?;
     Roles?: any[];
@@ -95,18 +145,60 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
     Groups?: any[];
   };
 
+  /**
+   * Name of your OpenAPI inside the AssetsBucket
+   */
   OpenAPIFileName?: string;
+  /**
+   * Title for your OpenAPI definition
+   * https://github.com/loopingz/webda.io/issues/17
+   */
   OpenAPITitle?: string;
+  /**
+   * Description of the OpenAPI
+   * https://github.com/loopingz/webda.io/issues/17
+   */
   Description?: string;
 
-  // Lambda specific
+  /**
+   * Where to store the local Lambda package
+   */
   ZipPath?: string;
+  /**
+   * Deploy a Lambda package with your application
+   */
   Lambda?: {
+    /**
+     * FunctionName to create
+     */
     FunctionName?: string;
+    /**
+     * Role to set on the function
+     */
     Role?;
+    /**
+     * Type of Runtime to use
+     * 
+     * @default "nodejs12.x" 
+     */
     Runtime?;
+    /**
+     * Should not require to be overriden
+     * @default "node_modules/@webda/aws/lib/deployers/lambda-entrypoint.handler"
+     */
     Handler?: string;
+    /**
+     * Memory to set on the Lambda
+     * 
+     * Less memory is less expensive/ms but slower
+     * @default 2048
+     */
     MemorySize?: number;
+    /**
+     * Timeout in seconds for your Lambda
+     * 
+     * @default 30
+     */
     Timeout?: number;
   };
 
@@ -114,28 +206,51 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   // Workers Image
 
   Docker?: AWSDockerResources;
-  // Deploy Static website
+  /**
+   * Deploy static website
+   */
   Statics?: [
     {
+      /**
+       * Domain name to deploy on
+       */
       DomainName: string;
+      /**
+       * CloudFront parameter to add
+       */
       CloudFront: any;
+      /**
+       * Source on local folder
+       */
       Source: string;
+      /**
+       * Path to store on the AssetsBucket
+       */
       AssetsPath?: string;
     }
   ];
 
-  // Import Open API to APIGateway
+  /**
+   * Import Open API to APIGateway
+   */
   APIGatewayImportOpenApi?: string;
   // Deploy images and ECR
   Workers?: [];
 
-  // Keep locally the Lambda package after S3 upload
+  /**
+   * Keep locally the Lambda package after S3 uploads
+   */
   KeepPackage?: boolean;
 
-  // Any additional CloudFormation resources
+  /**
+   * Any additional CloudFormation resources
+   */
   CustomResources: any;
 }
 
+/**
+ * Deploy the application and its resources using AWS CloudFormation
+ */
 export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDeployerResources> {
   template: any = {};
   result: any = {};

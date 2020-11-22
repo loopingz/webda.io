@@ -6,32 +6,89 @@ import { Service, ServiceParameters } from "../services/service";
 import { Context } from "../utils/context";
 
 export class StoreParameters extends ServiceParameters {
-  lastUpdateField: string;
-  creationDateField: string;
-  model: string;
-  index: string[] | undefined;
+  /**
+   * Field to store the lastUpdate of the object
+   * 
+   * @default "_lastUpdate"
+   */
+  lastUpdateField?: string;
+  /**
+   * Field to store the creationDate of the object
+   * 
+   * @default "_creationDate"
+   */
+  creationDateField?: string;
+  /**
+   * Webda model to use within the Store
+   * 
+   * @default "Webda/CoreModel"
+   */
+  model?: string;
+  /**
+   * Create an index object that link all other objects uuid
+   */
+  index?: string[] | undefined;
+  /**
+   * You can define a Map between different Stores
+   * 
+   * {@link Pages/pages/Store}
+   */
   map: {
     [key: string]: {
+      /**
+       * Key on the current model which holds the collection
+       */
       key: string;
+      /**
+       * Other fields to duplicate inside the model
+       */
       fields: string;
     };
   };
+  /**
+   * async delete
+   */
   asyncDelete: boolean;
+  /**
+   * Expose the service to an urls
+   */
   expose?: {
-    url: string;
-    restrict: {
+    /**
+     * URL endpoint to use to expose REST Resources API
+     * 
+     * @default service.getName().toLowerCase()
+     */
+    url?: string;
+    /**
+     * You can restrict any part of the CRUD
+     * 
+     * @default {}
+     */
+    restrict?: {
+      /**
+       * Do not expose the POST
+       */
       create?: boolean;
+      /**
+       * Do not expose the PUT and PATCH
+       */
       update?: boolean;
+      /**
+       * Do not expose the GET
+       */
       get?: boolean;
+      /**
+       * Do not expose the DELETE
+       */
       delete?: boolean;
     };
   };
 
   constructor(params: any, service: Service<any>) {
     super(params);
-    this.lastUpdateField = this.lastUpdateField ?? "_lastUpdate";
-    this.creationDateField = this.creationDateField ?? "_creationDate";
-    this.model = this.model ?? "Webda/CoreModel";
+    this.lastUpdateField ??= "_lastUpdate";
+    this.creationDateField ??= "_creationDate";
+    this.model ??= "Webda/CoreModel";
     let expose = params.expose;
     if (typeof expose == "boolean") {
       expose = {};

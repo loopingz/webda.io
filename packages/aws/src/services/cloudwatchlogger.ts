@@ -4,9 +4,15 @@ import * as uuid from "uuid";
 import { CloudFormationContributor } from ".";
 import { GetAWS } from "./aws-mixin";
 
+/**
+ * Send webda log to CloudWatch
+ */
 export class CloudWatchLoggerParameters extends ServiceParameters {
+  /**
+   * logGroupName to send logStream to
+   */
   logGroupName: string;
-  logStreamNamePrefix: string;
+  logStreamNamePrefix?: string;
   endpoint: string;
   kmsKeyId: string;
   tags: any;
@@ -42,7 +48,7 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
     if (!this._logGroupName) {
       throw Error("Require a log group `logGroupName` parameter");
     }
-    this._logStreamName = this.parameters.logStreamNamePrefix + uuid.v4();
+    this._logStreamName = (this.parameters.logStreamNamePrefix || "") + uuid.v4();
     this._cloudwatch = new (GetAWS(this.parameters).CloudWatchLogs)({
       endpoint: this.parameters.endpoint
     });

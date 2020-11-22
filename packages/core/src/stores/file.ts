@@ -6,9 +6,16 @@ import { CoreModel } from "../models/coremodel";
 import { Store, StoreParameters } from "./store";
 
 class FileStoreParameters extends StoreParameters {
+  /**
+   * Local path where to store all `json` files
+   */
   folder: string;
-  beautify: string | number;
+  /**
+   * Parameter sent to JSON.stringiy when storing the json
+   */
+  beautify?: string | number;
 }
+
 /**
  * Simple file storage of object
  *
@@ -40,7 +47,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   }
 
   file(uid) {
-    return this.parameters.folder + "/" + uid;
+    return `${this.parameters.folder}/${uid}.json`;
   }
 
   async exists(uid) {

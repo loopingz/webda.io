@@ -9,45 +9,113 @@ import { Store } from "../stores/store";
 import { Context } from "../utils/context";
 import { Mailer } from "./mailer";
 
+/**
+ * Implement a PasswordVerifier so you can implement
+ * your own rules
+ */
 interface PasswordVerifier extends Service {
-  validate(password: string): Promise<void>;
+  /**
+   * If the password is not valid, send a 400 exception or
+   * return false
+   * 
+   * @param password to verify
+   */
+  validate(password: string): Promise<boolean>;
 }
 
+/**
+ * Information required to reset a password
+ */
 class PasswordRecoveryInfos {
+  /**
+   * Links are short lived
+   */
   public expire: number;
+  /**
+   * Generated token
+   */
   public token: string;
+  /**
+   * Login to reset password fors
+   */
   public login: string;
 }
 
 export class AuthenticationParameters extends ServiceParameters {
-  identStore: string;
-  userStore: string;
-  url: string;
+  /**
+   * Idents store for authentication identifiers
+   * 
+   * @default "idents"
+   */
+  identStore?: string;
+  /**
+   * User store for authentication users
+   * 
+   * @default "users"
+   */
+  userStore?: string;
+  /**
+   * @default "/auth"
+   */
+  url?: string;
+  /**
+   * Enable the email authentication
+   */
   email?: {
+    /**
+     * Mailer service name
+     */
     mailer?: string;
+    /**
+     * Allow user to create their account without validating their email first
+     */
     postValidation: boolean;
+    /**
+     * Do not even validate the email at all
+     */
     skipEmailValidation: boolean;
+    /**
+     * Minimal delay between two password recovery or validation email
+     * 
+     * @default 3600000 * 4
+     */
     delay: number;
     text?: string;
   };
   password: {
+    /**
+     * Password verifier Service name
+     */
     verifier?: string;
-    regexp: string;
+    /**
+     * Regexp that password must check
+     * @default "{8,}"
+     */
+    regexp?: string;
   };
+  /**
+   * Number of salt iteration for bcrypt.hashSync
+   */
   salt: string;
+  /**
+   * Redirect to this page when email validation failed
+   */
   failureRedirect: string;
+  /**
+   * Redirect to this page when email validation succeed
+   */
   successRedirect: string;
 
   constructor(params: any) {
     super(params);
-    this.identStore = this.identStore ?? "idents";
-    this.userStore = this.userStore ?? "users";
-    this.url = this.url ?? "/auth";
-    this.password = this.password ?? {
+    this.identStore ??= "idents";
+    this.userStore ??= "users";
+    this.url ??= "/auth";
+    this.password ??= {
       regexp: ".{8,}"
     };
     if (this.email) {
-      this.email.delay = this.email.delay || 3600000 * 4;
+      this.email.delay ??= 3600000 * 4;
     }
   }
 }
@@ -56,10 +124,10 @@ export class AuthenticationParameters extends ServiceParameters {
  * It handles OAuth for several providers for now (Facebook, Google, Amazon, GitHub and Twitter)
  * It also handles email authentication with prevalidation or postvalidation of the email
  *
- * It requires two Store to work one 'idents' and one 'users'
+ * It requires two Store to work one `idents` and one `users`
  *
  * The parameters are
- *
+ * ```
  *   providerName: {
  *     clientID: '...',
  *     clientSecret: '...',
@@ -69,11 +137,11 @@ export class AuthenticationParameters extends ServiceParameters {
  *	    postValidation: true|false   // If postValidation=true, account created without email verification
  *   }
  *   url: 'url' // By default /auth
- *
+ * ```
+ * 
  * @category CoreServices
  */
 class Authentication<T extends AuthenticationParameters = AuthenticationParameters> extends Service<T> {
-  /** @ignore */
   _identsStore: Store<Ident>;
   _usersStore: Store<User>;
   _passwordVerifier: PasswordVerifier;
@@ -375,15 +443,17 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     await this.sendRecoveryEmail(ctx, user, email);
   }
 
-  _verifyPassword(password: string) {
+  async _verifyPassword(password: string) {
     if (this._passwordVerifier) {
-      return this._passwordVerifier.validate(password);
+      if (!(await this._passwordVerifier.validate(password))) {
+        throw 400;
+      }
+      return;
     }
     let regexp = new RegExp(this.parameters.password.regexp);
     if (!regexp.exec(password)) {
       throw 400;
     }
-    return Promise.resolve(true);
   }
 
   async _passwordRecovery(ctx: Context) {

@@ -5,13 +5,25 @@ import * as path from "path";
  * Lambda Packager options
  */
 export interface LambdaPackagerResources extends PackagerResources {
+  /**
+   * Lambda include already the AWS-SDK
+   * By default we exclude the aws-sdk
+   * 
+   * @defaut false
+   */
   customAwsSdk?: boolean;
 }
 
 /**
  * Package a Lambda function
+ * 
+ * It uses the normmal Packager and just add the default entrypoint
+ * And the exclusion of aws-sdk by default
  */
 export default class LambdaPackager extends Packager<LambdaPackagerResources> {
+  /**
+   * Define the default resources
+   */
   async loadDefaults() {
     await super.loadDefaults();
     this.resources.entrypoint = this.resources.entrypoint || path.join(__dirname, "lambda-entrypoint.js");

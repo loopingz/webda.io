@@ -13,13 +13,49 @@ import { IAMPolicyContributor } from "../services";
 import { v4 as uuidv4 } from "uuid";
 
 export type TagsDefinition = { Key: string; Value: string }[] | { [key: string]: string };
+
+/**
+ * Common resources for all AWS Deployers
+ */
 export interface AWSDeployerResources extends DeployerResources {
+  /**
+   * AWS_ACCESS_KEY_ID to use
+   * 
+   * Using static key is not recommended
+   */
   accessKeyId?: string;
+  /**
+   * AWS_SECRET_ACCESS_KEY to use
+   * 
+   * Using static key is not recommended
+   */
   secretAccessKey?: string;
+  /**
+   * AWS_REGION to use
+   * 
+   * @default "us-east-1"
+   */
   region?: string;
+  /**
+   * AWS_SESSION_TOKEN Token
+   * 
+   * Even if it is possible to add it here
+   * It is not sustainable as this token at its best will
+   * have a lifetime of 12 hours
+   */
   sessionToken?: string;
+  /**
+   * AWS Account Id
+   */
   AWSAccountId?: string;
+  /**
+   * @todo docs
+   */
   createMissingResources?: boolean;
+  /**
+   * Endpoints to use by differents services
+   * Usefull to test with localstack or other AWS emulations
+   */
   endpoints?: {
     ACM?: string;
     S3?: string;
@@ -28,17 +64,39 @@ export interface AWSDeployerResources extends DeployerResources {
     Route53?: string;
   };
 
-  // Default Tags
+  /**
+   * Default Tags to use with resources created by deployers
+   */
   Tags?: TagsDefinition;
-  // Certificates
+  /**
+   * SSL certificates to create
+   * 
+   * Sample
+   * ```
+   * Certificates: {
+   *   "test.webda.io": {
+   *      SubjectAlternativeNames: ["test2.webda.io"]
+   *   }
+   * }
+   * ```
+   */
   Certificates?: {
     [key: string]: {
+      /**
+       * Any alternative names to add to the certificate
+       */
       SubjectAlternativeNames?: string[];
       Tags?: TagsDefinition;
     };
   };
 }
 
+/**
+ * Abstract AWS Deployer
+ * 
+ * It includes some basic utilities methods to be used by
+ * final deployers
+ */
 export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deployer<T> {
   AWS: any;
 
@@ -64,10 +122,16 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     this.resources.createMissingResources = this.resources.createMissingResources || false;
   }
 
+  /**
+   * Return AWS region
+   */
   getRegion(): string {
     return this.AWS.config.region;
   }
 
+  /**
+   * Return the current AWS Identity used
+   */
   @Cache()
   async getAWSIdentity(): Promise<AWS.STS.GetCallerIdentityResponse> {
     let sts = new this.AWS.STS({
@@ -76,6 +140,9 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     return sts.getCallerIdentity().promise();
   }
 
+  /**
+   * Return the default VPC for the current region
+   */
   @Cache()
   async getDefaultVpc() {
     let defaultVpc = {
@@ -130,7 +197,12 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     return crypto.createHash("md5").update(str).digest(format);
   }
 
-  _replaceForAWS(id) {
+  /**
+   * Replace / by _ as theses ID are not allowed in AWS
+   * 
+   * @param id 
+   */
+  _replaceForAWS(id: string) {
     return id.replace(/\//g, "_");
   }
 
@@ -353,11 +425,22 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
   }
 
   /**
-   *
-   * @param callback
-   * @param delay
-   * @param retries
-   * @param title
+   * Wait for an operation to end
+   * 
+   * Some AWS Api require minutes and polling
+   * This method will call the callback function until it returns
+   * `true`, or the max `retries` has been reached.
+   * Between each call, it will wait the `delay`
+   * 
+   * If it reaches the max retries without a good answer from
+   * callback, the Promise will be rejected
+   * 
+   * @param callback to call between each call
+   * @param delay between each call to callback
+   * @param retries max number of retries
+   * @param title to display
+   * 
+   * @todo move it to `core` library along with a exponential retry
    */
   async waitFor(callback, delay: number, retries: number, title: string): Promise<any> {
     return new Promise(async (mainResolve, mainReject) => {
@@ -442,6 +525,13 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     ];
   }
 
+  /**
+   * Generate the `PolicyDocument`
+   * 
+   * It will browse all services for a method `getARNPolicy`
+   * Allowing you to write some specific Service or Bean that
+   * requires specific AWS permissions
+   */
   @Cache()
   async getPolicyDocument(additionalStatements: any[] = []) {
     let me = await this.getAWSIdentity();
@@ -510,10 +600,10 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
   }
 
   /**
-   * Send a full folder on bucket
+   * Send a full folder (recursive) on bucket
    *
    * @param bucket to send data to
-   * @param folder to send
+   * @param folder path to local folder to send
    * @param prefix prefix on the bucket
    */
   async putFolderOnBucket(bucket: string, folder: string, prefix: string = "") {
@@ -526,11 +616,18 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
   }
 
   /**
-   *
+   * Find the common prefix between two strings
+   * 
+   * Example
+   * ```
+   * commonPrefix("/test/plop1", "/templates/") => "/te"
+   * ```
+   * 
+   * 
    * @param str1 to compare
    * @param str2 to compare
    */
-  commonPrefix(str1, str2) {
+  commonPrefix(str1: string, str2: string) : string {
     let res = "";
     let i = 0;
     while (i <= str1.length && i <= str2.length && str1[i] === str2[i]) {
@@ -541,7 +638,15 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
   }
 
   /**
-   *
+   * Add files to a bucket
+   * 
+   * It uses hash and ETag to avoid uploading files already present
+   * 
+   * 
+   * The files src can be either:
+   *  - a string representing the local path
+   *  - a Buffer with the dynamic content
+   * 
    * @param bucket to send bucket
    * @param files to send
    */

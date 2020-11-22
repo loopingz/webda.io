@@ -30,8 +30,14 @@ interface QueueMap {
 }
 
 export class EventServiceParameters extends ServiceParameters {
+  /**
+   * Queues to post async events to
+   */
   queues?: { [key: string]: string };
-  sync: boolean = false;
+  /**
+   * Make the event sending asynchronous
+   */
+  sync?: boolean = false;
 }
 
 /**

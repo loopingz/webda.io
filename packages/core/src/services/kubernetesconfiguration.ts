@@ -5,9 +5,12 @@ import * as path from "path";
 import { JSONUtils } from "../utils/json";
 
 /**
- * Allow for dynamic configuration
+ * Allow for dynamic configuration from ConfigMap or Secrets
  */
 export class KubernetesConfigurationService<T extends ConfigurationServiceParameters> extends ConfigurationService<T> {
+  /**
+   * @ignore
+   */
   async init() {
     // Do not call super as we diverged
     if (!this.parameters.source) {
@@ -27,6 +30,9 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
 
   stop() {}
 
+  /**
+   * Load configuration from a ConfigMap or a Secret
+   */
   async _loadConfiguration(): Promise<{ [key: string]: any }> {
     let result = {};
     fs.readdirSync(this.parameters.source)

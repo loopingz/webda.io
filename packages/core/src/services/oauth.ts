@@ -5,19 +5,56 @@ import { Authentication } from "./authentication";
 import { v4 as uuidv4 } from "uuid";
 
 class OAuthServiceParameters extends ServiceParameters {
-  url: string;
-  scope: string[];
-  exposeScope: boolean;
-  authorized_uris: string[];
-  redirect_uri: string;
+  /**
+   * URL to use for expose
+   * 
+   * The default value varying based on implementation
+   * It should by default be the provider name in lowercase
+   */
+  url?: string;
+  /**
+   * Scope to request on OAuth flow
+   * 
+   * @defaut ["email"]
+   */
+  scope?: string[];
+  /**
+   * If set to true it will add a ${url}/scope
+   * So client can anticipate the requested scope
+   * 
+   * This is useful when using the client api to generate
+   * token. This way the service can request the wanted scope
+   * 
+   * @default false
+   */
+  exposeScope?: boolean;
+  /**
+   * List of URIs authorized for redirect post authorization 
+   * 
+   * @default []
+   */
+  authorized_uris?: string[];
+  /**
+   * Default redirect_uri
+   * 
+   * @default ${url}/callback
+   */
+  redirect_uri?: string;
 
   constructor(params: any) {
     super(params);
-    this.scope = this.scope ?? ["email"];
-    this.exposeScope = this.exposeScope ?? false;
-    this.authorized_uris = this.authorized_uris ?? [];
+    this.scope ??= ["email"];
+    this.exposeScope ??= false;
+    this.authorized_uris ??= [];
   }
 }
+
+/**
+ * OAuth service implementing the default OAuth workflow
+ * It is abstract as it does not manage any provider as is
+ * 
+ * @todo add some basic doc on OAuth workflow
+ */
 export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServiceParameters> extends Service<T>
   implements RequestFilter<Context> {
   _authenticationService: Authentication;
@@ -120,7 +157,7 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
     let redirect_uri = this.parameters.redirect_uri || `${ctx.getHttpContext().getAbsoluteUrl()}/callback`;
 
     if (this.parameters.authorized_uris) {
-      if (this.parameters.authorized_uris.indexOf(redirect_uri) < 0) {
+      if (this.parameters.authorized_uris.indexOf(ctx.getHttpContext().getHeaders().referer) < 0) {
         // The redirect_uri is not authorized , might be forging HOST request
         throw 401;
       }

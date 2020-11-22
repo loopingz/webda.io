@@ -4,36 +4,61 @@ import * as path from "path";
 import { Context } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
+/**
+ * ResourceService parameters
+ */
 export class ResourceServiceParameters extends ServiceParameters {
-  url: string;
-  folder: string;
-  rootRedirect: boolean;
-  _resolved: string;
+  /**
+   * URL on which to serve the content
+   * 
+   * @default "resources"
+   */
+  url?: string;
+  /**
+   * Folder to server
+   * 
+   * @default "." + url
+   */
+  folder?: string;
+  /**
+   * Add the / root to redirect to /{url}
+   * 
+   * @default false
+   */
+  rootRedirect?: boolean;
 
   constructor(params: any) {
     super(params);
-    this.url = this.url ?? "resources";
-    this.rootRedirect = this.rootRedirect ?? false;
+    this.url ??= "resources";
+    this.rootRedirect ??= false;
     if (!this.url.startsWith("/")) {
       this.url = "/" + this.url;
     }
     if (!this.url.endsWith("/")) {
       this.url += "/";
     }
-    this.folder = this.folder ?? "." + this.url;
+    this.folder ??= "." + this.url;
     if (!this.folder.endsWith("/")) {
       this.folder += "/";
     }
-    this._resolved = path.resolve(this.folder);
   }
 }
 
 /**
+ * This service expose a folder as web
+ * 
+ * It is the same as `static` on `express`
+ * 
  * @category CoreServices
  */
 export default class ResourceService<T extends ResourceServiceParameters = ResourceServiceParameters> extends Service<
   T
 > {
+  /**
+   * Resolved path to the folder to serve
+   */
+  _resolved: string;
+
   /**
    * Load the parameters for a service
    */
@@ -41,6 +66,17 @@ export default class ResourceService<T extends ResourceServiceParameters = Resou
     return new ResourceServiceParameters(params);
   }
 
+  /**
+   * Resolve resource folder
+   */
+  computeParameters() {
+    super.computeParameters();
+    this._resolved = path.resolve(this.parameters.folder);
+  }
+
+  /**
+   * Init the routes
+   */
   initRoutes() {
     this.addRoute(this.parameters.url, ["GET"], this._serve, {
       get: {
@@ -86,15 +122,25 @@ export default class ResourceService<T extends ResourceServiceParameters = Resou
     }
   }
 
+  /**
+   * Handle / request and redirect to the resources folder
+   * 
+   * @param ctx 
+   */
   _redirect(ctx: Context) {
     ctx.redirect(ctx.getHttpContext().getAbsoluteUrl(this.parameters.url));
   }
 
+  /**
+   * Serve the folder by itself, doing the mime detection
+   * 
+   * @param ctx 
+   */
   _serve(ctx: Context) {
     // TODO Add file only
     let resource = ctx.parameter("resource") || "index.html";
     let file = path.join(this.parameters.folder, resource);
-    if (!path.resolve(file).startsWith(this.parameters._resolved)) {
+    if (!path.resolve(file).startsWith(this._resolved)) {
       throw 401;
     }
     if (!fs.existsSync(file)) {

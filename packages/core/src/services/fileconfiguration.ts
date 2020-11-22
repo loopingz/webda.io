@@ -4,9 +4,10 @@ import * as fs from "fs";
 import { JSONUtils } from "..";
 
 /**
- * Allow for dynamic configuration
+ * Allow for dynamic configuration from a file
  */
 export class FileConfigurationService<T extends ConfigurationServiceParameters> extends ConfigurationService<T> {
+  /** @ignore */
   async init() {
     // Do not call super as we diverged
     if (!this.parameters.source) {
@@ -29,6 +30,9 @@ export class FileConfigurationService<T extends ConfigurationServiceParameters> 
 
   stop() {}
 
+  /**
+   * Load the JSON from source defined file
+   */
   async _loadConfiguration(): Promise<{ [key: string]: any }> {
     return JSONUtils.loadFile(this.parameters.source);
   }

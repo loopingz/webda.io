@@ -38,12 +38,33 @@ class BinaryMap {
 }
 
 export class BinaryParameters extends ServiceParameters {
+  /**
+   * Define the map to Object collection
+   */
   map: { [key: string]: string };
-  expose: {
+  /**
+   * Expose the service to http
+   */
+  expose?: {
+    /**
+     * URL to expose the service to
+     */
     url: string;
+    /**
+     * Restrict some APIs
+     */
     restrict?: {
+      /**
+       * Restrict GET
+       */
       get?: boolean;
+      /**
+       * Restrict POST
+       */
       create?: boolean;
+      /**
+       * Restrict DELETE
+       */
       delete?: boolean;
     };
   };
@@ -83,7 +104,6 @@ export class BinaryParameters extends ServiceParameters {
  */
 class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
   _lowercaseMaps: any;
-  _url: string;
 
   /**
    * Load parameters
@@ -387,7 +407,6 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
       return false;
     }
 
-    this._url = this.parameters.expose.url;
     let name = this._name;
     if (name === "Binary") {
       name = "";

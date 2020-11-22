@@ -10,7 +10,12 @@ interface QueueMap {
 }
 
 export class MemoryQueueParameters extends ServiceParameters {
-  expire: number;
+  /**
+   * Number of seconds before droping message
+   * 
+   * @default 30
+   */
+  expire?: number;
 
   constructor(params: any) {
     super(params);

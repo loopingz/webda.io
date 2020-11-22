@@ -79,8 +79,7 @@ export class AuthenticationParameters extends ServiceParameters {
      * 
      * @default 3600000 * 4
      */
-    delay: number;
-    text?: string;
+    delay: number
   };
   password: {
     /**

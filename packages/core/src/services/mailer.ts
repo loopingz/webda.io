@@ -14,16 +14,31 @@ interface TemplatesMap {
 }
 
 class MailerParameters extends ServiceParameters {
-  templates: string;
-  templatesEngine: string;
+  /**
+   * Specify which foldeer contains templates
+   * 
+   * @default "templates"
+   */
+  templates?: string;
+  /**
+   * Template engine to usee
+   * 
+   * @default "mustache"
+   * @todo Create a template service
+   */
+  templatesEngine?: string;
+  /**
+   * Define the default sender
+   */
   sender: string;
 
   constructor(params: any) {
     super(params);
-    this.templates = this.templates ?? "templates";
-    this.templatesEngine = this.templatesEngine ?? "mustache";
+    this.templates ??= "templates";
+    this.templatesEngine ??= "mustache";
   }
 }
+
 /**
  * A basic Mailer based on the nodemailer module
  *

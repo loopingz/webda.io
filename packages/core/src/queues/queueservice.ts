@@ -1,6 +1,11 @@
 import { Service, ServiceParameters } from "../services/service";
 
 /**
+ * AbstractQueue implements the worker system
+ * 
+ * A Worker allows you to define how to process message from
+ * the queue, implementing the retries policy
+ * 
  * @category CoreServices
  */
 abstract class Queue<T extends ServiceParameters = ServiceParameters> extends Service<T> {

@@ -8,8 +8,17 @@ interface ConfigurationProvider {
 }
 
 export class ConfigurationServiceParameters extends ServiceParameters {
+  /**
+   * Check configuration every {checkInterval} seconds
+   */
   checkInterval: number;
+  /**
+   * Format beanName:method
+   */
   source: string;
+  /**
+   * Default configuration to use
+   */
   default: any;
   constructor(params: any) {
     super(params);
@@ -19,6 +28,9 @@ export class ConfigurationServiceParameters extends ServiceParameters {
 /**
  * Handle sessionSecret ( rolling between two secrets ) expire every hour
  * Handle longTermSecret ( rolling between two longer secret ) expire every month
+ * 
+ * Load configuration from another service
+ * 
  * @category CoreServices
  */
 export default class ConfigurationService<

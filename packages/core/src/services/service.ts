@@ -6,9 +6,20 @@ import { EventService } from "./asyncevents";
 import { WorkerLogLevel } from "@webda/workout";
 import { ModdaDefinition } from "../core";
 
+/**
+ * Interface to specify the Service parameters
+ */
 export class ServiceParameters {
+  /**
+   * Type of the service
+   */
   type: string;
 
+  /**
+   * Copy all parameters into the object by default
+   * 
+   * @param params from webda.config.json
+   */
   constructor(params: any) {
     Object.assign(this, params);
   }

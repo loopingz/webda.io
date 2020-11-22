@@ -5,6 +5,9 @@ import { Binary, BinaryParameters } from "./binary";
 import { Service, ServiceParameters } from "./service";
 
 export class FileBinaryParameters extends BinaryParameters {
+  /**
+   * Define the folder to store objects in
+   */
   folder: string;
 
   constructor(params: any, service: Service) {
@@ -53,7 +56,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
       return false;
     }
     // Will redirect to this URL for direct upload
-    let url = this._url + "/upload/data/{hash}";
+    let url = this.parameters.expose.url + "/upload/data/{hash}";
     let name = this._name === "Binary" ? "" : this._name;
     if (!this.parameters.expose.restrict.create) {
       this.addRoute(url, ["PUT"], this.storeBinary, {
@@ -96,7 +99,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
 
   getPutUrl(ctx: Context) {
     // Get a full URL, this method should be in a Route Object
-    return ctx.getHttpContext().getAbsoluteUrl(this._url + "/upload/data/" + ctx.getRequestBody().hash);
+    return ctx.getHttpContext().getAbsoluteUrl(this.parameters.expose.url + "/upload/data/" + ctx.getRequestBody().hash);
   }
 
   /**

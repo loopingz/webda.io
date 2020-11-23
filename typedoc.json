@@ -5,6 +5,7 @@
   "ignoreCompilerErrors": true,
   "excludeExternals": true,
   "excludeReferences": true,
+  "media": "docs/media",
   "exclude": ["**/node_modules", "packages/*/node_modules", "packages/*/src/**/*.spec.ts", "sample-app"],
   "readme": "./readme.md",
   "pages": {

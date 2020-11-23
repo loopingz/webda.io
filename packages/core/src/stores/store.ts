@@ -8,19 +8,19 @@ import { Context } from "../utils/context";
 export class StoreParameters extends ServiceParameters {
   /**
    * Field to store the lastUpdate of the object
-   * 
+   *
    * @default "_lastUpdate"
    */
   lastUpdateField?: string;
   /**
    * Field to store the creationDate of the object
-   * 
+   *
    * @default "_creationDate"
    */
   creationDateField?: string;
   /**
    * Webda model to use within the Store
-   * 
+   *
    * @default "Webda/CoreModel"
    */
   model?: string;
@@ -30,7 +30,7 @@ export class StoreParameters extends ServiceParameters {
   index?: string[] | undefined;
   /**
    * You can define a Map between different Stores
-   * 
+   *
    * {@link Pages/pages/Store}
    */
   map: {
@@ -55,13 +55,13 @@ export class StoreParameters extends ServiceParameters {
   expose?: {
     /**
      * URL endpoint to use to expose REST Resources API
-     * 
+     *
      * @default service.getName().toLowerCase()
      */
     url?: string;
     /**
      * You can restrict any part of the CRUD
-     * 
+     *
      * @default {}
      */
     restrict?: {
@@ -141,7 +141,8 @@ export class StoreParameters extends ServiceParameters {
  *   }
  * @category CoreServices
  */
-class Store<T extends CoreModel, K extends StoreParameters = StoreParameters> extends Service<K>
+class Store<T extends CoreModel, K extends StoreParameters = StoreParameters>
+  extends Service<K>
   implements ConfigurationProvider {
   _reverseMap: any[] = [];
   _cascade: any[] = [];

@@ -187,19 +187,19 @@ class DynamicService extends Service {
     assert.strictEqual(logs[ind].log.args[0], "Took");
 
     this.logger.setLogLevel("INFO");
-    await this.commandLine("worker CustomService output DEBUG_MSG");
+    await this.commandLine("launch CustomService output DEBUG_MSG");
     logs = this.logger.getLogs();
     assert.strictEqual(logs[0].log.args.length, 1);
     assert.strictEqual(logs[0].log.args[0], "YOUR MESSAGE IS 'DEBUG_MSG'");
-    await this.commandLine("worker CustomService badMethod");
+    await this.commandLine("launch CustomService badMethod");
     logs = this.logger.getLogs();
     assert.strictEqual(logs.length, 1);
     assert.strictEqual(logs[0].log.args[0], "An error occured");
-    await this.commandLine("worker CustomService unknownMethod");
+    await this.commandLine("launch CustomService unknownMethod");
     logs = this.logger.getLogs();
     assert.strictEqual(logs.length, 1);
     assert.strictEqual(logs[0].log.args[0], "The method unknownMethod is missing in service CustomService");
-    await this.commandLine("worker UnknownService");
+    await this.commandLine("launch UnknownService");
     logs = this.logger.getLogs();
     assert.strictEqual(logs.length, 1);
     assert.strictEqual(logs[0].log.args[0], "The service UnknownService is missing");

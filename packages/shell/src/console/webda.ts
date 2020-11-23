@@ -72,10 +72,8 @@ export default class WebdaConsole {
   }
 
   static parser(args): yargs.Arguments {
-    return yargs
+    let y = yargs
       .alias("d", "deployment")
-      .alias("o", "open")
-      .alias("x", "devMode")
       .option("log-level") // No default to fallback on env or default of workout
       .option("log-format", {
         default: ConsoleLogger.defaultFormat
@@ -86,27 +84,17 @@ export default class WebdaConsole {
       .option("version", {
         type: "boolean"
       })
-      .option("port", {
-        alias: "p",
-        default: 18080
-      })
-      .option("bind", {
-        alias: "b"
-      })
-      .option("websockets", {
-        alias: "w",
-        default: false
-      })
-      .option("include-hidden", {
-        type: "boolean",
-        default: false
-      })
       .option("notty", {
         type: "boolean",
         default: false
       })
-      .option("app-path", { default: process.cwd() })
-      .parse(args);
+      .option("app-path", { default: process.cwd() });
+      let cmds = WebdaConsole.builtinCommands();
+      Object.keys(cmds).forEach(cmd => {
+        // Remove the first element as it is the handler
+        y = y.command(cmd, ...cmds[cmd].slice(1));
+      });
+      return y.parse(args);
   }
 
   static async serve(argv) {
@@ -123,6 +111,7 @@ export default class WebdaConsole {
     if (argv.devMode) {
       this.output("Dev mode activated : wildcard CORS enabled");
     }
+
     await this.webda.serve(argv.port, argv.websockets);
     return new Promise(() => {});
   }
@@ -476,6 +465,9 @@ export default class WebdaConsole {
     }
   }
 
+  /**
+   * Print a Fake Terminal to play with @webda/workout
+   */
   static async fakeTerm() {
     let res;
     let i = 1;
@@ -503,6 +495,53 @@ export default class WebdaConsole {
     }
   }
 
+  /**
+   * Generate the webda.module.json
+   */
+  static generateModule() {
+    return this.app.generateModule();
+  }
+  
+  /**
+   * Return the default builin command map
+   */
+  static builtinCommands() : {[name: string]: [handler: Function, description: string, options?: any]} {
+    return {
+      "serve":
+      [WebdaConsole.serve, "Serve the application", {
+        devMode: {
+          alias: "x"
+        },
+        port: {
+          alias: "p",
+          default: 18080
+        },
+        bind: {
+          alias: "b",
+          default: "127.0.0.1"
+        },
+        websockets: {
+          alias: "w",
+          default: false
+        }
+      }],
+      "deploy": [WebdaConsole.deploy, "Deploy the application"],
+      "serviceconfig":[WebdaConsole.serviceConfig, "Display the configuration of a service"],
+      "launch":[WebdaConsole.worker, "Launch a method of a service"],
+      "debug":[WebdaConsole.debug, "Debug current application"],
+      "config":[WebdaConsole.config, "Generate the configuration of the application"],
+      "migrate-config":[WebdaConsole.migrateConfig, "Migrate and save the configuration"],
+      "init":[WebdaConsole.init, "Initiate a new webda project"],
+      "module":[WebdaConsole.generateModule, "Generate the module for the application"],
+      "openapi":[WebdaConsole.generateOpenAPI, "Generate the OpenAPI definition for the app", {"include-hidden":{
+        type: "boolean",
+        default: false
+      }}],
+      "faketerm":[WebdaConsole.fakeTerm, "Launch a fake interactive terminal"],
+      "generate-session-secret":[WebdaConsole.generateSessionSecret, "Generate a new session secret"]
+    };
+  }
+
   static async handleCommandInternal(args, versions, output: WorkerOutput = undefined): Promise<number> {
     // Arguments parsing
     let argv = this.parser(args);
@@ -513,23 +552,8 @@ export default class WebdaConsole {
     output = output || new WorkerOutput();
     WebdaConsole.logger = new Logger(output, "console/webda");
 
-    if (
-      [
-        "serve",
-        "deploy",
-        "serviceconfig",
-        "worker",
-        "launch",
-        "debug",
-        "config",
-        "migrate-config",
-        "init",
-        "module",
-        "openapi",
-        "faketerm",
-        "generate-session-secret"
-      ].indexOf(argv._[0]) < 0
-    ) {
+    // Only load extension if the command is unknown
+    if (!WebdaConsole.builtinCommands()[argv._[0]]) {
       WebdaConsole.loadExtensions(argv.appPath);
       extension = this.extensions[argv._[0]];
     }
@@ -633,54 +657,17 @@ export default class WebdaConsole {
       // Load webda module
       this.app.loadModules();
 
-      // Manage builtin commands
-      switch (argv._[0]) {
-        case "serve":
-          await this.serve(argv);
-          return 0;
-        case "serviceconfig":
-          await this.serviceConfig(argv);
-          return 0;
-        case "worker":
-        case "launch":
-          await this.worker(argv);
-          return 0;
-        case "debug":
-          await this.debug(argv);
-          return 0;
-        case "config":
-          await this.config(argv);
-          return 0;
-        case "migrate-config":
-          await this.migrateConfig(argv);
-          return 0;
-        case "new-deployment":
-          await DeploymentManager.new(this.app);
-          return 0;
-        case "deploy":
-          await this.deploy(argv);
-          return 0;
-        case "init":
-          await this.init(argv);
-          return 0;
-        case "module":
-          this.app.generateModule();
-          return 0;
-        case "openapi":
-          await this.generateOpenAPI(argv);
-          return 0;
-        case "faketerm":
-          await this.fakeTerm();
-          return 0;
-        case "generate-session-secret":
-          await this.generateSessionSecret();
-          return 0;
+      // Launch builtin commands
+      if (WebdaConsole.builtinCommands()[argv._[0]]) {
+        await (WebdaConsole.builtinCommands()[argv._[0]][0]).bind(this)(argv);
+        return 0;
       }
 
       if (extension) {
         this.log("DEBUG", "Launching extension " + argv._[0]);
         // Load lib
         argv._.shift();
+        // TODO Implement a second yargs parser for the extension
         return await this.executeShellExtension(extension, extension.relPath, argv);
       }
 
@@ -750,7 +737,6 @@ export default class WebdaConsole {
   static async generateOpenAPI(argv: yargs.Arguments): Promise<void> {
     this.webda = new WebdaServer(this.app);
     let openapi = this.webda.exportOpenAPI(!argv.includeHidden);
-    //console.log(openapi);
     let name = argv._[1] || "./openapi.json";
     if (name.endsWith(".json")) {
       fs.writeFileSync(name, JSON.stringify(openapi, undefined, 2));

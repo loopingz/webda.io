@@ -305,13 +305,13 @@ class CoreTest extends WebdaTest {
   @test
   async updateConfiguration() {
     let service = this.webda.getService<Authentication>("Authentication");
-    assert.strictEqual(service.getParameters().email.text, "");
+    assert.strictEqual(service.getParameters().password.regexp, ".{8,}");
     assert.strictEqual(service.getParameters().email.mailer, "DefinedMailer");
     await this.webda.reinit({
-      "Authentication.email.text": "New Text"
+      "Authentication.password.regexp": ".{12,}"
     });
     let newService = this.webda.getService<Authentication>("Authentication");
-    assert.strictEqual(newService.getParameters().email.text, "New Text");
+    assert.strictEqual(newService.getParameters().password.regexp, ".{12,}");
     assert.strictEqual(newService.getParameters().email.mailer, "DefinedMailer");
     await assert.rejects(
       () =>

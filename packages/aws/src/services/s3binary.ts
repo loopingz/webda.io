@@ -29,7 +29,8 @@ export class S3BinaryParameters extends BinaryParameters {
  *
  * See Binary the general interface
  */
-export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters> extends Binary<T>
+export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
+  extends Binary<T>
   implements CloudFormationContributor {
   AWS: any;
   _s3: any;
@@ -59,7 +60,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       return false;
     }
     // Will use getRedirectUrl so override the default route
-    var url = this._url + "/{store}/{uid}/{property}/{index}";
+    var url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}";
     let name = this._name === "Binary" ? "" : this._name;
     if (!this.parameters.expose.restrict.get) {
       this.addRoute(url, ["GET"], this.getRedirectUrl, {
@@ -75,7 +76,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
           }
         }
       });
-      url = this._url + "/{store}/{uid}/{property}/{index}/url";
+      url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/url";
       name = this._name === "Binary" ? "" : this._name;
       this.addRoute(url, ["GET"], this.getRedirectUrlInfo, {
         get: {
@@ -264,7 +265,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       ctx._route._http.protocol +
       "://" +
       ctx._route._http.headers.host +
-      this._url +
+      this.parameters.expose.url +
       "/upload/data/" +
       ctx.getRequestBody().hash
     );

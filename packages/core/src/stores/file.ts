@@ -29,6 +29,8 @@ class FileStoreParameters extends StoreParameters {
  * @category CoreServices
  */
 class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStoreParameters> extends Store<T, K> {
+  static EXTENSION = ".json";
+
   /**
    * Load the parameters for a service
    */
@@ -47,7 +49,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   }
 
   file(uid) {
-    return `${this.parameters.folder}/${uid}.json`;
+    return `${this.parameters.folder}/${uid}${FileStore.EXTENSION}`;
   }
 
   async exists(uid) {
@@ -158,7 +160,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
       uids = [];
       var files = fs.readdirSync(this.parameters.folder);
       for (var file in files) {
-        uids.push(files[file]);
+        uids.push(files[file].substr(0, files[file].length - FileStore.EXTENSION.length));
       }
     }
     let result = [];

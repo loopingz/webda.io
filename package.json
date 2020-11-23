@@ -6,6 +6,7 @@
     "@types/json-schema": "^7.0.3",
     "@types/node": "^12.0.0",
     "aws-sdk-mock": "^5.1.0",
+    "gh-pages": "^3.1.0",
     "lerna": "^3.21.0",
     "merge-stream": "^2.0.0",
     "mocha": ">=6.1.4",
@@ -40,6 +41,7 @@
     "new-version": "lerna version --ignore @webda/sample-app",
     "lerna:publish": "lerna publish",
     "docs": "yarn docs:typedoc",
+    "docs:publish": "yarn docs:typedoc && gh-pages -d docs/typedoc",
     "docs:typedoc": "typedoc --out docs/typedoc ."
   },
   "command": {

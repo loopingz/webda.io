@@ -194,6 +194,9 @@
 								<a href="_webda_shell.webdaconsole.html#bold" class="tsd-kind-icon">bold</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
+								<a href="_webda_shell.webdaconsole.html#builtincommands" class="tsd-kind-icon">builtin<wbr>Commands</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
 								<a href="_webda_shell.webdaconsole.html#config" class="tsd-kind-icon">config</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
@@ -207,6 +210,9 @@
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
 								<a href="_webda_shell.webdaconsole.html#faketerm" class="tsd-kind-icon">fake<wbr>Term</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
+								<a href="_webda_shell.webdaconsole.html#generatemodule" class="tsd-kind-icon">generate<wbr>Module</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
 								<a href="_webda_shell.webdaconsole.html#generateopenapi" class="tsd-kind-icon">generate<wbr>OpenAPI</a>
@@ -368,6 +374,9 @@
 								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#bold"
 									class="tsd-kind-icon">bold</a>
 								</div>
+								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#builtincommands"
+									class="tsd-kind-icon">builtinCommands</a>
+								</div>
 								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#config"
 									class="tsd-kind-icon">config</a>
 								</div>
@@ -382,6 +391,9 @@
 								</div>
 								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#faketerm"
 									class="tsd-kind-icon">fakeTerm</a>
+								</div>
+								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#generatemodule"
+									class="tsd-kind-icon">generateModule</a>
 								</div>
 								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#generateopenapi"
 									class="tsd-kind-icon">generateOpenAPI</a>
@@ -624,6 +636,37 @@
 						</li>
 					</ul>
 					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					<a name="builtincommands" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">builtin<wbr>Commands<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Return the default builin command map</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">object</span></h4>
+							<ul class="tsd-parameters">
+								<li class="tsd-parameter-index-signature">
+									<h5><span class="tsd-signature-symbol">[</span>name: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">[]</span></h5>
+								</li>
+							</ul>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L508">
+											packages/shell/src/console/webda.ts:508
+										</a>
+									</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="config" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">config<span class="tsd-signature-symbol">(</span>argv<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">yargs.Arguments</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -650,8 +693,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L331">
-											packages/shell/src/console/webda.ts:331
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L320">
+											packages/shell/src/console/webda.ts:320
 										</a>
 									</li>
 								</ul>
@@ -687,8 +730,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L189">
-											packages/shell/src/console/webda.ts:189
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L178">
+											packages/shell/src/console/webda.ts:178
 										</a>
 									</li>
 								</ul>
@@ -721,8 +764,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L372">
-											packages/shell/src/console/webda.ts:372
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L361">
+											packages/shell/src/console/webda.ts:361
 										</a>
 									</li>
 								</ul>
@@ -763,8 +806,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L712">
-											packages/shell/src/console/webda.ts:712
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L699">
+											packages/shell/src/console/webda.ts:699
 										</a>
 									</li>
 								</ul>
@@ -780,12 +823,43 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Print a Fake Terminal to play with @webda/workout</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L479">
-											packages/shell/src/console/webda.ts:479
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L471">
+											packages/shell/src/console/webda.ts:471
+										</a>
+									</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					<a name="generatemodule" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">generate<wbr>Module<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Generate the webda.module.json</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L501">
+											packages/shell/src/console/webda.ts:501
 										</a>
 									</li>
 								</ul>
@@ -820,8 +894,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L750">
-											packages/shell/src/console/webda.ts:750
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L737">
+											packages/shell/src/console/webda.ts:737
 										</a>
 									</li>
 								</ul>
@@ -855,8 +929,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L723">
-											packages/shell/src/console/webda.ts:723
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L710">
+											packages/shell/src/console/webda.ts:710
 										</a>
 									</li>
 								</ul>
@@ -881,8 +955,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L737">
-											packages/shell/src/console/webda.ts:737
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L724">
+											packages/shell/src/console/webda.ts:724
 										</a>
 									</li>
 								</ul>
@@ -907,8 +981,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L810">
-											packages/shell/src/console/webda.ts:810
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L796">
+											packages/shell/src/console/webda.ts:796
 										</a>
 									</li>
 								</ul>
@@ -933,8 +1007,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L321">
-											packages/shell/src/console/webda.ts:321
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L310">
+											packages/shell/src/console/webda.ts:310
 										</a>
 									</li>
 								</ul>
@@ -978,8 +1052,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L426">
-											packages/shell/src/console/webda.ts:426
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L415">
+											packages/shell/src/console/webda.ts:415
 										</a>
 									</li>
 								</ul>
@@ -1011,8 +1085,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L506">
-											packages/shell/src/console/webda.ts:506
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L545">
+											packages/shell/src/console/webda.ts:545
 										</a>
 									</li>
 								</ul>
@@ -1075,8 +1149,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L384">
-											packages/shell/src/console/webda.ts:384
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L373">
+											packages/shell/src/console/webda.ts:373
 										</a>
 									</li>
 								</ul>
@@ -1109,8 +1183,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L410">
-											packages/shell/src/console/webda.ts:410
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L399">
+											packages/shell/src/console/webda.ts:399
 										</a>
 									</li>
 								</ul>
@@ -1136,8 +1210,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L434">
-											packages/shell/src/console/webda.ts:434
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L423">
+											packages/shell/src/console/webda.ts:423
 										</a>
 									</li>
 								</ul>
@@ -1166,8 +1240,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L822">
-											packages/shell/src/console/webda.ts:822
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L808">
+											packages/shell/src/console/webda.ts:808
 										</a>
 									</li>
 								</ul>
@@ -1201,8 +1275,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L353">
-											packages/shell/src/console/webda.ts:353
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L342">
+											packages/shell/src/console/webda.ts:342
 										</a>
 									</li>
 								</ul>
@@ -1228,8 +1302,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L818">
-											packages/shell/src/console/webda.ts:818
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L804">
+											packages/shell/src/console/webda.ts:804
 										</a>
 									</li>
 								</ul>
@@ -1282,8 +1356,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L112">
-											packages/shell/src/console/webda.ts:112
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L100">
+											packages/shell/src/console/webda.ts:100
 										</a>
 									</li>
 								</ul>
@@ -1316,8 +1390,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L135">
-											packages/shell/src/console/webda.ts:135
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L124">
+											packages/shell/src/console/webda.ts:124
 										</a>
 									</li>
 								</ul>
@@ -1343,8 +1417,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L814">
-											packages/shell/src/console/webda.ts:814
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L800">
+											packages/shell/src/console/webda.ts:800
 										</a>
 									</li>
 								</ul>
@@ -1369,8 +1443,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L789">
-											packages/shell/src/console/webda.ts:789
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L775">
+											packages/shell/src/console/webda.ts:775
 										</a>
 									</li>
 								</ul>
@@ -1404,8 +1478,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L769">
-											packages/shell/src/console/webda.ts:769
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L755">
+											packages/shell/src/console/webda.ts:755
 										</a>
 									</li>
 								</ul>
@@ -1438,8 +1512,8 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L152">
-											packages/shell/src/console/webda.ts:152
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L141">
+											packages/shell/src/console/webda.ts:141
 										</a>
 									</li>
 								</ul>

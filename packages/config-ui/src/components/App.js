@@ -1,19 +1,74 @@
+import { useState } from "react";
 import { makeStyles } from '@material-ui/core/styles';
 import { homeStyles } from "../styles/Styles";
+import Tabs from '@material-ui/core/Tabs';
+import Tab from '@material-ui/core/Tab';
+import ServicesPanel from './tabPanels/ServicesPanel';
+import APIPanel from './tabPanels/APIPanel';
+import DeploymentPanel from './tabPanels/DeploymentPanel';
+import ConfigurationPanel from './tabPanels/ConfigurationPanel';
+// Temporary import of services object
+import { services } from "../servicesSample";
 
 const useStyles = makeStyles(homeStyles);
 
-const App = () => {
-  const classes = useStyles();
-  return (
-    <div className={classes.container}>
-      <header>
-        <p>
-          Welcome to the new Webda config UI
-        </p>
-      </header>
-    </div>
-  );
+export const TabPanel = ({ children, value, index }) => {
+    const classes = useStyles();
+    return (
+        <div
+            className={classes.tab}
+            role="tabpanel"
+            hidden={value !== index}
+            id={`vertical-tabpanel-${index}`}
+            aria-labelledby={`vertical-tab-${index}`}
+        >
+            {value === index && (
+                { ...children }
+            )}
+        </div>
+    );
 }
 
-export default App;
+export const a11yProps = (index) => {
+    return {
+        id: `vertical-tab-${index}`,
+        'aria-controls': `vertical-tabpanel-${index}`
+    };
+}
+
+const MainTab = () => {
+    const classes = useStyles();
+    const [value, setValue] = useState(0);
+    const handleChange = (event, newValue) => {
+        setValue(newValue);
+    };
+    return (
+        <div className={classes.root}>
+            <Tabs
+                orientation="vertical"
+                value={value}
+                onChange={handleChange}
+                indicatorColor="primary"
+            >
+                <Tab label="Services" {...a11yProps(0)}></Tab>
+                <Tab label="API" {...a11yProps(1)}></Tab>
+                <Tab label="Deployment" {...a11yProps(2)}></Tab>
+                <Tab label="Configuration" {...a11yProps(3)}></Tab>
+            </Tabs>
+            <TabPanel value={value} index={0}>
+                <ServicesPanel services={services} />
+            </TabPanel>
+            <TabPanel value={value} index={1}>
+                <APIPanel />
+            </TabPanel>
+            <TabPanel value={value} index={2}>
+                <DeploymentPanel />
+            </TabPanel>
+            <TabPanel value={value} index={3}>
+                <ConfigurationPanel />
+            </TabPanel>
+        </div>
+    )
+}
+
+export default MainTab;

@@ -1,5 +1,5 @@
 export const homeStyles = {
-    container: {
-        padding: 20
+    root: {
+        display: 'flex'
     }
 }

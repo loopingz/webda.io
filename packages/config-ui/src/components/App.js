@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { makeStyles } from '@material-ui/core/styles';
-import { homeStyles } from "../styles/Styles";
+import { styles } from "../styles/Styles";
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
 import ServicesPanel from './tabPanels/ServicesPanel';
@@ -10,13 +10,11 @@ import ConfigurationPanel from './tabPanels/ConfigurationPanel';
 // Temporary import of services object
 import { services } from "../servicesSample";
 
-const useStyles = makeStyles(homeStyles);
+const useStyles = makeStyles(styles);
 
 export const TabPanel = ({ children, value, index }) => {
-    const classes = useStyles();
     return (
         <div
-            className={classes.tab}
             role="tabpanel"
             hidden={value !== index}
             id={`vertical-tabpanel-${index}`}
@@ -48,12 +46,14 @@ const MainTab = () => {
                 orientation="vertical"
                 value={value}
                 onChange={handleChange}
-                indicatorColor="primary"
+                indicatorColor='#3883fa'
+                className={classes.tabs}
+                centered
             >
-                <Tab label="Services" {...a11yProps(0)}></Tab>
-                <Tab label="API" {...a11yProps(1)}></Tab>
-                <Tab label="Deployment" {...a11yProps(2)}></Tab>
-                <Tab label="Configuration" {...a11yProps(3)}></Tab>
+                <Tab wrapped label="Services" {...a11yProps(0)} />
+                <Tab wrapped label="API" {...a11yProps(1)} />
+                <Tab wrapped label="Deployment" {...a11yProps(2)} />
+                <Tab wrapped label="Configuration" {...a11yProps(3)} />
             </Tabs>
             <TabPanel value={value} index={0}>
                 <ServicesPanel services={services} />

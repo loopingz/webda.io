@@ -6,14 +6,19 @@ import { TabPanel, a11yProps } from '../App';
 import { JsonEditor as Editor } from 'jsoneditor-react';
 import 'jsoneditor-react/es/editor.min.css';
 import Ajv from 'ajv';
+import { makeStyles } from '@material-ui/core/styles';
+import { styles } from "../../styles/Styles";
+
 const ajv = new Ajv({ allErrors: true, verbose: true });
+const useStyles = makeStyles(styles);
 
 const ServicePanel = ({ service, name }) => {
-    const [value, setValue] = useState(0);
+    const classes = useStyles();
+    const [value, setValue] = useState(1);
     const handleChange = (event, newValue) => {
         setValue(newValue);
     };
-    const handleJSONChange = (event, newValue) => {
+    const handleJSONChange = (newValue) => {
         console.log(newValue);
     }
     return (
@@ -22,8 +27,8 @@ const ServicePanel = ({ service, name }) => {
                 value={value}
                 onChange={handleChange}
                 indicatorColor="primary"
-                textColor="primary"
                 centered
+                className={classes.serviceContentTab}
             >
                 <Tab label="Form JSON Schema" {...a11yProps(0)} />
                 <Tab label="Raw Editor" {...a11yProps(1)} />

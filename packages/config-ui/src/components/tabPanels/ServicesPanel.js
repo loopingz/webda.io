@@ -1,12 +1,12 @@
 import { useState } from "react";
 import Tabs from '@material-ui/core/Tabs';
 import { makeStyles } from '@material-ui/core/styles';
-import { homeStyles } from "../../styles/Styles";
+import { styles } from "../../styles/Styles";
 import Tab from '@material-ui/core/Tab';
 import { TabPanel, a11yProps } from '../App';
 import ServicePanel from './ServicePanel';
 
-const useStyles = makeStyles(homeStyles);
+const useStyles = makeStyles(styles);
 
 const ServicesPanel = ({ services }) => {
     const classes = useStyles();
@@ -20,6 +20,8 @@ const ServicesPanel = ({ services }) => {
                 value={servicePanelValue}
                 onChange={handleChange}
                 orientation="vertical"
+                className={classes.tabs}
+                indicatorColor='#3883fa'
             >
                 {Object.keys(services).map((service, i) => {
                     return (
@@ -35,7 +37,7 @@ const ServicesPanel = ({ services }) => {
                 )
             })}
         </div >
-    )
+    );
 }
 
 export default ServicesPanel;

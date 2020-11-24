@@ -7,8 +7,7 @@ import ServicesPanel from './tabPanels/ServicesPanel';
 import APIPanel from './tabPanels/APIPanel';
 import DeploymentPanel from './tabPanels/DeploymentPanel';
 import ConfigurationPanel from './tabPanels/ConfigurationPanel';
-// Temporary import of services object
-import { services } from "../servicesSample";
+import { useSelector } from "react-redux";
 
 const useStyles = makeStyles(styles);
 
@@ -37,6 +36,7 @@ export const a11yProps = (index) => {
 const MainTab = () => {
     const classes = useStyles();
     const [value, setValue] = useState(0);
+    const services = useSelector(state => state.configuration);
     const handleChange = (event, newValue) => {
         setValue(newValue);
     };

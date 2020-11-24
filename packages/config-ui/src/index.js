@@ -3,10 +3,32 @@ import ReactDOM from 'react-dom';
 import App from './components/App';
 import reportWebVitals from './reportWebVitals';
 import './styles/normalize.css';
+import { Controller } from "redux-lz-controller";
+import thunk from 'redux-thunk';
+import { applyMiddleware, compose, createStore } from 'redux'
+import { Provider } from "react-redux";
+
+import ConfigController from "./controllers/ConfigController";
+new ConfigController();
+
+const composes = [
+  applyMiddleware(thunk)
+];
+
+if (window.__REDUX_DEVTOOLS_EXTENSION__) {
+  composes.push(window.__REDUX_DEVTOOLS_EXTENSION__());
+}
+
+let rootReducer = Controller.getReducers();
+
+let store = createStore(rootReducer, compose(...composes));
+Controller.setStore(store);
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    <Provider store={store}>
+      <App />
+    </Provider>
   </React.StrictMode>,
   document.getElementById('root')
 );

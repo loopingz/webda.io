@@ -72,7 +72,7 @@ export interface ModdaDefinition {
    *
    * If defined as string we will try to extract it with typescript-json-schema
    */
-  configuration: {
+  configuration?: {
     schema?: JSONSchema6 | string;
     widget?: any;
   };

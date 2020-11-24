@@ -7,6 +7,87 @@ import { WorkerLogLevel } from "@webda/workout";
 import { ModdaDefinition } from "../core";
 
 /**
+ * Represent a Inject annotation
+ * 
+ * @see Inject
+ */
+class Injector {
+  parameter: string;
+  value: string;
+  property: string;
+  optional: boolean;
+
+  /**
+   * 
+   * @param property annotated
+   * @param parameterOrName to inject from
+   * @param defaultValue in case of a parameter
+   * @param optional if set to true, won't throw an error if not found
+   */
+  constructor(property: string, parameterOrName: string, defaultValue?: string, optional: boolean = false) {
+    this.property = property;
+    this.optional = optional;
+    if (!defaultValue) {
+      if (parameterOrName.startsWith("params:")) {
+        this.parameter = parameterOrName.substr(7);
+      } else {
+        this.value = parameterOrName;
+      }
+    } else {
+      this.value = defaultValue;
+      this.parameter = parameterOrName;
+    }
+  }
+
+  /**
+   * Resolve the current Inject annotation inside the service
+   * 
+   * @param service to resolve
+   */
+  resolve(service: Service) : void {
+    let name = this.value;
+    if (this.parameter) {
+      name = service.getParameters()[this.parameter] || this.value;
+    }
+    service[this.property] = service.getService(this.value);
+    if (!service[this.property] && !this.optional) {
+      throw new Error(`Injector did not found bean '${name}' for '${service.getName()}'`);
+    }
+  }
+
+  /**
+   * Inject all annotated dependencies to the current service
+   * 
+   * @param service to inject to
+   */
+  static resolveAll(service: Service) {
+    (Object.getPrototypeOf(service).Injectors || []).forEach(injector => injector.resolve(service));
+  }
+}
+
+/**
+ * Inject a Bean inside this attribute
+ *
+ * If defaultValue is undefined and parameter is not starting with `params:`, it will
+ * resolve by calling `this.getService(parameterOrName)`
+ *
+ * If defaultValue is defined or parameterOrName starts with `params:` then first argument is
+ * consider a parameter and it will resolve by calling `this.getService(this.getParameters()[parameterOrName] || defaultValue)`
+ *
+ * @param parameterOrName of the service to inject
+ */
+export function Inject(parameterOrName: string, defaultValue?: string | boolean, optional?: boolean) {
+  return function (target: any, propertyName: string): void {
+    target.Injectors = target.Injectors || [];
+    if (typeof defaultValue === "boolean") {
+      target.Injectors.push(new Injector(propertyName, parameterOrName, undefined, defaultValue));
+    } else {
+      target.Injectors.push(new Injector(propertyName, parameterOrName, defaultValue, optional));
+    }
+  };
+}
+
+/**
  * Interface to specify the Service parameters
  */
 export class ServiceParameters {
@@ -17,7 +98,7 @@ export class ServiceParameters {
 
   /**
    * Copy all parameters into the object by default
-   * 
+   *
    * @param params from webda.config.json
    */
   constructor(params: any) {
@@ -105,8 +186,12 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
    * Call initRoutes and initBeanRoutes
    */
   resolve(): void {
+    // Inject dependencies
+    Injector.resolveAll(this);
+
     // We wait for all services to be created before calling computeParameters
     this.computeParameters();
+
     this.initRoutes();
     this._webda.initBeanRoutes(this);
   }

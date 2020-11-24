@@ -4,7 +4,7 @@ import * as bcrypt from "bcryptjs";
 import { Core, ModdaDefinition } from "../core";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
-import { Service, ServiceParameters } from "../services/service";
+import { Inject, Service, ServiceParameters } from "../services/service";
 import { Store } from "../stores/store";
 import { Context } from "../utils/context";
 import { Mailer } from "./mailer";
@@ -17,7 +17,7 @@ interface PasswordVerifier extends Service {
   /**
    * If the password is not valid, send a 400 exception or
    * return false
-   * 
+   *
    * @param password to verify
    */
   validate(password: string): Promise<boolean>;
@@ -44,13 +44,13 @@ class PasswordRecoveryInfos {
 export class AuthenticationParameters extends ServiceParameters {
   /**
    * Idents store for authentication identifiers
-   * 
+   *
    * @default "idents"
    */
   identStore?: string;
   /**
    * User store for authentication users
-   * 
+   *
    * @default "users"
    */
   userStore?: string;
@@ -76,10 +76,10 @@ export class AuthenticationParameters extends ServiceParameters {
     skipEmailValidation: boolean;
     /**
      * Minimal delay between two password recovery or validation email
-     * 
+     *
      * @default 3600000 * 4
      */
-    delay: number
+    delay: number;
   };
   password: {
     /**
@@ -137,11 +137,13 @@ export class AuthenticationParameters extends ServiceParameters {
  *   }
  *   url: 'url' // By default /auth
  * ```
- * 
+ *
  * @category CoreServices
  */
 class Authentication<T extends AuthenticationParameters = AuthenticationParameters> extends Service<T> {
+  @Inject("identStore", "idents")
   _identsStore: Store<Ident>;
+  @Inject("userStore", "users")
   _usersStore: Store<User>;
   _passwordVerifier: PasswordVerifier;
   providers: Set<string> = new Set<string>();
@@ -272,8 +274,6 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
    */
   computeParameters(): void {
     super.computeParameters();
-    this._identsStore = this.getService<Store<Ident>>(this.parameters.identStore);
-    this._usersStore = this.getService<Store<User>>(this.parameters.userStore);
 
     if (this.parameters.password.verifier) {
       this._passwordVerifier = this.getService<PasswordVerifier>(this.parameters.password.verifier);

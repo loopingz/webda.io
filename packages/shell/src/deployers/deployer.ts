@@ -4,8 +4,8 @@ import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WorkerLogLevel } from "@webda/workout";
 
 export interface DeployerResources {
-  name: string;
-  type: string;
+  name?: string;
+  type?: string;
 }
 /**
  * **Deployer** represent one type of deploy like: *S3* or *Docker* or *Lambda+API Gateway* or *Fargate*

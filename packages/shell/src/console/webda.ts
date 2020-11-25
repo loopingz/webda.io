@@ -82,7 +82,8 @@ export default class WebdaConsole {
         type: "boolean"
       })
       .option("version", {
-        type: "boolean"
+        type: "boolean",
+        short: "v"
       })
       .option("notty", {
         type: "boolean",
@@ -505,7 +506,7 @@ export default class WebdaConsole {
   /**
    * Return the default builin command map
    */
-  static builtinCommands() : {[name: string]: [handler: Function, description: string, options?: any]} {
+  static builtinCommands() : {[name: string]: [Function, string, any?]} {
     return {
       "serve":
       [WebdaConsole.serve, "Serve the application", {
@@ -545,6 +546,13 @@ export default class WebdaConsole {
   static async handleCommandInternal(args, versions, output: WorkerOutput = undefined): Promise<number> {
     // Arguments parsing
     let argv = this.parser(args);
+
+    // Output version
+    if (argv.version) {
+      console.log("Version", this.getVersion());
+      return 0;
+    }
+
     let extension: WebdaShellExtension;
     await this.initLogger(argv);
 

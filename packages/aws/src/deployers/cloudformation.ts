@@ -7,6 +7,7 @@ import { DockerResources } from "@webda/shell";
 import * as fs from "fs";
 import AWS = require("aws-sdk");
 import { DynamoStore } from "../services/dynamodb";
+import { LambdaPackagerResources } from "./lambdapackager";
 
 /**
  * Build Docker image for AWS
@@ -161,9 +162,9 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   Description?: string;
 
   /**
-   * Where to store the local Lambda package
+   * How to build the Lambda package
    */
-  ZipPath?: string;
+  LambdaPackager?: LambdaPackagerResources;
   /**
    * Deploy a Lambda package with your application
    */
@@ -278,10 +279,6 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     this.resources.AssetsBucket = this.resources.AssetsBucket || packageDesc.webda.aws.AssetsBucket;
     this.resources.AssetsPrefix = this.resources.AssetsPrefix || "${deployment}/${deployer.name}/";
     this.resources.Description = this.resources.Description || "Deployed by @webda/aws/cloudformation";
-    this.resources.ZipPath = this.resources.ZipPath || "lambda-${package.version}.zip";
-    if (!this.resources.ZipPath.endsWith(".zip")) {
-      this.resources.ZipPath += ".zip";
-    }
     this.resources.FileName = this.resources.FileName || `cloudformation-${this.resources.name}`;
     this.resources.StackName = this.resources.StackName || this.resources.name;
     this.resources.Format = this.resources.Format || "JSON";
@@ -290,6 +287,17 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     let autoRole;
     // Default Lambda value
     if (this.resources.Lambda) {
+      let zipPath = "lambda-${package.version}.zip";
+      if (this.resources.LambdaPackager) {
+        zipPath = this.resources.LambdaPackager.zipPath;
+      }
+      if (zipPath.endsWith(".zip")) {
+        zipPath += ".zip";
+      }
+      this.resources.LambdaPackager = this.resources.LambdaPackager ?? {
+        zipPath
+      };
+      this.resources.LambdaPackager.zipPath = zipPath;
       this.resources.Lambda.Runtime = this.resources.Lambda.Runtime || "nodejs12.x";
       this.resources.Lambda.MemorySize = this.resources.Lambda.MemorySize || 2048;
       this.resources.Lambda.Timeout = this.resources.Lambda.Timeout || 30;
@@ -1002,7 +1010,8 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   }
 
   async generateLambdaPackage(): Promise<{ S3Bucket: string; S3Key: string }> {
-    const { AssetsBucket: S3Bucket, ZipPath, AssetsPrefix = "", KeepPackage = false } = this.resources;
+    const { AssetsBucket: S3Bucket, LambdaPackager, AssetsPrefix = "", KeepPackage = false } = this.resources;
+    const { zipPath: ZipPath } = LambdaPackager;
     let result: { S3Bucket: string; S3Key: string } = {
       S3Bucket,
       S3Key: AssetsPrefix + path.basename(ZipPath)

@@ -1020,9 +1020,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       throw new WebdaError("ASSETS_BUCKET_REQUIRED", "AssetsBucket must be defined");
     }
     // Create the package
-    await this.manager.run("WebdaAWSDeployer/LambdaPackager", {
-      zipPath: ZipPath
-    });
+    await this.manager.run("WebdaAWSDeployer/LambdaPackager", LambdaPackager);
     // Copy package to S3
     await this.putFilesOnBucket(result.S3Bucket, [
       {

@@ -1,6 +1,6 @@
 import { Controller } from "redux-lz-controller";
 // Temporary import of services object
-import { services } from "../servicesSample";
+import { config } from "../servicesSample";
 
 class ConfigController extends Controller {
     constructor() {
@@ -12,7 +12,9 @@ class ConfigController extends Controller {
     }
     async load() {
         this.asyncAction("LOAD_CONFIG", async () => {
-            return { configuration: services }
+            // temporary mocking async behavior
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            return { configuration: config }
         })
     }
 

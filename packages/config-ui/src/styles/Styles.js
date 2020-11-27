@@ -1,6 +1,7 @@
 export const styles = {
     root: {
-        display: 'flex'
+        display: 'flex',
+
     },
     tabs: {
         paddingTop: 48,

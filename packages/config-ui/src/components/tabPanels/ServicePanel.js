@@ -2,7 +2,7 @@ import { useState } from "react";
 import Paper from '@material-ui/core/Paper';
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
-import { TabPanel, a11yProps } from '../App';
+import { TabPanel, a11yProps } from './ServicesPanel';
 import { JsonEditor as Editor } from 'jsoneditor-react';
 import 'jsoneditor-react/es/editor.min.css';
 import Ajv from 'ajv';

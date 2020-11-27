@@ -1,74 +1,56 @@
 import { useState } from "react";
 import { makeStyles } from '@material-ui/core/styles';
-import { styles } from "../styles/Styles";
-import Tabs from '@material-ui/core/Tabs';
-import Tab from '@material-ui/core/Tab';
+import CssBaseline from '@material-ui/core/CssBaseline';
+
 import ServicesPanel from './tabPanels/ServicesPanel';
-import APIPanel from './tabPanels/APIPanel';
-import DeploymentPanel from './tabPanels/DeploymentPanel';
-import ConfigurationPanel from './tabPanels/ConfigurationPanel';
-import { useSelector } from "react-redux";
+import { Switch, Route, BrowserRouter } from 'react-router-dom';
 
-const useStyles = makeStyles(styles);
+import { useSelector } from 'react-redux';
 
-export const TabPanel = ({ children, value, index }) => {
-    return (
-        <div
-            role="tabpanel"
-            hidden={value !== index}
-            id={`vertical-tabpanel-${index}`}
-            aria-labelledby={`vertical-tab-${index}`}
-        >
-            {value === index && (
-                { ...children }
-            )}
-        </div>
-    );
-}
+import AppBarComponent from './AppBar';
+import DrawerComponent from './Drawer';
 
-export const a11yProps = (index) => {
-    return {
-        id: `vertical-tab-${index}`,
-        'aria-controls': `vertical-tabpanel-${index}`
-    };
-}
+const useStyles = makeStyles((theme) => ({
+    root: {
+        display: 'flex',
+        minHeight: '100vh'
+    },
+    content: {
+        flexGrow: 1,
+        paddingTop: 64
+    },
+    nav: {
+        minHeight: 'calc(100vh - 64px)'
+    }
+}));
 
-const MainTab = () => {
+const App = () => {
     const classes = useStyles();
-    const [value, setValue] = useState(0);
-    const services = useSelector(state => state.configuration);
-    const handleChange = (event, newValue) => {
-        setValue(newValue);
+    const [open, setOpen] = useState(false);
+    const handleDrawerOpen = () => {
+        setOpen(true);
     };
+    const handleDrawerClose = () => {
+        setOpen(false);
+    };
+    const services = useSelector(state => state.rootReducer.config.configuration.services);
     return (
         <div className={classes.root}>
-            <Tabs
-                orientation="vertical"
-                value={value}
-                onChange={handleChange}
-                indicatorColor='#3883fa'
-                className={classes.tabs}
-                centered
-            >
-                <Tab wrapped label="Services" {...a11yProps(0)} />
-                <Tab wrapped label="API" {...a11yProps(1)} />
-                <Tab wrapped label="Deployment" {...a11yProps(2)} />
-                <Tab wrapped label="Configuration" {...a11yProps(3)} />
-            </Tabs>
-            <TabPanel value={value} index={0}>
-                <ServicesPanel services={services} />
-            </TabPanel>
-            <TabPanel value={value} index={1}>
-                <APIPanel />
-            </TabPanel>
-            <TabPanel value={value} index={2}>
-                <DeploymentPanel />
-            </TabPanel>
-            <TabPanel value={value} index={3}>
-                <ConfigurationPanel />
-            </TabPanel>
+            <CssBaseline />
+            <AppBarComponent open={open} handleDrawerOpen={handleDrawerOpen} />
+            <BrowserRouter>
+                <nav className={classes.nav}>
+                    <DrawerComponent open={open} handleDrawerClose={handleDrawerClose} />
+                </nav>
+                <main className={classes.content}>
+                    <Switch>
+                        <Route path="/services" render={() => <ServicesPanel services={services} />} />
+                        <Route path="/configuration" render={() => <div>Page configuration</div>} />
+                    </Switch>
+                </main>
+            </BrowserRouter>
         </div>
     )
 }
 
-export default MainTab;
+export default App;

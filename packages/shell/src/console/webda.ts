@@ -13,6 +13,7 @@ import { WorkerOutput, WorkerLogLevel, ConsoleLogger, WorkerLogLevelEnum } from 
 import { WebdaTerminal } from "./terminal";
 import * as path from "path";
 import * as semver from "semver";
+import { TypescriptSchemaResolver } from "../compiler";
 
 export type WebdaCommand = (argv: any[]) => void;
 export interface WebdaShellExtension {
@@ -90,12 +91,12 @@ export default class WebdaConsole {
         default: false
       })
       .option("app-path", { default: process.cwd() });
-      let cmds = WebdaConsole.builtinCommands();
-      Object.keys(cmds).forEach(cmd => {
-        // Remove the first element as it is the handler
-        y = y.command(cmd, ...cmds[cmd].slice(1));
-      });
-      return y.parse(args);
+    let cmds = WebdaConsole.builtinCommands();
+    Object.keys(cmds).forEach(cmd => {
+      // Remove the first element as it is the handler
+      y = y.command(cmd, ...cmds[cmd].slice(1));
+    });
+    return y.parse(args);
   }
 
   static async serve(argv) {
@@ -500,46 +501,58 @@ export default class WebdaConsole {
    * Generate the webda.module.json
    */
   static generateModule() {
+    if (this.app.isTypescript()) {
+      this.app.setSchemaResolver(new TypescriptSchemaResolver(this.app));
+    }
     return this.app.generateModule();
   }
-  
+
   /**
    * Return the default builin command map
    */
-  static builtinCommands() : {[name: string]: [Function, string, any?]} {
+  static builtinCommands(): { [name: string]: [Function, string, any?] } {
     return {
-      "serve":
-      [WebdaConsole.serve, "Serve the application", {
-        devMode: {
-          alias: "x"
-        },
-        port: {
-          alias: "p",
-          default: 18080
-        },
-        bind: {
-          alias: "b",
-          default: "127.0.0.1"
-        },
-        websockets: {
-          alias: "w",
-          default: false
+      serve: [
+        WebdaConsole.serve,
+        "Serve the application",
+        {
+          devMode: {
+            alias: "x"
+          },
+          port: {
+            alias: "p",
+            default: 18080
+          },
+          bind: {
+            alias: "b",
+            default: "127.0.0.1"
+          },
+          websockets: {
+            alias: "w",
+            default: false
+          }
         }
-      }],
-      "deploy": [WebdaConsole.deploy, "Deploy the application"],
-      "serviceconfig":[WebdaConsole.serviceConfig, "Display the configuration of a service"],
-      "launch":[WebdaConsole.worker, "Launch a method of a service"],
-      "debug":[WebdaConsole.debug, "Debug current application"],
-      "config":[WebdaConsole.config, "Generate the configuration of the application"],
-      "migrate-config":[WebdaConsole.migrateConfig, "Migrate and save the configuration"],
-      "init":[WebdaConsole.init, "Initiate a new webda project"],
-      "module":[WebdaConsole.generateModule, "Generate the module for the application"],
-      "openapi":[WebdaConsole.generateOpenAPI, "Generate the OpenAPI definition for the app", {"include-hidden":{
-        type: "boolean",
-        default: false
-      }}],
-      "faketerm":[WebdaConsole.fakeTerm, "Launch a fake interactive terminal"],
-      "generate-session-secret":[WebdaConsole.generateSessionSecret, "Generate a new session secret"]
+      ],
+      deploy: [WebdaConsole.deploy, "Deploy the application"],
+      serviceconfig: [WebdaConsole.serviceConfig, "Display the configuration of a service"],
+      launch: [WebdaConsole.worker, "Launch a method of a service"],
+      debug: [WebdaConsole.debug, "Debug current application"],
+      config: [WebdaConsole.config, "Generate the configuration of the application"],
+      "migrate-config": [WebdaConsole.migrateConfig, "Migrate and save the configuration"],
+      init: [WebdaConsole.init, "Initiate a new webda project"],
+      module: [WebdaConsole.generateModule, "Generate the module for the application"],
+      openapi: [
+        WebdaConsole.generateOpenAPI,
+        "Generate the OpenAPI definition for the app",
+        {
+          "include-hidden": {
+            type: "boolean",
+            default: false
+          }
+        }
+      ],
+      faketerm: [WebdaConsole.fakeTerm, "Launch a fake interactive terminal"],
+      "generate-session-secret": [WebdaConsole.generateSessionSecret, "Generate a new session secret"]
     };
   }
 
@@ -667,7 +680,7 @@ export default class WebdaConsole {
 
       // Launch builtin commands
       if (WebdaConsole.builtinCommands()[argv._[0]]) {
-        await (WebdaConsole.builtinCommands()[argv._[0]][0]).bind(this)(argv);
+        await WebdaConsole.builtinCommands()[argv._[0]][0].bind(this)(argv);
         return 0;
       }
 

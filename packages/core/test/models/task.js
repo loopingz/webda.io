@@ -29,8 +29,8 @@ class Task extends CoreModel {
     return super.canAct(ctx, action);
   }
 
-  _getSchema() {
-    return "../test/schemas/task.json";
+  getSchema() {
+    return require("../schemas/task.json");
   }
 
   _onSave() {

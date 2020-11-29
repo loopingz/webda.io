@@ -4,6 +4,7 @@ import { OwnerPolicy } from "../policies/ownerpolicy";
 import { Store } from "../stores/store";
 import { Context } from "../utils/context";
 import { Service } from "..";
+import { JSONSchema6 } from "json-schema";
 
 interface CoreModelDefinition {
   new (): CoreModel;
@@ -37,10 +38,14 @@ class CoreModel extends OwnerPolicy {
   static jsonExcludes = ["__store", "__ctx"];
   /**
    * Object context
+   *
+   * @ignore
    */
   __ctx: Context;
   /**
    * If object is attached to its store
+   *
+   * @ignore
    */
   __store: Store<CoreModel>;
 
@@ -49,6 +54,8 @@ class CoreModel extends OwnerPolicy {
   _lastUpdate: Date;
   /**
    * If an object is deleted but not removed from DB for historic
+   *
+   * @ignore
    */
   __deleted: boolean;
 
@@ -202,22 +209,28 @@ class CoreModel extends OwnerPolicy {
   }
 
   /**
-   * Return the object schema, if defined any modification done to the object by external source
-   * must comply to this schema
+   * Allow to specify the JSONSchema to configure this service
+   *
+   * Return undefined by default to fallback on typescript-json-schema guess
+   *
+   * Using this method should only be exception
    */
-  _getSchema(): any {
-    return;
+  static getSchema(): JSONSchema6 {
+    return undefined;
   }
 
-  async validate(ctx, updates = undefined): Promise<boolean> {
-    let schema = this._getSchema();
-    if (!schema) {
-      return true;
-    }
-    if (updates) {
+  /**
+   * Validate objet modification
+   *
+   * @param ctx
+   * @param updates
+   */
+  async validate(ctx: Context, updates: any = undefined): Promise<boolean> {
+    // Load updates before validating itself
+    if (!updates) {
       this.load(updates);
     }
-    if (!ctx.getWebda().validate(this, schema)) {
+    if (!ctx.getWebda().validateSchema(this, this)) {
       throw new Error(
         ctx
           .getWebda()

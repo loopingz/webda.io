@@ -4,6 +4,7 @@ import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
 import { Application, Core } from "./index";
 import { WebdaTest } from "./test";
+import { Module } from "./core";
 
 @suite
 class ApplicationTest extends WebdaTest {
@@ -76,11 +77,12 @@ class ApplicationTest extends WebdaTest {
     this.cleanSampleApp();
     this.sampleApp.generateModule();
     assert.strictEqual(fs.existsSync(this.sampleApp.getAppPath("webda.module.json")), true);
-    let config = fs.readJSONSync(this.sampleApp.getAppPath("webda.module.json"));
+    let config: Module = fs.readJSONSync(this.sampleApp.getAppPath("webda.module.json"));
     assert.strictEqual(config.services["WebdaDemo/CustomReusableService"], "lib/services/reusable.js");
     // Won't be find as it is in a test context
     assert.strictEqual(config.models["WebdaDemo/Contact"], "lib/models/contact.js");
     assert.strictEqual(config.deployers["WebdaDemo/CustomDeployer"], "lib/services/deployer.js");
+    assert.deepStrictEqual(config.schemas["WebdaDemo/CustomDeployer"], { title: "CustomDeployer" });
   }
 
   @test

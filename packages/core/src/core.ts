@@ -11,6 +11,7 @@ import { Context, HttpContext, Logger, Service, Store } from "./index";
 import { CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { RouteInfo, Router } from "./router";
 import { WorkerOutput, WorkerLogLevel } from "@webda/workout";
+import { AbstractDeployer } from "./utils/abstractdeployer";
 
 /**
  * Error with a code
@@ -87,6 +88,10 @@ export interface Module {
   services?: { [key: string]: string };
   models?: { [key: string]: string };
   deployers?: { [key: string]: string };
+  /**
+   * Schemas for services, deployers and coremodel
+   */
+  schemas?: { [key: string]: JSONSchema6 };
 }
 
 /**
@@ -428,15 +433,21 @@ export class Core extends events.EventEmitter {
   /**
    * Validate the object with schema
    *
-   * @param object to validate
    * @param schema path to use
+   * @param object to validate
    */
-  validate(object, schema) {
-    if (!this._ajvSchemas[schema]) {
-      this._ajv.addSchema(require(schema), schema);
-      this._ajvSchemas[schema] = true;
+  validateSchema(webdaObject: CoreModel | Service | AbstractDeployer, object: any) {
+    let name = this.application.getFullNameFromPrototype(Object.getPrototypeOf(webdaObject));
+    if (!this._ajvSchemas[name]) {
+      let schema = this.application.getSchemaResolver().fromPrototype(Object.getPrototypeOf(webdaObject));
+      if (!schema) {
+        return true;
+      }
+      this.log("TRACE", "Add schema for", name);
+      this._ajv.addSchema(schema, name);
+      this._ajvSchemas[name] = true;
     }
-    return this._ajv.validate(schema, object);
+    return this._ajv.validate(name, object);
   }
 
   /**
@@ -935,7 +946,7 @@ export class Core extends events.EventEmitter {
     let models = this.application.getModels();
     for (let i in models) {
       let model = models[i];
-      let desc = {
+      let desc: JSONSchema6 = {
         type: "object"
       };
       if (model instanceof Context) {
@@ -943,14 +954,13 @@ export class Core extends events.EventEmitter {
       }
       let modelDescription = this.getModel(i);
       // Only export CoreModel info
-      if (!(modelDescription.prototype instanceof CoreModel)) {
+      if (!this.application.extends(modelDescription, CoreModel)) {
         continue;
       }
-      let schema = new modelDescription()._getSchema();
+      let schema = this.application.getSchemaResolver().fromPrototype(modelDescription);
       if (schema) {
-        schema = JSON.parse(fs.readFileSync(schema).toString());
         for (let j in schema.definitions) {
-          openapi.definitions[j] = schema.definitions[j];
+          openapi.definitions[j] = openapi.definitions[j] ?? schema.definitions[j];
         }
         delete schema.definitions;
         desc = schema;

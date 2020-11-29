@@ -1,7 +1,7 @@
-import { Configuration, JSONUtils } from "@webda/core";
+import { Configuration, JSONUtils, DeployerResources } from "@webda/core";
 import * as fs from "fs";
 import * as path from "path";
-import { Deployer, DeployerResources } from "./deployer";
+import { Deployer } from "./deployer";
 import * as semver from "semver";
 import { intersect } from "semver-intersect";
 import * as glob from "glob";

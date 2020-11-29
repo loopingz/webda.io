@@ -1,7 +1,8 @@
 import * as fs from "fs-extra";
 import * as glob from "glob";
 import * as path from "path";
-import { Deployer, DeployerResources } from "./deployer";
+import { DeployerResources } from "@webda/core";
+import { Deployer } from "./deployer";
 import { Packager } from "..";
 
 export interface DockerResources extends DeployerResources {

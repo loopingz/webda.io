@@ -41,6 +41,7 @@ import { AbstractDeployer } from "./utils/abstractdeployer";
 import * as deepmerge from "deepmerge";
 import * as semver from "semver";
 import * as dateFormat from "dateformat";
+import { JSONSchema6 } from "json-schema";
 
 /**
  * Return the gather information from the repository
@@ -95,6 +96,56 @@ export interface GitInformation {
 export interface ServiceConstructor<T extends Service> {
   new (webda: Core, name: string, params: any): T;
   getModda();
+  getSchema(): JSONSchema6;
+}
+
+/**
+ * Retrieve a JSONSchema from a webda object
+ *
+ */
+export interface SchemaResolver {
+  fromPrototype(type: any): JSONSchema6;
+  fromServiceType(type: string): JSONSchema6;
+}
+
+/**
+ * Implement the default way of retrieving schema
+ */
+export class DefaultSchemaResolver implements SchemaResolver {
+  /**
+   * Application
+   */
+  protected app: Application;
+
+  constructor(app: Application) {
+    this.app = app;
+  }
+
+  fromServiceType(type: string): JSONSchema6 {
+    if (this.app.isCached()) {
+      return this.app.getConfiguration().cachedModules.schemas[type];
+    }
+    let proto: any = this.app.getDeployers()[type];
+    if (proto) {
+      return this.fromPrototype(proto);
+    }
+    proto = this.app.getServices()[type];
+    if (proto) {
+      return this.fromPrototype(proto);
+    }
+    proto = this.app.getModels()[type];
+    if (proto) {
+      return this.fromPrototype(proto);
+    }
+    return undefined;
+  }
+
+  fromPrototype(type: any): JSONSchema6 {
+    if (type && typeof type.getSchema === "function") {
+      return type.getSchema();
+    }
+    return undefined;
+  }
 }
 
 /**
@@ -218,6 +269,10 @@ export class Application {
    * When the application got initiated
    */
   protected initTime: number;
+  /**
+   * Current Schema resolver
+   */
+  protected schemaResolver: SchemaResolver;
 
   /**
    *
@@ -246,7 +301,8 @@ export class Application {
     } catch (err) {
       throw new WebdaError("INVALID_WEBDA_CONFIG", `Cannot parse JSON of: ${file}`);
     }
-
+    // Load default schema resolver
+    this.schemaResolver = new DefaultSchemaResolver(this);
     // Migrate if needed
     if (!this.baseConfiguration.version) {
       this.baseConfiguration = this.migrateV0Config(this.baseConfiguration);
@@ -272,6 +328,55 @@ export class Application {
     this.namespace = this.packageDescription.webda
       ? this.packageDescription.webda.namespace
       : this.packageDescription.name | this.packageDescription.name;
+  }
+
+  /**
+   *
+   * @param proto Prototype to send
+   */
+  getFullNameFromPrototype(proto): string {
+    for (let i in this.services) {
+      if (this.services[i].prototype === proto) {
+        return i;
+      }
+    }
+    for (let i in this.deployers) {
+      if (this.deployers[i].prototype === proto) {
+        return i;
+      }
+    }
+    for (let i in this.models) {
+      if (this.models[i].prototype === proto) {
+        return i;
+      }
+    }
+  }
+
+  /**
+   * Set the current schema resolver
+   *
+   * @param resolver
+   */
+  setSchemaResolver(resolver: SchemaResolver) {
+    this.schemaResolver = resolver;
+  }
+
+  /**
+   * Get schema resolver
+   */
+  getSchemaResolver(): SchemaResolver {
+    return this.schemaResolver;
+  }
+
+  /**
+   * Check if application has cached modules
+   *
+   * When deployed the application contains cachedModules in the `webda.config.json`
+   * It allows to avoid the search for `webda.module.json` inside node_modules and
+   * take the schema from the cached modules also
+   */
+  isCached() {
+    return this.baseConfiguration.cachedModules !== undefined;
   }
 
   /**
@@ -398,16 +503,30 @@ export class Application {
     return newConfig;
   }
 
+  /**
+   * Log information
+   *
+   * @param level to log for
+   * @param args anything to display same as console.log
+   */
   log(level: WorkerLogLevel, ...args) {
     if (this.logger) {
       this.logger.log(level, ...args);
     }
   }
 
+  /**
+   * Get current logger
+   */
   getWorkerOutput() {
     return this.logger;
   }
 
+  /**
+   * Return the current app path
+   *
+   * @param subpath to append to
+   */
   getAppPath(subpath: string = undefined) {
     if (subpath && subpath !== "") {
       if (subpath.startsWith("/")) {
@@ -418,11 +537,22 @@ export class Application {
     return this.appPath;
   }
 
+  /**
+   * Add a new service
+   *
+   * @param name
+   * @param service
+   */
   addService(name: string, service: ServiceConstructor<Service>) {
     this.log("TRACE", "Registering service", name);
     this.services[name.toLowerCase()] = service;
   }
 
+  /**
+   * Get a service based on name
+   *
+   * @param name
+   */
   getService(name) {
     let serviceName = this.completeNamespace(name).toLowerCase();
     this.log("TRACE", "Search for service", serviceName);
@@ -436,6 +566,9 @@ export class Application {
     return this.services[serviceName];
   }
 
+  /**
+   * Return all services of the application
+   */
   getServices() {
     return this.services;
   }
@@ -463,20 +596,42 @@ export class Application {
     return this.models;
   }
 
+  /**
+   * Return all deployers
+   */
   getDeployers(): { [key: string]: ServiceConstructor<Service> } {
     return this.deployers;
   }
 
+  /**
+   * Add a new model
+   *
+   * @param name
+   * @param model
+   */
   addModel(name: string, model: any) {
     this.log("TRACE", "Registering model", name);
     this.models[name.toLowerCase()] = model;
   }
 
+  /**
+   * Add a new deployer
+   *
+   * @param name
+   * @param model
+   */
   addDeployer(name: string, model: any) {
     this.log("TRACE", "Registering deployer", name);
     this.deployers[name.toLowerCase()] = model;
   }
 
+  /**
+   * Check if a deployment exists for this application
+   * This method cannot be called for a packaged application
+   * as we do not keep deployments files when deployed
+   *
+   * @param deploymentName
+   */
   hasDeployment(deploymentName: string): boolean {
     return fs.existsSync(path.join(this.appPath, "deployments", deploymentName + ".json"));
   }
@@ -803,6 +958,9 @@ export class Application {
     return this.cachedModules;
   }
 
+  /**
+   * Generate the module for current application
+   */
   generateModule() {
     // Compile
     this.compile();
@@ -826,12 +984,35 @@ export class Application {
     if (fs.existsSync(moduleFile)) {
       current = fs.readFileSync(moduleFile).toString();
     }
-    if (current !== JSON.stringify(this.appModule, undefined, 2)) {
+    let module: CachedModule = {
+      ...this.appModule,
+      schemas: {}
+    };
+    for (let i in this.appModule.services) {
+      console.log("check", i);
+      module.schemas[i] = this.getSchemaResolver().fromPrototype(this.services[i.toLowerCase()]);
+    }
+    for (let i in this.appModule.deployers) {
+      console.log("check", i);
+      module.schemas[i] = this.getSchemaResolver().fromPrototype(this.deployers[i.toLowerCase()]);
+    }
+    for (let i in this.appModule.models) {
+      console.log("check", i, Object.keys(this.models));
+      module.schemas[i] = this.getSchemaResolver().fromPrototype(this.models[i.toLowerCase()]);
+    }
+    if (current !== JSON.stringify(module, undefined, 2)) {
       // Write module
-      fs.writeFileSync(moduleFile, JSON.stringify(this.appModule, undefined, 2));
+      fs.writeFileSync(moduleFile, JSON.stringify(module, undefined, 2));
     }
   }
 
+  /**
+   * Import a file
+   *
+   * If the `default` is set take this or use old format
+   *
+   * @param info
+   */
   resolveRequire(info: string) {
     if (info.startsWith(".")) {
       info = this.appPath + "/" + info;
@@ -849,6 +1030,9 @@ export class Application {
     }
   }
 
+  /**
+   * Load local module
+   */
   loadLocalModule() {
     let moduleFile = path.join(process.cwd(), "webda.module.json");
     if (fs.existsSync(moduleFile)) {
@@ -917,6 +1101,12 @@ export class Application {
     return `${this.namespace}/${name}`;
   }
 
+  /**
+   * Check if object extends a class
+   *
+   * @param obj
+   * @param className
+   */
   extends(obj: any, className: any): boolean {
     if (!obj) {
       return false;
@@ -924,8 +1114,7 @@ export class Application {
     let i = 1;
     while (obj && Object.getPrototypeOf(obj)) {
       let proto = Object.getPrototypeOf(obj);
-      // TODO Have better way
-      if (proto.name == className || proto == className) {
+      if (proto.name == className.name || proto == className.name) {
         return true;
       }
       obj = proto;
@@ -952,7 +1141,7 @@ export class Application {
     let obj = mod;
     if (obj && obj.getModda) {
       let modda: ModdaDefinition = mod.getModda();
-      let name;
+      let name = mod.prototype.name;
       let category = "services";
       if (modda) {
         name = modda.uuid;
@@ -962,15 +1151,23 @@ export class Application {
       }
       this.log("DEBUG", `Found new getModda implementation ${category} ${this.completeNamespace(name)}`);
       this.appModule[category][this.completeNamespace(name)] = path.relative(this.appPath, absolutePath);
+      if (this.extends(obj, AbstractDeployer)) {
+        this.addDeployer(this.completeNamespace(name), obj);
+      } else {
+        this.addService(this.completeNamespace(name), obj);
+      }
     } else if (this.extends(obj, CoreModel) || this.extends(obj, Context)) {
       this.log("DEBUG", "Found new CoreModel implementation", this.completeNamespace(obj.name));
       this.appModule["models"][this.completeNamespace(obj.name)] = path.relative(this.appPath, absolutePath);
+      this.addModel(this.completeNamespace(obj.name), obj);
     } else if (this.extends(obj, Service)) {
       this.log("DEBUG", "Found new Service implementation", this.completeNamespace(obj.name));
       this.appModule.services[this.completeNamespace(obj.name)] = path.relative(this.appPath, absolutePath);
+      this.addService(this.completeNamespace(obj.name), obj);
     } else if (this.extends(obj, AbstractDeployer)) {
       this.log("DEBUG", "Found new Deployer implementation", this.completeNamespace(obj.name));
       this.appModule.deployers[this.completeNamespace(obj.name)] = path.relative(this.appPath, absolutePath);
+      this.addDeployer(this.completeNamespace(obj.name), obj);
     }
   }
 

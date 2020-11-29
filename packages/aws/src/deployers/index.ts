@@ -1,5 +1,5 @@
-import { Cache, WebdaError } from "@webda/core";
-import { Deployer, DeployerResources, DeploymentManager } from "@webda/shell";
+import { Cache, WebdaError, DeployerResources } from "@webda/core";
+import { Deployer, DeploymentManager } from "@webda/shell";
 import * as AWS from "aws-sdk";
 import { ACM } from "aws-sdk";
 import * as bluebird from "bluebird";
@@ -20,25 +20,25 @@ export type TagsDefinition = { Key: string; Value: string }[] | { [key: string]:
 export interface AWSDeployerResources extends DeployerResources {
   /**
    * AWS_ACCESS_KEY_ID to use
-   * 
+   *
    * Using static key is not recommended
    */
   accessKeyId?: string;
   /**
    * AWS_SECRET_ACCESS_KEY to use
-   * 
+   *
    * Using static key is not recommended
    */
   secretAccessKey?: string;
   /**
    * AWS_REGION to use
-   * 
+   *
    * @default "us-east-1"
    */
   region?: string;
   /**
    * AWS_SESSION_TOKEN Token
-   * 
+   *
    * Even if it is possible to add it here
    * It is not sustainable as this token at its best will
    * have a lifetime of 12 hours
@@ -70,7 +70,7 @@ export interface AWSDeployerResources extends DeployerResources {
   Tags?: TagsDefinition;
   /**
    * SSL certificates to create
-   * 
+   *
    * Sample
    * ```
    * Certificates: {
@@ -93,7 +93,7 @@ export interface AWSDeployerResources extends DeployerResources {
 
 /**
  * Abstract AWS Deployer
- * 
+ *
  * It includes some basic utilities methods to be used by
  * final deployers
  */
@@ -199,8 +199,8 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
 
   /**
    * Replace / by _ as theses ID are not allowed in AWS
-   * 
-   * @param id 
+   *
+   * @param id
    */
   _replaceForAWS(id: string) {
     return id.replace(/\//g, "_");
@@ -426,20 +426,20 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
 
   /**
    * Wait for an operation to end
-   * 
+   *
    * Some AWS Api require minutes and polling
    * This method will call the callback function until it returns
    * `true`, or the max `retries` has been reached.
    * Between each call, it will wait the `delay`
-   * 
+   *
    * If it reaches the max retries without a good answer from
    * callback, the Promise will be rejected
-   * 
+   *
    * @param callback to call between each call
    * @param delay between each call to callback
    * @param retries max number of retries
    * @param title to display
-   * 
+   *
    * @todo move it to `core` library along with a exponential retry
    */
   async waitFor(callback, delay: number, retries: number, title: string): Promise<any> {
@@ -527,7 +527,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
 
   /**
    * Generate the `PolicyDocument`
-   * 
+   *
    * It will browse all services for a method `getARNPolicy`
    * Allowing you to write some specific Service or Bean that
    * requires specific AWS permissions
@@ -617,17 +617,17 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
 
   /**
    * Find the common prefix between two strings
-   * 
+   *
    * Example
    * ```
    * commonPrefix("/test/plop1", "/templates/") => "/te"
    * ```
-   * 
-   * 
+   *
+   *
    * @param str1 to compare
    * @param str2 to compare
    */
-  commonPrefix(str1: string, str2: string) : string {
+  commonPrefix(str1: string, str2: string): string {
     let res = "";
     let i = 0;
     while (i <= str1.length && i <= str2.length && str1[i] === str2[i]) {
@@ -639,14 +639,14 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
 
   /**
    * Add files to a bucket
-   * 
+   *
    * It uses hash and ETag to avoid uploading files already present
-   * 
-   * 
+   *
+   *
    * The files src can be either:
    *  - a string representing the local path
    *  - a Buffer with the dynamic content
-   * 
+   *
    * @param bucket to send bucket
    * @param files to send
    */

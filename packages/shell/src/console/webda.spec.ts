@@ -10,7 +10,7 @@ import { ServerStatus } from "../handlers/http";
 import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import { DebuggerStatus, WebdaConsole } from "./webda";
 import { MemoryLogger, WorkerOutput } from "@webda/workout";
-import { Logger, WebdaError } from "@webda/core";
+import { Logger, Module, WebdaError } from "@webda/core";
 
 class DebugLogger extends MemoryLogger {
   getLogs(start: number = 0) {
@@ -227,6 +227,10 @@ class DynamicService extends Service {
     }
     await this.commandLine(`module`);
     assert.strictEqual(fs.existsSync(moduleFile), true);
+    let module: Module = JSON.parse(fs.readFileSync(moduleFile).toString());
+    //assert.strictEqual(Object.keys(module.schemas).length, 1);
+    assert.deepStrictEqual(module.schemas["WebdaDemo/CustomDeployer"], { title: "CustomDeployer" });
+    assert.notStrictEqual(module.schemas["WebdaDemo/CustomReusableService"], undefined);
   }
 
   @test

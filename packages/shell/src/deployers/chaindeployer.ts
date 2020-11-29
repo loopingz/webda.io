@@ -1,6 +1,6 @@
 import * as merge from "merge";
-import { Deployer, DeployerResources } from "./deployer";
-import { WebdaError } from "@webda/core";
+import { Deployer } from "./deployer";
+import { WebdaError, DeployerResources } from "@webda/core";
 
 export interface ChainDeployerResources extends DeployerResources {
   chain: string | string[];

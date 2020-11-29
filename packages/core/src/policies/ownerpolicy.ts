@@ -1,13 +1,13 @@
 "use strict";
 import { Context } from "../index";
 class OwnerPolicy {
-  _user: any;
+  _user: string;
   public: boolean;
   uuid: string;
   /**
    * Return false if can't create
    */
-  async canCreate(ctx: Context) {
+  async canCreate(ctx: Context): Promise<this> {
     this._user = ctx.getSession().getUserId();
     if (!this._user) {
       throw 403;
@@ -15,11 +15,11 @@ class OwnerPolicy {
     return this;
   }
 
-  getOwner() {
+  getOwner(): string {
     return this._user;
   }
 
-  async canAct(ctx: Context, action: string) {
+  async canAct(ctx: Context, action: string): Promise<this> {
     if (action === "create") {
       return this.canCreate(ctx);
     } else if (action === "update" || action === "attach_binary" || action === "detach_binary") {
@@ -34,7 +34,7 @@ class OwnerPolicy {
   /**
    * Return false if can't update
    */
-  async canUpdate(ctx: Context) {
+  async canUpdate(ctx: Context): Promise<this> {
     // Allow to modify itself by default
     if (
       (!this.getOwner() || ctx.getSession().getUserId() !== this.getOwner()) &&
@@ -48,7 +48,7 @@ class OwnerPolicy {
   /**
    * Return false if can't get
    */
-  async canGet(ctx: Context) {
+  async canGet(ctx: Context): Promise<this> {
     if (this.public) {
       return this;
     }
@@ -58,7 +58,7 @@ class OwnerPolicy {
   /**
    * Return false if can't delete
    */
-  async canDelete(ctx: Context) {
+  async canDelete(ctx: Context): Promise<this> {
     return this.canUpdate(ctx);
   }
 }

@@ -5,10 +5,11 @@ import { HttpMethodType } from "../utils/context";
 import { EventService } from "./asyncevents";
 import { WorkerLogLevel } from "@webda/workout";
 import { ModdaDefinition } from "../core";
+import { JSONSchema6 } from "json-schema";
 
 /**
  * Represent a Inject annotation
- * 
+ *
  * @see Inject
  */
 class Injector {
@@ -18,7 +19,7 @@ class Injector {
   optional: boolean;
 
   /**
-   * 
+   *
    * @param property annotated
    * @param parameterOrName to inject from
    * @param defaultValue in case of a parameter
@@ -41,10 +42,10 @@ class Injector {
 
   /**
    * Resolve the current Inject annotation inside the service
-   * 
+   *
    * @param service to resolve
    */
-  resolve(service: Service) : void {
+  resolve(service: Service): void {
     let name = this.value;
     if (this.parameter) {
       name = service.getParameters()[this.parameter] || this.value;
@@ -57,7 +58,7 @@ class Injector {
 
   /**
    * Inject all annotated dependencies to the current service
-   * 
+   *
    * @param service to inject to
    */
   static resolveAll(service: Service) {
@@ -333,6 +334,17 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
    */
   log(level: WorkerLogLevel, ...args: any[]) {
     this.logger.log(level, ...args);
+  }
+
+  /**
+   * Allow to specify the JSONSchema to configure this service
+   *
+   * Return undefined by default to fallback on the guess from ServiceParamaters
+   *
+   * Using this method should only be exception
+   */
+  static getSchema(): JSONSchema6 {
+    return undefined;
   }
 }
 

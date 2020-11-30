@@ -39,18 +39,23 @@ class CoreModel extends OwnerPolicy {
   /**
    * Object context
    *
-   * @ignore
+   * @TJS-ignore
    */
   __ctx: Context;
   /**
    * If object is attached to its store
    *
-   * @ignore
+   * @TJS-ignore
    */
   __store: Store<CoreModel>;
 
+  /**
+   * Creation date
+   */
   _creationDate: Date;
-  lastUpdate: Date;
+  /**
+   * Last update date
+   */
   _lastUpdate: Date;
   /**
    * If an object is deleted but not removed from DB for historic
@@ -145,7 +150,7 @@ class CoreModel extends OwnerPolicy {
    *
    * @throws Error if the object is not coming from a store
    */
-  async refresh(): Promise<CoreModel> {
+  async refresh(): Promise<this> {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }

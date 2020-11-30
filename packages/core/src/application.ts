@@ -989,15 +989,12 @@ export class Application {
       schemas: {}
     };
     for (let i in this.appModule.services) {
-      console.log("check", i);
       module.schemas[i] = this.getSchemaResolver().fromPrototype(this.services[i.toLowerCase()]);
     }
     for (let i in this.appModule.deployers) {
-      console.log("check", i);
       module.schemas[i] = this.getSchemaResolver().fromPrototype(this.deployers[i.toLowerCase()]);
     }
     for (let i in this.appModule.models) {
-      console.log("check", i, Object.keys(this.models));
       module.schemas[i] = this.getSchemaResolver().fromPrototype(this.models[i.toLowerCase()]);
     }
     if (current !== JSON.stringify(module, undefined, 2)) {

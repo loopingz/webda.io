@@ -502,7 +502,7 @@ export default class WebdaConsole {
    */
   static generateModule() {
     if (this.app.isTypescript()) {
-      this.app.setSchemaResolver(new TypescriptSchemaResolver(this.app));
+      this.app.setSchemaResolver(new TypescriptSchemaResolver(this.app, this.logger));
     }
     return this.app.generateModule();
   }

@@ -21,6 +21,7 @@ export default class ConfigurationService extends Service implements RequestFilt
     this.addRoute("/npm", ["POST"], this.npmSearch);
     this.addRoute("/npm/search", ["POST"], this.npmSearch);
     this.addRoute("/webda", ["GET"], this.getWebdaVersions);
+    this.addRoute("/openapi", ["GET"], this.crudConfiguration);
   }
 
   async init() {

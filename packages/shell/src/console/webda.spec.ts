@@ -228,9 +228,10 @@ class DynamicService extends Service {
     await this.commandLine(`module`);
     assert.strictEqual(fs.existsSync(moduleFile), true);
     let module: Module = JSON.parse(fs.readFileSync(moduleFile).toString());
-    //assert.strictEqual(Object.keys(module.schemas).length, 1);
+    assert.strictEqual(Object.keys(module.schemas).length, 3);
     assert.deepStrictEqual(module.schemas["WebdaDemo/CustomDeployer"], { title: "CustomDeployer" });
     assert.notStrictEqual(module.schemas["WebdaDemo/CustomReusableService"], undefined);
+    assert.notStrictEqual(module.schemas["WebdaDemo/Contact"], undefined);
   }
 
   @test

@@ -7,5 +7,10 @@
   },
   "deployers": {
     "WebdaDemo/CustomDeployer": "lib/services/deployer.js"
+  },
+  "schemas": {
+    "WebdaDemo/CustomDeployer": {
+      "title": "CustomDeployer"
+    }
   }
 }

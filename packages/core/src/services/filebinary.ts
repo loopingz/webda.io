@@ -99,7 +99,9 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
 
   getPutUrl(ctx: Context) {
     // Get a full URL, this method should be in a Route Object
-    return ctx.getHttpContext().getAbsoluteUrl(this.parameters.expose.url + "/upload/data/" + ctx.getRequestBody().hash);
+    return ctx
+      .getHttpContext()
+      .getAbsoluteUrl(this.parameters.expose.url + "/upload/data/" + ctx.getRequestBody().hash);
   }
 
   /**

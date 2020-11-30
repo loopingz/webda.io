@@ -11,7 +11,7 @@ import { LambdaPackagerResources } from "./lambdapackager";
 
 /**
  * Build Docker image for AWS
- * 
+ *
  * @todo Add X-Ray agent
  */
 interface AWSDockerResources extends DockerResources {
@@ -23,7 +23,7 @@ interface AWSDockerResources extends DockerResources {
 
 /**
  * CloudFormation deployer resources
- * 
+ *
  * Define how to generate CloudFormation resources
  */
 interface CloudFormationDeployerResources extends AWSDeployerResources {
@@ -43,7 +43,7 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
 
   /**
    * CREATE is the default
-   * 
+   *
    * IMPORT is not well supported as AWS support seems weak aswell
    */
   ChangeSetType?: "CREATE" | "IMPORT";
@@ -54,7 +54,7 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
 
   /**
    * Format for CloudFormation template
-   * 
+   *
    * YAML format can generate issue
    */
   Format?: "JSON" | "YAML";
@@ -63,7 +63,7 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
    */
   StackName?: string;
   /**
-   * 
+   *
    */
   FileName?: string;
   // Default DomainName
@@ -130,10 +130,10 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
 
   /**
    * Policy to create
-   * 
+   *
    * This deployer can automatically create the policy tailored to your application needs
    * All the AWS services from this package advertise the type of permissions they need
-   * 
+   *
    */
   Policy?: {
     /**
@@ -179,8 +179,8 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
     Role?;
     /**
      * Type of Runtime to use
-     * 
-     * @default "nodejs12.x" 
+     *
+     * @default "nodejs12.x"
      */
     Runtime?;
     /**
@@ -190,14 +190,14 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
     Handler?: string;
     /**
      * Memory to set on the Lambda
-     * 
+     *
      * Less memory is less expensive/ms but slower
      * @default 2048
      */
     MemorySize?: number;
     /**
      * Timeout in seconds for your Lambda
-     * 
+     *
      * @default 30
      */
     Timeout?: number;

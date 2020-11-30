@@ -40,6 +40,8 @@
     "build": "lerna run build",
     "test": "lerna run test --ignore @webda/sample-app",
     "new-version": "lerna version --ignore @webda/sample-app",
+    "lint": "lerna run lint --parallel",
+    "lint:fix": "lerna run lint:fix --parallel",
     "lerna:publish": "lerna publish",
     "docs": "yarn docs:typedoc",
     "docs:publish": "yarn docs:typedoc && gh-pages -t -d docs/typedoc",

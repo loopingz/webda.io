@@ -430,7 +430,8 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     this.parameters.CloudFormation.Table = this.parameters.CloudFormation.Table || {};
     let KeySchema = this.parameters.CloudFormation.KeySchema || [{ KeyType: "HASH", AttributeName: "uuid" }];
     let AttributeDefinitions = this.parameters.CloudFormation.AttributeDefinitions || [];
-    this.parameters.CloudFormation.Table.BillingMode = this.parameters.CloudFormation.Table.BillingMode || "PAY_PER_REQUEST";
+    this.parameters.CloudFormation.Table.BillingMode =
+      this.parameters.CloudFormation.Table.BillingMode || "PAY_PER_REQUEST";
     AttributeDefinitions.push({ AttributeName: "uuid", AttributeType: "S" });
     resources[this._name + "DynamoTable"] = {
       Type: "AWS::DynamoDB::Table",

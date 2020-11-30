@@ -6,6 +6,8 @@
   "scripts": {
     "webda-module": "webda module --noCompile",
     "build": "tsc",
+    "lint": "prettier --check src/**/*",
+    "lint:fix": "prettier --write src/**/*",
     "pretest": "npm run build",
     "test": ""
   },

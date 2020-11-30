@@ -10,19 +10,19 @@ import { Service, ServiceParameters } from "./service";
 export class ResourceServiceParameters extends ServiceParameters {
   /**
    * URL on which to serve the content
-   * 
+   *
    * @default "resources"
    */
   url?: string;
   /**
    * Folder to server
-   * 
+   *
    * @default "." + url
    */
   folder?: string;
   /**
    * Add the / root to redirect to /{url}
-   * 
+   *
    * @default false
    */
   rootRedirect?: boolean;
@@ -46,14 +46,14 @@ export class ResourceServiceParameters extends ServiceParameters {
 
 /**
  * This service expose a folder as web
- * 
+ *
  * It is the same as `static` on `express`
- * 
+ *
  * @category CoreServices
  */
-export default class ResourceService<T extends ResourceServiceParameters = ResourceServiceParameters> extends Service<
-  T
-> {
+export default class ResourceService<
+  T extends ResourceServiceParameters = ResourceServiceParameters
+> extends Service<T> {
   /**
    * Resolved path to the folder to serve
    */
@@ -124,8 +124,8 @@ export default class ResourceService<T extends ResourceServiceParameters = Resou
 
   /**
    * Handle / request and redirect to the resources folder
-   * 
-   * @param ctx 
+   *
+   * @param ctx
    */
   _redirect(ctx: Context) {
     ctx.redirect(ctx.getHttpContext().getAbsoluteUrl(this.parameters.url));
@@ -133,8 +133,8 @@ export default class ResourceService<T extends ResourceServiceParameters = Resou
 
   /**
    * Serve the folder by itself, doing the mime detection
-   * 
-   * @param ctx 
+   *
+   * @param ctx
    */
   _serve(ctx: Context) {
     // TODO Add file only

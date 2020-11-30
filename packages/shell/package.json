@@ -21,7 +21,9 @@
   "scripts": {
     "build": "tsc",
     "pretest": "npm run build",
-    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts"
+    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts",
+    "lint": "prettier --check src/**/*",
+    "lint:fix": "prettier --write src/**/*"
   },
   "engines": {
     "node": ">=12.0.0"

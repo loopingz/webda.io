@@ -7,7 +7,9 @@
     "webda-module": "webda module --noCompile",
     "build": "tsc",
     "pretest": "tsc",
-    "test": "exit 0"
+    "test": "exit 0",
+    "lint": "prettier --check src/**/*",
+    "lint:fix": "prettier --write src/**/*"
   },
   "repository": {
     "type": "git",

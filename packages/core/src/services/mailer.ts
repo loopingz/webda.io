@@ -16,13 +16,13 @@ interface TemplatesMap {
 class MailerParameters extends ServiceParameters {
   /**
    * Specify which foldeer contains templates
-   * 
+   *
    * @default "templates"
    */
   templates?: string;
   /**
    * Template engine to usee
-   * 
+   *
    * @default "mustache"
    * @todo Create a template service
    */

@@ -156,7 +156,7 @@ export class DeploymentManager {
     if (!this.deployers[name]) {
       throw new WebdaError("DEPLOYER_UNKNOWN", "Unknown deployer " + name);
     }
-    let deployer = new (this.deployersDefinition[this.deployers[name].type.toLowerCase()])(this, this.deployers[name]);
+    let deployer = new this.deployersDefinition[this.deployers[name].type.toLowerCase()](this, this.deployers[name]);
     deployer.setName(name);
     deployer.setType(this.deployers[name].type);
     await deployer.defaultResources();
@@ -177,7 +177,7 @@ export class DeploymentManager {
     if (!this.deployersDefinition[type.toLowerCase()]) {
       throw new WebdaError("DEPLOYER_TYPE_UNKNOWN", "Unknown deployer type " + type);
     }
-    let deployer = new (this.deployersDefinition[type.toLowerCase()])(this, resources);
+    let deployer = new this.deployersDefinition[type.toLowerCase()](this, resources);
     await deployer.defaultResources();
     return deployer.deploy();
   }

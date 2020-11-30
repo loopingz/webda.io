@@ -2,7 +2,7 @@
 import { Context, User } from "../index";
 
 const AclPolicyMixIn = Sup =>
-  (class extends Sup {
+  class extends Sup {
     __acls: Map<string, string> = new Map<string, string>();
 
     getAcls() {
@@ -55,6 +55,6 @@ const AclPolicyMixIn = Sup =>
       }
       throw 403;
     }
-  });
+  };
 
 export { AclPolicyMixIn };

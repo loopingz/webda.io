@@ -28,9 +28,9 @@ export class ConfigurationServiceParameters extends ServiceParameters {
 /**
  * Handle sessionSecret ( rolling between two secrets ) expire every hour
  * Handle longTermSecret ( rolling between two longer secret ) expire every month
- * 
+ *
  * Load configuration from another service
- * 
+ *
  * @category CoreServices
  */
 export default class ConfigurationService<

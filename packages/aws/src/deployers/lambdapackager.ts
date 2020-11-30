@@ -8,7 +8,7 @@ export interface LambdaPackagerResources extends PackagerResources {
   /**
    * Lambda include already the AWS-SDK
    * By default we exclude the aws-sdk
-   * 
+   *
    * @defaut false
    */
   customAwsSdk?: boolean;
@@ -16,7 +16,7 @@ export interface LambdaPackagerResources extends PackagerResources {
 
 /**
  * Package a Lambda function
- * 
+ *
  * It uses the normmal Packager and just add the default entrypoint
  * And the exclusion of aws-sdk by default
  */

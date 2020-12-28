@@ -24,7 +24,7 @@ class UtilsTest {
   }
 
   @test("CircularJSON")
-  ciruclarJSON() {
+  circularJSON() {
     let a: any = {
       b: "test",
       c: {}
@@ -41,6 +41,21 @@ class UtilsTest {
         3
       ),
       JSON.stringify({ c: {} }, undefined, 3)
+    );
+  }
+
+  @test("DuplicateJSON")
+  duplicatedJSON() {
+    let a: any = {
+      b: "test",
+      c: {
+        plop: "bouzouf"
+      }
+    };
+    a.d = a.c;
+    assert.deepStrictEqual(
+      JSONUtils.stringify(a),
+      JSON.stringify({ b: "test", c: { plop: "bouzouf" }, d: { plop: "bouzouf" } }, undefined, 2)
     );
   }
 }

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "fs";
 import * as yaml from "yaml";
 
 export const JSONUtils = {
-  stringify: (value, replacer: (key: string, value: any) => any = undefined, space: number | string = 2) => {
+  safeStringify: (value, replacer: (key: string, value: any) => any = undefined, space: number | string = 2) => {
     let stringified = [];
     return JSON.stringify(
       value,
@@ -18,6 +18,17 @@ export const JSONUtils = {
       },
       space
     );
+  },
+  stringify: (value, replacer: (key: string, value: any) => any = undefined, space: number | string = 2) => {
+    // Add a fallback if first did not work because of recursive
+    try {
+      return JSON.stringify(value, replacer, space);
+    } catch (err) {
+      if (err.message && err.message.startsWith("Converting circular structure to JSON")) {
+        return JSONUtils.safeStringify(value, replacer, space);
+      }
+      throw err;
+    }
   },
   parse: value => {
     // Auto clean any noise

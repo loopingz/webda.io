@@ -166,6 +166,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     this.resources.package.modules = this.resources.package.modules || {};
     this.resources.package.modules.excludes = this.resources.package.modules.excludes || [];
     this.resources.package.modules.includes = this.resources.package.modules.includes || [];
+    this.resources.zipPath ??= this.app.getAppPath("/dist/package.zip");
   }
 
   /**
@@ -173,10 +174,6 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
    */
   async deploy(): Promise<any> {
     let { zipPath, entrypoint } = this.resources;
-
-    if (!zipPath) {
-      zipPath = this.app.getAppPath("/dist/package.zip");
-    }
 
     if (this.packagesGenerated[zipPath + entrypoint || ""]) {
       return;

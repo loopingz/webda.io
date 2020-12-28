@@ -108,9 +108,8 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
   }
 
   _log(level, ...args): void {
-    let msg = `[${level}] ` + args.map(p => p.toString()).join(" ");
     this._bufferedLogs.push({
-      message: msg,
+      message: `[${level}] ` + args.map(p => (p ? p.toString() : "undefined")).join(" "),
       timestamp: new Date().getTime()
     });
     if (this.parameters.singlePush) {

@@ -333,7 +333,10 @@ export class Core extends events.EventEmitter {
     for (let i in beans) {
       if (beans[i].routes) {
         for (let j in beans[i].routes) {
-          beans[i].routes[j].forEach(r => (r.resolved = false));
+          beans[i].routes[j].forEach(r => {
+            r.resolved = false;
+            this.router.removeRoute(j, r.info);
+          });
         }
       }
     }
@@ -381,11 +384,16 @@ export class Core extends events.EventEmitter {
       // Init services
       let service;
       for (service in this.services) {
-        if (this.services[service].init !== undefined && !this.services[service]._createException) {
+        if (
+          this.services[service].init !== undefined &&
+          !this.services[service]._createException &&
+          !this.services[service]._initTime
+        ) {
           try {
             // TODO Define parralel initialization
             this.log("TRACE", "Initializing service", service);
             this.initBeanRoutes(this.services[service]);
+            this.services[service]._initTime = Date.now();
             await this.services[service].init();
           } catch (err) {
             this.services[service]._initException = err;
@@ -813,13 +821,14 @@ export class Core extends events.EventEmitter {
           if (route.resolved) {
             return;
           }
-          this.addRoute(j, {
+          route.info = {
             methods: route.methods, // HTTP methods
             _method: this.services[service][route.executor], // Link to service method
             allowPath: route.allowPath || false, // Allow / in parser
             openapi: route.openapi,
             executor: beans[service].constructor.name // Name of the service
-          });
+          };
+          this.addRoute(j, route.info);
           route.resolved = true;
         });
       }

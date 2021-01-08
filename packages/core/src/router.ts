@@ -28,6 +28,10 @@ export interface RouteInfo {
    * URI Template parser
    */
   _uriTemplateParse?: { fromUri: (uri: string) => any; varNames: any };
+  /**
+   * Hash
+   */
+  hash?: string;
 }
 
 /**
@@ -43,6 +47,7 @@ export class Router {
   constructor(webda: Core) {
     this.webda = webda;
   }
+
   /**
    * Add a route dynamicaly
    *
@@ -51,7 +56,11 @@ export class Router {
    */
   addRoute(url: string, info: RouteInfo): void {
     if (this.routes[url]) {
-      // Check and add warning if same method is ued
+      // If route is already added do not do anything
+      if (this.routes[url].includes(info)) {
+        return;
+      }
+      // Check and add warning if same method is used
       let methods = this.routes[url].map((r: RouteInfo) => r.methods).flat();
       info.methods.forEach(m => {
         if (methods.indexOf(m) >= 0) {
@@ -73,8 +82,13 @@ export class Router {
    *
    * @param {String} url to remove
    */
-  removeRoute(url): void {
-    delete this.routes[url];
+  removeRoute(url: string, info: RouteInfo = undefined): void {
+    if (!info) {
+      delete this.routes[url];
+    } else if (this.routes[url] && this.routes[url].includes(info)) {
+      this.routes[url].splice(this.routes[url].indexOf(info), 1);
+    }
+
     this.remapRoutes();
   }
 

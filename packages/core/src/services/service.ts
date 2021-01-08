@@ -150,7 +150,6 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
   constructor(webda: Core, name: string, params: any = {}) {
     super();
     this.logger = webda ? webda.getLogger(this) : undefined;
-    this._initTime = new Date().getTime();
     this._webda = webda;
     this._name = name;
     this.parameters = <T>this.loadParameters(params);

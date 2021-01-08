@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 import * as yaml from "yaml";
 
 export const JSONUtils = {
@@ -22,7 +22,19 @@ export const JSONUtils = {
   stringify: (value, replacer: (key: string, value: any) => any = undefined, space: number | string = 2) => {
     // Add a fallback if first did not work because of recursive
     try {
-      return JSON.stringify(value, replacer, space);
+      return JSON.stringify(
+        value,
+        (key: string, val: any) => {
+          if (key.startsWith("__")) {
+            return undefined;
+          }
+          if (replacer) {
+            return replacer.bind(this, key, val)();
+          }
+          return val;
+        },
+        space
+      );
     } catch (err) {
       if (err.message && err.message.startsWith("Converting circular structure to JSON")) {
         return JSONUtils.safeStringify(value, replacer, space);
@@ -50,6 +62,14 @@ export const JSONUtils = {
       return res.map(d => d.toJSON());
     } else if (filename.match(/\.json$/i)) {
       return JSON.parse(content);
+    }
+    throw new Error("Unknown format");
+  },
+  saveFile: (object, filename) => {
+    if (filename.match(/\.ya?ml$/i)) {
+      return writeFileSync(filename, yaml.stringify(object));
+    } else if (filename.match(/\.json$/i)) {
+      return writeFileSync(filename, JSON.stringify(object, undefined, 2));
     }
     throw new Error("Unknown format");
   }

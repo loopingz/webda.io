@@ -1,6 +1,8 @@
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { JSONUtils } from "./json";
+import * as path from "path";
+import { readFileSync } from "fs";
 
 const TEST_FOLDER = __dirname + "/../../test/jsonutils/";
 @suite
@@ -27,7 +29,8 @@ class UtilsTest {
   circularJSON() {
     let a: any = {
       b: "test",
-      c: {}
+      c: {},
+      __test: true
     };
     a.c.a = a;
     assert.deepStrictEqual(JSONUtils.stringify(a), JSON.stringify({ b: "test", c: {} }, undefined, 2));
@@ -50,12 +53,23 @@ class UtilsTest {
       b: "test",
       c: {
         plop: "bouzouf"
-      }
+      },
+      __test: true
     };
     a.d = a.c;
     assert.deepStrictEqual(
       JSONUtils.stringify(a),
       JSON.stringify({ b: "test", c: { plop: "bouzouf" }, d: { plop: "bouzouf" } }, undefined, 2)
     );
+  }
+
+  @test("Write JSON/YAML")
+  writeJSON() {
+    let file = path.join(TEST_FOLDER, "writeTest.json");
+    JSONUtils.saveFile({ test: "plop" }, file);
+    assert.strictEqual(readFileSync(file).toString(), '{\n  "test": "plop"\n}');
+    file = path.join(TEST_FOLDER, "writeTest.yaml");
+    JSONUtils.saveFile({ test: "plop" }, file);
+    assert.strictEqual(readFileSync(file).toString(), `test: plop\n`);
   }
 }

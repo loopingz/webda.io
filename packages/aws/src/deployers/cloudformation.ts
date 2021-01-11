@@ -1094,26 +1094,6 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       return -1;
     }
   }
-
-  static async shellCommand(Console, args) {
-    let command = args._.shift();
-    switch (command) {
-      case "init":
-        return await CloudFormationDeployer.init(Console);
-      case "copyTable":
-        if (args._.length < 2) {
-          Console.logger.log("ERROR", "Require sourceTable and targetTable");
-          return 1;
-        }
-        await DynamoStore.copyTable(Console.app.getWorkerOutput(), args._[0], args._[1]);
-        return 0;
-      default:
-        Console.logger.log("ERROR", `Unknown command ${command}`);
-        return 1;
-    }
-  }
 }
 
-const ShellCommand = CloudFormationDeployer.shellCommand;
-
-export { CloudFormationDeployer, ShellCommand };
+export { CloudFormationDeployer };

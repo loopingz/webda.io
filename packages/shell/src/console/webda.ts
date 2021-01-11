@@ -347,7 +347,7 @@ export default class WebdaConsole {
     if (argv._.length > 1) {
       fs.writeFileSync(argv._[1], json);
     } else {
-      this.output(json);
+      fs.writeFileSync("webda.config.json", json);
     }
     /*
     webda = await this._getNewConfig();

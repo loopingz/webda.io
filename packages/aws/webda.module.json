@@ -12,6 +12,6 @@
     "WebdaAWSDeployer/LambdaPackager": "./lib/deployers/lambdapackager.js"
   },
   "commands": {
-    "aws": "./lib/deployers/cloudformation.js:ShellCommand"
+    "aws": "./lib/shell.js:ShellCommand"
   }
 }

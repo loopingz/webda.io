@@ -1,6 +1,6 @@
 {
   "name": "@webda/core",
-  "version": "1.0.0-beta.14",
+  "version": "1.0.0",
   "description": "Expose API with Lambda",
   "keywords": [
     "aws",
@@ -19,7 +19,7 @@
     "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts src/*.spec.ts"
   },
   "dependencies": {
-    "@webda/workout": "^1.0.0-beta.7",
+    "@webda/workout": "^1.0.0",
     "accept-language": "3.0.18",
     "ajv": "^6.10.0",
     "bcryptjs": "^2.4.3",

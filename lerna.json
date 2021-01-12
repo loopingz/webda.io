@@ -6,5 +6,8 @@
     "ignoreChanges": ["ignored-file", "*.md"],
     "message": "chore(release): publish"
   },
+  "version2": {
+    "message": "chore(release): publish"
+  },
   "useWorkspaces": true
 }

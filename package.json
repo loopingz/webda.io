@@ -27,7 +27,8 @@
   "author": "loopingz",
   "license": "MIT",
   "resolutions": {
-    "@types/node": "^12.0.0"
+    "@types/node": "^12.0.0",
+    "@types/mime": "^2.0.3"
   },
   "bugs": {
     "url": "https://github.com/loopingz/webda.io/issues"

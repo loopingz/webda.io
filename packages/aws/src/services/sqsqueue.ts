@@ -1,5 +1,5 @@
 "use strict";
-import { ModdaDefinition, Queue, Service, ServiceParameters, WebdaError } from "@webda/core";
+import { ModdaDefinition, Queue, ServiceParameters, WebdaError } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";

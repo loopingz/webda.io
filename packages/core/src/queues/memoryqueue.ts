@@ -1,7 +1,7 @@
 "use strict";
 import * as uuid from "uuid";
 import { ModdaDefinition } from "../core";
-import { Service, ServiceParameters } from "../services/service";
+import { ServiceParameters } from "../services/service";
 import { JSONUtils } from "../utils/json";
 import { Queue } from "./queueservice";
 

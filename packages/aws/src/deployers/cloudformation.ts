@@ -6,7 +6,6 @@ import { WebdaError } from "@webda/core";
 import { DockerResources } from "@webda/shell";
 import * as fs from "fs";
 import AWS = require("aws-sdk");
-import { DynamoStore } from "../services/dynamodb";
 import { LambdaPackagerResources } from "./lambdapackager";
 
 /**

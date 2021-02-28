@@ -1,4 +1,4 @@
-import { CoreModel, ModdaDefinition, ServiceParameters, Store, StoreParameters, WebdaError } from "@webda/core";
+import { CoreModel, ModdaDefinition, Store, StoreParameters, WebdaError } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import { CloudFormationDeployer } from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";

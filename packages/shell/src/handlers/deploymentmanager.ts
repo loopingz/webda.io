@@ -1,5 +1,4 @@
 import { Application, Core, Cache, Logger, WebdaError, Deployment } from "@webda/core";
-import { execSync } from "child_process";
 import * as merge from "merge";
 import ChainDeployer from "../deployers/chaindeployer";
 import { Deployer } from "../deployers/deployer";

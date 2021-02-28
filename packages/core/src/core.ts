@@ -1,7 +1,6 @@
 import * as Ajv from "ajv";
 import * as deepmerge from "deepmerge";
 import * as events from "events";
-import * as fs from "fs";
 import { JSONSchema6 } from "json-schema";
 import * as jsonpath from "jsonpath";
 import { OpenAPIV3 } from "openapi-types";

@@ -189,14 +189,12 @@ export class Kubernetes extends Deployer<KubernetesResources> {
           ] = `${i.spec.schedule} ${i.metadata.annotations["webda.io/crondescription"]}`)
       );
       this.resources.resources = this.resources.resources || [];
-      let ids = [];
       crons.forEach(cron => {
         this.parameters.cron = { ...cron, cronId: this.getCronId(cron) };
         jsonpath.value(resource, '$.metadata.annotations["webda.io/cronid"]', this.parameters.cron.cronId);
         jsonpath.value(resource, '$.metadata.annotations["webda.io/crondescription"]', cron.toString());
         let cronResource = this.replaceVariables(resource);
         this.resources.resources.push(cronResource);
-        ids.push(cronResource.metadata.name);
         if (currentJobsNamesMap[cronResource.metadata.name] !== undefined) {
           delete currentJobsNamesMap[cronResource.metadata.name];
           this.logger.log("INFO", `Updating CronJob ${cronResource.metadata.name}: ${cron.toString()}`);
@@ -261,10 +259,10 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       if (!Array.isArray(resources)) {
         resources = [resources];
       }
-      for (let i in resources) {
-        let resource = this.replaceVariables(resources[i]);
+      for (let j in resources) {
+        let resource = this.replaceVariables(resources[j]);
         if (!this.completeResource(resource)) {
-          this.logger.log("ERROR", `Resource invalid #${i} of resourcesFile`);
+          this.logger.log("ERROR", `Resource invalid #${j} of resourcesFile`);
           continue;
         }
         await this.upsertKubernetesObject(resource);

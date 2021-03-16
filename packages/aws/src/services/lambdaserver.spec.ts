@@ -110,6 +110,15 @@ class LambdaHandlerTest extends WebdaAwsTest {
   }
 
   @test
+  async handleRequestIdHeader() {
+    this.ensureGoodCSRF();
+    this.handler.getConfiguration().parameters.lambdaRequestHeader = "x-webda-request-id";
+    let res = await this.handler.handleRequest(this.evt, { ...this.context, awsRequestId: "toto" });
+    assert.strictEqual(res.body, "CodeCoverage");
+    assert.strictEqual(res.headers["x-webda-request-id"], "toto");
+  }
+
+  @test
   async handleRequestKnownRouteWithParamAndQuery() {
     this.ensureGoodCSRF();
     this.evt.queryStringParameters = { test: "Plop" };

@@ -14,7 +14,7 @@ class PackagerTest {
   @test("simple")
   async package() {
     // Check override is ok
-    let zipPath = path.join(WebdaSampleApplication.getAppPath(), "dist", "package-2.zip");
+    let zipPath = path.join(WebdaSampleApplication.getAppPath(), "dist", "package-2");
 
     [
       WebdaSampleApplication.getAppPath("lib/services/dynamic.js"),
@@ -46,7 +46,7 @@ class PackagerTest {
     };
     await new Promise(resolve =>
       fs
-        .createReadStream(zipPath)
+        .createReadStream(zipPath + ".zip")
         // @ts-ignore
         .pipe(unzip.Parse())
         .on("entry", function (entry) {

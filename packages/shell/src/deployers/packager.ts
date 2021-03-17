@@ -167,6 +167,11 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     this.resources.package.modules.excludes = this.resources.package.modules.excludes || [];
     this.resources.package.modules.includes = this.resources.package.modules.includes || [];
     this.resources.zipPath ??= this.app.getAppPath("/dist/package.zip");
+
+    // Append .zip if not there
+    if (!this.resources.zipPath.endsWith(".zip")) {
+      this.resources.zipPath += ".zip";
+    }
   }
 
   /**

@@ -247,10 +247,22 @@ class CoreModel extends OwnerPolicy {
     return true;
   }
 
+  /**
+   * Generate uuid for the object
+   *
+   * @param object
+   * @returns
+   */
   generateUid(object: any = undefined): string {
     return uuidv4().toString();
   }
 
+  /**
+   * Remove all the attribute starting with __
+   * @param key
+   * @param value
+   * @returns
+   */
   _jsonFilter(key, value): any {
     if (key[0] === "_" && key.length > 1 && key[1] === "_") {
       return undefined;
@@ -258,7 +270,13 @@ class CoreModel extends OwnerPolicy {
     return value;
   }
 
-  toStoredJSON(stringify = false): any {
+  /**
+   * Return the object to be serialized without the __store
+   *
+   * @param stringify
+   * @returns
+   */
+  toStoredJSON(stringify = false): any | string {
     let obj = this._toJSON(true);
     obj.__store = undefined;
     if (stringify) {
@@ -285,6 +303,14 @@ class CoreModel extends OwnerPolicy {
     return this.__store.getService<T>(service);
   }
 
+  /**
+   * Remove the specific attributes if not secure
+   *
+   *
+   *
+   * @param secure serialize server fields also
+   * @returns filtered object to be serialized
+   */
   _toJSON(secure): any {
     let obj: any = {};
     for (let i in this) {
@@ -301,16 +327,62 @@ class CoreModel extends OwnerPolicy {
     return obj;
   }
 
+  /**
+   * Return the object without sensitive attributes
+   *
+   * @returns Object to serialize
+   */
   toJSON(): any {
     return this._toJSON(false);
   }
 
-  async _onDelete() {}
-  async _onDeleted() {}
-  async _onGet() {}
-  async _onSave() {}
-  async _onSaved() {}
-  async _onUpdate(updates: any) {}
+  /**
+   * Called when object is about to be deleted
+   */
+  async _onDelete() {
+    // Empty to be overriden
+  }
+
+  /**
+   * Called when object has been deleted
+   */
+  async _onDeleted() {
+    // Empty to be overriden
+  }
+
+  /**
+   * Called when object is retrieved
+   */
+  async _onGet() {
+    // Empty to be overriden
+  }
+
+  /**
+   * Called when object is about to be saved
+   */
+  async _onSave() {
+    // Empty to be overriden
+  }
+
+  /**
+   * Called when object is saved
+   */
+  async _onSaved() {
+    // Empty to be overriden
+  }
+
+  /**
+   * Called when object is about to be updates
+   *
+   * @param updates to be send
+   */
+  async _onUpdate(updates: any) {
+    // Empty to be overriden
+  }
+
+  /**
+   * Called when object is updated
+   */
   async _onUpdated() {}
 }
 

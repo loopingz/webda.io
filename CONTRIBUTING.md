@@ -2,6 +2,14 @@
 
 We welcome every contribution
 
+## Run test locally
+
+If you run the test of all packages, you need the AWS emulation we use [localstack](https://github.com/localstack/localstack). You can run it within Docker with the provided script
+
+```
+./localtest.sh
+```
+
 ## Pull request
 
 To be merged a pull request must:
@@ -35,3 +43,11 @@ As this is not a good practice to deploy/package development version,
 you have to add a parameter in your deployment resources:
 
 `includeLinkModules` must be set to `true` to be able to package the development version
+
+## Release
+
+To release a new version of the packages
+
+```
+yarn new-version
+```

@@ -41,7 +41,11 @@ export class Docker<T extends DockerResources> extends Deployer<T> {
     this.resources.baseImage = this.resources.baseImage || "node:lts-alpine";
     this.resources.command = this.resources.command || "serve";
     this.resources.excludePackages = this.resources.excludePackages || [];
-    if (!this.resources.workDirectory && this.resources.includeWorkspaces) {
+    if (
+      !this.resources.workDirectory &&
+      this.resources.includeWorkspaces &&
+      this.getApplication().getPackageWebda().workspaces
+    ) {
       let workspacePath = this.getApplication().getPackageWebda().workspaces.path;
       if (workspacePath) {
         this.workspaces = true;

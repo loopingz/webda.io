@@ -1,6 +1,6 @@
 {
   "name": "@webda/profiler",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Webda Basic Profiler",
   "main": "lib/index.js",
   "scripts": {
@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
-    "@webda/core": "^1.0.0",
+    "@webda/core": "^1.0.1",
     "aws-sdk": "^2.678.0",
     "aws-xray-sdk": "^3.2.0"
   },
@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.1.0",
-    "@webda/shell": "^1.0.0",
+    "@webda/shell": "^1.0.1",
     "aws-sdk-mock": "^5.1.0",
     "sinon": "^9.0.1"
   }

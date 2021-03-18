@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.1](https://github.com/loopingz/webda.io/compare/@webda/shell@1.0.0...@webda/shell@1.0.1) (2021-03-18)
+
+
+### Bug Fixes
+
+* add .zip if missing for packager ([072ca64](https://github.com/loopingz/webda.io/commit/072ca6433640673708fbcaf67e9bf8bbecd06c71))
+* avoid failing if includeWorkspaces is used without workspace ([187665e](https://github.com/loopingz/webda.io/commit/187665e7628d1e22cc04ba2108cdc0d69a87fbe9))
+
+
+
+
+
 # 1.0.0-beta.0 (2019-08-21)
 
 

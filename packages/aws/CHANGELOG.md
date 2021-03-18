@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.1.0](https://github.com/loopingz/webda.io/compare/@webda/aws@1.0.0...@webda/aws@1.1.0) (2021-03-18)
+
+
+### Bug Fixes
+
+* add deploy stage for existing resources ([7233190](https://github.com/loopingz/webda.io/commit/72331900f43742482bd5e9de926a78e3e027d7b8))
+
+
+### Features
+
+* allow to send the request id to the api client ([9b2fd11](https://github.com/loopingz/webda.io/commit/9b2fd111882abc5ed38f2fb651159c58c960a887))
+
+
+
+
+
 # 1.0.0-beta.0 (2019-08-21)
 
 

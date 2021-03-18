@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.1](https://github.com/loopingz/webda.io/compare/@webda/core@1.0.0...@webda/core@1.0.1) (2021-03-18)
+
+**Note:** Version bump only for package @webda/core
+
+
+
+
+
 # 1.0.0-beta.0 (2019-08-21)
 
 

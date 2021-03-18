@@ -290,9 +290,6 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       if (this.resources.LambdaPackager) {
         zipPath = this.resources.LambdaPackager.zipPath;
       }
-      if (zipPath.endsWith(".zip")) {
-        zipPath += ".zip";
-      }
       this.resources.LambdaPackager = this.resources.LambdaPackager ?? {
         zipPath
       };
@@ -492,6 +489,10 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     return this.result;
   }
 
+  /**
+   * Upload any asset to bucket
+   * @param assets
+   */
   async uploadStatics(assets: boolean = true) {
     for (let i in this.resources.Statics) {
       const { Source, AssetsPath } = this.resources.Statics[i];
@@ -541,6 +542,9 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     }
   }
 
+  /**
+   * Copy the CloudFormation template to the Assets bucket
+   */
   async sendCloudFormationTemplate() {
     let res = this.getStringified(this.template, this.resources.FileName);
     this.result.CloudFormation = {
@@ -551,6 +555,10 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     await this.putFilesOnBucket(this.resources.AssetsBucket, [res]);
   }
 
+  /**
+   * Delete the CloudFormation stack
+   * @returns
+   */
   async deleteCloudFormation() {
     let cloudformation = new this.AWS.CloudFormation();
     await cloudformation.deleteStack({ StackName: this.resources.StackName }).promise();
@@ -569,6 +577,13 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     );
   }
 
+  /**
+   *
+   * @param ref
+   * @param domain
+   * @param HostedZoneId
+   * @returns
+   */
   async createCloudFormationDNSEntry(ref: any, domain: string, HostedZoneId: any) {
     let zone = await this.getZoneForDomainName(domain);
     if (!zone) {
@@ -601,8 +616,12 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       .promise();
   }
 
-  async createCloudFormation() {
-    let cloudformation = new this.AWS.CloudFormation();
+  /**
+   * Create the stack changeset
+   * @param cloudformation
+   * @returns
+   */
+  async createCloudFormationChangeSet(cloudformation: AWS.CloudFormation) {
     let changeSetParams = {
       ...this.resources.StackOptions,
       StackName: this.resources.StackName,
@@ -677,6 +696,19 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         return;
       }
     }
+    return changeSet;
+  }
+
+  /**
+   * Upload and create the cloudformation stack or update it
+   * @returns
+   */
+  async createCloudFormation() {
+    let cloudformation: AWS.CloudFormation = new this.AWS.CloudFormation();
+
+    let changeSet = await this.createCloudFormationChangeSet(cloudformation);
+
+    // Wait for change set
     this.logger.log("TRACE", `ChangeSet: ${changeSet}`);
     let changes = await this.waitFor(
       async (resolve, reject) => {
@@ -759,6 +791,39 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     } while (i < 60 && Timeout);
     if (Timeout) {
       this.logger.log("WARN", "Timeout while waiting for stack to update");
+    }
+    /*
+    CloudFormation does not update Stage when resources are modified
+
+    https://stackoverflow.com/questions/41423439/cloudformation-doesnt-deploy-to-api-gateway-stages-on-update
+    */
+    if (this.APIGateway) {
+      let NextToken = undefined;
+      let stageName;
+      let restApiId;
+      // Retrieve resources
+      do {
+        let res = await cloudformation.listStackResources({ StackName: this.resources.StackName, NextToken }).promise();
+        NextToken = res.NextToken;
+        res.StackResourceSummaries.forEach(resource => {
+          if (resource.ResourceType === "AWS::ApiGateway::Stage") {
+            stageName = resource.PhysicalResourceId;
+          } else if (resource.ResourceType === "AWS::ApiGateway::RestApi") {
+            restApiId = resource.PhysicalResourceId;
+          }
+        });
+      } while (NextToken);
+      // Get RestAPIId
+      if (restApiId && stageName) {
+        const gw: AWS.APIGateway = new this.AWS.APIGateway();
+
+        await gw
+          .createDeployment({
+            restApiId,
+            stageName
+          })
+          .promise();
+      }
     }
   }
 

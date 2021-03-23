@@ -218,4 +218,30 @@ class CookieTest extends WebdaTest {
     }
     assert.strictEqual(exception, true);
   }
+
+  @test("Oversize cookie") async testOversize() {
+    var cookie = new SecureCookie(
+      "test",
+      {
+        secret: SECRET
+      },
+      this._ctx,
+      {
+        title: "TITLE",
+        desc: "DESCRIPTION"
+      }
+    ).getProxy();
+    cookie.test = "PLOP".repeat(3000);
+    assert.strictEqual(cookie.needSave(), true);
+    cookie.save(this._ctx);
+    assert.strictEqual(Object.keys(this._ctx.getResponseCookies()).length, 5);
+    let ctx = await this.newContext();
+    let cookies = this._ctx.getResponseCookies();
+    ctx.getHttpContext().cookies = {};
+    Object.keys(cookies).forEach(k => {
+      ctx.getHttpContext().cookies[k] = cookies[k].value;
+    });
+    cookie = new SecureCookie("test", { secret: SECRET }, ctx);
+    assert.strictEqual(cookie.test, "PLOP".repeat(3000));
+  }
 }

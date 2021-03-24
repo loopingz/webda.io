@@ -108,15 +108,10 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
 
   static getDependencies(pkg: string): { [key: string]: { name: string; version: string }[] } {
     let deps: { [key: string]: any[] } = {};
-    let scanned = [];
     let wrk = Packager.getWorkspacesRoot();
     let main = Packager.loadPackageInfo(pkg);
     main.resolutions = main.resolutions || {};
     let browse = (p: string, depth: number) => {
-      if (scanned.indexOf(p) >= 0) {
-        return;
-      }
-      scanned.push(p);
       let info = Packager.loadPackageInfo(p);
       info.dependencies = info.dependencies || {};
       Object.keys(info.dependencies).forEach(name => {
@@ -125,11 +120,14 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
           version = main.resolutions[name];
         }
         deps[name] = deps[name] || [];
-        //if (deps[name].indexOf(version) < 0) {
         deps[name].push({ name: p, version });
-        //}
-        if (fs.existsSync(`node_modules/${name}`)) {
+        // Is there any specific version for this package
+        if (fs.existsSync(`${p}/node_modules/${name}`)) {
+          browse(`${p}/node_modules/${name}`, depth + 1);
+          // Is it in the direct deps
+        } else if (fs.existsSync(`node_modules/${name}`)) {
           browse(`node_modules/${name}`, depth + 1);
+          // Is there a workspace dep existing
         } else if (wrk && fs.existsSync(`${wrk}/node_modules/${name}`)) {
           browse(`${wrk}/node_modules/${name}`, depth + 1);
         }
@@ -254,7 +252,6 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
 
     var output = fs.createWriteStream(zipPath);
     var archive = archiver("zip");
-
     return new Promise<void>((resolve, reject) => {
       output.on("finish", () => {
         this.packagesGenerated[zipPath + entrypoint || ""] = true;

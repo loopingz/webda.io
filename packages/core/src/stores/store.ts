@@ -1155,6 +1155,11 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters>
     });
   }
 
+  /**
+   * Handle HTTP Update for an object
+   *
+   * @param ctx context of the request
+   */
   async httpUpdate(ctx: Context) {
     let body = ctx.getRequestBody();
     let uuid = ctx.parameter("uuid");
@@ -1195,6 +1200,11 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters>
     });
   }
 
+  /**
+   * Handle GET on object
+   *
+   * @param ctx context of the request
+   */
   async httpGet(ctx: Context) {
     let uuid = ctx.parameter("uuid");
     if (uuid) {
@@ -1215,6 +1225,12 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters>
     }
   }
 
+  /**
+   * Handle HTTP request
+   *
+   * @param ctx context of the request
+   * @returns
+   */
   async httpRoute(ctx: Context) {
     let uuid = ctx.parameter("uuid");
     if (ctx.getHttpContext().getMethod() == "GET") {

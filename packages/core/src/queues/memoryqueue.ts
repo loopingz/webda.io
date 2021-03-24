@@ -2,7 +2,7 @@
 import * as uuid from "uuid";
 import { ModdaDefinition } from "../core";
 import { ServiceParameters } from "../services/service";
-import { JSONUtils } from "../utils/json";
+import { JSONUtils } from "../utils/serializers";
 import { Queue } from "./queueservice";
 
 interface QueueMap {

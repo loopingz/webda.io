@@ -2,7 +2,7 @@ import { ConfigurationService, ConfigurationServiceParameters } from "./configur
 import { WebdaError } from "../core";
 import * as fs from "fs";
 import * as path from "path";
-import { JSONUtils } from "../utils/json";
+import { JSONUtils } from "../utils/serializers";
 
 /**
  * Allow for dynamic configuration from ConfigMap or Secrets

@@ -40,5 +40,5 @@ export * from "./stores/store";
 export * from "./utils/abstractdeployer";
 export * from "./utils/context";
 export * from "./utils/cookie";
-export * from "./utils/json";
+export * from "./utils/serializers";
 export * from "./utils/logger";

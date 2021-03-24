@@ -11,7 +11,7 @@ import { User } from "../models/user";
 import { Service } from "../services/service";
 import { Store } from "../stores/store";
 import { SessionCookie } from "../utils/cookie";
-import { JSONUtils } from "./json";
+import { JSONUtils } from "./serializers";
 
 export type HttpMethodType = "GET" | "OPTIONS" | "POST" | "PUT" | "PATCH" | "DELETE";
 

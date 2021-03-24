@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { JSONUtils } from "./json";
+import { JSONUtils, YAMLUtils, FileUtils } from "./serializers";
 import * as path from "path";
 import { readFileSync } from "fs";
 
@@ -10,6 +10,8 @@ class UtilsTest {
   @test("LoadJSON File")
   fileJson() {
     assert.deepStrictEqual(JSONUtils.loadFile(TEST_FOLDER + "test.json"), { test: "ok" });
+    assert.deepStrictEqual(YAMLUtils.loadFile(TEST_FOLDER + "test.json"), { test: "ok" });
+    assert.deepStrictEqual(FileUtils.load(TEST_FOLDER + "test.json"), { test: "ok" });
   }
 
   @test("LoadYAML File")
@@ -71,5 +73,32 @@ class UtilsTest {
     file = path.join(TEST_FOLDER, "writeTest.yaml");
     JSONUtils.saveFile({ test: "plop" }, file);
     assert.strictEqual(readFileSync(file).toString(), `test: plop\n`);
+
+    // Yaml alias
+    file = path.join(TEST_FOLDER, "writeTest.json");
+    YAMLUtils.saveFile({ test: "plop" }, file);
+    assert.strictEqual(readFileSync(file).toString(), '{\n  "test": "plop"\n}');
+
+    // True implem
+    file = path.join(TEST_FOLDER, "writeTest.json");
+    FileUtils.save({ test: "plop" }, file);
+    assert.strictEqual(readFileSync(file).toString(), '{\n  "test": "plop"\n}');
+  }
+
+  @test("YAML stringify")
+  yaml() {
+    assert.strictEqual(
+      YAMLUtils.stringify({ plop: "test" }),
+      `plop: test
+`
+    );
+    assert.deepEqual(
+      YAMLUtils.parse(
+        `
+plop: test
+`
+      ),
+      { plop: "test" }
+    );
   }
 }

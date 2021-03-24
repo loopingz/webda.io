@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.2](https://github.com/loopingz/webda.io/compare/@webda/shell@1.0.1...@webda/shell@1.0.2) (2021-03-24)
+
+
+### Bug Fixes
+
+* scan dependency specific versions ([#27](https://github.com/loopingz/webda.io/issues/27)) ([c75a18f](https://github.com/loopingz/webda.io/commit/c75a18f31523198679bc7cf00581f13c265d141b))
+
+
+
+
+
 ## [1.0.1](https://github.com/loopingz/webda.io/compare/@webda/shell@1.0.0...@webda/shell@1.0.1) (2021-03-18)
 
 

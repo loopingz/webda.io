@@ -1,12 +1,13 @@
 import * as jwt from "jsonwebtoken";
 import { WebdaError } from "../core";
 import { Context } from "./context";
+import { serialize as cookieSerialize } from "cookie";
 
 /**
  * Cookie cannot be more than 4096, so we split them by this constant
  * @hidden
  */
-const SPLIT = 4000;
+const SPLIT = 4096;
 
 /**
  * Object that handle the session
@@ -45,10 +46,13 @@ class SecureCookie {
     }
     this._raw = this.getRaw(name, cookies);
     Object.assign(this, datas);
-    try {
-      Object.assign(this, jwt.verify(this._raw, this._secret));
-    } catch (err) {
-      // We ignore bad cookies
+    if (this._raw) {
+      try {
+        Object.assign(this, jwt.verify(this._raw, this._secret));
+      } catch (err) {
+        // We ignore bad cookies
+        ctx.log("WARN", "Ignoring bad cookie", this._raw, "from", ctx.getHttpContext());
+      }
     }
     // Set changed to false after initial modification
     this._changed = false;
@@ -133,15 +137,30 @@ class SecureCookie {
     }
   }
 
-  sendCookie(ctx, name, value, params) {
+  /**
+   * Will send the cookie to context and split it
+   * if needed as max length for cookies are 4096
+   * including the params (the whole Set-Cookie header)
+   *
+   * @param ctx to send cookie to
+   * @param name name of the cookie
+   * @param value of the cookie
+   * @param params for the cookie
+   */
+  sendCookie(ctx: Context, name: string, value: string, params: { [key: string]: string | boolean | number }) {
     let j = 1;
     let cookieName = name;
-    for (let i = 0; i < value.length; i += SPLIT) {
+    let limit;
+    const mapLength = cookieSerialize(name, "", params).length;
+    for (let i = 0; i < value.length; ) {
+      limit = SPLIT - mapLength;
       if (j > 1) {
         cookieName = `${name}${j}`;
+        limit--;
       }
-      ctx.cookie(cookieName, value.substr(i, SPLIT), params);
+      ctx.cookie(cookieName, value.substr(i, limit), params);
       j++;
+      i += limit;
     }
   }
 

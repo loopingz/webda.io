@@ -3,6 +3,7 @@ import { SecureCookie, Context } from "../index";
 import { HttpContext } from "./context";
 import { test, suite } from "@testdeck/mocha";
 import * as assert from "assert";
+import { serialize as cookieSerialize } from "cookie";
 
 const SECRET =
   "Lp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5EN";
@@ -235,6 +236,10 @@ class CookieTest extends WebdaTest {
     assert.strictEqual(cookie.needSave(), true);
     cookie.save(this._ctx);
     assert.strictEqual(Object.keys(this._ctx.getResponseCookies()).length, 5);
+    for (let i = 1; i < 5; i++) {
+      const cookie = this._ctx.getResponseCookies()[`test${i > 1 ? i : ""}`];
+      assert.strictEqual(cookieSerialize(cookie.name, cookie.value, cookie.options || {}).length, 4096);
+    }
     let ctx = await this.newContext();
     let cookies = this._ctx.getResponseCookies();
     ctx.getHttpContext().cookies = {};

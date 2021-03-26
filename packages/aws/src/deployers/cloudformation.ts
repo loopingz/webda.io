@@ -291,9 +291,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       if (this.resources.LambdaPackager) {
         zipPath = this.resources.LambdaPackager.zipPath;
       }
-      this.resources.LambdaPackager ??= {
-        zipPath
-      };
+      this.resources.LambdaPackager ??= { zipPath };
       this.resources.LambdaPackager.zipPath = zipPath;
       this.resources.Lambda.Runtime = this.resources.Lambda.Runtime || "nodejs12.x";
       this.resources.Lambda.MemorySize = this.resources.Lambda.MemorySize || 2048;

@@ -8,6 +8,7 @@ import * as assert from "assert";
 import { LambdaPackager } from "./lambdapackager";
 import * as AWS from "aws-sdk";
 import * as AWSMock from "aws-sdk-mock";
+import { JSONUtils } from "@webda/core";
 @suite
 class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
   mocks: { [key: string]: sinon.stub } = {};
@@ -26,7 +27,31 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     resources.APIGatewayDomain = { DomainName: "webda.io" };
     resources.Policy = {};
     resources.APIGatewayBasePathMapping = {};
+    resources = JSONUtils.duplicate(resources);
     await this.deployer.defaultResources();
+    assert.deepStrictEqual(this.deployer.resources.APIGatewayBasePathMapping, {
+      ...resources.APIGatewayDomain,
+      BasePath: ""
+    });
+    assert.deepStrictEqual(this.deployer.resources.APIGatewayDomain, {
+      ...resources.APIGatewayDomain,
+      SecurityPolicy: "TLS_1_2"
+    });
+    assert.deepStrictEqual(this.deployer.resources.Lambda, {
+      ...resources.Lambda,
+      FunctionName: "WebdaSampleApplication",
+      Handler: "node_modules/@webda/aws/lib/deployers/lambda-entrypoint.handler",
+      MemorySize: 2048,
+      Role: { "Fn::GetAtt": ["Role", "Arn"] },
+      Runtime: "nodejs12.x",
+      Timeout: 30
+    });
+    assert.deepStrictEqual(this.deployer.resources.Policy, {
+      ...resources.Policy,
+      PolicyDocument: { Statement: [] },
+      PolicyName: "WebdaSampleApplicationPolicy",
+      Roles: [{ Ref: "Role" }]
+    });
   }
 
   @test

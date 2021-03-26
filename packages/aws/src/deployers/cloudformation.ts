@@ -82,6 +82,7 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
     EndpointConfiguration?: {
       Types: string[];
     };
+    SecurityPolicy?: string;
   };
   APIGatewayBasePathMapping?: {
     BasePath?: string;
@@ -290,7 +291,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       if (this.resources.LambdaPackager) {
         zipPath = this.resources.LambdaPackager.zipPath;
       }
-      this.resources.LambdaPackager = this.resources.LambdaPackager ?? {
+      this.resources.LambdaPackager ??= {
         zipPath
       };
       this.resources.LambdaPackager.zipPath = zipPath;
@@ -340,11 +341,16 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         // @ts-ignore
         this.resources.APIGatewayStage.StageName || this.getApplication().currentDeployment;
     }
+
+    // Activate Domain
+    if (this.resources.APIGatewayDomain) {
+      this.resources.APIGatewayDomain.SecurityPolicy ??= "TLS_1_2";
+    }
+
     // Default BasePathMapping
     if (this.resources.APIGatewayBasePathMapping) {
       this.resources.APIGatewayBasePathMapping.BasePath = this.resources.APIGatewayBasePathMapping.BasePath || "";
-      this.resources.APIGatewayBasePathMapping.DomainName =
-        this.resources.APIGatewayBasePathMapping.DomainName || this.resources.APIGatewayDomain.DomainName;
+      this.resources.APIGatewayBasePathMapping.DomainName ??= this.resources.APIGatewayDomain.DomainName;
       if (this.resources.APIGatewayBasePathMapping.DomainName.endsWith(".")) {
         this.resources.APIGatewayBasePathMapping.DomainName = this.resources.APIGatewayBasePathMapping.DomainName.substr(
           0,

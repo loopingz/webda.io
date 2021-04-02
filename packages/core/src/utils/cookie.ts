@@ -105,6 +105,9 @@ class SecureCookie {
   toJSON() {
     let data: any = {};
     for (let prop in this) {
+      /**
+       * Prefixed fields with underscore are "server-side-only" protected
+       */
       if (prop[0] === "_") {
         continue;
       }
@@ -120,7 +123,11 @@ class SecureCookie {
         domain: ctx.getHttpContext().getHost(),
         httpOnly: true,
         secure: ctx.getHttpContext().getProtocol() == "https",
-        maxAge: 86400 * 7,
+        /**
+         * Max-Age attribute for a cookie must be seconds,
+         * but this parameter is expected to be milliseconds (eventually received divided by 1000 by the browser)
+         */
+        maxAge: 86400 * 7 * 1000,
         sameSite: "Lax"
       };
       // Get default cookie value from config
@@ -151,12 +158,14 @@ class SecureCookie {
     let j = 1;
     let cookieName = name;
     let limit;
-    const mapLength = cookieSerialize(name, "", params).length;
+    const expireLength = "Expires=Fri, 02 Apr 2021 12:53:25 GMT; ".length;
+    const millisecondsLength = 3; /* milliseconds given to cookieSerialize Max-Age for conversion to seconds */
+    const mapLength = cookieSerialize(name, "", params).length + expireLength - millisecondsLength;
     for (let i = 0; i < value.length; ) {
       limit = SPLIT - mapLength;
       if (j > 1) {
         cookieName = `${name}${j}`;
-        limit--;
+        limit -= j.toString().length;
       }
       ctx.cookie(cookieName, value.substr(i, limit), params);
       j++;

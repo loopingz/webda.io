@@ -35,7 +35,7 @@
     "archiver": "^1.0.0",
     "aws-sdk": "^2.678.0",
     "body-parser": ">=1.13.3",
-    "cli-progress": "^2.1.0",
+    "cli-progress": "^3.9.0",
     "colors": "^1.4.0",
     "cookie-parser": "^1.4.1",
     "deepmerge": "^4.2.2",

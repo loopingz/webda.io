@@ -4,10 +4,11 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<title>WebdaConsole |
-	webda.io - v1.0.0-beta.16</title>
+	webda.io - v1.1.1</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
+	<script async src="../assets/js/search.js" id="search-script"></script>
 </head>
 <body>
 <div class="main">
@@ -27,9 +28,13 @@
 					</ul>
 					<ul class="results-priority" style="display:none">
 					</ul>
-					<a href="../index.html" class="title">webda.io - v1.0.0-beta.16</a>
-					&emsp;<a href="/pages/Pages/Guides.html" class="title">Guides</a>
-					&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+					<div class="topMenu">
+						<a href="../index.html" class="title">webda.io - v1.1.1</a>
+						<div class="links">
+							&emsp;<a href="/pages/QuickStart.html" class="title">Quick Start</a>
+							&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+						</div>
+					</div>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -69,19 +74,23 @@
 		<div class="col-menu menu-sticky-wrap menu-highlight">
 			<nav class="tsd-navigation root">
 				<ul>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Concepts.html" class="tsd-kind-icon">Concepts</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Deployments.html" class="tsd-kind-icon">Deployments</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Migration.html" class="tsd-kind-icon">Migration</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Security.html" class="tsd-kind-icon">Security</a>
+					</li>
 					<li class=" pp-nav pp-group root">
-						<a href="" class="tsd-kind-icon">Pages</a>
-					</li>
-					<li class=" pp-nav pp-page root">
-						<a href="../pages/Pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start
-						</a>
-					</li>
-					<li class=" pp-nav pp-page pp-parent root">
-						<a href="../pages/Pages/Guides.html" class="tsd-kind-icon">Concepts
-						</a>
-					</li>
-					<li class=" pp-nav pp-group root">
-						<a href="../globals.html" class="tsd-kind-icon">Modules</a>
+						<a href="" class="tsd-kind-icon">Modules</a>
 					</li>
 					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_aws.html" class="tsd-kind-icon">@webda/aws</a>
@@ -154,6 +163,9 @@
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module root">
 						<a href="_webda_shell.shelldeployer.html" class="tsd-kind-icon">Shell<wbr>Deployer</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-module root">
+						<a href="_webda_shell.typescriptschemaresolver.html" class="tsd-kind-icon">Typescript<wbr>Schema<wbr>Resolver</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module root">
 						<a href="_webda_shell.webdaconfiguration.html" class="tsd-kind-icon">Webda<wbr>Configuration</a>
@@ -294,9 +306,6 @@
 						<a href="../interfaces/_webda_shell.deployerconstructor.html" class="tsd-kind-icon">Deployer<wbr>Constructor</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module root">
-						<a href="../interfaces/_webda_shell.deployerresources.html" class="tsd-kind-icon">Deployer<wbr>Resources</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module root">
 						<a href="../interfaces/_webda_shell.dockerresources.html" class="tsd-kind-icon">Docker<wbr>Resources</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module root">
@@ -338,127 +347,51 @@
 					<div class="tsd-index-content">
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#app"
-									class="tsd-kind-icon">app</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#debuggerstatus"
-									class="tsd-kind-icon">debuggerStatus</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#extensions"
-									class="tsd-kind-icon">extensions</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#logger"
-									class="tsd-kind-icon">logger</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#onsigint"
-									class="tsd-kind-icon">onSIGINT</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#serverprocess"
-									class="tsd-kind-icon">serverProcess</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#terminal"
-									class="tsd-kind-icon">terminal</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#tsccompiler"
-									class="tsd-kind-icon">tscCompiler</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#webda"
-									class="tsd-kind-icon">webda</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#app" class="tsd-kind-icon">app</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#debuggerstatus" class="tsd-kind-icon">debugger<wbr>Status</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#extensions" class="tsd-kind-icon">extensions</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#logger" class="tsd-kind-icon">logger</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#onsigint" class="tsd-kind-icon">onSIGINT</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#serverprocess" class="tsd-kind-icon">server<wbr>Process</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#terminal" class="tsd-kind-icon">terminal</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#tsccompiler" class="tsd-kind-icon">tsc<wbr>Compiler</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#webda" class="tsd-kind-icon">webda</a></li>
+							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#bold"
-									class="tsd-kind-icon">bold</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#builtincommands"
-									class="tsd-kind-icon">builtinCommands</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#config"
-									class="tsd-kind-icon">config</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#debug"
-									class="tsd-kind-icon">debug</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#deploy"
-									class="tsd-kind-icon">deploy</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#executeshellextension"
-									class="tsd-kind-icon">executeShellExtension</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#faketerm"
-									class="tsd-kind-icon">fakeTerm</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#generatemodule"
-									class="tsd-kind-icon">generateModule</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#generateopenapi"
-									class="tsd-kind-icon">generateOpenAPI</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#generaterandomstring"
-									class="tsd-kind-icon">generateRandomString</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#generatesessionsecret"
-									class="tsd-kind-icon">generateSessionSecret</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#getdebuggerstatus"
-									class="tsd-kind-icon">getDebuggerStatus</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#getversion"
-									class="tsd-kind-icon">getVersion</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#handlecommand"
-									class="tsd-kind-icon">handleCommand</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#handlecommandinternal"
-									class="tsd-kind-icon">handleCommandInternal</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#help"
-									class="tsd-kind-icon">help</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#init"
-									class="tsd-kind-icon">init</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#initlogger"
-									class="tsd-kind-icon">initLogger</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#loadextensions"
-									class="tsd-kind-icon">loadExtensions</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#log"
-									class="tsd-kind-icon">log</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#migrateconfig"
-									class="tsd-kind-icon">migrateConfig</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#output"
-									class="tsd-kind-icon">output</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#parser"
-									class="tsd-kind-icon">parser</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#serve"
-									class="tsd-kind-icon">serve</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#serviceconfig"
-									class="tsd-kind-icon">serviceConfig</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#setdebuggerstatus"
-									class="tsd-kind-icon">setDebuggerStatus</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#stopdebugger"
-									class="tsd-kind-icon">stopDebugger</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#typescriptwatch"
-									class="tsd-kind-icon">typescriptWatch</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#worker"
-									class="tsd-kind-icon">worker</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#bold" class="tsd-kind-icon">bold</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#builtincommands" class="tsd-kind-icon">builtin<wbr>Commands</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#config" class="tsd-kind-icon">config</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#debug" class="tsd-kind-icon">debug</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#deploy" class="tsd-kind-icon">deploy</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#executeshellextension" class="tsd-kind-icon">execute<wbr>Shell<wbr>Extension</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#faketerm" class="tsd-kind-icon">fake<wbr>Term</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#generatemodule" class="tsd-kind-icon">generate<wbr>Module</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#generateopenapi" class="tsd-kind-icon">generate<wbr>OpenAPI</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#generaterandomstring" class="tsd-kind-icon">generate<wbr>Random<wbr>String</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#generatesessionsecret" class="tsd-kind-icon">generate<wbr>Session<wbr>Secret</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#getdebuggerstatus" class="tsd-kind-icon">get<wbr>Debugger<wbr>Status</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#getversion" class="tsd-kind-icon">get<wbr>Version</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#handlecommand" class="tsd-kind-icon">handle<wbr>Command</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#handlecommandinternal" class="tsd-kind-icon">handle<wbr>Command<wbr>Internal</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#help" class="tsd-kind-icon">help</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#init" class="tsd-kind-icon">init</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#initlogger" class="tsd-kind-icon">init<wbr>Logger</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#loadextensions" class="tsd-kind-icon">load<wbr>Extensions</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#log" class="tsd-kind-icon">log</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#migrateconfig" class="tsd-kind-icon">migrate<wbr>Config</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#output" class="tsd-kind-icon">output</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#parser" class="tsd-kind-icon">parser</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#serve" class="tsd-kind-icon">serve</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#serviceconfig" class="tsd-kind-icon">service<wbr>Config</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#setdebuggerstatus" class="tsd-kind-icon">set<wbr>Debugger<wbr>Status</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#stopdebugger" class="tsd-kind-icon">stop<wbr>Debugger</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#typescriptwatch" class="tsd-kind-icon">typescript<wbr>Watch</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.webdaconsole.html#worker" class="tsd-kind-icon">worker</a></li>
+							</ul>
 						</section>
 					</div>
 				</section>
@@ -471,25 +404,25 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L40">
-									packages/shell/src/console/webda.ts:40
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
-					<a name="debuggerstatus" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">debugger<wbr>Status<span class="tsd-signature-symbol">:</span> <a href="../enums/_webda_shell.debuggerstatus.html" class="tsd-signature-type">DebuggerStatus</a><span class="tsd-signature-symbol"> = DebuggerStatus.Stopped</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
 								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L41">
 									packages/shell/src/console/webda.ts:41
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
+					<a name="debuggerstatus" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">debugger<wbr>Status<span class="tsd-signature-symbol">:</span> <a href="../enums/_webda_shell.debuggerstatus.html" class="tsd-signature-type">DebuggerStatus</a><span class="tsd-signature-symbol"> = DebuggerStatus.Stopped</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L42">
+									packages/shell/src/console/webda.ts:42
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
 					<a name="extensions" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">extensions<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<div class="tsd-type-declaration">
@@ -503,25 +436,25 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L43">
-									packages/shell/src/console/webda.ts:43
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L44">
+									packages/shell/src/console/webda.ts:44
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
 					<a name="logger" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">logger<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Logger</span></div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L38">
-									packages/shell/src/console/webda.ts:38
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L39">
+									packages/shell/src/console/webda.ts:39
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
 					<a name="onsigint" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">onSIGINT<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">function</span><span class="tsd-signature-symbol"> = undefined</span></div>
 					<div class="tsd-type-declaration">
@@ -537,8 +470,8 @@
 										<aside class="tsd-sources">
 											<ul>
 												<li>Defined in
-													<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L42">
-														packages/shell/src/console/webda.ts:42
+													<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L43">
+														packages/shell/src/console/webda.ts:43
 													</a>
 												</li>
 											</ul>
@@ -551,39 +484,15 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L42">
-									packages/shell/src/console/webda.ts:42
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L43">
+									packages/shell/src/console/webda.ts:43
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
 					<a name="serverprocess" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">server<wbr>Process<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">ChildProcess</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L36">
-									packages/shell/src/console/webda.ts:36
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
-					<a name="terminal" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">terminal<span class="tsd-signature-symbol">:</span> <a href="_webda_shell.webdaterminal.html" class="tsd-signature-type">WebdaTerminal</a></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L39">
-									packages/shell/src/console/webda.ts:39
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
-					<a name="tsccompiler" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">tsc<wbr>Compiler<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">ChildProcess</span></div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
@@ -593,19 +502,43 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
+					<a name="terminal" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">terminal<span class="tsd-signature-symbol">:</span> <a href="_webda_shell.webdaterminal.html" class="tsd-signature-type">WebdaTerminal</a></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L40">
+									packages/shell/src/console/webda.ts:40
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
+					<a name="tsccompiler" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">tsc<wbr>Compiler<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">ChildProcess</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L38">
+									packages/shell/src/console/webda.ts:38
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
 					<a name="webda" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">webda<span class="tsd-signature-symbol">:</span> <a href="_webda_shell.webdaserver.html" class="tsd-signature-type">WebdaServer</a></div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L35">
-									packages/shell/src/console/webda.ts:35
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L36">
+									packages/shell/src/console/webda.ts:36
 								</a>
 							</li>
 						</ul>
 					</aside>
-			</section></section>
+			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
@@ -627,15 +560,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L45">
-											packages/shell/src/console/webda.ts:45
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L46">
+											packages/shell/src/console/webda.ts:46
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="builtincommands" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">builtin<wbr>Commands<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span></li>
@@ -658,15 +591,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L508">
-											packages/shell/src/console/webda.ts:508
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L513">
+											packages/shell/src/console/webda.ts:513
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="config" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">config<span class="tsd-signature-symbol">(</span>argv<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">yargs.Arguments</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -693,15 +626,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L320">
-											packages/shell/src/console/webda.ts:320
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L322">
+											packages/shell/src/console/webda.ts:322
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="debug" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">debug<span class="tsd-signature-symbol">(</span>argv<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">yargs.Arguments</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -730,15 +663,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L178">
-											packages/shell/src/console/webda.ts:178
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L180">
+											packages/shell/src/console/webda.ts:180
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="deploy" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">deploy<span class="tsd-signature-symbol">(</span>argv<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">yargs.Arguments</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -764,15 +697,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L361">
-											packages/shell/src/console/webda.ts:361
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L363">
+											packages/shell/src/console/webda.ts:363
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="executeshellextension" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">execute<wbr>Shell<wbr>Extension<span class="tsd-signature-symbol">(</span>ext<span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_shell.webdashellextension.html" class="tsd-signature-type">WebdaShellExtension</a>, relPath<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, argv<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -806,15 +739,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L699">
-											packages/shell/src/console/webda.ts:699
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L720">
+											packages/shell/src/console/webda.ts:720
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="faketerm" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">fake<wbr>Term<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -832,15 +765,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L471">
-											packages/shell/src/console/webda.ts:471
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L473">
+											packages/shell/src/console/webda.ts:473
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="generatemodule" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">generate<wbr>Module<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -858,15 +791,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L501">
-											packages/shell/src/console/webda.ts:501
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L503">
+											packages/shell/src/console/webda.ts:503
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="generateopenapi" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">generate<wbr>OpenAPI<span class="tsd-signature-symbol">(</span>argv<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">yargs.Arguments</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -894,15 +827,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L737">
-											packages/shell/src/console/webda.ts:737
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L758">
+											packages/shell/src/console/webda.ts:758
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="generaterandomstring" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">generate<wbr>Random<wbr>String<span class="tsd-signature-symbol">(</span>length<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -929,15 +862,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L710">
-											packages/shell/src/console/webda.ts:710
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L731">
+											packages/shell/src/console/webda.ts:731
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="generatesessionsecret" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">generate<wbr>Session<wbr>Secret<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -955,15 +888,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L724">
-											packages/shell/src/console/webda.ts:724
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L745">
+											packages/shell/src/console/webda.ts:745
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="getdebuggerstatus" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Debugger<wbr>Status<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../enums/_webda_shell.debuggerstatus.html" class="tsd-signature-type">DebuggerStatus</a></li>
@@ -981,15 +914,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L796">
-											packages/shell/src/console/webda.ts:796
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L817">
+											packages/shell/src/console/webda.ts:817
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="getversion" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Version<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
@@ -1007,15 +940,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L310">
-											packages/shell/src/console/webda.ts:310
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L312">
+											packages/shell/src/console/webda.ts:312
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="handlecommand" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">handle<wbr>Command<span class="tsd-signature-symbol">(</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, versions<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, output<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">WorkerOutput</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1052,15 +985,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L415">
-											packages/shell/src/console/webda.ts:415
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L417">
+											packages/shell/src/console/webda.ts:417
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="handlecommandinternal" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">handle<wbr>Command<wbr>Internal<span class="tsd-signature-symbol">(</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, versions<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, output<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">WorkerOutput</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1085,15 +1018,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L545">
-											packages/shell/src/console/webda.ts:545
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L559">
+											packages/shell/src/console/webda.ts:559
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="help" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">help<span class="tsd-signature-symbol">(</span>commands<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1112,15 +1045,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L49">
-											packages/shell/src/console/webda.ts:49
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L50">
+											packages/shell/src/console/webda.ts:50
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="init" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">init<span class="tsd-signature-symbol">(</span>argv<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">yargs.Arguments</span>, generatorName<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1149,15 +1082,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L373">
-											packages/shell/src/console/webda.ts:373
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L375">
+											packages/shell/src/console/webda.ts:375
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="initlogger" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">init<wbr>Logger<span class="tsd-signature-symbol">(</span>argv<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">yargs.Arguments</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1183,15 +1116,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L399">
-											packages/shell/src/console/webda.ts:399
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L401">
+											packages/shell/src/console/webda.ts:401
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="loadextensions" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">load<wbr>Extensions<span class="tsd-signature-symbol">(</span>appPath<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></li>
@@ -1210,15 +1143,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L423">
-											packages/shell/src/console/webda.ts:423
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L425">
+											packages/shell/src/console/webda.ts:425
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="log" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">log<span class="tsd-signature-symbol">(</span>level<span class="tsd-signature-symbol">: </span><a href="../modules/_webda_workout.html#workerloglevel" class="tsd-signature-type">WorkerLogLevel</a>, <span class="tsd-signature-symbol">...</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1240,15 +1173,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L808">
-											packages/shell/src/console/webda.ts:808
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L829">
+											packages/shell/src/console/webda.ts:829
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="migrateconfig" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">migrate<wbr>Config<span class="tsd-signature-symbol">(</span>argv<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">yargs.Arguments</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1275,15 +1208,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L342">
-											packages/shell/src/console/webda.ts:342
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L344">
+											packages/shell/src/console/webda.ts:344
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="output" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">output<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1302,15 +1235,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L804">
-											packages/shell/src/console/webda.ts:804
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L825">
+											packages/shell/src/console/webda.ts:825
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="parser" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">parser<span class="tsd-signature-symbol">(</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">yargs.Arguments</span></li>
@@ -1329,15 +1262,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L74">
-											packages/shell/src/console/webda.ts:74
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L75">
+											packages/shell/src/console/webda.ts:75
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="serve" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">serve<span class="tsd-signature-symbol">(</span>argv<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1356,15 +1289,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L100">
-											packages/shell/src/console/webda.ts:100
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L102">
+											packages/shell/src/console/webda.ts:102
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="serviceconfig" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">service<wbr>Config<span class="tsd-signature-symbol">(</span>argv<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1390,15 +1323,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L124">
-											packages/shell/src/console/webda.ts:124
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L126">
+											packages/shell/src/console/webda.ts:126
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="setdebuggerstatus" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">set<wbr>Debugger<wbr>Status<span class="tsd-signature-symbol">(</span>status<span class="tsd-signature-symbol">: </span><a href="../enums/_webda_shell.debuggerstatus.html" class="tsd-signature-type">DebuggerStatus</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1417,15 +1350,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L800">
-											packages/shell/src/console/webda.ts:800
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L821">
+											packages/shell/src/console/webda.ts:821
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="stopdebugger" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">stop<wbr>Debugger<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1443,15 +1376,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L775">
-											packages/shell/src/console/webda.ts:775
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L796">
+											packages/shell/src/console/webda.ts:796
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="typescriptwatch" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">typescript<wbr>Watch<span class="tsd-signature-symbol">(</span>stream<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Transform</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1478,15 +1411,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L755">
-											packages/shell/src/console/webda.ts:755
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L776">
+											packages/shell/src/console/webda.ts:776
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="worker" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">worker<span class="tsd-signature-symbol">(</span>argv<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">yargs.Arguments</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">-1</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1512,16 +1445,16 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L141">
-											packages/shell/src/console/webda.ts:141
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/console/webda.ts#L143">
+											packages/shell/src/console/webda.ts:143
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-			</section></section>
-			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Guides&quot;,&quot;url&quot;:&quot;/pages/Pages/Guides.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;groups&quot;:[{&quot;title&quot;:&quot;Pages&quot;,&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;pages&quot;:[{&quot;title&quot;:&quot;Quick Start&quot;,&quot;source&quot;:&quot;QuickStart.md&quot;},{&quot;title&quot;:&quot;Guides&quot;,&quot;source&quot;:&quot;Guides.md&quot;,&quot;children&quot;:[{&quot;source&quot;:&quot;Authentication.md&quot;},{&quot;source&quot;:&quot;AWS.md&quot;}]}]}],&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;useMarkdownTitle&quot;:true}}-->
+			</section>    </section>
+			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Quick Start&quot;,&quot;url&quot;:&quot;/pages/QuickStart.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true}}-->
 			<footer class="with-border-bottom">
 			</footer>
 			<div class="container tsd-generator">

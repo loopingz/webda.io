@@ -4,10 +4,11 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<title>WorkerOutput |
-	webda.io - v1.0.0-beta.16</title>
+	webda.io - v1.1.1</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
+	<script async src="../assets/js/search.js" id="search-script"></script>
 </head>
 <body>
 <div class="main">
@@ -27,9 +28,13 @@
 					</ul>
 					<ul class="results-priority" style="display:none">
 					</ul>
-					<a href="../index.html" class="title">webda.io - v1.0.0-beta.16</a>
-					&emsp;<a href="/pages/Pages/Guides.html" class="title">Guides</a>
-					&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+					<div class="topMenu">
+						<a href="../index.html" class="title">webda.io - v1.1.1</a>
+						<div class="links">
+							&emsp;<a href="/pages/QuickStart.html" class="title">Quick Start</a>
+							&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+						</div>
+					</div>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -69,19 +74,23 @@
 		<div class="col-menu menu-sticky-wrap menu-highlight">
 			<nav class="tsd-navigation root">
 				<ul>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Concepts.html" class="tsd-kind-icon">Concepts</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Deployments.html" class="tsd-kind-icon">Deployments</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Migration.html" class="tsd-kind-icon">Migration</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Security.html" class="tsd-kind-icon">Security</a>
+					</li>
 					<li class=" pp-nav pp-group root">
-						<a href="" class="tsd-kind-icon">Pages</a>
-					</li>
-					<li class=" pp-nav pp-page root">
-						<a href="../pages/Pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start
-						</a>
-					</li>
-					<li class=" pp-nav pp-page pp-parent root">
-						<a href="../pages/Pages/Guides.html" class="tsd-kind-icon">Concepts
-						</a>
-					</li>
-					<li class=" pp-nav pp-group root">
-						<a href="../globals.html" class="tsd-kind-icon">Modules</a>
+						<a href="" class="tsd-kind-icon">Modules</a>
 					</li>
 					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_aws.html" class="tsd-kind-icon">@webda/aws</a>
@@ -159,6 +168,9 @@
 					<li class="current tsd-kind-class tsd-parent-kind-module root">
 						<a href="_webda_workout.workeroutput.html" class="tsd-kind-icon">Worker<wbr>Output</a>
 						<ul>
+							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_workout.workeroutput.html#constructor" class="tsd-kind-icon">constructor</a>
+							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="_webda_workout.workeroutput.html#currentprogress" class="tsd-kind-icon">current<wbr>Progress</a>
 							</li>
@@ -181,33 +193,42 @@
 								<a href="_webda_workout.workeroutput.html#title" class="tsd-kind-icon">title</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+								<a href="_webda_workout.workeroutput.html#capturerejectionsymbol" class="tsd-kind-icon">capture<wbr>Rejection<wbr>Symbol</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+								<a href="_webda_workout.workeroutput.html#capturerejections" class="tsd-kind-icon">capture<wbr>Rejections</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static">
 								<a href="_webda_workout.workeroutput.html#defaultmaxlisteners" class="tsd-kind-icon">default<wbr>Max<wbr>Listeners</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+								<a href="_webda_workout.workeroutput.html#errormonitor" class="tsd-kind-icon">error<wbr>Monitor</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_workout.workeroutput.html#addlistener" class="tsd-kind-icon">add<wbr>Listener</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_workout.workeroutput.html#closegroup" class="tsd-kind-icon">close<wbr>Group</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_workout.workeroutput.html#emit" class="tsd-kind-icon">emit</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-protected">
 								<a href="_webda_workout.workeroutput.html#emitmessage" class="tsd-kind-icon">emit<wbr>Message</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_workout.workeroutput.html#eventnames" class="tsd-kind-icon">event<wbr>Names</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_workout.workeroutput.html#getmaxlisteners" class="tsd-kind-icon">get<wbr>Max<wbr>Listeners</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_workout.workeroutput.html#incrementprogress" class="tsd-kind-icon">increment<wbr>Progress</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_workout.workeroutput.html#listenercount" class="tsd-kind-icon">listener<wbr>Count</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_workout.workeroutput.html#listeners" class="tsd-kind-icon">listeners</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
@@ -216,31 +237,31 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_workout.workeroutput.html#logwithcontext" class="tsd-kind-icon">log<wbr>With<wbr>Context</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_workout.workeroutput.html#off" class="tsd-kind-icon">off</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_workout.workeroutput.html#on" class="tsd-kind-icon">on</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_workout.workeroutput.html#once" class="tsd-kind-icon">once</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_workout.workeroutput.html#opengroup" class="tsd-kind-icon">open<wbr>Group</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_workout.workeroutput.html#prependlistener" class="tsd-kind-icon">prepend<wbr>Listener</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_workout.workeroutput.html#prependoncelistener" class="tsd-kind-icon">prepend<wbr>Once<wbr>Listener</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_workout.workeroutput.html#rawlisteners" class="tsd-kind-icon">raw<wbr>Listeners</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_workout.workeroutput.html#removealllisteners" class="tsd-kind-icon">remove<wbr>All<wbr>Listeners</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_workout.workeroutput.html#removelistener" class="tsd-kind-icon">remove<wbr>Listener</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
@@ -252,7 +273,7 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_workout.workeroutput.html#setinteractive" class="tsd-kind-icon">set<wbr>Interactive</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_workout.workeroutput.html#setmaxlisteners" class="tsd-kind-icon">set<wbr>Max<wbr>Listeners</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
@@ -269,6 +290,12 @@
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
 								<a href="_webda_workout.workeroutput.html#listenercount-1" class="tsd-kind-icon">listener<wbr>Count</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+								<a href="_webda_workout.workeroutput.html#on-1" class="tsd-kind-icon">on</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+								<a href="_webda_workout.workeroutput.html#once-1" class="tsd-kind-icon">once</a>
 							</li>
 						</ul>
 					</li>
@@ -318,130 +345,92 @@
 			<section class="tsd-panel-group tsd-index-group">
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
+						<section class="tsd-index-section tsd-is-inherited">
+							<h3>Constructors</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited"><a href="_webda_workout.workeroutput.html#constructor" class="tsd-kind-icon">constructor</a></li>
+							</ul>
+						</section>
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#currentprogress"
-									class="tsd-kind-icon">currentProgress</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#groups"
-									class="tsd-kind-icon">groups</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#inputs"
-									class="tsd-kind-icon">inputs</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#interactive"
-									class="tsd-kind-icon">interactive</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#progresses"
-									class="tsd-kind-icon">progresses</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#progressesstack"
-									class="tsd-kind-icon">progressesStack</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#title"
-									class="tsd-kind-icon">title</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_workout.workeroutput.html#defaultmaxlisteners"
-									class="tsd-kind-icon">defaultMaxListeners</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#currentprogress" class="tsd-kind-icon">current<wbr>Progress</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#groups" class="tsd-kind-icon">groups</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#inputs" class="tsd-kind-icon">inputs</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#interactive" class="tsd-kind-icon">interactive</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#progresses" class="tsd-kind-icon">progresses</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#progressesstack" class="tsd-kind-icon">progresses<wbr>Stack</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#title" class="tsd-kind-icon">title</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_workout.workeroutput.html#capturerejectionsymbol" class="tsd-kind-icon">capture<wbr>Rejection<wbr>Symbol</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_workout.workeroutput.html#capturerejections" class="tsd-kind-icon">capture<wbr>Rejections</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_workout.workeroutput.html#defaultmaxlisteners" class="tsd-kind-icon">default<wbr>Max<wbr>Listeners</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_workout.workeroutput.html#errormonitor" class="tsd-kind-icon">error<wbr>Monitor</a></li>
+							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited"><a href="_webda_workout.workeroutput.html#addlistener"
-									class="tsd-kind-icon">addListener</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#closegroup"
-									class="tsd-kind-icon">closeGroup</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited"><a href="_webda_workout.workeroutput.html#emit"
-									class="tsd-kind-icon">emit</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="_webda_workout.workeroutput.html#emitmessage"
-									class="tsd-kind-icon">emitMessage</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited"><a href="_webda_workout.workeroutput.html#eventnames"
-									class="tsd-kind-icon">eventNames</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited"><a href="_webda_workout.workeroutput.html#getmaxlisteners"
-									class="tsd-kind-icon">getMaxListeners</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#incrementprogress"
-									class="tsd-kind-icon">incrementProgress</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited"><a href="_webda_workout.workeroutput.html#listenercount"
-									class="tsd-kind-icon">listenerCount</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited"><a href="_webda_workout.workeroutput.html#listeners"
-									class="tsd-kind-icon">listeners</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#log"
-									class="tsd-kind-icon">log</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#logwithcontext"
-									class="tsd-kind-icon">logWithContext</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited"><a href="_webda_workout.workeroutput.html#off"
-									class="tsd-kind-icon">off</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited"><a href="_webda_workout.workeroutput.html#on"
-									class="tsd-kind-icon">on</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited"><a href="_webda_workout.workeroutput.html#once"
-									class="tsd-kind-icon">once</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#opengroup"
-									class="tsd-kind-icon">openGroup</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited"><a href="_webda_workout.workeroutput.html#prependlistener"
-									class="tsd-kind-icon">prependListener</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited"><a href="_webda_workout.workeroutput.html#prependoncelistener"
-									class="tsd-kind-icon">prependOnceListener</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited"><a href="_webda_workout.workeroutput.html#rawlisteners"
-									class="tsd-kind-icon">rawListeners</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited"><a href="_webda_workout.workeroutput.html#removealllisteners"
-									class="tsd-kind-icon">removeAllListeners</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited"><a href="_webda_workout.workeroutput.html#removelistener"
-									class="tsd-kind-icon">removeListener</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#requestinput"
-									class="tsd-kind-icon">requestInput</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#returninput"
-									class="tsd-kind-icon">returnInput</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#setinteractive"
-									class="tsd-kind-icon">setInteractive</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited"><a href="_webda_workout.workeroutput.html#setmaxlisteners"
-									class="tsd-kind-icon">setMaxListeners</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#settitle"
-									class="tsd-kind-icon">setTitle</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#startprogress"
-									class="tsd-kind-icon">startProgress</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#updateprogress"
-									class="tsd-kind-icon">updateProgress</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#waitforinput"
-									class="tsd-kind-icon">waitForInput</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_workout.workeroutput.html#listenercount-1"
-									class="tsd-kind-icon">listenerCount</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_workout.workeroutput.html#addlistener" class="tsd-kind-icon">add<wbr>Listener</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#closegroup" class="tsd-kind-icon">close<wbr>Group</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_workout.workeroutput.html#emit" class="tsd-kind-icon">emit</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="_webda_workout.workeroutput.html#emitmessage" class="tsd-kind-icon">emit<wbr>Message</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_workout.workeroutput.html#eventnames" class="tsd-kind-icon">event<wbr>Names</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_workout.workeroutput.html#getmaxlisteners" class="tsd-kind-icon">get<wbr>Max<wbr>Listeners</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#incrementprogress" class="tsd-kind-icon">increment<wbr>Progress</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_workout.workeroutput.html#listenercount" class="tsd-kind-icon">listener<wbr>Count</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_workout.workeroutput.html#listeners" class="tsd-kind-icon">listeners</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#log" class="tsd-kind-icon">log</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#logwithcontext" class="tsd-kind-icon">log<wbr>With<wbr>Context</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_workout.workeroutput.html#off" class="tsd-kind-icon">off</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_workout.workeroutput.html#on" class="tsd-kind-icon">on</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_workout.workeroutput.html#once" class="tsd-kind-icon">once</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#opengroup" class="tsd-kind-icon">open<wbr>Group</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_workout.workeroutput.html#prependlistener" class="tsd-kind-icon">prepend<wbr>Listener</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_workout.workeroutput.html#prependoncelistener" class="tsd-kind-icon">prepend<wbr>Once<wbr>Listener</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_workout.workeroutput.html#rawlisteners" class="tsd-kind-icon">raw<wbr>Listeners</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_workout.workeroutput.html#removealllisteners" class="tsd-kind-icon">remove<wbr>All<wbr>Listeners</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_workout.workeroutput.html#removelistener" class="tsd-kind-icon">remove<wbr>Listener</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#requestinput" class="tsd-kind-icon">request<wbr>Input</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#returninput" class="tsd-kind-icon">return<wbr>Input</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#setinteractive" class="tsd-kind-icon">set<wbr>Interactive</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_workout.workeroutput.html#setmaxlisteners" class="tsd-kind-icon">set<wbr>Max<wbr>Listeners</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#settitle" class="tsd-kind-icon">set<wbr>Title</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#startprogress" class="tsd-kind-icon">start<wbr>Progress</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#updateprogress" class="tsd-kind-icon">update<wbr>Progress</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_workout.workeroutput.html#waitforinput" class="tsd-kind-icon">wait<wbr>For<wbr>Input</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_workout.workeroutput.html#listenercount-1" class="tsd-kind-icon">listener<wbr>Count</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_workout.workeroutput.html#on-1" class="tsd-kind-icon">on</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_workout.workeroutput.html#once-1" class="tsd-kind-icon">once</a></li>
+							</ul>
 						</section>
 					</div>
 				</section>
 			</section>
+			<section class="tsd-panel-group tsd-member-group tsd-is-inherited">
+				<h2>Constructors</h2>
+				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited">
+					<a name="constructor" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Worker<wbr>Output<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_workout.workeroutput.html" class="tsd-signature-type">WorkerOutput</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="_webda_workout.workeroutput.html">WorkerOutput</a>.<a href="_webda_workout.workeroutput.html#constructor">constructor</a></p>
+							</aside>
+							<h4 class="tsd-returns-title">Returns <a href="_webda_workout.workeroutput.html" class="tsd-signature-type">WorkerOutput</a></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L15">
+											node_modules/@types/node/events.d.ts:15
+										</a>
+									</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -456,7 +445,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="groups" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">groups<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></div>
 					<aside class="tsd-sources">
@@ -468,7 +457,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="inputs" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">inputs<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<div class="tsd-type-declaration">
@@ -488,7 +477,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="interactive" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">interactive<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = false</span></div>
 					<aside class="tsd-sources">
@@ -500,7 +489,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="progresses" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">progresses<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<div class="tsd-type-declaration">
@@ -520,7 +509,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="progressesstack" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">progresses<wbr>Stack<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></div>
 					<aside class="tsd-sources">
@@ -532,7 +521,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="title" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">title<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
@@ -544,31 +533,82 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+					<a name="capturerejectionsymbol" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">capture<wbr>Rejection<wbr>Symbol<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">keyof symbol</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L35">
+									node_modules/@types/node/events.d.ts:35
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+					<a name="capturerejections" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">capture<wbr>Rejections<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Sets or gets the default captureRejection value for all emitters.</p>
+						</div>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L41">
+									node_modules/@types/node/events.d.ts:41
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static">
 					<a name="defaultmaxlisteners" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">default<wbr>Max<wbr>Listeners<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L30">
-									node_modules/@types/node/events.d.ts:30
+								<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L42">
+									node_modules/@types/node/events.d.ts:42
 								</a>
 							</li>
 						</ul>
 					</aside>
-			</section></section>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+					<a name="errormonitor" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">error<wbr>Monitor<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">keyof symbol</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>This symbol shall be used to install a listener for only monitoring <code>&#39;error&#39;</code>
+								events. Listeners installed using this symbol are called before the regular
+							<code>&#39;error&#39;</code> listeners are called.</p>
+						</div>
+						</div><div class="tsd-comment tsd-typography tsd-comment-text">
+						<p>Installing a listener using this symbol does not change the behavior once an
+							<code>&#39;error&#39;</code> event is emitted, therefore the process will still crash if no
+						regular <code>&#39;error&#39;</code> listener is installed.</p>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L34">
+									node_modules/@types/node/events.d.ts:34
+								</a>
+							</li>
+						</ul>
+					</aside>
+			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="addlistener" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">add<wbr>Listener<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span>, listener<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">this</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#addlistener">addListener</a></p>
-								<p>Overrides EventEmitter.addListener</p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -594,8 +634,8 @@
 													<aside class="tsd-sources">
 														<ul>
 															<li>Defined in
-																<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L32">
-																	node_modules/@types/node/events.d.ts:32
+																<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L636">
+																	node_modules/@types/node/globals.d.ts:636
 																</a>
 															</li>
 														</ul>
@@ -610,15 +650,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L32">
-											node_modules/@types/node/events.d.ts:32
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L636">
+											node_modules/@types/node/globals.d.ts:636
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="closegroup" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">close<wbr>Group<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -644,16 +684,15 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="emit" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">emit<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span>, <span class="tsd-signature-symbol">...</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#emit">emit</a></p>
-								<p>Overrides EventEmitter.emit</p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -668,15 +707,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L44">
-											node_modules/@types/node/events.d.ts:44
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L646">
+											node_modules/@types/node/globals.d.ts:646
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
 					<a name="emitmessage" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
 						<li class="tsd-signature tsd-kind-icon">emit<wbr>Message<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../modules/_webda_workout.html#workermessagetype" class="tsd-signature-type">WorkerMessageType</a>, infos<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -713,53 +752,51 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="eventnames" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">event<wbr>Names<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#eventnames">eventNames</a></p>
-								<p>Overrides EventEmitter.eventNames</p>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L45">
-											node_modules/@types/node/events.d.ts:45
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L651">
+											node_modules/@types/node/globals.d.ts:651
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getmaxlisteners" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Max<wbr>Listeners<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#getmaxlisteners">getMaxListeners</a></p>
-								<p>Overrides EventEmitter.getMaxListeners</p>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L41">
-											node_modules/@types/node/events.d.ts:41
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L643">
+											node_modules/@types/node/globals.d.ts:643
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="incrementprogress" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">increment<wbr>Progress<span class="tsd-signature-symbol">(</span>inc<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span>, uid<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -796,16 +833,15 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="listenercount" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">listener<wbr>Count<span class="tsd-signature-symbol">(</span>type<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#listenercount-1">listenerCount</a></p>
-								<p>Overrides EventEmitter.listenerCount</p>
+								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#listenercount">listenerCount</a></p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -817,24 +853,23 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L46">
-											node_modules/@types/node/events.d.ts:46
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L647">
+											node_modules/@types/node/globals.d.ts:647
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="listeners" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">listeners<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Function</span><span class="tsd-signature-symbol">[]</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#listeners">listeners</a></p>
-								<p>Overrides EventEmitter.listeners</p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -846,15 +881,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L42">
-											node_modules/@types/node/events.d.ts:42
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L644">
+											node_modules/@types/node/globals.d.ts:644
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="log" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">log<span class="tsd-signature-symbol">(</span>level<span class="tsd-signature-symbol">: </span><a href="../modules/_webda_workout.html#workerloglevel" class="tsd-signature-type">WorkerLogLevel</a>, <span class="tsd-signature-symbol">...</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -895,7 +930,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="logwithcontext" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">log<wbr>With<wbr>Context<span class="tsd-signature-symbol">(</span>level<span class="tsd-signature-symbol">: </span><a href="../modules/_webda_workout.html#workerloglevel" class="tsd-signature-type">WorkerLogLevel</a>, context<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, <span class="tsd-signature-symbol">...</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -928,16 +963,15 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="off" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">off<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span>, listener<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">this</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#off">off</a></p>
-								<p>Overrides EventEmitter.off</p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -963,8 +997,8 @@
 													<aside class="tsd-sources">
 														<ul>
 															<li>Defined in
-																<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L38">
-																	node_modules/@types/node/events.d.ts:38
+																<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L640">
+																	node_modules/@types/node/globals.d.ts:640
 																</a>
 															</li>
 														</ul>
@@ -979,24 +1013,23 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L38">
-											node_modules/@types/node/events.d.ts:38
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L640">
+											node_modules/@types/node/globals.d.ts:640
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="on" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">on<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span>, listener<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">this</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#on">on</a></p>
-								<p>Overrides EventEmitter.on</p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -1022,8 +1055,8 @@
 													<aside class="tsd-sources">
 														<ul>
 															<li>Defined in
-																<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L33">
-																	node_modules/@types/node/events.d.ts:33
+																<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L637">
+																	node_modules/@types/node/globals.d.ts:637
 																</a>
 															</li>
 														</ul>
@@ -1038,24 +1071,23 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L33">
-											node_modules/@types/node/events.d.ts:33
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L637">
+											node_modules/@types/node/globals.d.ts:637
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="once" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">once<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span>, listener<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">this</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#once">once</a></p>
-								<p>Overrides EventEmitter.once</p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -1081,8 +1113,8 @@
 													<aside class="tsd-sources">
 														<ul>
 															<li>Defined in
-																<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L34">
-																	node_modules/@types/node/events.d.ts:34
+																<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L638">
+																	node_modules/@types/node/globals.d.ts:638
 																</a>
 															</li>
 														</ul>
@@ -1097,15 +1129,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L34">
-											node_modules/@types/node/events.d.ts:34
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L638">
+											node_modules/@types/node/globals.d.ts:638
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="opengroup" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">open<wbr>Group<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1141,16 +1173,15 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="prependlistener" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">prepend<wbr>Listener<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span>, listener<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">this</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#prependlistener">prependListener</a></p>
-								<p>Overrides EventEmitter.prependListener</p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -1176,8 +1207,8 @@
 													<aside class="tsd-sources">
 														<ul>
 															<li>Defined in
-																<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L35">
-																	node_modules/@types/node/events.d.ts:35
+																<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L649">
+																	node_modules/@types/node/globals.d.ts:649
 																</a>
 															</li>
 														</ul>
@@ -1192,24 +1223,23 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L35">
-											node_modules/@types/node/events.d.ts:35
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L649">
+											node_modules/@types/node/globals.d.ts:649
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="prependoncelistener" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">prepend<wbr>Once<wbr>Listener<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span>, listener<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">this</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#prependoncelistener">prependOnceListener</a></p>
-								<p>Overrides EventEmitter.prependOnceListener</p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -1235,8 +1265,8 @@
 													<aside class="tsd-sources">
 														<ul>
 															<li>Defined in
-																<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L36">
-																	node_modules/@types/node/events.d.ts:36
+																<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L650">
+																	node_modules/@types/node/globals.d.ts:650
 																</a>
 															</li>
 														</ul>
@@ -1251,24 +1281,23 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L36">
-											node_modules/@types/node/events.d.ts:36
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L650">
+											node_modules/@types/node/globals.d.ts:650
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="rawlisteners" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">raw<wbr>Listeners<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Function</span><span class="tsd-signature-symbol">[]</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#rawlisteners">rawListeners</a></p>
-								<p>Overrides EventEmitter.rawListeners</p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -1280,24 +1309,23 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L43">
-											node_modules/@types/node/events.d.ts:43
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L645">
+											node_modules/@types/node/globals.d.ts:645
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="removealllisteners" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">remove<wbr>All<wbr>Listeners<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">this</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#removealllisteners">removeAllListeners</a></p>
-								<p>Overrides EventEmitter.removeAllListeners</p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -1309,24 +1337,23 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L39">
-											node_modules/@types/node/events.d.ts:39
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L641">
+											node_modules/@types/node/globals.d.ts:641
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="removelistener" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">remove<wbr>Listener<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span>, listener<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">this</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#removelistener">removeListener</a></p>
-								<p>Overrides EventEmitter.removeListener</p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -1352,8 +1379,8 @@
 													<aside class="tsd-sources">
 														<ul>
 															<li>Defined in
-																<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L37">
-																	node_modules/@types/node/events.d.ts:37
+																<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L639">
+																	node_modules/@types/node/globals.d.ts:639
 																</a>
 															</li>
 														</ul>
@@ -1368,15 +1395,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L37">
-											node_modules/@types/node/events.d.ts:37
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L639">
+											node_modules/@types/node/globals.d.ts:639
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="requestinput" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">request<wbr>Input<span class="tsd-signature-symbol">(</span>title<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, type<span class="tsd-signature-symbol">?: </span><a href="../enums/_webda_workout.workerinputtype.html" class="tsd-signature-type">WorkerInputType</a>, regexp<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-symbol">(</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">RegExp</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span>, waitFor<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span>, timeout<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1434,7 +1461,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="returninput" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">return<wbr>Input<span class="tsd-signature-symbol">(</span>uuid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, value<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1476,7 +1503,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="setinteractive" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">set<wbr>Interactive<span class="tsd-signature-symbol">(</span>interactive<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1510,16 +1537,15 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="setmaxlisteners" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-inherited">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">set<wbr>Max<wbr>Listeners<span class="tsd-signature-symbol">(</span>n<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">this</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#setmaxlisteners">setMaxListeners</a></p>
-								<p>Overrides EventEmitter.setMaxListeners</p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -1531,15 +1557,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L40">
-											node_modules/@types/node/events.d.ts:40
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/globals.d.ts#L642">
+											node_modules/@types/node/globals.d.ts:642
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="settitle" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">set<wbr>Title<span class="tsd-signature-symbol">(</span>title<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1574,7 +1600,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="startprogress" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">start<wbr>Progress<span class="tsd-signature-symbol">(</span>uid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, total<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, title<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1614,7 +1640,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="updateprogress" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">update<wbr>Progress<span class="tsd-signature-symbol">(</span>current<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, uid<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span>, title<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1661,7 +1687,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="waitforinput" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">wait<wbr>For<wbr>Input<span class="tsd-signature-symbol">(</span>uuid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1696,7 +1722,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
 					<a name="listenercount-1" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">listener<wbr>Count<span class="tsd-signature-symbol">(</span>emitter<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">EventEmitter</span>, event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></li>
@@ -1724,16 +1750,103 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L29">
-											node_modules/@types/node/events.d.ts:29
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L23">
+											node_modules/@types/node/events.d.ts:23
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-			</section></section>
-			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Guides&quot;,&quot;url&quot;:&quot;/pages/Pages/Guides.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;groups&quot;:[{&quot;title&quot;:&quot;Pages&quot;,&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;pages&quot;:[{&quot;title&quot;:&quot;Quick Start&quot;,&quot;source&quot;:&quot;QuickStart.md&quot;},{&quot;title&quot;:&quot;Guides&quot;,&quot;source&quot;:&quot;Guides.md&quot;,&quot;children&quot;:[{&quot;source&quot;:&quot;Authentication.md&quot;},{&quot;source&quot;:&quot;AWS.md&quot;}]}]}],&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;useMarkdownTitle&quot;:true}}-->
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+					<a name="on-1" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">on<span class="tsd-signature-symbol">(</span>emitter<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">EventEmitter</span>, event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">AsyncIterableIterator</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#on-1">on</a></p>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>emitter: <span class="tsd-signature-type">EventEmitter</span></h5>
+								</li>
+								<li>
+									<h5>event: <span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">AsyncIterableIterator</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L20">
+											node_modules/@types/node/events.d.ts:20
+										</a>
+									</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+					<a name="once-1" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">once<span class="tsd-signature-symbol">(</span>emitter<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">NodeEventTarget</span>, event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">once<span class="tsd-signature-symbol">(</span>emitter<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">DOMEventTarget</span>, event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#once-1">once</a></p>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>emitter: <span class="tsd-signature-type">NodeEventTarget</span></h5>
+								</li>
+								<li>
+									<h5>event: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L18">
+											node_modules/@types/node/events.d.ts:18
+										</a>
+									</li>
+								</ul>
+							</aside>
+						</li>
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="_webda_aws.cloudwatchlogger.html">CloudWatchLogger</a>.<a href="_webda_aws.cloudwatchlogger.html#once-1">once</a></p>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>emitter: <span class="tsd-signature-type">DOMEventTarget</span></h5>
+								</li>
+								<li>
+									<h5>event: <span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in
+										<a href="https://github.com/loopingz/webda.io/blob/master/node_modules/@types/node/events.d.ts#L19">
+											node_modules/@types/node/events.d.ts:19
+										</a>
+									</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+			</section>    </section>
+			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Quick Start&quot;,&quot;url&quot;:&quot;/pages/QuickStart.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true}}-->
 			<footer class="with-border-bottom">
 			</footer>
 			<div class="container tsd-generator">

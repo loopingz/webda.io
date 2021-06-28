@@ -4,10 +4,11 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<title>HttpContext |
-	webda.io - v1.0.0-beta.16</title>
+	webda.io - v1.1.1</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
+	<script async src="../assets/js/search.js" id="search-script"></script>
 </head>
 <body>
 <div class="main">
@@ -27,9 +28,13 @@
 					</ul>
 					<ul class="results-priority" style="display:none">
 					</ul>
-					<a href="../index.html" class="title">webda.io - v1.0.0-beta.16</a>
-					&emsp;<a href="/pages/Pages/Guides.html" class="title">Guides</a>
-					&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+					<div class="topMenu">
+						<a href="../index.html" class="title">webda.io - v1.1.1</a>
+						<div class="links">
+							&emsp;<a href="/pages/QuickStart.html" class="title">Quick Start</a>
+							&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+						</div>
+					</div>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -69,19 +74,23 @@
 		<div class="col-menu menu-sticky-wrap menu-highlight">
 			<nav class="tsd-navigation root">
 				<ul>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Concepts.html" class="tsd-kind-icon">Concepts</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Deployments.html" class="tsd-kind-icon">Deployments</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Migration.html" class="tsd-kind-icon">Migration</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Security.html" class="tsd-kind-icon">Security</a>
+					</li>
 					<li class=" pp-nav pp-group root">
-						<a href="" class="tsd-kind-icon">Pages</a>
-					</li>
-					<li class=" pp-nav pp-page root">
-						<a href="../pages/Pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start
-						</a>
-					</li>
-					<li class=" pp-nav pp-page pp-parent root">
-						<a href="../pages/Pages/Guides.html" class="tsd-kind-icon">Concepts
-						</a>
-					</li>
-					<li class=" pp-nav pp-group root">
-						<a href="../globals.html" class="tsd-kind-icon">Modules</a>
+						<a href="" class="tsd-kind-icon">Modules</a>
 					</li>
 					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_aws.html" class="tsd-kind-icon">@webda/aws</a>
@@ -225,96 +234,44 @@
 					<div class="tsd-index-content">
 						<section class="tsd-index-section ">
 							<h3>Constructors</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-constructor tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#constructor"
-									class="tsd-kind-icon">constructor</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-constructor tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#constructor" class="tsd-kind-icon">constructor</a></li>
+							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#body"
-									class="tsd-kind-icon">body</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#cookies"
-									class="tsd-kind-icon">cookies</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#files"
-									class="tsd-kind-icon">files</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#headers"
-									class="tsd-kind-icon">headers</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#host"
-									class="tsd-kind-icon">host</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#method"
-									class="tsd-kind-icon">method</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#origin"
-									class="tsd-kind-icon">origin</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#port"
-									class="tsd-kind-icon">port</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#prefix"
-									class="tsd-kind-icon">prefix</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#protocol"
-									class="tsd-kind-icon">protocol</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#root"
-									class="tsd-kind-icon">root</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#uri"
-									class="tsd-kind-icon">uri</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#body" class="tsd-kind-icon">body</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#cookies" class="tsd-kind-icon">cookies</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#files" class="tsd-kind-icon">files</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#headers" class="tsd-kind-icon">headers</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#host" class="tsd-kind-icon">host</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#method" class="tsd-kind-icon">method</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#origin" class="tsd-kind-icon">origin</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#port" class="tsd-kind-icon">port</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#prefix" class="tsd-kind-icon">prefix</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#protocol" class="tsd-kind-icon">protocol</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#root" class="tsd-kind-icon">root</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#uri" class="tsd-kind-icon">uri</a></li>
+							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getabsoluteurl"
-									class="tsd-kind-icon">getAbsoluteUrl</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getbody"
-									class="tsd-kind-icon">getBody</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getcookies"
-									class="tsd-kind-icon">getCookies</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getheader"
-									class="tsd-kind-icon">getHeader</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getheaders"
-									class="tsd-kind-icon">getHeaders</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#gethost"
-									class="tsd-kind-icon">getHost</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getmethod"
-									class="tsd-kind-icon">getMethod</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getport"
-									class="tsd-kind-icon">getPort</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getprotocol"
-									class="tsd-kind-icon">getProtocol</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getrelativeuri"
-									class="tsd-kind-icon">getRelativeUri</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#geturl"
-									class="tsd-kind-icon">getUrl</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#setbody"
-									class="tsd-kind-icon">setBody</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#setprefix"
-									class="tsd-kind-icon">setPrefix</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getabsoluteurl" class="tsd-kind-icon">get<wbr>Absolute<wbr>Url</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getbody" class="tsd-kind-icon">get<wbr>Body</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getcookies" class="tsd-kind-icon">get<wbr>Cookies</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getheader" class="tsd-kind-icon">get<wbr>Header</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getheaders" class="tsd-kind-icon">get<wbr>Headers</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#gethost" class="tsd-kind-icon">get<wbr>Host</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getmethod" class="tsd-kind-icon">get<wbr>Method</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getport" class="tsd-kind-icon">get<wbr>Port</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getprotocol" class="tsd-kind-icon">get<wbr>Protocol</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#getrelativeuri" class="tsd-kind-icon">get<wbr>Relative<wbr>Uri</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#geturl" class="tsd-kind-icon">get<wbr>Url</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#setbody" class="tsd-kind-icon">set<wbr>Body</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.httpcontext.html#setprefix" class="tsd-kind-icon">set<wbr>Prefix</a></li>
+							</ul>
 						</section>
 					</div>
 				</section>
@@ -369,7 +326,7 @@
 							</aside>
 						</li>
 					</ul>
-			</section></section>
+			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -384,7 +341,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="cookies" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">cookies<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
@@ -396,7 +353,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="files" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">files<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></div>
 					<aside class="tsd-sources">
@@ -408,7 +365,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="headers" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">headers<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
@@ -420,7 +377,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="host" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">host<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
@@ -432,7 +389,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="method" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">method<span class="tsd-signature-symbol">:</span> <a href="../modules/_webda_core.html#httpmethodtype" class="tsd-signature-type">HttpMethodType</a></div>
 					<aside class="tsd-sources">
@@ -444,7 +401,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="origin" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">origin<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
@@ -456,7 +413,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="port" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">port<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 					<aside class="tsd-sources">
@@ -468,7 +425,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="prefix" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">prefix<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &quot;&quot;</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -485,7 +442,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="protocol" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">protocol<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
@@ -497,7 +454,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="root" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">root<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
@@ -509,7 +466,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="uri" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">uri<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
@@ -521,7 +478,7 @@
 							</li>
 						</ul>
 					</aside>
-			</section></section>
+			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
@@ -554,7 +511,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getbody" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Body<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
@@ -575,7 +532,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getcookies" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Cookies<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
@@ -596,7 +553,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getheader" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Header<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -623,7 +580,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getheaders" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Headers<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
@@ -644,7 +601,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="gethost" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Host<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -665,7 +622,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getmethod" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Method<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../modules/_webda_core.html#httpmethodtype" class="tsd-signature-type">HttpMethodType</a></li>
@@ -686,7 +643,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getport" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Port<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></li>
@@ -707,7 +664,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getprotocol" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Protocol<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -728,7 +685,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getrelativeuri" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Relative<wbr>Uri<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -754,7 +711,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="geturl" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Url<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -775,7 +732,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="setbody" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">set<wbr>Body<span class="tsd-signature-symbol">(</span>body<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -802,7 +759,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="setprefix" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">set<wbr>Prefix<span class="tsd-signature-symbol">(</span>prefix<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -832,8 +789,8 @@
 							</aside>
 						</li>
 					</ul>
-			</section></section>
-			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Guides&quot;,&quot;url&quot;:&quot;/pages/Pages/Guides.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;groups&quot;:[{&quot;title&quot;:&quot;Pages&quot;,&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;pages&quot;:[{&quot;title&quot;:&quot;Quick Start&quot;,&quot;source&quot;:&quot;QuickStart.md&quot;},{&quot;title&quot;:&quot;Guides&quot;,&quot;source&quot;:&quot;Guides.md&quot;,&quot;children&quot;:[{&quot;source&quot;:&quot;Authentication.md&quot;},{&quot;source&quot;:&quot;AWS.md&quot;}]}]}],&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;useMarkdownTitle&quot;:true}}-->
+			</section>    </section>
+			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Quick Start&quot;,&quot;url&quot;:&quot;/pages/QuickStart.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true}}-->
 			<footer class="with-border-bottom">
 			</footer>
 			<div class="container tsd-generator">

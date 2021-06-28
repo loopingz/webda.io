@@ -4,10 +4,11 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<title>DeploymentManager |
-	webda.io - v1.0.0-beta.16</title>
+	webda.io - v1.1.1</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
+	<script async src="../assets/js/search.js" id="search-script"></script>
 </head>
 <body>
 <div class="main">
@@ -27,9 +28,13 @@
 					</ul>
 					<ul class="results-priority" style="display:none">
 					</ul>
-					<a href="../index.html" class="title">webda.io - v1.0.0-beta.16</a>
-					&emsp;<a href="/pages/Pages/Guides.html" class="title">Guides</a>
-					&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+					<div class="topMenu">
+						<a href="../index.html" class="title">webda.io - v1.1.1</a>
+						<div class="links">
+							&emsp;<a href="/pages/QuickStart.html" class="title">Quick Start</a>
+							&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+						</div>
+					</div>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -69,19 +74,23 @@
 		<div class="col-menu menu-sticky-wrap menu-highlight">
 			<nav class="tsd-navigation root">
 				<ul>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Concepts.html" class="tsd-kind-icon">Concepts</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Deployments.html" class="tsd-kind-icon">Deployments</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Migration.html" class="tsd-kind-icon">Migration</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Security.html" class="tsd-kind-icon">Security</a>
+					</li>
 					<li class=" pp-nav pp-group root">
-						<a href="" class="tsd-kind-icon">Pages</a>
-					</li>
-					<li class=" pp-nav pp-page root">
-						<a href="../pages/Pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start
-						</a>
-					</li>
-					<li class=" pp-nav pp-page pp-parent root">
-						<a href="../pages/Pages/Guides.html" class="tsd-kind-icon">Concepts
-						</a>
-					</li>
-					<li class=" pp-nav pp-group root">
-						<a href="../globals.html" class="tsd-kind-icon">Modules</a>
+						<a href="" class="tsd-kind-icon">Modules</a>
 					</li>
 					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_aws.html" class="tsd-kind-icon">@webda/aws</a>
@@ -219,6 +228,9 @@
 						<a href="_webda_shell.shelldeployer.html" class="tsd-kind-icon">Shell<wbr>Deployer</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module root">
+						<a href="_webda_shell.typescriptschemaresolver.html" class="tsd-kind-icon">Typescript<wbr>Schema<wbr>Resolver</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-module root">
 						<a href="_webda_shell.webdaconfiguration.html" class="tsd-kind-icon">Webda<wbr>Configuration</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module root">
@@ -235,9 +247,6 @@
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module root">
 						<a href="../interfaces/_webda_shell.deployerconstructor.html" class="tsd-kind-icon">Deployer<wbr>Constructor</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module root">
-						<a href="../interfaces/_webda_shell.deployerresources.html" class="tsd-kind-icon">Deployer<wbr>Resources</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module root">
 						<a href="../interfaces/_webda_shell.dockerresources.html" class="tsd-kind-icon">Docker<wbr>Resources</a>
@@ -281,75 +290,37 @@
 					<div class="tsd-index-content">
 						<section class="tsd-index-section ">
 							<h3>Constructors</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-constructor tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#constructor"
-									class="tsd-kind-icon">constructor</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-constructor tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#constructor" class="tsd-kind-icon">constructor</a></li>
+							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#application"
-									class="tsd-kind-icon">application</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#deployers"
-									class="tsd-kind-icon">deployers</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#deployersdefinition"
-									class="tsd-kind-icon">deployersDefinition</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#logger"
-									class="tsd-kind-icon">logger</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#output"
-									class="tsd-kind-icon">output</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#packagedescription"
-									class="tsd-kind-icon">packageDescription</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#streams"
-									class="tsd-kind-icon">streams</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#webda"
-									class="tsd-kind-icon">webda</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#application" class="tsd-kind-icon">application</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#deployers" class="tsd-kind-icon">deployers</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#deployersdefinition" class="tsd-kind-icon">deployers<wbr>Definition</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#logger" class="tsd-kind-icon">logger</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#output" class="tsd-kind-icon">output</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#packagedescription" class="tsd-kind-icon">package<wbr>Description</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#streams" class="tsd-kind-icon">streams</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#webda" class="tsd-kind-icon">webda</a></li>
+							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#commandline"
-									class="tsd-kind-icon">commandLine</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#getapplication"
-									class="tsd-kind-icon">getApplication</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#getdeployer"
-									class="tsd-kind-icon">getDeployer</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#getdeploymentname"
-									class="tsd-kind-icon">getDeploymentName</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#getoutput"
-									class="tsd-kind-icon">getOutput</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#getpackagedescription"
-									class="tsd-kind-icon">getPackageDescription</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#getwebda"
-									class="tsd-kind-icon">getWebda</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#run"
-									class="tsd-kind-icon">run</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#setoutput"
-									class="tsd-kind-icon">setOutput</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.deploymentmanager.html#new"
-									class="tsd-kind-icon">new</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#commandline" class="tsd-kind-icon">command<wbr>Line</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#getapplication" class="tsd-kind-icon">get<wbr>Application</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#getdeployer" class="tsd-kind-icon">get<wbr>Deployer</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#getdeploymentname" class="tsd-kind-icon">get<wbr>Deployment<wbr>Name</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#getoutput" class="tsd-kind-icon">get<wbr>Output</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#getpackagedescription" class="tsd-kind-icon">get<wbr>Package<wbr>Description</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#getwebda" class="tsd-kind-icon">get<wbr>Webda</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#run" class="tsd-kind-icon">run</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.deploymentmanager.html#setoutput" class="tsd-kind-icon">set<wbr>Output</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.deploymentmanager.html#new" class="tsd-kind-icon">new</a></li>
+							</ul>
 						</section>
 					</div>
 				</section>
@@ -384,15 +355,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L29">
-											packages/shell/src/handlers/deploymentmanager.ts:29
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L28">
+											packages/shell/src/handlers/deploymentmanager.ts:28
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-			</section></section>
+			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -401,13 +372,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L19">
-									packages/shell/src/handlers/deploymentmanager.ts:19
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L18">
+									packages/shell/src/handlers/deploymentmanager.ts:18
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="deployers" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">deployers<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<div class="tsd-type-declaration">
@@ -421,13 +392,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L21">
-									packages/shell/src/handlers/deploymentmanager.ts:21
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L20">
+									packages/shell/src/handlers/deploymentmanager.ts:20
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="deployersdefinition" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">deployers<wbr>Definition<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<div class="tsd-type-declaration">
@@ -441,27 +412,15 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L20">
-									packages/shell/src/handlers/deploymentmanager.ts:20
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L19">
+									packages/shell/src/handlers/deploymentmanager.ts:19
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="logger" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">logger<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Logger</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L29">
-									packages/shell/src/handlers/deploymentmanager.ts:29
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="output" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">output<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WorkerOutput</span></div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
@@ -471,19 +430,31 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="output" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">output<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WorkerOutput</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L27">
+									packages/shell/src/handlers/deploymentmanager.ts:27
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="packagedescription" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">package<wbr>Description<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L22">
-									packages/shell/src/handlers/deploymentmanager.ts:22
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L21">
+									packages/shell/src/handlers/deploymentmanager.ts:21
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="streams" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">streams<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<div class="tsd-type-declaration">
@@ -500,25 +471,25 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L23">
-									packages/shell/src/handlers/deploymentmanager.ts:23
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L22">
+									packages/shell/src/handlers/deploymentmanager.ts:22
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="webda" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">webda<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Core</span></div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L27">
-									packages/shell/src/handlers/deploymentmanager.ts:27
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L26">
+									packages/shell/src/handlers/deploymentmanager.ts:26
 								</a>
 							</li>
 						</ul>
 					</aside>
-			</section></section>
+			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
@@ -547,15 +518,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L121">
-											packages/shell/src/handlers/deploymentmanager.ts:121
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L120">
+											packages/shell/src/handlers/deploymentmanager.ts:120
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getapplication" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Application<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Application</span></li>
@@ -573,15 +544,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L151">
-											packages/shell/src/handlers/deploymentmanager.ts:151
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L150">
+											packages/shell/src/handlers/deploymentmanager.ts:150
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getdeployer" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Deployer<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_webda_shell.deployer.html" class="tsd-signature-type">Deployer</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -600,15 +571,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L155">
-											packages/shell/src/handlers/deploymentmanager.ts:155
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L154">
+											packages/shell/src/handlers/deploymentmanager.ts:154
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getdeploymentname" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Deployment<wbr>Name<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -621,15 +592,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L167">
-											packages/shell/src/handlers/deploymentmanager.ts:167
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L166">
+											packages/shell/src/handlers/deploymentmanager.ts:166
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getoutput" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Output<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">WorkerOutput</span></li>
@@ -642,15 +613,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L113">
-											packages/shell/src/handlers/deploymentmanager.ts:113
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L112">
+											packages/shell/src/handlers/deploymentmanager.ts:112
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getpackagedescription" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Package<wbr>Description<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
@@ -668,15 +639,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L189">
-											packages/shell/src/handlers/deploymentmanager.ts:189
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L188">
+											packages/shell/src/handlers/deploymentmanager.ts:188
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getwebda" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Webda<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Core</span></li>
@@ -696,15 +667,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L144">
-											packages/shell/src/handlers/deploymentmanager.ts:144
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L143">
+											packages/shell/src/handlers/deploymentmanager.ts:143
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="run" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">run<span class="tsd-signature-symbol">(</span>type<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, resources<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -732,15 +703,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L176">
-											packages/shell/src/handlers/deploymentmanager.ts:176
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L175">
+											packages/shell/src/handlers/deploymentmanager.ts:175
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="setoutput" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">set<wbr>Output<span class="tsd-signature-symbol">(</span>output<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">WorkerOutput</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -761,15 +732,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L109">
-											packages/shell/src/handlers/deploymentmanager.ts:109
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L108">
+											packages/shell/src/handlers/deploymentmanager.ts:108
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="new" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">new<span class="tsd-signature-symbol">(</span>application<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Application</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -788,16 +759,16 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L66">
-											packages/shell/src/handlers/deploymentmanager.ts:66
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/handlers/deploymentmanager.ts#L65">
+											packages/shell/src/handlers/deploymentmanager.ts:65
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-			</section></section>
-			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Guides&quot;,&quot;url&quot;:&quot;/pages/Pages/Guides.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;groups&quot;:[{&quot;title&quot;:&quot;Pages&quot;,&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;pages&quot;:[{&quot;title&quot;:&quot;Quick Start&quot;,&quot;source&quot;:&quot;QuickStart.md&quot;},{&quot;title&quot;:&quot;Guides&quot;,&quot;source&quot;:&quot;Guides.md&quot;,&quot;children&quot;:[{&quot;source&quot;:&quot;Authentication.md&quot;},{&quot;source&quot;:&quot;AWS.md&quot;}]}]}],&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;useMarkdownTitle&quot;:true}}-->
+			</section>    </section>
+			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Quick Start&quot;,&quot;url&quot;:&quot;/pages/QuickStart.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true}}-->
 			<footer class="with-border-bottom">
 			</footer>
 			<div class="container tsd-generator">

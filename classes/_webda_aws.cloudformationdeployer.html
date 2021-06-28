@@ -4,10 +4,11 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<title>CloudFormationDeployer |
-	webda.io - v1.0.0-beta.16</title>
+	webda.io - v1.1.1</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
+	<script async src="../assets/js/search.js" id="search-script"></script>
 </head>
 <body>
 <div class="main">
@@ -27,9 +28,13 @@
 					</ul>
 					<ul class="results-priority" style="display:none">
 					</ul>
-					<a href="../index.html" class="title">webda.io - v1.0.0-beta.16</a>
-					&emsp;<a href="/pages/Pages/Guides.html" class="title">Guides</a>
-					&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+					<div class="topMenu">
+						<a href="../index.html" class="title">webda.io - v1.1.1</a>
+						<div class="links">
+							&emsp;<a href="/pages/QuickStart.html" class="title">Quick Start</a>
+							&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+						</div>
+					</div>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -69,19 +74,23 @@
 		<div class="col-menu menu-sticky-wrap menu-highlight">
 			<nav class="tsd-navigation root">
 				<ul>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Concepts.html" class="tsd-kind-icon">Concepts</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Deployments.html" class="tsd-kind-icon">Deployments</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Migration.html" class="tsd-kind-icon">Migration</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Security.html" class="tsd-kind-icon">Security</a>
+					</li>
 					<li class=" pp-nav pp-group root">
-						<a href="" class="tsd-kind-icon">Pages</a>
-					</li>
-					<li class=" pp-nav pp-page root">
-						<a href="../pages/Pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start
-						</a>
-					</li>
-					<li class=" pp-nav pp-page pp-parent root">
-						<a href="../pages/Pages/Guides.html" class="tsd-kind-icon">Concepts
-						</a>
-					</li>
-					<li class=" pp-nav pp-group root">
-						<a href="../globals.html" class="tsd-kind-icon">Modules</a>
+						<a href="" class="tsd-kind-icon">Modules</a>
 					</li>
 				</ul>
 				<ul class="current">
@@ -229,6 +238,9 @@
 								<a href="_webda_aws.cloudformationdeployer.html#createcloudformation" class="tsd-kind-icon">create<wbr>Cloud<wbr>Formation</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_webda_aws.cloudformationdeployer.html#createcloudformationchangeset" class="tsd-kind-icon">create<wbr>Cloud<wbr>Formation<wbr>Change<wbr>Set</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_aws.cloudformationdeployer.html#createcloudformationdnsentry" class="tsd-kind-icon">create<wbr>Cloud<wbr>FormationDNSEntry</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -336,11 +348,11 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_aws.cloudformationdeployer.html#waitfor" class="tsd-kind-icon">wait<wbr>For</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
-								<a href="_webda_aws.cloudformationdeployer.html#init" class="tsd-kind-icon">init</a>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+								<a href="_webda_aws.cloudformationdeployer.html#getschema" class="tsd-kind-icon">get<wbr>Schema</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
-								<a href="_webda_aws.cloudformationdeployer.html#shellcommand" class="tsd-kind-icon">shell<wbr>Command</a>
+								<a href="_webda_aws.cloudformationdeployer.html#init" class="tsd-kind-icon">init</a>
 							</li>
 						</ul>
 					</li>
@@ -366,6 +378,9 @@
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module root">
 						<a href="_webda_aws.lambdaserver.html" class="tsd-kind-icon">Lambda<wbr>Server</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter root">
+						<a href="_webda_aws.route53service.html" class="tsd-kind-icon">Route53<wbr>Service</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter root">
 						<a href="_webda_aws.s3binary.html" class="tsd-kind-icon">S3<wbr>Binary</a>
@@ -431,219 +446,86 @@
 					<div class="tsd-index-content">
 						<section class="tsd-index-section ">
 							<h3>Constructors</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_aws.cloudformationdeployer.html#constructor"
-									class="tsd-kind-icon">constructor</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_aws.cloudformationdeployer.html#constructor" class="tsd-kind-icon">constructor</a></li>
+							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#aws"
-									class="tsd-kind-icon">AWS</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#_defaulted"
-									class="tsd-kind-icon">_defaulted</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#app"
-									class="tsd-kind-icon">app</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#logger"
-									class="tsd-kind-icon">logger</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#manager"
-									class="tsd-kind-icon">manager</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#name"
-									class="tsd-kind-icon">name</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#now"
-									class="tsd-kind-icon">now</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#openapis3object"
-									class="tsd-kind-icon">openapiS3Object</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#packagedescription"
-									class="tsd-kind-icon">packageDescription</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#parameters"
-									class="tsd-kind-icon">parameters</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#resources"
-									class="tsd-kind-icon">resources</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#result"
-									class="tsd-kind-icon">result</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#template"
-									class="tsd-kind-icon">template</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#type"
-									class="tsd-kind-icon">type</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#aws" class="tsd-kind-icon">AWS</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#_defaulted" class="tsd-kind-icon">_defaulted</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#app" class="tsd-kind-icon">app</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#logger" class="tsd-kind-icon">logger</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#manager" class="tsd-kind-icon">manager</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#name" class="tsd-kind-icon">name</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#now" class="tsd-kind-icon">now</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#openapis3object" class="tsd-kind-icon">openapi<wbr>S3Object</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#packagedescription" class="tsd-kind-icon">package<wbr>Description</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#parameters" class="tsd-kind-icon">parameters</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#resources" class="tsd-kind-icon">resources</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#result" class="tsd-kind-icon">result</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#template" class="tsd-kind-icon">template</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#type" class="tsd-kind-icon">type</a></li>
+							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#apigateway"
-									class="tsd-kind-icon">APIGateway</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#apigatewaydomain"
-									class="tsd-kind-icon">APIGatewayDomain</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#fargate"
-									class="tsd-kind-icon">Fargate</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#lambda"
-									class="tsd-kind-icon">Lambda</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#policy"
-									class="tsd-kind-icon">Policy</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#resources-1"
-									class="tsd-kind-icon">Resources</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#role"
-									class="tsd-kind-icon">Role</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#_replaceforaws"
-									class="tsd-kind-icon">_replaceForAWS</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#addassumerolepolicystatement"
-									class="tsd-kind-icon">addAssumeRolePolicyStatement</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#builddocker"
-									class="tsd-kind-icon">buildDocker</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#commonprefix"
-									class="tsd-kind-icon">commonPrefix</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#completeopenapi"
-									class="tsd-kind-icon">completeOpenAPI</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#createbucket"
-									class="tsd-kind-icon">createBucket</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#createcloudformation"
-									class="tsd-kind-icon">createCloudFormation</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#createcloudformationdnsentry"
-									class="tsd-kind-icon">createCloudFormationDNSEntry</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_aws.cloudformationdeployer.html#creatednsentry"
-									class="tsd-kind-icon">createDNSEntry</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#createstatic"
-									class="tsd-kind-icon">createStatic</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_aws.cloudformationdeployer.html#defaultresources"
-									class="tsd-kind-icon">defaultResources</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#deletecloudformation"
-									class="tsd-kind-icon">deleteCloudFormation</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_aws.cloudformationdeployer.html#deploy"
-									class="tsd-kind-icon">deploy</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#docreatecertificate"
-									class="tsd-kind-icon">doCreateCertificate</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#execute"
-									class="tsd-kind-icon">execute</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#generatelambdapackage"
-									class="tsd-kind-icon">generateLambdaPackage</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getarnpolicy"
-									class="tsd-kind-icon">getARNPolicy</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getawsidentity"
-									class="tsd-kind-icon">getAWSIdentity</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getapplication"
-									class="tsd-kind-icon">getApplication</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getcertificate"
-									class="tsd-kind-icon">getCertificate</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getdefaulttags"
-									class="tsd-kind-icon">getDefaultTags</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getdefaulttagsasmap"
-									class="tsd-kind-icon">getDefaultTagsAsMap</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getdefaulttagsass3tagging"
-									class="tsd-kind-icon">getDefaultTagsAsS3Tagging</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getdefaultvpc"
-									class="tsd-kind-icon">getDefaultVpc</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getpolicydocument"
-									class="tsd-kind-icon">getPolicyDocument</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getregion"
-									class="tsd-kind-icon">getRegion</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#getstringified"
-									class="tsd-kind-icon">getStringified</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getzonefordomainname"
-									class="tsd-kind-icon">getZoneForDomainName</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_aws.cloudformationdeployer.html#hash"
-									class="tsd-kind-icon">hash</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#importopenapi"
-									class="tsd-kind-icon">importOpenApi</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#loaddefaults"
-									class="tsd-kind-icon">loadDefaults</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_aws.cloudformationdeployer.html#md5"
-									class="tsd-kind-icon">md5</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#putfilesonbucket"
-									class="tsd-kind-icon">putFilesOnBucket</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#putfolderonbucket"
-									class="tsd-kind-icon">putFolderOnBucket</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#replaceresourcesvariables"
-									class="tsd-kind-icon">replaceResourcesVariables</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#replacevariables"
-									class="tsd-kind-icon">replaceVariables</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#sendcloudformationtemplate"
-									class="tsd-kind-icon">sendCloudFormationTemplate</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#setname"
-									class="tsd-kind-icon">setName</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#settype"
-									class="tsd-kind-icon">setType</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#transformarraytagstomap"
-									class="tsd-kind-icon">transformArrayTagsToMap</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#transformmaptagstoarray"
-									class="tsd-kind-icon">transformMapTagsToArray</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#uploadstatics"
-									class="tsd-kind-icon">uploadStatics</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#waitfor"
-									class="tsd-kind-icon">waitFor</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_aws.cloudformationdeployer.html#init"
-									class="tsd-kind-icon">init</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_aws.cloudformationdeployer.html#shellcommand"
-									class="tsd-kind-icon">shellCommand</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#apigateway" class="tsd-kind-icon">APIGateway</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#apigatewaydomain" class="tsd-kind-icon">APIGateway<wbr>Domain</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#fargate" class="tsd-kind-icon">Fargate</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#lambda" class="tsd-kind-icon">Lambda</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#policy" class="tsd-kind-icon">Policy</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#resources-1" class="tsd-kind-icon">Resources</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#role" class="tsd-kind-icon">Role</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#_replaceforaws" class="tsd-kind-icon">_replace<wbr>ForAWS</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#addassumerolepolicystatement" class="tsd-kind-icon">add<wbr>Assume<wbr>Role<wbr>Policy<wbr>Statement</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#builddocker" class="tsd-kind-icon">build<wbr>Docker</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#commonprefix" class="tsd-kind-icon">common<wbr>Prefix</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#completeopenapi" class="tsd-kind-icon">complete<wbr>OpenAPI</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#createbucket" class="tsd-kind-icon">create<wbr>Bucket</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#createcloudformation" class="tsd-kind-icon">create<wbr>Cloud<wbr>Formation</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#createcloudformationchangeset" class="tsd-kind-icon">create<wbr>Cloud<wbr>Formation<wbr>Change<wbr>Set</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#createcloudformationdnsentry" class="tsd-kind-icon">create<wbr>Cloud<wbr>FormationDNSEntry</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_aws.cloudformationdeployer.html#creatednsentry" class="tsd-kind-icon">createDNSEntry</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#createstatic" class="tsd-kind-icon">create<wbr>Static</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_aws.cloudformationdeployer.html#defaultresources" class="tsd-kind-icon">default<wbr>Resources</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#deletecloudformation" class="tsd-kind-icon">delete<wbr>Cloud<wbr>Formation</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_aws.cloudformationdeployer.html#deploy" class="tsd-kind-icon">deploy</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#docreatecertificate" class="tsd-kind-icon">do<wbr>Create<wbr>Certificate</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#execute" class="tsd-kind-icon">execute</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#generatelambdapackage" class="tsd-kind-icon">generate<wbr>Lambda<wbr>Package</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getarnpolicy" class="tsd-kind-icon">getARNPolicy</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getawsidentity" class="tsd-kind-icon">getAWSIdentity</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getapplication" class="tsd-kind-icon">get<wbr>Application</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getcertificate" class="tsd-kind-icon">get<wbr>Certificate</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getdefaulttags" class="tsd-kind-icon">get<wbr>Default<wbr>Tags</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getdefaulttagsasmap" class="tsd-kind-icon">get<wbr>Default<wbr>Tags<wbr>AsMap</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getdefaulttagsass3tagging" class="tsd-kind-icon">get<wbr>Default<wbr>Tags<wbr>AsS3<wbr>Tagging</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getdefaultvpc" class="tsd-kind-icon">get<wbr>Default<wbr>Vpc</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getpolicydocument" class="tsd-kind-icon">get<wbr>Policy<wbr>Document</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getregion" class="tsd-kind-icon">get<wbr>Region</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#getstringified" class="tsd-kind-icon">get<wbr>Stringified</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#getzonefordomainname" class="tsd-kind-icon">get<wbr>Zone<wbr>For<wbr>Domain<wbr>Name</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_aws.cloudformationdeployer.html#hash" class="tsd-kind-icon">hash</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#importopenapi" class="tsd-kind-icon">import<wbr>Open<wbr>Api</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#loaddefaults" class="tsd-kind-icon">load<wbr>Defaults</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_aws.cloudformationdeployer.html#md5" class="tsd-kind-icon">md5</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#putfilesonbucket" class="tsd-kind-icon">put<wbr>Files<wbr>OnBucket</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#putfolderonbucket" class="tsd-kind-icon">put<wbr>Folder<wbr>OnBucket</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#replaceresourcesvariables" class="tsd-kind-icon">replace<wbr>Resources<wbr>Variables</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#replacevariables" class="tsd-kind-icon">replace<wbr>Variables</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#sendcloudformationtemplate" class="tsd-kind-icon">send<wbr>Cloud<wbr>Formation<wbr>Template</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#setname" class="tsd-kind-icon">set<wbr>Name</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#settype" class="tsd-kind-icon">set<wbr>Type</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#transformarraytagstomap" class="tsd-kind-icon">transform<wbr>Array<wbr>Tags<wbr>ToMap</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#transformmaptagstoarray" class="tsd-kind-icon">transform<wbr>Map<wbr>Tags<wbr>ToArray</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.cloudformationdeployer.html#uploadstatics" class="tsd-kind-icon">upload<wbr>Statics</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.cloudformationdeployer.html#waitfor" class="tsd-kind-icon">wait<wbr>For</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_aws.cloudformationdeployer.html#getschema" class="tsd-kind-icon">get<wbr>Schema</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_aws.cloudformationdeployer.html#init" class="tsd-kind-icon">init</a></li>
+							</ul>
 						</section>
 					</div>
 				</section>
@@ -673,15 +555,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L257">
-											packages/aws/src/deployers/cloudformation.ts:257
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L258">
+											packages/aws/src/deployers/cloudformation.ts:258
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-			</section></section>
+			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -696,45 +578,57 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="_defaulted" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">_defaulted<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L19">
-									packages/shell/lib/deployers/deployer.d.ts:19
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L14">
+									packages/shell/lib/deployers/deployer.d.ts:14
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="app" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">app<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Application</span></div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L17">
-									packages/shell/lib/deployers/deployer.d.ts:17
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L12">
+									packages/shell/lib/deployers/deployer.d.ts:12
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="logger" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">logger<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Logger</span></div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L20">
-									packages/shell/lib/deployers/deployer.d.ts:20
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L15">
+									packages/shell/lib/deployers/deployer.d.ts:15
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="manager" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">manager<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">DeploymentManager</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L11">
+									packages/shell/lib/deployers/deployer.d.ts:11
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="name" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
@@ -744,31 +638,19 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="name" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L21">
-									packages/shell/lib/deployers/deployer.d.ts:21
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="now" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">now<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L23">
-									packages/shell/lib/deployers/deployer.d.ts:23
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L18">
+									packages/shell/lib/deployers/deployer.d.ts:18
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="openapis3object" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">openapi<wbr>S3Object<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<div class="tsd-type-declaration">
@@ -785,51 +667,63 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L258">
+									packages/aws/src/deployers/cloudformation.ts:258
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="packagedescription" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">package<wbr>Description<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L13">
+									packages/shell/lib/deployers/deployer.d.ts:13
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="parameters" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">parameters<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L19">
+									packages/shell/lib/deployers/deployer.d.ts:19
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="resources" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">resources<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">CloudFormationDeployerResources</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/lib/utils/abstractdeployer.d.ts#L7">
+									packages/core/lib/utils/abstractdeployer.d.ts:7
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="result" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">result<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
 								<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L257">
 									packages/aws/src/deployers/cloudformation.ts:257
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="packagedescription" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">package<wbr>Description<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L18">
-									packages/shell/lib/deployers/deployer.d.ts:18
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="parameters" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">parameters<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L24">
-									packages/shell/lib/deployers/deployer.d.ts:24
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="resources" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">resources<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">CloudFormationDeployerResources</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L15">
-									packages/shell/lib/deployers/deployer.d.ts:15
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="result" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">result<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="template" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">template<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
@@ -839,31 +733,19 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="template" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">template<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L255">
-									packages/aws/src/deployers/cloudformation.ts:255
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="type" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">type<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L22">
-									packages/shell/lib/deployers/deployer.d.ts:22
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L17">
+									packages/shell/lib/deployers/deployer.d.ts:17
 								</a>
 							</li>
 						</ul>
 					</aside>
-			</section></section>
+			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
@@ -879,15 +761,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L824">
-											packages/aws/src/deployers/cloudformation.ts:824
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L900">
+											packages/aws/src/deployers/cloudformation.ts:900
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="apigatewaydomain" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">APIGateway<wbr>Domain<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -900,15 +782,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L876">
-											packages/aws/src/deployers/cloudformation.ts:876
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L952">
+											packages/aws/src/deployers/cloudformation.ts:952
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="fargate" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">Fargate<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -921,15 +803,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L974">
-											packages/aws/src/deployers/cloudformation.ts:974
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L1050">
+											packages/aws/src/deployers/cloudformation.ts:1050
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="lambda" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">Lambda<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -942,15 +824,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L950">
-											packages/aws/src/deployers/cloudformation.ts:950
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L1026">
+											packages/aws/src/deployers/cloudformation.ts:1026
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="policy" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">Policy<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -963,15 +845,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L915">
-											packages/aws/src/deployers/cloudformation.ts:915
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L991">
+											packages/aws/src/deployers/cloudformation.ts:991
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="resources-1" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">Resources<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -984,15 +866,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L758">
-											packages/aws/src/deployers/cloudformation.ts:758
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L834">
+											packages/aws/src/deployers/cloudformation.ts:834
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="role" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">Role<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1005,15 +887,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L937">
-											packages/aws/src/deployers/cloudformation.ts:937
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L1013">
+											packages/aws/src/deployers/cloudformation.ts:1013
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="_replaceforaws" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">_replace<wbr>ForAWS<span class="tsd-signature-symbol">(</span>id<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -1048,7 +930,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="addassumerolepolicystatement" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">add<wbr>Assume<wbr>Role<wbr>Policy<wbr>Statement<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">...</span>statements<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1067,15 +949,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L930">
-											packages/aws/src/deployers/cloudformation.ts:930
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L1006">
+											packages/aws/src/deployers/cloudformation.ts:1006
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="builddocker" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">build<wbr>Docker<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1088,15 +970,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L967">
-											packages/aws/src/deployers/cloudformation.ts:967
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L1043">
+											packages/aws/src/deployers/cloudformation.ts:1043
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="commonprefix" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">common<wbr>Prefix<span class="tsd-signature-symbol">(</span>str1<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, str2<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -1141,7 +1023,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="completeopenapi" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">complete<wbr>OpenAPI<span class="tsd-signature-symbol">(</span>openapi<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1160,15 +1042,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L772">
-											packages/aws/src/deployers/cloudformation.ts:772
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L848">
+											packages/aws/src/deployers/cloudformation.ts:848
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="createbucket" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">create<wbr>Bucket<span class="tsd-signature-symbol">(</span>Bucket<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1201,7 +1083,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="createcloudformation" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">create<wbr>Cloud<wbr>Formation<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1210,19 +1092,56 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Upload and create the cloudformation stack or update it</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L597">
-											packages/aws/src/deployers/cloudformation.ts:597
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L710">
+											packages/aws/src/deployers/cloudformation.ts:710
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="createcloudformationchangeset" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">create<wbr>Cloud<wbr>Formation<wbr>Change<wbr>Set<span class="tsd-signature-symbol">(</span>cloudformation<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">CloudFormation</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Create the stack changeset</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>cloudformation: <span class="tsd-signature-type">CloudFormation</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L628">
+											packages/aws/src/deployers/cloudformation.ts:628
+										</a>
+									</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="createcloudformationdnsentry" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">create<wbr>Cloud<wbr>FormationDNSEntry<span class="tsd-signature-symbol">(</span>ref<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, domain<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, HostedZoneId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1247,15 +1166,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L565">
-											packages/aws/src/deployers/cloudformation.ts:565
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L591">
+											packages/aws/src/deployers/cloudformation.ts:591
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 					<a name="creatednsentry" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 						<li class="tsd-signature tsd-kind-icon">createDNSEntry<span class="tsd-signature-symbol">(</span>domain<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, type<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, value<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, targetZone<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">HostedZone</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1308,7 +1227,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="createstatic" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">create<wbr>Static<span class="tsd-signature-symbol">(</span>info<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1327,15 +1246,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L500">
-											packages/aws/src/deployers/cloudformation.ts:500
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L512">
+											packages/aws/src/deployers/cloudformation.ts:512
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 					<a name="defaultresources" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 						<li class="tsd-signature tsd-kind-icon">default<wbr>Resources<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1349,15 +1268,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L263">
-											packages/aws/src/deployers/cloudformation.ts:263
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L264">
+											packages/aws/src/deployers/cloudformation.ts:264
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="deletecloudformation" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">delete<wbr>Cloud<wbr>Formation<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1366,19 +1285,24 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Delete the CloudFormation stack</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L547">
-											packages/aws/src/deployers/cloudformation.ts:547
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L566">
+											packages/aws/src/deployers/cloudformation.ts:566
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 					<a name="deploy" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 						<li class="tsd-signature tsd-kind-icon">deploy<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1392,15 +1316,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L432">
-											packages/aws/src/deployers/cloudformation.ts:432
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L440">
+											packages/aws/src/deployers/cloudformation.ts:440
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="docreatecertificate" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">do<wbr>Create<wbr>Certificate<span class="tsd-signature-symbol">(</span>domain<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, zone<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">HostedZone</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">CertificateDetail</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1442,7 +1366,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="execute" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">execute<span class="tsd-signature-symbol">(</span>command<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, stdin<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span>, resolveOnError<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span>, logLevel<span class="tsd-signature-symbol">?: </span><a href="../modules/_webda_workout.html#workerloglevel" class="tsd-signature-type">WorkerLogLevel</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1473,15 +1397,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L68">
-											packages/shell/lib/deployers/deployer.d.ts:68
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L63">
+											packages/shell/lib/deployers/deployer.d.ts:63
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="generatelambdapackage" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">generate<wbr>Lambda<wbr>Package<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1494,15 +1418,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L1004">
-											packages/aws/src/deployers/cloudformation.ts:1004
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L1080">
+											packages/aws/src/deployers/cloudformation.ts:1080
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getarnpolicy" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">getARNPolicy<span class="tsd-signature-symbol">(</span>accountId<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, region<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">[]</span></li>
@@ -1533,7 +1457,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getawsidentity" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">getAWSIdentity<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">GetCallerIdentityResponse</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1560,7 +1484,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getapplication" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Application<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Application</span></li>
@@ -1579,15 +1503,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L39">
-											packages/shell/lib/deployers/deployer.d.ts:39
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L34">
+											packages/shell/lib/deployers/deployer.d.ts:34
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getcertificate" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Certificate<span class="tsd-signature-symbol">(</span>domain<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, region<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1628,7 +1552,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getdefaulttags" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Default<wbr>Tags<span class="tsd-signature-symbol">(</span>key<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">[]</span></li>
@@ -1664,7 +1588,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getdefaulttagsasmap" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Default<wbr>Tags<wbr>AsMap<span class="tsd-signature-symbol">(</span>key<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span></li>
@@ -1705,7 +1629,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getdefaulttagsass3tagging" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Default<wbr>Tags<wbr>AsS3<wbr>Tagging<span class="tsd-signature-symbol">(</span>key<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -1741,7 +1665,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getdefaultvpc" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Default<wbr>Vpc<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1768,7 +1692,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getpolicydocument" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Policy<wbr>Document<span class="tsd-signature-symbol">(</span>additionalStatements<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1805,7 +1729,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getregion" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Region<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -1832,7 +1756,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getstringified" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Stringified<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, filename<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, addPrefix<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span></li>
@@ -1865,15 +1789,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L793">
-											packages/aws/src/deployers/cloudformation.ts:793
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L869">
+											packages/aws/src/deployers/cloudformation.ts:869
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getzonefordomainname" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Zone<wbr>For<wbr>Domain<wbr>Name<span class="tsd-signature-symbol">(</span>domain<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">HostedZone</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1909,7 +1833,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 					<a name="hash" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 						<li class="tsd-signature tsd-kind-icon">hash<span class="tsd-signature-symbol">(</span>str<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, type<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span>, format<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">"hex"</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">"base64"</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -1957,7 +1881,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="importopenapi" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">import<wbr>Open<wbr>Api<span class="tsd-signature-symbol">(</span>openapi<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1976,15 +1900,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L584">
-											packages/aws/src/deployers/cloudformation.ts:584
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L610">
+											packages/aws/src/deployers/cloudformation.ts:610
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="loaddefaults" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">load<wbr>Defaults<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1998,15 +1922,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L44">
-											packages/shell/lib/deployers/deployer.d.ts:44
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L39">
+											packages/shell/lib/deployers/deployer.d.ts:39
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 					<a name="md5" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 						<li class="tsd-signature tsd-kind-icon">md5<span class="tsd-signature-symbol">(</span>str<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -2042,7 +1966,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="putfilesonbucket" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">put<wbr>Files<wbr>OnBucket<span class="tsd-signature-symbol">(</span>bucket<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, files<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -2091,7 +2015,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="putfolderonbucket" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">put<wbr>Folder<wbr>OnBucket<span class="tsd-signature-symbol">(</span>bucket<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, folder<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, prefix<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -2139,7 +2063,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="replaceresourcesvariables" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">replace<wbr>Resources<wbr>Variables<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -2160,15 +2084,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L62">
-											packages/shell/lib/deployers/deployer.d.ts:62
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L57">
+											packages/shell/lib/deployers/deployer.d.ts:57
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="replacevariables" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">replace<wbr>Variables<span class="tsd-signature-symbol">(</span>obj<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
@@ -2196,15 +2120,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L54">
-											packages/shell/lib/deployers/deployer.d.ts:54
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L49">
+											packages/shell/lib/deployers/deployer.d.ts:49
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="sendcloudformationtemplate" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">send<wbr>Cloud<wbr>Formation<wbr>Template<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -2213,19 +2137,24 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Copy the CloudFormation template to the Assets bucket</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L537">
-											packages/aws/src/deployers/cloudformation.ts:537
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L552">
+											packages/aws/src/deployers/cloudformation.ts:552
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="setname" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">set<wbr>Name<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -2252,15 +2181,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L30">
-											packages/shell/lib/deployers/deployer.d.ts:30
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L25">
+											packages/shell/lib/deployers/deployer.d.ts:25
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="settype" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">set<wbr>Type<span class="tsd-signature-symbol">(</span>type<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -2285,15 +2214,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L35">
-											packages/shell/lib/deployers/deployer.d.ts:35
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/lib/deployers/deployer.d.ts#L30">
+											packages/shell/lib/deployers/deployer.d.ts:30
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="transformarraytagstomap" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">transform<wbr>Array<wbr>Tags<wbr>ToMap<span class="tsd-signature-symbol">(</span>tags<span class="tsd-signature-symbol">: </span><a href="../modules/_webda_aws.html#tagsdefinition" class="tsd-signature-type">TagsDefinition</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span></li>
@@ -2333,7 +2262,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="transformmaptagstoarray" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">transform<wbr>Map<wbr>Tags<wbr>ToArray<span class="tsd-signature-symbol">(</span>tags<span class="tsd-signature-symbol">: </span><a href="../modules/_webda_aws.html#tagsdefinition" class="tsd-signature-type">TagsDefinition</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">[]</span></li>
@@ -2368,7 +2297,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="uploadstatics" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">upload<wbr>Statics<span class="tsd-signature-symbol">(</span>assets<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -2377,25 +2306,32 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Upload any asset to bucket</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> assets: <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = true</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L488">
-											packages/aws/src/deployers/cloudformation.ts:488
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L500">
+											packages/aws/src/deployers/cloudformation.ts:500
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="waitfor" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">wait<wbr>For<span class="tsd-signature-symbol">(</span>callback<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, delay<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, retries<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, title<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -2460,7 +2396,37 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+					<a name="getschema" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Schema<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">JSONSchema6</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="_webda_aws.awsdeployer.html">AWSDeployer</a>.<a href="_webda_aws.awsdeployer.html#getschema">getSchema</a></p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Allow to specify the JSONSchema to configure this service</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-text">
+								<p>Return undefined by default to fallback on the guess from ServiceParamaters</p>
+								<p>Using this method should only be exception</p>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">JSONSchema6</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/lib/utils/abstractdeployer.d.ts#L15">
+											packages/core/lib/utils/abstractdeployer.d.ts:15
+										</a>
+									</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="init" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">init<span class="tsd-signature-symbol">(</span>console<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">-1</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">0</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -2479,46 +2445,16 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L1030">
-											packages/aws/src/deployers/cloudformation.ts:1030
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L1105">
+											packages/aws/src/deployers/cloudformation.ts:1105
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
-					<a name="shellcommand" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
-						<li class="tsd-signature tsd-kind-icon">shell<wbr>Command<span class="tsd-signature-symbol">(</span>Console<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">1</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">-1</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">0</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>Console: <span class="tsd-signature-type">any</span></h5>
-								</li>
-								<li>
-									<h5>args: <span class="tsd-signature-type">any</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">1</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">-1</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">0</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/aws/src/deployers/cloudformation.ts#L1091">
-											packages/aws/src/deployers/cloudformation.ts:1091
-										</a>
-									</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-			</section></section>
-			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Guides&quot;,&quot;url&quot;:&quot;/pages/Pages/Guides.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;groups&quot;:[{&quot;title&quot;:&quot;Pages&quot;,&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;pages&quot;:[{&quot;title&quot;:&quot;Quick Start&quot;,&quot;source&quot;:&quot;QuickStart.md&quot;},{&quot;title&quot;:&quot;Guides&quot;,&quot;source&quot;:&quot;Guides.md&quot;,&quot;children&quot;:[{&quot;source&quot;:&quot;Authentication.md&quot;},{&quot;source&quot;:&quot;AWS.md&quot;}]}]}],&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;useMarkdownTitle&quot;:true}}-->
+			</section>    </section>
+			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Quick Start&quot;,&quot;url&quot;:&quot;/pages/QuickStart.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true}}-->
 			<footer class="with-border-bottom">
 			</footer>
 			<div class="container tsd-generator">

@@ -4,10 +4,11 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<title>User |
-	webda.io - v1.0.0-beta.16</title>
+	webda.io - v1.1.1</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
+	<script async src="../assets/js/search.js" id="search-script"></script>
 </head>
 <body>
 <div class="main">
@@ -27,9 +28,13 @@
 					</ul>
 					<ul class="results-priority" style="display:none">
 					</ul>
-					<a href="../index.html" class="title">webda.io - v1.0.0-beta.16</a>
-					&emsp;<a href="/pages/Pages/Guides.html" class="title">Guides</a>
-					&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+					<div class="topMenu">
+						<a href="../index.html" class="title">webda.io - v1.1.1</a>
+						<div class="links">
+							&emsp;<a href="/pages/QuickStart.html" class="title">Quick Start</a>
+							&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+						</div>
+					</div>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -69,19 +74,23 @@
 		<div class="col-menu menu-sticky-wrap menu-highlight">
 			<nav class="tsd-navigation root">
 				<ul>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Concepts.html" class="tsd-kind-icon">Concepts</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Deployments.html" class="tsd-kind-icon">Deployments</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Migration.html" class="tsd-kind-icon">Migration</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Security.html" class="tsd-kind-icon">Security</a>
+					</li>
 					<li class=" pp-nav pp-group root">
-						<a href="" class="tsd-kind-icon">Pages</a>
-					</li>
-					<li class=" pp-nav pp-page root">
-						<a href="../pages/Pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start
-						</a>
-					</li>
-					<li class=" pp-nav pp-page pp-parent root">
-						<a href="../pages/Pages/Guides.html" class="tsd-kind-icon">Concepts
-						</a>
-					</li>
-					<li class=" pp-nav pp-group root">
-						<a href="../globals.html" class="tsd-kind-icon">Modules</a>
+						<a href="" class="tsd-kind-icon">Modules</a>
 					</li>
 					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_aws.html" class="tsd-kind-icon">@webda/aws</a>
@@ -133,9 +142,6 @@
 								<a href="_webda_core.user.html#__ctx" class="tsd-kind-icon">__ctx</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.user.html#__deleted" class="tsd-kind-icon">__deleted</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.user.html#__store" class="tsd-kind-icon">__store</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -148,9 +154,6 @@
 								<a href="_webda_core.user.html#_user" class="tsd-kind-icon">_user</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.user.html#lastupdate" class="tsd-kind-icon">last<wbr>Update</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.user.html#public" class="tsd-kind-icon">public</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -158,9 +161,6 @@
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static">
 								<a href="_webda_core.user.html#jsonexcludes" class="tsd-kind-icon">json<wbr>Excludes</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.user.html#_getschema" class="tsd-kind-icon">_get<wbr>Schema</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.user.html#_jsonfilter" class="tsd-kind-icon">_json<wbr>Filter</a>
@@ -292,6 +292,9 @@
 								<a href="_webda_core.user.html#getactions" class="tsd-kind-icon">get<wbr>Actions</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+								<a href="_webda_core.user.html#getschema" class="tsd-kind-icon">get<wbr>Schema</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
 								<a href="_webda_core.user.html#getuuidfield" class="tsd-kind-icon">get<wbr>Uuid<wbr>Field</a>
 							</li>
 						</ul>
@@ -326,178 +329,66 @@
 					<div class="tsd-index-content">
 						<section class="tsd-index-section tsd-is-inherited">
 							<h3>Properties</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#__ctx"
-									class="tsd-kind-icon">__ctx</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#__deleted"
-									class="tsd-kind-icon">__deleted</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#__store"
-									class="tsd-kind-icon">__store</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_creationdate"
-									class="tsd-kind-icon">_creationDate</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_lastupdate"
-									class="tsd-kind-icon">_lastUpdate</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_user"
-									class="tsd-kind-icon">_user</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#lastupdate"
-									class="tsd-kind-icon">lastUpdate</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#public"
-									class="tsd-kind-icon">public</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#uuid"
-									class="tsd-kind-icon">uuid</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_core.user.html#jsonexcludes"
-									class="tsd-kind-icon">jsonExcludes</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#__ctx" class="tsd-kind-icon">__ctx</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#__store" class="tsd-kind-icon">__store</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_creationdate" class="tsd-kind-icon">_creation<wbr>Date</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_lastupdate" class="tsd-kind-icon">_last<wbr>Update</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_user" class="tsd-kind-icon">_user</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#public" class="tsd-kind-icon">public</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#uuid" class="tsd-kind-icon">uuid</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_core.user.html#jsonexcludes" class="tsd-kind-icon">json<wbr>Excludes</a></li>
+							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_getschema"
-									class="tsd-kind-icon">_getSchema</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_jsonfilter"
-									class="tsd-kind-icon">_jsonFilter</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_ondelete"
-									class="tsd-kind-icon">_onDelete</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_ondeleted"
-									class="tsd-kind-icon">_onDeleted</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_onget"
-									class="tsd-kind-icon">_onGet</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_onsave"
-									class="tsd-kind-icon">_onSave</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_onsaved"
-									class="tsd-kind-icon">_onSaved</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_onupdate"
-									class="tsd-kind-icon">_onUpdate</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_onupdated"
-									class="tsd-kind-icon">_onUpdated</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_tojson"
-									class="tsd-kind-icon">_toJSON</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#addgroup"
-									class="tsd-kind-icon">addGroup</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#addrole"
-									class="tsd-kind-icon">addRole</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#attach"
-									class="tsd-kind-icon">attach</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#canact"
-									class="tsd-kind-icon">canAct</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#cancreate"
-									class="tsd-kind-icon">canCreate</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#candelete"
-									class="tsd-kind-icon">canDelete</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#canget"
-									class="tsd-kind-icon">canGet</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#canupdate"
-									class="tsd-kind-icon">canUpdate</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#delete"
-									class="tsd-kind-icon">delete</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#generateuid"
-									class="tsd-kind-icon">generateUid</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#getavailableactions"
-									class="tsd-kind-icon">getAvailableActions</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#getcontext"
-									class="tsd-kind-icon">getContext</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#getgroups"
-									class="tsd-kind-icon">getGroups</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#getowner"
-									class="tsd-kind-icon">getOwner</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#getpassword"
-									class="tsd-kind-icon">getPassword</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#getroles"
-									class="tsd-kind-icon">getRoles</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="_webda_core.user.html#getservice"
-									class="tsd-kind-icon">getService</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#getstore"
-									class="tsd-kind-icon">getStore</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#hasrole"
-									class="tsd-kind-icon">hasRole</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#ingroup"
-									class="tsd-kind-icon">inGroup</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#isattached"
-									class="tsd-kind-icon">isAttached</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#lastpasswordrecoverybefore"
-									class="tsd-kind-icon">lastPasswordRecoveryBefore</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#load"
-									class="tsd-kind-icon">load</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#refresh"
-									class="tsd-kind-icon">refresh</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#removegroup"
-									class="tsd-kind-icon">removeGroup</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#removerole"
-									class="tsd-kind-icon">removeRole</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#save"
-									class="tsd-kind-icon">save</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#setcontext"
-									class="tsd-kind-icon">setContext</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#setpassword"
-									class="tsd-kind-icon">setPassword</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#tojson"
-									class="tsd-kind-icon">toJSON</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#tostoredjson"
-									class="tsd-kind-icon">toStoredJSON</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#update"
-									class="tsd-kind-icon">update</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#validate"
-									class="tsd-kind-icon">validate</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_core.user.html#getactions"
-									class="tsd-kind-icon">getActions</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_core.user.html#getuuidfield"
-									class="tsd-kind-icon">getUuidField</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_jsonfilter" class="tsd-kind-icon">_json<wbr>Filter</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_ondelete" class="tsd-kind-icon">_on<wbr>Delete</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_ondeleted" class="tsd-kind-icon">_on<wbr>Deleted</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_onget" class="tsd-kind-icon">_on<wbr>Get</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_onsave" class="tsd-kind-icon">_on<wbr>Save</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_onsaved" class="tsd-kind-icon">_on<wbr>Saved</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_onupdate" class="tsd-kind-icon">_on<wbr>Update</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_onupdated" class="tsd-kind-icon">_on<wbr>Updated</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#_tojson" class="tsd-kind-icon">_toJSON</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#addgroup" class="tsd-kind-icon">add<wbr>Group</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#addrole" class="tsd-kind-icon">add<wbr>Role</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#attach" class="tsd-kind-icon">attach</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#canact" class="tsd-kind-icon">can<wbr>Act</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#cancreate" class="tsd-kind-icon">can<wbr>Create</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#candelete" class="tsd-kind-icon">can<wbr>Delete</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#canget" class="tsd-kind-icon">can<wbr>Get</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#canupdate" class="tsd-kind-icon">can<wbr>Update</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#delete" class="tsd-kind-icon">delete</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#generateuid" class="tsd-kind-icon">generate<wbr>Uid</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#getavailableactions" class="tsd-kind-icon">get<wbr>Available<wbr>Actions</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#getcontext" class="tsd-kind-icon">get<wbr>Context</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#getgroups" class="tsd-kind-icon">get<wbr>Groups</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#getowner" class="tsd-kind-icon">get<wbr>Owner</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#getpassword" class="tsd-kind-icon">get<wbr>Password</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#getroles" class="tsd-kind-icon">get<wbr>Roles</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="_webda_core.user.html#getservice" class="tsd-kind-icon">get<wbr>Service</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#getstore" class="tsd-kind-icon">get<wbr>Store</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#hasrole" class="tsd-kind-icon">has<wbr>Role</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#ingroup" class="tsd-kind-icon">in<wbr>Group</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#isattached" class="tsd-kind-icon">is<wbr>Attached</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#lastpasswordrecoverybefore" class="tsd-kind-icon">last<wbr>Password<wbr>Recovery<wbr>Before</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#load" class="tsd-kind-icon">load</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#refresh" class="tsd-kind-icon">refresh</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#removegroup" class="tsd-kind-icon">remove<wbr>Group</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#removerole" class="tsd-kind-icon">remove<wbr>Role</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#save" class="tsd-kind-icon">save</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#setcontext" class="tsd-kind-icon">set<wbr>Context</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.user.html#setpassword" class="tsd-kind-icon">set<wbr>Password</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#tojson" class="tsd-kind-icon">toJSON</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#tostoredjson" class="tsd-kind-icon">to<wbr>StoredJSON</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#update" class="tsd-kind-icon">update</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.user.html#validate" class="tsd-kind-icon">validate</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_core.user.html#getactions" class="tsd-kind-icon">get<wbr>Actions</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_core.user.html#getschema" class="tsd-kind-icon">get<wbr>Schema</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_core.user.html#getuuidfield" class="tsd-kind-icon">get<wbr>Uuid<wbr>Field</a></li>
+							</ul>
 						</section>
 					</div>
 				</section>
@@ -511,77 +402,76 @@
 						<div class="lead">
 							<p>Object context</p>
 						</div>
+						</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+						<dl class="tsd-comment-tags"><dt>tjs-ignore</dt>
+						<dd></dd></dl>
 					</div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L41">
-									packages/core/src/models/coremodel.ts:41
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L44">
+									packages/core/src/models/coremodel.ts:44
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="__deleted" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">__deleted<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
-					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-						<div class="lead">
-							<p>If an object is deleted but not removed from DB for historic</p>
-						</div>
-					</div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L53">
-									packages/core/src/models/coremodel.ts:53
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="__store" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">__store<span class="tsd-signature-symbol">:</span> <a href="_webda_core.store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.coremodel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">&gt;</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
 							<p>If object is attached to its store</p>
 						</div>
+						</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+						<dl class="tsd-comment-tags"><dt>tjs-ignore</dt>
+						<dd></dd></dl>
 					</div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L45">
-									packages/core/src/models/coremodel.ts:45
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L50">
+									packages/core/src/models/coremodel.ts:50
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="_creationdate" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">_creation<wbr>Date<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Date</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Creation date</p>
+						</div>
+					</div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L47">
-									packages/core/src/models/coremodel.ts:47
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L55">
+									packages/core/src/models/coremodel.ts:55
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="_lastupdate" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">_last<wbr>Update<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Date</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Last update date</p>
+						</div>
+					</div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L49">
-									packages/core/src/models/coremodel.ts:49
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L59">
+									packages/core/src/models/coremodel.ts:59
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="_user" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">_user<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					<div class="tsd-signature tsd-kind-icon">_user<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
@@ -591,19 +481,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="lastupdate" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">last<wbr>Update<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Date</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L48">
-									packages/core/src/models/coremodel.ts:48
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="public" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">public<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
 					<aside class="tsd-sources">
@@ -615,7 +493,7 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="uuid" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">uuid<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
@@ -627,50 +505,22 @@
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-static">
 					<a name="jsonexcludes" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">json<wbr>Excludes<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = [&quot;__store&quot;, &quot;__ctx&quot;]</span></div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L37">
-									packages/core/src/models/coremodel.ts:37
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L38">
+									packages/core/src/models/coremodel.ts:38
 								</a>
 							</li>
 						</ul>
 					</aside>
-			</section></section>
+			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="_getschema" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">_get<wbr>Schema<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.user.html">User</a>.<a href="_webda_core.user.html#_getschema">_getSchema</a></p>
-							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Return the object schema, if defined any modification done to the object by external source
-									must comply to this schema</p>
-								</div>
-							</div>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L208">
-											packages/core/src/models/coremodel.ts:208
-										</a>
-									</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="_jsonfilter" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">_json<wbr>Filter<span class="tsd-signature-symbol">(</span>key<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, value<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
@@ -680,6 +530,11 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_core.user.html">User</a>.<a href="_webda_core.user.html#_jsonfilter">_jsonFilter</a></p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Remove all the attribute starting with __</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -693,15 +548,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L236">
-											packages/core/src/models/coremodel.ts:236
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L266">
+											packages/core/src/models/coremodel.ts:266
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="_ondelete" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">_on<wbr>Delete<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -711,19 +566,24 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_core.user.html">User</a>.<a href="_webda_core.user.html#_ondelete">_onDelete</a></p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Called when object is about to be deleted</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L290">
-											packages/core/src/models/coremodel.ts:290
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L342">
+											packages/core/src/models/coremodel.ts:342
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="_ondeleted" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">_on<wbr>Deleted<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -733,19 +593,24 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_core.user.html">User</a>.<a href="_webda_core.user.html#_ondeleted">_onDeleted</a></p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Called when object has been deleted</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L291">
-											packages/core/src/models/coremodel.ts:291
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L349">
+											packages/core/src/models/coremodel.ts:349
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="_onget" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">_on<wbr>Get<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -755,19 +620,24 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_core.user.html">User</a>.<a href="_webda_core.user.html#_onget">_onGet</a></p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Called when object is retrieved</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L292">
-											packages/core/src/models/coremodel.ts:292
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L356">
+											packages/core/src/models/coremodel.ts:356
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="_onsave" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">_on<wbr>Save<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -777,19 +647,24 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_core.user.html">User</a>.<a href="_webda_core.user.html#_onsave">_onSave</a></p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Called when object is about to be saved</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L293">
-											packages/core/src/models/coremodel.ts:293
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L363">
+											packages/core/src/models/coremodel.ts:363
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="_onsaved" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">_on<wbr>Saved<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -799,19 +674,24 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_core.user.html">User</a>.<a href="_webda_core.user.html#_onsaved">_onSaved</a></p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Called when object is saved</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L294">
-											packages/core/src/models/coremodel.ts:294
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L370">
+											packages/core/src/models/coremodel.ts:370
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="_onupdate" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">_on<wbr>Update<span class="tsd-signature-symbol">(</span>updates<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -821,25 +701,33 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_core.user.html">User</a>.<a href="_webda_core.user.html#_onupdate">_onUpdate</a></p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Called when object is about to be updates</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>updates: <span class="tsd-signature-type">any</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>to be send</p>
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L295">
-											packages/core/src/models/coremodel.ts:295
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L379">
+											packages/core/src/models/coremodel.ts:379
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="_onupdated" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">_on<wbr>Updated<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -849,19 +737,24 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_core.user.html">User</a>.<a href="_webda_core.user.html#_onupdated">_onUpdated</a></p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Called when object is updated</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L296">
-											packages/core/src/models/coremodel.ts:296
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L386">
+											packages/core/src/models/coremodel.ts:386
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="_tojson" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">_toJSON<span class="tsd-signature-symbol">(</span>secure<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
@@ -871,25 +764,34 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_core.user.html">User</a>.<a href="_webda_core.user.html#_tojson">_toJSON</a></p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Remove the specific attributes if not secure</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>secure: <span class="tsd-signature-type">any</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>serialize server fields also</p>
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+							<p>filtered object to be serialized</p>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L270">
-											packages/core/src/models/coremodel.ts:270
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L314">
+											packages/core/src/models/coremodel.ts:314
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="addgroup" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">add<wbr>Group<span class="tsd-signature-symbol">(</span>group<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -916,7 +818,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="addrole" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">add<wbr>Role<span class="tsd-signature-symbol">(</span>role<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -943,7 +845,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="attach" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">attach<span class="tsd-signature-symbol">(</span>store<span class="tsd-signature-symbol">: </span><a href="_webda_core.store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.coremodel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -968,15 +870,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L81">
-											packages/core/src/models/coremodel.ts:81
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L93">
+											packages/core/src/models/coremodel.ts:93
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="canact" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">can<wbr>Act<span class="tsd-signature-symbol">(</span>ctx<span class="tsd-signature-symbol">: </span><a href="_webda_core.context.html" class="tsd-signature-type">Context</a>, action<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">this</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1007,7 +909,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="cancreate" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">can<wbr>Create<span class="tsd-signature-symbol">(</span>ctx<span class="tsd-signature-symbol">: </span><a href="_webda_core.context.html" class="tsd-signature-type">Context</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">this</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1040,7 +942,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="candelete" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">can<wbr>Delete<span class="tsd-signature-symbol">(</span>ctx<span class="tsd-signature-symbol">: </span><a href="_webda_core.context.html" class="tsd-signature-type">Context</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">this</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1073,7 +975,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="canget" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">can<wbr>Get<span class="tsd-signature-symbol">(</span>ctx<span class="tsd-signature-symbol">: </span><a href="_webda_core.context.html" class="tsd-signature-type">Context</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">this</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1106,7 +1008,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="canupdate" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">can<wbr>Update<span class="tsd-signature-symbol">(</span>ctx<span class="tsd-signature-symbol">: </span><a href="_webda_core.context.html" class="tsd-signature-type">Context</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">this</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1139,7 +1041,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="delete" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">delete<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1162,15 +1064,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L165">
-											packages/core/src/models/coremodel.ts:165
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L177">
+											packages/core/src/models/coremodel.ts:177
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="generateuid" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">generate<wbr>Uid<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -1180,6 +1082,11 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_core.user.html">User</a>.<a href="_webda_core.user.html#generateuid">generateUid</a></p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Generate uuid for the object</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -1190,15 +1097,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L232">
-											packages/core/src/models/coremodel.ts:232
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L256">
+											packages/core/src/models/coremodel.ts:256
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getavailableactions" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Available<wbr>Actions<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span></li>
@@ -1219,15 +1126,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L88">
-											packages/core/src/models/coremodel.ts:88
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L100">
+											packages/core/src/models/coremodel.ts:100
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getcontext" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Context<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_core.context.html" class="tsd-signature-type">Context</a></li>
@@ -1248,15 +1155,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L125">
-											packages/core/src/models/coremodel.ts:125
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L137">
+											packages/core/src/models/coremodel.ts:137
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getgroups" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Groups<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></li>
@@ -1277,17 +1184,17 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getowner" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Owner<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Owner<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_core.ownerpolicy.html">OwnerPolicy</a>.<a href="_webda_core.ownerpolicy.html#getowner">getOwner</a></p>
 							</aside>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
@@ -1299,7 +1206,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getpassword" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Password<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -1320,7 +1227,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getroles" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Roles<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></li>
@@ -1341,7 +1248,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
 					<a name="getservice" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Service&lt;T&gt;<span class="tsd-signature-symbol">(</span>service<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span></li>
@@ -1376,15 +1283,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L263">
-											packages/core/src/models/coremodel.ts:263
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L299">
+											packages/core/src/models/coremodel.ts:299
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getstore" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Store<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_core.store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.coremodel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.storeparameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1403,15 +1310,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L132">
-											packages/core/src/models/coremodel.ts:132
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L144">
+											packages/core/src/models/coremodel.ts:144
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="hasrole" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">has<wbr>Role<span class="tsd-signature-symbol">(</span>role<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
@@ -1438,7 +1345,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="ingroup" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">in<wbr>Group<span class="tsd-signature-symbol">(</span>group<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
@@ -1465,7 +1372,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="isattached" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">is<wbr>Attached<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
@@ -1484,15 +1391,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L74">
-											packages/core/src/models/coremodel.ts:74
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L86">
+											packages/core/src/models/coremodel.ts:86
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="lastpasswordrecoverybefore" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">last<wbr>Password<wbr>Recovery<wbr>Before<span class="tsd-signature-symbol">(</span>timestamp<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
@@ -1519,7 +1426,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="load" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">load<span class="tsd-signature-symbol">(</span>raw<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, secure<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1553,18 +1460,18 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L98">
-											packages/core/src/models/coremodel.ts:98
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L110">
+											packages/core/src/models/coremodel.ts:110
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="refresh" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">refresh<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.coremodel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">refresh<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">this</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1580,19 +1487,19 @@
 									<dd><p>Error if the object is not coming from a store</p>
 								</dd></dl>
 							</div>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.coremodel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">this</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L141">
-											packages/core/src/models/coremodel.ts:141
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L153">
+											packages/core/src/models/coremodel.ts:153
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="removegroup" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">remove<wbr>Group<span class="tsd-signature-symbol">(</span>group<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1619,7 +1526,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="removerole" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">remove<wbr>Role<span class="tsd-signature-symbol">(</span>role<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1646,7 +1553,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="save" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">save<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">this</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1669,15 +1576,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L177">
-											packages/core/src/models/coremodel.ts:177
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L189">
+											packages/core/src/models/coremodel.ts:189
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="setcontext" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">set<wbr>Context<span class="tsd-signature-symbol">(</span>ctx<span class="tsd-signature-symbol">: </span><a href="_webda_core.context.html" class="tsd-signature-type">Context</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1702,15 +1609,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L116">
-											packages/core/src/models/coremodel.ts:116
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L128">
+											packages/core/src/models/coremodel.ts:128
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="setpassword" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">set<wbr>Password<span class="tsd-signature-symbol">(</span>password<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1737,7 +1644,7 @@
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="tojson" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">toJSON<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
@@ -1747,47 +1654,61 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_core.user.html">User</a>.<a href="_webda_core.user.html#tojson">toJSON</a></p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Return the object without sensitive attributes</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+							<p>Object to serialize</p>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L286">
-											packages/core/src/models/coremodel.ts:286
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L335">
+											packages/core/src/models/coremodel.ts:335
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="tostoredjson" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">to<wbr>StoredJSON<span class="tsd-signature-symbol">(</span>stringify<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+						<li class="tsd-signature tsd-kind-icon">to<wbr>StoredJSON<span class="tsd-signature-symbol">(</span>stringify<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_core.user.html">User</a>.<a href="_webda_core.user.html#tostoredjson">toStoredJSON</a></p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Return the object to be serialized without the __store</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> stringify: <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = false</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span>
+								<span class="tsd-signature-symbol"> | </span>
+								<span class="tsd-signature-type">string</span>
+							</h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L243">
-											packages/core/src/models/coremodel.ts:243
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L279">
+											packages/core/src/models/coremodel.ts:279
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="update" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">update<span class="tsd-signature-symbol">(</span>changes<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1816,46 +1737,53 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L193">
-											packages/core/src/models/coremodel.ts:193
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L205">
+											packages/core/src/models/coremodel.ts:205
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="validate" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">validate<span class="tsd-signature-symbol">(</span>ctx<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, updates<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">validate<span class="tsd-signature-symbol">(</span>ctx<span class="tsd-signature-symbol">: </span><a href="_webda_core.context.html" class="tsd-signature-type">Context</a>, updates<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="_webda_core.user.html">User</a>.<a href="_webda_core.user.html#validate">validate</a></p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Validate objet modification</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>ctx: <span class="tsd-signature-type">any</span></h5>
+									<h5>ctx: <a href="_webda_core.context.html" class="tsd-signature-type">Context</a></h5>
 								</li>
 								<li>
 									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> updates: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol"> = undefined</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L212">
-											packages/core/src/models/coremodel.ts:212
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L233">
+											packages/core/src/models/coremodel.ts:233
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
 					<a name="getactions" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Actions<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span></li>
@@ -1878,15 +1806,45 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L60">
-											packages/core/src/models/coremodel.ts:60
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L72">
+											packages/core/src/models/coremodel.ts:72
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+					<a name="getschema" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Schema<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">JSONSchema6</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="_webda_core.user.html">User</a>.<a href="_webda_core.user.html#getschema">getSchema</a></p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Allow to specify the JSONSchema to configure this service</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-text">
+								<p>Return undefined by default to fallback on typescript-json-schema guess</p>
+								<p>Using this method should only be exception</p>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">JSONSchema6</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L223">
+											packages/core/src/models/coremodel.ts:223
+										</a>
+									</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
 					<a name="getuuidfield" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Uuid<wbr>Field<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></li>
@@ -1908,16 +1866,16 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L67">
-											packages/core/src/models/coremodel.ts:67
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/models/coremodel.ts#L79">
+											packages/core/src/models/coremodel.ts:79
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-			</section></section>
-			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Guides&quot;,&quot;url&quot;:&quot;/pages/Pages/Guides.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;groups&quot;:[{&quot;title&quot;:&quot;Pages&quot;,&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;pages&quot;:[{&quot;title&quot;:&quot;Quick Start&quot;,&quot;source&quot;:&quot;QuickStart.md&quot;},{&quot;title&quot;:&quot;Guides&quot;,&quot;source&quot;:&quot;Guides.md&quot;,&quot;children&quot;:[{&quot;source&quot;:&quot;Authentication.md&quot;},{&quot;source&quot;:&quot;AWS.md&quot;}]}]}],&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;useMarkdownTitle&quot;:true}}-->
+			</section>    </section>
+			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Quick Start&quot;,&quot;url&quot;:&quot;/pages/QuickStart.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true}}-->
 			<footer class="with-border-bottom">
 			</footer>
 			<div class="container tsd-generator">

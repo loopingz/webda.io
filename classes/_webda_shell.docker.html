@@ -4,10 +4,11 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<title>Docker |
-	webda.io - v1.0.0-beta.16</title>
+	webda.io - v1.1.1</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
+	<script async src="../assets/js/search.js" id="search-script"></script>
 </head>
 <body>
 <div class="main">
@@ -27,9 +28,13 @@
 					</ul>
 					<ul class="results-priority" style="display:none">
 					</ul>
-					<a href="../index.html" class="title">webda.io - v1.0.0-beta.16</a>
-					&emsp;<a href="/pages/Pages/Guides.html" class="title">Guides</a>
-					&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+					<div class="topMenu">
+						<a href="../index.html" class="title">webda.io - v1.1.1</a>
+						<div class="links">
+							&emsp;<a href="/pages/QuickStart.html" class="title">Quick Start</a>
+							&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+						</div>
+					</div>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -69,19 +74,23 @@
 		<div class="col-menu menu-sticky-wrap menu-highlight">
 			<nav class="tsd-navigation root">
 				<ul>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Concepts.html" class="tsd-kind-icon">Concepts</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Deployments.html" class="tsd-kind-icon">Deployments</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Migration.html" class="tsd-kind-icon">Migration</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Security.html" class="tsd-kind-icon">Security</a>
+					</li>
 					<li class=" pp-nav pp-group root">
-						<a href="" class="tsd-kind-icon">Pages</a>
-					</li>
-					<li class=" pp-nav pp-page root">
-						<a href="../pages/Pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start
-						</a>
-					</li>
-					<li class=" pp-nav pp-page pp-parent root">
-						<a href="../pages/Pages/Guides.html" class="tsd-kind-icon">Concepts
-						</a>
-					</li>
-					<li class=" pp-nav pp-group root">
-						<a href="../globals.html" class="tsd-kind-icon">Modules</a>
+						<a href="" class="tsd-kind-icon">Modules</a>
 					</li>
 					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_aws.html" class="tsd-kind-icon">@webda/aws</a>
@@ -249,6 +258,9 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_shell.docker.html#settype" class="tsd-kind-icon">set<wbr>Type</a>
 							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+								<a href="_webda_shell.docker.html#getschema" class="tsd-kind-icon">get<wbr>Schema</a>
+							</li>
 						</ul>
 					</li>
 				</ul>
@@ -261,6 +273,9 @@
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module root">
 						<a href="_webda_shell.shelldeployer.html" class="tsd-kind-icon">Shell<wbr>Deployer</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-module root">
+						<a href="_webda_shell.typescriptschemaresolver.html" class="tsd-kind-icon">Typescript<wbr>Schema<wbr>Resolver</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module root">
 						<a href="_webda_shell.webdaconfiguration.html" class="tsd-kind-icon">Webda<wbr>Configuration</a>
@@ -279,9 +294,6 @@
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module root">
 						<a href="../interfaces/_webda_shell.deployerconstructor.html" class="tsd-kind-icon">Deployer<wbr>Constructor</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module root">
-						<a href="../interfaces/_webda_shell.deployerresources.html" class="tsd-kind-icon">Deployer<wbr>Resources</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module root">
 						<a href="../interfaces/_webda_shell.dockerresources.html" class="tsd-kind-icon">Docker<wbr>Resources</a>
@@ -338,114 +350,51 @@
 					<div class="tsd-index-content">
 						<section class="tsd-index-section tsd-is-inherited">
 							<h3>Constructors</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#constructor"
-									class="tsd-kind-icon">constructor</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#constructor" class="tsd-kind-icon">constructor</a></li>
+							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.docker.html#_copied"
-									class="tsd-kind-icon">_copied</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#_defaulted"
-									class="tsd-kind-icon">_defaulted</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#app"
-									class="tsd-kind-icon">app</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#logger"
-									class="tsd-kind-icon">logger</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#manager"
-									class="tsd-kind-icon">manager</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#name"
-									class="tsd-kind-icon">name</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#now"
-									class="tsd-kind-icon">now</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#packagedescription"
-									class="tsd-kind-icon">packageDescription</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#parameters"
-									class="tsd-kind-icon">parameters</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#resources"
-									class="tsd-kind-icon">resources</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#type"
-									class="tsd-kind-icon">type</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.docker.html#workspaces"
-									class="tsd-kind-icon">workspaces</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.docker.html#_copied" class="tsd-kind-icon">_copied</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#_defaulted" class="tsd-kind-icon">_defaulted</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#app" class="tsd-kind-icon">app</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#logger" class="tsd-kind-icon">logger</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#manager" class="tsd-kind-icon">manager</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#name" class="tsd-kind-icon">name</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#now" class="tsd-kind-icon">now</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#packagedescription" class="tsd-kind-icon">package<wbr>Description</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#parameters" class="tsd-kind-icon">parameters</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#resources" class="tsd-kind-icon">resources</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#type" class="tsd-kind-icon">type</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_shell.docker.html#workspaces" class="tsd-kind-icon">workspaces</a></li>
+							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#addcommandtoimage"
-									class="tsd-kind-icon">addCommandToImage</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#adddeploymenttoimage"
-									class="tsd-kind-icon">addDeploymentToImage</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#builddocker"
-									class="tsd-kind-icon">buildDocker</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#copypackagefilesto"
-									class="tsd-kind-icon">copyPackageFilesTo</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#copypackagetolinkmodules"
-									class="tsd-kind-icon">copyPackageToLinkModules</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#defaultresources"
-									class="tsd-kind-icon">defaultResources</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_shell.docker.html#deploy"
-									class="tsd-kind-icon">deploy</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#execute"
-									class="tsd-kind-icon">execute</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#getapplication"
-									class="tsd-kind-icon">getApplication</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#getdockerfile"
-									class="tsd-kind-icon">getDockerfile</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#getdockerfileheader"
-									class="tsd-kind-icon">getDockerfileHeader</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#getdockerfilewebdashell"
-									class="tsd-kind-icon">getDockerfileWebdaShell</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#getworkspacesdockerfile"
-									class="tsd-kind-icon">getWorkspacesDockerfile</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_shell.docker.html#loaddefaults"
-									class="tsd-kind-icon">loadDefaults</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#replaceresourcesvariables"
-									class="tsd-kind-icon">replaceResourcesVariables</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#replacevariables"
-									class="tsd-kind-icon">replaceVariables</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#scanlinkmodules"
-									class="tsd-kind-icon">scanLinkModules</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#setname"
-									class="tsd-kind-icon">setName</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#settype"
-									class="tsd-kind-icon">setType</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#addcommandtoimage" class="tsd-kind-icon">add<wbr>Command<wbr>ToImage</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#adddeploymenttoimage" class="tsd-kind-icon">add<wbr>Deployment<wbr>ToImage</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#builddocker" class="tsd-kind-icon">build<wbr>Docker</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#copypackagefilesto" class="tsd-kind-icon">copy<wbr>Package<wbr>Files<wbr>To</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#copypackagetolinkmodules" class="tsd-kind-icon">copy<wbr>Package<wbr>ToLink<wbr>Modules</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#defaultresources" class="tsd-kind-icon">default<wbr>Resources</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_shell.docker.html#deploy" class="tsd-kind-icon">deploy</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#execute" class="tsd-kind-icon">execute</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#getapplication" class="tsd-kind-icon">get<wbr>Application</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#getdockerfile" class="tsd-kind-icon">get<wbr>Dockerfile</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#getdockerfileheader" class="tsd-kind-icon">get<wbr>Dockerfile<wbr>Header</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#getdockerfilewebdashell" class="tsd-kind-icon">get<wbr>Dockerfile<wbr>Webda<wbr>Shell</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#getworkspacesdockerfile" class="tsd-kind-icon">get<wbr>Workspaces<wbr>Dockerfile</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_shell.docker.html#loaddefaults" class="tsd-kind-icon">load<wbr>Defaults</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#replaceresourcesvariables" class="tsd-kind-icon">replace<wbr>Resources<wbr>Variables</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#replacevariables" class="tsd-kind-icon">replace<wbr>Variables</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.docker.html#scanlinkmodules" class="tsd-kind-icon">scan<wbr>Link<wbr>Modules</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#setname" class="tsd-kind-icon">set<wbr>Name</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_shell.docker.html#settype" class="tsd-kind-icon">set<wbr>Type</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_shell.docker.html#getschema" class="tsd-kind-icon">get<wbr>Schema</a></li>
+							</ul>
 						</section>
 					</div>
 				</section>
@@ -475,152 +424,20 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L27">
-											packages/shell/src/deployers/deployer.ts:27
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L22">
+											packages/shell/src/deployers/deployer.ts:22
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-			</section></section>
+			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="_copied" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">_copied<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = false</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L35">
-									packages/shell/src/deployers/docker.ts:35
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="_defaulted" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">_defaulted<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = false</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L21">
-									packages/shell/src/deployers/deployer.ts:21
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="app" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">app<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Application</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L19">
-									packages/shell/src/deployers/deployer.ts:19
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="logger" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">logger<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Logger</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L22">
-									packages/shell/src/deployers/deployer.ts:22
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="manager" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">manager<span class="tsd-signature-symbol">:</span> <a href="_webda_shell.deploymentmanager.html" class="tsd-signature-type">DeploymentManager</a></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L18">
-									packages/shell/src/deployers/deployer.ts:18
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="name" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L23">
-									packages/shell/src/deployers/deployer.ts:23
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="now" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">now<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L25">
-									packages/shell/src/deployers/deployer.ts:25
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="packagedescription" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">package<wbr>Description<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L20">
-									packages/shell/src/deployers/deployer.ts:20
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="parameters" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">parameters<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L27">
-									packages/shell/src/deployers/deployer.ts:27
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="resources" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">resources<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">T</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L17">
-									packages/shell/src/deployers/deployer.ts:17
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="type" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">type<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L24">
-									packages/shell/src/deployers/deployer.ts:24
-								</a>
-							</li>
-						</ul>
-					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="workspaces" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">workspaces<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = false</span></div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
@@ -630,7 +447,139 @@
 							</li>
 						</ul>
 					</aside>
-			</section></section>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="_defaulted" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">_defaulted<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = false</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L16">
+									packages/shell/src/deployers/deployer.ts:16
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="app" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">app<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Application</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L14">
+									packages/shell/src/deployers/deployer.ts:14
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="logger" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">logger<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Logger</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L17">
+									packages/shell/src/deployers/deployer.ts:17
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="manager" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">manager<span class="tsd-signature-symbol">:</span> <a href="_webda_shell.deploymentmanager.html" class="tsd-signature-type">DeploymentManager</a></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L13">
+									packages/shell/src/deployers/deployer.ts:13
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="name" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L18">
+									packages/shell/src/deployers/deployer.ts:18
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="now" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">now<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L20">
+									packages/shell/src/deployers/deployer.ts:20
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="packagedescription" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">package<wbr>Description<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L15">
+									packages/shell/src/deployers/deployer.ts:15
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="parameters" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">parameters<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L22">
+									packages/shell/src/deployers/deployer.ts:22
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="resources" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">resources<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">T</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/lib/utils/abstractdeployer.d.ts#L7">
+									packages/core/lib/utils/abstractdeployer.d.ts:7
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="type" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">type<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L19">
+									packages/shell/src/deployers/deployer.ts:19
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="workspaces" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">workspaces<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = false</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L37">
+									packages/shell/src/deployers/docker.ts:37
+								</a>
+							</li>
+						</ul>
+					</aside>
+			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
@@ -646,15 +595,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L344">
-											packages/shell/src/deployers/docker.ts:344
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L349">
+											packages/shell/src/deployers/docker.ts:349
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="adddeploymenttoimage" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">add<wbr>Deployment<wbr>ToImage<span class="tsd-signature-symbol">(</span>localPath<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span>, appPath<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -676,15 +625,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L297">
-											packages/shell/src/deployers/docker.ts:297
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L302">
+											packages/shell/src/deployers/docker.ts:302
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="builddocker" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">build<wbr>Docker<span class="tsd-signature-symbol">(</span>tag<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, file<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -717,15 +666,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L60">
-											packages/shell/src/deployers/docker.ts:60
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L65">
+											packages/shell/src/deployers/docker.ts:65
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="copypackagefilesto" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">copy<wbr>Package<wbr>Files<wbr>To<span class="tsd-signature-symbol">(</span>pkg<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, dst<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, addFiles<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -750,15 +699,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L309">
-											packages/shell/src/deployers/docker.ts:309
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L314">
+											packages/shell/src/deployers/docker.ts:314
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="copypackagetolinkmodules" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">copy<wbr>Package<wbr>ToLink<wbr>Modules<span class="tsd-signature-symbol">(</span>pkg<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, includeModules<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span>, subpkg<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -783,15 +732,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L112">
-											packages/shell/src/deployers/docker.ts:112
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L117">
+											packages/shell/src/deployers/docker.ts:117
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="defaultresources" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">default<wbr>Resources<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -810,15 +759,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L65">
-											packages/shell/src/deployers/deployer.ts:65
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L60">
+											packages/shell/src/deployers/deployer.ts:60
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 					<a name="deploy" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 						<li class="tsd-signature tsd-kind-icon">deploy<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -837,15 +786,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L90">
-											packages/shell/src/deployers/docker.ts:90
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L95">
+											packages/shell/src/deployers/docker.ts:95
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="execute" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">execute<span class="tsd-signature-symbol">(</span>command<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, stdin<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span>, resolveOnError<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span>, logLevel<span class="tsd-signature-symbol">?: </span><a href="../modules/_webda_workout.html#workerloglevel" class="tsd-signature-type">WorkerLogLevel</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -876,15 +825,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L108">
-											packages/shell/src/deployers/deployer.ts:108
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L103">
+											packages/shell/src/deployers/deployer.ts:103
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getapplication" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Application<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Application</span></li>
@@ -903,15 +852,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L58">
-											packages/shell/src/deployers/deployer.ts:58
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L53">
+											packages/shell/src/deployers/deployer.ts:53
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getdockerfile" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Dockerfile<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -929,15 +878,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L365">
-											packages/shell/src/deployers/docker.ts:365
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L370">
+											packages/shell/src/deployers/docker.ts:370
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getdockerfileheader" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Dockerfile<wbr>Header<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -950,15 +899,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L211">
-											packages/shell/src/deployers/docker.ts:211
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L216">
+											packages/shell/src/deployers/docker.ts:216
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getdockerfilewebdashell" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Dockerfile<wbr>Webda<wbr>Shell<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -979,15 +928,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L174">
-											packages/shell/src/deployers/docker.ts:174
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L179">
+											packages/shell/src/deployers/docker.ts:179
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getworkspacesdockerfile" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Workspaces<wbr>Dockerfile<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -1000,15 +949,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L224">
-											packages/shell/src/deployers/docker.ts:224
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L229">
+											packages/shell/src/deployers/docker.ts:229
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 					<a name="loaddefaults" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 						<li class="tsd-signature tsd-kind-icon">load<wbr>Defaults<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1022,15 +971,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L38">
-											packages/shell/src/deployers/docker.ts:38
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L39">
+											packages/shell/src/deployers/docker.ts:39
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="replaceresourcesvariables" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">replace<wbr>Resources<wbr>Variables<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1051,15 +1000,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L99">
-											packages/shell/src/deployers/deployer.ts:99
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L94">
+											packages/shell/src/deployers/deployer.ts:94
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="replacevariables" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">replace<wbr>Variables<span class="tsd-signature-symbol">(</span>obj<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
@@ -1087,15 +1036,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L81">
-											packages/shell/src/deployers/deployer.ts:81
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L76">
+											packages/shell/src/deployers/deployer.ts:76
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="scanlinkmodules" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">scan<wbr>Link<wbr>Modules<span class="tsd-signature-symbol">(</span>absPath<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, onLinkModule<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1131,8 +1080,8 @@
 													<aside class="tsd-sources">
 														<ul>
 															<li>Defined in
-																<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L144">
-																	packages/shell/src/deployers/docker.ts:144
+																<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L149">
+																	packages/shell/src/deployers/docker.ts:149
 																</a>
 															</li>
 														</ul>
@@ -1147,15 +1096,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L144">
-											packages/shell/src/deployers/docker.ts:144
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/docker.ts#L149">
+											packages/shell/src/deployers/docker.ts:149
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="setname" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">set<wbr>Name<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1182,15 +1131,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L43">
-											packages/shell/src/deployers/deployer.ts:43
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L38">
+											packages/shell/src/deployers/deployer.ts:38
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="settype" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">set<wbr>Type<span class="tsd-signature-symbol">(</span>type<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1215,16 +1164,46 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L51">
-											packages/shell/src/deployers/deployer.ts:51
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/shell/src/deployers/deployer.ts#L46">
+											packages/shell/src/deployers/deployer.ts:46
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-			</section></section>
-			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Guides&quot;,&quot;url&quot;:&quot;/pages/Pages/Guides.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;groups&quot;:[{&quot;title&quot;:&quot;Pages&quot;,&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;pages&quot;:[{&quot;title&quot;:&quot;Quick Start&quot;,&quot;source&quot;:&quot;QuickStart.md&quot;},{&quot;title&quot;:&quot;Guides&quot;,&quot;source&quot;:&quot;Guides.md&quot;,&quot;children&quot;:[{&quot;source&quot;:&quot;Authentication.md&quot;},{&quot;source&quot;:&quot;AWS.md&quot;}]}]}],&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;useMarkdownTitle&quot;:true}}-->
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+					<a name="getschema" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Schema<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">JSONSchema6</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="_webda_aws.awsdeployer.html">AWSDeployer</a>.<a href="_webda_aws.awsdeployer.html#getschema">getSchema</a></p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Allow to specify the JSONSchema to configure this service</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-text">
+								<p>Return undefined by default to fallback on the guess from ServiceParamaters</p>
+								<p>Using this method should only be exception</p>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">JSONSchema6</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/lib/utils/abstractdeployer.d.ts#L15">
+											packages/core/lib/utils/abstractdeployer.d.ts:15
+										</a>
+									</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+			</section>    </section>
+			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Quick Start&quot;,&quot;url&quot;:&quot;/pages/QuickStart.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true}}-->
 			<footer class="with-border-bottom">
 			</footer>
 			<div class="container tsd-generator">

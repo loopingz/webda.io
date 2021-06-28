@@ -4,10 +4,11 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<title>GitInformation |
-	webda.io - v1.0.0-beta.16</title>
+	webda.io - v1.1.1</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
+	<script async src="../assets/js/search.js" id="search-script"></script>
 </head>
 <body>
 <div class="main">
@@ -27,9 +28,13 @@
 					</ul>
 					<ul class="results-priority" style="display:none">
 					</ul>
-					<a href="../index.html" class="title">webda.io - v1.0.0-beta.16</a>
-					&emsp;<a href="/pages/Pages/Guides.html" class="title">Guides</a>
-					&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+					<div class="topMenu">
+						<a href="../index.html" class="title">webda.io - v1.1.1</a>
+						<div class="links">
+							&emsp;<a href="/pages/QuickStart.html" class="title">Quick Start</a>
+							&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+						</div>
+					</div>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -69,19 +74,23 @@
 		<div class="col-menu menu-sticky-wrap menu-highlight">
 			<nav class="tsd-navigation root">
 				<ul>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Concepts.html" class="tsd-kind-icon">Concepts</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Deployments.html" class="tsd-kind-icon">Deployments</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Migration.html" class="tsd-kind-icon">Migration</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Security.html" class="tsd-kind-icon">Security</a>
+					</li>
 					<li class=" pp-nav pp-group root">
-						<a href="" class="tsd-kind-icon">Pages</a>
-					</li>
-					<li class=" pp-nav pp-page root">
-						<a href="../pages/Pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start
-						</a>
-					</li>
-					<li class=" pp-nav pp-page pp-parent root">
-						<a href="../pages/Pages/Guides.html" class="tsd-kind-icon">Concepts
-						</a>
-					</li>
-					<li class=" pp-nav pp-group root">
-						<a href="../globals.html" class="tsd-kind-icon">Modules</a>
+						<a href="" class="tsd-kind-icon">Modules</a>
 					</li>
 					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_aws.html" class="tsd-kind-icon">@webda/aws</a>
@@ -155,6 +164,15 @@
 					<div class="lead">
 						<p>Return the gather information from the repository</p>
 					</div>
+					</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+					<dl class="tsd-comment-tags"><dt>mermaid</dt>
+						<dd>
+							<a href="#make-typedoc-easy-to-use-with-mermaidjs" id="make-typedoc-easy-to-use-with-mermaidjs" style="color: inherit; text-decoration: none;">
+								<h4>Make TypeDoc easy to use with mermaid.js</h4>
+							</a>
+							<div class="mermaid">graph TB
+								mermaid.js --> TypeDoc;
+					</div></dd></dl>
 			</div></section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
@@ -169,26 +187,14 @@
 					<div class="tsd-index-content">
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.gitinformation.html#branch"
-									class="tsd-kind-icon">branch</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.gitinformation.html#commit"
-									class="tsd-kind-icon">commit</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.gitinformation.html#short"
-									class="tsd-kind-icon">short</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.gitinformation.html#tag"
-									class="tsd-kind-icon">tag</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.gitinformation.html#tags"
-									class="tsd-kind-icon">tags</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.gitinformation.html#version"
-									class="tsd-kind-icon">version</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.gitinformation.html#branch" class="tsd-kind-icon">branch</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.gitinformation.html#commit" class="tsd-kind-icon">commit</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.gitinformation.html#short" class="tsd-kind-icon">short</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.gitinformation.html#tag" class="tsd-kind-icon">tag</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.gitinformation.html#tags" class="tsd-kind-icon">tags</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.gitinformation.html#version" class="tsd-kind-icon">version</a></li>
+							</ul>
 						</section>
 					</div>
 				</section>
@@ -208,13 +214,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L60">
-									packages/core/src/application.ts:60
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L64">
+									packages/core/src/application.ts:64
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="commit" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">commit<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -227,13 +233,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L54">
-									packages/core/src/application.ts:54
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L58">
+									packages/core/src/application.ts:58
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="short" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">short<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -246,13 +252,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L66">
-									packages/core/src/application.ts:66
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L70">
+									packages/core/src/application.ts:70
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="tag" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">tag<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -263,13 +269,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L70">
-									packages/core/src/application.ts:70
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L74">
+									packages/core/src/application.ts:74
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="tags" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">tags<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -282,13 +288,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L76">
-									packages/core/src/application.ts:76
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L80">
+									packages/core/src/application.ts:80
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="version" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">version<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -300,20 +306,20 @@
 						incremented to the next patch version with a +{date}</p>
 						<p>Example:</p>
 						<p>with package.json version = &quot;1.1.0&quot; name = &quot;mypackage&quot;
-							if a tag &quot;v1.1.0&quot; or &quot;<a href="mailto:&#109;&#x79;&#112;&#97;&#99;&#107;&#97;&#103;&#101;&#64;&#49;&#46;&#x31;&#x2e;&#x30;">&#109;&#x79;&#112;&#97;&#99;&#107;&#97;&#103;&#101;&#64;&#49;&#46;&#x31;&#x2e;&#x30;</a>&quot; then version = &quot;1.1.0&quot;
+							if a tag &quot;v1.1.0&quot; or &quot;<a href="mailto:&#x6d;&#121;&#x70;&#x61;&#99;&#x6b;&#97;&#x67;&#x65;&#64;&#x31;&#46;&#49;&#46;&#x30;">&#x6d;&#121;&#x70;&#x61;&#99;&#x6b;&#97;&#x67;&#x65;&#64;&#x31;&#46;&#49;&#46;&#x30;</a>&quot; then version = &quot;1.1.0&quot;
 						else version = &quot;1.1.1+20201110163014178&quot;</p>
 					</div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L89">
-									packages/core/src/application.ts:89
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L93">
+									packages/core/src/application.ts:93
 								</a>
 							</li>
 						</ul>
 					</aside>
-			</section></section>
-			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Guides&quot;,&quot;url&quot;:&quot;/pages/Pages/Guides.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;groups&quot;:[{&quot;title&quot;:&quot;Pages&quot;,&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;pages&quot;:[{&quot;title&quot;:&quot;Quick Start&quot;,&quot;source&quot;:&quot;QuickStart.md&quot;},{&quot;title&quot;:&quot;Guides&quot;,&quot;source&quot;:&quot;Guides.md&quot;,&quot;children&quot;:[{&quot;source&quot;:&quot;Authentication.md&quot;},{&quot;source&quot;:&quot;AWS.md&quot;}]}]}],&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;useMarkdownTitle&quot;:true}}-->
+			</section>    </section>
+			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Quick Start&quot;,&quot;url&quot;:&quot;/pages/QuickStart.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true}}-->
 			<footer class="with-border-bottom">
 			</footer>
 			<div class="container tsd-generator">

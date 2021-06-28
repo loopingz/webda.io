@@ -4,10 +4,11 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<title>Application |
-	webda.io - v1.0.0-beta.16</title>
+	webda.io - v1.1.1</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
+	<script async src="../assets/js/search.js" id="search-script"></script>
 </head>
 <body>
 <div class="main">
@@ -27,9 +28,13 @@
 					</ul>
 					<ul class="results-priority" style="display:none">
 					</ul>
-					<a href="../index.html" class="title">webda.io - v1.0.0-beta.16</a>
-					&emsp;<a href="/pages/Pages/Guides.html" class="title">Guides</a>
-					&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+					<div class="topMenu">
+						<a href="../index.html" class="title">webda.io - v1.1.1</a>
+						<div class="links">
+							&emsp;<a href="/pages/QuickStart.html" class="title">Quick Start</a>
+							&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
+						</div>
+					</div>
 				</div>
 				<div class="table-cell" id="tsd-widgets">
 					<div id="tsd-filter">
@@ -69,19 +74,23 @@
 		<div class="col-menu menu-sticky-wrap menu-highlight">
 			<nav class="tsd-navigation root">
 				<ul>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Concepts.html" class="tsd-kind-icon">Concepts</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Deployments.html" class="tsd-kind-icon">Deployments</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Migration.html" class="tsd-kind-icon">Migration</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start</a>
+					</li>
+					<li class=" pp-nav pp-page pp-depth-0 root">
+						<a href="../pages/Security.html" class="tsd-kind-icon">Security</a>
+					</li>
 					<li class=" pp-nav pp-group root">
-						<a href="" class="tsd-kind-icon">Pages</a>
-					</li>
-					<li class=" pp-nav pp-page root">
-						<a href="../pages/Pages/QuickStart.html" class="tsd-kind-icon">Quick <wbr>Start
-						</a>
-					</li>
-					<li class=" pp-nav pp-page pp-parent root">
-						<a href="../pages/Pages/Guides.html" class="tsd-kind-icon">Concepts
-						</a>
-					</li>
-					<li class=" pp-nav pp-group root">
-						<a href="../globals.html" class="tsd-kind-icon">Modules</a>
+						<a href="" class="tsd-kind-icon">Modules</a>
 					</li>
 					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_aws.html" class="tsd-kind-icon">@webda/aws</a>
@@ -161,6 +170,9 @@
 								<a href="_webda_core.application.html#packagewebda" class="tsd-kind-icon">package<wbr>Webda</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+								<a href="_webda_core.application.html#schemaresolver" class="tsd-kind-icon">schema<wbr>Resolver</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-protected">
 								<a href="_webda_core.application.html#workspacespath" class="tsd-kind-icon">workspaces<wbr>Path</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
@@ -203,6 +215,9 @@
 								<a href="_webda_core.application.html#getdeployment" class="tsd-kind-icon">get<wbr>Deployment</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_webda_core.application.html#getfullnamefromprototype" class="tsd-kind-icon">get<wbr>Full<wbr>Name<wbr>From<wbr>Prototype</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_core.application.html#getgitinformation" class="tsd-kind-icon">get<wbr>Git<wbr>Information</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
@@ -224,6 +239,9 @@
 								<a href="_webda_core.application.html#getpackageslocations" class="tsd-kind-icon">get<wbr>Packages<wbr>Locations</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_webda_core.application.html#getschemaresolver" class="tsd-kind-icon">get<wbr>Schema<wbr>Resolver</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_core.application.html#getservice" class="tsd-kind-icon">get<wbr>Service</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
@@ -237,6 +255,9 @@
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_core.application.html#hasdeployment" class="tsd-kind-icon">has<wbr>Deployment</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_webda_core.application.html#iscached" class="tsd-kind-icon">is<wbr>Cached</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_core.application.html#istypescript" class="tsd-kind-icon">is<wbr>Typescript</a>
@@ -273,6 +294,9 @@
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_core.application.html#setcurrentdeployment" class="tsd-kind-icon">set<wbr>Current<wbr>Deployment</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_webda_core.application.html#setschemaresolver" class="tsd-kind-icon">set<wbr>Schema<wbr>Resolver</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-protected">
 								<a href="_webda_core.application.html#stringparameter" class="tsd-kind-icon">string<wbr>Parameter</a>
@@ -325,188 +349,83 @@
 					<div class="tsd-index-content">
 						<section class="tsd-index-section ">
 							<h3>Constructors</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-constructor tsd-parent-kind-class"><a href="_webda_core.application.html#constructor"
-									class="tsd-kind-icon">constructor</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-constructor tsd-parent-kind-class"><a href="_webda_core.application.html#constructor" class="tsd-kind-icon">constructor</a></li>
+							</ul>
 						</section>
 						<section class="tsd-index-section tsd-is-private-protected">
 							<h3>Properties</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#_loaded"
-									class="tsd-kind-icon">_loaded</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#apppath"
-									class="tsd-kind-icon">appPath</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#baseconfiguration"
-									class="tsd-kind-icon">baseConfiguration</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#compiled"
-									class="tsd-kind-icon">compiled</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#currentdeployment"
-									class="tsd-kind-icon">currentDeployment</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#deployers"
-									class="tsd-kind-icon">deployers</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#inittime"
-									class="tsd-kind-icon">initTime</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#logger"
-									class="tsd-kind-icon">logger</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#namespace"
-									class="tsd-kind-icon">namespace</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#packagedescription"
-									class="tsd-kind-icon">packageDescription</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#packagewebda"
-									class="tsd-kind-icon">packageWebda</a>
-								</div>
-								<div class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#workspacespath"
-									class="tsd-kind-icon">workspacesPath</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#_loaded" class="tsd-kind-icon">_loaded</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#apppath" class="tsd-kind-icon">app<wbr>Path</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#baseconfiguration" class="tsd-kind-icon">base<wbr>Configuration</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#compiled" class="tsd-kind-icon">compiled</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#currentdeployment" class="tsd-kind-icon">current<wbr>Deployment</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#deployers" class="tsd-kind-icon">deployers</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#inittime" class="tsd-kind-icon">init<wbr>Time</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#logger" class="tsd-kind-icon">logger</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#namespace" class="tsd-kind-icon">namespace</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#packagedescription" class="tsd-kind-icon">package<wbr>Description</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#packagewebda" class="tsd-kind-icon">package<wbr>Webda</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#schemaresolver" class="tsd-kind-icon">schema<wbr>Resolver</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#workspacespath" class="tsd-kind-icon">workspaces<wbr>Path</a></li>
+							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#adddeployer"
-									class="tsd-kind-icon">addDeployer</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#addmodel"
-									class="tsd-kind-icon">addModel</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#addservice"
-									class="tsd-kind-icon">addService</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#compile"
-									class="tsd-kind-icon">compile</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#completenamespace"
-									class="tsd-kind-icon">completeNamespace</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#extends"
-									class="tsd-kind-icon">extends</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#generatemodule"
-									class="tsd-kind-icon">generateModule</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getapppath"
-									class="tsd-kind-icon">getAppPath</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getconfiguration"
-									class="tsd-kind-icon">getConfiguration</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getcurrentconfiguration"
-									class="tsd-kind-icon">getCurrentConfiguration</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getcurrentdeployment"
-									class="tsd-kind-icon">getCurrentDeployment</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getdeployers"
-									class="tsd-kind-icon">getDeployers</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getdeployment"
-									class="tsd-kind-icon">getDeployment</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getgitinformation"
-									class="tsd-kind-icon">getGitInformation</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getmodel"
-									class="tsd-kind-icon">getModel</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getmodels"
-									class="tsd-kind-icon">getModels</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getmodules"
-									class="tsd-kind-icon">getModules</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getpackagedescription"
-									class="tsd-kind-icon">getPackageDescription</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getpackagewebda"
-									class="tsd-kind-icon">getPackageWebda</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getpackageslocations"
-									class="tsd-kind-icon">getPackagesLocations</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getservice"
-									class="tsd-kind-icon">getService</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getservices"
-									class="tsd-kind-icon">getServices</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getwebdaversion"
-									class="tsd-kind-icon">getWebdaVersion</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getworkeroutput"
-									class="tsd-kind-icon">getWorkerOutput</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#hasdeployment"
-									class="tsd-kind-icon">hasDeployment</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#istypescript"
-									class="tsd-kind-icon">isTypescript</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#loadjavascriptfile"
-									class="tsd-kind-icon">loadJavascriptFile</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#loadlocalmodule"
-									class="tsd-kind-icon">loadLocalModule</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#loadmodules"
-									class="tsd-kind-icon">loadModules</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#loadpackageinfos"
-									class="tsd-kind-icon">loadPackageInfos</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#log"
-									class="tsd-kind-icon">log</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#migratev0config"
-									class="tsd-kind-icon">migrateV0Config</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#migratev1config"
-									class="tsd-kind-icon">migrateV1Config</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#preventcompilation"
-									class="tsd-kind-icon">preventCompilation</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#replacevariables"
-									class="tsd-kind-icon">replaceVariables</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#resolverequire"
-									class="tsd-kind-icon">resolveRequire</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#setcurrentdeployment"
-									class="tsd-kind-icon">setCurrentDeployment</a>
-								</div>
-								<div class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#stringparameter"
-									class="tsd-kind-icon">stringParameter</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#adddeployer" class="tsd-kind-icon">add<wbr>Deployer</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#addmodel" class="tsd-kind-icon">add<wbr>Model</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#addservice" class="tsd-kind-icon">add<wbr>Service</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#compile" class="tsd-kind-icon">compile</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#completenamespace" class="tsd-kind-icon">complete<wbr>Namespace</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#extends" class="tsd-kind-icon">extends</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#generatemodule" class="tsd-kind-icon">generate<wbr>Module</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getapppath" class="tsd-kind-icon">get<wbr>App<wbr>Path</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getconfiguration" class="tsd-kind-icon">get<wbr>Configuration</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getcurrentconfiguration" class="tsd-kind-icon">get<wbr>Current<wbr>Configuration</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getcurrentdeployment" class="tsd-kind-icon">get<wbr>Current<wbr>Deployment</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getdeployers" class="tsd-kind-icon">get<wbr>Deployers</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getdeployment" class="tsd-kind-icon">get<wbr>Deployment</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getfullnamefromprototype" class="tsd-kind-icon">get<wbr>Full<wbr>Name<wbr>From<wbr>Prototype</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getgitinformation" class="tsd-kind-icon">get<wbr>Git<wbr>Information</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getmodel" class="tsd-kind-icon">get<wbr>Model</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getmodels" class="tsd-kind-icon">get<wbr>Models</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getmodules" class="tsd-kind-icon">get<wbr>Modules</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getpackagedescription" class="tsd-kind-icon">get<wbr>Package<wbr>Description</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getpackagewebda" class="tsd-kind-icon">get<wbr>Package<wbr>Webda</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getpackageslocations" class="tsd-kind-icon">get<wbr>Packages<wbr>Locations</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getschemaresolver" class="tsd-kind-icon">get<wbr>Schema<wbr>Resolver</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getservice" class="tsd-kind-icon">get<wbr>Service</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getservices" class="tsd-kind-icon">get<wbr>Services</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getwebdaversion" class="tsd-kind-icon">get<wbr>Webda<wbr>Version</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#getworkeroutput" class="tsd-kind-icon">get<wbr>Worker<wbr>Output</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#hasdeployment" class="tsd-kind-icon">has<wbr>Deployment</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#iscached" class="tsd-kind-icon">is<wbr>Cached</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#istypescript" class="tsd-kind-icon">is<wbr>Typescript</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#loadjavascriptfile" class="tsd-kind-icon">load<wbr>Javascript<wbr>File</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#loadlocalmodule" class="tsd-kind-icon">load<wbr>Local<wbr>Module</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#loadmodules" class="tsd-kind-icon">load<wbr>Modules</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#loadpackageinfos" class="tsd-kind-icon">load<wbr>Package<wbr>Infos</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#log" class="tsd-kind-icon">log</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#migratev0config" class="tsd-kind-icon">migrate<wbr>V0Config</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#migratev1config" class="tsd-kind-icon">migrate<wbr>V1Config</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#preventcompilation" class="tsd-kind-icon">prevent<wbr>Compilation</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#replacevariables" class="tsd-kind-icon">replace<wbr>Variables</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#resolverequire" class="tsd-kind-icon">resolve<wbr>Require</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#setcurrentdeployment" class="tsd-kind-icon">set<wbr>Current<wbr>Deployment</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.application.html#setschemaresolver" class="tsd-kind-icon">set<wbr>Schema<wbr>Resolver</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#stringparameter" class="tsd-kind-icon">string<wbr>Parameter</a></li>
+							</ul>
 						</section>
 						<section class="tsd-index-section tsd-is-private-protected">
 							<h3>Object literals</h3>
-							<div class="tsd-index-list">
-								<div class="tsd-kind-object-literal tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#appmodule"
-									class="tsd-kind-icon">appModule</a>
-								</div>
-								<div class="tsd-kind-object-literal tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#cachedmodules"
-									class="tsd-kind-icon">cachedModules</a>
-								</div>
-								<div class="tsd-kind-object-literal tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#models-2"
-									class="tsd-kind-icon">models</a>
-								</div>
-								<div class="tsd-kind-object-literal tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#services-2"
-									class="tsd-kind-icon">services</a>
-								</div>
-							</div>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-object-literal tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#appmodule" class="tsd-kind-icon">app<wbr>Module</a></li>
+								<li class="tsd-kind-object-literal tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#cachedmodules" class="tsd-kind-icon">cached<wbr>Modules</a></li>
+								<li class="tsd-kind-object-literal tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#models-2" class="tsd-kind-icon">models</a></li>
+								<li class="tsd-kind-object-literal tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.application.html#services-2" class="tsd-kind-icon">services</a></li>
+							</ul>
 						</section>
 					</div>
 				</section>
@@ -539,15 +458,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L220">
-											packages/core/src/application.ts:220
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L278">
+											packages/core/src/application.ts:278
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-			</section></section>
+			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group tsd-is-private-protected">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
@@ -561,13 +480,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L149">
-									packages/core/src/application.ts:149
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L203">
+									packages/core/src/application.ts:203
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
 					<a name="apppath" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">app<wbr>Path<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -578,13 +497,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L117">
-									packages/core/src/application.ts:117
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L171">
+									packages/core/src/application.ts:171
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
 					<a name="baseconfiguration" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">base<wbr>Configuration<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_webda_core.configuration.html" class="tsd-signature-type">Configuration</a></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -595,13 +514,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L121">
-									packages/core/src/application.ts:121
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L175">
+									packages/core/src/application.ts:175
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
 					<a name="compiled" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">compiled<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = false</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -612,13 +531,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L193">
-									packages/core/src/application.ts:193
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L247">
+									packages/core/src/application.ts:247
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
 					<a name="currentdeployment" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">current<wbr>Deployment<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -629,13 +548,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L125">
-									packages/core/src/application.ts:125
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L179">
+									packages/core/src/application.ts:179
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
 					<a name="deployers" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">deployers<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -654,13 +573,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L154">
-									packages/core/src/application.ts:154
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L208">
+									packages/core/src/application.ts:208
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
 					<a name="inittime" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">init<wbr>Time<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -671,13 +590,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L220">
-									packages/core/src/application.ts:220
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L274">
+									packages/core/src/application.ts:274
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
 					<a name="logger" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">logger<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WorkerOutput</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -688,13 +607,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L198">
-									packages/core/src/application.ts:198
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L252">
+									packages/core/src/application.ts:252
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
 					<a name="namespace" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">namespace<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -705,13 +624,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L210">
-									packages/core/src/application.ts:210
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L264">
+									packages/core/src/application.ts:264
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
 					<a name="packagedescription" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">package<wbr>Description<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -722,13 +641,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L202">
-									packages/core/src/application.ts:202
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L256">
+									packages/core/src/application.ts:256
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
 					<a name="packagewebda" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">package<wbr>Webda<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -739,13 +658,30 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L206">
-									packages/core/src/application.ts:206
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L260">
+									packages/core/src/application.ts:260
 								</a>
 							</li>
 						</ul>
 					</aside>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+					<a name="schemaresolver" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">schema<wbr>Resolver<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_webda_core.schemaresolver.html" class="tsd-signature-type">SchemaResolver</a></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Current Schema resolver</p>
+						</div>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L278">
+									packages/core/src/application.ts:278
+								</a>
+							</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
 					<a name="workspacespath" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">workspaces<wbr>Path<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &quot;&quot;</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -756,13 +692,13 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L215">
-									packages/core/src/application.ts:215
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L269">
+									packages/core/src/application.ts:269
 								</a>
 							</li>
 						</ul>
 					</aside>
-			</section></section>
+			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
@@ -774,6 +710,11 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Add a new deployer</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -781,21 +722,23 @@
 								</li>
 								<li>
 									<h5>model: <span class="tsd-signature-type">any</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L475">
-											packages/core/src/application.ts:475
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L626">
+											packages/core/src/application.ts:626
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="addmodel" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">add<wbr>Model<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, model<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -804,6 +747,11 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Add a new model</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -811,21 +759,23 @@
 								</li>
 								<li>
 									<h5>model: <span class="tsd-signature-type">any</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L470">
-											packages/core/src/application.ts:470
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L615">
+											packages/core/src/application.ts:615
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="addservice" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">add<wbr>Service<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, service<span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.serviceconstructor.html" class="tsd-signature-type">ServiceConstructor</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.service.html" class="tsd-signature-type">Service</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -834,6 +784,11 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Add a new service</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -841,21 +796,23 @@
 								</li>
 								<li>
 									<h5>service: <a href="../interfaces/_webda_core.serviceconstructor.html" class="tsd-signature-type">ServiceConstructor</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.service.html" class="tsd-signature-type">Service</a><span class="tsd-signature-symbol">&gt;</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L421">
-											packages/core/src/application.ts:421
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L549">
+											packages/core/src/application.ts:549
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="compile" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">compile<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -874,15 +831,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L748">
-											packages/core/src/application.ts:748
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L906">
+											packages/core/src/application.ts:906
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="completenamespace" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">complete<wbr>Namespace<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -912,15 +869,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L912">
-											packages/core/src/application.ts:912
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L1096">
+											packages/core/src/application.ts:1096
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="extends" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">extends<span class="tsd-signature-symbol">(</span>obj<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, className<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
@@ -929,6 +886,11 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Check if object extends a class</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -936,21 +898,23 @@
 								</li>
 								<li>
 									<h5>className: <span class="tsd-signature-type">any</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L920">
-											packages/core/src/application.ts:920
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L1110">
+											packages/core/src/application.ts:1110
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="generatemodule" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">generate<wbr>Module<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -959,19 +923,24 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Generate the module for current application</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L806">
-											packages/core/src/application.ts:806
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L967">
+											packages/core/src/application.ts:967
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getapppath" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>App<wbr>Path<span class="tsd-signature-symbol">(</span>subpath<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -980,25 +949,33 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Return the current app path</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> subpath: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = undefined</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>to append to</p>
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L411">
-											packages/core/src/application.ts:411
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L533">
+											packages/core/src/application.ts:533
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getconfiguration" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Configuration<span class="tsd-signature-symbol">(</span>deploymentName<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.configuration.html" class="tsd-signature-type">Configuration</a></li>
@@ -1072,15 +1049,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L695">
-											packages/core/src/application.ts:695
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L853">
+											packages/core/src/application.ts:853
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getcurrentconfiguration" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Current<wbr>Configuration<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.configuration.html" class="tsd-signature-type">Configuration</a></li>
@@ -1101,15 +1078,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L715">
-											packages/core/src/application.ts:715
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L873">
+											packages/core/src/application.ts:873
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getcurrentdeployment" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Current<wbr>Deployment<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -1127,15 +1104,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L733">
-											packages/core/src/application.ts:733
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L891">
+											packages/core/src/application.ts:891
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getdeployers" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Deployers<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span></li>
@@ -1144,6 +1121,11 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Return all deployers</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">object</span></h4>
 							<ul class="tsd-parameters">
 								<li class="tsd-parameter-index-signature">
@@ -1153,15 +1135,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L466">
-											packages/core/src/application.ts:466
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L605">
+											packages/core/src/application.ts:605
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getdeployment" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Deployment<span class="tsd-signature-symbol">(</span>deploymentName<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.deployment.html" class="tsd-signature-type">Deployment</a></li>
@@ -1180,15 +1162,45 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L494">
-											packages/core/src/application.ts:494
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L652">
+											packages/core/src/application.ts:652
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="getfullnamefromprototype" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Full<wbr>Name<wbr>From<wbr>Prototype<span class="tsd-signature-symbol">(</span>proto<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>proto: <span class="tsd-signature-type">any</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>Prototype to send</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L340">
+											packages/core/src/application.ts:340
+										</a>
+									</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getgitinformation" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Git<wbr>Information<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.gitinformation.html" class="tsd-signature-type">GitInformation</a></li>
@@ -1209,15 +1221,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L523">
-											packages/core/src/application.ts:523
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L681">
+											packages/core/src/application.ts:681
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getmodel" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Model<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
@@ -1244,15 +1256,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L448">
-											packages/core/src/application.ts:448
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L584">
+											packages/core/src/application.ts:584
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getmodels" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Models<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span></li>
@@ -1275,15 +1287,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L462">
-											packages/core/src/application.ts:462
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L598">
+											packages/core/src/application.ts:598
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getmodules" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Modules<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.cachedmodule.html" class="tsd-signature-type">CachedModule</a></li>
@@ -1296,15 +1308,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L802">
-											packages/core/src/application.ts:802
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L960">
+											packages/core/src/application.ts:960
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getpackagedescription" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Package<wbr>Description<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
@@ -1322,15 +1334,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L327">
-											packages/core/src/application.ts:327
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L435">
+											packages/core/src/application.ts:435
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getpackagewebda" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Package<wbr>Webda<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
@@ -1350,15 +1362,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L321">
-											packages/core/src/application.ts:321
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L429">
+											packages/core/src/application.ts:429
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getpackageslocations" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Packages<wbr>Locations<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></li>
@@ -1376,15 +1388,41 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L980">
-											packages/core/src/application.ts:980
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L1177">
+											packages/core/src/application.ts:1177
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="getschemaresolver" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Schema<wbr>Resolver<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.schemaresolver.html" class="tsd-signature-type">SchemaResolver</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Get schema resolver</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <a href="../interfaces/_webda_core.schemaresolver.html" class="tsd-signature-type">SchemaResolver</a></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L370">
+											packages/core/src/application.ts:370
+										</a>
+									</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getservice" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Service<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.serviceconstructor.html" class="tsd-signature-type">ServiceConstructor</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.service.html" class="tsd-signature-type">Service</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.serviceparameters.html" class="tsd-signature-type">ServiceParameters</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></li>
@@ -1393,25 +1431,32 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Get a service based on name</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>name: <span class="tsd-signature-type">any</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <a href="../interfaces/_webda_core.serviceconstructor.html" class="tsd-signature-type">ServiceConstructor</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.service.html" class="tsd-signature-type">Service</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.serviceparameters.html" class="tsd-signature-type">ServiceParameters</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L426">
-											packages/core/src/application.ts:426
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L559">
+											packages/core/src/application.ts:559
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getservices" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Services<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span></li>
@@ -1420,6 +1465,11 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Return all services of the application</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">object</span></h4>
 							<ul class="tsd-parameters">
 								<li class="tsd-parameter-index-signature">
@@ -1429,15 +1479,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L439">
-											packages/core/src/application.ts:439
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L575">
+											packages/core/src/application.ts:575
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getwebdaversion" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Webda<wbr>Version<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -1460,15 +1510,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L490">
-											packages/core/src/application.ts:490
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L648">
+											packages/core/src/application.ts:648
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getworkeroutput" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Worker<wbr>Output<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">WorkerOutput</span></li>
@@ -1477,19 +1527,24 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Get current logger</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">WorkerOutput</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L407">
-											packages/core/src/application.ts:407
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L524">
+											packages/core/src/application.ts:524
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="hasdeployment" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">has<wbr>Deployment<span class="tsd-signature-symbol">(</span>deploymentName<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
@@ -1498,25 +1553,64 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Check if a deployment exists for this application
+										This method cannot be called for a packaged application
+									as we do not keep deployments files when deployed</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>deploymentName: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L480">
-											packages/core/src/application.ts:480
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L638">
+											packages/core/src/application.ts:638
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="iscached" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">is<wbr>Cached<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Check if application has cached modules</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-text">
+								<p>When deployed the application contains cachedModules in the <code>webda.config.json</code>
+									It allows to avoid the search for <code>webda.module.json</code> inside node_modules and
+								take the schema from the cached modules also</p>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L381">
+											packages/core/src/application.ts:381
+										</a>
+									</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="istypescript" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">is<wbr>Typescript<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
@@ -1534,15 +1628,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L740">
-											packages/core/src/application.ts:740
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L898">
+											packages/core/src/application.ts:898
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
 					<a name="loadjavascriptfile" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
 						<li class="tsd-signature tsd-kind-icon">load<wbr>Javascript<wbr>File<span class="tsd-signature-symbol">(</span>absolutePath<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1566,15 +1660,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L940">
-											packages/core/src/application.ts:940
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L1129">
+											packages/core/src/application.ts:1129
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="loadlocalmodule" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">load<wbr>Local<wbr>Module<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1583,19 +1677,24 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Load local module</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L852">
-											packages/core/src/application.ts:852
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L1036">
+											packages/core/src/application.ts:1036
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="loadmodules" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">load<wbr>Modules<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1616,15 +1715,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L765">
-											packages/core/src/application.ts:765
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L923">
+											packages/core/src/application.ts:923
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="loadpackageinfos" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">load<wbr>Package<wbr>Infos<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1642,15 +1741,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L280">
-											packages/core/src/application.ts:280
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L388">
+											packages/core/src/application.ts:388
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="log" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">log<span class="tsd-signature-symbol">(</span>level<span class="tsd-signature-symbol">: </span><a href="../modules/_webda_workout.html#workerloglevel" class="tsd-signature-type">WorkerLogLevel</a>, <span class="tsd-signature-symbol">...</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1659,28 +1758,39 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Log information</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>level: <a href="../modules/_webda_workout.html#workerloglevel" class="tsd-signature-type">WorkerLogLevel</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>to log for</p>
+									</div>
 								</li>
 								<li>
 									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>args: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>anything to display same as console.log</p>
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L401">
-											packages/core/src/application.ts:401
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L515">
+											packages/core/src/application.ts:515
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="migratev0config" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">migrate<wbr>V0Config<span class="tsd-signature-symbol">(</span>config<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.configuration.html" class="tsd-signature-type">Configuration</a></li>
@@ -1708,15 +1818,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L347">
-											packages/core/src/application.ts:347
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L455">
+											packages/core/src/application.ts:455
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="migratev1config" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">migrate<wbr>V1Config<span class="tsd-signature-symbol">(</span>config<span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.configurationv1.html" class="tsd-signature-type">ConfigurationV1</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.configuration.html" class="tsd-signature-type">Configuration</a></li>
@@ -1742,15 +1852,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L381">
-											packages/core/src/application.ts:381
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L489">
+											packages/core/src/application.ts:489
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="preventcompilation" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">prevent<wbr>Compilation<span class="tsd-signature-symbol">(</span>compile<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1777,15 +1887,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L336">
-											packages/core/src/application.ts:336
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L444">
+											packages/core/src/application.ts:444
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="replacevariables" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">replace<wbr>Variables<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, replacements<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
@@ -1809,7 +1919,7 @@
 })</code></pre>
 								<p>will return</p>
 								<pre><code>{
- <span class="hljs-attribute">myobj</span>: <span class="hljs-string">&#x27;plop&#x27;</span>
+ myobj: <span class="hljs-string">&#x27;plop&#x27;</span>
 }</code></pre><p>By default the replacements map contains</p>
 								<pre><code>{
  gi<span class="hljs-variable">t:</span> GitInformation,
@@ -1838,15 +1948,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L619">
-											packages/core/src/application.ts:619
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L777">
+											packages/core/src/application.ts:777
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="resolverequire" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">resolve<wbr>Require<span class="tsd-signature-symbol">(</span>info<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
@@ -1855,25 +1965,34 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Import a file</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-text">
+								<p>If the <code>default</code> is set take this or use old format</p>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>info: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L835">
-											packages/core/src/application.ts:835
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L1016">
+											packages/core/src/application.ts:1016
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="setcurrentdeployment" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">set<wbr>Current<wbr>Deployment<span class="tsd-signature-symbol">(</span>deployment<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1902,15 +2021,49 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L726">
-											packages/core/src/application.ts:726
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L884">
+											packages/core/src/application.ts:884
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>            <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="setschemaresolver" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">set<wbr>Schema<wbr>Resolver<span class="tsd-signature-symbol">(</span>resolver<span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.schemaresolver.html" class="tsd-signature-type">SchemaResolver</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Set the current schema resolver</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>resolver: <a href="../interfaces/_webda_core.schemaresolver.html" class="tsd-signature-type">SchemaResolver</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L363">
+											packages/core/src/application.ts:363
+										</a>
+									</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
 					<a name="stringparameter" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
 						<li class="tsd-signature tsd-kind-icon">string<wbr>Parameter<span class="tsd-signature-symbol">(</span>templateString<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, replacements<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
@@ -1943,15 +2096,15 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in
-										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L569">
-											packages/core/src/application.ts:569
+										<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L727">
+											packages/core/src/application.ts:727
 										</a>
 									</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-			</section></section>
+			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group tsd-is-private-protected">
 				<h2>Object literals</h2>
 				<section class="tsd-panel tsd-member tsd-kind-object-literal tsd-parent-kind-class tsd-is-protected">
@@ -1965,8 +2118,8 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L140">
-									packages/core/src/application.ts:140
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L194">
+									packages/core/src/application.ts:194
 								</a>
 							</li>
 						</ul>
@@ -1982,8 +2135,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L143">
-										packages/core/src/application.ts:143
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L197">
+										packages/core/src/application.ts:197
 									</a>
 								</li>
 							</ul>
@@ -1999,8 +2152,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L142">
-										packages/core/src/application.ts:142
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L196">
+										packages/core/src/application.ts:196
 									</a>
 								</li>
 							</ul>
@@ -2016,13 +2169,13 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L141">
-										packages/core/src/application.ts:141
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L195">
+										packages/core/src/application.ts:195
 									</a>
 								</li>
 							</ul>
 						</aside>
-					</section></section>            <section class="tsd-panel tsd-member tsd-kind-object-literal tsd-parent-kind-class tsd-is-protected">
+					</section></section>                <section class="tsd-panel tsd-member tsd-kind-object-literal tsd-parent-kind-class tsd-is-protected">
 					<a name="cachedmodules" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">cached<wbr>Modules<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -2033,8 +2186,8 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L130">
-									packages/core/src/application.ts:130
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L184">
+									packages/core/src/application.ts:184
 								</a>
 							</li>
 						</ul>
@@ -2050,8 +2203,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L133">
-										packages/core/src/application.ts:133
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L187">
+										packages/core/src/application.ts:187
 									</a>
 								</li>
 							</ul>
@@ -2067,8 +2220,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L132">
-										packages/core/src/application.ts:132
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L186">
+										packages/core/src/application.ts:186
 									</a>
 								</li>
 							</ul>
@@ -2084,8 +2237,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L131">
-										packages/core/src/application.ts:131
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L185">
+										packages/core/src/application.ts:185
 									</a>
 								</li>
 							</ul>
@@ -2096,13 +2249,13 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L134">
-										packages/core/src/application.ts:134
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L188">
+										packages/core/src/application.ts:188
 									</a>
 								</li>
 							</ul>
 						</aside>
-					</section></section>            <section class="tsd-panel tsd-member tsd-kind-object-literal tsd-parent-kind-class tsd-is-protected">
+					</section></section>                <section class="tsd-panel tsd-member tsd-kind-object-literal tsd-parent-kind-class tsd-is-protected">
 					<a name="models-2" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">models<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -2113,8 +2266,8 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L180">
-									packages/core/src/application.ts:180
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L234">
+									packages/core/src/application.ts:234
 								</a>
 							</li>
 						</ul>
@@ -2125,8 +2278,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L182">
-										packages/core/src/application.ts:182
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L236">
+										packages/core/src/application.ts:236
 									</a>
 								</li>
 							</ul>
@@ -2137,8 +2290,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L183">
-										packages/core/src/application.ts:183
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L237">
+										packages/core/src/application.ts:237
 									</a>
 								</li>
 							</ul>
@@ -2149,8 +2302,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L184">
-										packages/core/src/application.ts:184
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L238">
+										packages/core/src/application.ts:238
 									</a>
 								</li>
 							</ul>
@@ -2161,8 +2314,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L185">
-										packages/core/src/application.ts:185
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L239">
+										packages/core/src/application.ts:239
 									</a>
 								</li>
 							</ul>
@@ -2173,8 +2326,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L187">
-										packages/core/src/application.ts:187
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L241">
+										packages/core/src/application.ts:241
 									</a>
 								</li>
 							</ul>
@@ -2185,13 +2338,13 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L186">
-										packages/core/src/application.ts:186
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L240">
+										packages/core/src/application.ts:240
 									</a>
 								</li>
 							</ul>
 						</aside>
-					</section></section>            <section class="tsd-panel tsd-member tsd-kind-object-literal tsd-parent-kind-class tsd-is-protected">
+					</section></section>                <section class="tsd-panel tsd-member tsd-kind-object-literal tsd-parent-kind-class tsd-is-protected">
 					<a name="services-2" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">services<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -2202,8 +2355,8 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in
-								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L159">
-									packages/core/src/application.ts:159
+								<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L213">
+									packages/core/src/application.ts:213
 								</a>
 							</li>
 						</ul>
@@ -2214,8 +2367,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L167">
-										packages/core/src/application.ts:167
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L221">
+										packages/core/src/application.ts:221
 									</a>
 								</li>
 							</ul>
@@ -2226,8 +2379,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L161">
-										packages/core/src/application.ts:161
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L215">
+										packages/core/src/application.ts:215
 									</a>
 								</li>
 							</ul>
@@ -2238,8 +2391,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L170">
-										packages/core/src/application.ts:170
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L224">
+										packages/core/src/application.ts:224
 									</a>
 								</li>
 							</ul>
@@ -2250,8 +2403,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L173">
-										packages/core/src/application.ts:173
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L227">
+										packages/core/src/application.ts:227
 									</a>
 								</li>
 							</ul>
@@ -2262,8 +2415,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L165">
-										packages/core/src/application.ts:165
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L219">
+										packages/core/src/application.ts:219
 									</a>
 								</li>
 							</ul>
@@ -2274,8 +2427,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L164">
-										packages/core/src/application.ts:164
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L218">
+										packages/core/src/application.ts:218
 									</a>
 								</li>
 							</ul>
@@ -2286,8 +2439,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L171">
-										packages/core/src/application.ts:171
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L225">
+										packages/core/src/application.ts:225
 									</a>
 								</li>
 							</ul>
@@ -2298,8 +2451,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L162">
-										packages/core/src/application.ts:162
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L216">
+										packages/core/src/application.ts:216
 									</a>
 								</li>
 							</ul>
@@ -2310,8 +2463,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L172">
-										packages/core/src/application.ts:172
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L226">
+										packages/core/src/application.ts:226
 									</a>
 								</li>
 							</ul>
@@ -2322,8 +2475,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L166">
-										packages/core/src/application.ts:166
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L220">
+										packages/core/src/application.ts:220
 									</a>
 								</li>
 							</ul>
@@ -2334,8 +2487,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L174">
-										packages/core/src/application.ts:174
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L228">
+										packages/core/src/application.ts:228
 									</a>
 								</li>
 							</ul>
@@ -2346,8 +2499,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L169">
-										packages/core/src/application.ts:169
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L223">
+										packages/core/src/application.ts:223
 									</a>
 								</li>
 							</ul>
@@ -2358,8 +2511,8 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L163">
-										packages/core/src/application.ts:163
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L217">
+										packages/core/src/application.ts:217
 									</a>
 								</li>
 							</ul>
@@ -2370,14 +2523,14 @@
 						<aside class="tsd-sources">
 							<ul>
 								<li>Defined in
-									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L168">
-										packages/core/src/application.ts:168
+									<a href="https://github.com/loopingz/webda.io/blob/master/packages/core/src/application.ts#L222">
+										packages/core/src/application.ts:222
 									</a>
 								</li>
 							</ul>
 						</aside>
-			</section></section></section>
-			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Guides&quot;,&quot;url&quot;:&quot;/pages/Pages/Guides.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;groups&quot;:[{&quot;title&quot;:&quot;Pages&quot;,&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;pages&quot;:[{&quot;title&quot;:&quot;Quick Start&quot;,&quot;source&quot;:&quot;QuickStart.md&quot;},{&quot;title&quot;:&quot;Guides&quot;,&quot;source&quot;:&quot;Guides.md&quot;,&quot;children&quot;:[{&quot;source&quot;:&quot;Authentication.md&quot;},{&quot;source&quot;:&quot;AWS.md&quot;}]}]}],&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;useMarkdownTitle&quot;:true}}-->
+			</section></section>    </section>
+			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Quick Start&quot;,&quot;url&quot;:&quot;/pages/QuickStart.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true}}-->
 			<footer class="with-border-bottom">
 			</footer>
 			<div class="container tsd-generator">

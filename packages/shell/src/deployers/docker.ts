@@ -5,6 +5,42 @@ import { DeployerResources } from "@webda/core";
 import { Deployer } from "./deployer";
 import { Packager } from "..";
 
+/**
+ * Command mapping for your preferred containerd client
+ */
+export interface ContainerClientDefinition {
+  buildTagFile: string;
+  buildTagStdin: string;
+  buildStdin: string;
+  buildFile: string;
+  pushTag: string;
+}
+
+/**
+ * Current predefined profiles
+ */
+export type ClientProfiles = "docker" | "buildah";
+
+/**
+ * Predefined containerd client commands
+ */
+export const ClientDefinitions: { [key: string]: ContainerClientDefinition } = {
+  docker: {
+    buildFile: "docker build --file ${file} .",
+    buildTagFile: "docker build --tag ${tag} --file ${file} .",
+    buildTagStdin: "docker build --tag ${tag} --file - .",
+    buildStdin: "docker build --file - .",
+    pushTag: "docker push ${tag}"
+  },
+  buildah: {
+    buildFile: "buildah bud --format=docker -f ${file} .",
+    buildTagFile: "buildah bud --format=docker -f ${file} -t ${tag} .",
+    buildTagStdin: "buildah bud --format=docker -f - -t ${tag} .",
+    buildStdin: "buildah bud --format=docker -f - .",
+    pushTag: "buildah push ${tag}"
+  }
+};
+
 export interface DockerResources extends DeployerResources {
   // Tag the image
   tag?: string;
@@ -30,17 +66,33 @@ export interface DockerResources extends DeployerResources {
   logFile?: string;
   // If you want to exclude packages from build when includeWorkspaces is on
   excludePackages?: string[];
+  /**
+   * Container client profile
+   *
+   * @default docker
+   */
+  containerClient?: ClientProfiles | ContainerClientDefinition;
 }
 
 export class Docker<T extends DockerResources> extends Deployer<T> {
   _copied: boolean = false;
   workspaces: boolean = false;
+  private client: ContainerClientDefinition;
 
   async loadDefaults() {
     super.loadDefaults();
     this.resources.baseImage = this.resources.baseImage || "node:lts-alpine";
     this.resources.command = this.resources.command || "serve";
     this.resources.excludePackages = this.resources.excludePackages || [];
+    this.resources.containerClient = this.resources.containerClient || "docker";
+    if (typeof this.resources.containerClient == "string") {
+      if (!ClientDefinitions[this.resources.containerClient]) {
+        throw new Error(`Client profile '${this.resources.containerClient}' does not exist for ContainerClient`);
+      }
+      this.resources.containerClient = ClientDefinitions[this.resources.containerClient];
+    }
+    this.client = this.resources.containerClient;
+
     if (
       !this.resources.workDirectory &&
       this.resources.includeWorkspaces &&
@@ -63,30 +115,45 @@ export class Docker<T extends DockerResources> extends Deployer<T> {
    * @param command webda command to run
    */
   async buildDocker(tag, file) {
-    var args = [];
+    var args: any = {};
     let stdin;
-    args.push("build");
+    let cmd;
     if (tag) {
-      args.push("--tag");
-      args.push(tag);
+      args.tag = tag;
     }
     if (file) {
-      args.push("--file");
-      args.push(file);
+      args.file = file;
       stdin = null;
-      args.push(".");
+      cmd = tag ? this.client.buildTagFile : this.client.buildFile;
     } else {
-      args.push("--file");
-      args.push("-");
-      args.push(".");
       if (this.workspaces) {
         stdin = this.getWorkspacesDockerfile();
       } else {
         stdin = this.getDockerfile();
       }
+      cmd = tag ? this.client.buildTagStdin : this.client.buildStdin;
     }
+
     this.logger.log("INFO", `Launching Docker build`);
-    return this.execute("docker " + args.join(" "), stdin, false, "INFO");
+    return this.execute(this.replaceArgs(cmd, args), stdin, false, "INFO");
+  }
+
+  /**
+   * Replace ${...} arguments within a string
+   *
+   * `docker build --tag ${tag} --file ${file}`
+   *  will be replace by
+   * `docker build --tag mytag:1.2.3` --file /tmp/plop`
+   *
+   * @param cmd to be executed after
+   * @param args map to replace
+   * @returns
+   */
+  replaceArgs(cmd: string, args: any): string {
+    for (let i in args) {
+      cmd = cmd.replace(new RegExp("\\$\\{" + i + "\\}", "g"), args[i]);
+    }
+    return cmd;
   }
 
   /**
@@ -105,7 +172,8 @@ export class Docker<T extends DockerResources> extends Deployer<T> {
       await this.buildDocker(tag, Dockerfile);
       if (tag && push) {
         this.logger.log("INFO", `Pushing image ${tag}`);
-        await this.execute("docker push " + tag);
+        // Push
+        await this.execute(this.replaceArgs(this.client.pushTag, { tag }));
       }
       this.logger.log("INFO", `Docker deployment finished`);
     } finally {

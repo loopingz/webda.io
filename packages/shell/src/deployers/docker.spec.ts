@@ -18,6 +18,7 @@ class DockerDeployerTest extends DeployerTest<Docker<DockerResources>> {
   @test
   async deploy() {
     this.deployer.execute = this.mockExecute;
+    await this.deployer.loadDefaults();
     await this.deployer.deploy();
     assert.strictEqual(this.execs.length, 1);
     assert.strictEqual(this.execs[0][0], "docker build --tag webda-deployer:test --file - .");
@@ -28,6 +29,23 @@ class DockerDeployerTest extends DeployerTest<Docker<DockerResources>> {
     assert.strictEqual(this.execs.length, 2);
     assert.strictEqual(this.execs[0][0], "docker build --tag webda-deployer:test --file ./testor .");
     assert.deepStrictEqual(this.execs[1], ["docker push webda-deployer:test"]);
+  }
+
+  @test
+  async deployBuildah() {
+    this.deployer.execute = this.mockExecute;
+    this.deployer.resources.containerClient = "buildah";
+    await this.deployer.loadDefaults();
+    await this.deployer.deploy();
+    assert.strictEqual(this.execs.length, 1);
+    assert.strictEqual(this.execs[0][0], "buildah bud --format=docker -f - -t webda-deployer:test .");
+    this.execs = [];
+    this.deployer.resources.push = true;
+    this.deployer.resources.Dockerfile = "./testor";
+    await this.deployer.deploy();
+    assert.strictEqual(this.execs.length, 2);
+    assert.strictEqual(this.execs[0][0], "buildah bud --format=docker -f ./testor -t webda-deployer:test .");
+    assert.deepStrictEqual(this.execs[1], ["buildah push webda-deployer:test"]);
   }
 
   @test

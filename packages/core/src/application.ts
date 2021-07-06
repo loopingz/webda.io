@@ -45,6 +45,9 @@ import { JSONSchema6 } from "json-schema";
 
 /**
  * Return the gather information from the repository
+ * @mermaid Make TypeDoc easy to use with mermaid.js
+ * graph TB
+ *   mermaid.js --> TypeDoc;
  */
 export interface GitInformation {
   /**

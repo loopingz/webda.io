@@ -8,7 +8,7 @@ We have currently File, DynamoDB and MongoDB storage
 
 Inside the configuration you can add a block for expose the store as a REST API
 
-````javascript
+```javascript
 {
   ...
   "expose": {

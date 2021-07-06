@@ -9,33 +9,11 @@
   "exclude": ["**/node_modules", "packages/*/node_modules", "packages/*/src/**/*.spec.ts", "sample-app"],
   "readme": "./readme.md",
   "pages": {
-    "groups": [
-      {
-        "title": "Pages",
-        "source": "./docs/pages/",
-        "pages": [
-          {
-            "title": "Quick Start",
-            "source": "QuickStart.md"
-          },
-          {
-            "title": "Guides",
-            "source": "Guides.md",
-            "children": [
-              {
-                "source": "Authentication.md"
-              },
-              {
-                "source": "AWS.md"
-              }
-            ]
-          }
-        ]
-      }
-    ],
+    "source": "./docs/pages/",
     "replaceGlobalsPage": true,
     "reflectionNavigationTitle": "Modules",
-    "useMarkdownTitle": true
+    "autoDetectPageTitle": true,
+    "autoPopulateChildren": true
   },
 
   "theme": "./node_modules/typedoc-loopingz-theme/bin/default",
@@ -50,8 +28,8 @@
 
   "links": [
     {
-      "label": "Guides",
-      "url": "/pages/Pages/Guides.html"
+      "label": "Quick Start",
+      "url": "/pages/QuickStart.html"
     },
     {
       "label": "GitHub",

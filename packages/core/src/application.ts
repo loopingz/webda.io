@@ -124,10 +124,11 @@ export class DefaultSchemaResolver implements SchemaResolver {
     this.app = app;
   }
 
-  fromServiceType(type: string): JSONSchema6 {
+  fromServiceType(type: string = ""): JSONSchema6 {
     if (this.app.isCached()) {
       return this.app.getConfiguration().cachedModules.schemas[type];
     }
+    type = type.toLowerCase();
     let proto: any = this.app.getDeployers()[type];
     if (proto) {
       return this.fromPrototype(proto);

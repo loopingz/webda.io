@@ -1,5 +1,5 @@
 "use strict";
-import { Application, Logger } from "@webda/core";
+import { Application, FileUtils, JSONUtils, Logger } from "@webda/core";
 import { ChildProcess, spawn } from "child_process";
 import * as colors from "colors";
 import * as crypto from "crypto";
@@ -468,6 +468,24 @@ export default class WebdaConsole {
   }
 
   /**
+   * Generate a JSON Schema for a symbol
+   */
+  static async schema(argv: yargs.Arguments) {
+    argv._.shift();
+    let symbol = argv._.shift();
+    let filename = argv._.shift();
+    if (this.app.isTypescript()) {
+      this.app.setSchemaResolver(new TypescriptSchemaResolver(this.app, this.logger));
+    }
+    let schema = this.app.getSchemaResolver().fromServiceType(symbol);
+    if (filename) {
+      FileUtils.save(schema, filename);
+    } else {
+      this.log("INFO", JSON.stringify(schema, undefined, 2));
+    }
+  }
+
+  /**
    * Print a Fake Terminal to play with @webda/workout
    */
   static async fakeTerm() {
@@ -551,9 +569,17 @@ export default class WebdaConsole {
           }
         }
       ],
+      schema: [WebdaConsole.schema, "Generate a schema for a type"],
+      types: [WebdaConsole.types, "List all available types for this project"],
       faketerm: [WebdaConsole.fakeTerm, "Launch a fake interactive terminal"],
       "generate-session-secret": [WebdaConsole.generateSessionSecret, "Generate a new session secret"]
     };
+  }
+
+  static async types() {
+    this.log("INFO", "Deployers:", Object.keys(this.app.getDeployers()).join(", "));
+    this.log("INFO", "Services:", Object.keys(this.app.getServices()).join(", "));
+    this.log("INFO", "Models:", Object.keys(this.app.getModels()).join(", "));
   }
 
   static async handleCommandInternal(args, versions, output: WorkerOutput = undefined): Promise<number> {
@@ -759,14 +785,7 @@ export default class WebdaConsole {
     this.webda = new WebdaServer(this.app);
     let openapi = this.webda.exportOpenAPI(!argv.includeHidden);
     let name = argv._[1] || "./openapi.json";
-    if (name.endsWith(".json")) {
-      fs.writeFileSync(name, JSON.stringify(openapi, undefined, 2));
-    } else if (name.endsWith(".yaml") || name.endsWith(".yml")) {
-      // Remove null value with JSON.parse/stringify
-      fs.writeFileSync(name, YAML.stringify(JSON.parse(JSON.stringify(openapi)), 1000, 2));
-    } else {
-      this.log("ERROR", "Unknown format");
-    }
+    FileUtils.save(openapi, name);
   }
 
   /**

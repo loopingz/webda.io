@@ -6,7 +6,7 @@ import * as jsonpath from "jsonpath";
 import { OpenAPIV3 } from "openapi-types";
 import * as vm from "vm";
 import { Application } from "./application";
-import { Context, HttpContext, Logger, Service, Store } from "./index";
+import { Context, HttpContext, Logger, Service, ServiceParameters, Store } from "./index";
 import { CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { RouteInfo, Router } from "./router";
 import { WorkerOutput, WorkerLogLevel } from "@webda/workout";
@@ -118,7 +118,7 @@ export interface Configuration {
   version: number;
   cachedModules?: CachedModule;
   module: Module;
-  services?: any;
+  services?: {[key: string]: ServiceParameters};
   parameters?: {
     cookie?: {
       sameSite: "None" | "Strict" | "Lax";

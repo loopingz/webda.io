@@ -41,7 +41,7 @@ export const ClientDefinitions: { [key: string]: ContainerClientDefinition } = {
   }
 };
 
-export interface DockerResources extends DeployerResources {
+export interface ContainerResources extends DeployerResources {
   // Tag the image
   tag?: string;
   // Push image to the repository
@@ -74,7 +74,7 @@ export interface DockerResources extends DeployerResources {
   containerClient?: ClientProfiles | ContainerClientDefinition;
 }
 
-export class Docker<T extends DockerResources> extends Deployer<T> {
+export class Container<T extends ContainerResources> extends Deployer<T> {
   _copied: boolean = false;
   workspaces: boolean = false;
   private client: ContainerClientDefinition;
@@ -114,7 +114,7 @@ export class Docker<T extends DockerResources> extends Deployer<T> {
    * @param file path of Dockerfile
    * @param command webda command to run
    */
-  async buildDocker(tag, file) {
+  async buildContainer(tag, file) {
     var args: any = {};
     let stdin;
     let cmd;
@@ -169,7 +169,7 @@ export class Docker<T extends DockerResources> extends Deployer<T> {
         this.logger.log("INFO", `Copy linked modules into link_modules`);
         fs.emptyDirSync("link_modules");
       }
-      await this.buildDocker(tag, Dockerfile);
+      await this.buildContainer(tag, Dockerfile);
       if (tag && push) {
         this.logger.log("INFO", `Pushing image ${tag}`);
         // Push

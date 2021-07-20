@@ -3,12 +3,12 @@ import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { DeployerTest } from "./deployer.spec";
-import { Docker, DockerResources } from "./docker";
+import { Container, ContainerResources } from "./container";
 
 @suite
-class DockerDeployerTest extends DeployerTest<Docker<DockerResources>> {
+class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> {
   async getDeployer(manager: DeploymentManager) {
-    return new Docker(manager, {
+    return new Container(manager, {
       name: "deployer",
       type: "DockerDeployer",
       tag: "webda-deployer:test"

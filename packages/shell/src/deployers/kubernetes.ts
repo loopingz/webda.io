@@ -1,4 +1,4 @@
-import { DockerResources } from "./docker";
+import { ContainerResources } from "./container";
 import * as k8s from "@kubernetes/client-node";
 import * as fs from "fs";
 import * as yaml from "yaml";
@@ -46,7 +46,7 @@ export function KubernetesObjectToURI({ apiVersion, metadata: { name, namespace 
   return `${apiVersion || "v1"}/${namespace || "default"}/${kind.toLowerCase()}s/${name}`;
 }
 
-export interface KubernetesResources extends DockerResources {
+export interface KubernetesResources extends ContainerResources {
   context?: string;
   config?: string | Object;
   defaultNamespace?: string;

@@ -3,7 +3,7 @@ import * as YAML from "yaml";
 import { AWSDeployer, AWSDeployerResources } from ".";
 import { CloudFormationContributor } from "../services";
 import { WebdaError } from "@webda/core";
-import { DockerResources } from "@webda/shell";
+import { ContainerResources } from "@webda/shell";
 import * as fs from "fs";
 import AWS = require("aws-sdk");
 import { LambdaPackagerResources } from "./lambdapackager";
@@ -13,7 +13,7 @@ import { LambdaPackagerResources } from "./lambdapackager";
  *
  * @todo Add X-Ray agent
  */
-interface AWSDockerResources extends DockerResources {
+interface AWSDockerResources extends ContainerResources {
   /**
    * Create the ECR automatically
    */

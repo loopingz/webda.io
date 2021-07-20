@@ -2,7 +2,7 @@ import { Application, Core, Cache, Logger, WebdaError, Deployment } from "@webda
 import * as merge from "merge";
 import ChainDeployer from "../deployers/chaindeployer";
 import { Deployer } from "../deployers/deployer";
-import { Docker } from "../deployers/docker";
+import { Container } from "../deployers/container";
 import { Packager } from "../deployers/packager";
 import * as yargs from "yargs";
 import { WorkerOutput } from "@webda/workout";
@@ -35,7 +35,14 @@ export class DeploymentManager {
     // webda.moodule.json is not working within webda-shell
     this.application.addDeployer("WebdaDeployer/Packager", Packager);
     this.application.addDeployer("WebdaDeployer/ChainDeployer", ChainDeployer);
-    this.application.addDeployer("WebdaDeployer/Docker", Docker);
+    /**
+     * `WebdaDeployer/Docker` type will be replaced by `WebdaDeployer/Container`
+     *
+     * @todo Remove in 1.3
+     * @deprecated for 1.3 version
+     */
+    this.application.addDeployer("WebdaDeployer/Docker", Container);
+    this.application.addDeployer("WebdaDeployer/Container", Container);
     this.application.addDeployer("WebdaDeployer/Kubernetes", Kubernetes);
     let deployment = this.application.getDeployment(deploymentName);
     this.webda = new Core(this.application);
@@ -68,7 +75,14 @@ export class DeploymentManager {
     application.loadModules();
     application.addDeployer("WebdaDeployer/Packager", Packager);
     application.addDeployer("WebdaDeployer/ChainDeployer", ChainDeployer);
-    application.addDeployer("WebdaDeployer/Docker", Docker);
+    /**
+     * `WebdaDeployer/Docker` type will be replaced by `WebdaDeployer/Container`
+     *
+     * @todo Remove in 1.3
+     * @deprecated for 1.3 version
+     */
+    application.addDeployer("WebdaDeployer/Docker", Container);
+    application.addDeployer("WebdaDeployer/Container", Container);
     application.addDeployer("WebdaDeployer/Kubernetes", Kubernetes);
     let deployment: Deployment = {
       uuid: "",

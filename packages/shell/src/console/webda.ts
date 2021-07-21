@@ -474,10 +474,15 @@ export default class WebdaConsole {
     argv._.shift();
     let symbol = argv._.shift();
     let filename = argv._.shift();
+    let resolver: TypescriptSchemaResolver = undefined;
     if (this.app.isTypescript()) {
-      this.app.setSchemaResolver(new TypescriptSchemaResolver(this.app, this.logger));
+      resolver = new TypescriptSchemaResolver(this.app, this.logger);
+      this.app.setSchemaResolver(resolver);
     }
     let schema = this.app.getSchemaResolver().fromServiceType(symbol);
+    if (!schema && resolver) {
+      schema = resolver.fromSymbol(symbol);
+    }
     if (filename) {
       FileUtils.save(schema, filename);
     } else {
@@ -571,11 +576,96 @@ export default class WebdaConsole {
       ],
       schema: [WebdaConsole.schema, "Generate a schema for a type"],
       types: [WebdaConsole.types, "List all available types for this project"],
+      "configuration-schema": [
+        WebdaConsole.configurationSchema,
+        "Create the json schema that defines your webda.config.json",
+        {
+          full: {
+            type: "boolean",
+            default: false
+          }
+        }
+      ],
       faketerm: [WebdaConsole.fakeTerm, "Launch a fake interactive terminal"],
       "generate-session-secret": [WebdaConsole.generateSessionSecret, "Generate a new session secret"]
     };
   }
 
+  /**
+   * Generate a JSON Schema specific to the current configuration
+   */
+  static async configurationSchema(argv) {
+    argv._.shift();
+    let mainSchema = "";
+    if (this.app.isTypescript()) {
+      let resolver = new TypescriptSchemaResolver(this.app, this.logger);
+      this.app.setSchemaResolver(resolver);
+      // @ts-ignore
+      let res = resolver.generator.getSchemaForSymbol("Configuration");
+      // Clean cached modules
+      delete res.definitions.CachedModule;
+      delete res.properties.cachedModules;
+      console.log(res);
+      // Add the definition for types
+      res.definitions.ServicesType = {
+        type: "string",
+        enum: Object.keys(this.app.getServices())
+      };
+      res.properties.services = {
+        type: "object",
+        additionalProperties: {
+          oneOf: []
+        }
+      };
+      Object.keys(this.app.getServices()).forEach(serviceType => {
+        const key = `ServiceType$${serviceType.replace(/\//g, "$")}`;
+        // @ts-ignore
+        res.definitions[key] = resolver.fromServiceType(serviceType);
+        if (!res.definitions[key]) {
+          return;
+        }
+        // @ts-ignore
+        res.definitions[key].properties.type.pattern = this.getServiceTypePattern(serviceType);
+        // @ts-ignore
+        res.properties.services.additionalProperties.oneOf.push({ $ref: `#/definitions/${key}` });
+        delete res.definitions[key]["$schema"];
+        // Remove mandatory depending on option
+        if (!argv.full) {
+          res.definitions[key]["required"] = ["type"];
+        }
+      });
+      let filename = argv._.shift();
+      FileUtils.save(res, filename);
+    }
+  }
+
+  /**
+   * Generate regex based on a service name
+   *
+   * The regex will ensure the pattern is not case sensitive and
+   * that the namespace is optional
+   *
+   * @param type
+   * @returns
+   */
+  static getServiceTypePattern(type: string): string {
+    let result = "";
+    type = this.app.completeNamespace(type).toLowerCase();
+    for (let i = 0; i < type.length; i++) {
+      if (type[i].match(/[a-z]/)) {
+        result += `[${type[i]}${type[i].toUpperCase()}]`;
+      } else {
+        result += type[i];
+      }
+    }
+    // Namespace is optional
+    let split = result.split("/");
+    return `(${split[0]}/)?${split[1]}`;
+  }
+
+  /**
+   * Output all types of Deployers, Services and Models
+   */
   static async types() {
     this.log("INFO", "Deployers:", Object.keys(this.app.getDeployers()).join(", "));
     this.log("INFO", "Services:", Object.keys(this.app.getServices()).join(", "));

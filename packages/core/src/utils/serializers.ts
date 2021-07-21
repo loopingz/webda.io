@@ -38,7 +38,7 @@ export const FileUtils = {
     if (filename.match(/\.ya?ml$/i)) {
       return writeFileSync(filename, yaml.stringify(object));
     } else if (filename.match(/\.json$/i)) {
-      return writeFileSync(filename, JSON.stringify(object, undefined, 2));
+      return writeFileSync(filename, JSONUtils.safeStringify(object, undefined, 2));
     }
     throw new Error("Unknown format");
   }

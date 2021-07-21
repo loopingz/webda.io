@@ -293,4 +293,25 @@ class DynamicService extends Service {
     let logs = this.logger.getLogs();
     assert.strictEqual(logs[0].log.args[0], "Unknown deployment: TestLambda");
   }
+
+  @test
+  async types() {
+    await this.commandLine("types");
+    let logs = this.logger.getLogs();
+    assert.strictEqual(logs.length, 3, "We should have 3 logs with Deployers, Services, Models");
+  }
+
+  @test
+  async configurationSchema() {
+    let res = await this.commandLine("configuration-schema");
+    let logs = this.logger.getLogs();
+    console.log(logs);
+  }
+
+  @test
+  async schema() {
+    let res = await this.commandLine("schema Authentication");
+    let logs = this.logger.getLogs();
+    console.log(logs);
+  }
 }

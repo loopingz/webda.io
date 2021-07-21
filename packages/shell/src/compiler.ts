@@ -8,7 +8,13 @@ import * as TJS from "typescript-json-schema";
  * Use Typescript compiler to generate schemas
  */
 export class TypescriptSchemaResolver extends DefaultSchemaResolver {
+  /**
+   * TJS Generator
+   */
   generator: TJS.JsonSchemaGenerator;
+  /**
+   * All known symbols
+   */
   symbols: { [name: string]: ts.Type };
   logger: Logger;
 
@@ -22,6 +28,17 @@ export class TypescriptSchemaResolver extends DefaultSchemaResolver {
     } else {
       this.logger.log("TRACE", "Application is not typescript can not guess schemas");
     }
+  }
+
+  /**
+   * Ask the generator directly to check class
+   * 
+   * @param type of symbol
+   * @returns 
+   */
+  fromSymbol(type: string): JSONSchema6 {
+    // @ts-ignore
+    return this.generator.getSchemaForSymbol(type);
   }
 
   /**

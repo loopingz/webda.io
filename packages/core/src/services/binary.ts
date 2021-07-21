@@ -41,7 +41,7 @@ export class BinaryParameters extends ServiceParameters {
   /**
    * Define the map to Object collection
    */
-  map: { [key: string]: string };
+  map: { [key: string]: string[] };
   /**
    * Expose the service to http
    */

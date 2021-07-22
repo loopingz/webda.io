@@ -355,16 +355,20 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     await this.sendValidationEmail(ctx, ctx.body.email);
   }
 
-  async onIdentLogin(ctx: Context, provider: string, identId: string, profile: any) {
-    if (!identId.endsWith(`_${provider}`)) {
-      identId += `_${provider}`;
+  async onIdentLogin(ctx: Context, provider: string, identId: string, profile: any, tokens: any = undefined) {
+    // Auto postifx with provider name
+    const postfix = `_${this.getName()}`;
+    if (!identId.endsWith(postfix)) {
+      identId += postfix;
     }
+
     let ident: Ident = await this._identsStore.get(identId);
     // Ident is known
     if (ident) {
       await this.login(ctx, ident.getUser(), ident);
       await this._identsStore.patch({
         _lastUsed: new Date(),
+        __tokens: tokens,
         uuid: ident.uuid
       });
       // Redirect to?
@@ -382,7 +386,8 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     // Work directly on ident argument
     ident = this._identsStore.initModel({
       uuid: identId,
-      profile
+      profile,
+      __tokens: tokens
     });
     ident.setUser(user.uuid);
     ident._lastUsed = new Date();
@@ -753,33 +758,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       description:
         "Implements user registration and login using either email or OAuth, it handles for now Facebook, Google, Amazon, GitHub, Twitter\nIt needs a Idents and a Users Store to work",
       logo: "images/icons/passport.png",
-      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Authentication.md",
-      configuration: {
-        schema: {
-          type: "object",
-          properties: {
-            url: {
-              type: "string"
-            },
-            successRedirect: {
-              type: "string",
-              default: "YOUR WEBSITE LOGGED PAGE"
-            },
-            failureRedirect: {
-              type: "string",
-              default: "YOUR WEBSITE FAILURE PAGE"
-            },
-            email: {
-              type: "object",
-              properties: {
-                postValidation: {
-                  type: "boolean"
-                }
-              }
-            }
-          }
-        }
-      }
+      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Authentication.md"
     };
   }
 }

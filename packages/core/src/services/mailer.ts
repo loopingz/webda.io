@@ -151,26 +151,6 @@ class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
     }
     return this._transporter.sendMail(options, callback);
   }
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/Mailer",
-      label: "Mailer",
-      description:
-        "Implements a mailer to use in other services, it is used by the Authentication if you activate the email",
-      logo: "images/icons/email.png",
-      configuration: {
-        schema: {
-          type: "object",
-          properties: {
-            config: {
-              type: "object"
-            }
-          },
-          required: ["config"]
-        }
-      }
-    };
-  }
 }
 
 export { Mailer, TemplatesMap, IEmailTemplate };

@@ -168,8 +168,7 @@ export default class SQSQueue<T extends SQSQueueParameters = SQSQueueParameters>
       label: "SQS Queue",
       description: "Implements a Queue stored in SQS",
       documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
-      logo: "images/icons/sqs.png",
-      configuration: {}
+      logo: "images/icons/sqs.png"
     };
   }
 }

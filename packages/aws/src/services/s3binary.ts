@@ -446,29 +446,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       description:
         "Implements S3 storage, so you can upload binary from users, handles mapping with other objects. It only stores once a binary, and if you use the attached Polymer behavior it will not even uplaod file if they are on the server already",
       documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
-      logo: "images/icons/s3.png",
-      configuration: {
-        schema: {
-          type: "object",
-          properties: {
-            expose: {
-              type: "boolean",
-              default: true
-            },
-            accessKeyId: {
-              type: "string"
-            },
-            secretAccessKey: {
-              type: "string"
-            },
-            bucket: {
-              type: "string",
-              default: "YOUR S3 Bucket"
-            }
-          },
-          required: ["accessKeyId", "secretAccessKey", "bucket"]
-        }
-      }
+      logo: "images/icons/s3.png"
     };
   }
 }

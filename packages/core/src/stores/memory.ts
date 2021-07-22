@@ -156,17 +156,7 @@ class MemoryStore<T extends CoreModel, K extends StoreParameters = StoreParamete
       label: "MemoryStore",
       description: "Implements a simple in memory store",
       documentation: "",
-      logo: "images/icons/memorystore.png",
-      configuration: {
-        widget: {
-          tag: "webda-store-configurator",
-          url: "elements/services/webda-store-configurator.html"
-        },
-        schema: {
-          type: "object",
-          properties: {}
-        }
-      }
+      logo: "images/icons/memorystore.png"
     };
   }
 }

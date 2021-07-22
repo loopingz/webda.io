@@ -284,7 +284,7 @@ export class Application {
    * @param {string} fileOrFolder to load Webda Application from
    * @param {Logger} logger
    */
-  constructor(file: string, logger: WorkerOutput = undefined) {
+  constructor(file: string, logger: WorkerOutput = undefined, allowModule: boolean = false) {
     this.logger = logger || new WorkerOutput();
     this.initTime = Date.now();
     if (!fs.existsSync(file)) {
@@ -297,14 +297,18 @@ export class Application {
       file = path.join(file, "webda.config.json");
     }
     // Check if file is a file or folder
-    if (!fs.existsSync(file)) {
+    if (!fs.existsSync(file) && !allowModule) {
       throw new WebdaError("NO_WEBDA_FOLDER", `Not a webda application folder or webda.config.json file: ${file}`);
     }
     this.appPath = path.dirname(file);
     try {
       this.baseConfiguration = JSON.parse(fs.readFileSync(file).toString() || "{}");
     } catch (err) {
-      throw new WebdaError("INVALID_WEBDA_CONFIG", `Cannot parse JSON of: ${file}`);
+      if (allowModule) {
+        this.baseConfiguration = { version: 2, module: {} };
+      } else {
+        throw new WebdaError("INVALID_WEBDA_CONFIG", `Cannot parse JSON of: ${file}`);
+      }
     }
     // Load default schema resolver
     this.schemaResolver = new DefaultSchemaResolver(this);

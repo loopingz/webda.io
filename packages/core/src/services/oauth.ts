@@ -4,7 +4,15 @@ import { Authentication } from "./authentication";
 
 import { v4 as uuidv4 } from "uuid";
 
-class OAuthServiceParameters extends ServiceParameters {
+/**
+ * OAuth return definition
+ */
+export interface OAuthReturn {
+  profile: any;
+  identId: string;
+}
+
+export class OAuthServiceParameters extends ServiceParameters {
   /**
    * URL to use for expose
    *
@@ -41,11 +49,18 @@ class OAuthServiceParameters extends ServiceParameters {
    */
   redirect_uri?: string;
 
+  /**
+   * Name of the authentication service to use if exist
+   * @default Authentication
+   */
+  authenticationService: string;
+
   constructor(params: any) {
     super(params);
     this.scope ??= ["email"];
     this.exposeScope ??= false;
     this.authorized_uris ??= [];
+    this.authenticationService ??= "Authentication";
   }
 }
 
@@ -69,6 +84,11 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
     return new OAuthServiceParameters(params);
   }
 
+  /**
+   * Allow callback referer to access this url no matter what
+   * @param context
+   * @returns
+   */
   async checkRequest(context: Context): Promise<boolean> {
     let regexps = this.getCallbackReferer();
     let valid = false;
@@ -82,6 +102,19 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
     return valid;
   }
 
+  /**
+   * Resolve dynamic dependancy
+   */
+  resolve() {
+    super.resolve();
+    this._authenticationService = this.parameters.authenticationService
+      ? this.getService(this.parameters.authenticationService)
+      : null;
+  }
+
+  /**
+   * Add routes for the authentication
+   */
   initRoutes() {
     super.initRoutes();
     this.parameters.url = this.parameters.url || `${this.getDefaultUrl()}{?redirect}`;
@@ -145,14 +178,28 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
     }
   }
 
+  /**
+   * Expose the scope used by the authentication
+   * @param ctx
+   */
   _scope(ctx: Context) {
     ctx.write(this.parameters.scope || ["email"]);
   }
 
+  /**
+   * Define if this provider allow authentication by tokens
+   * @returns
+   */
   hasToken(): boolean {
     return false;
   }
 
+  /**
+   * Redirect to the OAuth provider
+   *
+   * The calling url must be and authorized_uris if defined
+   * @param ctx
+   */
   _redirect(ctx: Context) {
     // implement default behavior
     let redirect_uri = this.parameters.redirect_uri || `${ctx.getHttpContext().getAbsoluteUrl()}/callback`;
@@ -165,22 +212,54 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
     }
     // Generate 2 random uuid: nonce and state
     ctx.getSession().state = uuidv4();
-    //
+    // Redirect to the calling uri
     ctx.getSession().redirect = ctx.getHttpContext().getHeaders().referer;
     ctx.redirect(this.generateAuthUrl(redirect_uri, ctx.getSession().state));
   }
 
-  generateAuthUrl(redirect_uri: string, state: string) {
-    return ``;
+  /**
+   * Handle a token return
+   *
+   * This is private to avoid any override
+   * @param context
+   */
+  private async _token(context: Context) {
+    const res = await this.handleToken(context);
+    await this.handleReturn(context, res.identId, res.profile);
+    await this.emitSync("OAuthToken", {
+      ...res,
+      provider: this.getName()
+    });
   }
 
-  async _token(context: Context) {
-    throw 404;
+  /**
+   * Handle a standard url callback
+   *
+   * This is private to avoid any override
+   * @param ctx
+   */
+  private async _callback(ctx: Context) {
+    const res = await this.handleCallback(ctx);
+    await this.handleReturn(ctx, res.identId, res.profile);
+    await this.emitSync("OAuthCallback", {
+      ...res,
+      provider: this.getName()
+    });
   }
 
-  async _callback(ctx: Context) {}
+  /**
+   * Once approved by the OAuth provider this will do the common task
+   * @param ctx
+   * @param identId
+   * @param profile
+   */
+  async handleReturn(ctx: Context, identId: string, profile: any, tokens: any = undefined) {
+    // If no identId has been provided error
+    if (!identId) {
+      throw 403;
+    }
 
-  async handleReturn(ctx: Context, identId: string, profile: any) {
+    // If authentication service then create a User/Ident couple
     if (this._authenticationService) {
       // Should call the onIdentLogin()
       await this._authenticationService.onIdentLogin(ctx, this.getName().toLowerCase(), identId, profile);
@@ -190,11 +269,48 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
       // Store the profile retrieved
       ctx.getSession().profile = profile;
     }
+
+    // Redirect to our targets
+    if (ctx.getSession().redirect) {
+      ctx.redirect(ctx.getSession().redirect);
+    } else {
+      ctx.write("Your authentication is successful");
+    }
   }
 
+  /**
+   * Return default url for the provider
+   */
   abstract getDefaultUrl(): string;
 
+  /**
+   * Return the different sources of url from the provider
+   */
   abstract getCallbackReferer(): RegExp[];
 
+  /**
+   * Return the name of the provider
+   */
   abstract getName(): string;
+
+  /**
+   * Generate the authorization url to the provider
+   *
+   * @param redirect_uri to redirect to
+   * @param state random state
+   */
+  abstract generateAuthUrl(redirect_uri: string, state: string);
+
+  /**
+   * Verify a token from a provider
+   *
+   * @param ctx
+   */
+  abstract handleToken(ctx: Context): Promise<OAuthReturn>;
+
+  /**
+   * Manage the return of a provider
+   * @param ctx
+   */
+  abstract handleCallback(ctx: Context): Promise<OAuthReturn>;
 }

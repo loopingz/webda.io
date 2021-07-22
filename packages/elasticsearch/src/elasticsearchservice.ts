@@ -247,8 +247,7 @@ export default class ElasticSearchService<
       uuid: "Webda/ElasticSearchService",
       label: "ElasticSearchService",
       description: "Index a Store allowing you to query it through ES",
-      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
-      configuration: {}
+      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md"
     };
   }
 }

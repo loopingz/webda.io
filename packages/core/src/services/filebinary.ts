@@ -269,22 +269,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
       label: "File Storage",
       description: "Implements storage of files on the server filesystem",
       documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
-      logo: "images/icons/filestorage.png",
-      configuration: {
-        schema: {
-          type: "object",
-          properties: {
-            expose: {
-              type: "boolean"
-            },
-            folder: {
-              type: "string",
-              default: "/tmp/binaries"
-            }
-          },
-          required: ["folder"]
-        }
-      }
+      logo: "images/icons/filestorage.png"
     };
   }
 }

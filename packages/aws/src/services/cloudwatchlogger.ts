@@ -152,37 +152,7 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
       uuid: "Webda/CloudWatchLogger",
       label: "CloudWatchLogger",
       description: "Output to a logstream in CloudWatch",
-      logo: "images/icons/none.png",
-      configuration: {
-        schema: {
-          type: "object",
-          properties: {
-            logLevel: {
-              type: "string",
-              default: "INFO"
-            },
-            logLevels: {
-              type: "string",
-              default: "ERROR,WARN,CONSOLE,INFO,DEBUG"
-            },
-            logGroupName: {
-              type: "string"
-            },
-            logStreamNamePrefix: {
-              type: "string"
-            },
-            kmsKeyId: {
-              type: "string"
-            },
-            tags: {
-              type: "array"
-            },
-            singlePush: {
-              type: "boolean"
-            }
-          }
-        }
-      }
+      logo: "images/icons/none.png"
     };
   }
 }

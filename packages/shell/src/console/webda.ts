@@ -527,6 +527,10 @@ export default class WebdaConsole {
     if (this.app.isTypescript()) {
       this.app.setSchemaResolver(new TypescriptSchemaResolver(this.app, this.logger));
     }
+    if (fs.existsSync(this.app.getAppPath("webda.config.json"))) {
+      // Generate config schema as well
+      this.generateConfigurationSchema();
+    }
     return this.app.generateModule();
   }
 
@@ -592,11 +596,12 @@ export default class WebdaConsole {
   }
 
   /**
-   * Generate a JSON Schema specific to the current configuration
+   * Generate the configuration schema
+   *
+   * @param filename to save for
+   * @param full to keep all required
    */
-  static async configurationSchema(argv) {
-    argv._.shift();
-    let mainSchema = "";
+  static generateConfigurationSchema(filename: string = ".webda-config-schema.json", full: boolean = false) {
     if (this.app.isTypescript()) {
       let resolver = new TypescriptSchemaResolver(this.app, this.logger);
       this.app.setSchemaResolver(resolver);
@@ -605,7 +610,6 @@ export default class WebdaConsole {
       // Clean cached modules
       delete res.definitions.CachedModule;
       delete res.properties.cachedModules;
-      console.log(res);
       // Add the definition for types
       res.definitions.ServicesType = {
         type: "string",
@@ -630,13 +634,20 @@ export default class WebdaConsole {
         res.properties.services.additionalProperties.oneOf.push({ $ref: `#/definitions/${key}` });
         delete res.definitions[key]["$schema"];
         // Remove mandatory depending on option
-        if (!argv.full) {
+        if (!full) {
           res.definitions[key]["required"] = ["type"];
         }
       });
-      let filename = argv._.shift();
       FileUtils.save(res, filename);
     }
+  }
+
+  /**
+   * Generate a JSON Schema specific to the current configuration
+   */
+  static async configurationSchema(argv) {
+    argv._.shift();
+    this.generateConfigurationSchema(argv._.shift(), argv.full);
   }
 
   /**
@@ -660,7 +671,12 @@ export default class WebdaConsole {
     }
     // Namespace is optional
     let split = result.split("/");
-    return `(${split[0]}/)?${split[1]}`;
+    return `^(${split[0]}/)?${split[1]}$`;
+    /**
+     Should use this sample but it seems to not be handled by vscode
+     let split = type.split("/");
+     return `^(?i)(${split[0]}/)?${split[1]}$`;
+     */
   }
 
   /**
@@ -746,7 +762,7 @@ export default class WebdaConsole {
 
       // Load Application
       try {
-        this.app = new Application(argv.appPath, output);
+        this.app = new Application(argv.appPath, output, true);
       } catch (err) {
         output.log("ERROR", err.message);
         return -1;

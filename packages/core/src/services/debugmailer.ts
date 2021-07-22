@@ -48,14 +48,7 @@ export default class DebugMailer extends Service {
       uuid: "Webda/DebugMailer",
       label: "DebugMailer",
       description: "Implements a mail that store in memory and output in log but nothing else",
-      logo: "images/icons/email.png",
-      configuration: {
-        schema: {
-          type: "object",
-          properties: {},
-          required: []
-        }
-      }
+      logo: "images/icons/email.png"
     };
   }
 }

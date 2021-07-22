@@ -94,8 +94,7 @@ class MemoryQueue<T extends MemoryQueueParameters = MemoryQueueParameters> exten
       uuid: "Webda/MemoryQueue",
       label: "MemoryQueue",
       description: "Implements a simple in memory queue",
-      logo: "images/icons/memoryqueue.png",
-      configuration: {}
+      logo: "images/icons/memoryqueue.png"
     };
   }
 }

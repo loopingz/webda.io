@@ -67,15 +67,6 @@ export interface ModdaDefinition {
    * URL of the logo to display
    */
   logo?: string;
-  /**
-   * Schema of the configuration
-   *
-   * If defined as string we will try to extract it with typescript-json-schema
-   */
-  configuration?: {
-    schema?: JSONSchema6 | string;
-    widget?: any;
-  };
 }
 
 /**

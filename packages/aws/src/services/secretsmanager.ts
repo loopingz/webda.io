@@ -89,13 +89,7 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
       label: "AWSSecretsManager",
       description: "Implements AWS SecretsManager",
       documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
-      logo: "images/icons/s3.png",
-      configuration: {
-        schema: {
-          type: "object",
-          properties: {}
-        }
-      }
+      logo: "images/icons/s3.png"
     };
   }
 }

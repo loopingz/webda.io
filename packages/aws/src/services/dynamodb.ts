@@ -453,29 +453,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
       label: "DynamoStore",
       description: "Implements DynamoDB NoSQL storage",
       logo: "images/icons/dynamodb.png",
-      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
-      configuration: {
-        widget: {
-          tag: "webda-dynamodb-configurator",
-          url: "elements/services/webda-dynamodb-configurator.html"
-        },
-        schema: {
-          type: "object",
-          properties: {
-            table: {
-              type: "string",
-              default: "table-name"
-            },
-            accessKeyId: {
-              type: "string"
-            },
-            secretAccessKey: {
-              type: "string"
-            }
-          },
-          required: ["table", "accessKeyId", "secretAccessKey"]
-        }
-      }
+      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md"
     };
   }
 }

@@ -1,6 +1,5 @@
 "use strict";
 import { v4 as uuidv4 } from "uuid";
-import { OwnerPolicy } from "../policies/ownerpolicy";
 import { Store } from "../stores/store";
 import { Context } from "../utils/context";
 import { Service } from "..";
@@ -34,7 +33,7 @@ class CoreModelMapper<T extends CoreModel> {
  *
  * @class
  */
-class CoreModel extends OwnerPolicy {
+class CoreModel {
   static jsonExcludes = ["__store", "__ctx"];
   /**
    * Object context
@@ -65,6 +64,24 @@ class CoreModel extends OwnerPolicy {
   __deleted: boolean;
 
   /**
+   *
+   * @returns the uuid of the object
+   */
+  getUuid(): string {
+    // @ts-ignore
+    return this[CoreModel.getUuidField()];
+  }
+
+  /**
+   *
+   * @param uuid
+   * @param target
+   */
+  setUuid(uuid: string, target: any = this): void {
+    target[target.getUuidField()] = uuid;
+  }
+
+  /**
    * Get actions callable on an object
    *
    * This will expose them by the Store with /storeUrl/{uuid}/{action}
@@ -74,9 +91,17 @@ class CoreModel extends OwnerPolicy {
   }
 
   /**
+   * By default nothing is permitted on a CoreModel
+   * @returns
+   */
+  async canAct(ctx: Context, action: string): Promise<this> {
+    throw 403;
+  }
+
+  /**
    * Get the UUID property
    */
-  static getUuidField(): string | string[] {
+  static getUuidField(): string {
     return "uuid";
   }
 
@@ -154,7 +179,7 @@ class CoreModel extends OwnerPolicy {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
-    let obj = await this.__store.get(this.uuid);
+    let obj = await this.__store.get(this.getUuid());
     if (obj) {
       for (let i in obj) {
         this[i] = obj[i];
@@ -178,7 +203,7 @@ class CoreModel extends OwnerPolicy {
     if (!this.__store) {
       throw Error("No store linked to this object");
     }
-    return this.__store.delete(this.uuid);
+    return this.__store.delete(this.getUuid());
   }
 
   /**

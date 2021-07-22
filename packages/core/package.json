@@ -78,5 +78,8 @@
   "homepage": "https://webda.io",
   "publishConfig": {
     "access": "public"
+  },
+  "webda": {
+    "namespace": "Webda"
   }
 }

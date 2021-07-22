@@ -1,20 +1,47 @@
-"use strict";
-import { Context } from "../index";
-class OwnerPolicy {
+import { CoreModel, Context } from "../";
+
+export default class OwnerModel extends CoreModel {
+  /**
+   * Default owner of the object
+   */
   _user: string;
-  public: boolean;
+  /**
+   * Define if the object is publicly readable
+   * @default false
+   */
+  public?: boolean;
+  /**
+   * UUID of the object
+   */
   uuid: string;
+
   /**
    * Return false if can't create
    */
   async canCreate(ctx: Context): Promise<this> {
-    this._user = ctx.getSession().getUserId();
-    if (!this._user) {
+    const userId = ctx.getSession().getUserId();
+    if (!userId) {
       throw 403;
     }
+    this.setOwner(userId);
+
     return this;
   }
 
+  /**
+   * Set object owner
+   * @param uuid
+   */
+  setOwner(uuid: string): void {
+    this._user = uuid;
+  }
+
+  /**
+   * Return the owner of the object
+   *
+   * Only the owner can do update to the object
+   * @returns
+   */
   getOwner(): string {
     return this._user;
   }
@@ -31,6 +58,7 @@ class OwnerPolicy {
     }
     throw 403;
   }
+
   /**
    * Return false if can't update
    */
@@ -63,4 +91,4 @@ class OwnerPolicy {
   }
 }
 
-export { OwnerPolicy };
+export { OwnerModel };

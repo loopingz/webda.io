@@ -42,6 +42,7 @@ import * as deepmerge from "deepmerge";
 import * as semver from "semver";
 import * as dateFormat from "dateformat";
 import { JSONSchema6 } from "json-schema";
+import { FileUtils, JSONUtils } from "./utils/serializers";
 
 /**
  * Return the gather information from the repository
@@ -1001,9 +1002,9 @@ export class Application {
     for (let i in this.appModule.models) {
       module.schemas[i] = this.getSchemaResolver().fromPrototype(this.models[i.toLowerCase()]);
     }
-    if (current !== JSON.stringify(module, undefined, 2)) {
+    if (current !== JSONUtils.stringify(module, undefined, 2)) {
       // Write module
-      fs.writeFileSync(moduleFile, JSON.stringify(module, undefined, 2));
+      FileUtils.save(module, moduleFile);
     }
   }
 

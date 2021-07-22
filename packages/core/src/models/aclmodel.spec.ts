@@ -1,13 +1,11 @@
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { AclPolicyMixIn, Application, Core, CoreModel, HttpContext, SecureCookie, User } from "../index";
-
-class AclPolicyModel extends AclPolicyMixIn(CoreModel) {}
+import { AclModel, Application, Core, CoreModel, HttpContext, SecureCookie, User } from "../index";
 
 @suite
 class AclPolicyTest {
   _ctx;
-  model: AclPolicyModel;
+  model: AclModel;
   _webda: Core;
   _session: SecureCookie;
   _user: User;
@@ -17,7 +15,7 @@ class AclPolicyTest {
     this._ctx = await this._webda.newContext(new HttpContext("test.webda.io", "GET", "/"));
     this._session = this._ctx.getSession();
     this._session.login("user-uid", "none");
-    this.model = new AclPolicyModel();
+    this.model = new AclModel();
     this._user = new User();
     this._user.uuid = "user-uid";
     this._user.addGroup("gip-123");

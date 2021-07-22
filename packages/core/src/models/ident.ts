@@ -1,5 +1,5 @@
 "use strict";
-import { CoreModel } from "./coremodel";
+import { OwnerModel } from "./ownermodel";
 
 class IdentTokens {
   refresh: string;
@@ -9,7 +9,7 @@ class IdentTokens {
  * First basic model for Ident
  * @class
  */
-class Ident extends CoreModel {
+class Ident extends OwnerModel {
   _type: string;
   uid: string;
   __profile: any;

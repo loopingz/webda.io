@@ -4,7 +4,7 @@ import { CoreModel, HttpContext, SecureCookie, Store, User, StoreParameters } fr
 import { WebdaTest } from "../test";
 
 @suite
-class OwnerPolicyTest extends WebdaTest {
+class OwnerModelTest extends WebdaTest {
   _ctx;
   _session: SecureCookie;
   _user: User;

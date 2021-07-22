@@ -5,6 +5,9 @@ import { CoreModel, CoreModelDefinition } from "../models/coremodel";
 import { Service, ServiceParameters } from "../services/service";
 import { Context } from "../utils/context";
 
+/**
+ * Mapper parameters
+ */
 export interface MapStoreParameter {
   /**
    * Key on the current model which holds the collection
@@ -14,8 +17,20 @@ export interface MapStoreParameter {
    * Other fields to duplicate inside the model
    */
   fields: string;
+  /**
+   * Delete if target object is delete
+   * @default false
+   */
+  cascade?: boolean;
+  /**
+   * Field to target on the object
+   */
+  target: string;
 }
 
+/**
+ * Store parameter
+ */
 export class StoreParameters extends ServiceParameters {
   /**
    * Field to store the lastUpdate of the object

@@ -9,12 +9,12 @@ export * from "./core";
 // Models
 export * from "./models/coremodel";
 export * from "./models/deployment";
+export * from "./models/ownermodel";
+export * from "./models/aclmodel";
+export * from "./models/rolemodel";
 export * from "./models/ident";
 export * from "./models/user";
-// Policies
-export * from "./policies/aclpolicy";
-export * from "./policies/ownerpolicy";
-export * from "./policies/rolepolicy";
+
 // Queues
 export * from "./queues/memoryqueue";
 export * from "./queues/queueservice";

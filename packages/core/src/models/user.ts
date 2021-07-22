@@ -1,15 +1,30 @@
 "use strict";
-import { CoreModel } from "./coremodel";
+import { OwnerModel } from "./ownermodel";
 
 /**
- * First basic model for Ident
+ * First basic model for User
  * @class
  */
-class User extends CoreModel {
-  private __password: string;
-  private _lastPasswordRecovery: number = 0;
+class User extends OwnerModel {
+  /**
+   * Password of the user if defined
+   */
+  private __password?: string;
+  /**
+   * Last time the password was recovered
+   */
+  private _lastPasswordRecovery?: number = 0;
+  /**
+   * Roles of the user
+   */
   private _roles: string[] = [];
+  /**
+   * Groups for a user
+   */
   private _groups: string[] = [];
+  /**
+   * Idents used by the user
+   */
   private _idents: any[] = [];
 
   //getIdents(): CoreModelDefinition

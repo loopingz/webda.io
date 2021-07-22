@@ -1,27 +1,35 @@
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { Application, Core, CoreModel, HttpContext, RolePolicyMixIn, SecureCookie, User } from "../index";
+import { Application, Core, CoreModel, HttpContext, RoleModel, SecureCookie, User } from "../index";
 
-class RolePolicyModel extends RolePolicyMixIn(CoreModel, {
-  get: "member",
-  update: "member",
-  delete: "admin"
-}) {}
+class RolePolicyModel extends RoleModel {
+  getRolesMap() {
+    return {
+      get: "member",
+      update: "member",
+      delete: "admin"
+    };
+  }
+}
 
-class RolePolicyModelPermissive extends RolePolicyMixIn(
-  CoreModel,
-  {
-    get: "member",
-    create: "member"
-  },
-  true
-) {}
+class RolePolicyModelPermissive extends RoleModel {
+  getRolesMap() {
+    return {
+      get: "member",
+      create: "member"
+    };
+  }
+
+  isPermissive() {
+    return true;
+  }
+}
 
 @suite
 class RolePolicyTest {
   _ctx;
-  nonPermissive: RolePolicyModel;
-  permissive: RolePolicyModel;
+  nonPermissive: RoleModel;
+  permissive: RoleModel;
   _webda: Core;
   _session: SecureCookie;
   _user: User;

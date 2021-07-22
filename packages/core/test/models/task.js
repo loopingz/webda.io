@@ -1,12 +1,12 @@
 "use strict";
 const Webda = require("../../lib/index.js");
-const CoreModel = Webda.CoreModel;
+const OwnerModel = Webda.OwnerModel;
 const Context = Webda.Context;
 
 /**
  * @class
  */
-class Task extends CoreModel {
+class Task extends OwnerModel {
   static getActions() {
     return {
       actionable: {

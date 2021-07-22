@@ -34,11 +34,11 @@ export const FileUtils = {
    * @param filename to save
    * @returns
    */
-  save: (object, filename) => {
+  save: (object, filename = "") => {
     if (filename.match(/\.ya?ml$/i)) {
-      return writeFileSync(filename, yaml.stringify(object));
+      return writeFileSync(filename, yaml.stringify(JSON.parse(JSONUtils.stringify(object))));
     } else if (filename.match(/\.json$/i)) {
-      return writeFileSync(filename, JSONUtils.safeStringify(object, undefined, 2));
+      return writeFileSync(filename, JSONUtils.stringify(object, undefined, 2));
     }
     throw new Error("Unknown format");
   }
@@ -69,6 +69,9 @@ export const JSONUtils = {
         if (replacer) {
           return replacer.bind(this, key, val)();
         }
+        if (val === null) {
+          return;
+        }
         return val;
       },
       space
@@ -93,6 +96,9 @@ export const JSONUtils = {
           }
           if (replacer) {
             return replacer.bind(this, key, val)();
+          }
+          if (val === null) {
+            return;
           }
           return val;
         },

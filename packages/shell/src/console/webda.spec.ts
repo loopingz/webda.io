@@ -266,7 +266,6 @@ class DynamicService extends Service {
     await this.commandLine(`-d Dev openapi myopenapi.yaml`);
     assert.strictEqual(fs.existsSync("./myopenapi.yaml"), true);
     assert.strictEqual(fs.readFileSync("./myopenapi.yaml").toString(), fs.readFileSync("./myopenapi.yml").toString());
-    await this.commandLine(`-d Dev openapi myopenapi.txt`);
   }
 
   @test
@@ -303,15 +302,21 @@ class DynamicService extends Service {
 
   @test
   async configurationSchema() {
-    let res = await this.commandLine("configuration-schema");
-    let logs = this.logger.getLogs();
-    console.log(logs);
+    const f = "./myschemacfg.json";
+    if (fs.existsSync(f)) {
+      fs.unlinkSync(f);
+    }
+    await this.commandLine("configuration-schema myschemacfg.json");
+    assert.strictEqual(true, fs.existsSync(f));
   }
 
   @test
   async schema() {
-    let res = await this.commandLine("schema Authentication");
-    let logs = this.logger.getLogs();
-    console.log(logs);
+    const f = "./authentication.json";
+    if (fs.existsSync(f)) {
+      fs.unlinkSync(f);
+    }
+    await this.commandLine("schema Authentication authentication.json");
+    assert.strictEqual(true, fs.existsSync(f));
   }
 }

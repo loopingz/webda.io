@@ -5,6 +5,17 @@ import { CoreModel, CoreModelDefinition } from "../models/coremodel";
 import { Service, ServiceParameters } from "../services/service";
 import { Context } from "../utils/context";
 
+export interface MapStoreParameter {
+  /**
+   * Key on the current model which holds the collection
+   */
+  key: string;
+  /**
+   * Other fields to duplicate inside the model
+   */
+  fields: string;
+}
+
 export class StoreParameters extends ServiceParameters {
   /**
    * Field to store the lastUpdate of the object
@@ -34,16 +45,7 @@ export class StoreParameters extends ServiceParameters {
    * {@link Pages/pages/Store}
    */
   map: {
-    [key: string]: {
-      /**
-       * Key on the current model which holds the collection
-       */
-      key: string;
-      /**
-       * Other fields to duplicate inside the model
-       */
-      fields: string;
-    };
+    [key: string]: MapStoreParameter;
   };
   /**
    * async delete

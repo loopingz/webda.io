@@ -266,7 +266,6 @@ class DynamicService extends Service {
     await this.commandLine(`-d Dev openapi myopenapi.yaml`);
     assert.strictEqual(fs.existsSync("./myopenapi.yaml"), true);
     assert.strictEqual(fs.readFileSync("./myopenapi.yaml").toString(), fs.readFileSync("./myopenapi.yml").toString());
-    await this.commandLine(`-d Dev openapi myopenapi.txt`);
   }
 
   @test
@@ -292,5 +291,32 @@ class DynamicService extends Service {
     assert.strictEqual(res, -1);
     let logs = this.logger.getLogs();
     assert.strictEqual(logs[0].log.args[0], "Unknown deployment: TestLambda");
+  }
+
+  @test
+  async types() {
+    await this.commandLine("types");
+    let logs = this.logger.getLogs();
+    assert.strictEqual(logs.length, 3, "We should have 3 logs with Deployers, Services, Models");
+  }
+
+  @test
+  async configurationSchema() {
+    const f = "./myschemacfg.json";
+    if (fs.existsSync(f)) {
+      fs.unlinkSync(f);
+    }
+    await this.commandLine("configuration-schema myschemacfg.json");
+    assert.strictEqual(true, fs.existsSync(f));
+  }
+
+  @test
+  async schema() {
+    const f = "./authentication.json";
+    if (fs.existsSync(f)) {
+      fs.unlinkSync(f);
+    }
+    await this.commandLine("schema Authentication authentication.json");
+    assert.strictEqual(true, fs.existsSync(f));
   }
 }

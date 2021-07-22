@@ -115,6 +115,9 @@ export interface ConfigurationV1 {
  * Configuration from Webda version >= 1.0
  */
 export interface Configuration {
+  /**
+   * @minimum 2
+   */
   version: number;
   cachedModules?: CachedModule;
   module: Module;
@@ -123,6 +126,9 @@ export interface Configuration {
     cookie?: {
       sameSite: "None" | "Strict" | "Lax";
       domain: string;
+      /**
+       * @minimum 1
+       */
       maxAge: number;
       path: string;
     };

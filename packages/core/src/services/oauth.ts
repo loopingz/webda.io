@@ -98,9 +98,9 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
   async checkRequest(context: Context): Promise<boolean> {
     let regexps = this.getCallbackReferer();
     let valid = false;
-    let referer = "";
+    let referer = context.getHttpContext().getHeader("referer") || "";
     for (let i in regexps) {
-      valid = referer.match(regexps[i]) !== undefined;
+      valid = referer.match(regexps[i]) !== null;
       if (valid) {
         break;
       }
@@ -113,9 +113,7 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
    */
   resolve() {
     super.resolve();
-    this._authenticationService = this.parameters.authenticationService
-      ? this.getService(this.parameters.authenticationService)
-      : null;
+    this._authenticationService = this.getService(this.parameters.authenticationService);
   }
 
   /**
@@ -189,7 +187,7 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
    * @param ctx
    */
   _scope(ctx: Context) {
-    ctx.write(this.parameters.scope || ["email"]);
+    ctx.write(this.parameters.scope);
   }
 
   /**
@@ -211,6 +209,7 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
     let redirect_uri = this.parameters.redirect_uri || `${ctx.getHttpContext().getAbsoluteUrl()}/callback`;
 
     if (this.parameters.authorized_uris) {
+      // Might want to use regexp here
       if (this.parameters.authorized_uris.indexOf(ctx.getHttpContext().getHeaders().referer) < 0) {
         if (ctx.getHttpContext().getHeaders().referer || !this.parameters.no_referer) {
           // The redirect_uri is not authorized , might be forging HOST request

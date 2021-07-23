@@ -25,10 +25,20 @@ class WebdaTest {
   webda: Core;
   addConsoleLogger: boolean = true;
 
-  getTestConfiguration() {
+  /**
+   * Get the configuration file to use for the test
+   *
+   * @returns absolute path to configuration file
+   */
+  getTestConfiguration(): string {
     return process.cwd() + "/test/config.json";
   }
 
+  /**
+   * Build the webda application
+   *
+   * Add a ConsoleLogger if addConsoleLogger is true
+   */
   protected buildWebda() {
     let app = new Application(this.getTestConfiguration());
     app.loadLocalModule();
@@ -39,6 +49,11 @@ class WebdaTest {
     }
   }
 
+  /**
+   * Rebuild Webda application before each test
+   *
+   * @param init wait for the full init
+   */
   async before(init: boolean = true) {
     this.buildWebda();
     if (init) {
@@ -46,12 +61,31 @@ class WebdaTest {
     }
   }
 
+  /**
+   * Create a new Context object
+   *
+   * The context is initialized to GET test.webda.io/
+   *
+   * @param body to add to the context
+   * @returns
+   */
   async newContext<T extends Context>(body: any = {}): Promise<T> {
     let res = await this.webda.newContext<T>(new HttpContext("test.webda.io", "GET", "/"));
     res.getHttpContext().setBody(body);
     return res;
   }
 
+  /**
+   * Get an Executor from Webda
+   *
+   * @param ctx
+   * @param host
+   * @param method
+   * @param url
+   * @param body
+   * @param headers
+   * @returns
+   */
   getExecutor(
     ctx: Context = undefined,
     host: string = "test.webda.io",
@@ -78,6 +112,11 @@ class WebdaTest {
     }
   }
 
+  /**
+   * Should use assert.rejects
+   *
+   * @deprecated
+   */
   async assertThrowsAsync(fn, regExp = undefined) {
     let f = () => {};
     try {
@@ -91,21 +130,48 @@ class WebdaTest {
     }
   }
 
-  async sleep(time) {
+  /**
+   * Pause for time ms
+   *
+   * @param time ms
+   */
+  async sleep(time): Promise<void> {
     return new Promise(resolve => {
       setTimeout(resolve, time);
     });
   }
 
+  /**
+   * Get service from Webda
+   * @param service name
+   * @returns
+   */
   getService<T extends Service>(service: string): T {
     return this.webda.getService<T>(service);
   }
 
+  /**
+   * Call getModda() on all services
+   *
+   * @deprecated ?
+   */
   consumeAllModdas() {
     let services = this.webda.getApplication().getServices();
     for (let i in services) {
       services[i].getModda();
     }
+  }
+
+  /**
+   * Dynamic add a service to webda
+   *
+   * @param name of the service to add
+   * @param service to add
+   */
+  registerService(name: string, service: Service) {
+    // Have to override protected
+    // @ts-ignore
+    this.webda.services[name] = service;
   }
 }
 

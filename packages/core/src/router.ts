@@ -92,6 +92,12 @@ export class Router {
     this.remapRoutes();
   }
 
+  /**
+   * Reinit all routes
+   *
+   * It will readd the URITemplates if needed
+   * Sort all routes again
+   */
   public remapRoutes() {
     this.initURITemplates(this.routes);
 

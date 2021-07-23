@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import * as mime from "mime";
+import * as mime from "mime-types";
 import * as path from "path";
 import { Context } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
@@ -147,7 +147,7 @@ export default class ResourceService<
       throw 404;
     }
     ctx.writeHead(200, {
-      "Content-Type": mime.lookup(file, "application/octet-stream")
+      "Content-Type": mime.getType(file) || "application/octet-stream"
     });
     ctx.write(fs.readFileSync(file));
     ctx.end();

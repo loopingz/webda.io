@@ -1,10 +1,7 @@
 {
-  "mode": "modules",
-  "excludeNotExported": true,
   "excludePrivate": true,
-  "ignoreCompilerErrors": true,
   "excludeExternals": true,
-  "excludeReferences": true,
+  
   "media": "docs/media",
   "exclude": ["**/node_modules", "packages/*/node_modules", "packages/*/src/**/*.spec.ts", "sample-app"],
   "readme": "./readme.md",
@@ -17,23 +14,9 @@
   },
 
   "theme": "./node_modules/typedoc-loopingz-theme/bin/default",
-  "source": [
-    {
-      "path": "https://github.com/loopingz/webda.io/blob/master/",
-      "line": "L"
-    }
-  ],
-  "name": "webda.io",
-  "includeVersion": true,
 
-  "links": [
-    {
-      "label": "Quick Start",
-      "url": "/pages/QuickStart.html"
-    },
-    {
-      "label": "GitHub",
-      "url": "https://github.com/loopingz/webda.io"
-    }
-  ]
+  "name": "webda.io",
+  "includeVersion": true
+
+
 }

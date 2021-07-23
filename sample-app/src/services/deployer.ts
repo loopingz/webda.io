@@ -21,8 +21,7 @@ class CustomDeployer extends Deployer<DeployerResources> {
       category: "deployers",
       label: "Fake deployer for demo purpose",
       description: "",
-      logo: "",
-      configuration: {}
+      logo: ""
     };
   }
 }

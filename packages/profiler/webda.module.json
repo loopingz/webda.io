@@ -1,6 +1,6 @@
 {
   "services": {
-    "Webda/Profiler": "./lib/index.js"
+    "Webda/Profiler": "./lib/profiler.js"
   },
   "models": {},
   "deployers": {},

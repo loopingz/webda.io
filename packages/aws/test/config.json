@@ -68,7 +68,8 @@
       "scanPage": 2,
       "endpoint": "http://localhost:4569",
       "type": "DynamoStore",
-      "table": "webda-test-users"
+      "table": "webda-test-users",
+      "model": "Webda/User"
     },
     "binary": {
       "type": "S3Binary",

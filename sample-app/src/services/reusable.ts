@@ -6,8 +6,7 @@ export default class CustomReusableService extends Service {
       uuid: "WebdaDemo/CustomReusableService",
       label: "Fake service with modda for demo purpose",
       description: "",
-      logo: "",
-      configuration: {}
+      logo: ""
     };
   }
 }

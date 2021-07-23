@@ -120,8 +120,7 @@ export default class AWSXRayService<T extends AWSXRayServiceParameters = AWSXRay
       label: "AWS XRay",
       description: "Implements XRay",
       logo: "images/icons/dynamodb.png",
-      documentation: "https://raw.githubusercontent.com/loopingz/webda.io/master/readmes/XRay.md",
-      configuration: {}
+      documentation: "https://raw.githubusercontent.com/loopingz/webda.io/master/readmes/XRay.md"
     };
   }
 }

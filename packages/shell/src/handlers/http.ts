@@ -279,6 +279,7 @@ export class WebdaServer extends Webda {
       this.output("Server running at http://0.0.0.0:" + port);
       this.serverStatus = ServerStatus.Started;
     } catch (err) {
+      this.log("ERROR", err);
       this.serverStatus = ServerStatus.Stopped;
     }
   }

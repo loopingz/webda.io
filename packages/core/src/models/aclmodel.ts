@@ -1,6 +1,9 @@
 "use strict";
 import { Context, CoreModel, User } from "../index";
 
+/**
+ * Object that contains ACL to define its own permissions
+ */
 class AclModel extends CoreModel {
   __acls: Map<string, string> = new Map<string, string>();
 

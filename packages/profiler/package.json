@@ -16,7 +16,8 @@
     "url": "git+https://github.com/loopingz/webda.io.git"
   },
   "keywords": [
-    "webda"
+    "webda",
+    "modda"
   ],
   "files": [
     "lib",

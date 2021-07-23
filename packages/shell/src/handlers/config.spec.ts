@@ -22,7 +22,7 @@ class WebdaConfigurationServerTest {
   }
 
   async before() {
-    this.init(undefined);
+    await this.init(undefined);
   }
 
   async after() {

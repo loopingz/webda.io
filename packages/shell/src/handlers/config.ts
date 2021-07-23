@@ -37,6 +37,11 @@ export default class ConfigurationService extends Service implements RequestFilt
     }
   }
 
+  /**
+   * Return webda Core and Shell version
+   *
+   * @param ctx
+   */
   async getWebdaVersions(ctx: Context) {
     ctx.write({
       Core: this._webda.getApplication(),

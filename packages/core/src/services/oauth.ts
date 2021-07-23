@@ -48,6 +48,12 @@ export class OAuthServiceParameters extends ServiceParameters {
    * @default ${url}/callback
    */
   redirect_uri?: string;
+  /**
+   * Allow direct connection without a referer
+   *
+   * @default false
+   */
+  no_referer: boolean;
 
   /**
    * Name of the authentication service to use if exist
@@ -117,10 +123,10 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
    */
   initRoutes() {
     super.initRoutes();
-    this.parameters.url = this.parameters.url || `${this.getDefaultUrl()}{?redirect}`;
+    this.parameters.url = this.parameters.url || `${this.getDefaultUrl()}`;
     let name = this.getName();
 
-    this.addRoute(this.parameters.url, ["GET"], this._redirect, {
+    this.addRoute(`${this.parameters.url}{?redirect}`, ["GET"], this._redirect, {
       get: {
         description: `Log with a ${name} account`,
         summary: `Redirect to ${name}`,
@@ -206,15 +212,17 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
 
     if (this.parameters.authorized_uris) {
       if (this.parameters.authorized_uris.indexOf(ctx.getHttpContext().getHeaders().referer) < 0) {
-        // The redirect_uri is not authorized , might be forging HOST request
-        throw 401;
+        if (ctx.getHttpContext().getHeaders().referer || !this.parameters.no_referer) {
+          // The redirect_uri is not authorized , might be forging HOST request
+          throw 401;
+        }
       }
     }
     // Generate 2 random uuid: nonce and state
     ctx.getSession().state = uuidv4();
     // Redirect to the calling uri
     ctx.getSession().redirect = ctx.getHttpContext().getHeaders().referer;
-    ctx.redirect(this.generateAuthUrl(redirect_uri, ctx.getSession().state));
+    ctx.redirect(this.generateAuthUrl(redirect_uri, ctx.getSession().state, ctx));
   }
 
   /**
@@ -298,8 +306,9 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
    *
    * @param redirect_uri to redirect to
    * @param state random state
+   * @param ctx Context of request
    */
-  abstract generateAuthUrl(redirect_uri: string, state: string);
+  abstract generateAuthUrl(redirect_uri: string, state: string, ctx: Context);
 
   /**
    * Verify a token from a provider

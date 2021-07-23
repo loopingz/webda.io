@@ -357,7 +357,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
 
   async onIdentLogin(ctx: Context, provider: string, identId: string, profile: any, tokens: any = undefined) {
     // Auto postifx with provider name
-    const postfix = `_${this.getName()}`;
+    const postfix = `_${provider}`;
     if (!identId.endsWith(postfix)) {
       identId += postfix;
     }
@@ -375,19 +375,39 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       return;
     }
     let user;
+    if (profile.email) {
+      ident = await this._identsStore.get(`${profile.email}_email`);
+    }
     // If already login
     if (ctx.getCurrentUserId()) {
       user = await ctx.getCurrentUser();
     } else {
-      // If no user, register a new user automatically
-      user = await this.registerUser(ctx, profile);
-      await this._usersStore.save(user);
+      // If an email in profile try to find the ident
+      if (ident) {
+        user = await this._usersStore.get(ident.getUser());
+      }
+
+      if (!user) {
+        // If no user, register a new user automatically
+        user = await this.registerUser(ctx, profile);
+        await this._usersStore.save(user);
+      }
+    }
+    if (profile.email && !ident) {
+      // Save additional email
+      ident = this._identsStore.initModel({
+        uuid: `${profile.email}_email`,
+        provider: "email"
+      });
+      ident.setUser(user.getUuid());
+      await ident.save();
     }
     // Work directly on ident argument
     ident = this._identsStore.initModel({
       uuid: identId,
       profile,
-      __tokens: tokens
+      __tokens: tokens,
+      provider
     });
     ident.setUser(user.uuid);
     ident._lastUsed = new Date();
@@ -397,7 +417,11 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     await this.login(ctx, user, ident);
   }
 
-  async registerUser(ctx: Context, datas, user: any = {}): Promise<any> {
+  async registerUser(ctx: Context, datas, user: any = undefined): Promise<any> {
+    if (!user) {
+      user = this._usersStore.initModel();
+    }
+    user.email = datas.email;
     user.locale = ctx.getLocale();
     await this.emitSync("Register", {
       user: user,
@@ -602,6 +626,9 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     return bcrypt.hashSync(pass, this.parameters.salt || 10);
   }
 
+  /**
+   * Logout user
+   */
   async logout(ctx: Context) {
     await this.emitSync("Logout", {
       ctx: ctx
@@ -609,6 +636,14 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     ctx.getSession().destroy();
   }
 
+  /**
+   * Login a user
+   *
+   * @param ctx
+   * @param user
+   * @param ident
+   * @returns
+   */
   async login(ctx: Context, user, ident) {
     var event: any = {};
     event.userId = user;

@@ -339,7 +339,7 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters>
     return this._exposeUrl;
   }
 
-  initModel(object): T {
+  initModel(object: any = {}): T {
     // Make sure to send a model object
     if (!(object instanceof this._model)) {
       let model = new this._model();

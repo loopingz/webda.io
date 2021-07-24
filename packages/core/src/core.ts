@@ -1,4 +1,4 @@
-import * as Ajv from "ajv";
+import Ajv from "ajv";
 import * as deepmerge from "deepmerge";
 import * as events from "events";
 import { JSONSchema6 } from "json-schema";
@@ -295,7 +295,7 @@ export class Core extends events.EventEmitter {
     this.application = application;
     this._initTime = new Date().getTime();
     // Schema validations
-    this._ajv = Ajv();
+    this._ajv = new Ajv();
     this._ajvSchemas = {};
 
     // Load the configuration and migrate

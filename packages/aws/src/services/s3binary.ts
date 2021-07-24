@@ -106,7 +106,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     let targetStore = this._verifyMapAndStore(ctx);
     let object: any = await targetStore.get(uid);
     await object.canAct(ctx, "attach_binary");
-    var base64String = new Buffer(body.hash, "hex").toString("base64");
+    var base64String = Buffer.from(body.hash, "hex").toString("base64");
     var params = {
       Bucket: this.parameters.bucket,
       Key: this._getPath(body.hash),

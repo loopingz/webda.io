@@ -1,16 +1,14 @@
 "use strict";
-import * as Webda from "@webda/core";
 import * as assert from "assert";
 import * as fs from "fs";
 import { suite, test } from "@testdeck/mocha";
 import * as fetch from "node-fetch";
 import * as path from "path";
-import * as YAML from "yamljs";
 import { ServerStatus } from "../handlers/http";
 import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import { DebuggerStatus, WebdaConsole } from "./webda";
 import { MemoryLogger, WorkerOutput } from "@webda/workout";
-import { Logger, Module, WebdaError } from "@webda/core";
+import { FileUtils, Logger, Module, WebdaError } from "@webda/core";
 
 class DebugLogger extends MemoryLogger {
   getLogs(start: number = 0) {
@@ -261,7 +259,7 @@ class DynamicService extends Service {
     WebdaConsole.webda.reinitResolvedRoutes();
     await this.commandLine(`-d Dev openapi myopenapi.yml`);
     assert.strictEqual(fs.existsSync("./myopenapi.yml"), true);
-    assert.deepStrictEqual(YAML.parse(fs.readFileSync("./myopenapi.yml").toString()), def);
+    assert.deepStrictEqual(FileUtils.load("./myopenapi.yml"), def);
     WebdaConsole.webda.reinitResolvedRoutes();
     await this.commandLine(`-d Dev openapi myopenapi.yaml`);
     assert.strictEqual(fs.existsSync("./myopenapi.yaml"), true);

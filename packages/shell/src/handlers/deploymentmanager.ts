@@ -133,14 +133,14 @@ export class DeploymentManager {
    */
   async commandLine(argv: yargs.Arguments): Promise<number> {
     const [deployerName, command = "deploy"] = argv._;
-    let deployers = [deployerName];
+    let deployers = [<string>deployerName];
     if (deployerName === undefined) {
       deployers = Object.keys(this.deployers);
     } else if (!this.deployers[deployerName]) {
       this.logger.log("ERROR", "Unknown deployer", deployerName);
       return 1;
     }
-    let args = argv._.slice(2);
+    let args = <string[]>argv._.slice(2);
     for (let i in deployers) {
       let deployer = await this.getDeployer(deployers[i]);
       this.logger.logTitle(`Deploying ${deployers[i]} (${this.getApplication().getCurrentDeployment()})`);

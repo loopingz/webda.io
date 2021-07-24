@@ -8,5 +8,5 @@ var lambda = new aws.LambdaServer(new Application(process.cwd()));
 
 // Export the handler
 exports.handler = async function (event, context) {
-  return await lambda.handleRequest(event, context);
+  return lambda.handleRequest(event, context);
 };

@@ -31,8 +31,8 @@
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
     "@webda/core": "^1.1.0",
-    "aws-sdk": "^2.678.0",
-    "aws-xray-sdk": "^3.2.0"
+    "aws-sdk": "^2.953.0",
+    "aws-xray-sdk": "^3.3.3"
   },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",
@@ -47,9 +47,9 @@
     "access": "public"
   },
   "devDependencies": {
-    "@testdeck/mocha": "^0.1.0",
+    "@testdeck/mocha": "^0.1.2",
     "@webda/shell": "^1.0.2",
-    "aws-sdk-mock": "^5.1.0",
-    "sinon": "^9.0.1"
+    "aws-sdk-mock": "^5.2.1",
+    "sinon": "^11.1.1"
   }
 }

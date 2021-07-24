@@ -72,6 +72,7 @@ export class TypescriptSchemaResolver extends DefaultSchemaResolver {
     if (this.app.isTypescript()) {
       let program = programFromConfig(this.app);
       // Inject all modules
+      // @ts-ignore mismatch of typescript version
       this.generator = TJS.buildGenerator(program, { required: true });
       // @ts-ignore
       this.symbols = this.generator.allSymbols;

@@ -31,13 +31,14 @@
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
+    "@types/node": "^16.4.2",
     "@webda/core": "^1.1.0",
-    "aws-sdk": "^2.678.0",
+    "aws-sdk": "^2.953.0",
     "bluebird": "^3.7.2",
-    "glob": "^7.1.6",
+    "glob": "^7.1.7",
     "iam-policy-optimizer": "^1.1.2",
-    "uuid": "^8.0.0",
-    "yaml": "^1.10.0"
+    "uuid": "^8.3.2",
+    "yaml": "^1.10.2"
   },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",
@@ -52,9 +53,9 @@
     "access": "public"
   },
   "devDependencies": {
-    "@testdeck/mocha": "^0.1.0",
+    "@testdeck/mocha": "^0.1.2",
     "@webda/shell": "^1.0.2",
-    "aws-sdk-mock": "^5.1.0",
-    "sinon": "^9.0.1"
+    "aws-sdk-mock": "^5.2.1",
+    "sinon": "^11.1.1"
   }
 }

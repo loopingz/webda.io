@@ -1,7 +1,6 @@
 import { Cache, WebdaError, DeployerResources } from "@webda/core";
 import { Deployer, DeploymentManager } from "@webda/shell";
 import * as AWS from "aws-sdk";
-import { ACM } from "aws-sdk";
 import * as bluebird from "bluebird";
 import * as crypto from "crypto";
 import * as fs from "fs";
@@ -377,7 +376,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       IdempotencyToken: "Webda_" + this.md5(domain).substr(0, 26)
     };
     let certificate = await acm.requestCertificate(params).promise();
-    let cert: ACM.CertificateDetail = await this.waitFor(
+    let cert: AWS.ACM.CertificateDetail = await this.waitFor(
       async resolve => {
         let res = await acm.describeCertificate({ CertificateArn: certificate.CertificateArn }).promise();
         if (res.Certificate.DomainValidationOptions && res.Certificate.DomainValidationOptions[0].ResourceRecord) {

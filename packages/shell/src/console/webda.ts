@@ -5,7 +5,6 @@ import * as colors from "colors";
 import * as crypto from "crypto";
 import * as fs from "fs";
 import { Transform } from "stream";
-import * as YAML from "yamljs";
 import * as yargs from "yargs";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";
@@ -72,10 +71,11 @@ export default class WebdaConsole {
     });
   }
 
-  static parser(args): yargs.Arguments {
+  static async parser(args): Promise<yargs.Arguments> {
     let y = yargs
+      .exitProcess(false)
       .alias("d", "deployment")
-      .option("log-level") // No default to fallback on env or default of workout
+      .option("log-level", {}) // No default to fallback on env or default of workout
       .option("log-format", {
         default: ConsoleLogger.defaultFormat
       })
@@ -94,6 +94,7 @@ export default class WebdaConsole {
     let cmds = WebdaConsole.builtinCommands();
     Object.keys(cmds).forEach(cmd => {
       // Remove the first element as it is the handler
+      // @ts-ignore
       y = y.command(cmd, ...cmds[cmd].slice(1));
     });
     return y.parse(args);
@@ -141,7 +142,7 @@ export default class WebdaConsole {
    * @param argv
    */
   static async worker(argv: yargs.Arguments) {
-    let service_name = argv._[1];
+    let service_name = <string>argv._[1];
     this.webda = new WebdaServer(this.app);
     await this.webda.init();
     let service = this.webda.getService(service_name);
@@ -188,29 +189,29 @@ export default class WebdaConsole {
       let args = ["--noCompile"];
       if (argv.deployment) {
         args.push("-d");
-        args.push(argv.deployment);
+        args.push(<string>argv.deployment);
       }
       args.push("--appPath");
       args.push(this.app.getAppPath());
 
       if (argv.port) {
         args.push("--port");
-        args.push(argv.port);
+        args.push(<string>argv.port);
       }
 
       if (argv.bind) {
         args.push("--bind");
-        args.push(argv.bind);
+        args.push(<string>argv.bind);
       }
 
       args.push("serve");
       if (argv.logLevel) {
         args.push("--logLevel");
-        args.push(argv.logLevel);
+        args.push(<string>argv.logLevel);
       }
       if (argv.logLevels) {
         args.push("--logLevels");
-        args.push(argv.logLevels);
+        args.push(<string>argv.logLevels);
       }
       args.push("--logFormat");
       args.push("%(m)s");
@@ -321,7 +322,7 @@ export default class WebdaConsole {
    */
   static async config(argv: yargs.Arguments): Promise<number> {
     if (argv.deployment) {
-      let json = JSON.stringify(this.app.getConfiguration(argv.deployment), null, " ");
+      let json = JSON.stringify(this.app.getConfiguration(<string>argv.deployment), null, " ");
       if (argv._.length > 1) {
         fs.writeFileSync(argv._[1], json);
       } else {
@@ -361,7 +362,7 @@ export default class WebdaConsole {
    * @param argv
    */
   static async deploy(argv: yargs.Arguments): Promise<number> {
-    let manager = new DeploymentManager(this.app.getWorkerOutput(), process.cwd(), argv.deployment);
+    let manager = new DeploymentManager(this.app.getWorkerOutput(), process.cwd(), <string>argv.deployment);
     argv._ = argv._.slice(1);
     return await manager.commandLine(argv);
   }
@@ -374,7 +375,7 @@ export default class WebdaConsole {
    */
   static async init(argv: yargs.Arguments, generatorName: string = "webda") {
     if (argv._.length > 1) {
-      generatorName = argv._[1];
+      generatorName = <string>argv._[1];
     }
     let generatorAction = "app";
     // Cannot start with :
@@ -400,7 +401,7 @@ export default class WebdaConsole {
    */
   static async initLogger(argv: yargs.Arguments) {
     if (argv["logLevel"]) {
-      process.env["LOG_LEVEL"] = argv["logLevel"];
+      process.env["LOG_LEVEL"] = <string>argv["logLevel"];
     }
   }
 
@@ -472,8 +473,8 @@ export default class WebdaConsole {
    */
   static async schema(argv: yargs.Arguments) {
     argv._.shift();
-    let symbol = argv._.shift();
-    let filename = argv._.shift();
+    let symbol = <string>argv._.shift();
+    let filename = <string>argv._.shift();
     let resolver: TypescriptSchemaResolver = undefined;
     if (this.app.isTypescript()) {
       resolver = new TypescriptSchemaResolver(this.app, this.logger);
@@ -690,7 +691,7 @@ export default class WebdaConsole {
 
   static async handleCommandInternal(args, versions, output: WorkerOutput = undefined): Promise<number> {
     // Arguments parsing
-    let argv = this.parser(args);
+    let argv = await this.parser(args);
 
     // Output version
     if (argv.version) {
@@ -711,7 +712,7 @@ export default class WebdaConsole {
       extension = this.extensions[argv._[0]];
     }
 
-    if (["deploy", "install", "uninstall"].indexOf(argv._[0]) >= 0) {
+    if (["deploy", "install", "uninstall"].indexOf(<string>argv._[0]) >= 0) {
       if (argv.deployment === undefined) {
         this.output("Need to specify an environment");
         return -1;
@@ -719,7 +720,7 @@ export default class WebdaConsole {
     }
 
     if (argv.notty || !process.stdout.isTTY) {
-      new ConsoleLogger(output, argv.logLevel, argv.logFormat);
+      new ConsoleLogger(output, <WorkerLogLevel>argv.logLevel, <string>argv.logFormat);
     } else {
       if (extension && extension.terminal) {
         // Allow override of terminal
@@ -730,7 +731,13 @@ export default class WebdaConsole {
           argv.logFormat
         );
       } else {
-        this.terminal = new WebdaTerminal(output, versions, undefined, argv.logLevel, argv.logFormat);
+        this.terminal = new WebdaTerminal(
+          output,
+          versions,
+          undefined,
+          <WorkerLogLevel>argv.logLevel,
+          <string>argv.logFormat
+        );
       }
     }
 
@@ -762,7 +769,7 @@ export default class WebdaConsole {
 
       // Load Application
       try {
-        this.app = new Application(argv.appPath, output, true);
+        this.app = new Application(<string>argv.appPath, output, true);
       } catch (err) {
         output.log("ERROR", err.message);
         return -1;
@@ -788,12 +795,12 @@ export default class WebdaConsole {
 
       // Load deployment
       if (argv.deployment) {
-        if (!this.app.hasDeployment(argv.deployment)) {
+        if (!this.app.hasDeployment(<string>argv.deployment)) {
           this.output(`Unknown deployment: ${argv.deployment}`);
           return -1;
         }
         try {
-          this.app.setCurrentDeployment(argv.deployment);
+          this.app.setCurrentDeployment(<string>argv.deployment);
           // Try to load it already
           this.app.getDeployment();
         } catch (err) {
@@ -890,7 +897,7 @@ export default class WebdaConsole {
   static async generateOpenAPI(argv: yargs.Arguments): Promise<void> {
     this.webda = new WebdaServer(this.app);
     let openapi = this.webda.exportOpenAPI(!argv.includeHidden);
-    let name = argv._[1] || "./openapi.json";
+    let name = <string>argv._[1] || "./openapi.json";
     FileUtils.save(openapi, name);
   }
 

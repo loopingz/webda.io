@@ -1,0 +1,138 @@
+{
+  "services": {
+    "Webda/GoogleAuthentication": "lib/google-auth.js"
+  },
+  "models": {},
+  "deployers": {},
+  "schemas": {
+    "Webda/GoogleAuthentication": {
+      "description": "Credentials to manage Google Auth\nhttps://developers.google.com/identity/protocols/oauth2",
+      "type": "object",
+      "properties": {
+        "client_id": {
+          "description": "Google Auth Client id",
+          "type": "string"
+        },
+        "client_secret": {
+          "description": "Google Auth Client secret",
+          "type": "string"
+        },
+        "project_id": {
+          "description": "Google Project ID",
+          "type": "string"
+        },
+        "access_type": {
+          "description": "Type of access for Google token\n\nonline by default",
+          "enum": [
+            "offline",
+            "online"
+          ],
+          "type": "string"
+        },
+        "auth_options": {},
+        "redirects": {
+          "type": "object",
+          "properties": {
+            "use_referer": {
+              "type": "boolean"
+            },
+            "whitelist": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "defaults": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "defaults",
+            "use_referer",
+            "whitelist"
+          ]
+        },
+        "url": {
+          "description": "URL to use for expose\n\nThe default value varying based on implementation\nIt should by default be the provider name in lowercase",
+          "type": "string"
+        },
+        "scope": {
+          "description": "Scope to request on OAuth flow",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exposeScope": {
+          "description": "If set to true it will add a ${url}/scope\nSo client can anticipate the requested scope\n\nThis is useful when using the client api to generate\ntoken. This way the service can request the wanted scope",
+          "default": [
+            {
+              "text": "false",
+              "kind": "text"
+            }
+          ],
+          "type": "boolean"
+        },
+        "authorized_uris": {
+          "description": "List of URIs authorized for redirect post authorization",
+          "default": [
+            {
+              "text": "[]",
+              "kind": "text"
+            }
+          ],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "redirect_uri": {
+          "description": "Default redirect_uri",
+          "default": [
+            {
+              "text": "${url}/callback",
+              "kind": "text"
+            }
+          ],
+          "type": "string"
+        },
+        "no_referer": {
+          "description": "Allow direct connection without a referer",
+          "default": [
+            {
+              "text": "false",
+              "kind": "text"
+            }
+          ],
+          "type": "boolean"
+        },
+        "authenticationService": {
+          "description": "Name of the authentication service to use if exist",
+          "default": [
+            {
+              "text": "Authentication",
+              "kind": "text"
+            }
+          ],
+          "type": "string"
+        },
+        "type": {
+          "description": "Type of the service",
+          "type": "string"
+        }
+      },
+      "required": [
+        "authenticationService",
+        "client_id",
+        "client_secret",
+        "no_referer",
+        "redirects",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  }
+}

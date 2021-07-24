@@ -34,7 +34,7 @@
     "jsonwebtoken": "^8.5.1",
     "merge": "^2.1.1",
     "mime-types": "^2.1.24",
-    "mustache": "^3.0.1",
+    "mustache": "^4.2.0",
     "node-cron": "^2.0.3",
     "nodemailer": "^6.1.1",
     "sanitize-html": "^2.3.2",

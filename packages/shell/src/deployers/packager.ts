@@ -111,7 +111,10 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     let wrk = Packager.getWorkspacesRoot();
     let main = Packager.loadPackageInfo(pkg);
     main.resolutions = main.resolutions || {};
+    const browsed = [];
     let browse = (p: string, depth: number) => {
+      if (browsed.includes(p)) return;
+      browsed.push(p);
       let info = Packager.loadPackageInfo(p);
       info.dependencies = info.dependencies || {};
       Object.keys(info.dependencies).forEach(name => {
@@ -253,7 +256,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     var output = fs.createWriteStream(zipPath);
     var archive = archiver("zip");
     return new Promise<void>((resolve, reject) => {
-      output.on("finish", () => {
+      output.on("close", () => {
         this.packagesGenerated[zipPath + entrypoint || ""] = true;
         resolve();
       });
@@ -278,7 +281,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
         });
         if (exclude) {
           this.logger.log("INFO", "Skipping ", name);
-          return;
+          return to.callback();
         }
         return originalFile.call(archive, from, to);
       };

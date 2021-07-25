@@ -35,10 +35,8 @@ class PackagerTest {
       }
     );
     await deployer.loadDefaults();
-
     await deployer.deploy();
 
-    //let infos = zlib.unzipSync(zipFile);
     // Check webda.config.json contains cachedModules
     let files = {};
     let captureFiles = {
@@ -56,8 +54,6 @@ class PackagerTest {
             entry.autodrain();
             return;
           }
-          var type = entry.type; // 'Directory' or 'File'
-          var size = entry.size;
           var writer = new streams.WritableStream();
           entry.pipe(writer);
           entry.on("end", () => {

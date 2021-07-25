@@ -108,7 +108,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
   }
 
   getCronId(cron: CronDefinition) {
-    let hash = crypto.createHash("md5");
+    let hash = crypto.createHash("sha256");
     return hash
       .update(JSON.stringify(cron) + this.name + this.manager.getDeploymentName())
       .digest("hex")
@@ -172,7 +172,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       // Add annotations to the CronJob template
       this.completeResource(resource);
       let cronDeployerId = crypto
-        .createHash("md5")
+        .createHash("sha256")
         .update(this.name + this.manager.getDeploymentName() + this.getApplication().getPackageDescription().name)
         .digest("hex");
       jsonpath.value(resource, '$.metadata.annotations["webda.io/crondeployer"]', cronDeployerId);

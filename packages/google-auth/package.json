@@ -33,8 +33,7 @@
   "dependencies": {
     "@types/node": "^16.4.2",
     "@webda/core": "^1.1.0",
-    "google-auth-library": "^7.3.0",
-    "querystring": "^0.2.1"
+    "google-auth-library": "^7.3.0"
   },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",

@@ -28,7 +28,9 @@ export class FileConfigurationService<T extends ConfigurationServiceParameters> 
     await this._checkUpdate();
   }
 
-  stop() {}
+  stop() {
+    // Nothing to be done
+  }
 
   /**
    * Load the JSON from source defined file

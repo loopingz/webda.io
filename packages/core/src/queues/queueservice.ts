@@ -38,8 +38,7 @@ abstract class Queue<T extends ServiceParameters = ServiceParameters> extends Se
       if (items.length === 0) {
         return this._workerResume();
       }
-      for (var i = 0; i < items.length; i++) {
-        let msg = items[i];
+      for (let msg of items) {
         let event = JSON.parse(msg.Body);
         try {
           await this.callback(event);

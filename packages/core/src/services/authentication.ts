@@ -1,7 +1,7 @@
 "use strict";
 import * as crypto from "crypto";
 import * as bcrypt from "bcryptjs";
-import { Core, ModdaDefinition } from "../core";
+import { ModdaDefinition } from "../core";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
 import { Inject, Service, ServiceParameters } from "../services/service";

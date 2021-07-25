@@ -28,7 +28,9 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
     await this._checkUpdate();
   }
 
-  stop() {}
+  stop() {
+    // Nothing to be done
+  }
 
   /**
    * Load configuration from a ConfigMap or a Secret

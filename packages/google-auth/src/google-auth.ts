@@ -1,6 +1,4 @@
 import * as http from "http";
-import * as querystring from "querystring";
-import * as url from "url";
 import { OAuthService, RequestFilter, OAuthServiceParameters, Context, ModdaDefinition } from "@webda/core";
 import { OAuth2Client, Credentials } from "google-auth-library";
 
@@ -93,7 +91,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
    */
   generateAuthUrl(redirect_uri: string, state: string, ctx: Context) {
     let oauthClient = this.getOAuthClient(redirect_uri);
-    let uri = oauthClient.generateAuthUrl({
+    return oauthClient.generateAuthUrl({
       access_type: this.parameters.access_type,
       scope: this.parameters.scope,
       redirect_uri,
@@ -101,7 +99,6 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
       state,
       ...this.parameters.auth_options
     });
-    return uri;
   }
 
   /**
@@ -202,22 +199,21 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
     return new Promise((resolve, reject) => {
       const server = http
         .createServer(async (req, res) => {
-          console.log(req.url);
           if (req.url.indexOf("/oauth2callback") > -1) {
-            // acquire the code from the querystring, and close the web server.
-            const qs = querystring.parse(url.parse(req.url).query);
-            if (qs.code) {
-              res.end("Authentication successful! Please return to the console.");
-            } else {
-              res.end("Authentication unsuccessful! Please return to the console.");
-              server.close();
-              return reject("Failed");
-            }
-            server.close();
-
             try {
+              console.log(req.url);
+              console.log(new URL(req.url, `http://localhost:3000`));
+              // acquire the code from the querystring, and close the web server.
+              const code = new URL(req.url, `http://localhost:3000`).searchParams.get("code");
+              if (code) {
+                res.end("Authentication successful! Please return to the console.");
+              } else {
+                res.end("Authentication unsuccessful! Please return to the console.");
+                return reject("Failed");
+              }
+
               // Now that we have the code, use that to acquire tokens.
-              const r = await oAuth2Client.getToken(<string>qs.code);
+              const r = await oAuth2Client.getToken(code);
               // Make sure to set the credentials on the OAuth2 client.
               storeToken(r.tokens);
               oAuth2Client.setCredentials(r.tokens);
@@ -225,7 +221,10 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
               this.log("INFO", "Google Authentication finished.");
               return resolve(this._client);
             } catch (err) {
+              console.log(err);
               reject(err);
+            } finally {
+              server.close();
             }
           }
         })

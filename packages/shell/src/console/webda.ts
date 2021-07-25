@@ -1,5 +1,5 @@
 "use strict";
-import { Application, FileUtils, JSONUtils, Logger } from "@webda/core";
+import { Application, FileUtils, Logger } from "@webda/core";
 import { ChildProcess, spawn } from "child_process";
 import * as colors from "colors";
 import * as crypto from "crypto";
@@ -663,11 +663,11 @@ export default class WebdaConsole {
   static getServiceTypePattern(type: string): string {
     let result = "";
     type = this.app.completeNamespace(type).toLowerCase();
-    for (let i = 0; i < type.length; i++) {
-      if (type[i].match(/[a-z]/)) {
-        result += `[${type[i]}${type[i].toUpperCase()}]`;
+    for (let t of type) {
+      if (t.match(/[a-z]/)) {
+        result += `[${t}${t.toUpperCase()}]`;
       } else {
-        result += type[i];
+        result += t;
       }
     }
     // Namespace is optional

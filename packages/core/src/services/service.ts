@@ -165,7 +165,9 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
   /**
    * Used to compute or derivate input parameter to attribute
    */
-  computeParameters(): void {}
+  computeParameters(): void {
+    // Can be overriden by subclasses if needed
+  }
 
   /**
    * Get the service parameters
@@ -228,7 +230,9 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
   /**
    * Init the routes
    */
-  initRoutes() {}
+  initRoutes() {
+    // Can be overriden by subclasses if needed
+  }
 
   /**
    * Convert an object to JSON using the Webda json filter
@@ -247,7 +251,9 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
    * @param config for the host so you can add your own route here
    * @abstract
    */
-  async init(): Promise<void> {}
+  async init(): Promise<void> {
+    // Can be overriden by subclasses if needed
+  }
 
   /**
    *
@@ -289,15 +295,17 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
    * Return a webda service
    * @param service name to retrieve
    */
-  getService<T extends Service<ServiceParameters>>(service: string): T {
-    return this._webda.getService<T>(service);
+  getService<K extends Service<ServiceParameters>>(service: string): K {
+    return this._webda.getService<K>(service);
   }
 
   /**
    * Return the Modda definition if any
    *
    */
-  static getModda(): ModdaDefinition | void {}
+  static getModda(): ModdaDefinition | void {
+    // Can be overriden by subclasses if needed
+  }
 
   /**
    * Get service name

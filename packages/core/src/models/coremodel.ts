@@ -408,7 +408,9 @@ class CoreModel {
   /**
    * Called when object is updated
    */
-  async _onUpdated() {}
+  async _onUpdated() {
+    // Empty to be overriden
+  }
 }
 
 export { CoreModel, CoreModelDefinition };

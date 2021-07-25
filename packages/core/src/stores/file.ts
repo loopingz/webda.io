@@ -176,7 +176,6 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
       let data = fs.readFileSync(this.file(uid));
       return this.initModel(JSON.parse(data.toString()));
     }
-    return;
   }
 
   async _incrementAttribute(uid, prop, value, updateDate: Date) {

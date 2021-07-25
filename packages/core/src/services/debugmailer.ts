@@ -40,7 +40,9 @@ export default class DebugMailer extends Service {
   /**
    * Empty async method
    */
-  async async(): Promise<void> {}
+  async async(): Promise<void> {
+    // Empty on purpose
+  }
 
   /** @inheritdoc */
   static getModda(): ModdaDefinition {

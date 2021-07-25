@@ -226,27 +226,28 @@ export class Router {
         }
         route.openapi.hidden = false;
         let urlParameters = [];
+        let path = i;
         if (i.indexOf("{?") >= 0) {
           urlParameters = i.substring(i.indexOf("{?") + 2, i.length - 1).split(",");
-          i = i.substr(0, i.indexOf("{?"));
+          path = i.substr(0, i.indexOf("{?"));
         }
-        openapi.paths[i] = openapi.paths[i] || {};
+        openapi.paths[path] = openapi.paths[path] || {};
         if (route._uriTemplateParse) {
-          openapi.paths[i].parameters = [];
+          openapi.paths[path].parameters = [];
           route._uriTemplateParse.varNames.forEach(varName => {
             if (urlParameters.indexOf(varName) >= 0) {
               let name = varName;
               if (name.startsWith("*")) {
                 name = name.substr(1);
               }
-              openapi.paths[i].parameters.push({
+              openapi.paths[path].parameters.push({
                 name,
                 in: "query",
                 required: !varName.startsWith("*")
               });
               return;
             }
-            openapi.paths[i].parameters.push({
+            openapi.paths[path].parameters.push({
               // ^[a-zA-Z0-9._$-]+$] is the official regex of AWS
               name: varName.replace(/[^a-zA-Z0-9._$-]/g, ""),
               in: "path",
@@ -310,7 +311,7 @@ export class Router {
               }
             ];
           }
-          openapi.paths[i][method.toLowerCase()] = desc;
+          openapi.paths[path][method.toLowerCase()] = desc;
         });
         if (route.openapi.tags) {
           route.openapi.tags.forEach(tag => {

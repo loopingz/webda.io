@@ -224,7 +224,6 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
       attrValues[":" + prop] = [attrValues[":" + prop]];
       attrValues[":empty_list"] = [];
     } else {
-      //attrs["#cond" + prop] += prop + "[" + index + "]." + itemWriteConditionField;
       params.UpdateExpression = "SET #" + prop + "[" + index + "] = :" + prop + ", #lastUpdate = :lastUpdate";
       if (itemWriteCondition) {
         attrValues[":condValue"] = itemWriteCondition;

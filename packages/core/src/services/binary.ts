@@ -530,7 +530,7 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
 
   async httpChallenge(ctx: Context) {
     let url = await this.putRedirectUrl(ctx);
-    let base64String = new Buffer(ctx.getRequestBody().hash, "hex").toString("base64");
+    let base64String = Buffer.from(ctx.getRequestBody().hash, "hex").toString("base64");
     ctx.write({
       url: url,
       done: url === undefined,

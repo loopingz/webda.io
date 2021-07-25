@@ -144,8 +144,9 @@ class CronService extends Service {
     });
     // Remove from memory
     this.crons = [];
-    // Never ending promise
-    return new Promise(resolve => {});
+    return new Promise(resolve => {
+      // Never ending promise
+    });
   }
 
   schedule(cron: string, cb: () => any, description: string = "") {

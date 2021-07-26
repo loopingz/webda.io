@@ -1,5 +1,6 @@
 import { ClientInfo, Core as Webda, HttpContext, WebdaError } from "@webda/core";
 import * as http from "http";
+import { serialize as cookieSerialize } from "cookie";
 const path = require("path");
 
 export enum ServerStatus {
@@ -164,7 +165,7 @@ export class WebdaServer extends Webda {
     var headers = ctx.getResponseHeaders();
     let cookies = ctx.getResponseCookies();
     for (let i in cookies) {
-      res.cookie(cookies[i].name, cookies[i].value, cookies[i].options);
+      res.header("Set-Cookie", cookieSerialize(cookies[i].name, cookies[i].value, cookies[i].options));
     }
     res.writeHead(ctx.statusCode, headers);
   }

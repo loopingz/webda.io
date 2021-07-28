@@ -4,7 +4,7 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<title>Store |
-	webda.io - v1.1.1</title>
+	webda.io - vundefined</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../../assets/css/main.css">
@@ -29,10 +29,8 @@
 					<ul class="results-priority" style="display:none">
 					</ul>
 					<div class="topMenu">
-						<a href="../../index.html" class="title">webda.io - v1.1.1</a>
+						<a href="../../index.html" class="title">webda.io - vundefined</a>
 						<div class="links">
-							&emsp;<a href="/pages/QuickStart.html" class="title">Quick Start</a>
-							&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
 						</div>
 					</div>
 				</div>
@@ -50,6 +48,8 @@
 							</div>
 							<input type="checkbox" id="tsd-filter-inherited" checked />
 							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
+							<input type="checkbox" id="tsd-filter-only-exported" />
+							<label class="tsd-widget" for="tsd-filter-only-exported">Only exported</label>
 						</div>
 					</div>
 					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
@@ -120,6 +120,9 @@
 					<li class=" pp-nav pp-group root">
 						<a href="" class="tsd-kind-icon">Modules</a>
 					</li>
+					<li class="  root">
+						<a href="../../modules.html" class="tsd-kind-icon">Modules</a>
+					</li>
 					<li class=" tsd-kind-module root">
 						<a href="../../modules/_webda_aws.html" class="tsd-kind-icon">@webda/aws</a>
 					</li>
@@ -128,6 +131,9 @@
 					</li>
 					<li class=" tsd-kind-module root">
 						<a href="../../modules/_webda_elasticsearch.html" class="tsd-kind-icon">@webda/elasticsearch</a>
+					</li>
+					<li class=" tsd-kind-module root">
+						<a href="../../modules/_webda_google_auth.html" class="tsd-kind-icon">@webda/google-<wbr>auth</a>
 					</li>
 					<li class=" tsd-kind-module root">
 						<a href="../../modules/_webda_profiler.html" class="tsd-kind-icon">@webda/profiler</a>
@@ -157,17 +163,18 @@
 					<h2>Expose REST API</h2>
 				</a>
 				<p>Inside the configuration you can add a block for expose the store as a REST API</p>
-				<pre><code class="language-javascript">{
-  ...
-  <span class="hljs-string">&quot;expose&quot;</span>: {
-     <span class="hljs-string">&quot;url&quot;</span>: <span class="hljs-string">&quot;/storeurl&quot;</span>, <span class="hljs-comment">// By default the URL is the store name in lower case</span>
-     <span class="hljs-string">&quot;restrict&quot;</span>: {
-       <span class="hljs-string">&quot;update&quot;</span>: <span class="hljs-literal">true</span>, <span class="hljs-comment">// Prevent the creation of an object the PUT method wont be exposed</span>
-       <span class="hljs-string">&quot;delete&quot;</span>: <span class="hljs-literal">false</span> <span class="hljs-comment">// Allow delete for the object</span>
-     }
-  }
-  ...
-}</code></pre>
+				<pre><code class="language-javascript"><span style="color: #000000">{</span>
+<span style="color: #000000">  ...</span>
+<span style="color: #000000">  </span><span style="color: #A31515">&quot;expose&quot;</span><span style="color: #000000">: {</span>
+<span style="color: #000000">     </span><span style="color: #A31515">&quot;url&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> </span><span style="color: #A31515">&quot;/storeurl&quot;</span><span style="color: #000000">, </span><span style="color: #008000">// By default the URL is the store name in lower case</span>
+<span style="color: #000000">     </span><span style="color: #A31515">&quot;restrict&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">       </span><span style="color: #A31515">&quot;update&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> </span><span style="color: #0000FF">true</span><span style="color: #000000">, </span><span style="color: #008000">// Prevent the creation of an object the PUT method wont be exposed</span>
+<span style="color: #000000">       </span><span style="color: #A31515">&quot;delete&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> </span><span style="color: #0000FF">false</span><span style="color: #000000"> </span><span style="color: #008000">// Allow delete for the object</span>
+<span style="color: #000000">     }</span>
+<span style="color: #000000">  }</span>
+<span style="color: #000000">  ...</span>
+<span style="color: #000000">}</span>
+</code></pre>
 				<p>The above configuration will end up creating the following routes:</p>
 				<p>POST /storeurl
 					GET /storeurl/{uuid}
@@ -179,35 +186,39 @@
 				<p>As an example we will use the Users / Idents stores used by the Authentication module.</p>
 				<p>A User has several Idents so in NoSQL we need to deduplicate a part of the Ident object inside an array inside the User object</p>
 				<p>The following is the Idents store configuration</p>
-				<pre><code class="language-javascript">{
-  ...
-  <span class="hljs-string">&quot;map&quot;</span>: {
-     <span class="hljs-string">&quot;Users&quot;</span>: { <span class="hljs-comment">// Target store</span>
-        <span class="hljs-string">&quot;key&quot;</span>: <span class="hljs-string">&quot;user&quot;</span>, <span class="hljs-comment">// Property inside Ident Object</span>
-        <span class="hljs-string">&quot;target&quot;</span>: <span class="hljs-string">&quot;idents&quot;</span>, <span class="hljs-comment">// Property on the User Object</span>
-        <span class="hljs-string">&quot;fields&quot;</span>: <span class="hljs-string">&quot;type&quot;</span>, <span class="hljs-comment">// Fields from the Ident Object ( uuid is added by default )</span>
-        <span class="hljs-string">&quot;cascade&quot;</span>: <span class="hljs-literal">true</span> <span class="hljs-comment">// If User object is delete then delete all the linked Idents</span>
-     }
-  }</code></pre>
+				<pre><code class="language-javascript"><span style="color: #000000">{</span>
+<span style="color: #000000">  ...</span>
+<span style="color: #000000">  </span><span style="color: #A31515">&quot;map&quot;</span><span style="color: #000000">: {</span>
+<span style="color: #000000">     </span><span style="color: #A31515">&quot;Users&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> { </span><span style="color: #008000">// Target store</span>
+<span style="color: #000000">        </span><span style="color: #A31515">&quot;key&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> </span><span style="color: #A31515">&quot;user&quot;</span><span style="color: #000000">, </span><span style="color: #008000">// Property inside Ident Object</span>
+<span style="color: #000000">        </span><span style="color: #A31515">&quot;target&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> </span><span style="color: #A31515">&quot;idents&quot;</span><span style="color: #000000">, </span><span style="color: #008000">// Property on the User Object</span>
+<span style="color: #000000">        </span><span style="color: #A31515">&quot;fields&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> </span><span style="color: #A31515">&quot;type&quot;</span><span style="color: #000000">, </span><span style="color: #008000">// Fields from the Ident Object ( uuid is added by default )</span>
+<span style="color: #000000">        </span><span style="color: #A31515">&quot;cascade&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> </span><span style="color: #0000FF">true</span><span style="color: #000000"> </span><span style="color: #008000">// If User object is delete then delete all the linked Idents</span>
+<span style="color: #000000">     }</span>
+<span style="color: #000000">  }</span>
+</code></pre>
 				<p>So if you have a user like </p>
-				<pre><code class="language-javascript">{
-  ...
-  <span class="hljs-string">&quot;uuid&quot;</span>: <span class="hljs-string">&quot;user_01&quot;</span>
-}</code></pre>
+				<pre><code class="language-javascript"><span style="color: #000000">{</span>
+<span style="color: #000000">  ...</span>
+<span style="color: #000000">  </span><span style="color: #A31515">&quot;uuid&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;user_01&quot;</span>
+<span style="color: #000000">}</span>
+</code></pre>
 				<p>Then you save a new Ident object like</p>
-				<pre><code class="language-javascript">{
-  ...
-  <span class="hljs-string">&quot;uuid&quot;</span>: <span class="hljs-string">&quot;ident_01&quot;</span>,
-  <span class="hljs-string">&quot;user&quot;</span>: <span class="hljs-string">&quot;user_01&quot;</span>,
-  <span class="hljs-string">&quot;type&quot;</span>: <span class="hljs-string">&quot;Google&quot;</span>
-}</code></pre>
+				<pre><code class="language-javascript"><span style="color: #000000">{</span>
+<span style="color: #000000">  ...</span>
+<span style="color: #000000">  </span><span style="color: #A31515">&quot;uuid&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;ident_01&quot;</span><span style="color: #000000">,</span>
+<span style="color: #000000">  </span><span style="color: #A31515">&quot;user&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;user_01&quot;</span><span style="color: #000000">,</span>
+<span style="color: #000000">  </span><span style="color: #A31515">&quot;type&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;Google&quot;</span>
+<span style="color: #000000">}</span>
+</code></pre>
 				<p>Once the Ident saved, the User object will look like</p>
-				<pre><code class="language-javascript">{
-  ...
-  <span class="hljs-string">&quot;uuid&quot;</span>: <span class="hljs-string">&quot;user_01&quot;</span>,
-  <span class="hljs-string">&quot;idents&quot;</span>: [{<span class="hljs-string">&quot;uuid&quot;</span>:<span class="hljs-string">&quot;ident_01&quot;</span>,<span class="hljs-string">&quot;type&quot;</span>:<span class="hljs-string">&quot;Google&quot;</span>}]
-  ...
-}</code></pre>
+				<pre><code class="language-javascript"><span style="color: #000000">{</span>
+<span style="color: #000000">  ...</span>
+<span style="color: #000000">  </span><span style="color: #A31515">&quot;uuid&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;user_01&quot;</span><span style="color: #000000">,</span>
+<span style="color: #000000">  </span><span style="color: #A31515">&quot;idents&quot;</span><span style="color: #000000">: [{</span><span style="color: #A31515">&quot;uuid&quot;</span><span style="color: #001080">:</span><span style="color: #A31515">&quot;ident_01&quot;</span><span style="color: #000000">,</span><span style="color: #A31515">&quot;type&quot;</span><span style="color: #001080">:</span><span style="color: #A31515">&quot;Google&quot;</span><span style="color: #000000">}]</span>
+<span style="color: #000000">  ...</span>
+<span style="color: #000000">}</span>
+</code></pre>
 				<p>Then if you update the field type on your Ident object the User object will reflect the change, as well as if you delete the ident object it will be removed from the User object.</p>
 				<p>If cascade = true, then if you delete the User object, all attached Idents will be delete aswell.</p>
 				<a href="#events" id="events" style="color: inherit; text-decoration: none;">
@@ -215,10 +226,11 @@
 				</a>
 				<p>The Stores emit events to let you implement some auto completion of the object if needed or taking any others action even deny the action by throwing an exception</p>
 				<p>The store event looks like </p>
-				<pre><code class="language-javascript">{
-  <span class="hljs-string">&#x27;object&#x27;</span>: object,
-  <span class="hljs-string">&#x27;store&#x27;</span>: <span class="hljs-built_in">this</span>
-}</code></pre>
+				<pre><code class="language-javascript"><span style="color: #000000">{</span>
+<span style="color: #000000">  </span><span style="color: #A31515">&#039;object&#039;</span><span style="color: #000000">: </span><span style="color: #001080">object</span><span style="color: #000000">,</span>
+<span style="color: #000000">  </span><span style="color: #A31515">&#039;store&#039;</span><span style="color: #000000">: </span><span style="color: #0000FF">this</span>
+<span style="color: #000000">}</span>
+</code></pre>
 				<p>Store.Save: Before saving the object
 					Store.Saved: After saving the object
 					Store.Update: Before updating the object
@@ -231,11 +243,12 @@
 				</a>
 				<p>The security policy will be called on any REST API called from the Store, the internal method to access the objects are not secured with it yet, we might later on add this feature.
 				The security policy could also be implemented by a Service that listen on Store event this way you can enforce the security even internally</p>
-				<pre><code class="language-javascript">{
-  ...
-  <span class="hljs-string">&quot;security&quot;</span>: <span class="hljs-string">&quot;OwnerPolicy&quot;</span> <span class="hljs-comment">// This is the default SecurityPolicy</span>
-  ...
-}</code></pre>
+				<pre><code class="language-javascript"><span style="color: #000000">{</span>
+<span style="color: #000000">  ...</span>
+<span style="color: #000000">  </span><span style="color: #A31515">&quot;security&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;OwnerPolicy&quot;</span><span style="color: #000000"> </span><span style="color: #008000">// This is the default SecurityPolicy</span>
+<span style="color: #000000">  ...</span>
+<span style="color: #000000">}</span>
+</code></pre>
 				<p>If not specified the Store will pick the Owner policy as default.
 				Policies are implicit service, so you can get them with a getService(&quot;OwnerPolicy&quot;), but don&#39;t appear by default in the configuration file. That also means you can override a Policy if you want or create your own to implement your business model</p>
 				<a href="#owner-policy" id="owner-policy" style="color: inherit; text-decoration: none;">
@@ -253,11 +266,12 @@
 					<h2>Validation</h2>
 				</a>
 				<p>To ensure that the input is correct, you can setup a JSON schema this way any update or creation will verify that the object is correct.</p>
-				<pre><code class="language-javascript">{
-  ...
-  <span class="hljs-string">&quot;validator&quot;</span>: <span class="hljs-string">&quot;schema&quot;</span>
-  ...
-}</code></pre>
+				<pre><code class="language-javascript"><span style="color: #000000">{</span>
+<span style="color: #000000">  ...</span>
+<span style="color: #000000">  </span><span style="color: #A31515">&quot;validator&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;schema&quot;</span>
+<span style="color: #000000">  ...</span>
+<span style="color: #000000">}</span>
+</code></pre>
 				<p>All the input of POST or PUT will then be validate against it.</p>
 				<a href="#dynamodb-configuration" id="dynamodb-configuration" style="color: inherit; text-decoration: none;">
 					<h2>DynamoDB configuration</h2>
@@ -273,7 +287,7 @@
 				</a>
 				<p>The FileDB only requires a folder where to store the datas. It creates it if not exists</p>
 			</div>
-			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Quick Start&quot;,&quot;url&quot;:&quot;/pages/QuickStart.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true}}-->
+			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;packages&quot;:[&quot;/datas/git/webda.io&quot;],&quot;entryPoints&quot;:[],&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;/datas/git/webda.io/packages/*/node_modules&quot;,&quot;/datas/git/webda.io/packages/*/src/**/*.spec.ts&quot;,&quot;/datas/git/webda.io/sample-app&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;/datas/git/webda.io/docs/media&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;/datas/git/webda.io/docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;/datas/git/webda.io/readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;sort&quot;:[&quot;kind&quot;,&quot;instance-first&quot;,&quot;alphabetical&quot;],&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;treatWarningsAsErrors&quot;:false,&quot;listInvalidSymbolLinks&quot;:false,&quot;outline&quot;:[],&quot;excludeReferences&quot;:false,&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true,&quot;enablePageLinks&quot;:true,&quot;enableSearch&quot;:true,&quot;failBuildOnInvalidPageLink&quot;:false,&quot;listInvalidPageLinks&quot;:false,&quot;output&quot;:&quot;pages&quot;,&quot;sources&quot;:[&quot;./docs/pages/&quot;]}}-->
 			<footer class="with-border-bottom">
 			</footer>
 			<div class="container tsd-generator">

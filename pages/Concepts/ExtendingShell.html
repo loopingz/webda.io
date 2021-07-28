@@ -4,7 +4,7 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<title>Extending webda executable |
-	webda.io - v1.1.1</title>
+	webda.io - vundefined</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../../assets/css/main.css">
@@ -29,10 +29,8 @@
 					<ul class="results-priority" style="display:none">
 					</ul>
 					<div class="topMenu">
-						<a href="../../index.html" class="title">webda.io - v1.1.1</a>
+						<a href="../../index.html" class="title">webda.io - vundefined</a>
 						<div class="links">
-							&emsp;<a href="/pages/QuickStart.html" class="title">Quick Start</a>
-							&emsp;<a href="https://github.com/loopingz/webda.io" class="title">GitHub</a>
 						</div>
 					</div>
 				</div>
@@ -50,6 +48,8 @@
 							</div>
 							<input type="checkbox" id="tsd-filter-inherited" checked />
 							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
+							<input type="checkbox" id="tsd-filter-only-exported" />
+							<label class="tsd-widget" for="tsd-filter-only-exported">Only exported</label>
 						</div>
 					</div>
 					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
@@ -120,6 +120,9 @@
 					<li class=" pp-nav pp-group root">
 						<a href="" class="tsd-kind-icon">Modules</a>
 					</li>
+					<li class="  root">
+						<a href="../../modules.html" class="tsd-kind-icon">Modules</a>
+					</li>
 					<li class=" tsd-kind-module root">
 						<a href="../../modules/_webda_aws.html" class="tsd-kind-icon">@webda/aws</a>
 					</li>
@@ -128,6 +131,9 @@
 					</li>
 					<li class=" tsd-kind-module root">
 						<a href="../../modules/_webda_elasticsearch.html" class="tsd-kind-icon">@webda/elasticsearch</a>
+					</li>
+					<li class=" tsd-kind-module root">
+						<a href="../../modules/_webda_google_auth.html" class="tsd-kind-icon">@webda/google-<wbr>auth</a>
 					</li>
 					<li class=" tsd-kind-module root">
 						<a href="../../modules/_webda_profiler.html" class="tsd-kind-icon">@webda/profiler</a>
@@ -157,12 +163,15 @@
 					<h2>Change shell logo</h2>
 				</a>
 				<p>You can add to your <code>package.json</code> this section:</p>
-				<pre><code><span class="hljs-string">&quot;webda&quot;</span>: {
-    <span class="hljs-string">&quot;logo&quot;</span>: <span class="hljs-string">&quot;../../logo.txt&quot;</span>
-}</code></pre><p>To generate the logo, here is the command:</p>
-				<pre><code></code></pre>
+				<pre><code><span style="color: #A31515">&quot;webda&quot;</span><span style="color: #000000">: {</span>
+<span style="color: #000000">    </span><span style="color: #A31515">&quot;logo&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> </span><span style="color: #A31515">&quot;../../logo.txt&quot;</span>
+<span style="color: #000000">}</span>
+</code></pre>
+				<p>To generate the logo, here is the command:</p>
+				<pre><code>
+</code></pre>
 			</div>
-			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;inputFiles&quot;:[&quot;.&quot;],&quot;mode&quot;:1,&quot;includeDeclarations&quot;:false,&quot;entryPoint&quot;:&quot;&quot;,&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;packages/*/node_modules&quot;,&quot;packages/*/src/**/*.spec.ts&quot;,&quot;sample-app&quot;],&quot;externalPattern&quot;:[],&quot;excludeExternals&quot;:true,&quot;excludeNotExported&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;ignoreCompilerErrors&quot;:true,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;docs/media&quot;,&quot;out&quot;:&quot;docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;./readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;listInvalidSymbolLinks&quot;:false,&quot;links&quot;:[{&quot;label&quot;:&quot;Quick Start&quot;,&quot;url&quot;:&quot;/pages/QuickStart.html&quot;},{&quot;label&quot;:&quot;GitHub&quot;,&quot;url&quot;:&quot;https://github.com/loopingz/webda.io&quot;}],&quot;outline&quot;:[],&quot;source&quot;:[{&quot;path&quot;:&quot;https://github.com/loopingz/webda.io/blob/master/&quot;,&quot;line&quot;:&quot;L&quot;}],&quot;excludeReferences&quot;:true,&quot;lernaExclude&quot;:[],&quot;pathExclude&quot;:[],&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true}}-->
+			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;packages&quot;:[&quot;/datas/git/webda.io&quot;],&quot;entryPoints&quot;:[],&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;/datas/git/webda.io/packages/*/node_modules&quot;,&quot;/datas/git/webda.io/packages/*/src/**/*.spec.ts&quot;,&quot;/datas/git/webda.io/sample-app&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;/datas/git/webda.io/docs/media&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;/datas/git/webda.io/docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;/datas/git/webda.io/readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;sort&quot;:[&quot;kind&quot;,&quot;instance-first&quot;,&quot;alphabetical&quot;],&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;treatWarningsAsErrors&quot;:false,&quot;listInvalidSymbolLinks&quot;:false,&quot;outline&quot;:[],&quot;excludeReferences&quot;:false,&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true,&quot;enablePageLinks&quot;:true,&quot;enableSearch&quot;:true,&quot;failBuildOnInvalidPageLink&quot;:false,&quot;listInvalidPageLinks&quot;:false,&quot;output&quot;:&quot;pages&quot;,&quot;sources&quot;:[&quot;./docs/pages/&quot;]}}-->
 			<footer class="with-border-bottom">
 			</footer>
 			<div class="container tsd-generator">

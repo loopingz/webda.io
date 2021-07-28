@@ -10,7 +10,9 @@
     "replaceGlobalsPage": true,
     "reflectionNavigationTitle": "Modules",
     "autoDetectPageTitle": true,
-    "autoPopulateChildren": true
+    "autoPopulateChildren": true,
+    "noJekyll": true,
+    "githubPagesDomain": "docs.webda.io"
   },
 
   "theme": "./node_modules/typedoc-loopingz-theme/bin/default",

@@ -24,14 +24,31 @@ class BinaryMap {
     this.__store = service;
   }
 
+  /**
+   * Get the CoreModel 
+   * 
+   * @returns 
+   */
   get() {
     return this.__store.get(this);
   }
 
+  /**
+   * Download the binary to a path
+   * 
+   * Shortcut to call {@link Binary.downloadTo} with current object
+   * 
+   * @param filename 
+   * @returns 
+   */
   downloadTo(filename: string) {
     return this.__store.downloadTo(this, filename);
   }
 
+  /**
+   * Set the http context
+   * @param ctx 
+   */
   setContext(ctx: Context) {
     this.__ctx = ctx;
   }
@@ -102,13 +119,11 @@ export class BinaryParameters extends ServiceParameters {
  * @abstract
  * @class Binary
  */
-class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
+abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
   _lowercaseMaps: any;
 
   /**
-   * Load parameters
-   *
-   * @param params
+   * @inheritdoc
    */
   loadParameters(params: any): ServiceParameters {
     return new BinaryParameters(params, this);
@@ -118,27 +133,40 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
    * When you store a binary to be able to retrieve it you need to store the information into another object
    *
    * If you have a User object define like this : User = {'name': 'Remi', 'uuid': 'Loopingz'}
-   * You will call the store(userStore, 'Loopingz', 'images', filedata, {'type':'profile'})
-   * After a successful call the object will look like User = {'name': 'Remi', 'uuid': 'Loopingz', 'images': [{'type':'profile','hash':'a12545...','size':1245,'mime':'application/octet'}]}
+   * You will call the `store(userStore, 'Loopingz', 'images', filedata, {'type':'profile'})`
+   * After a successful call the object will look like 
+   * ```
+   * User = {
+   *  'name': 'Remi',
+   *  'uuid': 'Loopingz',
+   *  'images': [
+   *    {'type':'profile','hash':'a12545...','size':1245,'mime':'application/octet'}
+   *   ]
+   * }
+   * ```
    *
    *
    * @param {Store} targetStore The store that handles the object to attach binary to
-   * @param {String} object The object uuid to get from the store
+   * @param {CoreModel} object The object uuid to get from the store
    * @param {String} property The object property to add the file to
    * @param {Object} file The file by itself
    * @param {Object} metadatas to add to the binary object
    * @emits 'binaryCreate'
    */
-  async store(targetStore, object, property, file, metadatas, index = "add"): Promise<any> {
-    throw Error("AbstractBinary has no store method");
-  }
+
+  abstract store(
+    targetStore: Store<CoreModel>,
+    object: CoreModel,
+    property: string,
+    file,
+    metadatas: any,
+    index?: number
+  ): Promise<any>;
 
   /**
    * The store can retrieve how many time a binary has been used
    */
-  async getUsageCount(hash): Promise<number> {
-    throw Error("AbstractBinary has no store method");
-  }
+  abstract getUsageCount(hash): Promise<number>;
 
   /**
    * Update a binary
@@ -152,9 +180,7 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
    * @param {Object} metadatas to add to the binary object
    * @emits 'binaryUpdate'
    */
-  update(targetStore, object, property, index, file, metadatas): Promise<CoreModel> {
-    throw Error("AbstractBinary has no update method");
-  }
+  abstract update(targetStore, object, property, index, file, metadatas): Promise<CoreModel>;
 
   /**
    * Update a binary
@@ -166,9 +192,7 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
    * @param {Number} index The index of the file to change in the property
    * @emits 'binaryDelete'
    */
-  delete(targetStore, object, property, index): Promise<CoreModel> {
-    throw Error("AbstractBinary has no update method");
-  }
+  abstract delete(targetStore, object, property, index): Promise<CoreModel>;
 
   /**
    * Get a binary
@@ -305,7 +329,7 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
     return false;
   }
 
-  async updateSuccess(targetStore, object, property, index, file, metadatas) {
+  async updateSuccess(targetStore, object, property, index: number, file, metadatas) {
     var fileObj = {};
     fileObj["metadatas"] = metadatas;
     fileObj["name"] = file.originalname;
@@ -322,7 +346,7 @@ class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
       service: this,
       target: object
     });
-    if (index == "add") {
+    if (index === undefined || index < 0) {
       promise = targetStore.upsertItemToCollection(object_uid, property, fileObj);
     } else {
       promise = targetStore.upsertItemToCollection(

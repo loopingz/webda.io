@@ -6,14 +6,6 @@ import { Binary } from "./binary";
 
 @suite
 class FileBinaryTest extends BinaryTest {
-  @test
-  abstractBinary() {
-    let service = new Binary(undefined, undefined, undefined);
-    this.assertThrowsAsync(service.store, Error);
-    this.assertThrowsAsync(service.getUsageCount, Error);
-    this.assertThrowsAsync(service.update, Error);
-    this.assertThrowsAsync(service.delete, Error);
-  }
 
   @test
   isValidChallenge() {

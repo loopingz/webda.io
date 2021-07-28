@@ -19,7 +19,7 @@
     "ts-node": "^10.1.0",
     "typedoc": "^0.21.4",
     "typedoc-loopingz-theme": "^1.1.2",
-    "typedoc-plugin-loopingz-pages": ">=0.1.0",
+    "typedoc-plugin-loopingz-pages": ">=0.3.1",
     "typedoc-plugin-mermaid": "^1.4.0",
     "typescript": "^4.2.4"
   },
@@ -48,7 +48,8 @@
     "lerna:publish": "lerna publish",
     "docs": "yarn docs:typedoc",
     "docs:publish": "yarn docs:typedoc && gh-pages -t -d docs/typedoc",
-    "docs:typedoc": "typedoc --packages . --out docs/typedoc"
+    "docs:typedoc": "typedoc --packages . --out docs/typedoc",
+    "init": "husky install"
   },
   "command": {
     "publish": {

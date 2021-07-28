@@ -3,6 +3,8 @@ import { ModdaDefinition } from "../core";
 import { Context } from "../utils/context";
 import { Binary, BinaryParameters } from "./binary";
 import { Service, ServiceParameters } from "./service";
+import * as path from "path";
+import { CoreModel } from "..";
 
 export class FileBinaryParameters extends BinaryParameters {
   /**
@@ -128,7 +130,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     // Get the target object to add the mapping
     let targetStore = this._verifyMapAndStore(ctx);
     let object = await targetStore.get(uid);
-    await this.updateSuccess(targetStore, object, property, "add", body, body.metadatas);
+    await this.updateSuccess(targetStore, object, property, undefined, body, body.metadatas);
     // Need to store the usage of the file
     if (!fs.existsSync(this._getPath(body.hash))) {
       fs.mkdirSync(this._getPath(body.hash));
@@ -178,9 +180,26 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     return files.length - 2;
   }
 
-  _cleanHash(hash) {}
+  /**
+   * Delete any usage marker and hash
+   * 
+   * @param hash to remove
+   * @returns 
+   */
+  async _cleanHash(hash: string) : Promise<void> {
+    const p = this._getPath(hash);
+    if (!fs.existsSync(p)) return;
+    var files = fs.readdirSync(p);
+    for (var i in files) {
+      fs.unlinkSync(path.join(hash, files[i]));
+    }
+    fs.unlinkSync(p);
+  }
 
-  _cleanUsage(hash, uuid) {
+  /**
+   * @override
+   */
+  async _cleanUsage(hash: string, uuid: string): Promise<void> {
     if (!fs.existsSync(this._getPath(hash))) return;
     var files = fs.readdirSync(this._getPath(hash));
     for (var i in files) {
@@ -189,11 +208,11 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
       }
     }
     if (files.length == 3) {
-      this._cleanHash(hash);
+      await this._cleanHash(hash);
     }
   }
 
-  delete(targetStore, object, property, index) {
+  async delete(targetStore, object, property, index) {
     var hash = object[property][index].hash;
     return this.deleteSuccess(targetStore, object, property, index).then(updated => {
       this._cleanUsage(hash, object.uuid);
@@ -226,19 +245,25 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     this._touch(this._getPath(file.hash, targetStore._name + "_" + object.uuid));
   }
 
-  store(targetStore, object, property, file, metadatas, index = "add") {
+  /**
+   * @inheritdoc 
+   */
+  async store(targetStore, object, property, file, metadatas, index?:number ): Promise<any> {
     this._checkMap(targetStore._name, property);
     this._prepareInput(file);
     file = { ...file, ...this._getHashes(file.buffer) };
     if (fs.existsSync(this._getPath(file.hash))) {
       this._touch(this._getPath(file.hash, targetStore._name + "_" + object.uuid));
-      return this.updateSuccess(targetStore, object, property, "add", file, metadatas);
+      return this.updateSuccess(targetStore, object, property, undefined, file, metadatas);
     }
     this._store(file, targetStore, object);
-    return this.updateSuccess(targetStore, object, property, "add", file, metadatas);
+    return this.updateSuccess(targetStore, object, property, undefined, file, metadatas);
   }
 
-  update(targetStore, object, property, index, file, metadatas) {
+  /**
+   * @inheritdoc 
+   */
+   async update(targetStore, object, property, index, file, metadatas): Promise<CoreModel> {
     this._checkMap(targetStore._name, property);
     this._prepareInput(file);
     file = { ...file, ...this._getHashes(file.buffer) };
@@ -250,7 +275,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     return this.updateSuccess(targetStore, object, property, index, file, metadatas);
   }
 
-  ___cleanData() {
+  async ___cleanData() : Promise<void> {
     var ids = fs.readdirSync(this.parameters.folder);
     for (var i in ids) {
       var hash = ids[i];

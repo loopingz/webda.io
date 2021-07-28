@@ -1,9 +1,10 @@
 "use strict";
 // Load the AWS SDK for Node.js
-import { Binary, BinaryParameters, Context, ModdaDefinition, WebdaError } from "@webda/core";
+import { Binary, BinaryParameters, Context, CoreModel, ModdaDefinition, Store, WebdaError } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
+import * as bluebird from "bluebird";
 
 export class S3BinaryParameters extends BinaryParameters {
   endpoint: string;
@@ -130,7 +131,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       if (foundData) return;
       return this.getSignedUrl(params.Key, "putObject", params);
     }
-    await this.updateSuccess(targetStore, object, property, "add", body, body.metadatas);
+    await this.updateSuccess(targetStore, object, property, undefined, body, body.metadatas);
     await this.putMarker(body.hash, uid, store);
     return this.getSignedUrl(params.Key, "putObject", params);
   }
@@ -212,7 +213,10 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       .createReadStream();
   }
 
-  async getUsageCount(hash): Promise<number> {
+  /**
+   * @inheritdoc
+   */
+  async getUsageCount(hash: string): Promise<number> {
     // Not efficient if more than 1000 docs
     let data = await this._s3
       .listObjects({
@@ -223,9 +227,18 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     return data.Contents.length ? data.Contents.length - 1 : 0;
   }
 
-  _cleanHash(hash) {}
+  /**
+   * @inheritdoc
+   */
+  async _cleanHash(hash: string): Promise<void> {
+    let files = (await this._s3.listObjectsV2({Bucket: this.parameters.bucket, Prefix: this._getPath(hash, "")}).promise()).Contents;
+    await bluebird.all(files, (file) => this._s3.deleteObject({Bucket: this.parameters.bucket, Key: file.Key}).promise(), {concurrency: 5});
+  }
 
-  async _cleanUsage(hash, uuid) {
+  /**
+   * @inheritdoc
+   */
+  async _cleanUsage(hash: string, uuid: string) {
     // Dont clean data for now
     var params = {
       Bucket: this.parameters.bucket,
@@ -241,13 +254,24 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     return update;
   }
 
-  async cascadeDelete(info, uuid) {
+  async cascadeDelete(info: any, uuid: string) {
     return this._cleanUsage(info.hash, uuid).catch(function (err) {
       this._webda.log("WARN", "Cascade delete failed", err);
     });
   }
 
-  _exists(hash) {
+  /**
+   * @inheritdoc
+   */
+  async _exists(hash: string): Promise<boolean> {
+    try {
+      await this._s3.headObject({Bucket: this.parameters.bucket, Key: this._getPath(hash)}).promise();
+      return true;
+    } catch (err) {
+      if (err !== "NotFound") {
+        throw err;
+      }
+    } 
     return false;
   }
 
@@ -359,8 +383,16 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       .promise();
   }
 
-  async store(targetStore, object, property, file, metadatas, index = "add"): Promise<any> {
-    this._checkMap(targetStore._name, property);
+  /**
+   * @inheritdoc
+   */
+  async store(targetStore: Store<CoreModel>,
+    object: CoreModel,
+    property: string,
+    file,
+    metadatas: any,
+    index?: number): Promise<any> {
+    this._checkMap(targetStore.getName(), property);
     this._prepareInput(file);
     file = { ...file, ...this._getHashes(file.buffer) };
     let data = await this._getS3(file.hash);
@@ -382,7 +414,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         })
         .promise();
     }
-    await this.putMarker(file.hash, object.uuid, targetStore._name);
+    await this.putMarker(file.hash, object.getUuid(), targetStore.getName());
     return this.updateSuccess(targetStore, object, property, index, file, metadatas);
   }
 

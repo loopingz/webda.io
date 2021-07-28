@@ -54,7 +54,6 @@ class BinaryTest extends WebdaTest {
     var user2;
     var user;
     var ctx;
-    var error;
     user1 = await userStore.save({
       test: "plop"
     });

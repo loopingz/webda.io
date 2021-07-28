@@ -16,6 +16,10 @@ import { Service, ServiceParameters } from "./service";
 class BinaryMap {
   __ctx: Context;
   __store: Binary;
+  /**
+   * Hash of the binary
+   */
+  hash: string;
 
   constructor(service, obj) {
     for (var i in obj) {
@@ -187,12 +191,12 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    *
    *
    * @param {Store} targetStore The store that handles the object to attach binary to
-   * @param {String} object The object uuid to get from the store
+   * @param {CoreModel} object The object uuid to get from the store
    * @param {String} property The object property to add the file to
    * @param {Number} index The index of the file to change in the property
    * @emits 'binaryDelete'
    */
-  abstract delete(targetStore, object, property, index): Promise<CoreModel>;
+  abstract delete(targetStore: Store<CoreModel>, object: CoreModel, property: string, index: number): Promise<CoreModel>;
 
   /**
    * Get a binary
@@ -363,7 +367,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     update = updated;
     if (info) {
       if (info.hash !== file.hash) {
-        this.cascadeDelete(info, object_uid);
+        await this.cascadeDelete(info, object_uid);
       }
       await this.emitSync("Binary.Update", {
         object: fileObj,
@@ -381,7 +385,13 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     return update;
   }
 
-  cascadeDelete(info, uuid) {}
+  /**
+   * Cascade delete the object
+   * 
+   * @param info of the map
+   * @param uuid of the object
+   */
+  abstract cascadeDelete(info: BinaryMap, uuid: string): Promise<void>;
 
   deleteSuccess(targetStore, object, property, index) {
     var info = object[property][index];
@@ -549,8 +559,6 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     // Dont handle the redirect url
     throw 404;
   }
-
-  async storeBinary(ctx: Context) {}
 
   async httpChallenge(ctx: Context) {
     let url = await this.putRedirectUrl(ctx);

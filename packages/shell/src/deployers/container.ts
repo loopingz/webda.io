@@ -217,19 +217,16 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
   scanLinkModules(absPath: string, onLinkModule: (src, relPath) => void) {
     let nodeModulesDir = path.join(absPath, "node_modules");
     const checkDir = modulesDir => {
-      //this.logger.log("INFO", "Checking", modulesDir);
       if (fs.existsSync(modulesDir)) {
         fs.readdirSync(modulesDir).forEach(f => {
           let stat = fs.lstatSync(path.join(modulesDir, f));
           if (stat.isSymbolicLink()) {
-            //this.logger.log("INFO", "LN", path.join(modulesDir, f));
             onLinkModule(
               fs.realpathSync(path.join(modulesDir, f)),
               path.relative(nodeModulesDir, path.join(modulesDir, f))
             );
           }
           if (f.startsWith("@") && stat.isDirectory()) {
-            //this.logger.log("INFO", "ORGA", path.join(modulesDir, f));
             checkDir(path.join(modulesDir, f));
           }
         });
@@ -380,8 +377,6 @@ RUN rm -rf deployments\n\n`;
   }
 
   copyPackageFilesTo(pkg: string, dst: string, addFiles: string[] = []) {
-    //let localCopy = pkg.startsWith(process.cwd()) && this.resources.includeLinkModules;
-    //let localPath = path.join(process.cwd(), "link_modules");
     let absPath = path.resolve(pkg);
     var packageInfo = Packager.loadPackageInfo(absPath);
     let includes = packageInfo.files || ["lib"];

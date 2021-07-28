@@ -8,9 +8,7 @@ export class Executor {
    */
   execute(ctx: Context): Promise<any> {
     if (typeof ctx._route._method === "function") {
-      return new Promise((resolve, reject) => {
-        resolve(ctx.getExecutor()[ctx._route._method.name](ctx));
-      });
+      return Promise.resolve(ctx.getExecutor()[ctx._route._method.name](ctx));
     }
     return Promise.reject(Error("Not implemented"));
   }
@@ -103,9 +101,7 @@ class WebdaTest {
       return {
         execute: async (argCtx: Context) => {
           if (typeof argCtx._route._method === "function") {
-            return new Promise(resolve => {
-              resolve(argCtx.getExecutor()[argCtx._route._method.name](argCtx));
-            });
+            return Promise.resolve(argCtx.getExecutor()[argCtx._route._method.name](argCtx));
           }
         }
       };
@@ -118,16 +114,7 @@ class WebdaTest {
    * @deprecated
    */
   async assertThrowsAsync(fn, regExp = undefined) {
-    let f = () => {};
-    try {
-      await fn();
-    } catch (e) {
-      f = () => {
-        throw e;
-      };
-    } finally {
-      assert.throws(f, regExp);
-    }
+    return assert.rejects(fn, regExp);
   }
 
   /**

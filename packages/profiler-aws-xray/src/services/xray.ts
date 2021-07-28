@@ -44,7 +44,9 @@ export default class AWSXRayService<T extends AWSXRayServiceParameters = AWSXRay
             const name = `${services[service]._name}.${method}`;
             const originalMethod = services[service][method];
             services[service][method] = (...args) => {
-              var subsegment = { close: () => {} };
+              var subsegment = { close: () => {
+                // Do not do anything on close
+              } };
               try {
                 subsegment = AWSXRay.getSegment().addNewSubsegment(name);
               } catch (err) {

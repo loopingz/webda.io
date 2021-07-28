@@ -1,6 +1,6 @@
 "use strict";
 // Load the AWS SDK for Node.js
-import { Binary, BinaryParameters, Context, CoreModel, ModdaDefinition, Store, WebdaError } from "@webda/core";
+import { Binary, BinaryMap, BinaryParameters, Context, CoreModel, ModdaDefinition, Store, WebdaError } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
@@ -110,7 +110,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     var base64String = Buffer.from(body.hash, "hex").toString("base64");
     var params = {
       Bucket: this.parameters.bucket,
-      Key: this._getPath(body.hash),
+      Key: this._getKey(body.hash),
       ContentType: "application/octet-stream",
       ContentMD5: base64String
     };
@@ -118,7 +118,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     let data = this._s3
       .listObjectsV2({
         Bucket: this.parameters.bucket,
-        Prefix: this._getPath(body.hash, "")
+        Prefix: this._getKey(body.hash, "")
       })
       .promise();
     let foundMap = false;
@@ -142,7 +142,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       s3ForcePathStyle: this.parameters.s3ForcePathStyle || false,
       params: {
         Bucket: this.parameters.bucket,
-        Key: this._getPath(hash, uuid),
+        Key: this._getKey(hash, uuid),
         Metadata: {
           "x-amz-meta-store": storeName
         }
@@ -169,7 +169,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     params.ResponseContentDisposition = "attachment; filename=" + info.name;
     params.ResponseContentType = info.mimetype;
     // Access-Control-Allow-Origin
-    return this.getSignedUrl(this._getPath(info.hash), "getObject", params);
+    return this.getSignedUrl(this._getKey(info.hash), "getObject", params);
   }
 
   async getRedirectUrl(ctx) {
@@ -208,7 +208,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     return this._s3
       .getObject({
         Bucket: this.parameters.bucket,
-        Key: this._getPath(info.hash)
+        Key: this._getKey(info.hash)
       })
       .createReadStream();
   }
@@ -221,7 +221,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     let data = await this._s3
       .listObjects({
         Bucket: this.parameters.bucket,
-        Prefix: this._getPath(hash, "")
+        Prefix: this._getKey(hash, "")
       })
       .promise();
     return data.Contents.length ? data.Contents.length - 1 : 0;
@@ -231,7 +231,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @inheritdoc
    */
   async _cleanHash(hash: string): Promise<void> {
-    let files = (await this._s3.listObjectsV2({Bucket: this.parameters.bucket, Prefix: this._getPath(hash, "")}).promise()).Contents;
+    let files = (await this._s3.listObjectsV2({Bucket: this.parameters.bucket, Prefix: this._getKey(hash, "")}).promise()).Contents;
     await bluebird.all(files, (file) => this._s3.deleteObject({Bucket: this.parameters.bucket, Key: file.Key}).promise(), {concurrency: 5});
   }
 
@@ -242,19 +242,25 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     // Dont clean data for now
     var params = {
       Bucket: this.parameters.bucket,
-      Key: this._getPath(hash, uuid)
+      Key: this._getKey(hash, uuid)
     };
     return this._s3.deleteObject(params).promise();
   }
 
-  async delete(targetStore, object, property, index) {
+  /**
+   * @inheritdoc
+   */
+  async delete(targetStore: Store<CoreModel>, object: CoreModel, property: string, index: number) {
     let hash = object[property][index].hash;
     let update = await this.deleteSuccess(targetStore, object, property, index);
-    await this._cleanUsage(hash, object.uuid);
+    await this._cleanUsage(hash, object.getUuid());
     return update;
   }
 
-  async cascadeDelete(info: any, uuid: string) {
+  /**
+   * @inheritdoc
+   */
+  async cascadeDelete(info: BinaryMap, uuid: string) {
     return this._cleanUsage(info.hash, uuid).catch(function (err) {
       this._webda.log("WARN", "Cascade delete failed", err);
     });
@@ -265,7 +271,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   async _exists(hash: string): Promise<boolean> {
     try {
-      await this._s3.headObject({Bucket: this.parameters.bucket, Key: this._getPath(hash)}).promise();
+      await this._s3.headObject({Bucket: this.parameters.bucket, Key: this._getKey(hash)}).promise();
       return true;
     } catch (err) {
       if (err !== "NotFound") {
@@ -275,7 +281,13 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     return false;
   }
 
-  _getPath(hash, postfix = undefined) {
+  /**
+   * Return the S3 key
+   * @param hash 
+   * @param postfix 
+   * @returns 
+   */
+  _getKey(hash: string, postfix: string = undefined) : string {
     if (postfix === undefined) {
       return hash + "/data";
     }
@@ -295,11 +307,16 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     );
   }
 
-  async _getS3(hash) {
+  /**
+   * Get a head object
+   * @param hash 
+   * @returns 
+   */
+  async _getS3(hash: string) {
     return this._s3
       .headObject({
         Bucket: this.parameters.bucket,
-        Key: this._getPath(hash)
+        Key: this._getKey(hash)
       })
       .promise()
       .catch(function (err) {
@@ -310,7 +327,14 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       });
   }
 
-  getObject(key: string, bucket: string = undefined) {
+  /**
+   * Get an object from s3 bucket
+   * 
+   * @param key to get
+   * @param bucket to retrieve from or default bucket
+   * @returns 
+   */
+  getObject(key: string, bucket?: string) {
     bucket = bucket || this.parameters.bucket;
     var s3obj = new this.AWS.S3({
       endpoint: this.parameters.endpoint,
@@ -404,7 +428,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         s3ForcePathStyle: this.parameters.s3ForcePathStyle || false,
         params: {
           Bucket: this.parameters.bucket,
-          Key: this._getPath(file.hash),
+          Key: this._getKey(file.hash),
           Metadata: s3metas
         }
       });

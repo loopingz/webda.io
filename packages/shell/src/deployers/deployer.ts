@@ -61,7 +61,12 @@ export abstract class Deployer<T extends DeployerResources> extends AbstractDepl
     await this.loadDefaults();
   }
 
-  async loadDefaults(): Promise<void> {}
+  /**
+   * Load default resources
+   */
+  async loadDefaults(): Promise<void> {
+    // Do nothing
+  }
 
   /**
    * Deploy the application

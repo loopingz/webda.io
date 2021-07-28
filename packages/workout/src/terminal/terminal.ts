@@ -11,7 +11,7 @@ import {
 } from "..";
 import { ConsoleLogger } from "../loggers/console";
 import * as util from "util";
-import { SIGINT } from "constants";
+import { constants } from "os";
 
 export class Terminal {
   tty: boolean;
@@ -90,7 +90,7 @@ export class Terminal {
     process.stdin.on("data", data => {
       let str = data.toString();
       if (str.charCodeAt(0) === 3) {
-        process.kill(process.pid, SIGINT);
+        process.kill(process.pid, constants.signals.SIGINT);
         return;
       } else if (str.charCodeAt(0) === 127) {
         if (this.inputValue.length) {

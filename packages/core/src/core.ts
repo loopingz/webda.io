@@ -75,8 +75,19 @@ export interface ModdaDefinition {
  * It contains one or more Modda to provide features
  */
 export interface Module {
+  /**
+   * Services provided by the module
+   */
   services?: { [key: string]: string };
+  /**
+   * Models provided by the module
+   */
   models?: { [key: string]: string };
+  /**
+   * Deployers provided by the module
+   * 
+   * @link Deployer
+   */
   deployers?: { [key: string]: string };
   /**
    * Schemas for services, deployers and coremodel
@@ -88,6 +99,9 @@ export interface Module {
  * Cached module is all modules discover plus local package including the sources list
  */
 export interface CachedModule extends Module {
+  /**
+   * Source files to import
+   */
   sources?: string[];
 }
 
@@ -95,9 +109,22 @@ export interface CachedModule extends Module {
  * Configuration from Webda 1.0 > version > 0.5
  */
 export interface ConfigurationV1 {
+  /**
+   * Configuration version
+   */
   version: number;
+  /**
+   * Cached modules to avoid scanning node_modules
+   * This is used by packagers
+   */
   cachedModules?: CachedModule;
+  /**
+   * Models 
+   */
   models?: any;
+  /**
+   * Services configuration
+   */
   services?: any;
   [key: string]: any;
 }
@@ -110,9 +137,22 @@ export interface Configuration {
    * @minimum 2
    */
   version: number;
+  /**
+   * Cached modules to avoid scanning node_modules
+   * This is used by packagers
+   */
   cachedModules?: CachedModule;
+  /**
+   * Module definition
+   */
   module: Module;
+  /**
+   * Services configuration
+   */
   services?: any;
+  /**
+   * Global parameters
+   */
   parameters?: {
     cookie?: {
       sameSite: "None" | "Strict" | "Lax";
@@ -125,6 +165,9 @@ export interface Configuration {
     };
     [key: string]: any;
   };
+  /**
+   * OpenAPI override
+   */
   openapi?: any;
 }
 
@@ -134,10 +177,16 @@ export interface Configuration {
  * If one of the filter replies with "true" then the request will go through
  */
 export interface RequestFilter<T extends Context> {
+  /**
+   * Return true if the request should be allowed
+   * 
+   * @param context to check for
+   */
   checkRequest(context: T): Promise<boolean>;
 }
 
 /**
+ * Filter request based on their origin
  *
  * @category CoreFeatures
  */
@@ -146,6 +195,11 @@ export class OriginFilter implements RequestFilter<Context> {
   constructor(origins: string[]) {
     this.origins = origins;
   }
+  /**
+   * 
+   * @param context 
+   * @returns 
+   */
   async checkRequest(context: Context): Promise<boolean> {
     let httpContext = context.getHttpContext();
     for (let i in this.origins) {
@@ -168,6 +222,9 @@ export class OriginFilter implements RequestFilter<Context> {
   }
 }
 
+/**
+ * Authorize requests based on the website 
+ */
 export class WebsiteOriginFilter implements RequestFilter<Context> {
   websites: string[] = [];
   constructor(website: any) {
@@ -194,9 +251,7 @@ export class WebsiteOriginFilter implements RequestFilter<Context> {
   }
 }
 
-let beans = {};
-
-export function Model(constructor: Function) {}
+const beans = {};
 
 // @Bean to declare as a Singleton service
 export function Bean(constructor: Function) {
@@ -647,12 +702,16 @@ export class Core extends events.EventEmitter {
    * Flush the headers to the response, no more header modification is possible after that
    * @abstract
    */
-  public flushHeaders(context: Context): void {}
+  public flushHeaders(context: Context): void {
+    // Should be overriden by implementation
+  }
 
   /**
    * Flush the entire response to the client
    */
-  public flush(context: Context): void {}
+  public flush(context: Context): void {
+    // Should be overriden by implementation
+  }
 
   /**
    * Return if Webda is in debug mode

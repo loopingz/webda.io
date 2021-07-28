@@ -53,7 +53,7 @@ export class StoreParameters extends ServiceParameters {
   /**
    * Create an index object that link all other objects uuid
    */
-  index?: string[] | undefined;
+  index?: string[];
   /**
    * You can define a Map between different Stores
    *
@@ -158,7 +158,7 @@ export class StoreParameters extends ServiceParameters {
  *   }
  * @category CoreServices
  */
-class Store<T extends CoreModel, K extends StoreParameters = StoreParameters>
+abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParameters>
   extends Service<K>
   implements ConfigurationProvider {
   _reverseMap: any[] = [];
@@ -844,7 +844,7 @@ class Store<T extends CoreModel, K extends StoreParameters = StoreParameters>
     }
   }
 
-  async _removeAttribute(uuid: string, attribute: string) {}
+  abstract _removeAttribute(uuid: string, attribute: string) : Promise<void>;
 
   async removeAttribute(uuid: string, attribute: string) {
     return this._removeAttribute(uuid, attribute);

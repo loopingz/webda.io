@@ -28,9 +28,6 @@ export default class ElasticSearchService<
         this.log("ERROR", "Cannot initiate index", index.index, ": missing store", index.store);
         return;
       }
-      if (index.url) {
-        this.addRoute(index.url, ["POST"], this._httpSearch);
-      }
       this.log("INFO", "Setup the Store listeners");
       // Plug on every modification on the store to update the index accordingly
       store.on("Store.PartialUpdated", evt => {
@@ -93,8 +90,6 @@ export default class ElasticSearchService<
       this._asyncCount--;
     }
   }
-
-  _httpSearch(ctx) {}
 
   async search(index: string, query: any, from: number = 0) {
     if (!this.parameters.indexes[index]) {
@@ -175,11 +170,11 @@ export default class ElasticSearchService<
     return stats;
   }
 
-  async exists(index: string, uuid: string) {
+  async exists(index: string, uuid: string) : Promise<boolean> {
     if (!this.parameters.indexes[index]) {
       throw new WebdaError("ES_UNKOWN_INDEX", "Unknown index");
     }
-    return await this._client.exists({
+    return this._client.exists({
       index: index,
       type: index,
       id: uuid

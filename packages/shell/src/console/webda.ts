@@ -107,7 +107,6 @@ export default class WebdaConsole {
     } else {
       this.output("Serve as development");
     }
-    // server_config.parameters.logLevel = server_config.parameters.logLevel || argv['log-level'];
     this.webda = new WebdaServer(this.app);
     await this.webda.init();
     this.webda.setDevMode(argv.devMode);
@@ -116,7 +115,9 @@ export default class WebdaConsole {
     }
 
     await this.webda.serve(argv.port, argv.websockets);
-    return new Promise(() => {});
+    return new Promise(() => {
+      // Never release the promise
+    });
   }
 
   /**
@@ -304,7 +305,9 @@ export default class WebdaConsole {
       });
       launchServe();
     }
-    return new Promise(() => {});
+    return new Promise(() => {
+      // Never return
+    });
   }
 
   /**
@@ -364,7 +367,7 @@ export default class WebdaConsole {
   static async deploy(argv: yargs.Arguments): Promise<number> {
     let manager = new DeploymentManager(this.app.getWorkerOutput(), process.cwd(), <string>argv.deployment);
     argv._ = argv._.slice(1);
-    return await manager.commandLine(argv);
+    return manager.commandLine(argv);
   }
 
   /**

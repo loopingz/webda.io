@@ -1,6 +1,5 @@
-import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "..";
+import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "..";
 import * as fs from "fs";
-import { ConsoleLogger } from "..";
 import * as path from "path";
 
 /**
@@ -41,7 +40,6 @@ export class FileLogger {
         this.outputCount += fs.lstatSync(this.filepath).size;
       }
       this.outputFileStream = fs.createWriteStream(this.filepath, { flags: "as" });
-      //this.outputStream = zlib.createGzip({});
       this.outputStream = this.outputFileStream;
     }
     let line = this.getLine(msg);

@@ -481,7 +481,9 @@ class Context extends EventEmitter {
       method: this.getHttpContext().getMethod(),
       rawHeaders: [], // TODO Regenerate headers based on the map
       rawTrailers: [],
-      setTimeout: (msec, callback) => {},
+      setTimeout: (msec, callback) => {
+        setTimeout(callback, msec);
+      },
       socket: undefined,
       statusCode: 200,
       trailers: {},
@@ -541,9 +543,7 @@ class Context extends EventEmitter {
    */
   async execute() {
     if (this.getExecutor() && typeof this._route._method === "function") {
-      return new Promise((resolve, reject) => {
-        resolve(this.getExecutor()[this._route._method.name](this));
-      });
+      return Promise.resolve(this.getExecutor()[this._route._method.name](this));
     }
     return Promise.reject(Error("Not implemented"));
   }
@@ -591,7 +591,9 @@ class Context extends EventEmitter {
    * @ignore
    * Used for compatibility with express module
    */
-  logIn() {}
+  logIn() {
+    // Empty for compatibility
+  }
 
   /**
    * Proxy for simplification

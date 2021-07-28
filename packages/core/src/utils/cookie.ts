@@ -131,7 +131,6 @@ class SecureCookie {
       let value = jwt.sign(JSON.parse(JSON.stringify(this)), this._secret);
       this.sendCookie(ctx, this._name, value, params);
       // Transform the cookie to a plain object
-      return;
     } else {
       console.log("Do not need update", this._name);
     }
@@ -208,7 +207,9 @@ class SessionCookie extends SecureCookie {
     return true;
   }
 
-  async init() {}
+  async init() {
+    // For future use
+  }
 }
 
 export { SecureCookie, SessionCookie };

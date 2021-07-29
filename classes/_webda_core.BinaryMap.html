@@ -148,6 +148,9 @@
 							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="_webda_core.BinaryMap.html#__store" class="tsd-kind-icon">__store</a>
 							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="_webda_core.BinaryMap.html#hash" class="tsd-kind-icon">hash</a>
+							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_core.BinaryMap.html#downloadTo" class="tsd-kind-icon">download<wbr>To</a>
 							</li>
@@ -193,6 +196,7 @@
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.BinaryMap.html#__ctx" class="tsd-kind-icon">__ctx</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.BinaryMap.html#__store" class="tsd-kind-icon">__store</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.BinaryMap.html#hash" class="tsd-kind-icon">hash</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
@@ -229,7 +233,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.BinaryMap.html" class="tsd-signature-type">BinaryMap</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:20</li>
+									<li>Defined in packages/core/src/services/binary.ts:24</li>
 								</ul>
 							</aside>
 						</li>
@@ -253,6 +257,19 @@
 							<li>Defined in packages/core/src/services/binary.ts:18</li>
 						</ul>
 					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="hash" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">hash<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Hash of the binary</p>
+						</div>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/services/binary.ts:22</li>
+						</ul>
+					</aside>
 			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
@@ -265,6 +282,13 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Download the binary to a path</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-text">
+								<p>Shortcut to call <a href="_webda_core.Binary.html#downloadTo">Binary.downloadTo</a> with current object</p>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -274,7 +298,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:31</li>
+									<li>Defined in packages/core/src/services/binary.ts:48</li>
 								</ul>
 							</aside>
 						</li>
@@ -288,10 +312,15 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Get the CoreModel</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ReadableStream</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:27</li>
+									<li>Defined in packages/core/src/services/binary.ts:36</li>
 								</ul>
 							</aside>
 						</li>
@@ -305,16 +334,23 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Set the http context</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>ctx: <a href="_webda_core.Context.html" class="tsd-signature-type">Context</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:35</li>
+									<li>Defined in packages/core/src/services/binary.ts:56</li>
 								</ul>
 							</aside>
 						</li>

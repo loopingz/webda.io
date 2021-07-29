@@ -150,6 +150,11 @@ class MemoryStore<T extends CoreModel, K extends StoreParameters = StoreParamete
     res[this._lastUpdateField] = updateDate;
     return this._save(res);
   }
+
+  /**
+   * 
+   * @inheritdoc
+   */
   static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/MemoryStore",

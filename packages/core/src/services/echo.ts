@@ -1,4 +1,4 @@
-import { Context, Service } from "../index";
+import { Context, ModdaDefinition, Service } from "../index";
 import { ServiceParameters } from "./service";
 
 class EchoServiceParameter extends ServiceParameters {
@@ -15,18 +15,20 @@ class EchoServiceParameter extends ServiceParameters {
    */
   url: string;
 }
+
 /**
- * Return a static string with a static mime type
- * Not really useful i concede
- *
- * Configuration
- * '/url': {
- *    'type': 'string',
- *    'params': {
- *         'mime': 'text/plain',
- *         'result': 'echo'
- *     }
+ * Return a static string with a static route
+ * 
+ * Useful for version display
+ * 
+ * ```javascript
+ * "Version": {
+ *  "type": "Webda/EchoService",
+ *  "result": "${package.version}",
+ *  "url": "/version",
+ *  "mime": "text/plain"
  * }
+ * ```
  *
  */
 class EchoService extends Service<EchoServiceParameter> {
@@ -59,6 +61,17 @@ class EchoService extends Service<EchoServiceParameter> {
     }
     ctx.end();
     return Promise.resolve();
+  }
+
+  /**
+   * @inheritdoc
+   */
+   static getModda(): ModdaDefinition {
+    return {
+      uuid: "Webda/EchoService",
+      label: "Echo Service",
+      description: "Output a staticly defined result, useful to display verison"
+    };
   }
 }
 

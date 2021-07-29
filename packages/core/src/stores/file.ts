@@ -216,6 +216,11 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
       await this.createIndex();
     }
   }
+
+  /**
+   * 
+   * @inheritdoc
+   */
   static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/FileStore",

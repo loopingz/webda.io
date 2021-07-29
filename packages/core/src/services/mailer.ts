@@ -151,6 +151,17 @@ class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
     }
     return this._transporter.sendMail(options, callback);
   }
+
+  /**
+   * @inheritdoc
+   */
+  static getModda() : ModdaDefinition {
+    return {
+      uuid: "Webda/Mailer",
+      label: "Mailer",
+      description: "Allow your application to send email including a templating system"
+    }
+  }
 }
 
 export { Mailer, TemplatesMap, IEmailTemplate };

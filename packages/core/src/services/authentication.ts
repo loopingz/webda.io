@@ -786,6 +786,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     return this.hashInfo(email + "_" + this._webda.getSecret() + user);
   }
 
+  /** @inheritdoc */
   static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/Authentication",

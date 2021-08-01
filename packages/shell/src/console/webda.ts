@@ -383,19 +383,12 @@ export default class WebdaConsole {
     let generatorAction = "app";
     // Cannot start with :
     if (generatorName.indexOf(":") > 0) {
-      generatorAction = generatorName.split(":")[1];
+      [generatorAction, generatorName] = generatorName.split(":");
     }
     const yeoman = require("yeoman-environment");
     const env = yeoman.createEnv();
     env.register(require.resolve(`generator-${generatorName}/generators/${generatorAction}/index.js`), generatorName);
-    await new Promise<void>((resolve, reject) => {
-      env.run(generatorName, err => {
-        if (err) {
-          reject(err);
-        }
-        resolve();
-      });
-    });
+    return env.run(generatorName);
   }
 
   /**
@@ -722,7 +715,7 @@ export default class WebdaConsole {
       }
     }
 
-    if (argv.notty || !process.stdout.isTTY) {
+    if (argv.notty || !process.stdout.isTTY || ["init"].indexOf(<string>argv._[0]) >= 0) {
       new ConsoleLogger(output, <WorkerLogLevel>argv.logLevel, <string>argv.logFormat);
     } else {
       if (extension && extension.terminal) {

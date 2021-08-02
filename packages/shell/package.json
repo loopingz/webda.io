@@ -42,7 +42,7 @@
     "express-session": "^1.17.2",
     "filesize": "^7.0.0",
     "fs-finder": "^1.8.1",
-    "generator-webda": "^0.9.0",
+    "generator-webda": "^1.2.0",
     "glob": "^7.1.7",
     "iam-policy-optimizer": "^1.1.2",
     "merge": "^2.1.1",

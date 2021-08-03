@@ -42,7 +42,7 @@ class BinaryTest extends WebdaTest {
     let map = this.getMap();
     let exposePath = this.getExposePath();
     var eventFired = 0;
-    var events = ["binaryGet", "binaryUpdate", "binaryCreate", "binaryDelete"];
+    var events = ["Binary.Get", "Binary.Update", "Binary.Create", "Binary.Delete"];
     for (let evt in events) {
       binary.on(events[evt], function () {
         eventFired++;

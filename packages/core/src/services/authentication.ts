@@ -1,7 +1,7 @@
 "use strict";
 import * as crypto from "crypto";
 import * as bcrypt from "bcryptjs";
-import { ModdaDefinition } from "../core";
+import { EventWithContext, ModdaDefinition } from "../core";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
 import { Inject, Service, ServiceParameters } from "../services/service";
@@ -10,10 +10,44 @@ import { Context } from "../utils/context";
 import { Mailer } from "./mailer";
 
 /**
+ * Emitted when the /me route is called
+ */
+export interface EventAuthenticationGetMe extends EventWithContext {
+  user: User;
+}
+
+/**
+ * Emitted when new user registered
+ */
+export interface EventAuthenticationRegister extends EventAuthenticationGetMe {
+  datas: any;
+}
+
+/**
+ * Emitted when user logout
+ */
+export interface EventAuthenticationLogout extends EventWithContext {}
+
+/**
+ * Emitted when user login
+ */
+export interface EventAuthenticationLogin extends EventWithContext {
+  userId: string;
+  user?: User;
+  identId: string;
+  ident?: Ident;
+}
+
+/**
+ * Export when a user failed to authenticate with his password
+ */
+export interface EventAuthenticationLoginFailed extends EventAuthenticationGetMe {}
+
+/**
  * Implement a PasswordVerifier so you can implement
  * your own rules
  */
-interface PasswordVerifier extends Service {
+export interface PasswordVerifier extends Service {
   /**
    * If the password is not valid, send a 400 exception or
    * return false
@@ -26,7 +60,7 @@ interface PasswordVerifier extends Service {
 /**
  * Information required to reset a password
  */
-class PasswordRecoveryInfos {
+export class PasswordRecoveryInfos {
   /**
    * Links are short lived
    */
@@ -320,7 +354,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     if (user === undefined) {
       throw 404;
     }
-    await this.emitSync("Authentication.GetMe", {
+    await this.emitSync("Authentication.GetMe", <EventAuthenticationGetMe>{
       context: ctx,
       user
     });
@@ -423,7 +457,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     }
     user.email = datas.email;
     user.locale = ctx.getLocale();
-    await this.emitSync("Authentication.Register", {
+    await this.emitSync("Authentication.Register", <EventAuthenticationRegister>{
       user: user,
       datas: datas,
       context: ctx
@@ -630,7 +664,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
    * Logout user
    */
   async logout(ctx: Context) {
-    await this.emitSync("Authentication.Logout", {
+    await this.emitSync("Authentication.Logout", <EventAuthenticationLogout>{
       context: ctx
     });
     ctx.getSession().destroy();
@@ -644,17 +678,25 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
    * @param ident
    * @returns
    */
-  async login(ctx: Context, user, ident) {
-    var event: any = {};
-    event.userId = user;
+  async login(ctx: Context, user: User | string, ident: Ident | string) {
+    var event: EventAuthenticationLogin = {
+      context: ctx,
+      userId: "",
+      identId: ""
+    };
+
     if (typeof user == "object") {
       event.userId = user.uuid;
       event.user = user;
+    } else {
+      event.userId = user;
     }
-    event.identId = ident;
+
     if (typeof ident == "object") {
       event.identId = ident.uuid;
       event.ident = ident;
+    } else {
+      event.identId = ident;
     }
     event.context = ctx;
     ctx.getSession().login(event.userId, event.identId);
@@ -681,9 +723,9 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       await this.login(ctx, ident.getUser(), ident);
       ctx.write(user);
     } else {
-      await this.emitSync("LoginFailed", {
+      await this.emitSync("Authentication.LoginFailed", <EventAuthenticationLoginFailed>{
         user,
-        ctx
+        context: ctx
       });
       if (ident._failedLogin === undefined) {
         ident._failedLogin = 0;
@@ -799,4 +841,4 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
   }
 }
 
-export { Authentication, PasswordVerifier, PasswordRecoveryInfos };
+export { Authentication };

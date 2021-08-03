@@ -1,5 +1,14 @@
 "use strict";
-import { ClientInfo, Context, Core as Webda, HttpContext, Service } from "@webda/core";
+import {
+  ClientInfo,
+  Context,
+  Core as Webda,
+  HttpContext,
+  Service,
+  EventWebdaRequest,
+  EventWebdaResult,
+  EventWebda404
+} from "@webda/core";
 import { serialize as cookieSerialize } from "cookie";
 
 export interface AWSEventsHandler {
@@ -185,7 +194,7 @@ export default class LambdaServer extends Webda {
     ctx.clientInfo.referer = headers["Referer"] || headers.referer;
 
     // Debug mode
-    await this.emitSync("Webda.Request", ctx, vhost, method, resourcePath, ctx.getCurrentUserId(), body);
+    await this.emitSync("Webda.Request", <EventWebdaRequest>{ context: ctx });
     if (this.getConfiguration().parameters.lambdaRequestHeader) {
       ctx.setHeader(this.getConfiguration().parameters.lambdaRequestHeader, context.awsRequestId);
     }
@@ -224,7 +233,7 @@ export default class LambdaServer extends Webda {
     }
 
     if (!this.updateContextWithRoute(ctx)) {
-      this.emitSync("Webda.404", vhost, method, resourcePath, ctx.getCurrentUserId(), body);
+      this.emitSync("Webda.404", <EventWebda404>{ context: ctx });
       ctx.statusCode = 404;
       return this.handleLambdaReturn(ctx);
     }
@@ -252,7 +261,7 @@ export default class LambdaServer extends Webda {
     if (ctx.statusCode) {
       this._result.code = ctx.statusCode;
     }
-    await this.emitSync("Webda.Result", ctx, this._result);
+    await this.emitSync("Webda.Result", <EventWebdaResult>{ context: ctx });
     // TODO Clean to use ...this._result
     return {
       statusCode: ctx.statusCode,

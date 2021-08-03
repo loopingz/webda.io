@@ -37,6 +37,27 @@ export class WebdaError extends Error {
 }
 
 /**
+ * Ensure all events store the context in the same place
+ */
+export interface EventWithContext {
+  context: Context;
+}
+
+/**
+ * Emitted when new request comes in
+ */
+export interface EventWebdaRequest extends EventWithContext {}
+
+/**
+ * Emitted when new result is sent
+ */
+export interface EventWebdaResult extends EventWithContext {}
+
+/**
+ * Emitted when a request does not match any route
+ */
+export interface EventWebda404 extends EventWithContext {}
+/**
  * Define a reusable service
  *
  * A Modda is a class that can be reused
@@ -85,7 +106,7 @@ export interface Module {
   models?: { [key: string]: string };
   /**
    * Deployers provided by the module
-   * 
+   *
    * @link Deployer
    */
   deployers?: { [key: string]: string };
@@ -119,7 +140,7 @@ export interface ConfigurationV1 {
    */
   cachedModules?: CachedModule;
   /**
-   * Models 
+   * Models
    */
   models?: any;
   /**
@@ -179,7 +200,7 @@ export interface Configuration {
 export interface RequestFilter<T extends Context> {
   /**
    * Return true if the request should be allowed
-   * 
+   *
    * @param context to check for
    */
   checkRequest(context: T): Promise<boolean>;
@@ -196,9 +217,9 @@ export class OriginFilter implements RequestFilter<Context> {
     this.origins = origins;
   }
   /**
-   * 
-   * @param context 
-   * @returns 
+   *
+   * @param context
+   * @returns
    */
   async checkRequest(context: Context): Promise<boolean> {
     let httpContext = context.getHttpContext();
@@ -223,7 +244,7 @@ export class OriginFilter implements RequestFilter<Context> {
 }
 
 /**
- * Authorize requests based on the website 
+ * Authorize requests based on the website
  */
 export class WebsiteOriginFilter implements RequestFilter<Context> {
   websites: string[] = [];

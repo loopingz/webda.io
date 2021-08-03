@@ -1,9 +1,248 @@
 "use strict";
 import { v4 as uuidv4 } from "uuid";
+import { EventWithContext } from "../core";
 import { ConfigurationProvider } from "../index";
 import { CoreModel, CoreModelDefinition } from "../models/coremodel";
 import { Service, ServiceParameters } from "../services/service";
 import { Context } from "../utils/context";
+
+interface EventStore {
+  /**
+   * Target object
+   */
+  object: CoreModel;
+  /**
+   * Store emitting
+   */
+  store: Store;
+}
+/**
+ * Event called before save of an object
+ */
+export interface EventStoreSave extends EventStore {}
+/**
+ * Event called after save of an object
+ */
+export interface EventStoreSaved extends EventStoreSave {}
+/**
+ * Event called before delete of an object
+ */
+export interface EventStoreDelete extends EventStore {}
+/**
+ * Event called after delete of an object
+ */
+export interface EventStoreDeleted extends EventStoreDelete {}
+/**
+ * Event called on retrieval of an object
+ */
+export interface EventStoreGet extends EventStore {}
+/**
+ * Event called before action on an object
+ */
+export interface EventStoreAction extends EventWithContext {
+  /**
+   * Name of the action
+   */
+  action: string;
+  /**
+   * Target object unless it is a global action
+   */
+  object?: CoreModel;
+  /**
+   * Emitting store
+   */
+  store: Store;
+}
+/**
+ * Event called after action on an object
+ */
+export interface EventStoreActioned extends EventStoreAction {
+  /**
+   * Result of the action
+   */
+  result: any;
+}
+/**
+ * Event called before update of an object
+ */
+export interface EventStoreUpdate extends EventStoreUpdated {
+  /**
+   * Update content
+   */
+  update: any;
+}
+/**
+ * Event called after update of an object
+ */
+export interface EventStoreUpdated extends EventStore {}
+/**
+ * Event called before patch update of an object
+ */
+export interface EventStorePatchUpdate extends EventStoreUpdate {}
+/**
+ * Event called after patch update of an object
+ */
+export interface EventStorePatchUpdated extends EventStoreUpdated {}
+/**
+ * Event called after partial update of an object
+ */
+export interface EventStorePartialUpdated {
+  /**
+   * Object uuid
+   */
+  object_id: string;
+  /**
+   * Emitting store
+   */
+  store: Store;
+  /**
+   * Info on the update
+   */
+  partial_update: {
+    /**
+     * If incremental update
+     */
+    increment?: {
+      /**
+       * Increment value
+       */
+      value: number;
+      /**
+       * Property to increment
+       */
+      property: string;
+    };
+    /**
+     * Add item to a collection
+     */
+    addItem?: {
+      /**
+       * Item to add
+       */
+      value: any;
+      /**
+       * Collection name
+       */
+      property: string;
+      /**
+       * Index to add
+       */
+      index: number;
+    };
+    /**
+     * Delete an item from collection
+     */
+    deleteItem?: {
+      /**
+       * Collection name
+       */
+      property: string;
+      /**
+       * Index in the collection
+       */
+      index: number;
+    };
+  };
+}
+
+/**
+ * Event sent when a query on the store is emitted
+ */
+export interface EventStoreFind {
+  /**
+   * Request sent
+   */
+  request: any;
+  /**
+   * Emitting store
+   */
+  store: Store;
+  /**
+   * Offset on the results
+   */
+  offset: number;
+  /**
+   * Max number of results
+   */
+  limit: number;
+}
+/**
+ * Event sent when query is resolved
+ */
+export interface EventStoreFound extends EventStoreFind {
+  /**
+   * Results from the query
+   */
+  results: CoreModel[];
+}
+
+/**
+ * Event sent when object is created via POST request
+ */
+export interface EventStoreWebCreate extends EventWithContext {
+  /**
+   * Properties for the object
+   */
+  values: any;
+  /**
+   * Target object
+   */
+  object: CoreModel;
+  /**
+   * Emitting store
+   */
+  store: Store;
+}
+
+/**
+ * Event sent when object is retrieved via GET request
+ */
+export interface EventStoreWebGet extends EventWithContext {
+  /**
+   * Emitting store
+   */
+  store: Store;
+  /**
+   * Target object
+   */
+  object: CoreModel;
+}
+
+/**
+ * Event sent when object is updated via PUT request
+ */
+export interface EventStoreWebUpdate extends EventWithContext {
+  /**
+   * Type of update
+   */
+  method: "PATCH" | "PUT";
+  /**
+   * Updates to do on the object
+   */
+  updates: any;
+  /**
+   * Target object
+   */
+  object: CoreModel;
+  /**
+   * Emitting store
+   */
+  store: Store;
+}
+
+/**
+ * Event sent when object is deleted via DELETE request
+ */
+export interface EventStoreWebDelete extends EventWithContext {
+  /**
+   * Object uuid
+   */
+  object_id: string;
+  /**
+   * Emitting store
+   */
+  store: Store;
+}
 
 /**
  * Mapper parameters
@@ -158,7 +397,7 @@ export class StoreParameters extends ServiceParameters {
  *   }
  * @category CoreServices
  */
-abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParameters>
+abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters = StoreParameters>
   extends Service<K>
   implements ConfigurationProvider {
   _reverseMap: any[] = [];
@@ -388,11 +627,11 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
     return false;
   }
 
-  async _incrementAttribute(uid, prop, value, updateDate: Date): Promise<any> {
+  async _incrementAttribute(uid: string, prop: string, value: number, updateDate: Date): Promise<any> {
     throw Error("Virtual abstract class - concrete only for MixIn usage");
   }
 
-  async incrementAttribute(uid, prop, value) {
+  async incrementAttribute(uid: string, prop: string, value: number) {
     // If value === 0 no need to update anything
     if (value === 0) {
       return Promise.resolve();
@@ -400,7 +639,7 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
     let updateDate = new Date();
     await this._incrementAttribute(uid, prop, value, updateDate);
     await this._handleMapFromPartial(uid, updateDate, prop);
-    return this.emitSync("Store.PartialUpdate", {
+    return this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
       object_id: uid,
       store: this,
       partial_update: {
@@ -413,12 +652,12 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
   }
 
   async upsertItemToCollection(
-    uid,
-    prop,
-    item,
-    index = undefined,
-    itemWriteCondition = undefined,
-    itemWriteConditionField = undefined
+    uid: string,
+    prop: string,
+    item: any,
+    index: number = undefined,
+    itemWriteCondition: any = undefined,
+    itemWriteConditionField: string = undefined
   ) {
     if (itemWriteConditionField === undefined) {
       itemWriteConditionField = this._uuidField;
@@ -427,7 +666,7 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
     await this._upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate);
 
     await this._handleMapFromPartial(uid, updateDate);
-    await this.emitSync("Store.PartialUpdate", {
+    await this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
       object_id: uid,
       store: this,
       partial_update: {
@@ -454,18 +693,24 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
   }
 
   async _upsertItemToCollection(
-    uid,
-    prop,
-    item,
-    index,
-    itemWriteCondition,
-    itemWriteConditionField,
+    uid: string,
+    prop: string,
+    item: any,
+    index: number,
+    itemWriteCondition: any,
+    itemWriteConditionField: string,
     updateDate: Date
   ): Promise<any> {
     throw Error("Virtual abstract class - concrete only for MixIn usage");
   }
 
-  async deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField) {
+  async deleteItemFromCollection(
+    uid: string,
+    prop: string,
+    index: number,
+    itemWriteCondition: any,
+    itemWriteConditionField: string
+  ) {
     if (index === undefined || prop === undefined) {
       throw Error("Invalid Argument");
     }
@@ -475,12 +720,11 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
     let updateDate = new Date();
     await this._deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate);
     await this._handleMapFromPartial(uid, updateDate);
-    await this.emitSync("Store.PartialUpdate", {
+    await this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
       object_id: uid,
       store: this,
       partial_update: {
         deleteItem: {
-          value: index,
           property: prop,
           index: index
         }
@@ -489,11 +733,11 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
   }
 
   async _deleteItemFromCollection(
-    uid,
-    prop,
-    index,
-    itemWriteCondition,
-    itemWriteConditionField,
+    uid: string,
+    prop: string,
+    index: number,
+    itemWriteCondition: any,
+    itemWriteConditionField: string,
     updateDate: Date
   ): Promise<any> {
     throw Error("Virtual abstract class - concrete only for MixIn usage");
@@ -565,7 +809,7 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
         object[this._uuidField] = this.generateUid();
       }
     }
-    await this.emitSync("Store.Save", {
+    await this.emitSync("Store.Save", <EventStoreSave>{
       object: object,
       store: this
     });
@@ -573,7 +817,7 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
     await object._onSave();
     let res = await this._save(object);
     object = this.initModel(res);
-    await this.emitSync("Store.Saved", {
+    await this.emitSync("Store.Saved", <EventStoreSaved>{
       object: object,
       store: this
     });
@@ -615,7 +859,7 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
         }
       }
     }
-    let partialEvent = partial ? "Partial" : "";
+    let partialEvent = partial ? "Patch" : "";
     if (Object.keys(object).length === 0) {
       return {};
     }
@@ -628,7 +872,7 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
     if (this.parameters.index && loaded[this._uuidField] !== "index" && loaded[this._uuidField]) {
       await this.handleIndex(loaded, object);
     }
-    await this.emitSync(`Store.${partialEvent}Update`, {
+    await this.emitSync(`Store.${partialEvent}Update`, <EventStoreUpdate | EventStorePatchUpdate>{
       object: loaded,
       store: this,
       update: object
@@ -653,7 +897,7 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
       loaded[i] = object[i];
     }
     saved = this.initModel(loaded);
-    await this.emitSync(`Store.${partialEvent}Updated`, {
+    await this.emitSync(`Store.${partialEvent}Updated`, <EventStoreUpdated | EventStorePatchUpdated>{
       object: saved,
       store: this
     });
@@ -844,7 +1088,7 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
     }
   }
 
-  abstract _removeAttribute(uuid: string, attribute: string) : Promise<void>;
+  abstract _removeAttribute(uuid: string, attribute: string): Promise<void>;
 
   async removeAttribute(uuid: string, attribute: string) {
     return this._removeAttribute(uuid, attribute);
@@ -945,7 +1189,7 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
     if (to_delete === undefined) {
       throw 404;
     }
-    await this.emitSync("Store.Delete", {
+    await this.emitSync("Store.Delete", <EventStoreDelete>{
       object: to_delete,
       store: this
     });
@@ -980,7 +1224,7 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
     } else {
       await this._delete(uid);
     }
-    await this.emitSync("Store.Deleted", {
+    await this.emitSync("Store.Deleted", <EventStoreDeleted>{
       object: to_delete,
       store: this
     });
@@ -1061,7 +1305,7 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
     }
     object = this.initModel(object);
     object.setContext(ctx);
-    await this.emitSync("Store.Get", {
+    await this.emitSync("Store.Get", <EventStoreGet>{
       object: object,
       store: this
     });
@@ -1070,14 +1314,14 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
   }
 
   async find(request: any = undefined, offset: number = 0, limit: number = undefined): Promise<any> {
-    await this.emitSync("Store.Find", {
+    await this.emitSync("Store.Find", <EventStoreFind>{
       request: request,
       store: this,
       offset: offset,
       limit: limit
     });
-    let result = this._find(request, offset, limit);
-    await this.emitSync("Store.Found", {
+    let result = await this._find(request, offset, limit);
+    await this.emitSync("Store.Found", <EventStoreFound>{
       request: request,
       store: this,
       offset: offset,
@@ -1087,7 +1331,7 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
     return result;
   }
 
-  async _find(request, offset, limit) {
+  async _find(request, offset, limit): Promise<CoreModel[]> {
     throw Error("Virtual abstract class - concrete only for MixIn usage");
   }
 
@@ -1111,7 +1355,7 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
     }
     await this.save(object, ctx);
     ctx.write(object);
-    await this.emitSync("Store.WebCreate", {
+    await this.emitSync("Store.WebCreate", <EventStoreWebCreate>{
       context: ctx,
       values: body,
       object: object,
@@ -1121,7 +1365,6 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
 
   async httpAction(ctx: Context) {
     let action = ctx.getHttpContext().getUrl().split("/").pop();
-    let body = ctx.getRequestBody();
     let uuid = ctx.parameter("uuid");
     if (!uuid) {
       throw 400;
@@ -1131,44 +1374,42 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
       throw 404;
     }
     await object.canAct(ctx, action);
-    await this.emitSync("Store.Action", {
+    await this.emitSync("Store.Action", <EventStoreAction>{
       action: action,
       object: object,
       store: this,
-      body,
-      params: ctx.getRequestParameters()
+      context: ctx
     });
     let res = await object["_" + action](ctx);
     if (res) {
       ctx.write(res);
     }
-    await this.emitSync("Store.Actioned", {
+    await this.emitSync("Store.Actioned", <EventStoreActioned>{
       action: action,
       object: object,
       store: this,
-      body,
-      params: ctx.getRequestParameters()
+      context: ctx,
+      result: res
     });
   }
 
   async httpGlobalAction(ctx: Context) {
     let body = ctx.getRequestBody();
     let action = ctx.getHttpContext().getUrl().split("/").pop();
-    await this.emitSync("Store.Action", {
+    await this.emitSync("Store.Action", <EventStoreAction>{
       action: action,
       store: this,
-      body,
-      params: ctx.getParameters()
+      context: ctx
     });
     let res = await this._model["_" + action](ctx);
     if (res) {
       ctx.write(res);
     }
-    await this.emitSync("Store.Actioned", {
+    await this.emitSync("Store.Actioned", <EventStoreActioned>{
       action: action,
       store: this,
-      body,
-      params: ctx.getParameters()
+      context: ctx,
+      result: res
     });
   }
 
@@ -1209,11 +1450,12 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
       object = await this.update(updateObject);
     }
     ctx.write(object);
-    await this.emitSync("Store.WebUpdate", {
+    await this.emitSync("Store.WebUpdate", <EventStoreWebUpdate>{
       context: ctx,
       updates: body,
       object: object,
-      store: this
+      store: this,
+      method: ctx.getHttpContext().getMethod()
     });
   }
 
@@ -1231,7 +1473,7 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
       }
       await object.canAct(ctx, "get");
       ctx.write(object);
-      await this.emitSync("Store.WebGet", {
+      await this.emitSync("Store.WebGet", <EventStoreWebGet>{
         context: ctx,
         object: object,
         store: this
@@ -1261,7 +1503,7 @@ abstract class Store<T extends CoreModel, K extends StoreParameters = StoreParam
       // Have trouble to handle the Content-Length on API Gateway so returning an empty object for now
       ctx.write({});
       await this.delete(uuid);
-      await this.emitSync("Store.WebDelete", {
+      await this.emitSync("Store.WebDelete", <EventStoreWebDelete>{
         context: ctx,
         object_id: uuid,
         store: this

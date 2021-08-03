@@ -1,8 +1,21 @@
-import { Context, RequestFilter } from "../";
+import { Context, EventWithContext, RequestFilter } from "../";
 import { Service, ServiceParameters } from "./service";
 import { Authentication } from "./authentication";
 
 import { v4 as uuidv4 } from "uuid";
+
+export interface EventOAuthToken extends EventWithContext {
+  /**
+   * Provider from
+   */
+  provider: string;
+  /**
+   * Profile comming from the provider
+   */
+  [key: string]: any;
+}
+
+export interface EventOAuthCallback extends EventOAuthToken {}
 
 /**
  * OAuth return definition
@@ -233,7 +246,7 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
   private async _token(context: Context) {
     const res = await this.handleToken(context);
     await this.handleReturn(context, res.identId, res.profile);
-    await this.emitSync("OAuth.Token", {
+    await this.emitSync("OAuth.Token", <EventOAuthToken>{
       ...res,
       provider: this.getName(),
       context
@@ -249,7 +262,7 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
   private async _callback(ctx: Context) {
     const res = await this.handleCallback(ctx);
     await this.handleReturn(ctx, res.identId, res.profile);
-    await this.emitSync("OAuth.Callback", {
+    await this.emitSync("OAuth.Callback", <EventOAuthCallback>{
       ...res,
       provider: this.getName(),
       context: ctx

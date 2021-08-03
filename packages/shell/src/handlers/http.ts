@@ -1,4 +1,4 @@
-import { ClientInfo, Core as Webda, HttpContext, WebdaError } from "@webda/core";
+import { ClientInfo, Core as Webda, HttpContext, WebdaError, EventWebdaRequest, EventWebdaResult } from "@webda/core";
 import * as http from "http";
 const path = require("path");
 
@@ -130,17 +130,17 @@ export class WebdaServer extends Webda {
         res.end();
         return;
       }
-      await this.emitSync("Webda.Request", ctx, vhost, method, req.url, ctx.getCurrentUserId(), req.body, req);
+      await this.emitSync("Webda.Request", <EventWebdaRequest>{ context: ctx });
 
       res.setHeader("Access-Control-Allow-Credentials", "true");
       try {
         await ctx.execute();
-        await this.emitSync("Webda.Result", ctx);
+        await this.emitSync("Webda.Result", <EventWebdaResult>{ context: ctx });
         if (!ctx._ended) {
           await ctx.end();
         }
       } catch (err) {
-        await this.emitSync("Webda.Result", ctx);
+        await this.emitSync("Webda.Result", <EventWebdaResult>{ context: ctx });
         if (typeof err === "number") {
           ctx.statusCode = err;
           this.flushHeaders(ctx);

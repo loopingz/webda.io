@@ -1,6 +1,16 @@
 "use strict";
 // Load the AWS SDK for Node.js
-import { Binary, BinaryMap, BinaryParameters, Context, CoreModel, ModdaDefinition, Store, WebdaError } from "@webda/core";
+import {
+  Binary,
+  BinaryMap,
+  BinaryParameters,
+  Context,
+  CoreModel,
+  ModdaDefinition,
+  Store,
+  EventBinaryGet,
+  WebdaError
+} from "@webda/core";
 import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
@@ -161,7 +171,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     let info = obj[property][index];
     var params: any = {};
     params.Expires = expire; // A get should not take more than 30s
-    await this.emitSync("Binary.Get", {
+    await this.emitSync("Binary.Get", <EventBinaryGet>{
       object: info,
       service: this,
       context: context
@@ -231,8 +241,14 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @inheritdoc
    */
   async _cleanHash(hash: string): Promise<void> {
-    let files = (await this._s3.listObjectsV2({Bucket: this.parameters.bucket, Prefix: this._getKey(hash, "")}).promise()).Contents;
-    await bluebird.all(files, (file) => this._s3.deleteObject({Bucket: this.parameters.bucket, Key: file.Key}).promise(), {concurrency: 5});
+    let files = (
+      await this._s3.listObjectsV2({ Bucket: this.parameters.bucket, Prefix: this._getKey(hash, "") }).promise()
+    ).Contents;
+    await bluebird.all(
+      files,
+      file => this._s3.deleteObject({ Bucket: this.parameters.bucket, Key: file.Key }).promise(),
+      { concurrency: 5 }
+    );
   }
 
   /**
@@ -271,23 +287,23 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   async _exists(hash: string): Promise<boolean> {
     try {
-      await this._s3.headObject({Bucket: this.parameters.bucket, Key: this._getKey(hash)}).promise();
+      await this._s3.headObject({ Bucket: this.parameters.bucket, Key: this._getKey(hash) }).promise();
       return true;
     } catch (err) {
       if (err !== "NotFound") {
         throw err;
       }
-    } 
+    }
     return false;
   }
 
   /**
    * Return the S3 key
-   * @param hash 
-   * @param postfix 
-   * @returns 
+   * @param hash
+   * @param postfix
+   * @returns
    */
-  _getKey(hash: string, postfix: string = undefined) : string {
+  _getKey(hash: string, postfix: string = undefined): string {
     if (postfix === undefined) {
       return hash + "/data";
     }
@@ -309,8 +325,8 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
 
   /**
    * Get a head object
-   * @param hash 
-   * @returns 
+   * @param hash
+   * @returns
    */
   async _getS3(hash: string) {
     return this._s3
@@ -329,10 +345,10 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
 
   /**
    * Get an object from s3 bucket
-   * 
+   *
    * @param key to get
    * @param bucket to retrieve from or default bucket
-   * @returns 
+   * @returns
    */
   getObject(key: string, bucket?: string) {
     bucket = bucket || this.parameters.bucket;
@@ -410,12 +426,14 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   /**
    * @inheritdoc
    */
-  async store(targetStore: Store<CoreModel>,
+  async store(
+    targetStore: Store<CoreModel>,
     object: CoreModel,
     property: string,
     file,
     metadatas: any,
-    index?: number): Promise<any> {
+    index?: number
+  ): Promise<any> {
     this._checkMap(targetStore.getName(), property);
     this._prepareInput(file);
     file = { ...file, ...this._getHashes(file.buffer) };

@@ -8,12 +8,26 @@ import { Store } from "../stores/store";
 import { Context } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
+export interface EventBinary {
+  object: BinaryMap;
+  service: Binary;
+}
+export interface EventBinaryGet extends EventBinary {}
+export interface EventBinaryUploadSuccess extends EventBinary {
+  target: CoreModel;
+}
+export interface EventBinaryDelete extends EventBinary {}
+export interface EventBinaryCreate extends EventBinaryUploadSuccess {}
+export interface EventBinaryUpdate extends EventBinaryUploadSuccess {
+  old: BinaryMap;
+}
+
 /**
  * This is a map used to retrieve binary
  *
  * @class BinaryMap
  */
-class BinaryMap {
+export class BinaryMap {
   __ctx: Context;
   __store: Binary;
   /**
@@ -29,9 +43,9 @@ class BinaryMap {
   }
 
   /**
-   * Get the CoreModel 
-   * 
-   * @returns 
+   * Get the CoreModel
+   *
+   * @returns
    */
   get() {
     return this.__store.get(this);
@@ -39,11 +53,11 @@ class BinaryMap {
 
   /**
    * Download the binary to a path
-   * 
+   *
    * Shortcut to call {@link Binary.downloadTo} with current object
-   * 
-   * @param filename 
-   * @returns 
+   *
+   * @param filename
+   * @returns
    */
   downloadTo(filename: string) {
     return this.__store.downloadTo(this, filename);
@@ -51,7 +65,7 @@ class BinaryMap {
 
   /**
    * Set the http context
-   * @param ctx 
+   * @param ctx
    */
   setContext(ctx: Context) {
     this.__ctx = ctx;
@@ -138,7 +152,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    *
    * If you have a User object define like this : User = {'name': 'Remi', 'uuid': 'Loopingz'}
    * You will call the `store(userStore, 'Loopingz', 'images', filedata, {'type':'profile'})`
-   * After a successful call the object will look like 
+   * After a successful call the object will look like
    * ```
    * User = {
    *  'name': 'Remi',
@@ -196,7 +210,12 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    * @param {Number} index The index of the file to change in the property
    * @emits 'binaryDelete'
    */
-  abstract delete(targetStore: Store<CoreModel>, object: CoreModel, property: string, index: number): Promise<CoreModel>;
+  abstract delete(
+    targetStore: Store<CoreModel>,
+    object: CoreModel,
+    property: string,
+    index: number
+  ): Promise<CoreModel>;
 
   /**
    * Get a binary
@@ -204,8 +223,8 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    * @param {Object} info The reference stored in your target object
    * @emits 'binaryGet'
    */
-  async get(info) {
-    await this.emitSync("Binary.Get", {
+  async get(info: BinaryMap) {
+    await this.emitSync("Binary.Get", <EventBinaryGet>{
       object: info,
       service: this
     });
@@ -306,6 +325,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     if (file.path !== undefined) {
       file.buffer = fs.readFileSync(file.path);
       file.originalname = path.basename(file.path);
+      file.name = file.name || file.originalname;
       file.size = fs.statSync(file.path).size;
       file.mimetype = mime.lookup(file.path) || "application/octet-stream";
     }
@@ -333,19 +353,23 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     return false;
   }
 
-  async updateSuccess(targetStore, object, property, index: number, file, metadatas) {
-    var fileObj = {};
-    fileObj["metadatas"] = metadatas;
-    fileObj["name"] = file.originalname;
-    fileObj["mimetype"] = file.mimetype;
-    fileObj["size"] = file.size;
-    fileObj["hash"] = file.hash;
-    fileObj["challenge"] = file.challenge;
+  async updateSuccess(
+    targetStore: Store,
+    object: CoreModel,
+    property: string,
+    index: number,
+    file: any,
+    metadatas: any
+  ) {
+    var fileObj: BinaryMap = {
+      ...file,
+      metadatas
+    };
     var object_uid = object[targetStore.getUuidField()];
     var info;
     var update;
     var promise;
-    await this.emitSync("Binary.UploadSuccess", {
+    await this.emitSync("Binary.UploadSuccess", <EventBinaryUploadSuccess>{
       object: fileObj,
       service: this,
       target: object
@@ -369,14 +393,14 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
       if (info.hash !== file.hash) {
         await this.cascadeDelete(info, object_uid);
       }
-      await this.emitSync("Binary.Update", {
+      await this.emitSync("Binary.Update", <EventBinaryUpdate>{
         object: fileObj,
         old: info,
         service: this,
         target: object
       });
     } else {
-      await this.emitSync("Binary.Create", {
+      await this.emitSync("Binary.Create", <EventBinaryCreate>{
         object: fileObj,
         service: this,
         target: object
@@ -387,20 +411,28 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
 
   /**
    * Cascade delete the object
-   * 
+   *
    * @param info of the map
    * @param uuid of the object
    */
   abstract cascadeDelete(info: BinaryMap, uuid: string): Promise<void>;
 
-  deleteSuccess(targetStore, object, property, index) {
-    var info = object[property][index];
+  /**
+   *
+   * @param targetStore
+   * @param object
+   * @param property
+   * @param index
+   * @returns
+   */
+  deleteSuccess(targetStore: Store, object: CoreModel, property: string, index: number) {
+    var info: BinaryMap = object[property][index];
     var update;
     return targetStore
       .deleteItemFromCollection(object[targetStore.getUuidField()], property, index, info.hash, "hash")
       .then(updated => {
         update = updated;
-        return this.emitSync("Binary.Delete", {
+        return this.emitSync("Binary.Delete", <EventBinaryDelete>{
           object: info,
           service: this
         });
@@ -627,4 +659,4 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
   }
 }
 
-export { Binary, BinaryMap };
+export { Binary };

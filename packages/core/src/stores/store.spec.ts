@@ -315,6 +315,8 @@ abstract class StoreTest extends WebdaTest {
       "Store.Deleted",
       "Store.Update",
       "Store.Updated",
+      "Store.PatchUpdate",
+      "Store.PatchUpdated",
       "Store.PartialUpdate",
       "Store.PartialUpdated",
       "Store.Find",

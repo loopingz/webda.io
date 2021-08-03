@@ -1,6 +1,6 @@
 # Store
 
-The store services allow you to store object in a NoSQL database it handles for you mapping between objects, have a security policy and check the object with JSON Schema
+The store services allow you to store object in a NoSQL database it handles for you mapping between objects. Objects are mapped to a model to allow security policy and schema verification.
 
 We have currently File, DynamoDB and MongoDB storage
 
@@ -105,22 +105,6 @@ Store.Updated: After updating the object
 Store.Delete: Before deleting the object
 Store.Deleted: After deleting the object
 Store.Get: When getting the object
-
-## Security Policy
-
-The security policy will be called on any REST API called from the Store, the internal method to access the objects are not secured with it yet, we might later on add this feature.
-The security policy could also be implemented by a Service that listen on Store event this way you can enforce the security even internally
-
-```javascript
-{
-  ...
-  "security": "OwnerPolicy" // This is the default SecurityPolicy
-  ...
-}
-```
-
-If not specified the Store will pick the Owner policy as default.
-Policies are implicit service, so you can get them with a getService("OwnerPolicy"), but don't appear by default in the configuration file. That also means you can override a Policy if you want or create your own to implement your business model
 
 ### Owner Policy
 

@@ -33,7 +33,8 @@ import {
   Service,
   SessionCookie,
   User,
-  WebdaError
+  WebdaError,
+  VersionService
 } from "./index";
 import { Deployment } from "./models/deployment";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
@@ -43,6 +44,7 @@ import * as semver from "semver";
 import * as dateFormat from "dateformat";
 import { JSONSchema6 } from "json-schema";
 import { FileUtils, JSONUtils } from "./utils/serializers";
+import { EchoService } from "./services/echo";
 
 /**
  * Return the gather information from the repository
@@ -222,6 +224,8 @@ export class Application {
     "webda/mailer": Mailer,
     "webda/asyncevents": EventService,
     "webda/resourceservice": ResourceService,
+    "webda/echoservice": EchoService,
+    "webda/versionservice": VersionService,
     "webda/memoryqueue": MemoryQueue,
     "webda/configurationservice": ConfigurationService,
     "webda/fileconfigurationservice": FileConfigurationService,

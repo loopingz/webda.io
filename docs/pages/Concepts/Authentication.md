@@ -1,8 +1,16 @@
 # Authentication
 
-The Authentication service highly depends on [PassportJS](http://passportjs.org/) this is why its file is passport.js
+The Authentication service allows you to define User and Ident within your application.
+If needed, you can simply connect your application with an {@link OAuthService} implementation like Google Authentication, and use their uuid.
 
-It requires two stores : Idents and Users.
+```mermaid
+graph TD:
+  
+```
+
+A User can have several Idents as you can identify with email, mobile, external services like Google or Facebook or any other trusted services.
+
+To store the Users and Idents it requires two stores.
 
 The Idents will contains each mode of Authentication enabled by the user, you will find in the Ident also the profile returned by the OAuth provider if returned.
 
@@ -56,20 +64,4 @@ GET /auth/callback
 
 ## OAuth
 
-You can setup differents types of OAuth, we integrate for now only Facebook, Amazon, Twitter, GitHub, Google.
-
-```javascript
-{
-  ...
-  providers: {
-    facebook: {
-      clientID: "facebookClientId",
-      clientSecret: "facebookSecret",
-      scope: ["email","public_profile"]
-    }
-  }
-  ...
-}
-```
-
-This is the same for the other providers, except **Twitter** where the fields are OAuth1 : consumerKey and consumerSecret
+You can setup differents types of OAuth, through other modules like `google-auth`

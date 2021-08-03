@@ -24,6 +24,7 @@ export * from "./services/authentication";
 export * from "./services/binary";
 export * from "./services/configuration";
 export * from "./services/cron";
+export * from "./services/echo";
 export * from "./services/fileconfiguration";
 export * from "./services/kubernetesconfiguration";
 export * from "./services/oauth";
@@ -32,6 +33,7 @@ export * from "./services/filebinary";
 export * from "./services/mailer";
 export * from "./services/resource";
 export * from "./services/service";
+export * from "./services/version";
 // Stores
 export * from "./stores/file";
 export * from "./stores/memory";

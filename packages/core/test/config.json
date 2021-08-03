@@ -26,6 +26,9 @@
       "type": "Webda/ResourceService",
       "folder": "test"
     },
+    "VersionService": {
+      "type": "Webda/VersionService"
+    },
     "ModelsResource": {
       "type": "Webda/ResourceService",
       "url": "templates"

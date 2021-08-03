@@ -17,7 +17,10 @@ class RouterTest extends WebdaTest {
       call.push({ level, args });
     };
     this.webda.addRoute("/plop", { methods: ["GET"], executor: "DefinedMailer" });
-    assert.deepStrictEqual(call, [{ level: "WARN", args: ["GET /plop overlap with another defined route"] }]);
+    assert.deepStrictEqual(call, [
+      { level: "TRACE", args: ["Add route /plop"] },
+      { level: "WARN", args: ["GET /plop overlap with another defined route"] }
+    ]);
   }
 
   @test

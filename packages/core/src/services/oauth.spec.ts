@@ -89,13 +89,13 @@ class OAuthServiceTest extends WebdaTest {
     await this.getExecutor(ctx, "webda.io", "GET", "/bouzouf/scope").execute(ctx);
     assert.deepStrictEqual(JSON.parse(ctx.getResponseBody()), ["email", "image"]);
     let event = 0;
-    this.service.addListener("OAuthToken", () => {
+    this.service.addListener("OAuth.Token", () => {
       event++;
     });
     await this.getExecutor(ctx, "webda.io", "POST", "/bouzouf/token").execute(ctx);
     assert.strictEqual(event, 1);
     this.service.removeAllListeners();
-    this.service.addListener("OAuthCallback", () => {
+    this.service.addListener("OAuth.Callback", () => {
       event++;
     });
     ctx.getSession().redirect = "bouzouf.com";

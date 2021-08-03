@@ -53,16 +53,9 @@ DELETE /binary/users/user_02/s3images/0/1928434324...
 
 To configure just add the parameter bucket
 
+{@link S3Binary}
+
 ## FileBinary
 
 To configure just add the parameter folder
-
-## Polymer
-
-The behavior implementation can be found there : 
-
-Two different UI component exist also :
-
-  * A simple fab button upload : 
-  * IA paper-input with Browse button : 
 

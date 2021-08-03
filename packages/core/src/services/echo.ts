@@ -1,7 +1,7 @@
-import { Context, ModdaDefinition, Service } from "../index";
-import { ServiceParameters } from "./service";
+import { Context, ModdaDefinition } from "../index";
+import { ServiceParameters, Service } from "./service";
 
-class EchoServiceParameter extends ServiceParameters {
+export class EchoServiceParameters extends ServiceParameters {
   /**
    * Mime of the result
    */
@@ -18,9 +18,10 @@ class EchoServiceParameter extends ServiceParameters {
 
 /**
  * Return a static string with a static route
- * 
+ *
  * Useful for version display
- * 
+ * {@VersionService} is a shortcut for this
+ *
  * ```javascript
  * "Version": {
  *  "type": "Webda/EchoService",
@@ -31,7 +32,7 @@ class EchoServiceParameter extends ServiceParameters {
  * ```
  *
  */
-class EchoService extends Service<EchoServiceParameter> {
+export class EchoService extends Service<EchoServiceParameters> {
   /**
    * Load parameters
    *
@@ -39,7 +40,7 @@ class EchoService extends Service<EchoServiceParameter> {
    * @ignore
    */
   loadParameters(params: any): ServiceParameters {
-    return new EchoServiceParameter(params);
+    return new EchoServiceParameters(params);
   }
 
   /** @ignore */
@@ -66,7 +67,7 @@ class EchoService extends Service<EchoServiceParameter> {
   /**
    * @inheritdoc
    */
-   static getModda(): ModdaDefinition {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/EchoService",
       label: "Echo Service",
@@ -74,5 +75,3 @@ class EchoService extends Service<EchoServiceParameter> {
     };
   }
 }
-
-export { EchoService };

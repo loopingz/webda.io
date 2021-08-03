@@ -31,10 +31,10 @@ class AuthenticationTest extends WebdaTest {
     await this.identStore.__clean();
     this.authentication = <Authentication>this.getService("Authentication");
     this.mailer = <DebugMailer>this.getService("DefinedMailer");
-    this.authentication.on("Login", () => {
+    this.authentication.on("Authentication.Login", () => {
       this.events++;
     });
-    this.authentication.on("Register", evt => {
+    this.authentication.on("Authentication.Register", evt => {
       this.events++;
       evt.user.test = "TESTOR";
     });

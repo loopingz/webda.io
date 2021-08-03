@@ -55,6 +55,7 @@ export class Router {
    * @param {Object} info the type of executor
    */
   addRoute(url: string, info: RouteInfo): void {
+    this.webda.log("TRACE", `Add route ${url}`);
     if (this.routes[url]) {
       // If route is already added do not do anything
       if (this.routes[url].includes(info)) {

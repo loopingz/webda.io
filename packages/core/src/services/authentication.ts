@@ -320,9 +320,9 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     if (user === undefined) {
       throw 404;
     }
-    await this.emitSync("GetMe", {
-      ctx: ctx,
-      user: user
+    await this.emitSync("Authentication.GetMe", {
+      context: ctx,
+      user
     });
     ctx.write(user);
   }
@@ -423,10 +423,10 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     }
     user.email = datas.email;
     user.locale = ctx.getLocale();
-    await this.emitSync("Register", {
+    await this.emitSync("Authentication.Register", {
       user: user,
       datas: datas,
-      ctx: ctx
+      context: ctx
     });
     return user;
   }
@@ -630,8 +630,8 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
    * Logout user
    */
   async logout(ctx: Context) {
-    await this.emitSync("Logout", {
-      ctx: ctx
+    await this.emitSync("Authentication.Logout", {
+      context: ctx
     });
     ctx.getSession().destroy();
   }
@@ -656,9 +656,9 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       event.identId = ident.uuid;
       event.ident = ident;
     }
-    event.ctx = ctx;
+    event.context = ctx;
     ctx.getSession().login(event.userId, event.identId);
-    return this.emitSync("Login", event);
+    return this.emitSync("Authentication.Login", event);
   }
 
   getMailMan(): Mailer {

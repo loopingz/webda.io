@@ -233,9 +233,10 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
   private async _token(context: Context) {
     const res = await this.handleToken(context);
     await this.handleReturn(context, res.identId, res.profile);
-    await this.emitSync("OAuthToken", {
+    await this.emitSync("OAuth.Token", {
       ...res,
-      provider: this.getName()
+      provider: this.getName(),
+      context
     });
   }
 
@@ -248,9 +249,10 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
   private async _callback(ctx: Context) {
     const res = await this.handleCallback(ctx);
     await this.handleReturn(ctx, res.identId, res.profile);
-    await this.emitSync("OAuthCallback", {
+    await this.emitSync("OAuth.Callback", {
       ...res,
-      provider: this.getName()
+      provider: this.getName(),
+      context: ctx
     });
   }
 

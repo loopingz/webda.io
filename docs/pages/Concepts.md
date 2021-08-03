@@ -32,17 +32,28 @@ If the Service is not designed to be extend of reused the `@Route` annotation is
 If you plan to reuse your component, it might be a good idea to make its routes configurable to avoid any conflicts.
 
 ```js
-class MyService extends Service {
+class MyServiceParameter extends ServiceParameter {
+    constructor(params) {
+        super(params);
+        // Define your default params here
+    }
+}
+
+class MyService<T extends MyServiceParameter> extends Service<T> {
     resolve() {
         super.resolve();
         this._addRoute(...)
+    }
+
+    loadParameters(params: any) {
+        return new MyServiceParameter(params);
     }
 }
 ```
 
 ### Retrieve parameters
 
-...
+Within a service, you retrieve its parameter by calling the `this.parameter` property.
 
 ## Deployment
 
@@ -52,7 +63,7 @@ A `Deployer` will create the Docker image and push it, or create the `.zip` to s
 
 ## Application
 
-This is your whole application including the `package.json` and the `webda.config.json`, so it is a group of `Services` and `Modules` defining your global application
+This is your whole application including the `package.json` and the `webda.config.json`, so it is a group of `Services` and `Modules` defining your global application.
 
 ## Modules
 

@@ -27,23 +27,27 @@ export class DeploymentManager {
   output: WorkerOutput;
   logger: Logger;
 
+  static addBuiltinDeployers(app: Application) {
+    app.addDeployer("WebdaDeployer/Packager", Packager);
+    app.addDeployer("WebdaDeployer/ChainDeployer", ChainDeployer);
+    /**
+     * `WebdaDeployer/Docker` type will be replaced by `WebdaDeployer/Container`
+     *
+     * @todo Remove in 2.1
+     * @deprecated for 2.1 version
+     */
+    app.addDeployer("WebdaDeployer/Docker", Container);
+    app.addDeployer("WebdaDeployer/Container", Container);
+    app.addDeployer("WebdaDeployer/Kubernetes", Kubernetes);
+  }
+
   constructor(output: WorkerOutput, folder: string, deploymentName: string, streams = undefined) {
     this.application = new Application(folder, output);
     this.application.compile();
     this.application.setCurrentDeployment(deploymentName);
     this.application.loadModules();
     // webda.moodule.json is not working within webda-shell
-    this.application.addDeployer("WebdaDeployer/Packager", Packager);
-    this.application.addDeployer("WebdaDeployer/ChainDeployer", ChainDeployer);
-    /**
-     * `WebdaDeployer/Docker` type will be replaced by `WebdaDeployer/Container`
-     *
-     * @todo Remove in 1.3
-     * @deprecated for 1.3 version
-     */
-    this.application.addDeployer("WebdaDeployer/Docker", Container);
-    this.application.addDeployer("WebdaDeployer/Container", Container);
-    this.application.addDeployer("WebdaDeployer/Kubernetes", Kubernetes);
+    DeploymentManager.addBuiltinDeployers(this.application);
     let deployment = this.application.getDeployment(deploymentName);
     this.webda = new Core(this.application);
     this.deployersDefinition = <any>this.application.getDeployers();

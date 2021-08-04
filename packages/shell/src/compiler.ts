@@ -127,8 +127,11 @@ export class TypescriptSchemaResolver extends DefaultSchemaResolver {
     }
     let bases = symbol.getBaseTypes();
     for (let i in bases) {
-      // @ts-ignore
-      if (bases[i].getSymbol().valueDeclaration.name.escapedText === name || this.extends(bases[i], name)) {
+      if (
+        // @ts-ignore
+        (bases[i].getSymbol().valueDeclaration && bases[i].getSymbol().valueDeclaration.name.escapedText === name) ||
+        this.extends(bases[i], name)
+      ) {
         return true;
       }
     }

@@ -14,10 +14,10 @@ export interface DeploymentUnit {
  * You can override the webda.config.json parameters and services parameters by specifying specific
  */
 export default interface Deployment {
+  $schema?: string;
   parameters: any;
   resources: any;
   services: any;
-  uuid: string;
   units: DeploymentUnit[];
 }
 

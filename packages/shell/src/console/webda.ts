@@ -1,5 +1,5 @@
 "use strict";
-import { Application, FileUtils, Logger } from "@webda/core";
+import { Application, FileUtils, JSONUtils, Logger } from "@webda/core";
 import { ChildProcess, spawn } from "child_process";
 import * as colors from "colors";
 import * as crypto from "crypto";
@@ -13,6 +13,7 @@ import { WebdaTerminal } from "./terminal";
 import * as path from "path";
 import * as semver from "semver";
 import { TypescriptSchemaResolver } from "../compiler";
+import { Definition } from "typescript-json-schema";
 
 export type WebdaCommand = (argv: any[]) => void;
 export interface WebdaShellExtension {
@@ -598,12 +599,15 @@ export default class WebdaConsole {
    * @param filename to save for
    * @param full to keep all required
    */
-  static generateConfigurationSchema(filename: string = ".webda-config-schema.json", full: boolean = false) {
+  static generateConfigurationSchema(
+    filename: string = ".webda-config-schema.json",
+    deploymentFilename: string = ".webda-deployment-schema.json",
+    full: boolean = false
+  ) {
     if (this.app.isTypescript()) {
       let resolver = new TypescriptSchemaResolver(this.app, this.logger);
       this.app.setSchemaResolver(resolver);
-      // @ts-ignore
-      let res = resolver.generator.getSchemaForSymbol("Configuration");
+      let res: Definition = resolver.generator.getSchemaForSymbol("Configuration");
       // Clean cached modules
       delete res.definitions.CachedModule;
       delete res.properties.cachedModules;
@@ -620,15 +624,14 @@ export default class WebdaConsole {
       };
       Object.keys(this.app.getServices()).forEach(serviceType => {
         const key = `ServiceType$${serviceType.replace(/\//g, "$")}`;
-        // @ts-ignore
-        res.definitions[key] = resolver.fromServiceType(serviceType);
-        if (!res.definitions[key]) {
+        const definition: Definition = (res.definitions[key] = <Definition>resolver.fromServiceType(serviceType));
+        if (!definition) {
           return;
         }
-        // @ts-ignore
-        res.definitions[key].properties.type.pattern = this.getServiceTypePattern(serviceType);
-        // @ts-ignore
-        res.properties.services.additionalProperties.oneOf.push({ $ref: `#/definitions/${key}` });
+        (<Definition>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
+        (<Definition>(<Definition>res.properties.services).additionalProperties).oneOf.push({
+          $ref: `#/definitions/${key}`
+        });
         delete res.definitions[key]["$schema"];
         // Remove mandatory depending on option
         if (!full) {
@@ -636,6 +639,77 @@ export default class WebdaConsole {
         }
       });
       FileUtils.save(res, filename);
+      // Build the deployment schema
+      // Ensure builtin deployers are there
+      DeploymentManager.addBuiltinDeployers(this.app);
+      const definitions = JSONUtils.duplicate(res.definitions);
+      res = {
+        properties: {
+          parameters: {
+            type: "object",
+            additionalProperties: true
+          },
+          resources: {
+            type: "object",
+            additionalProperties: true
+          },
+          services: {
+            type: "object",
+            additionalProperties: false,
+            properties: {}
+          },
+          units: {
+            type: "array",
+            items: { oneOf: [] }
+          }
+        },
+        definitions: res.definitions
+      };
+      const appServices = this.app.getConfiguration().services;
+
+      Object.keys(appServices).forEach(k => {
+        if (!appServices[k]) {
+          return;
+        }
+        const key = `Service$${k}`;
+        (<Definition>res.properties.services).properties[k] = {
+          type: "object",
+          oneOf: [
+            { $ref: `#/definitions/${key}` },
+            ...Object.keys(definitions)
+              .filter(k => k.startsWith("ServiceType"))
+              .map(dkey => ({ $ref: `#/definitions/${dkey}` }))
+          ]
+        };
+        const serviceType = appServices[k].type;
+        const definition: Definition = (res.definitions[key] = <Definition>resolver.fromServiceType(serviceType));
+        if (definition && definition.required) {
+          delete definition.required;
+          (<Definition>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
+        }
+      });
+      Object.keys(this.app.getDeployers()).forEach(serviceType => {
+        const key = `DeployerType$${serviceType.replace(/\//g, "$")}`;
+        const definition: Definition = (res.definitions[key] = <Definition>resolver.fromServiceType(serviceType));
+        if (!definition) {
+          return;
+        }
+        if (!definition.properties) {
+          definition.properties = {
+            type: {
+              type: "string"
+            }
+          };
+        }
+        (<Definition>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
+        (<Definition>(<Definition>res.properties.units).items).oneOf.push({ $ref: `#/definitions/${key}` });
+        delete definition["$schema"];
+        // Remove mandatory depending on option
+        if (!full) {
+          definition["required"] = ["type"];
+        }
+      });
+      FileUtils.save(res, deploymentFilename);
     }
   }
 
@@ -644,7 +718,7 @@ export default class WebdaConsole {
    */
   static async configurationSchema(argv) {
     argv._.shift();
-    this.generateConfigurationSchema(argv._.shift(), argv.full);
+    this.generateConfigurationSchema(argv._.shift(), argv._.shift(), argv.full);
   }
 
   /**
@@ -767,12 +841,11 @@ export default class WebdaConsole {
       try {
         this.app = new Application(<string>argv.appPath, output, true);
       } catch (err) {
-        output.log("ERROR", err.message);
-        return -1;
+        output.log("WARN", err.message);
       }
 
       // Update logo
-      if (this.app.getPackageWebda().logo && this.terminal) {
+      if (this.app && this.app.getPackageWebda().logo && this.terminal) {
         let logo = this.app.getPackageWebda().logo;
         this.log("TRACE", "Updating logo", logo);
         if (Array.isArray(logo)) {
@@ -811,7 +884,9 @@ export default class WebdaConsole {
       }
 
       // Load webda module
-      this.app.loadModules();
+      if (this.app) {
+        this.app.loadModules();
+      }
 
       // Launch builtin commands
       if (WebdaConsole.builtinCommands()[argv._[0]]) {

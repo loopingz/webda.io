@@ -123,14 +123,6 @@ export class Route53Service extends Service {
     if (!targetZone) {
       throw Error("Domain is not handled on AWS");
     }
-    console.log(
-      data.entries
-        .filter(r => !(r.Type === "NS" && r.Name === targetZone.Name))
-        .map(r => ({
-          Action: "UPSERT",
-          ResourceRecordSet: r
-        }))
-    );
     await r53
       .changeResourceRecordSets({
         HostedZoneId: targetZone.Id,

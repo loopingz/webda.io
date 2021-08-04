@@ -306,6 +306,7 @@ class DynamicService extends Service {
     }
     await this.commandLine("configuration-schema myschemacfg.json");
     assert.strictEqual(true, fs.existsSync(f));
+    assert.strictEqual(true, fs.existsSync(".webda-deployment-schema.json"));
   }
 
   @test

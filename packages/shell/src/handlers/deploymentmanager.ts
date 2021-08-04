@@ -74,20 +74,9 @@ export class DeploymentManager {
   }
 
   static async new(application: Application) {
-    console.log("test");
     let output = application.getWorkerOutput();
     application.loadModules();
-    application.addDeployer("WebdaDeployer/Packager", Packager);
-    application.addDeployer("WebdaDeployer/ChainDeployer", ChainDeployer);
-    /**
-     * `WebdaDeployer/Docker` type will be replaced by `WebdaDeployer/Container`
-     *
-     * @todo Remove in 1.3
-     * @deprecated for 1.3 version
-     */
-    application.addDeployer("WebdaDeployer/Docker", Container);
-    application.addDeployer("WebdaDeployer/Container", Container);
-    application.addDeployer("WebdaDeployer/Kubernetes", Kubernetes);
+    this.addBuiltinDeployers(application);
     let deployment: Deployment = {
       units: [],
       resources: {},
@@ -107,18 +96,6 @@ export class DeploymentManager {
     let deployersDefinition = <any>application.getDeployers();
     output.log("INFO", "Deployers available");
     Object.keys(deployersDefinition).forEach(t => output.log("INFO", "Deployer:", t));
-    /*
-    let type = await output.requestInput(
-      "Adding a new deployer",
-      WorkerInputType.LIST,
-      Object.keys(deployersDefinition)
-    );
-    let addMore: string;
-    do {
-
-      addMore = await output.requestInput("Add another deployer?", WorkerInputType.CONFIRMATION);
-    } while (addMore === "YES");
-    */
   }
 
   /**

@@ -359,9 +359,6 @@ class Context extends EventEmitter {
   }
   /**
    * For compatibility reason
-   *
-   * @todo Implement the serialization
-   * Not yet handle by the Webda framework
    */
   cookie(param, value, options = undefined) {
     /** @ignore */

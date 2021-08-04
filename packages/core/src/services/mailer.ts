@@ -24,7 +24,6 @@ class MailerParameters extends ServiceParameters {
    * Template engine to usee
    *
    * @default "mustache"
-   * @todo Create a template service
    */
   templatesEngine?: string;
   /**

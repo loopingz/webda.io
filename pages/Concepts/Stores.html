@@ -121,31 +121,7 @@
 						<a href="" class="tsd-kind-icon">Modules</a>
 					</li>
 					<li class="  root">
-						<a href="../../modules.html" class="tsd-kind-icon">Modules</a>
-					</li>
-					<li class=" tsd-kind-module root">
-						<a href="../../modules/_webda_aws.html" class="tsd-kind-icon">@webda/aws</a>
-					</li>
-					<li class=" tsd-kind-module root">
-						<a href="../../modules/_webda_core.html" class="tsd-kind-icon">@webda/core</a>
-					</li>
-					<li class=" tsd-kind-module root">
-						<a href="../../modules/_webda_elasticsearch.html" class="tsd-kind-icon">@webda/elasticsearch</a>
-					</li>
-					<li class=" tsd-kind-module root">
-						<a href="../../modules/_webda_google_auth.html" class="tsd-kind-icon">@webda/google-<wbr>auth</a>
-					</li>
-					<li class=" tsd-kind-module root">
-						<a href="../../modules/_webda_profiler.html" class="tsd-kind-icon">@webda/profiler</a>
-					</li>
-					<li class=" tsd-kind-module root">
-						<a href="../../modules/_webda_profiler_aws_xray.html" class="tsd-kind-icon">@webda/profiler-<wbr>aws-<wbr>xray</a>
-					</li>
-					<li class=" tsd-kind-module root">
-						<a href="../../modules/_webda_shell.html" class="tsd-kind-icon">@webda/shell</a>
-					</li>
-					<li class=" tsd-kind-module root">
-						<a href="../../modules/_webda_workout.html" class="tsd-kind-icon">@webda/workout</a>
+						<a href="../../modules.html" class="tsd-kind-icon">Exports</a>
 					</li>
 				</ul>
 			</nav>
@@ -157,7 +133,7 @@
 		<div class="col-content">
 			<h1>Store</h1>
 			<div class="tsd-panel tsd-typography">
-				<p>The store services allow you to store object in a NoSQL database it handles for you mapping between objects, have a security policy and check the object with JSON Schema</p>
+				<p>The store services allow you to store object in a NoSQL database it handles for you mapping between objects. Objects are mapped to a model to allow security policy and schema verification.</p>
 				<p>We have currently File, DynamoDB and MongoDB storage</p>
 				<a href="#expose-rest-api" id="expose-rest-api" style="color: inherit; text-decoration: none;">
 					<h2>Expose REST API</h2>
@@ -238,19 +214,6 @@
 					Store.Delete: Before deleting the object
 					Store.Deleted: After deleting the object
 				Store.Get: When getting the object</p>
-				<a href="#security-policy" id="security-policy" style="color: inherit; text-decoration: none;">
-					<h2>Security Policy</h2>
-				</a>
-				<p>The security policy will be called on any REST API called from the Store, the internal method to access the objects are not secured with it yet, we might later on add this feature.
-				The security policy could also be implemented by a Service that listen on Store event this way you can enforce the security even internally</p>
-				<pre><code class="language-javascript"><span style="color: #000000">{</span>
-<span style="color: #000000">  ...</span>
-<span style="color: #000000">  </span><span style="color: #A31515">&quot;security&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;OwnerPolicy&quot;</span><span style="color: #000000"> </span><span style="color: #008000">// This is the default SecurityPolicy</span>
-<span style="color: #000000">  ...</span>
-<span style="color: #000000">}</span>
-</code></pre>
-				<p>If not specified the Store will pick the Owner policy as default.
-				Policies are implicit service, so you can get them with a getService(&quot;OwnerPolicy&quot;), but don&#39;t appear by default in the configuration file. That also means you can override a Policy if you want or create your own to implement your business model</p>
 				<a href="#owner-policy" id="owner-policy" style="color: inherit; text-decoration: none;">
 					<h3>Owner Policy</h3>
 				</a>
@@ -287,7 +250,7 @@
 				</a>
 				<p>The FileDB only requires a folder where to store the datas. It creates it if not exists</p>
 			</div>
-			<!--{&quot;options&quot;:&quot;/datas/git/webda.io&quot;,&quot;tsconfig&quot;:&quot;/datas/git/webda.io&quot;,&quot;packages&quot;:[&quot;/datas/git/webda.io&quot;],&quot;entryPoints&quot;:[],&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;/datas/git/webda.io/packages/*/node_modules&quot;,&quot;/datas/git/webda.io/packages/*/src/**/*.spec.ts&quot;,&quot;/datas/git/webda.io/sample-app&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;/datas/git/webda.io/docs/media&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;/datas/git/webda.io/docs/typedoc&quot;,&quot;json&quot;:&quot;&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;/datas/git/webda.io/readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;sort&quot;:[&quot;kind&quot;,&quot;instance-first&quot;,&quot;alphabetical&quot;],&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;treatWarningsAsErrors&quot;:false,&quot;listInvalidSymbolLinks&quot;:false,&quot;outline&quot;:[],&quot;excludeReferences&quot;:false,&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true,&quot;noJekyll&quot;:true,&quot;githubPagesDomain&quot;:&quot;docs.webda.io&quot;,&quot;enablePageLinks&quot;:true,&quot;enableSearch&quot;:true,&quot;failBuildOnInvalidPageLink&quot;:false,&quot;listInvalidPageLinks&quot;:false,&quot;output&quot;:&quot;pages&quot;,&quot;sources&quot;:[&quot;./docs/pages/&quot;]}}-->
+			<!--{&quot;options&quot;:&quot;/home/runner/work/webda.io/webda.io&quot;,&quot;tsconfig&quot;:&quot;/home/runner/work/webda.io/webda.io&quot;,&quot;packages&quot;:[&quot;/home/runner/work/webda.io/webda.io&quot;],&quot;entryPoints&quot;:[],&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;/home/runner/work/webda.io/webda.io/packages/*/node_modules&quot;,&quot;/home/runner/work/webda.io/webda.io/packages/*/src/**/*.spec.ts&quot;,&quot;/home/runner/work/webda.io/webda.io/sample-app&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;/home/runner/work/webda.io/webda.io/docs/media&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;/home/runner/work/webda.io/webda.io/.built-docs&quot;,&quot;json&quot;:&quot;&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:true,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;/home/runner/work/webda.io/webda.io/readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;sort&quot;:[&quot;kind&quot;,&quot;instance-first&quot;,&quot;alphabetical&quot;],&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;treatWarningsAsErrors&quot;:false,&quot;listInvalidSymbolLinks&quot;:false,&quot;outline&quot;:[],&quot;excludeReferences&quot;:false,&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true,&quot;noJekyll&quot;:true,&quot;githubPagesDomain&quot;:&quot;docs.webda.io&quot;,&quot;enablePageLinks&quot;:true,&quot;enableSearch&quot;:true,&quot;failBuildOnInvalidPageLink&quot;:false,&quot;listInvalidPageLinks&quot;:false,&quot;output&quot;:&quot;pages&quot;,&quot;sources&quot;:[&quot;./docs/pages/&quot;]}}-->
 			<footer class="with-border-bottom">
 			</footer>
 			<div class="container tsd-generator">

@@ -441,6 +441,25 @@ export class Core extends events.EventEmitter {
   getWorkerOutput() {
     return this.workerOutput;
   }
+
+  /**
+   * Init one service
+   * @param service 
+   */
+  protected async initService(service: string) {
+    try {
+      // TODO Define parralel initialization
+      this.log("TRACE", "Initializing service", service);
+      this.initBeanRoutes(this.services[service]);
+      this.services[service]._initTime = Date.now();
+      await this.services[service].init();
+    } catch (err) {
+      this.services[service]._initException = err;
+      this.failedServices[service] = { _initException: err };
+      this.log("ERROR", "Init service " + service + " failed: " + err.message);
+      this.log("TRACE", err.stack);
+    }
+  }
   /**
    * Init Webda
    *
@@ -455,26 +474,17 @@ export class Core extends events.EventEmitter {
     this._init = new Promise(async resolve => {
       // Init services
       let service;
+      let inits = [];
       for (service in this.services) {
         if (
           this.services[service].init !== undefined &&
           !this.services[service]._createException &&
           !this.services[service]._initTime
         ) {
-          try {
-            // TODO Define parralel initialization
-            this.log("TRACE", "Initializing service", service);
-            this.initBeanRoutes(this.services[service]);
-            this.services[service]._initTime = Date.now();
-            await this.services[service].init();
-          } catch (err) {
-            this.services[service]._initException = err;
-            this.failedServices[service] = { _initException: err };
-            this.log("ERROR", "Init service " + service + " failed: " + err.message);
-            this.log("TRACE", err.stack);
-          }
+          inits.push(this.initService(service));
         }
       }
+      await Promise.all(inits);
       this.emit("Webda.Init.Services", this.services);
       resolve();
     });
@@ -748,6 +758,26 @@ export class Core extends events.EventEmitter {
     return this.configuration.parameters || {};
   }
 
+  /**
+   * Reinit one service
+   * @param service 
+   */
+  protected async reinitService(service: string) : Promise<void> {
+    try {
+      this.log("TRACE", "Re-Initializing service", service);
+      let serviceBean = this.services[service];
+      await serviceBean.reinit(this.getServiceParams(serviceBean.getName()));
+    } catch (err) {
+      this.log("ERROR", "Re-Init service " + service + " failed", err);
+      this.log("TRACE", err.stack);
+    }
+  }
+
+  /**
+   * Reinit all services with updated parameters
+   * @param updates 
+   * @returns 
+   */
   public async reinit(updates: any): Promise<void> {
     let configuration = JSON.parse(JSON.stringify(this.configuration.services));
     for (let service in updates) {
@@ -758,17 +788,11 @@ export class Core extends events.EventEmitter {
       return this._initPromise;
     }
     this.configuration.services = configuration;
+    let inits : Promise<void>[] = [];
     for (let service in this.services) {
-      try {
-        // TODO Define parralel initialization
-        this.log("TRACE", "Re-Initializing service", service);
-        let serviceBean = this.services[service];
-        await serviceBean.reinit(this.getServiceParams(serviceBean.getName()));
-      } catch (err) {
-        this.log("ERROR", "Re-Init service " + service + " failed", err);
-        this.log("TRACE", err.stack);
-      }
+      inits.push(this.reinitService(service));
     }
+    await Promise.all(inits);
   }
 
   protected getServiceParams(service: string): any {
@@ -853,7 +877,6 @@ export class Core extends events.EventEmitter {
    * Auto connect services with setters
    */
   protected autoConnectServices(): void {
-    // TODO Leverage decorators instead of setter name
     for (let service in this.services) {
       this.log("TRACE", "Auto-connect", service);
       let serviceBean = this.services[service];

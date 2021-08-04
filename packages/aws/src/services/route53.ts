@@ -93,7 +93,6 @@ export class Route53Service extends Service {
    */
   static async getEntries(domain: string) {
     let r53 = new AWS.Route53();
-    const DNSName = domain.split(".").reverse().join(".");
     const zone = await Route53Service.getZoneForDomainName(domain);
     if (!zone) {
       throw new Error(`Zone cannot be found: ${domain}`);

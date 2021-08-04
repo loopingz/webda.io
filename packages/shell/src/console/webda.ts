@@ -677,7 +677,7 @@ export default class WebdaConsole {
           oneOf: [
             { $ref: `#/definitions/${key}` },
             ...Object.keys(definitions)
-              .filter(k => k.startsWith("ServiceType"))
+              .filter(name => name.startsWith("ServiceType"))
               .map(dkey => ({ $ref: `#/definitions/${dkey}` }))
           ]
         };

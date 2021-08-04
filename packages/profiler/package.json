@@ -1,6 +1,6 @@
 {
   "name": "@webda/profiler",
-  "version": "1.0.2",
+  "version": "1.2.0",
   "description": "Webda Basic Profiler",
   "main": "lib/index.js",
   "scripts": {
@@ -31,7 +31,7 @@
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
-    "@webda/core": "^1.1.0"
+    "@webda/core": "^1.2.0"
   },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",
@@ -47,6 +47,6 @@
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.1.2",
-    "@webda/shell": "^1.0.2"
+    "@webda/shell": "^1.2.0"
   }
 }

@@ -89,19 +89,18 @@ export class DeploymentManager {
     application.addDeployer("WebdaDeployer/Container", Container);
     application.addDeployer("WebdaDeployer/Kubernetes", Kubernetes);
     let deployment: Deployment = {
-      uuid: "",
       units: [],
       resources: {},
       services: {},
       parameters: {}
     };
-    deployment.uuid = await output.requestInput("Name");
-    while (fs.existsSync(path.join("deployments", deployment.uuid + ".json"))) {
+    let name = await output.requestInput("Name");
+    while (fs.existsSync(path.join("deployments", name + ".json"))) {
       output.log("ERROR", "Deployment already exists");
-      deployment.uuid = await output.requestInput("Name");
+      name = await output.requestInput("Name");
     }
     output.log("INFO", "You can customize the parameters,resources and services objects within the deployment");
-    fs.writeFileSync(path.join("deployments", deployment.uuid + ".json"), JSON.stringify(deployment, undefined, 2));
+    fs.writeFileSync(path.join("deployments", name + ".json"), JSON.stringify({...deployment, name: undefined}, undefined, 2));
     let deployersDefinition = <any>application.getDeployers();
     output.log("INFO", "Deployers available");
     Object.keys(deployersDefinition).forEach(t => output.log("INFO", "Deployer:", t));
@@ -182,7 +181,7 @@ export class DeploymentManager {
   }
 
   getDeploymentName() {
-    return this.application.getDeployment().uuid;
+    return this.application.getDeployment().name;
   }
 
   /**

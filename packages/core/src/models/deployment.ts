@@ -19,6 +19,7 @@ export default interface Deployment {
   resources: any;
   services: any;
   units: DeploymentUnit[];
+  name?: string;
 }
 
 export { Deployment };

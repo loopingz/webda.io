@@ -672,6 +672,7 @@ export class Application {
     let deploymentModel: Deployment;
     try {
       deploymentModel = JSON.parse(fs.readFileSync(deploymentConfig).toString());
+      deploymentModel.name = deploymentName;
     } catch (err) {
       throw new WebdaError(
         "INVALID_DEPLOYMENT",

@@ -47,8 +47,8 @@
     "lint:fix": "lerna run lint:fix --parallel",
     "lerna:publish": "lerna publish",
     "docs": "yarn docs:typedoc",
-    "docs:publish": "yarn docs:typedoc && gh-pages -t -d docs/typedoc",
-    "docs:typedoc": "typedoc --packages . --out docs/typedoc",
+    "docs:publish": "yarn docs:typedoc && gh-pages -t -d .built-docs",
+    "docs:typedoc": "typedoc --packages . --out .built-docs",
     "init": "husky install"
   },
   "command": {

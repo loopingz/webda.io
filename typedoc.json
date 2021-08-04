@@ -17,6 +17,5 @@
 
   "theme": "./node_modules/typedoc-loopingz-theme/bin/default",
 
-  "name": "webda.io",
-  "includeVersion": true
+  "name": "webda.io"
 }

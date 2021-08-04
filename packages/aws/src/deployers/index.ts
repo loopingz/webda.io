@@ -10,6 +10,7 @@ import * as mime from "mime-types";
 import * as path from "path";
 import { IAMPolicyContributor } from "../services";
 import { v4 as uuidv4 } from "uuid";
+import { Route53Service } from "../services/route53";
 
 export type TagsDefinition = { Key: string; Value: string }[] | { [key: string]: string };
 
@@ -254,32 +255,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    */
   @Cache()
   async getZoneForDomainName(domain): Promise<AWS.Route53.HostedZone> {
-    if (!domain.endsWith(".")) {
-      domain = domain + ".";
-    }
-    let targetZone: AWS.Route53.HostedZone;
-    // Find the right zone
-    let r53: AWS.Route53 = new this.AWS.Route53({
-      endpoint: this.resources.endpoints.Route53
-    });
-    let res: AWS.Route53.ListHostedZonesResponse;
-    let params: AWS.Route53.ListHostedZonesRequest = {};
-    // Identify the right zone first
-    do {
-      res = await r53.listHostedZones(params).promise();
-      for (let i in res.HostedZones) {
-        let zone = res.HostedZones[i];
-        if (domain.endsWith(zone.Name)) {
-          if (targetZone && targetZone.Name.length > zone.Name.length) {
-            // The previous target zone is closer to the domain
-            continue;
-          }
-          targetZone = zone;
-        }
-      }
-      params.Marker = res.NextMarker;
-    } while (!targetZone && res.NextMarker);
-    return targetZone;
+    return Route53Service.getZoneForDomainName(domain);
   }
 
   /**

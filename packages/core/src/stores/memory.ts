@@ -112,29 +112,11 @@ class MemoryStore<T extends CoreModel, K extends StoreParameters = StoreParamete
     return this._save(res);
   }
 
-  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
-    var res = this.storage[uid];
-    if (res === undefined) {
-      throw Error("NotFound");
-    }
-    res = this._getSync(uid);
-    if (index === undefined) {
-      if (itemWriteCondition !== undefined && res[prop].length !== itemWriteCondition) {
-        throw Error("UpdateCondition not met");
-      }
-      if (res[prop] === undefined) {
-        res[prop] = [item];
-      } else {
-        res[prop].push(item);
-      }
-    } else {
-      if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
-        throw Error("UpdateCondition not met");
-      }
-      res[prop][index] = item;
-    }
-    res[this._lastUpdateField] = updateDate;
-    await this._save(res);
+  /**
+   * @inheritdoc
+   */
+   async _upsertItemToCollection(uid: string, prop: string, item: any, index: number, itemWriteCondition: any, itemWriteConditionField: string, updateDate: Date) {
+    return this.emulateUpsertItemToCollection(this._getSync(uid), prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate);
   }
 
   async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {

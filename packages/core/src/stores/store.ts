@@ -840,6 +840,29 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     return this.update(object, reverseMap, true);
   }
 
+  async emulateUpsertItemToCollection(model: CoreModel, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
+    if (model === undefined) {
+      throw Error("NotFound");
+    }
+    if (index === undefined) {
+      if (itemWriteCondition !== undefined && model[prop].length !== itemWriteCondition) {
+        throw Error("UpdateCondition not met");
+      }
+      if (model[prop] === undefined) {
+        model[prop] = [item];
+      } else {
+        model[prop].push(item);
+      }
+    } else {
+      if (itemWriteCondition && model[prop][index][itemWriteConditionField] != itemWriteCondition) {
+        throw Error("UpdateCondition not met");
+      }
+      model[prop][index] = item;
+    }
+    model[this._lastUpdateField] = updateDate;
+    await this._save(model);
+  }
+
   /**
    * Update an object
    *

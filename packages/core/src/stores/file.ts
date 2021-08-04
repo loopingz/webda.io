@@ -72,28 +72,11 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
     return Promise.resolve(object);
   }
 
-  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
-    let res = await this._get(uid);
-    if (res === undefined) {
-      throw Error("NotFound");
-    }
-    if (index === undefined) {
-      if (itemWriteCondition !== undefined && res[prop].length !== itemWriteCondition) {
-        throw Error("UpdateCondition not met");
-      }
-      if (res[prop] === undefined) {
-        res[prop] = [item];
-      } else {
-        res[prop].push(item);
-      }
-    } else {
-      if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
-        throw Error("UpdateCondition not met");
-      }
-      res[prop][index] = item;
-    }
-    res[this._lastUpdateField] = updateDate;
-    await this._save(res);
+  /**
+   * @inheritdoc
+   */
+  async _upsertItemToCollection(uid: string, prop: string, item: any, index: number, itemWriteCondition: any, itemWriteConditionField: string, updateDate: Date) {
+    return this.emulateUpsertItemToCollection(await this._get(uid), prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate);
   }
 
   async _removeAttribute(uuid: string, attribute: string) {

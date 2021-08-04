@@ -10,9 +10,7 @@ export class Route53Service extends Service {
    */
   @Cache()
   static async getZoneForDomainName(domain): Promise<AWS.Route53.HostedZone> {
-    if (!domain.endsWith(".")) {
-      domain = domain + ".";
-    }
+    domain = this.completeDomain(domain);
     let targetZone: AWS.Route53.HostedZone;
     // Find the right zone
     let r53: AWS.Route53 = new AWS.Route53();
@@ -36,6 +34,13 @@ export class Route53Service extends Service {
     return targetZone;
   }
 
+  static completeDomain(domain: string) {
+    if (!domain.endsWith(".")) {
+      domain = domain + ".";
+    }
+    return domain;
+  }
+
   /**
    * Create DNS entry
    *
@@ -52,9 +57,7 @@ export class Route53Service extends Service {
     Comment: string = "@webda/aws-created"
   ): Promise<void> {
     let r53 = new AWS.Route53();
-    if (!domain.endsWith(".")) {
-      domain = domain + ".";
-    }
+    domain = this.completeDomain(domain);
     if (!targetZone) {
       targetZone = await this.getZoneForDomainName(domain);
     }

@@ -1,0 +1,9 @@
+{
+  "commands": {
+    "aws": {
+      "require": "./lib/shell.js",
+      "export": "ShellCommand",
+      "description": "Manage AWS default informations"
+    }
+  }
+}

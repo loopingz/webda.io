@@ -26,7 +26,7 @@ export interface AWSEventsHandler {
  * @class
  */
 export default class LambdaServer extends Webda {
-  _result: any;
+  _result: { headers?: any; statusCode?: number; multiValueHeaders?: any; body?: any };
   _awsEventsHandlers: any[] = [];
 
   /**
@@ -35,9 +35,10 @@ export default class LambdaServer extends Webda {
   flushHeaders(ctx: Context) {
     var headers = ctx.getResponseHeaders() || {};
 
-    this._result = {};
-    this._result.headers = headers;
-    this._result.statusCode = ctx.statusCode;
+    this._result = {
+      headers,
+      statusCode: ctx.statusCode
+    };
     let cookies = ctx.getResponseCookies();
     this._result.multiValueHeaders = { "Set-Cookie": [] };
     for (let i in cookies) {
@@ -259,16 +260,11 @@ export default class LambdaServer extends Webda {
   async handleLambdaReturn(ctx: Context) {
     // Override when it comes for express component
     if (ctx.statusCode) {
-      this._result.code = ctx.statusCode;
+      this._result.statusCode = ctx.statusCode;
     }
     await this.emitSync("Webda.Result", <EventWebdaResult>{ context: ctx });
     // TODO Clean to use ...this._result
-    return {
-      statusCode: ctx.statusCode,
-      headers: this._result.headers,
-      multiValueHeaders: this._result.multiValueHeaders,
-      body: this._result.body
-    };
+    return this._result;
   }
 }
 

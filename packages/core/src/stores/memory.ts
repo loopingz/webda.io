@@ -115,8 +115,24 @@ class MemoryStore<T extends CoreModel, K extends StoreParameters = StoreParamete
   /**
    * @inheritdoc
    */
-   async _upsertItemToCollection(uid: string, prop: string, item: any, index: number, itemWriteCondition: any, itemWriteConditionField: string, updateDate: Date) {
-    return this.emulateUpsertItemToCollection(this._getSync(uid), prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate);
+  async _upsertItemToCollection(
+    uid: string,
+    prop: string,
+    item: any,
+    index: number,
+    itemWriteCondition: any,
+    itemWriteConditionField: string,
+    updateDate: Date
+  ) {
+    return this.emulateUpsertItemToCollection(
+      this._getSync(uid),
+      prop,
+      item,
+      index,
+      itemWriteCondition,
+      itemWriteConditionField,
+      updateDate
+    );
   }
 
   async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
@@ -134,7 +150,7 @@ class MemoryStore<T extends CoreModel, K extends StoreParameters = StoreParamete
   }
 
   /**
-   * 
+   *
    * @inheritdoc
    */
   static getModda(): ModdaDefinition {

@@ -171,7 +171,7 @@ class CronService extends Service {
   /**
    * @inheritdoc
    */
-   static getModda(): ModdaDefinition {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/CronService",
       label: "Cron Service",

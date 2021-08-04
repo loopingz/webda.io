@@ -45,7 +45,8 @@ export class GoogleParameters extends OAuthServiceParameters {
 
 export default class GoogleAuthentication<T extends GoogleParameters = GoogleParameters>
   extends OAuthService<T>
-  implements RequestFilter<Context> {
+  implements RequestFilter<Context>
+{
   protected _client: OAuth2Client;
 
   /**

@@ -399,7 +399,8 @@ export class StoreParameters extends ServiceParameters {
  */
 abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters = StoreParameters>
   extends Service<K>
-  implements ConfigurationProvider {
+  implements ConfigurationProvider
+{
   _reverseMap: any[] = [];
   _cascade: any[] = [];
   _model: CoreModelDefinition;
@@ -840,7 +841,15 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     return this.update(object, reverseMap, true);
   }
 
-  async emulateUpsertItemToCollection(model: CoreModel, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
+  async emulateUpsertItemToCollection(
+    model: CoreModel,
+    prop,
+    item,
+    index,
+    itemWriteCondition,
+    itemWriteConditionField,
+    updateDate: Date
+  ) {
     if (model === undefined) {
       throw Error("NotFound");
     }
@@ -1417,7 +1426,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
   }
 
   async httpGlobalAction(ctx: Context) {
-    let body = ctx.getRequestBody();
     let action = ctx.getHttpContext().getUrl().split("/").pop();
     await this.emitSync("Store.Action", <EventStoreAction>{
       action: action,

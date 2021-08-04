@@ -314,40 +314,6 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
   }
 
   @test
-  async testWaitFor() {
-    let consoleSpy = sinon.stub(this.deployer.logger, "log");
-    try {
-      await assert.rejects(
-        async () => await this.deployer.waitFor(() => {}, 1, 3, "title"),
-        /Timeout while waiting for title/g
-      );
-      assert.strictEqual(consoleSpy.callCount, 3);
-      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[1/3]", "title"), true);
-      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[2/3]", "title"), true);
-      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[3/3]", "title"), true);
-      consoleSpy.resetHistory();
-      let res = await this.deployer.waitFor(
-        (resolve, reject) => {
-          if (consoleSpy.callCount === 2) {
-            resolve({ myobject: "test" });
-            return true;
-          }
-        },
-        1,
-        3,
-        "title"
-      );
-      assert.strictEqual(consoleSpy.callCount, 2);
-      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[1/3]", "title"), true);
-      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[2/3]", "title"), true);
-      assert.strictEqual(consoleSpy.calledWith("DEBUG", "[3/3]", "title"), false);
-      assert.deepStrictEqual(res, { myobject: "test" });
-    } finally {
-      consoleSpy.restore();
-    }
-  }
-
-  @test
   async testDoCreateCertificate() {
     try {
       var requestCertificate = sinon.stub();

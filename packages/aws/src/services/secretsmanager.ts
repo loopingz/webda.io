@@ -7,7 +7,8 @@ export class AWSSecretsManagerParameters extends ServiceParameters {
 }
 export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = AWSSecretsManagerParameters>
   extends Service<T>
-  implements ConfigurationProvider {
+  implements ConfigurationProvider
+{
   _client: any;
 
   /**

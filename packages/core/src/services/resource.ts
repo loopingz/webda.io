@@ -157,7 +157,7 @@ export default class ResourceService<
   /**
    * @inheritdoc
    */
-   static getModda(): ModdaDefinition {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/ResourceService",
       label: "Resources Service",

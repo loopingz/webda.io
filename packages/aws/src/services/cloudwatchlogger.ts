@@ -25,7 +25,8 @@ export class CloudWatchLoggerParameters extends ServiceParameters {
 
 export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = CloudWatchLoggerParameters>
   extends Service<T>
-  implements CloudFormationContributor {
+  implements CloudFormationContributor
+{
   _logGroupName: string;
   _logStreamName: string;
   _seqToken: string;

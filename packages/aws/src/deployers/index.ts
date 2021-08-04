@@ -1,4 +1,4 @@
-import { Cache, WebdaError, DeployerResources } from "@webda/core";
+import { Cache, WebdaError, DeployerResources, WaitFor, WaitLinearDelay } from "@webda/core";
 import { Deployer, DeploymentManager } from "@webda/shell";
 import * as AWS from "aws-sdk";
 import * as bluebird from "bluebird";
@@ -48,10 +48,6 @@ export interface AWSDeployerResources extends DeployerResources {
    * AWS Account Id
    */
   AWSAccountId?: string;
-  /**
-   * @todo docs
-   */
-  createMissingResources?: boolean;
   /**
    * Endpoints to use by differents services
    * Usefull to test with localstack or other AWS emulations
@@ -119,7 +115,6 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       this.resources.Tags = this.transformMapTagsToArray(this.resources.Tags);
     }
     this.AWS = AWS;
-    this.resources.createMissingResources = this.resources.createMissingResources || false;
   }
 
   /**
@@ -326,6 +321,14 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       .join("&");
   }
 
+  async waitFor(
+    callback: (resolve: (value?: any) => void, reject: (reason?: any) => void) => Promise<boolean>,
+    retries: number,
+    title: string,
+    delay: number
+  ) {
+    return WaitFor(callback, retries, title, this.logger, WaitLinearDelay(delay));
+  }
   /**
    * Create a certificate for a domain
    * Will use Route 53 to do the validation
@@ -361,9 +364,9 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
         }
         return false;
       },
-      10000,
       5,
-      "Waiting for certificate challenge"
+      "Waiting for certificate challenge",
+      10000
     );
     if (cert === undefined || cert.Status === "FAILED") {
       throw new WebdaError("ACM_VALIDATION_FAILED", "Certificate validation has failed");
@@ -390,51 +393,13 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
             return true;
           }
         },
-        60000,
         10,
-        "Waiting for certificate validation"
+        "Waiting for certificate validation",
+        60000
       );
     }
     //
     return cert;
-  }
-
-  /**
-   * Wait for an operation to end
-   *
-   * Some AWS Api require minutes and polling
-   * This method will call the callback function until it returns
-   * `true`, or the max `retries` has been reached.
-   * Between each call, it will wait the `delay`
-   *
-   * If it reaches the max retries without a good answer from
-   * callback, the Promise will be rejected
-   *
-   * @param callback to call between each call
-   * @param delay between each call to callback
-   * @param retries max number of retries
-   * @param title to display
-   *
-   * @todo move it to `core` library along with a exponential retry
-   */
-  async waitFor(callback, delay: number, retries: number, title: string): Promise<any> {
-    return new Promise(async (mainResolve, mainReject) => {
-      let tries: number = 0;
-      let uuid = uuidv4();
-      this.logger.logProgressStart(uuid, retries, title);
-      while (retries > tries++) {
-        if (title) {
-          this.logger.log("DEBUG", "[" + tries + "/" + retries + "]", title);
-        }
-        this.logger.logProgressUpdate(tries, uuid);
-        if (await callback(mainResolve, mainReject)) {
-          this.logger.logProgressUpdate(retries);
-          return;
-        }
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-      mainReject("Timeout while waiting for " + title);
-    });
   }
 
   /**

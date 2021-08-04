@@ -6,7 +6,6 @@ import { Binary } from "./binary";
 
 @suite
 class FileBinaryTest extends BinaryTest {
-
   @test
   isValidChallenge() {
     let binary: FileBinary = <FileBinary>this.getService("binary");

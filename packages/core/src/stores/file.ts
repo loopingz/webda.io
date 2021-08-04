@@ -75,8 +75,24 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   /**
    * @inheritdoc
    */
-  async _upsertItemToCollection(uid: string, prop: string, item: any, index: number, itemWriteCondition: any, itemWriteConditionField: string, updateDate: Date) {
-    return this.emulateUpsertItemToCollection(await this._get(uid), prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate);
+  async _upsertItemToCollection(
+    uid: string,
+    prop: string,
+    item: any,
+    index: number,
+    itemWriteCondition: any,
+    itemWriteConditionField: string,
+    updateDate: Date
+  ) {
+    return this.emulateUpsertItemToCollection(
+      await this._get(uid),
+      prop,
+      item,
+      index,
+      itemWriteCondition,
+      itemWriteConditionField,
+      updateDate
+    );
   }
 
   async _removeAttribute(uuid: string, attribute: string) {
@@ -201,7 +217,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   }
 
   /**
-   * 
+   *
    * @inheritdoc
    */
   static getModda(): ModdaDefinition {

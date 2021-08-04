@@ -18,10 +18,11 @@ export class SQSQueueParameters extends ServiceParameters {
     this.queue = this.queue ?? "";
   }
 }
-// TODO Readd AWS Mixin
+
 export default class SQSQueue<T extends SQSQueueParameters = SQSQueueParameters>
   extends Queue<T>
-  implements CloudFormationContributor {
+  implements CloudFormationContributor
+{
   sqs: any;
   /**
    * Load the parameters

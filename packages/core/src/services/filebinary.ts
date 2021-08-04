@@ -185,11 +185,11 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
 
   /**
    * Delete any usage marker and hash
-   * 
+   *
    * @param hash to remove
-   * @returns 
+   * @returns
    */
-  async _cleanHash(hash: string) : Promise<void> {
+  async _cleanHash(hash: string): Promise<void> {
     const p = this._getPath(hash);
     if (!fs.existsSync(p)) return;
     var files = fs.readdirSync(p);
@@ -212,7 +212,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
         fs.unlinkSync(this._getPath(hash, files[i]));
       }
     }
-    
+
     if (files.length == 3) {
       await this._cleanHash(hash);
     }
@@ -258,9 +258,9 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
   }
 
   /**
-   * @inheritdoc 
+   * @inheritdoc
    */
-  async store(targetStore, object, property, file, metadatas, index?:number ): Promise<any> {
+  async store(targetStore, object, property, file, metadatas, index?: number): Promise<any> {
     this._checkMap(targetStore._name, property);
     this._prepareInput(file);
     file = { ...file, ...this._getHashes(file.buffer) };
@@ -273,9 +273,9 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
   }
 
   /**
-   * @inheritdoc 
+   * @inheritdoc
    */
-   async update(targetStore, object, property, index, file, metadatas): Promise<CoreModel> {
+  async update(targetStore, object, property, index, file, metadatas): Promise<CoreModel> {
     this._checkMap(targetStore._name, property);
     this._prepareInput(file);
     file = { ...file, ...this._getHashes(file.buffer) };
@@ -287,7 +287,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     return this.updateSuccess(targetStore, object, property, index, file, metadatas);
   }
 
-  async ___cleanData() : Promise<void> {
+  async ___cleanData(): Promise<void> {
     var ids = fs.readdirSync(this.parameters.folder);
     for (var i in ids) {
       var hash = ids[i];

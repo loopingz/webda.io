@@ -155,12 +155,12 @@ class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
   /**
    * @inheritdoc
    */
-  static getModda() : ModdaDefinition {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/Mailer",
       label: "Mailer",
       description: "Allow your application to send email including a templating system"
-    }
+    };
   }
 }
 

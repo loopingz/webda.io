@@ -55,7 +55,7 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
   /**
    * @inheritdoc
    */
-   static getModda(): ModdaDefinition {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/KubernetesConfiguration",
       label: "Kubernetes Configuration",

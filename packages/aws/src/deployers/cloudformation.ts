@@ -350,10 +350,11 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       this.resources.APIGatewayBasePathMapping.BasePath = this.resources.APIGatewayBasePathMapping.BasePath || "";
       this.resources.APIGatewayBasePathMapping.DomainName ??= this.resources.APIGatewayDomain.DomainName;
       if (this.resources.APIGatewayBasePathMapping.DomainName.endsWith(".")) {
-        this.resources.APIGatewayBasePathMapping.DomainName = this.resources.APIGatewayBasePathMapping.DomainName.substr(
-          0,
-          this.resources.APIGatewayBasePathMapping.DomainName.length - 1
-        );
+        this.resources.APIGatewayBasePathMapping.DomainName =
+          this.resources.APIGatewayBasePathMapping.DomainName.substr(
+            0,
+            this.resources.APIGatewayBasePathMapping.DomainName.length - 1
+          );
       }
     }
 
@@ -575,9 +576,9 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
           return true;
         }
       },
-      5000,
       50,
-      "Waiting on stack to be deleted"
+      "Waiting on stack to be deleted",
+      5000
     );
   }
 
@@ -668,7 +669,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
                 .createChangeSet({ ...changeSetParams, ChangeSetType: this.resources.ChangeSetType })
                 .promise();
               resolve();
-              return;
+              return true;
             }
             if (res.Stacks[0].StackStatus.endsWith("COMPLETE")) {
               changeSet = await cloudformation
@@ -678,11 +679,13 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
                 })
                 .promise();
               resolve();
+              return true;
             }
+            return false;
           },
-          5000,
           50,
-          "Waiting for COMPLETE state"
+          "Waiting for COMPLETE state",
+          5000
         );
       } else if (err.code === "AlreadyExistsException") {
         this.logger.log("WARN", "ChangeSet exists and need to be clean");
@@ -728,9 +731,9 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
           return true;
         }
       },
-      5000,
       50,
-      "Waiting for ChangeSet to be ready..."
+      "Waiting for ChangeSet to be ready...",
+      5000
     );
     if (changes.Status === "UPDATE_IN_PROGRESS") {
       this.logger.log("ERROR", "Timeout waiting for Stack to update");
@@ -850,7 +853,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     let info = await this.getAWSIdentity();
     let arn = `arn:aws:lambda:${this.AWS.config.region}:${info.Account}:function:${this.resources.Lambda.FunctionName}`;
     for (let p in openapi.paths) {
-      // TODO We should reenable mockCors once found the issue of
+      // Not using mockCors as the {@link RequestFilter.checkRequest} can be dynamic
       // Invalid mapping expression parameter specified: method.response.header.Access-Control-Allow-Credentials
       if (!openapi.paths[p]["options"]) {
         openapi.paths[p]["options"] = {};

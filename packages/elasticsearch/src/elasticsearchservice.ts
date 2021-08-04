@@ -170,7 +170,7 @@ export default class ElasticSearchService<
     return stats;
   }
 
-  async exists(index: string, uuid: string) : Promise<boolean> {
+  async exists(index: string, uuid: string): Promise<boolean> {
     if (!this.parameters.indexes[index]) {
       throw new WebdaError("ES_UNKOWN_INDEX", "Unknown index");
     }

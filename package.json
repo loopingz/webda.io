@@ -21,13 +21,13 @@
     "typedoc-loopingz-theme": "^1.1.2",
     "typedoc-plugin-loopingz-pages": ">=0.3.1",
     "typedoc-plugin-mermaid": "^1.4.0",
-    "typescript": "^4.2.4"
+    "typescript": "~4.2.4"
   },
   "author": "loopingz",
   "license": "MIT",
   "resolutions": {
     "@types/node": "^12.0.0",
-    "typescript": "^4.2.4"
+    "typescript": "~4.2.4"
   },
   "bugs": {
     "url": "https://github.com/loopingz/webda.io/issues"

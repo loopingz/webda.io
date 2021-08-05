@@ -35,7 +35,7 @@ export function programFromConfig(app: Application): ts.Program {
   ];
   let content = ``;
   sources.forEach((src, i) => {
-    content += `import * as i${i} from "${app.getAppPath(src.substr(2))}"\n`;
+    content += `import * as i${i} from "${src.substr(2, src.length - 5)}"\n`;
   });
   writeFileSync(importer, content);
   let program;

@@ -308,6 +308,7 @@ export class Application {
     try {
       this.baseConfiguration = JSON.parse(fs.readFileSync(file).toString() || "{}");
     } catch (err) {
+      this.log("WARN", err);
       if (allowModule) {
         this.baseConfiguration = { version: 2, module: {} };
       } else {

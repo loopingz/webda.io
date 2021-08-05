@@ -1,6 +1,6 @@
 {
   "name": "@webda/aws",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Webda AWS Services implementation",
   "main": "lib/index.js",
   "scripts": {
@@ -54,7 +54,7 @@
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.1.2",
-    "@webda/shell": "^1.2.1",
+    "@webda/shell": "^1.2.2",
     "aws-sdk-mock": "^5.2.1",
     "sinon": "^11.1.1"
   }

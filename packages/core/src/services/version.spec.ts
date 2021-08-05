@@ -8,6 +8,7 @@ class VersionTest extends WebdaTest {
   async normal() {
     let ctx = await this.newContext();
     await this.getExecutor(ctx, "webda.io", "GET", "/version").execute(ctx);
-    assert.strictEqual(ctx.getResponseBody(), require("../../package.json").version);
+    // Version within package.json of test/ folder
+    assert.strictEqual(ctx.getResponseBody(), "1.1.0");
   }
 }

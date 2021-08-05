@@ -1,6 +1,6 @@
 {
   "name": "@webda/google-auth",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Webda Google Authentication",
   "main": "lib/index.js",
   "scripts": {
@@ -32,7 +32,7 @@
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
     "@types/node": "^16.4.2",
-    "@webda/core": "^1.2.0",
+    "@webda/core": "^1.2.1",
     "google-auth-library": "^7.3.0"
   },
   "nyc": {

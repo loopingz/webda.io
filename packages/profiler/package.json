@@ -1,6 +1,6 @@
 {
   "name": "@webda/profiler",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Webda Basic Profiler",
   "main": "lib/index.js",
   "scripts": {
@@ -47,6 +47,6 @@
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.1.2",
-    "@webda/shell": "^1.2.2"
+    "@webda/shell": "^1.2.3"
   }
 }

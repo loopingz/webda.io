@@ -759,6 +759,18 @@ export default class WebdaConsole {
     this.log("INFO", "Models:", Object.keys(this.app.getModels()).join(", "));
   }
 
+  /**
+   * Return if a package is within patch version of each others
+   * @param package1
+   * @param package2
+   */
+  static withinPatchVersion(package1: string, package2: string): boolean {
+    return (
+      semver.satisfies(package1.replace(/-.*/, ""), "~" + package2.replace(/-.*/, "")) ||
+      semver.satisfies(package2.replace(/-.*/, ""), "~" + package1.replace(/-.*/, ""))
+    );
+  }
+
   static async handleCommandInternal(args, versions, output: WorkerOutput = undefined): Promise<number> {
     // Arguments parsing
     let argv = await this.parser(args);
@@ -830,11 +842,11 @@ export default class WebdaConsole {
 
     try {
       // Display warning for versions mismatch
-      if (
-        !semver.satisfies(versions.core.version.replace(/-.*/, ""), "^" + versions.shell.version.replace(/-.*/, ""))
-      ) {
-        output.log("ERROR", "Versions mismatch: @webda/core and @webda/shell are not within patch versions");
-        return -1;
+      if (!this.withinPatchVersion(versions.core.version, versions.shell.version)) {
+        output.log(
+          "WARN",
+          `Versions mismatch: @webda/core (${versions.core.version}) and @webda/shell (${versions.shell.version}) are not within patch versions`
+        );
       }
 
       // Load Application

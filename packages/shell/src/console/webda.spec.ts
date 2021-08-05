@@ -299,6 +299,17 @@ class DynamicService extends Service {
   }
 
   @test
+  withinPatchRange() {
+    assert.strictEqual(WebdaConsole.withinPatchVersion("1.1.1", "1.1.2"), true);
+    assert.strictEqual(WebdaConsole.withinPatchVersion("1.1.3", "1.1.2"), true);
+    assert.strictEqual(WebdaConsole.withinPatchVersion("1.2.1", "1.1.2"), false);
+    assert.strictEqual(WebdaConsole.withinPatchVersion("1.2.1", "1.3.2"), false);
+    assert.strictEqual(WebdaConsole.withinPatchVersion("1.2.1", "2.2.1"), false);
+    assert.strictEqual(WebdaConsole.withinPatchVersion("1.2.1", "0.1.2"), false);
+    assert.strictEqual(WebdaConsole.withinPatchVersion("1.2.1-beta", "1.1.2"), false);
+  }
+
+  @test
   async configurationSchema() {
     const f = "./myschemacfg.json";
     if (fs.existsSync(f)) {

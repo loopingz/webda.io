@@ -49,14 +49,12 @@ class OAuthServiceTest extends WebdaTest {
   @test
   async testCheckRequest() {
     let ctx = await this.newContext();
-    ctx.setHttpContext(new HttpContext("bouzouf.com", "GET", "/oauth", "https", 80, null, { referer: "bouzouf.com" }));
+    ctx.setHttpContext(new HttpContext("bouzouf.com", "GET", "/fake", "https", 80, null, { referer: "bouzouf.com" }));
     assert.strictEqual(await this.service.checkRequest(ctx), true, "should allow bouzouf.com referer");
-    ctx.setHttpContext(new HttpContext("bouzouf.com", "GET", "/oauth", "https", 80, null, { referer: "bouzouf2.com" }));
+    ctx.setHttpContext(new HttpContext("bouzouf.com", "GET", "/fake", "https", 80, null, { referer: "bouzouf2.com" }));
     assert.strictEqual(await this.service.checkRequest(ctx), true, "should allow bouzouf2.com referer");
 
-    ctx.setHttpContext(
-      new HttpContext("bouzouf.com", "GET", "/oauth", "https", 80, null, { referer: "bouzouf12.com" })
-    );
+    ctx.setHttpContext(new HttpContext("bouzouf.com", "GET", "/fake", "https", 80, null, { referer: "bouzouf12.com" }));
     assert.strictEqual(await this.service.checkRequest(ctx), false, "should not allow bouzouf12.com referer");
   }
 

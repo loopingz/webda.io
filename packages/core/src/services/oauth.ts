@@ -3,6 +3,8 @@ import { Service, ServiceParameters } from "./service";
 import { Authentication } from "./authentication";
 
 import { v4 as uuidv4 } from "uuid";
+import { Core } from "../core";
+import { stringify } from "yaml";
 
 export interface EventOAuthToken extends EventWithContext {
   /**
@@ -96,6 +98,14 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
   _authenticationService: Authentication;
 
   /**
+   * Ensure default parameter url
+   */
+  constructor(webda: Core, name: string, params?: any) {
+    super(webda, name, params);
+    this.parameters.url = this.parameters.url || `${this.getDefaultUrl()}`;
+  }
+
+  /**
    * Load parameters
    *
    * @param params
@@ -110,9 +120,16 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
    * @returns
    */
   async checkRequest(context: Context): Promise<boolean> {
+    // Only authorize url from this service
+    if (!context.getHttpContext().getRelativeUri().startsWith(this.parameters.url)) {
+      return false;
+    }
     let regexps = this.getCallbackReferer();
     let valid = false;
     let referer = context.getHttpContext().getHeader("referer") || "";
+    if (this.parameters.no_referer && referer === "") {
+      return true;
+    }
     for (let i in regexps) {
       valid = referer.match(regexps[i]) !== null;
       if (valid) {
@@ -135,7 +152,6 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
    */
   initRoutes() {
     super.initRoutes();
-    this.parameters.url = this.parameters.url || `${this.getDefaultUrl()}`;
     let name = this.getName();
 
     this.addRoute(`${this.parameters.url}{?redirect}`, ["GET"], this._redirect, {

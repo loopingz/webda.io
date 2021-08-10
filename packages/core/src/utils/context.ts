@@ -190,8 +190,11 @@ class Context extends EventEmitter {
   protected _serviceParams: any = {};
   files: any[];
   protected static __globalContext: Context;
-  protected _http: HttpContext;
   private global: boolean = false;
+  /**
+   * Allow extensions
+   */
+  protected extensions: { [key: string]: any };
 
   /**
    * Get Global Context
@@ -231,7 +234,7 @@ class Context extends EventEmitter {
    * @param httpContext current http context
    */
   public setHttpContext(httpContext: HttpContext) {
-    this._http = httpContext;
+    this.extensions["http"] = httpContext;
     this.reinit();
   }
 
@@ -243,7 +246,11 @@ class Context extends EventEmitter {
    * Get current http context
    */
   public getHttpContext() {
-    return this._http;
+    return this.getExtension<HttpContext>("http");
+  }
+
+  public getExtension<T = any>(ext: string): T {
+    return <T>this.extensions[ext];
   }
 
   /**
@@ -608,7 +615,9 @@ class Context extends EventEmitter {
   constructor(webda: Core, httpContext: HttpContext, stream: any = undefined) {
     super();
     this.clientInfo = new ClientInfo();
-    this._http = httpContext;
+    this.extensions = {
+      http: httpContext
+    };
     this._webda = webda;
     this._promises = [];
     this._outputHeaders = new Map();

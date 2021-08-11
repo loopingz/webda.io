@@ -95,12 +95,18 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
     );
   }
 
+  /**
+   * @inheritdoc
+   */
   async _removeAttribute(uuid: string, attribute: string) {
     let res = await this._get(uuid);
     delete res[attribute];
     await this._save(res);
   }
 
+  /**
+   * @inheritdoc
+   */
   async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     let res = await this._get(uid);
     if (res === undefined) {
@@ -115,6 +121,9 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
     return this._save(res);
   }
 
+  /**
+   * @inheritdoc
+   */
   async _delete(uid, writeCondition, writeConditionField) {
     let res = await this._get(uid);
     if (writeCondition && res && res[writeConditionField] != writeCondition) {
@@ -126,6 +135,9 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
     return Promise.resolve();
   }
 
+  /**
+   * @inheritdoc
+   */
   async _patch(object, uid, writeCondition, writeConditionField) {
     let stored = await this._get(uid || object[this._uuidField]);
     if (!stored) {

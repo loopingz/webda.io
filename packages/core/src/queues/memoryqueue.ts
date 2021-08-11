@@ -28,7 +28,7 @@ export class MemoryQueueParameters extends QueueParameters {
  * FIFO Queue in Memory
  * @category CoreServices
  */
-class MemoryQueue<T extends MemoryQueueParameters = MemoryQueueParameters, K = any> extends Queue<T, K> {
+class MemoryQueue<K = any, T extends MemoryQueueParameters = MemoryQueueParameters> extends Queue<K, T> {
   private _queue: QueueMap = {};
 
   /**

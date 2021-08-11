@@ -32,7 +32,7 @@ export class QueueParameters extends ServiceParameters {
   /**
    * @inheritdoc
    */
-  constructor(params:any) {
+  constructor(params: any) {
     super(params);
     this.workerParallelism ??= true;
   }
@@ -46,7 +46,7 @@ export class QueueParameters extends ServiceParameters {
  *
  * @category CoreServices
  */
-abstract class Queue<T extends QueueParameters = QueueParameters, K = any> extends Service<T> {
+abstract class Queue<K = any, T extends QueueParameters = QueueParameters> extends Service<T> {
   /**
    * Current timeout handler
    */
@@ -70,7 +70,7 @@ abstract class Queue<T extends QueueParameters = QueueParameters, K = any> exten
 
   /**
    * Send an event to the queue
-   * @param event 
+   * @param event
    */
   abstract sendMessage(event: K): Promise<void>;
 
@@ -81,7 +81,7 @@ abstract class Queue<T extends QueueParameters = QueueParameters, K = any> exten
 
   /**
    * Delete one message based on its receipt
-   * @param id 
+   * @param id
    */
   abstract deleteMessage(id: string): Promise<void>;
 
@@ -110,8 +110,8 @@ abstract class Queue<T extends QueueParameters = QueueParameters, K = any> exten
 
   /**
    * Receive and process message from the queue
-   * 
-   * @returns 
+   *
+   * @returns
    */
   protected async consumerReceiveMessage() {
     if (this._interrupt) {
@@ -125,7 +125,7 @@ abstract class Queue<T extends QueueParameters = QueueParameters, K = any> exten
       }
       const msgWorker = async msg => {
         try {
-          const event = <K> JSON.parse(msg.Body);
+          const event = <K>JSON.parse(msg.Body);
           await this.callback(event);
           await this.deleteMessage(msg.ReceiptHandle);
         } catch (err) {
@@ -152,7 +152,7 @@ abstract class Queue<T extends QueueParameters = QueueParameters, K = any> exten
   /**
    * Work a queue calling the callback with every Event received
    * If the callback is called without exception the `deleteMessage` is called
-   * @param callback 
+   * @param callback
    */
   async consume(callback: (event: K) => Promise<void>) {
     this.failedIterations = 0;

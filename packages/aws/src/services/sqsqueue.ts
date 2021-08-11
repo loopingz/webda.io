@@ -19,7 +19,7 @@ export class SQSQueueParameters extends QueueParameters {
   }
 }
 
-export default class SQSQueue<T extends SQSQueueParameters = SQSQueueParameters, K = any>
+export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueueParameters>
   extends Queue<T, K>
   implements CloudFormationContributor
 {

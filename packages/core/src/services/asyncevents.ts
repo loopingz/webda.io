@@ -83,27 +83,27 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
 
   /**
    * Bind a asynchronous event
-   * 
+   *
    * ```mermaid
    * sequenceDiagram
-	 *  participant S as Service
-	 *  participant As as AsyncEventService
-	 *  participant Q as Queue
+   *  participant S as Service
+   *  participant As as AsyncEventService
+   *  participant Q as Queue
    *  participant Aw as AsyncEventService Worker
    *
    *  As->>S: Bind event to a sendQueue listener
-	 *  activate As
-	 *  S->>As: Emit event
+   *  activate As
+   *  S->>As: Emit event
    *  As->>Q: Push the event to the queue
-	 *  deactivate As
-	 *  Aw->>Q: Consume queue
-	 *  Aw->>Aw: Call the original listener
+   *  deactivate As
+   *  Aw->>Q: Consume queue
+   *  Aw->>Aw: Call the original listener
    * ```
-   * 
-   * @param service 
-   * @param event 
-   * @param callback 
-   * @param queue 
+   *
+   * @param service
+   * @param event
+   * @param callback
+   * @param queue
    */
   bindAsyncListener(service, event, callback, queue) {
     if (!this._async) {
@@ -131,11 +131,11 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
 
   /**
    * Process one event
-   * 
-   * @param event 
-   * @returns 
+   *
+   * @param event
+   * @returns
    */
-  protected async handleEvent(event) : Promise<void> {
+  protected async handleEvent(event): Promise<void> {
     if (!this._callbacks[event.getMapper()]) {
       return Promise.reject("Callbacks should not be empty");
     }
@@ -149,10 +149,10 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
 
   /**
    * Process asynchronous event on queue
-   * @param queue 
-   * @returns 
+   * @param queue
+   * @returns
    */
-  worker(queue: string = this._defaultQueue) : Promise<void> {
+  worker(queue: string = this._defaultQueue): Promise<void> {
     // Avoid loops
     this._async = false;
     return this._queues[queue].consume(this.handleEvent);

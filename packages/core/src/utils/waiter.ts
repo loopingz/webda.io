@@ -36,26 +36,26 @@ export interface WaitDelayerDefinition {
   /**
    * Interval
    */
-  interval: number,
+  interval: number;
   /**
    * Type of delayer registered in WaitDelayerFactoryRegistry
    */
-  type: string
+  type: string;
 }
 
 /**
  * Registry for DelayerFactory
  */
 export class WaitDelayerFactories {
-  static registry: {[key:string]: WaitDelayerFactory} = {
-    "linear": WaitLinearDelay,
-    "exponential": WaitExponentialDelay
+  static registry: { [key: string]: WaitDelayerFactory } = {
+    linear: WaitLinearDelay,
+    exponential: WaitExponentialDelay
   };
 
   /**
    * Add a delayer
-   * @param type 
-   * @param delayer 
+   * @param type
+   * @param delayer
    */
   static registerFactory(type: string, delayer: WaitDelayerFactory) {
     WaitDelayerFactories.registry[type] = delayer;
@@ -63,19 +63,19 @@ export class WaitDelayerFactories {
 
   /**
    * Return a registered delayer
-   * @param type 
-   * @returns 
+   * @param type
+   * @returns
    */
-  static getFactory(type: string) : WaitDelayerFactory {
+  static getFactory(type: string): WaitDelayerFactory {
     return WaitDelayerFactories.registry[type];
   }
 
   /**
-   * 
+   *
    * @param definition to get delayer from
-   * @returns 
+   * @returns
    */
-  static get(definition: WaitDelayerDefinition = {interval: 1000, type: 'exponential'}) : WaitDelayer {
+  static get(definition: WaitDelayerDefinition = { interval: 1000, type: "exponential" }): WaitDelayer {
     return WaitDelayerFactories.getFactory(definition.type)(definition.interval);
   }
 }

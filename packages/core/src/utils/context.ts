@@ -249,8 +249,22 @@ class Context extends EventEmitter {
     return this.getExtension<HttpContext>("http");
   }
 
-  public getExtension<T = any>(ext: string): T {
-    return <T>this.extensions[ext];
+  /**
+   * Get an extension of the context
+   * @param name of the extension
+   * @returns extension object
+   */
+  public getExtension<T = any>(name: string): T {
+    return <T>this.extensions[name];
+  }
+
+  /**
+   *
+   * @param name to add
+   * @param extension object to store
+   */
+  public setExtension(name: string, extension: any): void {
+    this.extensions[name] = extension;
   }
 
   /**

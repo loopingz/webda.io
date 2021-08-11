@@ -175,6 +175,23 @@ export interface Configuration {
    * Global parameters
    */
   parameters?: {
+    /**
+     * Allowed origin for referer that match
+     * any of this regexp
+     *
+     * {@link OriginFilter}
+     */
+    csrfOrigins?: string[];
+    /**
+     * Allow you to authorize one or several websites
+     * If you use "*" then the API is open to direct call and any origins
+     *
+     * {@link WebsiteOriginFilter}
+     */
+    website?: string | string[] | { url: string };
+    /**
+     * Cookie configuration for session
+     */
     cookie?: {
       sameSite: "None" | "Strict" | "Lax";
       domain: string;
@@ -197,7 +214,7 @@ export interface Configuration {
  *
  * If one of the filter replies with "true" then the request will go through
  */
-export interface RequestFilter<T extends Context> {
+export interface RequestFilter<T extends Context = Context> {
   /**
    * Return true if the request should be allowed
    *
@@ -444,7 +461,7 @@ export class Core extends events.EventEmitter {
 
   /**
    * Init one service
-   * @param service 
+   * @param service
    */
   protected async initService(service: string) {
     try {
@@ -760,9 +777,9 @@ export class Core extends events.EventEmitter {
 
   /**
    * Reinit one service
-   * @param service 
+   * @param service
    */
-  protected async reinitService(service: string) : Promise<void> {
+  protected async reinitService(service: string): Promise<void> {
     try {
       this.log("TRACE", "Re-Initializing service", service);
       let serviceBean = this.services[service];
@@ -775,8 +792,8 @@ export class Core extends events.EventEmitter {
 
   /**
    * Reinit all services with updated parameters
-   * @param updates 
-   * @returns 
+   * @param updates
+   * @returns
    */
   public async reinit(updates: any): Promise<void> {
     let configuration = JSON.parse(JSON.stringify(this.configuration.services));
@@ -788,7 +805,7 @@ export class Core extends events.EventEmitter {
       return this._initPromise;
     }
     this.configuration.services = configuration;
-    let inits : Promise<void>[] = [];
+    let inits: Promise<void>[] = [];
     for (let service in this.services) {
       inits.push(this.reinitService(service));
     }
@@ -812,7 +829,6 @@ export class Core extends events.EventEmitter {
     if (services === undefined) {
       services = {};
     }
-
     for (let i in beans) {
       if (!beans[i].bean) {
         this.log("DEBUG", "Implicit @Bean due to a @Route", beans[i].constructor.name);
@@ -971,12 +987,12 @@ export class Core extends events.EventEmitter {
   /**
    * Emit the event with data and wait for Promise to finish if listener returned a Promise
    */
-  public emitSync(event, ...data): Promise<any[]> {
+  public emitSync<T = any>(eventType: string, event?: T, ...data): Promise<any[]> {
     var result;
     var promises = [];
-    var listeners = this.listeners(event);
+    var listeners = this.listeners(eventType);
     for (var i in listeners) {
-      result = listeners[i](...data);
+      result = listeners[i](event, ...data);
       if (result instanceof Promise) {
         promises.push(result);
       }

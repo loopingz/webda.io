@@ -1,0 +1,45 @@
+{
+  "name": "@webda/hawk",
+  "version": "0.0.0",
+  "description": "Implements Hawk on webda",
+  "keywords": [
+    "hawk",
+    "webda"
+  ],
+  "author": "Remi Cattiau <remi@cattiau.com>",
+  "repository": "git://github.com/loopingz/webda.io.git",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "pretest": "npm run build",
+    "lint": "prettier --check src/**/*",
+    "lint:fix": "prettier --write src/**/*",
+    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts src/*.spec.ts"
+  },
+  "dependencies": {
+    "@webda/core": "^1.0.0",
+    "hawk": "^9.0.0"
+  },
+  "devDependencies": {},
+  "files": [
+    "lib",
+    "test"
+  ],
+  "nyc": {
+    "extends": "@istanbuljs/nyc-config-typescript",
+    "report-dir": "./reports",
+    "reporter": [
+      "html",
+      "lcov",
+      "json"
+    ]
+  },
+  "homepage": "https://webda.io",
+  "publishConfig": {
+    "access": "public"
+  },
+  "webda": {
+    "namespace": "Webda"
+  }
+}

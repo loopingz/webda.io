@@ -229,7 +229,6 @@ export default class LambdaServer extends Webda {
       }
       routes.push("OPTIONS");
       ctx.setHeader("Access-Control-Allow-Methods", routes.join(","));
-      await ctx.end();
       return this.handleLambdaReturn(ctx);
     }
 
@@ -241,14 +240,10 @@ export default class LambdaServer extends Webda {
     await ctx.init();
     try {
       await ctx.execute();
-      if (!ctx._ended) {
-        await ctx.end();
-      }
       return this.handleLambdaReturn(ctx);
     } catch (err) {
       if (typeof err === "number") {
         ctx.statusCode = err;
-        this.flushHeaders(ctx);
       } else {
         this.log("ERROR", err);
         ctx.statusCode = 500;
@@ -258,11 +253,8 @@ export default class LambdaServer extends Webda {
   }
 
   async handleLambdaReturn(ctx: Context) {
-    // Override when it comes for express component
-    if (ctx.statusCode) {
-      this._result.statusCode = ctx.statusCode;
-    }
     await this.emitSync("Webda.Result", <EventWebdaResult>{ context: ctx });
+    await ctx.end();
     // TODO Clean to use ...this._result
     return this._result;
   }

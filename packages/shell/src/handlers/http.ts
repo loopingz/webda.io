@@ -137,9 +137,7 @@ export class WebdaServer extends Webda {
       try {
         await ctx.execute();
         await this.emitSync("Webda.Result", <EventWebdaResult>{ context: ctx });
-        if (!ctx._ended) {
-          await ctx.end();
-        }
+        await ctx.end();
       } catch (err) {
         await this.emitSync("Webda.Result", <EventWebdaResult>{ context: ctx });
         if (typeof err === "number") {

@@ -6,6 +6,22 @@ import { CoreModel, CoreModelDefinition } from "../models/coremodel";
 import { Service, ServiceParameters } from "../services/service";
 import { Context } from "../utils/context";
 
+/**
+ * Use to define a mapper
+ */
+export class Mapper<T> {
+  uuid: string;
+
+  constructor(uuid: string, properties: any) {
+    Object.assign(this, properties);
+    this.uuid = uuid;
+  }
+
+  async get(): Promise<T> {
+    return undefined;
+  }
+}
+
 interface EventStore {
   /**
    * Target object

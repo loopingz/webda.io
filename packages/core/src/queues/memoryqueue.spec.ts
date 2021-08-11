@@ -32,7 +32,8 @@ class MemoryQueueTest extends QueueTest {
             throw Error();
           case 4:
             // An error occured it should double the pause
-            assert.strictEqual(queue.pause, 2);
+            // @ts-ignore
+            assert.strictEqual(queue.failedIterations, 2);
             return Promise.resolve([
               {
                 ReceiptHandle: "msg2",
@@ -41,7 +42,8 @@ class MemoryQueueTest extends QueueTest {
             ]);
           case 5:
             // Error on callback dont generate a double delay
-            assert.strictEqual(queue.pause, 2);
+            // @ts-ignore
+            assert.strictEqual(queue.failedIterations, 2);
             resolve(queue.stop());
         }
       };
@@ -49,7 +51,7 @@ class MemoryQueueTest extends QueueTest {
         // Should only have the msg1 handle in deleteMessage as msg2 is fake error
         assert.strictEqual(handle, "msg1");
       };
-      let callback = event => {
+      let callback = async event => {
         switch (seq) {
           case 2:
             assert.strictEqual(event.title, "plop");
@@ -60,7 +62,7 @@ class MemoryQueueTest extends QueueTest {
             return;
         }
       };
-      queue.worker(callback);
+      queue.consume(callback);
     });
   }
 

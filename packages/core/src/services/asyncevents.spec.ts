@@ -44,11 +44,13 @@ class AsyncEventsTest extends WebdaTest {
     assert.strictEqual(eventsCount, 0);
     assert.strictEqual(priorityEventsCount, 0);
     let evt = await defaultQueue.receiveMessage();
-    await eventService._handleEvents(evt);
+    // @ts-ignore
+    await eventService.handleEvent(evt);
     assert.strictEqual(eventsCount, 1);
     assert.strictEqual(priorityEventsCount, 0);
     evt = await priorityQueue.receiveMessage();
-    await eventService._handleEvents(evt);
+    // @ts-ignore
+    await eventService.handleEvent(evt);
     assert.strictEqual(eventsCount, 1);
     assert.strictEqual(priorityEventsCount, 1);
     // Disable async and verify that it directly update now

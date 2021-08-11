@@ -25,6 +25,62 @@ export function WaitExponentialDelay(pause: number): WaitDelayer {
 }
 
 /**
+ * Delayer factory definition
+ */
+export type WaitDelayerFactory = (interval: number) => WaitDelayer;
+
+/**
+ * WaitDelayer definition
+ */
+export interface WaitDelayerDefinition {
+  /**
+   * Interval
+   */
+  interval: number,
+  /**
+   * Type of delayer registered in WaitDelayerFactoryRegistry
+   */
+  type: string
+}
+
+/**
+ * Registry for DelayerFactory
+ */
+export class WaitDelayerFactories {
+  static registry: {[key:string]: WaitDelayerFactory} = {
+    "linear": WaitLinearDelay,
+    "exponential": WaitExponentialDelay
+  };
+
+  /**
+   * Add a delayer
+   * @param type 
+   * @param delayer 
+   */
+  static registerFactory(type: string, delayer: WaitDelayerFactory) {
+    WaitDelayerFactories.registry[type] = delayer;
+  }
+
+  /**
+   * Return a registered delayer
+   * @param type 
+   * @returns 
+   */
+  static getFactory(type: string) : WaitDelayerFactory {
+    return WaitDelayerFactories.registry[type];
+  }
+
+  /**
+   * 
+   * @param definition to get delayer from
+   * @returns 
+   */
+  static get(definition: WaitDelayerDefinition = {interval: 1000, type: 'exponential'}) : WaitDelayer {
+    return WaitDelayerFactories.getFactory(definition.type)(definition.interval);
+  }
+}
+
+/**
  * Wait for an operation to end
  *
  * Some AWS Api require minutes and polling
@@ -49,7 +105,7 @@ export async function WaitFor<T = any>(
   delayer?: WaitDelayer
 ): Promise<T> {
   if (!delayer) {
-    delayer = WaitExponentialDelay(1000);
+    delayer = WaitDelayerFactories.get();
   }
   return new Promise<T>(async (mainResolve, mainReject) => {
     let tries: number = 0;

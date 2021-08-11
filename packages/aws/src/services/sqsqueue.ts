@@ -1,10 +1,10 @@
 "use strict";
-import { ModdaDefinition, Queue, ServiceParameters, WebdaError } from "@webda/core";
+import { ModdaDefinition, Queue, QueueParameters, WebdaError } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
 
-export class SQSQueueParameters extends ServiceParameters {
+export class SQSQueueParameters extends QueueParameters {
   WaitTimeSeconds: number;
   endpoint: string;
   queue: string;
@@ -19,8 +19,8 @@ export class SQSQueueParameters extends ServiceParameters {
   }
 }
 
-export default class SQSQueue<T extends SQSQueueParameters = SQSQueueParameters>
-  extends Queue<T>
+export default class SQSQueue<T extends SQSQueueParameters = SQSQueueParameters, K = any>
+  extends Queue<T, K>
   implements CloudFormationContributor
 {
   sqs: any;

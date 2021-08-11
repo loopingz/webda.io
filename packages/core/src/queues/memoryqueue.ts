@@ -3,13 +3,13 @@ import * as uuid from "uuid";
 import { ModdaDefinition } from "../core";
 import { ServiceParameters } from "../services/service";
 import { JSONUtils } from "../utils/serializers";
-import { Queue } from "./queueservice";
+import { Queue, QueueParameters } from "./queueservice";
 
 interface QueueMap {
   [key: string]: any;
 }
 
-export class MemoryQueueParameters extends ServiceParameters {
+export class MemoryQueueParameters extends QueueParameters {
   /**
    * Number of seconds before droping message
    *
@@ -28,7 +28,7 @@ export class MemoryQueueParameters extends ServiceParameters {
  * FIFO Queue in Memory
  * @category CoreServices
  */
-class MemoryQueue<T extends MemoryQueueParameters = MemoryQueueParameters> extends Queue<T> {
+class MemoryQueue<T extends MemoryQueueParameters = MemoryQueueParameters, K = any> extends Queue<T, K> {
   private _queue: QueueMap = {};
 
   /**
@@ -69,6 +69,9 @@ class MemoryQueue<T extends MemoryQueueParameters = MemoryQueueParameters> exten
     };
   }
 
+  /**
+   * @inheritdoc
+   */
   async receiveMessage() {
     for (var i in this._queue) {
       if (this._queue[i].Claimed < new Date().getTime() - this.parameters.expire) {
@@ -79,16 +82,25 @@ class MemoryQueue<T extends MemoryQueueParameters = MemoryQueueParameters> exten
     return [];
   }
 
+  /**
+   * @inheritdoc
+   */
   async deleteMessage(receipt) {
     if (this._queue[receipt]) {
       delete this._queue[receipt];
     }
   }
 
+  /**
+   * @inheritdoc
+   */
   async __clean() {
     this._queue = {};
   }
 
+  /**
+   * @inheritdoc
+   */
   static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/MemoryQueue",

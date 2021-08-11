@@ -81,6 +81,30 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
     }
   }
 
+  /**
+   * Bind a asynchronous event
+   * 
+   * ```mermaid
+   * sequenceDiagram
+	 *  participant S as Service
+	 *  participant As as AsyncEventService
+	 *  participant Q as Queue
+   *  participant Aw as AsyncEventService Worker
+   *
+   *  As->>S: Bind event to a sendQueue listener
+	 *  activate As
+	 *  S->>As: Emit event
+   *  As->>Q: Push the event to the queue
+	 *  deactivate As
+	 *  Aw->>Q: Consume queue
+	 *  Aw->>Aw: Call the original listener
+   * ```
+   * 
+   * @param service 
+   * @param event 
+   * @param callback 
+   * @param queue 
+   */
   bindAsyncListener(service, event, callback, queue) {
     if (!this._async) {
       throw Error("EventService is not configured for asynchronous");
@@ -96,16 +120,22 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
     this._callbacks[mapper].push(callback);
   }
 
-  pushEvent(service, type, queue, payload) {
+  async pushEvent(service, type, queue, payload) {
     let event = new AsyncEvent(service.getName(), type, payload);
     if (this._async) {
       return this._queues[queue].sendMessage(event);
     } else {
-      return this._handleEvent(event);
+      return this.handleEvent(event);
     }
   }
 
-  _handleEvent(event) {
+  /**
+   * Process one event
+   * 
+   * @param event 
+   * @returns 
+   */
+  protected async handleEvent(event) : Promise<void> {
     if (!this._callbacks[event.getMapper()]) {
       return Promise.reject("Callbacks should not be empty");
     }
@@ -114,19 +144,18 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
       promises.push(executor(event.payload, event));
     });
     // Need to handle the failure
-    return Promise.all(promises);
+    await Promise.all(promises);
   }
 
-  _handleEvents(events) {
-    events.map(event => {
-      this._handleEvent(AsyncEvent.fromQueue(JSON.parse(event.Body)));
-    });
-  }
-
-  worker(queue) {
+  /**
+   * Process asynchronous event on queue
+   * @param queue 
+   * @returns 
+   */
+  worker(queue: string = this._defaultQueue) : Promise<void> {
     // Avoid loops
     this._async = false;
-    return this._queues[queue].worker(this._handleEvents);
+    return this._queues[queue].consume(this.handleEvent);
   }
 }
 

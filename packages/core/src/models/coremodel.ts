@@ -94,7 +94,10 @@ class CoreModel {
    * By default nothing is permitted on a CoreModel
    * @returns
    */
-  async canAct(ctx: Context, action: string): Promise<this> {
+  async canAct(
+    ctx: Context,
+    action: "create" | "update" | "get" | "delete" | "get_binary" | "detach_binary" | "attach_binary" | string
+  ): Promise<this> {
     throw 403;
   }
 

@@ -46,7 +46,10 @@ export default class OwnerModel extends CoreModel {
     return this._user;
   }
 
-  async canAct(ctx: Context, action: string): Promise<this> {
+  async canAct(
+    ctx: Context,
+    action: "create" | "update" | "get" | "delete" | "get_binary" | "detach_binary" | "attach_binary" | string
+  ): Promise<this> {
     if (action === "create") {
       return this.canCreate(ctx);
     } else if (action === "update" || action === "attach_binary" || action === "detach_binary") {

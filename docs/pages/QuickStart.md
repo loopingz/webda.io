@@ -29,3 +29,7 @@ If you have the `"$schema": ".webda-config-schema.json"` in your webda.config.js
 and the `"$schema": "../.webda-deployment-schema.json"` in each of your deployment files
 
 You will be able to use the dynamic auto-completion when editing these files
+
+## HTTP Client
+
+We recommend using [axios](https://www.npmjs.com/package/axios)

@@ -1,25 +1,84 @@
-import { Queue } from "../queues/queueservice";
+import { MessageReceipt, Queue } from "../queues/queueservice";
 import { Service, ServiceParameters } from "./service";
 
+/**
+ * AsyncEvent representation
+ */
 class AsyncEvent {
-  service: Service;
+  /**
+   * Service emitted the event
+   */
+  service: string;
+  /**
+   * Type of event
+   */
   type: string;
+  /**
+   * Payload of the event
+   */
   payload: any;
+  /**
+   * Time
+   */
   time: Date;
 
-  constructor(service, type, payload = {}) {
+  /**
+   * Used when serializing a service
+   */
+  static ServiceTag = "#Webda:Service:";
+
+  constructor(service: string, type, payload = {}) {
     this.service = service;
     this.type = type;
     this.payload = payload;
     this.time = new Date();
   }
 
-  static fromQueue(data) {
-    let evt = new AsyncEvent(data.service, data.type, data.payload);
+  /**
+   * Allow payload to contain Service but do not serialize them
+   * replacing them by a #Webda:Service:${service.getName()} so it
+   * can be revived
+   *
+   * @returns
+   */
+  toJSON() {
+    return {
+      ...this,
+      payload: JSON.stringify(this.payload, (key: string, value: any) => {
+        if (value instanceof Service) {
+          return `${AsyncEvent.ServiceTag}${value.getName()}`;
+        }
+        return value;
+      })
+    };
+  }
+
+  /**
+   * Deserialize from the queue, reviving any detected service
+   *
+   * @param data
+   * @param service
+   * @returns
+   */
+  static fromQueue(data: any, service: Service) {
+    let evt = new AsyncEvent(
+      data.service,
+      data.type,
+      JSON.parse(data.payload, (key: string, value: any) => {
+        if (typeof value === "string" && value.startsWith(AsyncEvent.ServiceTag)) {
+          return service.getService(value.substr(AsyncEvent.ServiceTag.length));
+        }
+        return value;
+      })
+    );
     evt.time = data.time;
     return evt;
   }
 
+  /**
+   * Mapper name
+   * @returns
+   */
   getMapper() {
     return this.service + "_" + this.type;
   }
@@ -29,6 +88,9 @@ interface QueueMap {
   [key: string]: Queue;
 }
 
+/**
+ * @inheritdoc
+ */
 export class EventServiceParameters extends ServiceParameters {
   /**
    * Queues to post async events to
@@ -105,7 +167,7 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
    * @param callback
    * @param queue
    */
-  bindAsyncListener(service, event, callback, queue) {
+  bindAsyncListener(service: Service, event: string, callback, queue: string) {
     if (!this._async) {
       throw Error("EventService is not configured for asynchronous");
     }
@@ -120,7 +182,16 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
     this._callbacks[mapper].push(callback);
   }
 
-  async pushEvent(service, type, queue, payload) {
+  /**
+   * Synchronous Listener to proxy to async
+   *
+   * @param service
+   * @param type
+   * @param queue
+   * @param payload
+   * @returns
+   */
+  async pushEvent(service: Service, type: string, queue: string, payload: any) {
     let event = new AsyncEvent(service.getName(), type, payload);
     if (this._async) {
       return this._queues[queue].sendMessage(event);
@@ -135,9 +206,11 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
    * @param event
    * @returns
    */
-  protected async handleEvent(event): Promise<void> {
+  protected async handleEvent(event: AsyncEvent): Promise<void> {
     if (!this._callbacks[event.getMapper()]) {
-      return Promise.reject("Callbacks should not be empty");
+      return Promise.reject(
+        "Callbacks should not be empty, possible application version mismatch between emitter and worker"
+      );
     }
     let promises = [];
     this._callbacks[event.getMapper()].map(executor => {
@@ -148,6 +221,15 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
   }
 
   /**
+   *
+   * @param eventBody serialized event
+   * @returns
+   */
+  protected async handleRawEvent(eventBody: string) {
+    return this.handleEvent(AsyncEvent.fromQueue(JSON.parse(eventBody), this));
+  }
+
+  /**
    * Process asynchronous event on queue
    * @param queue
    * @returns
@@ -155,7 +237,7 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
   worker(queue: string = this._defaultQueue): Promise<void> {
     // Avoid loops
     this._async = false;
-    return this._queues[queue].consume(this.handleEvent);
+    return this._queues[queue].consume(this.handleRawEvent.bind(this));
   }
 }
 

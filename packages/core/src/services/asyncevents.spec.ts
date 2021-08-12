@@ -43,14 +43,14 @@ class AsyncEventsTest extends WebdaTest {
     // We need to emulate the worker as it wont stop pulling from the queue
     assert.strictEqual(eventsCount, 0);
     assert.strictEqual(priorityEventsCount, 0);
-    let evt = await defaultQueue.receiveMessage();
+    let evts = await defaultQueue.receiveMessage();
     // @ts-ignore
-    await eventService.handleEvent(evt);
+    await eventService.handleRawEvent(evts[0].Body);
     assert.strictEqual(eventsCount, 1);
     assert.strictEqual(priorityEventsCount, 0);
-    evt = await priorityQueue.receiveMessage();
+    evts = await priorityQueue.receiveMessage();
     // @ts-ignore
-    await eventService.handleEvent(evt);
+    await eventService.handleRawEvent(evts[0].Body);
     assert.strictEqual(eventsCount, 1);
     assert.strictEqual(priorityEventsCount, 1);
     // Disable async and verify that it directly update now

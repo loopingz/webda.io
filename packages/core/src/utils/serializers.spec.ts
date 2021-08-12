@@ -35,7 +35,7 @@ class UtilsTest {
       __test: true
     };
     a.c.a = a;
-    assert.deepStrictEqual(JSONUtils.stringify(a), JSON.stringify({ b: "test", c: {} }, undefined, 2));
+    assert.deepStrictEqual(JSONUtils.stringify(a), JSON.stringify({ b: "test", c: {}, __test: true }, undefined, 2));
     assert.deepStrictEqual(
       JSONUtils.stringify(
         a,
@@ -43,7 +43,8 @@ class UtilsTest {
           if (key !== "b") return value;
           return undefined;
         },
-        3
+        3,
+        true
       ),
       JSON.stringify({ c: {} }, undefined, 3)
     );
@@ -61,7 +62,7 @@ class UtilsTest {
     a.d = a.c;
     assert.deepStrictEqual(
       JSONUtils.stringify(a),
-      JSON.stringify({ b: "test", c: { plop: "bouzouf" }, d: { plop: "bouzouf" } }, undefined, 2)
+      JSON.stringify({ b: "test", c: { plop: "bouzouf" }, __test: true, d: { plop: "bouzouf" }}, undefined, 2)
     );
   }
 

@@ -333,7 +333,7 @@ class Context extends EventEmitter {
     }
     if (typeof output === "object" && !(output instanceof Buffer)) {
       this.setHeader("Content-type", "application/json");
-      this._body = JSONUtils.stringify(output, undefined, 0);
+      this._body = JSONUtils.stringify(output, undefined, 0, true);
       return true;
     } else if (typeof output == "string") {
       if (this._body == undefined) {

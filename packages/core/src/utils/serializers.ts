@@ -34,11 +34,14 @@ export const FileUtils = {
    * @param filename to save
    * @returns
    */
-  save: (object, filename = "") => {
+  save: (object, filename = "", publicAudience: boolean = false) => {
     if (filename.match(/\.ya?ml$/i)) {
-      return writeFileSync(filename, yaml.stringify(JSON.parse(JSONUtils.stringify(object))));
+      return writeFileSync(
+        filename,
+        yaml.stringify(JSON.parse(JSONUtils.stringify(object, undefined, 0, publicAudience)))
+      );
     } else if (filename.match(/\.json$/i)) {
-      return writeFileSync(filename, JSONUtils.stringify(object, undefined, 2));
+      return writeFileSync(filename, JSONUtils.stringify(object, undefined, 2, publicAudience));
     }
     throw new Error("Unknown format");
   }
@@ -57,12 +60,17 @@ export const JSONUtils = {
    * @param space
    * @returns
    */
-  safeStringify: (value, replacer: (key: string, value: any) => any = undefined, space: number | string = 2) => {
+  safeStringify: (
+    value,
+    replacer: (key: string, value: any) => any = undefined,
+    space: number | string = 2,
+    publicAudience: boolean = false
+  ) => {
     let stringified = [];
     return JSON.stringify(
       value,
       function (key: string, val: any): any {
-        if ((stringified.indexOf(val) >= 0 && typeof val === "object") || key.startsWith("__")) {
+        if ((stringified.indexOf(val) >= 0 && typeof val === "object") || (key.startsWith("__") && publicAudience)) {
           return undefined;
         }
         stringified.push(val);
@@ -85,13 +93,18 @@ export const JSONUtils = {
    * @param space
    * @returns
    */
-  stringify: (value, replacer: (key: string, value: any) => any = undefined, space: number | string = 2) => {
+  stringify: (
+    value,
+    replacer: (key: string, value: any) => any = undefined,
+    space: number | string = 2,
+    publicAudience: boolean = false
+  ) => {
     // Add a fallback if first did not work because of recursive
     try {
       return JSON.stringify(
         value,
         (key: string, val: any) => {
-          if (key.startsWith("__")) {
+          if (key.startsWith("__") && publicAudience) {
             return undefined;
           }
           if (replacer) {
@@ -106,7 +119,7 @@ export const JSONUtils = {
       );
     } catch (err) {
       if (err.message && err.message.startsWith("Converting circular structure to JSON")) {
-        return JSONUtils.safeStringify(value, replacer, space);
+        return JSONUtils.safeStringify(value, replacer, space, publicAudience);
       }
       throw err;
     }

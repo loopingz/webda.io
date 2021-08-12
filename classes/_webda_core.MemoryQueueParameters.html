@@ -112,6 +112,9 @@
 						<a href="../modules/_webda_google_auth.html" class="tsd-kind-icon">@webda/google-<wbr>auth</a>
 					</li>
 					<li class=" tsd-kind-module root">
+						<a href="../modules/_webda_hawk.html" class="tsd-kind-icon">@webda/hawk</a>
+					</li>
+					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_profiler.html" class="tsd-kind-icon">@webda/profiler</a>
 					</li>
 					<li class=" tsd-kind-module root">
@@ -129,7 +132,7 @@
 				<div>
 					<ul class="tsd-hierarchy">
 						<li>
-							<span class="tsd-signature-type">ServiceParameters</span>
+							<span class="tsd-signature-type">QueueParameters</span>
 							<ul class="tsd-hierarchy">
 								<li>
 									<span class="target">MemoryQueueParameters</span>
@@ -153,6 +156,12 @@
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.MemoryQueueParameters.html#type" class="tsd-kind-icon">type</a>
 							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_core.MemoryQueueParameters.html#workerDelayer" class="tsd-kind-icon">worker<wbr>Delayer</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_core.MemoryQueueParameters.html#workerParallelism" class="tsd-kind-icon">worker<wbr>Parallelism</a>
+							</li>
 						</ul>
 					</li>
 				</ul>
@@ -166,7 +175,7 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<a href="_webda_core.ServiceParameters.html" class="tsd-signature-type">ServiceParameters</a>
+						<a href="_webda_core.QueueParameters.html" class="tsd-signature-type">QueueParameters</a>
 						<ul class="tsd-hierarchy">
 							<li>
 								<span class="target">MemoryQueueParameters</span>
@@ -189,6 +198,8 @@
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.MemoryQueueParameters.html#expire" class="tsd-kind-icon">expire</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueueParameters.html#type" class="tsd-kind-icon">type</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueueParameters.html#workerDelayer" class="tsd-kind-icon">worker<wbr>Delayer</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueueParameters.html#workerParallelism" class="tsd-kind-icon">worker<wbr>Parallelism</a></li>
 							</ul>
 						</section>
 					</div>
@@ -204,7 +215,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Overrides <a href="_webda_core.ServiceParameters.html">ServiceParameters</a>.<a href="_webda_core.ServiceParameters.html#constructor">constructor</a></p>
+								<p>Overrides <a href="_webda_core.QueueParameters.html">QueueParameters</a>.<a href="_webda_core.QueueParameters.html#constructor">constructor</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -256,6 +267,36 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in packages/core/src/services/service.ts:98</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="workerDelayer" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">worker<wbr>Delayer<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_webda_core.WaitDelayerDefinition.html" class="tsd-signature-type">WaitDelayerDefinition</a></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Delayer between two failed attempts to process messages</p>
+						</div>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/queues/queueservice.ts:25</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="workerParallelism" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">worker<wbr>Parallelism<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Define if worker should process multi message received in //</p>
+						</div>
+						</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+						<dl class="tsd-comment-tags"><dt>default</dt>
+							<dd><p>true</p>
+						</dd></dl>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/queues/queueservice.ts:30</li>
 						</ul>
 					</aside>
 			</section>    </section>

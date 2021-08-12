@@ -112,6 +112,9 @@
 						<a href="../modules/_webda_google_auth.html" class="tsd-kind-icon">@webda/google-<wbr>auth</a>
 					</li>
 					<li class=" tsd-kind-module root">
+						<a href="../modules/_webda_hawk.html" class="tsd-kind-icon">@webda/hawk</a>
+					</li>
+					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_profiler.html" class="tsd-kind-icon">@webda/profiler</a>
 					</li>
 					<li class=" tsd-kind-module root">
@@ -235,7 +238,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/core.ts:192</li>
+							<li>Defined in packages/core/src/core.ts:209</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
@@ -254,6 +257,11 @@
 							</li>
 							<li class="tsd-parameter">
 								<h5><span class="tsd-flag ts-flagOptional">Optional</span> cookie<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">object</span></h5>
+								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+									<div class="lead">
+										<p>Cookie configuration for session</p>
+									</div>
+								</div>
 								<ul class="tsd-parameters">
 									<li class="tsd-parameter">
 										<h5>domain<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5>
@@ -273,6 +281,28 @@
 										<h5>same<wbr>Site<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">"None"</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">"Strict"</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">"Lax"</span></h5>
 									</li>
 								</ul>
+							</li>
+							<li class="tsd-parameter">
+								<h5><span class="tsd-flag ts-flagOptional">Optional</span> csrf<wbr>Origins<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h5>
+								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+									<div class="lead">
+										<p>Allowed origin for referer that match
+										any of this regexp</p>
+									</div>
+									</div><div class="tsd-comment tsd-typography tsd-comment-text">
+									<p><a href="../classes/_webda_core.OriginFilter.html">OriginFilter</a></p>
+								</div>
+							</li>
+							<li class="tsd-parameter">
+								<h5><span class="tsd-flag ts-flagOptional">Optional</span> website<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">object</span></h5>
+								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+									<div class="lead">
+										<p>Allow you to authorize one or several websites
+										If you use &quot;*&quot; then the API is open to direct call and any origins</p>
+									</div>
+									</div><div class="tsd-comment tsd-typography tsd-comment-text">
+									<p><a href="../classes/_webda_core.WebsiteOriginFilter.html">WebsiteOriginFilter</a></p>
+								</div>
 							</li>
 						</ul>
 					</div>

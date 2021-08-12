@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>webda.config.json |
+	<title>Modda |
 	webda.io</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -64,7 +64,7 @@
 				<a href="../Concepts.html">Concepts</a>
 			</li>
 			<li>
-				<a href="Webda.config.json.html">webda.config.json</a>
+				<a href="Modda.html">Modda</a>
 			</li>
 		</ul>
 	</div>
@@ -95,9 +95,13 @@
 					<li class=" pp-nav pp-page pp-depth-1 root">
 						<a href="ExtendingShell.html" class="tsd-kind-icon">Extending webda executable</a>
 					</li>
-					<li class=" pp-nav pp-page pp-depth-1 root">
+				</ul>
+				<ul class="current">
+					<li class="current pp-nav pp-page pp-depth-1 root">
 						<a href="Modda.html" class="tsd-kind-icon">Modda</a>
 					</li>
+				</ul>
+				<ul class="after-current">
 					<li class=" pp-nav pp-page pp-depth-1 root">
 						<a href="Queues.html" class="tsd-kind-icon">Queues</a>
 					</li>
@@ -107,13 +111,9 @@
 					<li class=" pp-nav pp-page pp-depth-1 root">
 						<a href="Stores.html" class="tsd-kind-icon">Store</a>
 					</li>
-				</ul>
-				<ul class="current">
-					<li class="current pp-nav pp-page pp-depth-1 root">
+					<li class=" pp-nav pp-page pp-depth-1 root">
 						<a href="Webda.config.json.html" class="tsd-kind-icon">webda.config.json</a>
 					</li>
-				</ul>
-				<ul class="after-current">
 					<li class=" pp-nav pp-page pp-depth-0 root">
 						<a href="../Deployments.html" class="tsd-kind-icon">Deployments</a>
 					</li>
@@ -167,29 +167,15 @@
 			</nav>
 		</div>
 		<div class="col-content">
-			<h1>webda.config.json</h1>
+			<h1>Modda</h1>
 			<div class="tsd-panel tsd-typography">
-				<p>This is the application definition file</p>
-				<p>It has 3 main sections:</p>
-				<pre><code class="language-json"><span style="color: #000000">{</span>
-<span style="color: #000000">  </span><span style="color: #0451A5">&quot;parameters&quot;</span><span style="color: #000000">: {</span>
-<span style="color: #000000">    </span><span style="color: #008000">// This will be passed to all your Services</span>
-<span style="color: #000000">  },</span>
-<span style="color: #000000">  </span><span style="color: #0451A5">&quot;services&quot;</span><span style="color: #000000">: {</span>
-<span style="color: #000000">    </span><span style="color: #008000">// Definie each Service and its own parameters</span>
-<span style="color: #000000">  },</span>
-<span style="color: #000000">  </span><span style="color: #0451A5">&quot;version&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;2&quot;</span>
-<span style="color: #000000">}</span>
-</code></pre>
-				<a href="#parameters" id="parameters" style="color: inherit; text-decoration: none;">
-					<h2>Parameters</h2>
-				</a>
-				<p>Each service will be injected with its parameters.</p>
-				<a href="#services" id="services" style="color: inherit; text-decoration: none;">
-					<h2>Services</h2>
-				</a>
-				<p>This is a map with all Services name. If the <code>type</code> is not defined, then it will default
-				to <code>type = name</code>, and add default namespace if it does not have a namespace.</p>
+				<p>Webda is extensible by nature.
+				You can design service to be reused in other app.</p>
+				<p>To make them reusable, you need to:</p>
+				<ul>
+					<li>Export as <code>default</code></li>
+					<li>Define the <code>getModda</code> method to give name to your service</li>
+				</ul>
 			</div>
 			<!--{&quot;options&quot;:&quot;/home/runner/work/webda.io/webda.io&quot;,&quot;tsconfig&quot;:&quot;/home/runner/work/webda.io/webda.io&quot;,&quot;packages&quot;:[&quot;/home/runner/work/webda.io/webda.io&quot;],&quot;entryPoints&quot;:[],&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;/home/runner/work/webda.io/webda.io/packages/*/node_modules&quot;,&quot;/home/runner/work/webda.io/webda.io/packages/*/src/**/*.spec.ts&quot;,&quot;/home/runner/work/webda.io/webda.io/sample-app&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;/home/runner/work/webda.io/webda.io/docs/media&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;/home/runner/work/webda.io/webda.io/.built-docs&quot;,&quot;json&quot;:&quot;&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;/home/runner/work/webda.io/webda.io/readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;sort&quot;:[&quot;kind&quot;,&quot;instance-first&quot;,&quot;alphabetical&quot;],&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;treatWarningsAsErrors&quot;:false,&quot;listInvalidSymbolLinks&quot;:false,&quot;outline&quot;:[],&quot;excludeReferences&quot;:false,&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true,&quot;noJekyll&quot;:true,&quot;githubPagesDomain&quot;:&quot;docs.webda.io&quot;,&quot;enablePageLinks&quot;:true,&quot;enableSearch&quot;:true,&quot;failBuildOnInvalidPageLink&quot;:false,&quot;listInvalidPageLinks&quot;:false,&quot;output&quot;:&quot;pages&quot;,&quot;sources&quot;:[&quot;./docs/pages/&quot;]}}-->
 			<footer class="with-border-bottom">

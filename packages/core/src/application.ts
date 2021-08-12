@@ -34,7 +34,8 @@ import {
   SessionCookie,
   User,
   WebdaError,
-  VersionService
+  VersionService,
+  FileQueue
 } from "./index";
 import { Deployment } from "./models/deployment";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
@@ -227,6 +228,7 @@ export class Application {
     "webda/echoservice": EchoService,
     "webda/versionservice": VersionService,
     "webda/memoryqueue": MemoryQueue,
+    "webda/filequeue": FileQueue,
     "webda/configurationservice": ConfigurationService,
     "webda/fileconfigurationservice": FileConfigurationService,
     "webda/kubernetesconfigurationservice": KubernetesConfigurationService,

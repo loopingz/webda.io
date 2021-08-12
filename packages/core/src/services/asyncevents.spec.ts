@@ -4,7 +4,7 @@ import { CoreModel } from "../models/coremodel";
 import { Queue } from "../queues/queueservice";
 import { Store } from "../stores/store";
 import { WebdaTest } from "../test";
-import { EventService } from "./asyncevents";
+import { AsyncEvent, EventService } from "./asyncevents";
 
 @suite
 class AsyncEventsTest extends WebdaTest {
@@ -13,8 +13,8 @@ class AsyncEventsTest extends WebdaTest {
     var users: Store<CoreModel> = <Store<CoreModel>>this.webda.getService("users");
     var eventsCount = 0;
     var priorityEventsCount = 0;
-    var defaultQueue: Queue = <Queue>this.webda.getService("EventQueue");
-    var priorityQueue: Queue = <Queue>this.webda.getService("PriorityEventQueue");
+    var defaultQueue: Queue = <Queue<AsyncEvent>>this.webda.getService("EventQueue");
+    var priorityQueue: Queue = <Queue<AsyncEvent>>this.webda.getService("PriorityEventQueue");
     var eventService: EventService = <EventService>this.webda.getService("AsyncEvents");
     users.onAsync("Store.Saved", () => {
       eventsCount++;
@@ -45,12 +45,12 @@ class AsyncEventsTest extends WebdaTest {
     assert.strictEqual(priorityEventsCount, 0);
     let evts = await defaultQueue.receiveMessage();
     // @ts-ignore
-    await eventService.handleRawEvent(evts[0].Body);
+    await eventService.handleRawEvent(evts[0].Message);
     assert.strictEqual(eventsCount, 1);
     assert.strictEqual(priorityEventsCount, 0);
     evts = await priorityQueue.receiveMessage();
     // @ts-ignore
-    await eventService.handleRawEvent(evts[0].Body);
+    await eventService.handleRawEvent(evts[0].Message);
     assert.strictEqual(eventsCount, 1);
     assert.strictEqual(priorityEventsCount, 1);
     // Disable async and verify that it directly update now

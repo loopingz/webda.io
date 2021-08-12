@@ -4,11 +4,11 @@ import { WaitDelayerDefinition, WaitDelayer, WaitDelayerFactories } from "../uti
 /**
  * Raw message from queue
  */
-export interface MessageReceipt {
+export interface MessageReceipt<T = any> {
   /**
-   * Serialized event
+   * Message
    */
-  Body: string;
+  Message: T;
   /**
    * Id of message to acknowledge
    */
@@ -77,7 +77,7 @@ abstract class Queue<K = any, T extends QueueParameters = QueueParameters> exten
   /**
    * Receive one or several messages
    */
-  abstract receiveMessage(): Promise<MessageReceipt[]>;
+  abstract receiveMessage(): Promise<MessageReceipt<K>[]>;
 
   /**
    * Delete one message based on its receipt
@@ -125,8 +125,7 @@ abstract class Queue<K = any, T extends QueueParameters = QueueParameters> exten
       }
       const msgWorker = async msg => {
         try {
-          const event = <K>JSON.parse(msg.Body);
-          await this.callback(event);
+          await this.callback(msg.Message);
           await this.deleteMessage(msg.ReceiptHandle);
         } catch (err) {
           this.getWebda().log("ERROR", `Message ${msg.ReceiptHandle}`, err);

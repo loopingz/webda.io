@@ -30,7 +30,7 @@ class MemoryQueueTest extends QueueTest {
             return Promise.resolve([
               {
                 ReceiptHandle: "msg1",
-                Body: '{"title":"plop"}'
+                Message: { title: "plop" }
               }
             ]);
           case 3:
@@ -42,7 +42,7 @@ class MemoryQueueTest extends QueueTest {
             return Promise.resolve([
               {
                 ReceiptHandle: "msg2",
-                Body: '{"title":"plop2"}'
+                Message: { title: "plop2" }
               }
             ]);
           case 5:
@@ -91,11 +91,11 @@ class MemoryQueueTest extends QueueTest {
               return Promise.resolve([
                 {
                   ReceiptHandle: "msg1",
-                  Body: '{"title":"plop"}'
+                  Message: { title: "plop" }
                 },
                 {
                   ReceiptHandle: "msg2",
-                  Body: '{"title":"plop2"}'
+                  Message: { title: "plop2" }
                 }
               ]);
             case 2:

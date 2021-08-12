@@ -18,6 +18,7 @@ export * from "./models/user";
 // Queues
 export * from "./queues/memoryqueue";
 export * from "./queues/queueservice";
+export * from "./queues/filequeue";
 // Services
 export * from "./services/asyncevents";
 export * from "./services/authentication";

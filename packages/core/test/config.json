@@ -44,6 +44,11 @@
       "type": "MemoryQueue",
       "expire": 1
     },
+    "FileQueue": {
+      "type": "FileQueue",
+      "expire": 1,
+      "folder": "./test/data/queue"
+    },
     "PriorityEventQueue": {
       "type": "MemoryQueue",
       "expire": 3600

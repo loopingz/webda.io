@@ -37,6 +37,9 @@ class QueueTest extends WebdaTest {
     if (msg.length > 0) {
       await queue.deleteMessage(msg[0].ReceiptHandle);
     }
+    if (!inconsistentSize) {
+      assert.strictEqual(await queue.size(), 0);
+    }
   }
 }
 

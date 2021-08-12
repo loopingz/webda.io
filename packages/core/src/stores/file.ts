@@ -4,6 +4,7 @@ import * as path from "path";
 import { ModdaDefinition, WebdaError } from "../core";
 import { CoreModel } from "../models/coremodel";
 import { Store, StoreParameters } from "./store";
+import { emptyDirSync } from "fs-extra";
 
 class FileStoreParameters extends StoreParameters {
   /**
@@ -42,7 +43,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
    * Create the storage folder if does not exist
    */
   async computeParameters() {
-    super.computeParameters();
+    await super.computeParameters();
     if (!fs.existsSync(this.parameters.folder)) {
       fs.mkdirSync(this.parameters.folder);
     }
@@ -207,22 +208,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
     if (!fs.existsSync(this.parameters.folder)) {
       return;
     }
-    var files = fs.readdirSync(this.parameters.folder);
-    var promises = [];
-    for (var file in files) {
-      let filename = this.parameters.folder + "/" + files[file];
-      promises.push(
-        new Promise<void>((resolve, reject) => {
-          fs.unlink(filename, err => {
-            if (err) {
-              reject(err);
-            }
-            resolve();
-          });
-        })
-      );
-    }
-    await Promise.all(promises);
+    emptyDirSync(this.parameters.folder);
     if (this.parameters.index) {
       await this.createIndex();
     }

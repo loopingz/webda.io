@@ -1,16 +1,38 @@
 "use strict";
-import { ModdaDefinition, Queue, QueueParameters, WebdaError } from "@webda/core";
+import { ModdaDefinition, Queue, QueueParameters, WebdaError, MessageReceipt } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
 
 export class SQSQueueParameters extends QueueParameters {
-  WaitTimeSeconds: number;
-  endpoint: string;
+  /**
+   * Time to wait pending for an item
+   * @default 20
+   */
+  WaitTimeSeconds?: number;
+  /**
+   * Endpoint to pass to the AWS client
+   * Useful for localstack
+   */
+  endpoint?: string;
+  /**
+   * Queue URL
+   * @default ""
+   */
   queue: string;
-  MessageGroupId: string;
-  CloudFormationSkip: boolean;
-  CloudFormation: any;
+  /**
+   * MessageGroupId to pass to send and receive
+   */
+  MessageGroupId?: string;
+  /**
+   * Skip CloudFormation on deploy
+   * @default false
+   */
+  CloudFormationSkip?: boolean;
+  /**
+   * Any additional CloudFormation parameters
+   */
+  CloudFormation?: any;
 
   constructor(params: any) {
     super(params);
@@ -19,20 +41,27 @@ export class SQSQueueParameters extends QueueParameters {
   }
 }
 
+/**
+ * Implement SQS as queue for Webda
+ */
 export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueueParameters>
   extends Queue<T, K>
   implements CloudFormationContributor
 {
-  sqs: any;
   /**
-   * Load the parameters
-   *
-   * @param params
+   * AWS SQS Client
+   */
+  sqs: AWS.SQS;
+  /**
+   * @inheritdoc
    */
   loadParameters(params: any) {
     return new SQSQueueParameters(params);
   }
 
+  /**
+   * @inheritdoc
+   */
   async init(): Promise<void> {
     await super.init();
     this.sqs = new (GetAWS(this.parameters).SQS)({
@@ -40,6 +69,9 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
     });
   }
 
+  /**
+   * @inheritdoc
+   */
   async size(): Promise<number> {
     let res = await this.sqs
       .getQueueAttributes({
@@ -53,7 +85,10 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
     );
   }
 
-  async sendMessage(params) {
+  /**
+   * @inheritdoc
+   */
+  async sendMessage(params: T): Promise<void> {
     var sqsParams: any = {};
     sqsParams.QueueUrl = this.parameters.queue;
     if (this.parameters.MessageGroupId) {
@@ -61,21 +96,28 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
     }
     sqsParams.MessageBody = JSON.stringify(params);
 
-    return this.sqs.sendMessage(sqsParams).promise();
+    await this.sqs.sendMessage(sqsParams).promise();
   }
 
-  async receiveMessage() {
+  /**
+   * @inheritdoc
+   */
+  async receiveMessage(): Promise<MessageReceipt<T>[]> {
     let queueArg = {
       QueueUrl: this.parameters.queue,
       WaitTimeSeconds: this.parameters.WaitTimeSeconds,
       AttributeNames: ["MessageGroupId"]
     };
     let data = await this.sqs.receiveMessage(queueArg).promise();
-    return data.Messages || [];
+    data.Messages ??= [];
+    return data.Messages.map(m => ({ ReceiptHandle: m.ReceiptHandle, Message: JSON.parse(m.Body) }));
   }
 
-  async deleteMessage(receipt) {
-    return this.sqs
+  /**
+   * @inheritdoc
+   */
+  async deleteMessage(receipt: string): Promise<void> {
+    await this.sqs
       .deleteMessage({
         QueueUrl: this.parameters.queue,
         ReceiptHandle: receipt
@@ -83,6 +125,9 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
       .promise();
   }
 
+  /**
+   * @inheritdoc
+   */
   async __clean() {
     return this.__cleanWithRetry(false);
   }
@@ -163,6 +208,9 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
     return resources;
   }
 
+  /**
+   * @inheritdoc
+   */
   static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/SQSQueue",

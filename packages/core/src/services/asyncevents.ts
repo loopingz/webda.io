@@ -4,7 +4,7 @@ import { Service, ServiceParameters } from "./service";
 /**
  * AsyncEvent representation
  */
-class AsyncEvent {
+export class AsyncEvent {
   /**
    * Service emitted the event
    */
@@ -225,8 +225,8 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
    * @param eventBody serialized event
    * @returns
    */
-  protected async handleRawEvent(eventBody: string) {
-    return this.handleEvent(AsyncEvent.fromQueue(JSON.parse(eventBody), this));
+  protected async handleRawEvent(event: AsyncEvent) {
+    return this.handleEvent(AsyncEvent.fromQueue(event, this));
   }
 
   /**

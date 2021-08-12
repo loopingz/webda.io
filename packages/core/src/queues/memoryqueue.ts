@@ -3,7 +3,7 @@ import * as uuid from "uuid";
 import { ModdaDefinition } from "../core";
 import { ServiceParameters } from "../services/service";
 import { JSONUtils } from "../utils/serializers";
-import { Queue, QueueParameters } from "./queueservice";
+import { MessageReceipt, Queue, QueueParameters } from "./queueservice";
 
 interface QueueMap {
   [key: string]: any;
@@ -28,7 +28,7 @@ export class MemoryQueueParameters extends QueueParameters {
  * FIFO Queue in Memory
  * @category CoreServices
  */
-class MemoryQueue<K = any, T extends MemoryQueueParameters = MemoryQueueParameters> extends Queue<K, T> {
+class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueParameters> extends Queue<T, K> {
   private _queue: QueueMap = {};
 
   /**
@@ -72,11 +72,16 @@ class MemoryQueue<K = any, T extends MemoryQueueParameters = MemoryQueueParamete
   /**
    * @inheritdoc
    */
-  async receiveMessage() {
+  async receiveMessage(): Promise<MessageReceipt<T>[]> {
     for (var i in this._queue) {
       if (this._queue[i].Claimed < new Date().getTime() - this.parameters.expire) {
         this._queue[i].Claimed = new Date().getTime();
-        return [this._queue[i]];
+        return [
+          {
+            ReceiptHandle: this._queue[i].ReceiptHandle,
+            Message: JSON.parse(this._queue[i].Body)
+          }
+        ];
       }
     }
     return [];

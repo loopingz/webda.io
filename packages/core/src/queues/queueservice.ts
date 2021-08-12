@@ -129,7 +129,7 @@ abstract class Queue<K = any, T extends QueueParameters = QueueParameters> exten
           await this.callback(event);
           await this.deleteMessage(msg.ReceiptHandle);
         } catch (err) {
-          this.log("ERROR", `Message ${msg.ReceiptHandle}`, err);
+          this.getWebda().log("ERROR", `Message ${msg.ReceiptHandle}`, err);
         }
       };
       if (this.parameters.workerParallelism) {

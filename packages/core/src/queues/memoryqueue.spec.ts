@@ -8,8 +8,13 @@ import { QueueTest } from "./queue.spec";
 class MemoryQueueTest extends QueueTest {
   @test
   async worker() {
+    const failedIterations = [];
     await new Promise(resolve => {
-      let queue: Queue = new MemoryQueue(undefined, undefined, undefined);
+      let queue: Queue = new MemoryQueue(undefined, undefined, {
+        workerParallelism: false
+      });
+      // @ts-ignore
+      queue.delayer = () => 1;
       let seq = 0;
       // @ts-ignore
       queue._webda = <any>{
@@ -33,7 +38,7 @@ class MemoryQueueTest extends QueueTest {
           case 4:
             // An error occured it should double the pause
             // @ts-ignore
-            assert.strictEqual(queue.failedIterations, 2);
+            failedIterations.push(queue.failedIterations);
             return Promise.resolve([
               {
                 ReceiptHandle: "msg2",
@@ -43,7 +48,7 @@ class MemoryQueueTest extends QueueTest {
           case 5:
             // Error on callback dont generate a double delay
             // @ts-ignore
-            assert.strictEqual(queue.failedIterations, 2);
+            failedIterations.push(queue.failedIterations);
             resolve(queue.stop());
         }
       };
@@ -59,11 +64,61 @@ class MemoryQueueTest extends QueueTest {
           case 4:
             // Simulate error in callback
             throw Error();
-            return;
         }
       };
       queue.consume(callback);
     });
+    assert.deepStrictEqual(failedIterations, [1, 0]);
+  }
+
+  @test
+  async parallelized() {
+    let op = 0;
+    const run = async (parallel: boolean) => {
+      await new Promise(resolve => {
+        let queue: Queue = new MemoryQueue(undefined, undefined, { workerParallelism: parallel });
+        // @ts-ignore
+        queue.delayer = () => 1;
+        let seq = 0;
+        // @ts-ignore
+        queue._webda = <any>{
+          log: () => {}
+        };
+        queue.receiveMessage = () => {
+          seq++;
+          switch (seq) {
+            case 1:
+              return Promise.resolve([
+                {
+                  ReceiptHandle: "msg1",
+                  Body: '{"title":"plop"}'
+                },
+                {
+                  ReceiptHandle: "msg2",
+                  Body: '{"title":"plop2"}'
+                }
+              ]);
+            case 2:
+              resolve(queue.stop());
+          }
+        };
+        queue.deleteMessage = async handle => {};
+        let callback = async event => {
+          if (event.title === "plop") {
+            await this.sleep(300);
+            op = 1;
+          } else {
+            await this.sleep(100);
+            op *= 2;
+          }
+        };
+        queue.consume(callback);
+      });
+    };
+    await run(true);
+    assert.strictEqual(op, 1, 'It should have been run in parallel so op=0 as *2 will happen before =1"');
+    await run(false);
+    assert.strictEqual(op, 2, 'It should have been run in parallel so op=2 as *2 will happen after =1"');
   }
 
   @test

@@ -4,7 +4,6 @@ import { Authentication } from "./authentication";
 
 import { v4 as uuidv4 } from "uuid";
 import { Core } from "../core";
-import { stringify } from "yaml";
 
 export interface EventOAuthToken extends EventWithContext {
   /**

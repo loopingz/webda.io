@@ -1,4 +1,4 @@
-import { MessageReceipt, Queue } from "../queues/queueservice";
+import { Queue } from "../queues/queueservice";
 import { Service, ServiceParameters } from "./service";
 
 /**

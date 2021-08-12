@@ -155,6 +155,9 @@ export class TypescriptSchemaResolver extends DefaultSchemaResolver {
         if (found) {
           return;
         }
+        if (!param.symbol.declarations[0].constraint) {
+          return;
+        }
         found = param.symbol.declarations[0].constraint.typeName.escapedText;
         if (this.symbols[found] && this.extends(this.symbols[found], parameterClass)) {
           return;

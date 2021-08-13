@@ -42,8 +42,8 @@ class FileQueue<T = any, K extends FileQueueParameters = FileQueueParameters> ex
   /**
    * Create the storage folder if does not exist
    */
-  async computeParameters() {
-    await super.computeParameters();
+  computeParameters() {
+    super.computeParameters();
     if (!fs.existsSync(this.parameters.folder)) {
       fs.mkdirSync(this.parameters.folder);
     }
@@ -82,7 +82,7 @@ class FileQueue<T = any, K extends FileQueueParameters = FileQueueParameters> ex
   /**
    * @inheritdoc
    */
-  async receiveMessage<K>(proto: { new (): K } = undefined): Promise<MessageReceipt<K>[]> {
+  async receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
     const files = fs
       .readdirSync(this.parameters.folder)
       .filter(f => f.endsWith(".json"))

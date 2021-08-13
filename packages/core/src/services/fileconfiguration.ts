@@ -6,7 +6,9 @@ import { JSONUtils } from "..";
 /**
  * Allow for dynamic configuration from a file
  */
-export class FileConfigurationService<T extends ConfigurationServiceParameters = ConfigurationServiceParameters> extends ConfigurationService<T> {
+export class FileConfigurationService<
+  T extends ConfigurationServiceParameters = ConfigurationServiceParameters
+> extends ConfigurationService<T> {
   /** @ignore */
   async init() {
     // Do not call super as we diverged

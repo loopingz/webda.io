@@ -78,7 +78,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
   /**
    * Receive one or several messages
    */
-  abstract receiveMessage<T>(proto?: { new (): T }): Promise<MessageReceipt<T>[]>;
+  abstract receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]>;
 
   /**
    * Unserialize into class

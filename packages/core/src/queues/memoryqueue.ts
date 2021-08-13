@@ -72,7 +72,7 @@ class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueParamete
   /**
    * @inheritdoc
    */
-  async receiveMessage<K>(proto?: { new (): K }): Promise<MessageReceipt<K>[]> {
+  async receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
     for (var i in this._queue) {
       if (this._queue[i].Claimed < new Date().getTime() - this.parameters.expire) {
         this._queue[i].Claimed = new Date().getTime();

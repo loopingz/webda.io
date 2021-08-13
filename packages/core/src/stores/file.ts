@@ -42,8 +42,8 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   /**
    * Create the storage folder if does not exist
    */
-  async computeParameters() {
-    await super.computeParameters();
+  computeParameters() {
+    super.computeParameters();
     if (!fs.existsSync(this.parameters.folder)) {
       fs.mkdirSync(this.parameters.folder);
     }

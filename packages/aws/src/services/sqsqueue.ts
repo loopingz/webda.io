@@ -102,7 +102,7 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
   /**
    * @inheritdoc
    */
-  async receiveMessage<T>(proto?: { new (): T }): Promise<MessageReceipt<T>[]> {
+  async receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
     let queueArg = {
       QueueUrl: this.parameters.queue,
       WaitTimeSeconds: this.parameters.WaitTimeSeconds,

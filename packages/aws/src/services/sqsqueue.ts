@@ -102,7 +102,7 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
   /**
    * @inheritdoc
    */
-  async receiveMessage(): Promise<MessageReceipt<T>[]> {
+  async receiveMessage<T>(proto?: { new (): T }): Promise<MessageReceipt<T>[]> {
     let queueArg = {
       QueueUrl: this.parameters.queue,
       WaitTimeSeconds: this.parameters.WaitTimeSeconds,
@@ -110,7 +110,7 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
     };
     let data = await this.sqs.receiveMessage(queueArg).promise();
     data.Messages ??= [];
-    return data.Messages.map(m => ({ ReceiptHandle: m.ReceiptHandle, Message: JSON.parse(m.Body) }));
+    return data.Messages.map(m => ({ ReceiptHandle: m.ReceiptHandle, Message: this.unserialize(m.Body, proto) }));
   }
 
   /**

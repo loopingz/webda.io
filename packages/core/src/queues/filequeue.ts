@@ -82,7 +82,7 @@ class FileQueue<T = any, K extends FileQueueParameters = FileQueueParameters> ex
   /**
    * @inheritdoc
    */
-  async receiveMessage(): Promise<MessageReceipt<T>[]> {
+  async receiveMessage<K>(proto: { new (): K } = undefined): Promise<MessageReceipt<K>[]> {
     const files = fs
       .readdirSync(this.parameters.folder)
       .filter(f => f.endsWith(".json"))
@@ -117,7 +117,7 @@ class FileQueue<T = any, K extends FileQueueParameters = FileQueueParameters> ex
       return [
         {
           ReceiptHandle: el.uid,
-          Message: JSONUtils.loadFile(el.path)
+          Message: this.unserialize(fs.readFileSync(el.path).toString(), proto)
         }
       ];
     } else {

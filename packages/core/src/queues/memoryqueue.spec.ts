@@ -4,60 +4,95 @@ import { Queue } from "../index";
 import { MemoryQueue } from "./memoryqueue";
 import { QueueTest } from "./queue.spec";
 
+class Title {
+  title: string;
+
+  constructor(title?: string) {
+    this.title = title;
+  }
+}
 @suite
 class MemoryQueueTest extends QueueTest {
+  seq: number;
+  resolve: (value: unknown) => void;
+  queue: Queue;
+  failedIterations: any[];
+
+  async receiveMessage<K>(proto?: { new (): K }) {
+    this.seq++;
+    switch (this.seq) {
+      case 1:
+        // Test the resume if no messages available
+        return Promise.resolve([]);
+      case 2:
+        return Promise.resolve([
+          {
+            ReceiptHandle: "msg1",
+            Message: this.queue.unserialize(JSON.stringify({ title: "plop" }), proto)
+          }
+        ]);
+      case 3:
+        throw Error();
+      case 4:
+        // An error occured it should double the pause
+        // @ts-ignore
+        this.failedIterations.push(this.queue.failedIterations);
+        return Promise.resolve([
+          {
+            ReceiptHandle: "msg2",
+            Message: this.queue.unserialize(JSON.stringify({ title: "plop2" }), proto)
+          }
+        ]);
+      case 5:
+        // Error on callback dont generate a double delay
+        // @ts-ignore
+        this.failedIterations.push(this.queue.failedIterations);
+        this.resolve(this.queue.stop());
+    }
+  }
+
+  async receiveMessageParallelism<K>(proto?: { new (): K }) {
+    this.seq++;
+    switch (this.seq) {
+      case 1:
+        return Promise.resolve([
+          {
+            ReceiptHandle: "msg1",
+            Message: { title: "plop" }
+          },
+          {
+            ReceiptHandle: "msg2",
+            Message: { title: "plop2" }
+          }
+        ]);
+      case 2:
+        this.resolve(this.queue.stop());
+    }
+  }
+
   @test
   async worker() {
-    const failedIterations = [];
+    this.failedIterations = [];
     await new Promise(resolve => {
+      this.resolve = resolve;
       let queue: Queue = new MemoryQueue(undefined, undefined, {
         workerParallelism: false
       });
+      this.queue = queue;
       // @ts-ignore
       queue.delayer = () => 1;
-      let seq = 0;
+      this.seq = 0;
       // @ts-ignore
       queue._webda = <any>{
         log: () => {}
       };
-      queue.receiveMessage = () => {
-        seq++;
-        switch (seq) {
-          case 1:
-            // Test the resume if no messages available
-            return Promise.resolve([]);
-          case 2:
-            return Promise.resolve([
-              {
-                ReceiptHandle: "msg1",
-                Message: { title: "plop" }
-              }
-            ]);
-          case 3:
-            throw Error();
-          case 4:
-            // An error occured it should double the pause
-            // @ts-ignore
-            failedIterations.push(queue.failedIterations);
-            return Promise.resolve([
-              {
-                ReceiptHandle: "msg2",
-                Message: { title: "plop2" }
-              }
-            ]);
-          case 5:
-            // Error on callback dont generate a double delay
-            // @ts-ignore
-            failedIterations.push(queue.failedIterations);
-            resolve(queue.stop());
-        }
-      };
+      queue.receiveMessage = this.receiveMessage.bind(this);
       queue.deleteMessage = async handle => {
         // Should only have the msg1 handle in deleteMessage as msg2 is fake error
         assert.strictEqual(handle, "msg1");
       };
       let callback = async event => {
-        switch (seq) {
+        switch (this.seq) {
           case 2:
             assert.strictEqual(event.title, "plop");
             return;
@@ -66,9 +101,9 @@ class MemoryQueueTest extends QueueTest {
             throw Error();
         }
       };
-      queue.consume(callback);
+      queue.consume(callback, Title);
     });
-    assert.deepStrictEqual(failedIterations, [1, 0]);
+    assert.deepStrictEqual(this.failedIterations, [1, 0]);
   }
 
   @test
@@ -77,31 +112,16 @@ class MemoryQueueTest extends QueueTest {
     const run = async (parallel: boolean) => {
       await new Promise(resolve => {
         let queue: Queue = new MemoryQueue(undefined, undefined, { workerParallelism: parallel });
+        this.queue = queue;
+        this.resolve = resolve;
         // @ts-ignore
         queue.delayer = () => 1;
-        let seq = 0;
+        this.seq = 0;
         // @ts-ignore
         queue._webda = <any>{
           log: () => {}
         };
-        queue.receiveMessage = () => {
-          seq++;
-          switch (seq) {
-            case 1:
-              return Promise.resolve([
-                {
-                  ReceiptHandle: "msg1",
-                  Message: { title: "plop" }
-                },
-                {
-                  ReceiptHandle: "msg2",
-                  Message: { title: "plop2" }
-                }
-              ]);
-            case 2:
-              resolve(queue.stop());
-          }
-        };
+        queue.receiveMessage = this.receiveMessageParallelism.bind(this);
         queue.deleteMessage = async handle => {};
         let callback = async event => {
           if (event.title === "plop") {

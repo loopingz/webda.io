@@ -62,7 +62,7 @@ class UtilsTest {
     a.d = a.c;
     assert.deepStrictEqual(
       JSONUtils.stringify(a),
-      JSON.stringify({ b: "test", c: { plop: "bouzouf" }, __test: true, d: { plop: "bouzouf" }}, undefined, 2)
+      JSON.stringify({ b: "test", c: { plop: "bouzouf" }, __test: true, d: { plop: "bouzouf" } }, undefined, 2)
     );
   }
 

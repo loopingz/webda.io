@@ -46,7 +46,7 @@ export class QueueParameters extends ServiceParameters {
  *
  * @category CoreServices
  */
-abstract class Queue<K = any, T extends QueueParameters = QueueParameters> extends Service<T> {
+abstract class Queue<T = any, K extends QueueParameters = QueueParameters> extends Service<K> {
   /**
    * Current timeout handler
    */
@@ -58,7 +58,7 @@ abstract class Queue<K = any, T extends QueueParameters = QueueParameters> exten
   /**
    * Callback function to call for each message
    */
-  private callback: (event: K) => Promise<void>;
+  private callback: (event: T) => Promise<void>;
   /**
    * Current pause instance
    */
@@ -67,17 +67,31 @@ abstract class Queue<K = any, T extends QueueParameters = QueueParameters> exten
    * Delayer
    */
   protected delayer: WaitDelayer;
+  eventPrototype: new () => T;
 
   /**
    * Send an event to the queue
    * @param event
    */
-  abstract sendMessage(event: K): Promise<void>;
+  abstract sendMessage(event: T): Promise<void>;
 
   /**
    * Receive one or several messages
    */
-  abstract receiveMessage(): Promise<MessageReceipt<K>[]>;
+  abstract receiveMessage<T>(proto?: { new (): T }): Promise<MessageReceipt<T>[]>;
+
+  /**
+   * Unserialize into class
+   * @param data
+   * @param proto
+   * @returns
+   */
+  unserialize<L>(data: string, proto?: { new (): L }): L {
+    if (proto) {
+      return Object.assign(new proto(), JSON.parse(data));
+    }
+    return JSON.parse(data);
+  }
 
   /**
    * Delete one message based on its receipt
@@ -118,7 +132,7 @@ abstract class Queue<K = any, T extends QueueParameters = QueueParameters> exten
       return;
     }
     try {
-      let items = await this.receiveMessage();
+      let items = await this.receiveMessage(this.eventPrototype);
       this.failedIterations = 0;
       if (items.length === 0) {
         return this.consumerResume();
@@ -152,10 +166,12 @@ abstract class Queue<K = any, T extends QueueParameters = QueueParameters> exten
    * Work a queue calling the callback with every Event received
    * If the callback is called without exception the `deleteMessage` is called
    * @param callback
+   * @param eventPrototype
    */
-  async consume(callback: (event: K) => Promise<void>) {
+  async consume(callback: (event: T) => Promise<void>, eventPrototype?: { new (): T }) {
     this.failedIterations = 0;
     this.callback = callback;
+    this.eventPrototype = eventPrototype;
     while (!this._interrupt) {
       await this.consumerReceiveMessage();
     }

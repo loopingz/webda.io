@@ -40,7 +40,7 @@ class QueueTest extends WebdaTest {
     // Pause for 1s - to verify the repopulation
     await this.sleep(1000);
     msg = await queue.receiveMessage(QueueItemTest);
-    assert.strictEqual(msg[0].Message.getDouble(), 4);
+    assert.notStrictEqual(msg[0].Message.getDouble, undefined);
     if (!inconsistentSize) {
       assert.strictEqual(msg.length, 1);
     }

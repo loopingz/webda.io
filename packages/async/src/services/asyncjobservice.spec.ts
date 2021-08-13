@@ -23,14 +23,20 @@ class AsyncJobServiceTest extends WebdaTest {
   async cov() {
     // COV
     AsyncJobService.getModda();
+  }
+
+  @test
+  async worker() {
     const service = this.getValidService();
     // @ts-ignore
     service.queue = {
       consume: async (callback) => {}
     }
     await service.worker();
+    // @ts-ignore
+    service.runners = [];
+    assert.rejects(() => service.worker(), /AsyncJobService.worker requires runners/);
   }
-
   /**
    * Return a good initialized service
    * @returns
@@ -52,14 +58,18 @@ class AsyncJobServiceTest extends WebdaTest {
     this.service = new AsyncJobService(this.webda, "async", { queue: "AsyncQueue" });
     assert.throws(() => this.service.resolve(), /requires a valid store/);
     this.service = new AsyncJobService(this.webda, "async", { queue: "AsyncQueue", store: "AsyncJobs" });
-    assert.throws(() => this.service.resolve(), /AsyncService requires runners/);
+    this.service.resolve();
+    // @ts-ignore
+    assert.strictEqual(this.service.runners.length, 0);
     this.service = new AsyncJobService(this.webda, "async", {
       queue: "AsyncQueue",
       store: "AsyncJobs",
       runners: ["unknown"],
       url: "/cov"
     });
-    assert.throws(() => this.service.resolve(), /AsyncService requires runners/);
+    this.service.resolve();
+    // @ts-ignore
+    assert.strictEqual(this.service.runners.length, 0);
   }
 
   @test

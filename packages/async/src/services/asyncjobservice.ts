@@ -98,10 +98,6 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       })
       .filter(r => r !== undefined);
 
-    if (this.runners.length === 0) {
-      throw new Error(`AsyncService requires runners`);
-    }
-
     this.addRoute(`${this.parameters.url}/status`, ["POST"], this.statusHook);
   }
 
@@ -169,6 +165,11 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * Worker
    */
   async worker() {
+
+    if (this.runners.length === 0) {
+      throw new Error(`AsyncJobService.worker requires runners`);
+    }
+
     return this.queue.consume(this.handleEvent.bind(this));
   }
 

@@ -291,7 +291,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_aws.SQSQueueParameters.html" class="tsd-signature-type">SQSQueueParameters</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/sqsqueue.ts:15</li>
+									<li>Defined in packages/aws/src/services/sqsqueue.ts:37</li>
 								</ul>
 							</aside>
 						</li>
@@ -302,49 +302,92 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="CloudFormation" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">Cloud<wbr>Formation<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Any additional CloudFormation parameters</p>
+						</div>
+					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/sqsqueue.ts:13</li>
+							<li>Defined in packages/aws/src/services/sqsqueue.ts:35</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="CloudFormationSkip" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">Cloud<wbr>Formation<wbr>Skip<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Skip CloudFormation on deploy</p>
+						</div>
+						</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+						<dl class="tsd-comment-tags"><dt>default</dt>
+							<dd><p>false</p>
+						</dd></dl>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/aws/src/services/sqsqueue.ts:31</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="MessageGroupId" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">Message<wbr>Group<wbr>Id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>MessageGroupId to pass to send and receive</p>
+						</div>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/aws/src/services/sqsqueue.ts:26</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="WaitTimeSeconds" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">Wait<wbr>Time<wbr>Seconds<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Time to wait pending for an item</p>
+						</div>
+						</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+						<dl class="tsd-comment-tags"><dt>default</dt>
+							<dd><p>20</p>
+						</dd></dl>
+					</div>
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in packages/aws/src/services/sqsqueue.ts:12</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="MessageGroupId" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">Message<wbr>Group<wbr>Id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/aws/src/services/sqsqueue.ts:11</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="WaitTimeSeconds" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">Wait<wbr>Time<wbr>Seconds<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/aws/src/services/sqsqueue.ts:8</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="endpoint" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">endpoint<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Endpoint to pass to the AWS client
+							Useful for localstack</p>
+						</div>
+					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/sqsqueue.ts:9</li>
+							<li>Defined in packages/aws/src/services/sqsqueue.ts:17</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="queue" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">queue<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Queue URL</p>
+						</div>
+						</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+						<dl class="tsd-comment-tags"><dt>default</dt>
+							<dd><p>&quot;&quot;</p>
+						</dd></dl>
+					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/sqsqueue.ts:10</li>
+							<li>Defined in packages/aws/src/services/sqsqueue.ts:22</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">

@@ -139,11 +139,11 @@
 				<ul class="before-current">
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-interface tsd-parent-kind-module root">
+					<li class="current tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter root">
 						<a href="_webda_core.MessageReceipt.html" class="tsd-kind-icon">Message<wbr>Receipt</a>
 						<ul>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_webda_core.MessageReceipt.html#Body" class="tsd-kind-icon">Body</a>
+								<a href="_webda_core.MessageReceipt.html#Message" class="tsd-kind-icon">Message</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
 								<a href="_webda_core.MessageReceipt.html#ReceiptHandle" class="tsd-kind-icon">Receipt<wbr>Handle</a>
@@ -156,12 +156,20 @@
 			</nav>
 		</div>
 		<div class="col-content">
-			<h1>Interface MessageReceipt</h1>
+			<h1>Interface MessageReceipt&lt;T&gt;</h1>
 			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
 					<div class="lead">
 						<p>Raw message from queue</p>
 					</div>
 			</div></section>
+			<section class="tsd-panel tsd-type-parameters">
+				<h3>Type parameters</h3>
+				<ul class="tsd-type-parameters">
+					<li>
+						<h4>T</h4>
+					</li>
+				</ul>
+			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
@@ -176,7 +184,7 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.MessageReceipt.html#Body" class="tsd-kind-icon">Body</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.MessageReceipt.html#Message" class="tsd-kind-icon">Message</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.MessageReceipt.html#ReceiptHandle" class="tsd-kind-icon">Receipt<wbr>Handle</a></li>
 							</ul>
 						</section>
@@ -186,11 +194,11 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="Body" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">Body<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<a name="Message" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">Message<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">T</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
-							<p>Serialized event</p>
+							<p>Message</p>
 						</div>
 					</div>
 					<aside class="tsd-sources">

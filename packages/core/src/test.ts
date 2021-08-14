@@ -145,7 +145,9 @@ class WebdaTest {
   consumeAllModdas() {
     let services = this.webda.getApplication().getServices();
     for (let i in services) {
-      services[i].getModda();
+      if (services[i].getModda) {
+        services[i].getModda();
+      }
     }
   }
 

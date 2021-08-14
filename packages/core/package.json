@@ -72,7 +72,8 @@
       "html",
       "lcov",
       "json"
-    ]
+    ],
+    "exclude": ["src/test.ts", "**/*.spec.ts"]
   },
   "homepage": "https://webda.io",
   "publishConfig": {

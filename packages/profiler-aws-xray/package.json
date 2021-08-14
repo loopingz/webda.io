@@ -41,7 +41,8 @@
       "html",
       "lcov",
       "json"
-    ]
+    ],
+    "exclude": ["**/*.spec.ts"]
   },
   "publishConfig": {
     "access": "public"

@@ -43,6 +43,9 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
     return new CloudWatchLoggerParameters(params);
   }
 
+  /**
+   * @inheritdoc
+   */
   async init(): Promise<void> {
     await super.init();
     this._logGroupName = this.parameters.logGroupName;
@@ -84,6 +87,12 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
     this._webda.on("Webda.Result", this.sendLogs.bind(this));
   }
 
+  /**
+   * Send logs to CloudWatch
+   * 
+   * @param copy 
+   * @returns 
+   */
   async sendLogs(copy: boolean = false): Promise<void> {
     if (!this._bufferedLogs.length) {
       return;
@@ -108,6 +117,9 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
     }
   }
 
+  /**
+   * @inheritdoc
+   */
   _log(level, ...args): void {
     this._bufferedLogs.push({
       message: `[${level}] ` + args.map(p => (p ? p.toString() : "undefined")).join(" "),
@@ -118,7 +130,10 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
     }
   }
 
-  getARNPolicy(accountId) {
+  /**
+   * @inheritdoc
+   */
+  getARNPolicy(accountId: string) {
     let region = this.parameters.region || "us-east-1";
     return {
       Sid: this.constructor.name + this._name,
@@ -131,6 +146,9 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
     };
   }
 
+  /**
+   * @inheritdoc
+   */
   getCloudFormation() {
     if (this.parameters.CloudFormationSkip) {
       return {};
@@ -148,6 +166,9 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
     return resources;
   }
 
+  /**
+   * @inheritdoc
+   */
   static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/CloudWatchLogger",

@@ -11,8 +11,21 @@ import {
 } from "@webda/core";
 import { serialize as cookieSerialize } from "cookie";
 
+/**
+ * Handler for AWS Events definition
+ */
 export interface AWSEventsHandler {
+  /**
+   * Return true if event is handled
+   * @param source 
+   * @param event 
+   */
   isAWSEventHandled(source: string, event: any): boolean;
+  /**
+   * 
+   * @param source 
+   * @param event 
+   */
   handleAWSEvent(source: string, event: any): Promise<void>;
 }
 
@@ -48,13 +61,22 @@ export default class LambdaServer extends Webda {
     }
   }
 
+  /**
+   * @inheritdoc
+   */
   flush(ctx: Context) {
     if (ctx.getResponseBody() !== undefined) {
       this._result.body = ctx.getResponseBody();
     }
   }
 
-  getClientInfo(reqCtx) {
+  /**
+   * Retrieve client information from Lambda context
+   * 
+   * @param reqCtx 
+   * @returns 
+   */
+  getClientInfo(reqCtx: any) {
     let res = new ClientInfo();
     res.ip = reqCtx.identity.sourceIp;
     res.userAgent = reqCtx.identity.userAgent;
@@ -77,6 +99,11 @@ export default class LambdaServer extends Webda {
     }
   }
 
+  /**
+   * Analyse events to try to find its type
+   * @param events 
+   * @returns 
+   */
   async handleAWSEvents(events) {
     let found = false;
     if (events.Records) {
@@ -252,6 +279,11 @@ export default class LambdaServer extends Webda {
     }
   }
 
+  /**
+   * Collect result from Context to this._result and return it
+   * @param ctx 
+   * @returns 
+   */
   async handleLambdaReturn(ctx: Context) {
     await this.emitSync("Webda.Result", <EventWebdaResult>{ context: ctx });
     await ctx.end();

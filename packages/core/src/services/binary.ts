@@ -3,6 +3,7 @@ import * as crypto from "crypto";
 import * as fs from "fs";
 import * as mime from "mime-types";
 import * as path from "path";
+import { Readable } from "stream";
 import { CoreModel } from "../models/coremodel";
 import { Store } from "../stores/store";
 import { Context } from "../utils/context";
@@ -261,11 +262,11 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     this.initMap(this.parameters.map);
   }
 
-  _getUrl(info, ctx: Context) {
+  _getUrl(info: BinaryMap, ctx: Context) {
     return;
   }
 
-  _get(info): ReadableStream {
+  _get(info: BinaryMap): Readable {
     return;
   }
 

@@ -1,51 +1,68 @@
 "use strict";
+import { ServiceParameters, Service, ModdaDefinition } from "@webda/core";
+import * as AWS from "aws-sdk";
 
-class LambdaCaller {
-  _arn: string;
-  AWS: any;
+/**
+ *
+ */
+class LambdaCallerParameters extends ServiceParameters {
+  /**
+   * Default ARN to use
+   */
+  arn: string;
+}
 
-  constructor(arn, config: any = {}) {
-    if (arn instanceof Object) {
-      config = arn;
-      arn = config.arn;
-    }
-    if (!arn) {
-      throw new Error("ARN is required");
-    }
-    this.AWS = require("aws-sdk");
-    if (config.region) {
-      this.AWS.config.update({
-        region: config.region
-      });
-    }
-    if (config["accessKeyId"] !== undefined) {
-      this.AWS.config.update({
-        accessKeyId: config["accessKeyId"],
-        secretAccessKey: config["secretAccessKey"]
-      });
-    }
-    this._arn = arn;
+/**
+ * A service that calls a Lambda function and retrieve its result
+ */
+class LambdaCaller<T extends LambdaCallerParameters = LambdaCallerParameters> extends Service<T> {
+
+  /**
+   * Lambda client
+   */
+  protected client: AWS.Lambda;
+
+  /**
+   * @inheritdoc
+   */
+  loadParameters(params: any) : ServiceParameters {
+    return new LambdaCallerParameters(params);
   }
 
-  async execute(params, async = false) {
-    if (!params) {
-      params = {};
-    }
-    let invocationType;
-    if (async === undefined || !async) {
-      invocationType = "RequestResponse";
-    } else {
-      invocationType = "Event";
-    }
-    let lambda = new this.AWS.Lambda();
-    params = {
-      FunctionName: this._arn,
+  /**
+   * @inheritdoc
+   */
+  resolve() {
+    super.resolve();
+    this.client = new AWS.Lambda();
+  }
+
+  /**
+   * Execute the Lambda function
+   * @param params for the call
+   * @param async wait for Lambda result
+   * @param arn function to call default to the one from configuration
+   * @returns 
+   */
+  async execute(params: any = {}, async: boolean = false, arn = this.parameters.arn) {
+    return (await  this.client.invoke({
+      FunctionName: arn,
       ClientContext: null,
-      InvocationType: invocationType,
+      InvocationType:async ? "Event" : "RequestResponse",
       LogType: "None",
       Payload: JSON.stringify(params)
+    }).promise()).$response.data;
+  }
+
+  /**
+   * @inheritdoc
+   */
+   static getModda(): ModdaDefinition {
+    return {
+      uuid: "Webda/LambdaCaller",
+      label: "LambdaCaller",
+      description: "Call a Lambda function and give result"
     };
-    return lambda.invoke(params).promise();
   }
 }
 

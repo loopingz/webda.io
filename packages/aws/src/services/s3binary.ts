@@ -15,6 +15,7 @@ import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
 import * as bluebird from "bluebird";
+import { Readable } from "stream";
 
 export class S3BinaryParameters extends BinaryParameters {
   endpoint: string;
@@ -45,7 +46,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   implements CloudFormationContributor
 {
   AWS: any;
-  _s3: any;
+  _s3: AWS.S3;
 
   /**
    * Load the parameters
@@ -56,6 +57,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     return new S3BinaryParameters(params, this);
   }
 
+  /**
+   * @inheritdoc
+   */
   computeParameters() {
     this.AWS = GetAWS(this.parameters);
     if (this.parameters.bucket === undefined) {
@@ -67,6 +71,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     });
   }
 
+  /**
+   * @inheritdoc
+   */
   _initRoutes(): boolean {
     if (!super._initRoutes()) {
       return false;
@@ -106,6 +113,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     }
   }
 
+  /**
+   * @inheritdoc
+   */
   async putRedirectUrl(ctx: Context): Promise<string> {
     let body = ctx.getRequestBody();
     if (body.hash === undefined) {
@@ -126,7 +136,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       ContentMD5: base64String
     };
     // List bucket
-    let data = this._s3
+    let data = await this._s3
       .listObjectsV2({
         Bucket: this.parameters.bucket,
         Prefix: this._getKey(body.hash, "")
@@ -147,6 +157,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     return this.getSignedUrl(params.Key, "putObject", params);
   }
 
+  /**
+   * @inheritdoc
+   */
   putMarker(hash, uuid, storeName) {
     var s3obj = new this.AWS.S3({
       endpoint: this.parameters.endpoint,
@@ -162,6 +175,14 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     return s3obj.putObject().promise();
   }
 
+  /**
+   * Return a signed url to an object
+   * 
+   * @param key to the object
+   * @param action to perform
+   * @param params 
+   * @returns 
+   */
   getSignedUrl(key: string, action: string = "getObject", params: any = {}): string {
     params.Bucket = params.Bucket || this.parameters.bucket;
     params.Key = key;
@@ -183,6 +204,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     return this.getSignedUrl(this._getKey(info.hash), "getObject", params);
   }
 
+  /**
+   * @inheritdoc
+   */
   async getRedirectUrl(ctx) {
     let uid = ctx.parameter("uid");
     let index = ctx.parameter("index");
@@ -215,7 +239,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     ctx.end();
   }
 
-  _get(info) {
+  _get(info: BinaryMap) : Readable {
     return this._s3
       .getObject({
         Bucket: this.parameters.bucket,
@@ -277,10 +301,12 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   /**
    * @inheritdoc
    */
-  async cascadeDelete(info: BinaryMap, uuid: string) {
-    return this._cleanUsage(info.hash, uuid).catch(function (err) {
+  async cascadeDelete(info: BinaryMap, uuid: string) : Promise<void> {
+    try {
+      await this._cleanUsage(info.hash, uuid);
+    } catch(err) {
       this._webda.log("WARN", "Cascade delete failed", err);
-    });
+    }
   }
 
   /**
@@ -401,13 +427,20 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     } while (params.ContinuationToken);
   }
 
+  /**
+   * Add an object to S3 bucket
+   * 
+   * @param key to add to
+   * @param body content of the object
+   * @param metadatas to put along the object
+   * @param bucket to use
+   */
   async putObject(
     key: string,
     body: Buffer | Blob | string | ReadableStream,
     metadatas = {},
-    bucket: string = undefined
+    bucket: string = this.parameters.bucket
   ) {
-    bucket = bucket || this.parameters.bucket;
     var s3obj = new this.AWS.S3({
       endpoint: this.parameters.endpoint,
       s3ForcePathStyle: this.parameters.s3ForcePathStyle || false,
@@ -461,11 +494,17 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     return this.updateSuccess(targetStore, object, property, index, file, metadatas);
   }
 
+  /**
+   * @inheritdoc
+   */
   async update(targetStore, object, property, index, file, metadatas) {
     await this._cleanUsage(object[property][index].hash, object.uuid);
     return this.store(targetStore, object, property, file, metadatas, index);
   }
 
+  /**
+   * @inheritdoc
+   */
   getARNPolicy(accountId) {
     return {
       Sid: this.constructor.name + this._name,
@@ -495,6 +534,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     };
   }
 
+  /**
+   * @inheritdoc
+   */
   getCloudFormation(deployer: CloudFormationDeployer) {
     if (this.parameters.CloudFormationSkip) {
       return {};
@@ -514,6 +556,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     return resources;
   }
 
+  /**
+   * @inheritdoc
+   */
   static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/S3Binary",

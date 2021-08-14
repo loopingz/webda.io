@@ -5,6 +5,7 @@ import { Binary, BinaryMap, BinaryParameters } from "./binary";
 import { Service, ServiceParameters } from "./service";
 import { join } from "path";
 import { CoreModel, Store } from "..";
+import { Readable } from "stream";
 
 export class FileBinaryParameters extends BinaryParameters {
   /**
@@ -77,7 +78,10 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     }
   }
 
-  _get(info) {
+  /**
+   * @inheritdoc
+   */
+  _get(info: BinaryMap) : Readable {
     var path = this._getPath(info.hash, "data");
     if (!fs.existsSync(path)) {
       throw 404;
@@ -86,7 +90,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     return <ReadableStream<any>>fs.createReadStream(path);
   }
 
-  _getPath(hash, postfix = undefined) {
+  _getPath(hash: string, postfix: string = undefined) {
     if (postfix === undefined) {
       return this.parameters.folder + hash;
     }

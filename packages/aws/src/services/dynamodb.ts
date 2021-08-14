@@ -27,7 +27,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
   extends Store<T, K>
   implements CloudFormationContributor
 {
-  _client: any;
+  _client: AWS.DynamoDB.DocumentClient;
 
   /**
    * Load the parameters
@@ -54,7 +54,14 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     });
   }
 
-  static async copyTable(output: WorkerOutput, source, target) {
+  /**
+   * Copy one DynamoDB table to another
+   * 
+   * @param output 
+   * @param source 
+   * @param target 
+   */
+  static async copyTable(output: WorkerOutput, source: string, target: string) : Promise<void> {
     let db = new AWS.DynamoDB();
     let ExclusiveStartKey;
     let props = await db
@@ -90,12 +97,18 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     } while (ExclusiveStartKey);
   }
 
+  /**
+   * @inheritdoc
+   */
   async exists(uid) {
     // Should use find + limit 1
     return (await this._get(uid)) !== undefined;
   }
 
-  async _save(object, uid = object.uuid) {
+  /**
+   * @inheritdoc
+   */
+  async _save(object: any, uid : string = object.uuid) {
     return this._update(object, uid);
   }
 
@@ -115,11 +128,22 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     return result.Items;
   }
 
-  _serializeDate(date) {
+  /**
+   * Serialize a date for DynamoDB
+   * @param date 
+   * @returns 
+   */
+  _serializeDate(date: Date) : string {
     return JSON.stringify(date).replace(/"/g, "");
   }
 
-  _cleanObject(object) {
+  /**
+   * Clean object to store in DynamoDB
+   * 
+   * @param object 
+   * @returns 
+   */
+  _cleanObject(object: Object) : any {
     if (typeof object !== "object") return object;
     if (object instanceof Date) {
       return this._serializeDate(object);
@@ -142,6 +166,9 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     return res;
   }
 
+  /**
+   * @inheritdoc
+   */
   async _removeAttribute(uuid: string, attribute: string) {
     var params: any = {
       TableName: this.parameters.table,
@@ -167,6 +194,9 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     }
   }
 
+  /**
+   * @inheritdoc
+   */
   async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     var params: any = {
       TableName: this.parameters.table,
@@ -198,6 +228,9 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     }
   }
 
+  /**
+   * @inheritdoc
+   */
   async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
     var params: any = {
       TableName: this.parameters.table,
@@ -243,6 +276,9 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     }
   }
 
+  /**
+   * @inheritdoc
+   */
   _getWriteCondition(writeCondition) {
     if (writeCondition instanceof Date) {
       writeCondition = this._serializeDate(writeCondition);
@@ -250,7 +286,10 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     return this._lastUpdateField + " = " + writeCondition;
   }
 
-  async _delete(uid, writeCondition = undefined) {
+  /**
+   * @inheritdoc
+   */
+  async _delete(uid: string, writeCondition = undefined) {
     var params: any = {
       TableName: this.parameters.table,
       Key: {
@@ -260,10 +299,13 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     if (writeCondition) {
       params.WriteCondition = this._getWriteCondition(writeCondition);
     }
-    return this._client.delete(params).promise();
+    await this._client.delete(params).promise();
   }
 
-  async _patch(object, uid, writeCondition = undefined) {
+  /**
+   * @inheritdoc
+   */
+  async _patch(object: any, uid: string, writeCondition = undefined) {
     object = this._cleanObject(object);
     var expr = "SET ";
     var sep = "";
@@ -301,6 +343,9 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     return this._client.update(params).promise();
   }
 
+  /**
+   * @inheritdoc
+   */
   async _update(object: any, uid: string, writeCondition = undefined) {
     object = this._cleanObject(object);
     object.uuid = uid;
@@ -315,8 +360,12 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     await this._client.put(params).promise();
     return object;
   }
-
-  async _scan(items, paging = undefined) {
+  
+  /**
+   * @inheritdoc
+   */
+  async _scan(items, paging = undefined) : Promise<T[]>
+   {
     return new Promise((resolve, reject) => {
       this._client.scan(
         {
@@ -340,7 +389,10 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     });
   }
 
-  async getAll(uids) {
+  /**
+   * @inheritdoc
+   */
+  async getAll(uids?:string[]) : Promise<T[]> {
     if (!uids) {
       return this._scan([]);
     }
@@ -358,6 +410,9 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     return result.Responses[this.parameters.table].map(this.initModel, this);
   }
 
+  /**
+   * @inheritdoc
+   */
   async _get(uid) {
     var params = {
       TableName: this.parameters.table,
@@ -368,6 +423,9 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     return (await this._client.get(params).promise()).Item;
   }
 
+  /**
+   * @inheritdoc
+   */
   _incrementAttribute(uid, prop, value, updateDate: Date) {
     var params = {
       TableName: this.parameters.table,
@@ -387,7 +445,10 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     return this._client.update(params).promise();
   }
 
-  getARNPolicy(accountId) {
+  /**
+   * @inheritdoc
+   */
+  getARNPolicy(accountId: string) {
     let region = this.parameters.region || "us-east-1";
     return {
       Sid: this.constructor.name + this._name,
@@ -408,6 +469,9 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     };
   }
 
+  /**
+   * @inheritdoc
+   */
   async __clean() {
     var params = {
       TableName: this.parameters.table
@@ -421,6 +485,9 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     await this.createIndex();
   }
 
+  /**
+   * @inheritdoc
+   */
   getCloudFormation(deployer: CloudFormationDeployer) {
     if (this.parameters.CloudFormationSkip) {
       return {};
@@ -447,13 +514,14 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     return resources;
   }
 
+  /**
+   * @inheritdoc
+   */
   static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/DynamoStore",
       label: "DynamoStore",
-      description: "Implements DynamoDB NoSQL storage",
-      logo: "images/icons/dynamodb.png",
-      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md"
+      description: "Implements DynamoDB NoSQL storage"
     };
   }
 }

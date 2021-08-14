@@ -9,27 +9,34 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
   extends Service<T>
   implements ConfigurationProvider
 {
-  _client: any;
+  _client: AWS.SecretsManager;
 
   /**
-   * Load the parameters
-   *
-   * @param params
+   * @inheritdoc
    */
   loadParameters(params: any) {
     return new AWSSecretsManagerParameters(params);
   }
 
+  /**
+   * @inheritdoc
+   */
   computeParameters() {
     this._client = new (GetAWS(this.parameters).SecretsManager)({
       endpoint: this.parameters.endpoint
     });
   }
 
+  /**
+   * @inheritdoc
+   */
   canTriggerConfiguration(id: string, callback: () => void) {
     return false;
   }
 
+  /**
+   * @inheritdoc
+   */
   async getConfiguration(id: string): Promise<Map<string, any>> {
     return this.get(id);
   }
@@ -40,40 +47,60 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
     await this._client.createSecret(params).promise();
   }
 
-  async delete(id: string, recovery: number = 7, force: boolean = false) {
-    let params = {};
-    if (force) {
+  /**
+   * Delete a secret
+   * 
+   * @param SecretId to delete
+   * @param RecoveryWindowInDays 
+   * @param ForceDeleteWithoutRecovery 
+   */
+  async delete(SecretId: string, RecoveryWindowInDays: number = 7, ForceDeleteWithoutRecovery: boolean = false) {
+    let params : AWS.SecretsManager.DeleteSecretRequest = {
+      RecoveryWindowInDays,
+      SecretId
+    };
+    if (ForceDeleteWithoutRecovery) {
       params = {
-        SecretId: id,
-        ForceDeleteWithoutRecovery: force
-      };
-    } else {
-      params = {
-        RecoveryWindowInDays: recovery,
-        SecretId: id
+        SecretId,
+        ForceDeleteWithoutRecovery
       };
     }
     await this._client.deleteSecret(params).promise();
   }
 
-  async put(id: string, value: any) {
+  /**
+   * Store data in a AWS secret
+   * 
+   * @param SecretId 
+   * @param value 
+   */
+  async put(SecretId: string, value: any) {
     await this._client
       .putSecretValue({
-        SecretId: id,
+        SecretId,
         SecretString: JSON.stringify(value)
       })
       .promise();
   }
 
-  async get(id: string) {
+  /**
+   * Return SecretValue
+   * 
+   * @param SecretId  
+   * @returns JSON.parse of SecretString
+   */
+  async get(SecretId: string) {
     let res = await this._client
       .getSecretValue({
-        SecretId: id
+        SecretId
       })
       .promise();
     return JSON.parse(res.SecretString);
   }
 
+  /**
+   * @inheritdoc
+   */
   getARNPolicy(accountId) {
     let region = this.parameters.region || "us-east-1";
     return {
@@ -84,6 +111,9 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
     };
   }
 
+  /**
+   * @inheritdoc
+   */
   static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/AWSSecretsManager",

@@ -56,12 +56,12 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
 
   /**
    * Copy one DynamoDB table to another
-   * 
-   * @param output 
-   * @param source 
-   * @param target 
+   *
+   * @param output
+   * @param source
+   * @param target
    */
-  static async copyTable(output: WorkerOutput, source: string, target: string) : Promise<void> {
+  static async copyTable(output: WorkerOutput, source: string, target: string): Promise<void> {
     let db = new AWS.DynamoDB();
     let ExclusiveStartKey;
     let props = await db
@@ -108,7 +108,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
   /**
    * @inheritdoc
    */
-  async _save(object: any, uid : string = object.uuid) {
+  async _save(object: any, uid: string = object.uuid) {
     return this._update(object, uid);
   }
 
@@ -130,20 +130,20 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
 
   /**
    * Serialize a date for DynamoDB
-   * @param date 
-   * @returns 
+   * @param date
+   * @returns
    */
-  _serializeDate(date: Date) : string {
+  _serializeDate(date: Date): string {
     return JSON.stringify(date).replace(/"/g, "");
   }
 
   /**
    * Clean object to store in DynamoDB
-   * 
-   * @param object 
-   * @returns 
+   *
+   * @param object
+   * @returns
    */
-  _cleanObject(object: Object) : any {
+  _cleanObject(object: Object): any {
     if (typeof object !== "object") return object;
     if (object instanceof Date) {
       return this._serializeDate(object);
@@ -360,12 +360,11 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     await this._client.put(params).promise();
     return object;
   }
-  
+
   /**
    * @inheritdoc
    */
-  async _scan(items, paging = undefined) : Promise<T[]>
-   {
+  async _scan(items, paging = undefined): Promise<T[]> {
     return new Promise((resolve, reject) => {
       this._client.scan(
         {
@@ -392,7 +391,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
   /**
    * @inheritdoc
    */
-  async getAll(uids?:string[]) : Promise<T[]> {
+  async getAll(uids?: string[]): Promise<T[]> {
     if (!uids) {
       return this._scan([]);
     }

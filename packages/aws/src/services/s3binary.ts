@@ -177,11 +177,11 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
 
   /**
    * Return a signed url to an object
-   * 
+   *
    * @param key to the object
    * @param action to perform
-   * @param params 
-   * @returns 
+   * @param params
+   * @returns
    */
   getSignedUrl(key: string, action: string = "getObject", params: any = {}): string {
     params.Bucket = params.Bucket || this.parameters.bucket;
@@ -239,7 +239,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     ctx.end();
   }
 
-  _get(info: BinaryMap) : Readable {
+  _get(info: BinaryMap): Readable {
     return this._s3
       .getObject({
         Bucket: this.parameters.bucket,
@@ -301,10 +301,10 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   /**
    * @inheritdoc
    */
-  async cascadeDelete(info: BinaryMap, uuid: string) : Promise<void> {
+  async cascadeDelete(info: BinaryMap, uuid: string): Promise<void> {
     try {
       await this._cleanUsage(info.hash, uuid);
-    } catch(err) {
+    } catch (err) {
       this._webda.log("WARN", "Cascade delete failed", err);
     }
   }
@@ -429,7 +429,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
 
   /**
    * Add an object to S3 bucket
-   * 
+   *
    * @param key to add to
    * @param body content of the object
    * @param metadatas to put along the object

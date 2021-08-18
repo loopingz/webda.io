@@ -1,8 +1,19 @@
 import { Service, ServiceParameters, Queue, Store, RequestFilter, Context } from "@webda/core";
 import { v4 as uuidv4 } from "uuid";
-import { AsyncAction, AsyncActionQueueItem } from "../models";
+import { AsyncAction, AsyncActionQueueItem, WebdaAsyncAction } from "../models";
 import { Runner } from "./runner";
 import * as crypto from "crypto";
+import axios, { AxiosResponse } from "axios";
+
+/**
+ * Represent a Job information as you will find in env
+ */
+export interface JobInfo {
+  JOB_ID: string;
+  JOB_SECRET_KEY: string;
+  JOB_HOOK: string;
+  JOB_ORCHESTRATOR: string;
+}
 
 /**
  * @inheritdoc
@@ -67,6 +78,10 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * Runner to use
    */
   protected runners: Runner[];
+  /**
+   * HMAC Algorithm used for simple auth
+   */
+  static HMAC_ALGO: string = "sha256";
 
   /**
    * @inheritdoc
@@ -118,6 +133,8 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
 
   /**
    * Status hook for job report
+   *
+   * Only updates specific fields: status, errorMessage, statusDetails, results, logs (appending)
    */
   protected async statusHook(context: Context) {
     const jobId = context.getHttpContext().getHeader("X-Job-Id");
@@ -133,14 +150,11 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     const jobTime = context.getHttpContext().getHeader("X-Job-Time");
     const jobHash = context.getHttpContext().getHeader("X-Job-Hash");
     // Ensure hash mac is correct
-    if (jobHash !== crypto.createHmac("sha256", action.__secretKey).update(jobTime).digest("hex")) {
+    if (jobHash !== crypto.createHmac(AsyncJobService.HMAC_ALGO, action.__secretKey).update(jobTime).digest("hex")) {
       this.log("TRACE", "Invalid Job HMAC");
       throw 403;
     }
     const body = context.getRequestBody();
-    if (body.statusDetails) {
-      action.statusDetails = body.statusDetails;
-    }
 
     action._lastJobUpdate = Number.parseInt(jobTime) || 0;
     if (Date.now() - action._lastJobUpdate > 60) {
@@ -154,18 +168,21 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
         action.logs = action.logs.slice(-100);
       }
     }
-    if (body.status) {
-      action.status = body.status;
-    }
+    ["status", "errorMessage", "statusDetails", "results"].forEach(k => {
+      if (body[k] !== undefined) {
+        action[k] = body[k];
+      }
+    });
     await this.store.save(action);
     context.write({ ...action, logs: undefined, statusDetails: undefined });
   }
 
   /**
    * Worker
+   *
+   * This will launch actions based on defined runners
    */
   async worker() {
-
     if (this.runners.length === 0) {
       throw new Error(`AsyncJobService.worker requires runners`);
     }
@@ -203,8 +220,14 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       status: "STARTING"
     });
     const action = await this.store.get(event.uuid);
+    const info: JobInfo = {
+      JOB_SECRET_KEY: action.__secretKey,
+      JOB_ID: action.getUuid(),
+      JOB_HOOK: this.getWebda().getApiUrl(`${this.parameters.url}/status`), // How to find the absolute url
+      JOB_ORCHESTRATOR: this.getName()
+    };
     await action.update({
-      job: await selectedRunner.launchAction(action)
+      job: await selectedRunner.launchAction(action, info)
     });
   }
 
@@ -222,10 +245,101 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   }
 
   /**
+   * Return headers to request status hook
+   *
+   * @param jobInfo
+   * @returns
+   */
+  getHeaders(jobInfo: JobInfo) {
+    let res = {
+      "X-Job-Id": jobInfo.JOB_ID,
+      "X-Job-Time": Date.now().toString()
+    };
+    res["X-Job-Hash"] = crypto
+      .createHmac(AsyncJobService.HMAC_ALGO, jobInfo.JOB_SECRET_KEY)
+      .update(res["X-Job-Time"])
+      .digest("hex");
+    return res;
+  }
+  /**
    * Wrap async job and call the job status hook
    */
-  async wrapper() {
-    // Call the job status to get its arguments
+  async runWebdaAsyncAction(jobInfo: JobInfo = undefined): Promise<void> {
+    // Get it from environment
+    if (jobInfo === undefined) {
+      jobInfo = <any>{};
+      Object.keys(process.env)
+        .filter(k => k.startsWith("JOB_"))
+        .forEach(k => (jobInfo[k] = process.env[k]));
+    }
+    // Ensure correct context
+    if (!jobInfo.JOB_ORCHESTRATOR || !jobInfo.JOB_ID || !jobInfo.JOB_SECRET_KEY || !jobInfo.JOB_HOOK) {
+      throw new Error("Cannot run AsyncAction without context");
+    }
+    // If we are not the target redirect to the right one
+    if (jobInfo.JOB_ORCHESTRATOR !== this.getName()) {
+      return this.getService<AsyncJobService>(jobInfo.JOB_ORCHESTRATOR).runWebdaAsyncAction(jobInfo);
+    }
+
+    // Get action info by calling the hook
+    let action = (
+      await axios.post<any, AxiosResponse<WebdaAsyncAction>>(
+        jobInfo.JOB_HOOK,
+        {
+          agent: {
+            ...Runner.getAgentInfo(),
+            nodeVersion: process.version
+          },
+          status: "RUNNING"
+        },
+        {
+          headers: this.getHeaders(jobInfo)
+        }
+      )
+    ).data;
+
+    let results;
+    try {
+      // Check it contains the right info
+      if (!action.method || !action.serviceName) {
+        throw new Error("WebdaAsyncAction must have method and serviceName defined at least");
+      }
+      // Call the service[method](...args)
+      let service = this.getService(action.serviceName);
+      if (!service) {
+        throw new Error(`WebdaAsyncAction Service '${action.serviceName}' not found: mismatch app version`);
+      }
+      if (!service[action.method]) {
+        throw new Error(
+          `WebdaAsyncAction Method '${action.method}' not found in service ${action.serviceName}: mismatch app version`
+        );
+      }
+      results = await service[action.method](...action.arguments);
+    } catch (err) {
+      // Job is in error
+      await axios.post(
+        jobInfo.JOB_HOOK,
+        {
+          errorMessage: err.message,
+          status: "ERROR"
+        },
+        {
+          headers: this.getHeaders(jobInfo)
+        }
+      );
+      return;
+    }
+    // Update status
+    await axios.post(
+      jobInfo.JOB_HOOK,
+      {
+        results,
+        status: "SUCCESS"
+      },
+      {
+        headers: this.getHeaders(jobInfo)
+      }
+    );
   }
 
   /**

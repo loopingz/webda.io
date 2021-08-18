@@ -81,7 +81,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
   /**
    * @inheritdoc
    */
-  _get(info: BinaryMap) : Readable {
+  _get(info: BinaryMap): Readable {
     var path = this._getPath(info.hash, "data");
     if (!fs.existsSync(path)) {
       throw 404;

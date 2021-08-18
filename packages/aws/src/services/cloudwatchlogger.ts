@@ -89,9 +89,9 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
 
   /**
    * Send logs to CloudWatch
-   * 
-   * @param copy 
-   * @returns 
+   *
+   * @param copy
+   * @returns
    */
   async sendLogs(copy: boolean = false): Promise<void> {
     if (!this._bufferedLogs.length) {

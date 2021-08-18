@@ -33,6 +33,10 @@ export default class AsyncAction extends CoreModel {
   public status: "RUNNING" | "SUCCESS" | "ERROR" | "QUEUED" | "STARTING" | "TIMEOUT";
 
   /**
+   * If an error occured it should contain the message
+   */
+  public errorMessage?: string;
+  /**
    * Job information
    */
   public job: Job;
@@ -77,6 +81,20 @@ export default class AsyncAction extends CoreModel {
    * It should be a verb
    */
   public action?: "STOP" | string;
+}
+
+/**
+ * Define a Webda Async Action
+ */
+export class WebdaAsyncAction extends AsyncAction {
+  /**
+   * Service to call
+   */
+  serviceName: string;
+  /**
+   * Method to run
+   */
+  method: string;
 }
 
 export { AsyncAction };

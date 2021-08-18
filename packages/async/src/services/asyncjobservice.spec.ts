@@ -3,8 +3,11 @@ import AsyncJobService from "./asyncjobservice";
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { HttpContext, Queue, Store } from "@webda/core";
-import AsyncAction from "../models";
+import AsyncAction, { WebdaAsyncAction } from "../models";
 import * as crypto from "crypto";
+import * as sinon from "sinon";
+import axios from "axios";
+import { Runner } from "./runner";
 
 @suite
 class AsyncJobServiceTest extends WebdaTest {
@@ -30,8 +33,8 @@ class AsyncJobServiceTest extends WebdaTest {
     const service = this.getValidService();
     // @ts-ignore
     service.queue = {
-      consume: async (callback) => {}
-    }
+      consume: async callback => {}
+    };
     await service.worker();
     // @ts-ignore
     service.runners = [];
@@ -164,27 +167,43 @@ class AsyncJobServiceTest extends WebdaTest {
     });
     await assert.rejects(() => hook(context), /403/);
     context.setHttpContext(
-      new HttpContext("test.webda.io", "GET", "/", "https", 443, {
-        logs: ["line 1", "line 2"],
-        status: "RUNNING"
-      }, {
-        "X-Job-Time": "12345",
-        "X-Job-Hash": crypto.createHmac("sha256", "mine").update("12345").digest("hex"),
-        "X-Job-Id": "plop"
-      })
+      new HttpContext(
+        "test.webda.io",
+        "GET",
+        "/",
+        "https",
+        443,
+        {
+          logs: ["line 1", "line 2"],
+          status: "RUNNING"
+        },
+        {
+          "X-Job-Time": "12345",
+          "X-Job-Hash": crypto.createHmac("sha256", "mine").update("12345").digest("hex"),
+          "X-Job-Id": "plop"
+        }
+      )
     );
     await hook(context);
     const now = Date.now().toString();
     context.setHttpContext(
-      new HttpContext("test.webda.io", "GET", "/", "https", 443, {
-        statusDetails: {
-          progress: 100
+      new HttpContext(
+        "test.webda.io",
+        "GET",
+        "/",
+        "https",
+        443,
+        {
+          statusDetails: {
+            progress: 100
+          }
+        },
+        {
+          "X-Job-Time": now,
+          "X-Job-Hash": crypto.createHmac("sha256", "mine").update(now).digest("hex"),
+          "X-Job-Id": "plop"
         }
-      }, {
-        "X-Job-Time": now,
-        "X-Job-Hash": crypto.createHmac("sha256", "mine").update(now).digest("hex"),
-        "X-Job-Id": "plop"
-      })
+      )
     );
     await hook(context);
     const res = JSON.parse(context.getResponseBody());
@@ -194,13 +213,21 @@ class AsyncJobServiceTest extends WebdaTest {
       logs.push(`newline ${i}`);
     }
     context.setHttpContext(
-      new HttpContext("test.webda.io", "GET", "/", "https", 443, {
-        logs
-      }, {
-        "X-Job-Time": "bouzouf",
-        "X-Job-Hash": crypto.createHmac("sha256", "mine").update("bouzouf").digest("hex"),
-        "X-Job-Id": "plop"
-      })
+      new HttpContext(
+        "test.webda.io",
+        "GET",
+        "/",
+        "https",
+        443,
+        {
+          logs
+        },
+        {
+          "X-Job-Time": "bouzouf",
+          "X-Job-Hash": crypto.createHmac("sha256", "mine").update("bouzouf").digest("hex"),
+          "X-Job-Id": "plop"
+        }
+      )
     );
     await hook(context);
     assert.strictEqual(JSON.parse(context.getResponseBody())._lastJobUpdate - res._lastJobUpdate > 0, true);
@@ -211,7 +238,7 @@ class AsyncJobServiceTest extends WebdaTest {
   async handleEvent() {
     const service = this.getValidService();
     // @ts-ignore
-    const handler = service.handleEvent.bind(service, {uuid: "plop", type: "Async"});
+    const handler = service.handleEvent.bind(service, { uuid: "plop", type: "Async" });
     await this.store.save({
       uuid: "plop"
     });
@@ -220,9 +247,9 @@ class AsyncJobServiceTest extends WebdaTest {
       // @ts-ignore
       {
         handleType: () => true,
-        launchAction: async () => ({mocked: true})
+        launchAction: async () => ({ mocked: true })
       }
-    ]
+    ];
     await handler();
     assert.strictEqual((await this.store.get("plop")).status, "STARTING");
     // @ts-ignore
@@ -230,13 +257,206 @@ class AsyncJobServiceTest extends WebdaTest {
       // @ts-ignore
       {
         handleType: () => false,
-        launchAction: async () => ({mocked: true})
+        launchAction: async () => ({ mocked: true })
       }
-    ]
+    ];
     await handler();
     assert.strictEqual((await this.store.get("plop")).status, "ERROR");
     service.getParameters().fallbackOnFirst = true;
     await handler();
     assert.strictEqual((await this.store.get("plop")).status, "STARTING");
+  }
+
+  @test
+  async runWebdaAction() {
+    const service = this.getValidService();
+
+    // @ts-ignore
+    await assert.rejects(() => service.runWebdaAsyncAction({}), /Cannot run AsyncAction/);
+    await assert.rejects(
+      () =>
+        // @ts-ignore
+        service.runWebdaAsyncAction({
+          JOB_ORCHESTRATOR: "a"
+        }),
+      /Cannot run AsyncAction/
+    );
+    await assert.rejects(
+      () =>
+        // @ts-ignore
+        service.runWebdaAsyncAction({
+          JOB_ORCHESTRATOR: "a",
+          JOB_ID: "a"
+        }),
+      /Cannot run AsyncAction/
+    );
+
+    await assert.rejects(
+      () =>
+        // @ts-ignore
+        service.runWebdaAsyncAction({
+          JOB_ORCHESTRATOR: "a",
+          JOB_ID: "a",
+          JOB_SECRET_KEY: "p"
+        }),
+      /Cannot run AsyncAction/
+    );
+    let calledInfo;
+    let subcall;
+    this.registerService("mine", {
+      // @ts-ignore
+      runWebdaAsyncAction: async info => {
+        calledInfo = info;
+      },
+      myMethod: async (...args) => {
+        return {
+          myMethod: "async",
+          success: true,
+          args
+        };
+      }
+    });
+    process.env = {
+      ...process.env,
+      JOB_ORCHESTRATOR: "mine",
+      JOB_ID: "a",
+      JOB_SECRET_KEY: "a",
+      JOB_HOOK: "a"
+    };
+    // Check redirection to good service
+    await service.runWebdaAsyncAction();
+    assert.deepStrictEqual(calledInfo, {
+      JOB_ORCHESTRATOR: "mine",
+      JOB_ID: "a",
+      JOB_SECRET_KEY: "a",
+      JOB_HOOK: "a"
+    });
+
+    // Now test hook
+    try {
+      this.registerService("async", service);
+
+      // Set a true action
+      const action = new WebdaAsyncAction();
+      action.method = "myMethod";
+      action.serviceName = "mine";
+      service.launchAction(action);
+
+      process.env.JOB_ORCHESTRATOR = "async";
+      process.env.JOB_ID = action.getUuid();
+      process.env.JOB_SECRET_KEY = action.__secretKey;
+
+      let stub = sinon.stub(axios, "post").callsFake(async (...args) => {
+        let ctx = await this.newContext(args[1]);
+        if (args.length > 2 && args[2].headers) {
+          for (let k in args[2].headers) {
+            ctx.getHttpContext().headers[k.toLowerCase()] = args[2].headers[k];
+          }
+        }
+        // @ts-ignore
+        await service.statusHook(ctx);
+        return {
+          data: JSON.parse(ctx.getResponseBody())
+        };
+      });
+
+      // First run call with no method
+      stub.onCall(0).returns({
+        data: {
+          serviceName: "plop"
+        }
+      });
+      await service.runWebdaAsyncAction();
+      let args: any[] = stub.getCall(0).args;
+      assert.deepStrictEqual(args.slice(0, 2), [
+        "a",
+        {
+          agent: { ...Runner.getAgentInfo(), nodeVersion: process.version },
+          status: "RUNNING"
+        }
+      ]);
+      assert.strictEqual(args[2].headers["X-Job-Id"], action.getUuid());
+      await action.refresh();
+      assert.strictEqual(action.status, "ERROR");
+      assert.strictEqual(action.errorMessage, "WebdaAsyncAction must have method and serviceName defined at least");
+
+      // Run without serviceName
+      await this.store.patch({
+        uuid: action.getUuid(),
+        status: "NONE",
+        errorMessage: ""
+      });
+      stub.resetHistory();
+      stub.onCall(0).returns({
+        data: {
+          method: "plop"
+        }
+      });
+      await service.runWebdaAsyncAction();
+      await action.refresh();
+      assert.strictEqual(action.status, "ERROR");
+      assert.strictEqual(action.errorMessage, "WebdaAsyncAction must have method and serviceName defined at least");
+
+      // Run with unknown service
+      await this.store.patch({
+        uuid: action.getUuid(),
+        status: "NONE",
+        errorMessage: ""
+      });
+      stub.resetHistory();
+      stub.onCall(0).returns({
+        data: {
+          serviceName: "plop",
+          method: "plop"
+        }
+      });
+      await service.runWebdaAsyncAction();
+      await action.refresh();
+      assert.strictEqual(action.status, "ERROR");
+      assert.strictEqual(action.errorMessage, "WebdaAsyncAction Service 'plop' not found: mismatch app version");
+
+      // Run with known service but incorrect method
+      await this.store.patch({
+        uuid: action.getUuid(),
+        status: "NONE",
+        errorMessage: ""
+      });
+      stub.resetHistory();
+      stub.onCall(0).returns({
+        data: {
+          serviceName: "mine",
+          method: "plop"
+        }
+      });
+      await service.runWebdaAsyncAction();
+      await action.refresh();
+      assert.strictEqual(action.status, "ERROR");
+      assert.strictEqual(
+        action.errorMessage,
+        "WebdaAsyncAction Method 'plop' not found in service mine: mismatch app version"
+      );
+
+      // Run with known service but incorrect method
+      await this.store.patch({
+        uuid: action.getUuid(),
+        status: "NONE",
+        errorMessage: ""
+      });
+      stub.resetHistory();
+
+      stub.onCall(0).returns({
+        data: {
+          serviceName: "mine",
+          method: "myMethod",
+          arguments: ["plop", 666]
+        }
+      });
+      await service.runWebdaAsyncAction();
+      await action.refresh();
+      assert.strictEqual(action.status, "SUCCESS");
+      assert.deepStrictEqual(action.results, { myMethod: "async", success: true, args: ["plop", 666] });
+    } finally {
+      sinon.restore();
+    }
   }
 }

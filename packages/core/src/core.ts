@@ -201,6 +201,10 @@ export interface Configuration {
       maxAge: number;
       path: string;
     };
+    /**
+     * Define the api url
+     */
+    apiUrl?: string;
     [key: string]: any;
   };
   /**
@@ -396,9 +400,10 @@ export class Core extends events.EventEmitter {
     // Set the global context
     Context.setGlobalContext(<Context>new (this.getModel(this.parameter("contextModel") || "WebdaCore/Context"))(this));
     // Init default values for configuration
-    this.configuration.parameters = this.configuration.parameters || {};
-    this.configuration.services = this.configuration.services || {};
-    this.configuration.module = this.configuration.module || {};
+    this.configuration.parameters ??= {};
+    this.configuration.parameters.apiUrl ??= "http://localhost:18080";
+    this.configuration.services ??= {};
+    this.configuration.module ??= {};
     // Add CSRF origins filtering
     if (this.configuration.parameters.csrfOrigins) {
       this.registerRequestFilter(new OriginFilter(this.configuration.parameters.csrfOrigins));
@@ -411,6 +416,25 @@ export class Core extends events.EventEmitter {
     this.initStatics();
   }
 
+  /**
+   * Get absolute url with subpath
+   * @param subpath 
+   */
+  getApiUrl(subpath: string = "") : string {
+    if (subpath.length > 0 && !subpath.startsWith("/")) {
+      subpath = "/" + subpath;
+    }
+    return this.configuration.parameters.apiUrl + subpath;
+  }
+
+  /**
+   * Return application path with subpath
+   * 
+   * Helper that redirect to this.application.getAppPath
+   * 
+   * @param subpath 
+   * @returns 
+   */
   getAppPath(subpath: string = ""): string {
     return this.application.getAppPath(subpath);
   }

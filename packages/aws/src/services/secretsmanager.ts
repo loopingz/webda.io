@@ -49,13 +49,13 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
 
   /**
    * Delete a secret
-   * 
+   *
    * @param SecretId to delete
-   * @param RecoveryWindowInDays 
-   * @param ForceDeleteWithoutRecovery 
+   * @param RecoveryWindowInDays
+   * @param ForceDeleteWithoutRecovery
    */
   async delete(SecretId: string, RecoveryWindowInDays: number = 7, ForceDeleteWithoutRecovery: boolean = false) {
-    let params : AWS.SecretsManager.DeleteSecretRequest = {
+    let params: AWS.SecretsManager.DeleteSecretRequest = {
       RecoveryWindowInDays,
       SecretId
     };
@@ -70,9 +70,9 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
 
   /**
    * Store data in a AWS secret
-   * 
-   * @param SecretId 
-   * @param value 
+   *
+   * @param SecretId
+   * @param value
    */
   async put(SecretId: string, value: any) {
     await this._client
@@ -85,8 +85,8 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
 
   /**
    * Return SecretValue
-   * 
-   * @param SecretId  
+   *
+   * @param SecretId
    * @returns JSON.parse of SecretString
    */
   async get(SecretId: string) {

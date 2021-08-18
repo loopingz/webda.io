@@ -58,6 +58,12 @@ class CSRFTest extends WebdaTest {
   }
 
   @test
+  getApiUrl() {
+    assert.strictEqual(this.webda.getApiUrl("/plop"), "http://localhost:18080/plop");
+    assert.strictEqual(this.webda.getApiUrl("plop"), "http://localhost:18080/plop");
+  }
+
+  @test
   async websiteString() {
     this.filter = new WebsiteOriginFilter("http://localhost:18181");
     // Exact match

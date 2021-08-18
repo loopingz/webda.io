@@ -40,6 +40,15 @@ class LocalRunnerTest extends WebdaTest {
         new FakeRunner(this.webda, "fake", {});
     }
 
+    getJobInfo(action: AsyncAction) {
+        return {
+            JOB_HOOK: "",
+            JOB_ID: action.getUuid(),
+            JOB_ORCHESTRATOR: "test",
+            JOB_SECRET_KEY: action.__secretKey
+        }
+    }
+
     @test
     async launchAction() {
         const spawn = stub(child_process, 'spawn').returns({pid: "fake"});
@@ -47,7 +56,7 @@ class LocalRunnerTest extends WebdaTest {
             const runner = new LocalRunner(this.webda, "runner", {});
             const action = await this.getService<Store<AsyncAction>>("AsyncJobs").save({status: "STARTING", logs: []});
             
-            let job = await runner.launchAction(action);
+            let job = await runner.launchAction(action, this.getJobInfo(action));
 
             assert.strictEqual(spawn.calledOnce, true);
             assert.strictEqual(job.pid, "fake");
@@ -66,7 +75,7 @@ class LocalRunnerTest extends WebdaTest {
             const runner = new LocalRunner(this.webda, "runner", {autoStatus: true});
             const action = await this.getService<Store<AsyncAction>>("AsyncJobs").save({status: "STARTING", logs: []});
             
-            let job = await runner.launchAction(action);
+            let job = await runner.launchAction(action, this.getJobInfo(action));
 
             assert.strictEqual(spawn.calledOnce, true);
             assert.strictEqual(job.pid, 666);

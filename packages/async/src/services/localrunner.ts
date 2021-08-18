@@ -1,8 +1,8 @@
-import { Runner, RunnerParameters } from "./runner";
+import { AgentInfo, Runner, RunnerParameters } from "./runner";
 import { AsyncAction } from "../models";
 import { spawn, SpawnOptions } from "child_process";
 import { ServiceParameters } from "@webda/core";
-import * as os from "os";
+import { JobInfo } from "./asyncjobservice";
 
 export class LocalRunnerParameters extends RunnerParameters {
   /**
@@ -31,6 +31,17 @@ export class LocalRunnerParameters extends RunnerParameters {
   }
 }
 
+/**
+ * Type of action returned by LocalRunner
+ */
+export interface ProcessAction {
+  agent: AgentInfo;
+  pid: number;
+}
+
+/**
+ * Run a Job locally on the server by spawning a child process
+ */
 export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerParameters> extends Runner<T> {
   /**
    * @inheritdoc
@@ -42,12 +53,10 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
   /**
    * @inheritdoc
    */
-  async launchAction(action: AsyncAction): Promise<any> {
+  async launchAction(action: AsyncAction, info: JobInfo): Promise<ProcessAction> {
     let envs = {
       ...this.parameters.options.env,
-      JOB_ID: action.getUuid(),
-      JOB_SECRET_KEY: action.__secretKey,
-      JOB_HOOK: "http://localhost:18080/hook"
+      ...info
     };
     this.log("INFO", "Job", action.getUuid(), "started with", this.parameters.command, this.parameters.args);
     const child = spawn(this.parameters.command, this.parameters.args, {
@@ -78,15 +87,14 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
     }
 
     return {
+      agent: Runner.getAgentInfo(),
       pid: child.pid,
-      hostname: os.hostname(),
-      platform: os.platform(),
-      release: os.release(),
-      memory: os.totalmem(),
-      type: os.type()
     };
   }
 
+  /**
+   * @inheritdoc
+   */
   static getModda() {
     return {
       uuid: "Webda/LocalRunner",

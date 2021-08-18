@@ -4,7 +4,6 @@ import {
   Context,
   Core as Webda,
   HttpContext,
-  Service,
   EventWebdaRequest,
   EventWebdaResult,
   EventWebda404
@@ -17,16 +16,16 @@ import { serialize as cookieSerialize } from "cookie";
 export interface AWSEventsHandler {
   /**
    * Return true if event is handled
-   * @param source 
-   * @param event 
+   * @param source
+   * @param event
    */
-  isAWSEventHandled(source: string, event: any): boolean;
+  isAWSEventHandled(source: string, events: any): boolean;
   /**
-   * 
-   * @param source 
-   * @param event 
+   *
+   * @param source
+   * @param event
    */
-  handleAWSEvent(source: string, event: any): Promise<void>;
+  handleAWSEvent(source: string, events: any): Promise<void>;
 }
 
 /**
@@ -40,7 +39,7 @@ export interface AWSEventsHandler {
  */
 export default class LambdaServer extends Webda {
   _result: { headers?: any; statusCode?: number; multiValueHeaders?: any; body?: any };
-  _awsEventsHandlers: any[] = [];
+  _awsEventsHandlers: AWSEventsHandler[] = [];
 
   /**
    * @ignore
@@ -72,9 +71,9 @@ export default class LambdaServer extends Webda {
 
   /**
    * Retrieve client information from Lambda context
-   * 
-   * @param reqCtx 
-   * @returns 
+   *
+   * @param reqCtx
+   * @returns
    */
   getClientInfo(reqCtx: any) {
     let res = new ClientInfo();
@@ -84,7 +83,11 @@ export default class LambdaServer extends Webda {
     return res;
   }
 
-  registerAWSEventsHandler(service: Service) {
+  /**
+   * Register a service to handle AWS Events
+   * @param service
+   */
+  registerAWSEventsHandler(service: AWSEventsHandler) {
     if (this._awsEventsHandlers.indexOf(service) < 0) {
       this._awsEventsHandlers.push(service);
     }
@@ -101,8 +104,8 @@ export default class LambdaServer extends Webda {
 
   /**
    * Analyse events to try to find its type
-   * @param events 
-   * @returns 
+   * @param events
+   * @returns
    */
   async handleAWSEvents(events) {
     let found = false;
@@ -281,8 +284,8 @@ export default class LambdaServer extends Webda {
 
   /**
    * Collect result from Context to this._result and return it
-   * @param ctx 
-   * @returns 
+   * @param ctx
+   * @returns
    */
   async handleLambdaReturn(ctx: Context) {
     await this.emitSync("Webda.Result", <EventWebdaResult>{ context: ctx });

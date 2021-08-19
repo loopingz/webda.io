@@ -41,7 +41,7 @@
     "cookie-parser": "^1.4.5",
     "express": "^4.17.1",
     "express-session": "^1.17.2",
-    "filesize": "^7.0.0",
+    "filesize": "^8.0.0",
     "fs-extra": "^10.0.0",
     "fs-finder": "^1.8.1",
     "generator-webda": "^1.2.0",

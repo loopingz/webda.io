@@ -1,0 +1,65 @@
+{
+  "name": "@webda/kubernetes",
+  "version": "0.0.0",
+  "description": "Kubernetes Helpers",
+  "main": "lib/index.js",
+  "scripts": {
+    "webda-module": "webda module --noCompile",
+    "build": "tsc",
+    "pretest": "npm run build",
+    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts",
+    "run": "node core"
+  },
+  "keywords": [
+    "webda-module"
+  ],
+  "files": [
+    "lib",
+    "webda.module.json",
+    "package.json"
+  ],
+  "dependencies": {
+    "@kubernetes/client-node": "^0.15.1",
+    "@types/node": "^16.4.14",
+    "@webda/async": "^0.0.0",
+    "@webda/core": "^1.2.1",
+    "axios": "^0.21.1"
+  },
+  "devDependencies": {
+    "@istanbuljs/nyc-config-typescript": "^1.0.1",
+    "@types/node": "^16.4.14",
+    "glob": "^7.1.7",
+    "istanbul": "^0.4.5",
+    "js-beautify": "^1.14.0",
+    "mocha": "^9.0.3",
+    "nyc": "^15.1.0",
+    "remap-istanbul": "^0.13.0",
+    "sinon": "^11.1.2",
+    "source-map-support": "^0.5.19",
+    "ts-node": "^10.2.0",
+    "typescript": "~4.2.4"
+  },
+  "nyc": {
+    "extends": "@istanbuljs/nyc-config-typescript",
+    "report-dir": "./reports",
+    "reporter": [
+      "html",
+      "lcov",
+      "json"
+    ],
+    "exclude": [
+      "**/*.spec.ts"
+    ]
+  },
+  "bugs": {
+    "url": "https://github.com/loopingz/webda.io/issues"
+  },
+  "homepage": "https://github.com/loopingz/webda.io#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loopingz/webda.io.git"
+  },
+  "webda": {
+    "namespace": "Webda"
+  }
+}

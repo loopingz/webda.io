@@ -33,8 +33,6 @@ spec:
               imagePullPolicy: Always
               name: scheduled-job
               resources: {}
-          imagePullSecrets:
-            - name: docker-registry-key
           restartPolicy: Never
           securityContext: {}
           terminationGracePeriodSeconds: 30
@@ -63,7 +61,7 @@ const DEFAULT_API = {
 };
 
 export class Kubernetes extends Deployer<KubernetesResources> {
-  client: any;
+  client: k8s.KubernetesObjectApi;
   async loadDefaults() {
     await super.loadDefaults();
     this.resources.defaultNamespace = this.resources.defaultNamespace || "default";

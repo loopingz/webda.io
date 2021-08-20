@@ -1,0 +1,90 @@
+{
+  "services": {
+    "Webda/KubeRunner": "lib/services/kuberunner.js"
+  },
+  "models": {},
+  "deployers": {},
+  "schemas": {
+    "Webda/KubeRunner": {
+      "description": "Parameters for the KubeRunner",
+      "type": "object",
+      "properties": {
+        "config": {
+          "description": "Kubernetes configuration",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Object"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "context": {
+          "description": "Default context to use",
+          "type": "string"
+        },
+        "jobResources": {
+          "description": "Kubernetes resources to use"
+        },
+        "jobImage": {
+          "description": "If default template, use this image",
+          "type": "string"
+        },
+        "actions": {
+          "description": "Actions managed by the runner",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "description": "Type of the service",
+          "type": "string"
+        }
+      },
+      "required": [
+        "config",
+        "type"
+      ],
+      "definitions": {
+        "Object": {
+          "type": "object",
+          "properties": {
+            "constructor": {
+              "$ref": "#/definitions/Function"
+            }
+          },
+          "required": [
+            "constructor"
+          ]
+        },
+        "Function": {
+          "type": "object",
+          "properties": {
+            "prototype": {},
+            "length": {
+              "type": "number"
+            },
+            "arguments": {},
+            "caller": {
+              "$ref": "#/definitions/Function"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "arguments",
+            "caller",
+            "length",
+            "name",
+            "prototype"
+          ]
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  }
+}

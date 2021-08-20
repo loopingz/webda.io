@@ -18,7 +18,7 @@ export interface JobInfo {
 /**
  * @inheritdoc
  */
-class AsyncJobServiceParameters extends ServiceParameters {
+export class AsyncJobServiceParameters extends ServiceParameters {
   /**
    * Store name to use for async actions
    * @default AsyncActions

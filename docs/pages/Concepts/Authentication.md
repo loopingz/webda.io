@@ -3,11 +3,6 @@
 The Authentication service allows you to define User and Ident within your application.
 If needed, you can simply connect your application with an {@link OAuthService} implementation like Google Authentication, and use their uuid.
 
-```mermaid
-graph TD:
-  
-```
-
 A User can have several Idents as you can identify with email, mobile, external services like Google or Facebook or any other trusted services.
 
 To store the Users and Idents it requires two stores.

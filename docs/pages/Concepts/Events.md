@@ -2,9 +2,9 @@
 
 The framework use the EventEmitter for events.
 
-`emit()`
+`emit()` this will not wait for any promise returned by listeners
 
-`emitSync()`
+`emitSync()` this will wait for resolution on all promises returned by listeners
 
 We also have a mechanism to listen asynchronously to events. They will then be posted to a Queue for them
 to be consumed through a `AsyncEvent.worker()`
@@ -15,7 +15,6 @@ sequenceDiagram
 	participant As as AsyncEventService
 	participant Q as Queue
     participant Aw as AsyncEventService Worker
-
     As->>S: Bind event to a sendQueue listener
 	activate As
 	S->>As: Emit event

@@ -2,15 +2,15 @@
 
 This is the application definition file
 
-It has 3 main sections:
+It has 2 main sections:
 
 ```json
 {
   "parameters": {
-    // This will be passed to all your Services
+    // This will be passed to all your Services and can contain common parameters
   },
   "services": {
-    // Definie each Service and its own parameters
+    // Define each Service and its own parameters
   },
   "version": "2"
 }

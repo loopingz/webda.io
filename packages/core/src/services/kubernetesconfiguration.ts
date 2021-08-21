@@ -24,8 +24,8 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
     // Add webda info
     this.watch("$.webda.services", this._webda.reinit.bind(this._webda));
 
-    fs.watchFile(path.join(this.parameters.source, "..data"), this._checkUpdate.bind(this));
-    await this._checkUpdate();
+    fs.watchFile(path.join(this.parameters.source, "..data"), this.checkUpdate.bind(this));
+    await this.checkUpdate();
   }
 
   stop() {
@@ -34,8 +34,9 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
 
   /**
    * Load configuration from a ConfigMap or a Secret
+   * @override
    */
-  async _loadConfiguration(): Promise<{ [key: string]: any }> {
+  async loadConfiguration(): Promise<{ [key: string]: any }> {
     let result = {};
     fs.readdirSync(this.parameters.source)
       .filter(f => !f.startsWith("."))

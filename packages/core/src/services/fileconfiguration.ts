@@ -22,12 +22,12 @@ export class FileConfigurationService<
       throw new WebdaError("FILE_CONFIGURATION_SOURCE_MISSING", "Need a source for FileConfigurationService");
     }
 
-    fs.watchFile(this.parameters.source, this._checkUpdate.bind(this));
+    fs.watchFile(this.parameters.source, this.checkUpdate.bind(this));
 
     // Add webda info
     this.watch("$.webda.services", this._webda.reinit.bind(this._webda));
 
-    await this._checkUpdate();
+    await this.checkUpdate();
   }
 
   stop() {
@@ -36,8 +36,9 @@ export class FileConfigurationService<
 
   /**
    * Load the JSON from source defined file
+   * @override
    */
-  async _loadConfiguration(): Promise<{ [key: string]: any }> {
+  async loadConfiguration(): Promise<{ [key: string]: any }> {
     return JSONUtils.loadFile(this.parameters.source);
   }
 

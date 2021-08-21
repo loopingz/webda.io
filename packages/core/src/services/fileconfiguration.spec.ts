@@ -42,7 +42,8 @@ class FileConfigurationServiceTest extends WebdaTest {
       setTimeout(async () => {
         if (!ok) {
           console.log("WARN: Bypass the fs.watch");
-          await this.webda.getService<FileConfigurationService>("FileConfigurationService")._checkUpdate();
+          // @ts-ignore
+          await this.webda.getService<FileConfigurationService>("FileConfigurationService").checkUpdate();
           resolve();
         }
       }, 30000);

@@ -172,7 +172,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
           }))
         );
       } catch (err) {
-        this.log("ERROR", `Hawk error (${err.message || err})`);
+        this.log("ERROR", `Hawk error (${err.message})`);
         return false;
       }
       return true;

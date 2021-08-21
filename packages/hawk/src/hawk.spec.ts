@@ -169,6 +169,8 @@ class HawkServiceTest extends WebdaTest {
     // Test for 100% code coverage - empty hawk context to generate failure in the server-authorization
     this.context.setExtension("hawk", { artifacts: {}, credentials: {} });
     await this.webda.emitSync<EventWebdaResult>("Webda.Result", { context: this.context });
+    this.context.setExtension("hawk", undefined);
+    await this.webda.emitSync<EventWebdaResult>("Webda.Result", { context: this.context });
   }
 
   async doValidRequest(url = "/", method: HttpMethodType = "GET", headers = {}) {
@@ -215,7 +217,7 @@ class HawkServiceTest extends WebdaTest {
       PUT: ["/test"],
       DELETE: ["/bouzouf"]
     };
-    this.key.origins = ["regexp://.*"];
+    this.key.origins = ["regexp://none.*", "regexp://.*"];
     await this.key.save();
     // Reset cache
     CacheService.clearAllCache();
@@ -245,26 +247,34 @@ class HawkServiceTest extends WebdaTest {
     );
   }
 
-  /*
   @test
-  async getOptionsAuthorizedOrigins() {
-    this.key.origins = ["https://remotehost:3000"];
-    await this.key.save();
-
-    let k = this.store.initModel({
-      __secret: "secret",
-      uuid: "uuidKey333",
-      origins: ["regexp://https:\\/\\/.*soc\\.nuxeo\\.com"]
-    });
-    await k.save();
-
-    // Reset cache
-    CacheService.clearAllCache();
-    let origins = await this.service.getOptionsAuthorizedOrigins();
-    assert.deepEqual(origins, {
-      origins: ["https://remotehost:3000", "https://beta.soc.nuxeo.com", "https://soc.nuxeo.com"],
-      patterns: [/https:\/\/.*soc\.nuxeo\.com/, /https:\/\/[a-f\d]+\.dev\.soc\.nuxeo\.com/]
-    });
+  async cov() {
+    // Pure cov
+    HawkService.getModda();
+    let test = new HawkService(this.webda, "cov", { keysStore: "bouzouf" });
+    assert.strictEqual(test.getParameters().keysStore, "bouzouf");
+    assert.rejects(() => test.init(), /Store must exist/);
   }
-  */
+
+  @test
+  async session() {
+    let test = new HawkService(this.webda, "cov", { dynamicSessionKey: "myCSRF" });
+    const url = "/plop";
+    const sessionKey = "whatever";
+    const { header, artifacts } = Hawk.client.header(`http://test.webda.io${url}`, "GET", {
+      credentials: {
+        id: "session",
+        key: sessionKey,
+        algorithm: "sha256"
+      }
+    });
+    this.context.getSession()["myCSRF"] = sessionKey;
+    this.context.setHttpContext(new HttpContext("test.webda.io", "GET", url));
+    this.context.getHttpContext().getHeaders()["host"] = "test.webda.io";
+    this.context.getHttpContext().getHeaders()["authorization"] = header;
+    // It should be ok
+    assert.strictEqual(await test.checkRequest(this.context), true);
+    this.context.getSession()["myCSRF"] = "anotherone";
+    assert.strictEqual(await test.checkRequest(this.context), false);
+  }
 }

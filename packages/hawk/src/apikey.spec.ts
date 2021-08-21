@@ -26,16 +26,16 @@ class ApiKeyTest extends WebdaTest {
   toHawkCredentials() {
     this.apikey.load({ __secret: "bouzouf", uuid: "plop" }, true);
     const credentials = this.apikey.toHawkCredentials();
-    assert.equal(credentials.algorithm, "sha256", "Should default to sha256 algorithm");
-    assert.equal(credentials.key, "bouzouf", "Key should equal to hidden value __secret");
+    assert.strictEqual(credentials.algorithm, "sha256", "Should default to sha256 algorithm");
+    assert.strictEqual(credentials.key, "bouzouf", "Key should equal to hidden value __secret");
   }
 
   @test
   toHawkCredentialsWithAlgorithm() {
     this.apikey.load({ __secret: "bouzouf", uuid: "plop", algorithm: "md5" }, true);
     const credentials = this.apikey.toHawkCredentials();
-    assert.equal(credentials.algorithm, "md5", "Should use specified algorithm");
-    assert.equal(credentials.key, "bouzouf", "Key should equal to hidden value __secret");
+    assert.strictEqual(credentials.algorithm, "md5", "Should use specified algorithm");
+    assert.strictEqual(credentials.key, "bouzouf", "Key should equal to hidden value __secret");
   }
 
   @test
@@ -75,5 +75,18 @@ class ApiKeyTest extends WebdaTest {
 
     this.getExecutor(this.context, "test.webda.io", "GET", "/path/to/the/valhalla");
     assert.ok(this.apikey.canRequest(this.context.getHttpContext()), "no permissions should be true");
+  }
+
+  @test
+  async canAct() {
+    let key = new ApiKey();
+    key.uuid = "origins";
+    await assert.rejects(() => key.canAct(this.context, "get"), /403/);
+    // By default key should be on a owner model
+    key.uuid = "other";
+    this.context.getSession().userId = "me";
+    await assert.rejects(() => key.canAct(this.context, "get"), /403/);
+    key.setOwner("me");
+    assert.strictEqual(await key.canAct(this.context, "get"), key);
   }
 }

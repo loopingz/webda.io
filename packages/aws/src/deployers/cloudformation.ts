@@ -1056,28 +1056,6 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       Principal: { Service: "ecs-tasks.amazonaws.com" },
       Action: "sts:AssumeRole"
     });
-    /*
-    this.addPolicyStatement({
-      Sid: "WebdaECRAuth",
-      Effect: "Allow",
-      Action: ["ecr:GetAuthorizationToken"],
-      Resource: ["*"],
-    });
-    let statement = {
-      Sid: "WebdaPullImage",
-      Effect: "Allow",
-      Action: ["ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage"],
-      Resource: [],
-    };
-    let me = await this.getAWSIdentity();
-    let resourceType =
-      "arn:aws:ecr:" + this.getRegion() + ":" + me.Account + ":repository/" + this.resources.repositoryNamespace + "/";
-    let workers = [];
-    for (let i in workers) {
-      statement.Resource.push(resourceType + i);
-    }
-    this.addPolicyStatement(statement);
-    */
   }
 
   async generateLambdaPackage(): Promise<{ S3Bucket: string; S3Key: string }> {

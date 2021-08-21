@@ -333,10 +333,6 @@ export default class WebdaConsole {
         this.output(json);
       }
     }
-    /*
-    webda = await this._getNewConfig();
-    await webda.serve(18181, argv.open);
-    */
     return 0;
   }
 
@@ -354,10 +350,6 @@ export default class WebdaConsole {
     } else {
       fs.writeFileSync("webda.config.json", json);
     }
-    /*
-    webda = await this._getNewConfig();
-    await webda.serve(18181, argv.open);
-    */
     return 0;
   }
 

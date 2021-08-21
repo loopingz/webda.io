@@ -233,10 +233,16 @@ export default class ElasticSearchService<
     }
   }
 
+  /**
+   * Return ElasticSearch client
+   */
   getClient() {
     return this._client;
   }
 
+  /**
+   * @override
+   */
   static getModda() {
     return {
       uuid: "Webda/ElasticSearchService",

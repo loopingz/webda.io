@@ -10,13 +10,29 @@ import { WorkerLogLevel } from "@webda/workout";
  * @module DeploymentSystem
  */
 export abstract class Deployer<T extends DeployerResources> extends AbstractDeployer<T> {
+  /**
+   * Service who manage all deployments
+   * @see DeploymentManager
+   */
   manager: DeploymentManager;
+  /**
+   * Current application being deployed
+   */
   app: Application;
+  /**
+   * Package description from package.json
+   */
   packageDescription: any;
   _defaulted: boolean = false;
+  /**
+   * Logger to use
+   */
   logger: Logger;
   name: string;
   type: string;
+  /**
+   * Current date
+   */
   now: number;
   // Additional parameters
   parameters: any;

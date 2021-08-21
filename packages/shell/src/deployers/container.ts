@@ -80,7 +80,7 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
   private client: ContainerClientDefinition;
 
   async loadDefaults() {
-    super.loadDefaults();
+    await super.loadDefaults();
     this.resources.baseImage = this.resources.baseImage || "node:lts-alpine";
     this.resources.command = this.resources.command || "serve";
     this.resources.excludePackages = this.resources.excludePackages || [];

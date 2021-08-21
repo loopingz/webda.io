@@ -66,6 +66,12 @@ export class WebdaTerminal extends Terminal {
     }
   }
 
+  /**
+   * Colorized any 'da' letters from webda within output
+   *
+   * @param str
+   * @returns
+   */
   webdaize(str) {
     if (!this.tty) {
       return str;
@@ -73,6 +79,9 @@ export class WebdaTerminal extends Terminal {
     return str.replace(/(web)(da)/gi, "$1" + "$2".yellow);
   }
 
+  /**
+   * @override
+   */
   displayString(str: string, limit: number = undefined) {
     return this.webdaize(super.displayString(str, limit));
   }

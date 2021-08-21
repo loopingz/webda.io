@@ -99,22 +99,5 @@ class KubeRunnerTest extends WebdaTest {
     } finally {
       kube.restore();
     }
-
-    /*
-    const spawn = stub(child_process, "spawn").returns({ pid: "fake" });
-    try {
-      const runner = new LocalRunner(this.webda, "runner", {});
-      const action = await this.getService<Store<AsyncAction>>("AsyncJobs").save({ status: "STARTING", logs: [] });
-
-      let job = await runner.launchAction(action, this.getJobInfo(action));
-
-      assert.strictEqual(spawn.calledOnce, true);
-      assert.strictEqual(job.pid, "fake");
-      await action.refresh();
-      assert.strictEqual(action.status, "STARTING");
-    } finally {
-      spawn.restore();
-    }
-    */
   }
 }

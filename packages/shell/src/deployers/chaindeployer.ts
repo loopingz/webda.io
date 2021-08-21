@@ -11,6 +11,10 @@ export interface ChainDeployerResources extends DeployerResources {
  * Run a list of Deployer
  */
 export default class ChainDeployer extends Deployer<ChainDeployerResources> {
+  /**
+   *
+   * @returns current chain
+   */
   getChain(): string[] {
     if (typeof this.resources.chain === "string") {
       return this.resources.chain.split(",");
@@ -18,6 +22,10 @@ export default class ChainDeployer extends Deployer<ChainDeployerResources> {
     return this.resources.chain || [];
   }
 
+  /**
+   * Deploy each deployer from the chain, adding any results sent by previous
+   * deployers to the next one
+   */
   async deploy() {
     let deployers = this.getChain();
     deployers.forEach(d => {

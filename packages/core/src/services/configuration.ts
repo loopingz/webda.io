@@ -2,8 +2,24 @@ import { Service, ServiceParameters } from "./service";
 import { WebdaError } from "../core";
 import * as jsonpath from "jsonpath";
 
+/**
+ * Service that can store configuration
+ */
 interface ConfigurationProvider {
+  /**
+   *
+   * @param id of the configuration to retrieve
+   */
   getConfiguration(id: string): Promise<Map<string, any>>;
+  /**
+   * Return true if the service can detect modification
+   *
+   * If false, then ConfigurationService will set an interval
+   * and check every checkInterval @{ConfigurationServiceParameters.checkInterval}
+   *
+   * @param id of the source to check
+   * @param callback to call if source has changed
+   */
   canTriggerConfiguration(id: string, callback: () => void): boolean;
 }
 
@@ -11,9 +27,9 @@ export class ConfigurationServiceParameters extends ServiceParameters {
   /**
    * Check configuration every {checkInterval} seconds
    */
-  checkInterval: number;
+  checkInterval?: number;
   /**
-   * Format beanName:method
+   * Format sourceServiceName:sourceId
    */
   source: string;
   /**
@@ -22,7 +38,7 @@ export class ConfigurationServiceParameters extends ServiceParameters {
   default: any;
   constructor(params: any) {
     super(params);
-    this.checkInterval = this.checkInterval ?? 3600;
+    this.checkInterval ??= 3600;
   }
 }
 /**
@@ -31,17 +47,35 @@ export class ConfigurationServiceParameters extends ServiceParameters {
  *
  * Load configuration from another service
  *
+ * If the result contains `webda.services` in his object then webda configuration will
+ * be dynamically reloaded
+ *
  * @category CoreServices
  */
 export default class ConfigurationService<
   T extends ConfigurationServiceParameters = ConfigurationServiceParameters
 > extends Service<T> {
-  protected _configuration: any;
-  protected _nextCheck: number;
-  protected _sourceService: any;
-  protected _sourceId: string;
-  private _interval: NodeJS.Timer | number;
-  protected watches: any[] = [];
+  protected serializedConfiguration: any;
+  /**
+   *
+   */
+  protected nextCheck: number;
+  /**
+   * Service that will provide the information
+   */
+  protected sourceService: ConfigurationProvider;
+  /**
+   * Source id to retrieve
+   */
+  protected sourceId: string;
+  /**
+   * Interval between two checks
+   */
+  private interval: NodeJS.Timer | number;
+  /**
+   * Watchs for configuration update
+   */
+  protected watchs: any[] = [];
   protected configuration: any;
 
   /**
@@ -54,6 +88,9 @@ export default class ConfigurationService<
     return new ConfigurationServiceParameters(params);
   }
 
+  /**
+   * @inheritdoc
+   */
   async init() {
     // Check interval by default every hour
 
@@ -61,67 +98,100 @@ export default class ConfigurationService<
       throw new WebdaError("CONFIGURATION_SOURCE_MISSING", "Need a source for ConfigurationService");
     }
     let source = this.parameters.source.split(":");
-    this._sourceService = this.getService(source[0]);
-    if (!this._sourceService) {
+    this.sourceService = <ConfigurationProvider>(<unknown>this.getService(source[0]));
+    if (!this.sourceService) {
       throw new WebdaError(
         "CONFIGURATION_SOURCE_INVALID",
         'Need a valid service for source ("sourceService:sourceId")'
       );
     }
-    this._sourceId = source[1];
-    if (!this._sourceId) {
+    this.sourceId = source[1];
+    if (!this.sourceId) {
       throw new WebdaError("CONFIGURATION_SOURCE_INVALID", 'Need a valid source ("sourceService:sourceId")');
     }
-    if (!this._sourceService.getConfiguration) {
+    if (!this.sourceService.getConfiguration) {
       throw new WebdaError(
         "CONFIGURATION_SOURCE_INVALID",
         `Service ${source[0]} is not implementing ConfigurationProvider interface`
       );
     }
-    this._configuration = JSON.stringify(this.parameters.default);
-    await this._checkUpdate();
-    if (!this._sourceService.canTriggerConfiguration(this._sourceId, this._checkUpdate.bind(this))) {
-      this._interval = setInterval(this._checkUpdate.bind(this), 1000);
+    this.serializedConfiguration = JSON.stringify(this.parameters.default);
+    await this.checkUpdate();
+    if (!this.sourceService.canTriggerConfiguration(this.sourceId, this.checkUpdate.bind(this, true))) {
+      this.interval = setInterval(this.checkUpdate.bind(this), 1000);
     }
 
     // Add webda info
     this.watch("$.webda.services", this._webda.reinit.bind(this._webda));
   }
 
-  watch(path: string, callback: (update: any) => void | Promise<void>, defaultValue: any = undefined) {
-    this.watches.push({ path, callback, defaultValue });
+  /**
+   * Watch a specific configuration modification
+   *
+   * @param jsonpath JSON Path to the object to watch
+   * @param callback Method to call with the updated version
+   * @param defaultValue Default value of the jsonpath if it does not exist
+   */
+  watch(jsonpath: string, callback: (update: any) => void | Promise<void>, defaultValue: any = undefined) {
+    this.watchs.push({ path: jsonpath, callback, defaultValue });
   }
 
+  /**
+   * Clear the check interval if exist
+   */
   stop() {
-    // @ts-ignore
-    clearInterval(this._interval);
+    if (this.interval !== undefined) {
+      // @ts-ignore
+      clearInterval(this.interval);
+    }
   }
 
+  /**
+   *
+   * @returns current configuration
+   */
   getConfiguration() {
     return this.configuration || {};
   }
 
+  /**
+   * We cannot reinit the configurationService by itself
+   *
+   * @inheritdoc
+   */
   async reinit(config: any): Promise<void> {
     // Need to prevent any reinit
   }
 
-  async _loadConfiguration(): Promise<{ [key: string]: any }> {
-    return this._sourceService.getConfiguration(this._sourceId);
+  /**
+   * Load the configuration by calling the source service with the source id
+   * @returns
+   */
+  protected async loadConfiguration(): Promise<{ [key: string]: any }> {
+    return this.sourceService.getConfiguration(this.sourceId);
   }
 
-  async _checkUpdate() {
+  /**
+   * Checking for configuration updates
+   *
+   * If configuration is updated, it will trigger all the watchs accordingly
+   *
+   * @returns
+   */
+  protected async checkUpdate(dynamic: boolean = false) {
     // If the ConfigurationProvider cannot trigger we check at interval
-    if (this._interval && this._nextCheck > new Date().getTime()) return;
+    if (!dynamic && this.interval && this.nextCheck > new Date().getTime()) return;
 
     this.log("DEBUG", "Refreshing configuration");
-    let newConfig = (await this._loadConfiguration()) || this.parameters.default;
-    if (JSON.stringify(newConfig) !== this._configuration) {
+    const newConfig = (await this.loadConfiguration()) || this.parameters.default;
+    const serializedConfig = JSON.stringify(newConfig);
+    if (serializedConfig !== this.serializedConfiguration) {
       this.emit("Configuration.Applying");
       this.log("DEBUG", "Apply new configuration");
-      this._configuration = JSON.stringify(newConfig);
+      this.serializedConfiguration = serializedConfig;
       this.configuration = newConfig;
       let promises = [];
-      this.watches.forEach(w => {
+      this.watchs.forEach(w => {
         this.log("TRACE", "Apply new configuration value", jsonpath.query(newConfig, w.path).pop() || w.defaultValue);
         let p = w.callback(jsonpath.query(newConfig, w.path).pop() || w.defaultValue);
         if (p) {
@@ -132,14 +202,17 @@ export default class ConfigurationService<
       this.emit("Configuration.Applied");
     }
     // If the ConfigurationProvider cannot trigger we check at interval
-    if (this._interval) {
-      this._updateNextCheck();
+    if (this.interval) {
+      this.updateNextCheck();
       this.log("DEBUG", "Next configuration refresh in", this.parameters.checkInterval, "s");
     }
   }
 
-  _updateNextCheck() {
-    this._nextCheck = new Date().getTime() + this.parameters.checkInterval * 1000;
+  /**
+   * Update the next check time
+   */
+  protected updateNextCheck() {
+    this.nextCheck = new Date().getTime() + this.parameters.checkInterval * 1000;
   }
 }
 

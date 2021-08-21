@@ -118,6 +118,9 @@
 						<a href="../modules/_webda_hawk.html" class="tsd-kind-icon">@webda/hawk</a>
 					</li>
 					<li class=" tsd-kind-module root">
+						<a href="../modules/_webda_kubernetes.html" class="tsd-kind-icon">@webda/kubernetes</a>
+					</li>
+					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_profiler.html" class="tsd-kind-icon">@webda/profiler</a>
 					</li>
 					<li class=" tsd-kind-module root">
@@ -186,6 +189,9 @@
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-protected">
 								<a href="_webda_async.AsyncJobService.html#store" class="tsd-kind-icon">store</a>
 							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-static">
+								<a href="_webda_async.AsyncJobService.html#HMAC_ALGO" class="tsd-kind-icon">HMAC_<wbr>ALGO</a>
+							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_async.AsyncJobService.html#__clean" class="tsd-kind-icon">__clean</a>
 							</li>
@@ -200,6 +206,9 @@
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_async.AsyncJobService.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_webda_async.AsyncJobService.html#getHeaders" class="tsd-kind-icon">get<wbr>Headers</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_async.AsyncJobService.html#getName" class="tsd-kind-icon">get<wbr>Name</a>
@@ -240,6 +249,9 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 								<a href="_webda_async.AsyncJobService.html#resolve" class="tsd-kind-icon">resolve</a>
 							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_webda_async.AsyncJobService.html#runWebdaAsyncAction" class="tsd-kind-icon">run<wbr>Webda<wbr>Async<wbr>Action</a>
+							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-protected">
 								<a href="_webda_async.AsyncJobService.html#statusHook" class="tsd-kind-icon">status<wbr>Hook</a>
 							</li>
@@ -248,9 +260,6 @@
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_async.AsyncJobService.html#worker" class="tsd-kind-icon">worker</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="_webda_async.AsyncJobService.html#wrapper" class="tsd-kind-icon">wrapper</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-static">
 								<a href="_webda_async.AsyncJobService.html#getModda" class="tsd-kind-icon">get<wbr>Modda</a>
@@ -263,6 +272,9 @@
 				</ul>
 				<ul class="after-current">
 					<li class=" tsd-kind-class tsd-parent-kind-module root">
+						<a href="_webda_async.AsyncJobServiceParameters.html" class="tsd-kind-icon">Async<wbr>Job<wbr>Service<wbr>Parameters</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-module root">
 						<a href="_webda_async.LocalRunnerParameters.html" class="tsd-kind-icon">Local<wbr>Runner<wbr>Parameters</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter root">
@@ -271,11 +283,26 @@
 					<li class=" tsd-kind-class tsd-parent-kind-module root">
 						<a href="_webda_async.RunnerParameters.html" class="tsd-kind-icon">Runner<wbr>Parameters</a>
 					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-module root">
+						<a href="_webda_async.WebdaAsyncAction.html" class="tsd-kind-icon">Webda<wbr>Async<wbr>Action</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="../interfaces/_webda_async.AgentInfo.html" class="tsd-kind-icon">Agent<wbr>Info</a>
+					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module root">
 						<a href="../interfaces/_webda_async.AsyncActionQueueItem.html" class="tsd-kind-icon">Async<wbr>Action<wbr>Queue<wbr>Item</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module root">
 						<a href="../interfaces/_webda_async.Job.html" class="tsd-kind-icon">Job</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="../interfaces/_webda_async.JobInfo.html" class="tsd-kind-icon">Job<wbr>Info</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="../interfaces/_webda_async.NodeAgentInfo.html" class="tsd-kind-icon">Node<wbr>Agent<wbr>Info</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="../interfaces/_webda_async.ProcessAction.html" class="tsd-kind-icon">Process<wbr>Action</a>
 					</li>
 				</ul>
 			</nav>
@@ -291,7 +318,7 @@
 				<h3>Type parameters</h3>
 				<ul class="tsd-type-parameters">
 					<li>
-						<h4>T<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">AsyncJobServiceParameters</span></h4>
+						<h4>T<span class="tsd-signature-symbol">: </span><a href="_webda_async.AsyncJobServiceParameters.html" class="tsd-signature-type">AsyncJobServiceParameters</a></h4>
 					</li>
 				</ul>
 			</section>
@@ -336,6 +363,7 @@
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_async.AsyncJobService.html#queue" class="tsd-kind-icon">queue</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_async.AsyncJobService.html#runners" class="tsd-kind-icon">runners</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_async.AsyncJobService.html#store" class="tsd-kind-icon">store</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_async.AsyncJobService.html#HMAC_ALGO" class="tsd-kind-icon">HMAC_<wbr>ALGO</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
@@ -346,6 +374,7 @@
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_async.AsyncJobService.html#checkRequest" class="tsd-kind-icon">check<wbr>Request</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_async.AsyncJobService.html#computeParameters" class="tsd-kind-icon">compute<wbr>Parameters</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_async.AsyncJobService.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_async.AsyncJobService.html#getHeaders" class="tsd-kind-icon">get<wbr>Headers</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_async.AsyncJobService.html#getName" class="tsd-kind-icon">get<wbr>Name</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_async.AsyncJobService.html#getParameters" class="tsd-kind-icon">get<wbr>Parameters</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="_webda_async.AsyncJobService.html#getService" class="tsd-kind-icon">get<wbr>Service</a></li>
@@ -359,10 +388,10 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_async.AsyncJobService.html#onAsync" class="tsd-kind-icon">on<wbr>Async</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_async.AsyncJobService.html#reinit" class="tsd-kind-icon">reinit</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_async.AsyncJobService.html#resolve" class="tsd-kind-icon">resolve</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_async.AsyncJobService.html#runWebdaAsyncAction" class="tsd-kind-icon">run<wbr>Webda<wbr>Async<wbr>Action</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="_webda_async.AsyncJobService.html#statusHook" class="tsd-kind-icon">status<wbr>Hook</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_async.AsyncJobService.html#toPublicJSON" class="tsd-kind-icon">to<wbr>PublicJSON</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_async.AsyncJobService.html#worker" class="tsd-kind-icon">worker</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_async.AsyncJobService.html#wrapper" class="tsd-kind-icon">wrapper</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-static"><a href="_webda_async.AsyncJobService.html#getModda" class="tsd-kind-icon">get<wbr>Modda</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_async.AsyncJobService.html#getSchema" class="tsd-kind-icon">get<wbr>Schema</a></li>
 							</ul>
@@ -385,7 +414,7 @@
 							<h4 class="tsd-type-parameters-title">Type parameters</h4>
 							<ul class="tsd-type-parameters">
 								<li>
-									<h4>T<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">AsyncJobServiceParameters</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></h4>
+									<h4>T<span class="tsd-signature-symbol">: </span><a href="_webda_async.AsyncJobServiceParameters.html" class="tsd-signature-type">AsyncJobServiceParameters</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></h4>
 								</li>
 							</ul>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -508,7 +537,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/async/src/services/asyncjobservice.ts:60</li>
+							<li>Defined in packages/async/src/services/asyncjobservice.ts:71</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
@@ -521,7 +550,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/async/src/services/asyncjobservice.ts:69</li>
+							<li>Defined in packages/async/src/services/asyncjobservice.ts:80</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
@@ -534,7 +563,20 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/async/src/services/asyncjobservice.ts:64</li>
+							<li>Defined in packages/async/src/services/asyncjobservice.ts:75</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
+					<a name="HMAC_ALGO" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">HMAC_<wbr>ALGO<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &quot;sha256&quot;</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>HMAC Algorithm used for simple auth</p>
+						</div>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/async/src/services/asyncjobservice.ts:84</li>
 						</ul>
 					</aside>
 			</section>    </section>
@@ -637,7 +679,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/async/src/services/asyncjobservice.ts:107</li>
+									<li>Defined in packages/async/src/services/asyncjobservice.ts:122</li>
 								</ul>
 							</aside>
 						</li>
@@ -693,6 +735,42 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in packages/core/lib/services/service.d.ts:132</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="getHeaders" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Headers<span class="tsd-signature-symbol">(</span>jobInfo<span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_async.JobInfo.html" class="tsd-signature-type">JobInfo</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Return headers to request status hook</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>jobInfo: <a href="../interfaces/_webda_async.JobInfo.html" class="tsd-signature-type">JobInfo</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">object</span></h4>
+							<ul class="tsd-parameters">
+								<li class="tsd-parameter">
+									<h5>X-<wbr><wbr>Job-<wbr><wbr>Id<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li class="tsd-parameter">
+									<h5>X-<wbr><wbr>Job-<wbr><wbr>Time<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/async/src/services/asyncjobservice.ts:253</li>
 								</ul>
 							</aside>
 						</li>
@@ -829,7 +907,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/async/src/services/asyncjobservice.ts:180</li>
+									<li>Defined in packages/async/src/services/asyncjobservice.ts:197</li>
 								</ul>
 							</aside>
 						</li>
@@ -906,7 +984,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/async/src/services/asyncjobservice.ts:216</li>
+									<li>Defined in packages/async/src/services/asyncjobservice.ts:239</li>
 								</ul>
 							</aside>
 						</li>
@@ -934,7 +1012,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">ServiceParameters</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/async/src/services/asyncjobservice.ts:74</li>
+									<li>Defined in packages/async/src/services/asyncjobservice.ts:89</li>
 								</ul>
 							</aside>
 						</li>
@@ -1053,7 +1131,35 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/async/src/services/asyncjobservice.ts:80</li>
+									<li>Defined in packages/async/src/services/asyncjobservice.ts:95</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="runWebdaAsyncAction" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">run<wbr>Webda<wbr>Async<wbr>Action<span class="tsd-signature-symbol">(</span>jobInfo<span class="tsd-signature-symbol">?: </span><a href="../interfaces/_webda_async.JobInfo.html" class="tsd-signature-type">JobInfo</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Wrap async job and call the job status hook</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>jobInfo: <a href="../interfaces/_webda_async.JobInfo.html" class="tsd-signature-type">JobInfo</a><span class="tsd-signature-symbol"> = ...</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/async/src/services/asyncjobservice.ts:267</li>
 								</ul>
 							</aside>
 						</li>
@@ -1071,6 +1177,8 @@
 								<div class="lead">
 									<p>Status hook for job report</p>
 								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-text">
+								<p>Only updates specific fields: status, errorMessage, statusDetails, results, logs (appending)</p>
 							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -1081,7 +1189,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/async/src/services/asyncjobservice.ts:122</li>
+									<li>Defined in packages/async/src/services/asyncjobservice.ts:139</li>
 								</ul>
 							</aside>
 						</li>
@@ -1132,33 +1240,13 @@
 								<div class="lead">
 									<p>Worker</p>
 								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-text">
+								<p>This will launch actions based on defined runners</p>
 							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/async/src/services/asyncjobservice.ts:167</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="wrapper" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">wrapper<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Wrap async job and call the job status hook</p>
-								</div>
-							</div>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/async/src/services/asyncjobservice.ts:227</li>
+									<li>Defined in packages/async/src/services/asyncjobservice.ts:185</li>
 								</ul>
 							</aside>
 						</li>
@@ -1191,7 +1279,7 @@
 							</ul>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/async/src/services/asyncjobservice.ts:234</li>
+									<li>Defined in packages/async/src/services/asyncjobservice.ts:348</li>
 								</ul>
 							</aside>
 						</li>

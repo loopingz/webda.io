@@ -151,6 +151,9 @@
 						<a href="../../modules/_webda_hawk.html" class="tsd-kind-icon">@webda/hawk</a>
 					</li>
 					<li class=" tsd-kind-module root">
+						<a href="../../modules/_webda_kubernetes.html" class="tsd-kind-icon">@webda/kubernetes</a>
+					</li>
+					<li class=" tsd-kind-module root">
 						<a href="../../modules/_webda_profiler.html" class="tsd-kind-icon">@webda/profiler</a>
 					</li>
 					<li class=" tsd-kind-module root">
@@ -173,8 +176,8 @@
 			<h1>Events</h1>
 			<div class="tsd-panel tsd-typography">
 				<p>The framework use the EventEmitter for events.</p>
-				<p><code>emit()</code></p>
-				<p><code>emitSync()</code></p>
+				<p><code>emit()</code> this will not wait for any promise returned by listeners</p>
+				<p><code>emitSync()</code> this will wait for resolution on all promises returned by listeners</p>
 				<p>We also have a mechanism to listen asynchronously to events. They will then be posted to a Queue for them
 				to be consumed through a <code>AsyncEvent.worker()</code></p>
 				<div class="mermaid">sequenceDiagram
@@ -182,90 +185,89 @@
 					participant As as AsyncEventService
 					participant Q as Queue
 					participant Aw as AsyncEventService Worker
-					<pre><code><span style="color: #001080">As</span><span style="color: #000000">-&amp;</span><span style="color: #001080">gt</span><span style="color: #000000">;&amp;</span><span style="color: #001080">gt</span><span style="color: #000000">;S: </span><span style="color: #001080">Bind</span><span style="color: #000000"> </span><span style="color: #001080">event</span><span style="color: #000000"> </span><span style="color: #001080">to</span><span style="color: #000000"> </span><span style="color: #001080">a</span><span style="color: #000000"> </span><span style="color: #001080">sendQueue</span><span style="color: #000000"> </span><span style="color: #001080">listener</span>
-<span style="color: #001080">activate</span><span style="color: #000000"> </span><span style="color: #001080">As</span>
-<span style="color: #0070C1">S</span><span style="color: #000000">-&amp;</span><span style="color: #001080">gt</span><span style="color: #000000">;&amp;</span><span style="color: #001080">gt</span><span style="color: #000000">;As: </span><span style="color: #001080">Emit</span><span style="color: #000000"> </span><span style="color: #001080">event</span>
-<span style="color: #001080">As</span><span style="color: #000000">-&amp;</span><span style="color: #001080">gt</span><span style="color: #000000">;&amp;</span><span style="color: #001080">gt</span><span style="color: #000000">;Q: </span><span style="color: #001080">Push</span><span style="color: #000000"> </span><span style="color: #001080">the</span><span style="color: #000000"> </span><span style="color: #001080">event</span><span style="color: #000000"> </span><span style="color: #001080">to</span><span style="color: #000000"> </span><span style="color: #001080">the</span><span style="color: #000000"> </span><span style="color: #001080">queue</span>
-<span style="color: #001080">deactivate</span><span style="color: #000000"> </span><span style="color: #001080">As</span>
-<span style="color: #001080">Aw</span><span style="color: #000000">-&amp;</span><span style="color: #001080">gt</span><span style="color: #000000">;&amp;</span><span style="color: #001080">gt</span><span style="color: #000000">;Q: </span><span style="color: #001080">Consume</span><span style="color: #000000"> </span><span style="color: #001080">queue</span>
-<span style="color: #001080">Aw</span><span style="color: #000000">-&amp;</span><span style="color: #001080">gt</span><span style="color: #000000">;&amp;</span><span style="color: #001080">gt</span><span style="color: #000000">;Aw: </span><span style="color: #001080">Call</span><span style="color: #000000"> </span><span style="color: #001080">the</span><span style="color: #000000"> </span><span style="color: #001080">original</span><span style="color: #000000"> </span><span style="color: #001080">listener</span><span style="color: #000000">&lt;/</span><span style="color: #001080">div</span><span style="color: #000000">&gt;</span>
-</code></pre>
-					<a href="#webdainit" id="webdainit" style="color: inherit; text-decoration: none;">
-						<h3>Webda.Init</h3>
-					</a>
-					<a href="#webdainitservices" id="webdainitservices" style="color: inherit; text-decoration: none;">
-						<h3>Webda.Init.Services</h3>
-					</a>
-					<a href="#webdacreateservices" id="webdacreateservices" style="color: inherit; text-decoration: none;">
-						<h3>Webda.Create.Services</h3>
-					</a>
-					<a href="#webdanewcontext" id="webdanewcontext" style="color: inherit; text-decoration: none;">
-						<h3>Webda.NewContext</h3>
-					</a>
-					<a href="#webdarequest" id="webdarequest" style="color: inherit; text-decoration: none;">
-						<h3>Webda.Request</h3>
-					</a>
-					<a href="#storesave" id="storesave" style="color: inherit; text-decoration: none;">
-						<h3>Store.Save</h3>
-					</a>
-					<a href="#storesaved" id="storesaved" style="color: inherit; text-decoration: none;">
-						<h3>Store.Saved</h3>
-					</a>
-					<a href="#storeupdate" id="storeupdate" style="color: inherit; text-decoration: none;">
-						<h3>Store.Update</h3>
-					</a>
-					<a href="#storeupdated" id="storeupdated" style="color: inherit; text-decoration: none;">
-						<h3>Store.Updated</h3>
-					</a>
-					<a href="#storepartialupdate" id="storepartialupdate" style="color: inherit; text-decoration: none;">
-						<h3>Store.PartialUpdate</h3>
-					</a>
-					<a href="#storepartialupdated" id="storepartialupdated" style="color: inherit; text-decoration: none;">
-						<h3>Store.PArtialUpdated</h3>
-					</a>
-					<a href="#storedelete" id="storedelete" style="color: inherit; text-decoration: none;">
-						<h3>Store.Delete</h3>
-					</a>
-					<a href="#storedeleted" id="storedeleted" style="color: inherit; text-decoration: none;">
-						<h3>Store.Deleted</h3>
-					</a>
-					<a href="#storeget" id="storeget" style="color: inherit; text-decoration: none;">
-						<h3>Store.Get</h3>
-					</a>
-					<a href="#storefind" id="storefind" style="color: inherit; text-decoration: none;">
-						<h3>Store.Find</h3>
-					</a>
-					<a href="#storefound" id="storefound" style="color: inherit; text-decoration: none;">
-						<h3>Store.Found</h3>
-					</a>
-					<a href="#storewebcreate" id="storewebcreate" style="color: inherit; text-decoration: none;">
-						<h3>Store.WebCreate</h3>
-					</a>
-					<a href="#storewebupdate" id="storewebupdate" style="color: inherit; text-decoration: none;">
-						<h3>Store.WebUpdate</h3>
-					</a>
-					<a href="#storewebget" id="storewebget" style="color: inherit; text-decoration: none;">
-						<h3>Store.WebGet</h3>
-					</a>
-					<a href="#storewebdelete" id="storewebdelete" style="color: inherit; text-decoration: none;">
-						<h3>Store.WebDelete</h3>
-					</a>
-					<a href="#storeaction" id="storeaction" style="color: inherit; text-decoration: none;">
-						<h3>Store.Action</h3>
-					</a>
-					<a href="#storeactionned" id="storeactionned" style="color: inherit; text-decoration: none;">
-						<h3>Store.Actionned</h3>
-					</a>
-				</div>
-				<!--{&quot;options&quot;:&quot;/home/runner/work/webda.io/webda.io&quot;,&quot;tsconfig&quot;:&quot;/home/runner/work/webda.io/webda.io&quot;,&quot;packages&quot;:[&quot;/home/runner/work/webda.io/webda.io&quot;],&quot;entryPoints&quot;:[],&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;/home/runner/work/webda.io/webda.io/packages/*/node_modules&quot;,&quot;/home/runner/work/webda.io/webda.io/packages/*/src/**/*.spec.ts&quot;,&quot;/home/runner/work/webda.io/webda.io/sample-app&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;/home/runner/work/webda.io/webda.io/docs/media&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;/home/runner/work/webda.io/webda.io/.built-docs&quot;,&quot;json&quot;:&quot;&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;/home/runner/work/webda.io/webda.io/readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;sort&quot;:[&quot;kind&quot;,&quot;instance-first&quot;,&quot;alphabetical&quot;],&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;treatWarningsAsErrors&quot;:false,&quot;listInvalidSymbolLinks&quot;:false,&quot;outline&quot;:[],&quot;excludeReferences&quot;:false,&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true,&quot;noJekyll&quot;:true,&quot;githubPagesDomain&quot;:&quot;docs.webda.io&quot;,&quot;enablePageLinks&quot;:true,&quot;enableSearch&quot;:true,&quot;failBuildOnInvalidPageLink&quot;:false,&quot;listInvalidPageLinks&quot;:false,&quot;output&quot;:&quot;pages&quot;,&quot;sources&quot;:[&quot;./docs/pages/&quot;]}}-->
-				<footer class="with-border-bottom">
-				</footer>
-				<div class="container tsd-generator">
-					<p>Generated using <a href="http://typedoc.org/" target="_blank">TypeDoc</a></p>
-				</div>
+					As-&gt;&gt;S: Bind event to a sendQueue listener
+					activate As
+					S-&gt;&gt;As: Emit event
+					As-&gt;&gt;Q: Push the event to the queue
+					deactivate As
+					Aw-&gt;&gt;Q: Consume queue
+				Aw-&gt;&gt;Aw: Call the original listener</div>
+				<a href="#webdainit" id="webdainit" style="color: inherit; text-decoration: none;">
+					<h3>Webda.Init</h3>
+				</a>
+				<a href="#webdainitservices" id="webdainitservices" style="color: inherit; text-decoration: none;">
+					<h3>Webda.Init.Services</h3>
+				</a>
+				<a href="#webdacreateservices" id="webdacreateservices" style="color: inherit; text-decoration: none;">
+					<h3>Webda.Create.Services</h3>
+				</a>
+				<a href="#webdanewcontext" id="webdanewcontext" style="color: inherit; text-decoration: none;">
+					<h3>Webda.NewContext</h3>
+				</a>
+				<a href="#webdarequest" id="webdarequest" style="color: inherit; text-decoration: none;">
+					<h3>Webda.Request</h3>
+				</a>
+				<a href="#storesave" id="storesave" style="color: inherit; text-decoration: none;">
+					<h3>Store.Save</h3>
+				</a>
+				<a href="#storesaved" id="storesaved" style="color: inherit; text-decoration: none;">
+					<h3>Store.Saved</h3>
+				</a>
+				<a href="#storeupdate" id="storeupdate" style="color: inherit; text-decoration: none;">
+					<h3>Store.Update</h3>
+				</a>
+				<a href="#storeupdated" id="storeupdated" style="color: inherit; text-decoration: none;">
+					<h3>Store.Updated</h3>
+				</a>
+				<a href="#storepartialupdate" id="storepartialupdate" style="color: inherit; text-decoration: none;">
+					<h3>Store.PartialUpdate</h3>
+				</a>
+				<a href="#storepartialupdated" id="storepartialupdated" style="color: inherit; text-decoration: none;">
+					<h3>Store.PArtialUpdated</h3>
+				</a>
+				<a href="#storedelete" id="storedelete" style="color: inherit; text-decoration: none;">
+					<h3>Store.Delete</h3>
+				</a>
+				<a href="#storedeleted" id="storedeleted" style="color: inherit; text-decoration: none;">
+					<h3>Store.Deleted</h3>
+				</a>
+				<a href="#storeget" id="storeget" style="color: inherit; text-decoration: none;">
+					<h3>Store.Get</h3>
+				</a>
+				<a href="#storefind" id="storefind" style="color: inherit; text-decoration: none;">
+					<h3>Store.Find</h3>
+				</a>
+				<a href="#storefound" id="storefound" style="color: inherit; text-decoration: none;">
+					<h3>Store.Found</h3>
+				</a>
+				<a href="#storewebcreate" id="storewebcreate" style="color: inherit; text-decoration: none;">
+					<h3>Store.WebCreate</h3>
+				</a>
+				<a href="#storewebupdate" id="storewebupdate" style="color: inherit; text-decoration: none;">
+					<h3>Store.WebUpdate</h3>
+				</a>
+				<a href="#storewebget" id="storewebget" style="color: inherit; text-decoration: none;">
+					<h3>Store.WebGet</h3>
+				</a>
+				<a href="#storewebdelete" id="storewebdelete" style="color: inherit; text-decoration: none;">
+					<h3>Store.WebDelete</h3>
+				</a>
+				<a href="#storeaction" id="storeaction" style="color: inherit; text-decoration: none;">
+					<h3>Store.Action</h3>
+				</a>
+				<a href="#storeactionned" id="storeactionned" style="color: inherit; text-decoration: none;">
+					<h3>Store.Actionned</h3>
+				</a>
+			</div>
+			<!--{&quot;options&quot;:&quot;/home/runner/work/webda.io/webda.io&quot;,&quot;tsconfig&quot;:&quot;/home/runner/work/webda.io/webda.io&quot;,&quot;packages&quot;:[&quot;/home/runner/work/webda.io/webda.io&quot;],&quot;entryPoints&quot;:[],&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;/home/runner/work/webda.io/webda.io/packages/*/node_modules&quot;,&quot;/home/runner/work/webda.io/webda.io/packages/*/src/**/*.spec.ts&quot;,&quot;/home/runner/work/webda.io/webda.io/sample-app&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;/home/runner/work/webda.io/webda.io/docs/media&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;/home/runner/work/webda.io/webda.io/.built-docs&quot;,&quot;json&quot;:&quot;&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;/home/runner/work/webda.io/webda.io/readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;sort&quot;:[&quot;kind&quot;,&quot;instance-first&quot;,&quot;alphabetical&quot;],&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;treatWarningsAsErrors&quot;:false,&quot;listInvalidSymbolLinks&quot;:false,&quot;outline&quot;:[],&quot;excludeReferences&quot;:false,&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true,&quot;noJekyll&quot;:true,&quot;githubPagesDomain&quot;:&quot;docs.webda.io&quot;,&quot;enablePageLinks&quot;:true,&quot;enableSearch&quot;:true,&quot;failBuildOnInvalidPageLink&quot;:false,&quot;listInvalidPageLinks&quot;:false,&quot;output&quot;:&quot;pages&quot;,&quot;sources&quot;:[&quot;./docs/pages/&quot;]}}-->
+			<footer class="with-border-bottom">
+			</footer>
+			<div class="container tsd-generator">
+				<p>Generated using <a href="http://typedoc.org/" target="_blank">TypeDoc</a></p>
 			</div>
 		</div>
 	</div>
+</div>
 </div>
 <div class="overlay"></div>
 <script src="../../assets/js/main.js"></script>

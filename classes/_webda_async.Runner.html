@@ -118,6 +118,9 @@
 						<a href="../modules/_webda_hawk.html" class="tsd-kind-icon">@webda/hawk</a>
 					</li>
 					<li class=" tsd-kind-module root">
+						<a href="../modules/_webda_kubernetes.html" class="tsd-kind-icon">@webda/kubernetes</a>
+					</li>
+					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_profiler.html" class="tsd-kind-icon">@webda/profiler</a>
 					</li>
 					<li class=" tsd-kind-module root">
@@ -150,6 +153,9 @@
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter root">
 						<a href="_webda_async.AsyncJobService.html" class="tsd-kind-icon">Async<wbr>Job<wbr>Service</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-module root">
+						<a href="_webda_async.AsyncJobServiceParameters.html" class="tsd-kind-icon">Async<wbr>Job<wbr>Service<wbr>Parameters</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module root">
 						<a href="_webda_async.LocalRunnerParameters.html" class="tsd-kind-icon">Local<wbr>Runner<wbr>Parameters</a>
@@ -237,6 +243,9 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_async.Runner.html#toPublicJSON" class="tsd-kind-icon">to<wbr>PublicJSON</a>
 							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
+								<a href="_webda_async.Runner.html#getAgentInfo" class="tsd-kind-icon">get<wbr>Agent<wbr>Info</a>
+							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
 								<a href="_webda_async.Runner.html#getModda" class="tsd-kind-icon">get<wbr>Modda</a>
 							</li>
@@ -250,11 +259,26 @@
 					<li class=" tsd-kind-class tsd-parent-kind-module root">
 						<a href="_webda_async.RunnerParameters.html" class="tsd-kind-icon">Runner<wbr>Parameters</a>
 					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-module root">
+						<a href="_webda_async.WebdaAsyncAction.html" class="tsd-kind-icon">Webda<wbr>Async<wbr>Action</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="../interfaces/_webda_async.AgentInfo.html" class="tsd-kind-icon">Agent<wbr>Info</a>
+					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module root">
 						<a href="../interfaces/_webda_async.AsyncActionQueueItem.html" class="tsd-kind-icon">Async<wbr>Action<wbr>Queue<wbr>Item</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module root">
 						<a href="../interfaces/_webda_async.Job.html" class="tsd-kind-icon">Job</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="../interfaces/_webda_async.JobInfo.html" class="tsd-kind-icon">Job<wbr>Info</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="../interfaces/_webda_async.NodeAgentInfo.html" class="tsd-kind-icon">Node<wbr>Agent<wbr>Info</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="../interfaces/_webda_async.ProcessAction.html" class="tsd-kind-icon">Process<wbr>Action</a>
 					</li>
 				</ul>
 			</nav>
@@ -329,6 +353,7 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_async.Runner.html#reinit" class="tsd-kind-icon">reinit</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_async.Runner.html#resolve" class="tsd-kind-icon">resolve</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_async.Runner.html#toPublicJSON" class="tsd-kind-icon">to<wbr>PublicJSON</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_async.Runner.html#getAgentInfo" class="tsd-kind-icon">get<wbr>Agent<wbr>Info</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_async.Runner.html#getModda" class="tsd-kind-icon">get<wbr>Modda</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_async.Runner.html#getSchema" class="tsd-kind-icon">get<wbr>Schema</a></li>
 							</ul>
@@ -725,7 +750,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/async/src/services/runner.ts:32</li>
+									<li>Defined in packages/async/src/services/runner.ts:52</li>
 								</ul>
 							</aside>
 						</li>
@@ -782,7 +807,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="launchAction" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">launch<wbr>Action<span class="tsd-signature-symbol">(</span>action<span class="tsd-signature-symbol">: </span><a href="_webda_async.AsyncAction.html" class="tsd-signature-type">AsyncAction</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">launch<wbr>Action<span class="tsd-signature-symbol">(</span>action<span class="tsd-signature-symbol">: </span><a href="_webda_async.AsyncAction.html" class="tsd-signature-type">AsyncAction</a>, info<span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_async.JobInfo.html" class="tsd-signature-type">JobInfo</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -800,11 +825,14 @@
 									<div class="tsd-comment tsd-typography tsd-comment-text">
 									</div>
 								</li>
+								<li>
+									<h5>info: <a href="../interfaces/_webda_async.JobInfo.html" class="tsd-signature-type">JobInfo</a></h5>
+								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/async/src/services/runner.ts:39</li>
+									<li>Defined in packages/async/src/services/runner.ts:73</li>
 								</ul>
 							</aside>
 						</li>
@@ -832,7 +860,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">ServiceParameters</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/async/src/services/runner.ts:24</li>
+									<li>Defined in packages/async/src/services/runner.ts:44</li>
 								</ul>
 							</aside>
 						</li>
@@ -987,6 +1015,28 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in packages/core/lib/services/service.d.ts:116</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+					<a name="getAgentInfo" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Agent<wbr>Info<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_async.AgentInfo.html" class="tsd-signature-type">AgentInfo</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Return agent information</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <a href="../interfaces/_webda_async.AgentInfo.html" class="tsd-signature-type">AgentInfo</a></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/async/src/services/runner.ts:60</li>
 								</ul>
 							</aside>
 						</li>

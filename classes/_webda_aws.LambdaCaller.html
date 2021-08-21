@@ -118,6 +118,9 @@
 						<a href="../modules/_webda_hawk.html" class="tsd-kind-icon">@webda/hawk</a>
 					</li>
 					<li class=" tsd-kind-module root">
+						<a href="../modules/_webda_kubernetes.html" class="tsd-kind-icon">@webda/kubernetes</a>
+					</li>
+					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_profiler.html" class="tsd-kind-icon">@webda/profiler</a>
 					</li>
 					<li class=" tsd-kind-module root">
@@ -135,7 +138,7 @@
 				<div>
 					<ul class="tsd-hierarchy">
 						<li>
-							<span class="tsd-signature-type">Service</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span>
+							<span class="tsd-signature-type">Runner</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span>
 							<ul class="tsd-hierarchy">
 								<li>
 									<span class="target">LambdaCaller</span>
@@ -195,6 +198,9 @@
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 								<a href="_webda_aws.LambdaCaller.html#parameters" class="tsd-kind-icon">parameters</a>
 							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-static">
+								<a href="_webda_aws.LambdaCaller.html#EventSource" class="tsd-kind-icon">Event<wbr>Source</a>
+							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_aws.LambdaCaller.html#__clean" class="tsd-kind-icon">__clean</a>
 							</li>
@@ -222,11 +228,23 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_aws.LambdaCaller.html#getWebda" class="tsd-kind-icon">get<wbr>Webda</a>
 							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_webda_aws.LambdaCaller.html#handleAWSEvent" class="tsd-kind-icon">handleAWSEvent</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_aws.LambdaCaller.html#handleType" class="tsd-kind-icon">handle<wbr>Type</a>
+							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_aws.LambdaCaller.html#init" class="tsd-kind-icon">init</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_aws.LambdaCaller.html#initRoutes" class="tsd-kind-icon">init<wbr>Routes</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_webda_aws.LambdaCaller.html#isAWSEventHandled" class="tsd-kind-icon">isAWSEvent<wbr>Handled</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+								<a href="_webda_aws.LambdaCaller.html#launchAction" class="tsd-kind-icon">launch<wbr>Action</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 								<a href="_webda_aws.LambdaCaller.html#loadParameters" class="tsd-kind-icon">load<wbr>Parameters</a>
@@ -245,6 +263,9 @@
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_aws.LambdaCaller.html#toPublicJSON" class="tsd-kind-icon">to<wbr>PublicJSON</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+								<a href="_webda_aws.LambdaCaller.html#getAgentInfo" class="tsd-kind-icon">get<wbr>Agent<wbr>Info</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-static">
 								<a href="_webda_aws.LambdaCaller.html#getModda" class="tsd-kind-icon">get<wbr>Modda</a>
@@ -280,6 +301,9 @@
 					<li class=" tsd-kind-interface tsd-parent-kind-module root">
 						<a href="../interfaces/_webda_aws.IAMPolicyContributor.html" class="tsd-kind-icon">IAMPolicy<wbr>Contributor</a>
 					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="../interfaces/_webda_aws.LambdaAsyncJobEvent.html" class="tsd-kind-icon">Lambda<wbr>Async<wbr>Job<wbr>Event</a>
+					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-module root">
 						<a href="../modules/_webda_aws.html#GetAWS" class="tsd-kind-icon">GetAWS</a>
 					</li>
@@ -305,13 +329,19 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="tsd-signature-type">Service</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span>
+						<span class="tsd-signature-type">Runner</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span>
 						<ul class="tsd-hierarchy">
 							<li>
 								<span class="target">LambdaCaller</span>
 							</li>
 						</ul>
 					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel">
+				<h3>Implements</h3>
+				<ul class="tsd-hierarchy">
+					<li><a href="../interfaces/_webda_aws.AWSEventsHandler.html" class="tsd-signature-type">AWSEventsHandler</a></li>
 				</ul>
 			</section>
 			<section class="tsd-panel-group tsd-index-group">
@@ -334,6 +364,7 @@
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_webda_aws.LambdaCaller.html#client" class="tsd-kind-icon">client</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_aws.LambdaCaller.html#logger" class="tsd-kind-icon">logger</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_aws.LambdaCaller.html#parameters" class="tsd-kind-icon">parameters</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_aws.LambdaCaller.html#EventSource" class="tsd-kind-icon">Event<wbr>Source</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
@@ -348,14 +379,19 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.LambdaCaller.html#getParameters" class="tsd-kind-icon">get<wbr>Parameters</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="_webda_aws.LambdaCaller.html#getService" class="tsd-kind-icon">get<wbr>Service</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.LambdaCaller.html#getWebda" class="tsd-kind-icon">get<wbr>Webda</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.LambdaCaller.html#handleAWSEvent" class="tsd-kind-icon">handleAWSEvent</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.LambdaCaller.html#handleType" class="tsd-kind-icon">handle<wbr>Type</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.LambdaCaller.html#init" class="tsd-kind-icon">init</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.LambdaCaller.html#initRoutes" class="tsd-kind-icon">init<wbr>Routes</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.LambdaCaller.html#isAWSEventHandled" class="tsd-kind-icon">isAWSEvent<wbr>Handled</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_aws.LambdaCaller.html#launchAction" class="tsd-kind-icon">launch<wbr>Action</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_aws.LambdaCaller.html#loadParameters" class="tsd-kind-icon">load<wbr>Parameters</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.LambdaCaller.html#log" class="tsd-kind-icon">log</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.LambdaCaller.html#onAsync" class="tsd-kind-icon">on<wbr>Async</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.LambdaCaller.html#reinit" class="tsd-kind-icon">reinit</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_aws.LambdaCaller.html#resolve" class="tsd-kind-icon">resolve</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.LambdaCaller.html#toPublicJSON" class="tsd-kind-icon">to<wbr>PublicJSON</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_aws.LambdaCaller.html#getAgentInfo" class="tsd-kind-icon">get<wbr>Agent<wbr>Info</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-static"><a href="_webda_aws.LambdaCaller.html#getModda" class="tsd-kind-icon">get<wbr>Modda</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_aws.LambdaCaller.html#getSchema" class="tsd-kind-icon">get<wbr>Schema</a></li>
 							</ul>
@@ -373,7 +409,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Service&lt;T&gt;.constructor</p>
+								<p>Inherited from Runner&lt;T&gt;.constructor</p>
 							</aside>
 							<h4 class="tsd-type-parameters-title">Type parameters</h4>
 							<ul class="tsd-type-parameters">
@@ -473,7 +509,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/lambdacaller.ts:23</li>
+							<li>Defined in packages/aws/src/services/lambdacaller.ts:69</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -504,6 +540,14 @@
 							<li>Defined in packages/core/lib/services/service.d.ts:59</li>
 						</ul>
 					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
+					<a name="EventSource" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">Event<wbr>Source<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &quot;webda:lambdajob&quot;</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/aws/src/services/lambdacaller.ts:29</li>
+						</ul>
+					</aside>
 			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
@@ -515,7 +559,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Service.__clean</p>
+								<p>Inherited from Runner.__clean</p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -541,7 +585,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Service.addRoute</p>
+								<p>Inherited from Runner.addRoute</p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -588,7 +632,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Service.computeParameters</p>
+								<p>Inherited from Runner.computeParameters</p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -611,7 +655,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Service.emitSync</p>
+								<p>Inherited from Runner.emitSync</p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -673,7 +717,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">InvocationResponse</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/lambdacaller.ts:47</li>
+									<li>Defined in packages/aws/src/services/lambdacaller.ts:96</li>
 								</ul>
 							</aside>
 						</li>
@@ -686,7 +730,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Service.getName</p>
+								<p>Inherited from Runner.getName</p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -709,7 +753,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Service.getParameters</p>
+								<p>Inherited from Runner.getParameters</p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -732,7 +776,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Service.getService</p>
+								<p>Inherited from Runner.getService</p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -770,7 +814,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Service.getWebda</p>
+								<p>Inherited from Runner.getWebda</p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -785,6 +829,62 @@
 							</aside>
 						</li>
 					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="handleAWSEvent" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">handleAWSEvent<span class="tsd-signature-symbol">(</span>source<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, events<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/_webda_aws.AWSEventsHandler.html">AWSEventsHandler</a>.<a href="../interfaces/_webda_aws.AWSEventsHandler.html#handleAWSEvent">handleAWSEvent</a></p>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>source: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>events: <span class="tsd-signature-type">any</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/aws/src/services/lambdacaller.ts:40</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="handleType" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">handle<wbr>Type<span class="tsd-signature-symbol">(</span>type<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from Runner.handleType</p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Handle this type of action</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>type: <span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/async/lib/services/runner.d.ts:41</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="init" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -793,7 +893,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Service.init</p>
+								<p>Inherited from Runner.init</p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -819,7 +919,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Service.initRoutes</p>
+								<p>Inherited from Runner.initRoutes</p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -834,6 +934,69 @@
 							</aside>
 						</li>
 					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="isAWSEventHandled" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">isAWSEvent<wbr>Handled<span class="tsd-signature-symbol">(</span>source<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, events<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/_webda_aws.AWSEventsHandler.html">AWSEventsHandler</a>.<a href="../interfaces/_webda_aws.AWSEventsHandler.html#isAWSEventHandled">isAWSEventHandled</a></p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Return true if event is handled</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>source: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>events: <span class="tsd-signature-type">any</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/aws/src/services/lambdacaller.ts:33</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+					<a name="launchAction" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+						<li class="tsd-signature tsd-kind-icon">launch<wbr>Action<span class="tsd-signature-symbol">(</span>action<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">default</span>, info<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">JobInfo</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Overrides Runner.launchAction</p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>inheritdoc</dt>
+								<dd></dd></dl>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>action: <span class="tsd-signature-type">default</span></h5>
+								</li>
+								<li>
+									<h5>info: <span class="tsd-signature-type">JobInfo</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/aws/src/services/lambdacaller.ts:48</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 					<a name="loadParameters" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
@@ -842,7 +1005,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Overrides Service.loadParameters</p>
+								<p>Overrides Runner.loadParameters</p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-tags">
 								<dl class="tsd-comment-tags"><dt>inheritdoc</dt>
@@ -857,7 +1020,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">ServiceParameters</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/lambdacaller.ts:28</li>
+									<li>Defined in packages/aws/src/services/lambdacaller.ts:74</li>
 								</ul>
 							</aside>
 						</li>
@@ -870,7 +1033,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Service.log</p>
+								<p>Inherited from Runner.log</p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -902,7 +1065,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Service.onAsync</p>
+								<p>Inherited from Runner.onAsync</p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -940,7 +1103,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Service.reinit</p>
+								<p>Inherited from Runner.reinit</p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -967,7 +1130,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Overrides Service.resolve</p>
+								<p>Overrides Runner.resolve</p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-tags">
 								<dl class="tsd-comment-tags"><dt>inheritdoc</dt>
@@ -976,7 +1139,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/lambdacaller.ts:35</li>
+									<li>Defined in packages/aws/src/services/lambdacaller.ts:81</li>
 								</ul>
 							</aside>
 						</li>
@@ -989,7 +1152,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Service.toPublicJSON</p>
+								<p>Inherited from Runner.toPublicJSON</p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -1014,6 +1177,29 @@
 							</aside>
 						</li>
 					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+					<a name="getAgentInfo" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Agent<wbr>Info<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">AgentInfo</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from Runner.getAgentInfo</p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Return agent information</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">AgentInfo</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/async/lib/services/runner.d.ts:46</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-static">
 					<a name="getModda" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-static">
@@ -1022,7 +1208,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Overrides Service.getModda</p>
+								<p>Overrides Runner.getModda</p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-tags">
 								<dl class="tsd-comment-tags"><dt>inheritdoc</dt>
@@ -1031,7 +1217,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">ModdaDefinition</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/lambdacaller.ts:60</li>
+									<li>Defined in packages/aws/src/services/lambdacaller.ts:113</li>
 								</ul>
 							</aside>
 						</li>
@@ -1044,7 +1230,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Service.getSchema</p>
+								<p>Inherited from Runner.getSchema</p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">

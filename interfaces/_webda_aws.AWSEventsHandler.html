@@ -118,6 +118,9 @@
 						<a href="../modules/_webda_hawk.html" class="tsd-kind-icon">@webda/hawk</a>
 					</li>
 					<li class=" tsd-kind-module root">
+						<a href="../modules/_webda_kubernetes.html" class="tsd-kind-icon">@webda/kubernetes</a>
+					</li>
+					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_profiler.html" class="tsd-kind-icon">@webda/profiler</a>
 					</li>
 					<li class=" tsd-kind-module root">
@@ -197,6 +200,9 @@
 					<li class=" tsd-kind-interface tsd-parent-kind-module root">
 						<a href="_webda_aws.IAMPolicyContributor.html" class="tsd-kind-icon">IAMPolicy<wbr>Contributor</a>
 					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="_webda_aws.LambdaAsyncJobEvent.html" class="tsd-kind-icon">Lambda<wbr>Async<wbr>Job<wbr>Event</a>
+					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-module root">
 						<a href="../modules/_webda_aws.html#GetAWS" class="tsd-kind-icon">GetAWS</a>
 					</li>
@@ -218,6 +224,12 @@
 					</li>
 				</ul>
 			</section>
+			<section class="tsd-panel">
+				<h3>Implemented by</h3>
+				<ul class="tsd-hierarchy">
+					<li><a href="../classes/_webda_aws.LambdaCaller.html" class="tsd-signature-type">LambdaCaller</a></li>
+				</ul>
+			</section>
 			<section class="tsd-panel-group tsd-index-group">
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
@@ -236,7 +248,7 @@
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface">
 					<a name="handleAWSEvent" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
-						<li class="tsd-signature tsd-kind-icon">handleAWSEvent<span class="tsd-signature-symbol">(</span>source<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">handleAWSEvent<span class="tsd-signature-symbol">(</span>source<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, events<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -248,15 +260,13 @@
 									<h5>source: <span class="tsd-signature-type">string</span></h5>
 								</li>
 								<li>
-									<h5>event: <span class="tsd-signature-type">any</span></h5>
-									<div class="tsd-comment tsd-typography tsd-comment-text">
-									</div>
+									<h5>events: <span class="tsd-signature-type">any</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/lambdaserver.ts:29</li>
+									<li>Defined in packages/aws/src/services/lambdaserver.ts:28</li>
 								</ul>
 							</aside>
 						</li>
@@ -264,7 +274,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface">
 					<a name="isAWSEventHandled" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
-						<li class="tsd-signature tsd-kind-icon">isAWSEvent<wbr>Handled<span class="tsd-signature-symbol">(</span>source<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+						<li class="tsd-signature tsd-kind-icon">isAWSEvent<wbr>Handled<span class="tsd-signature-symbol">(</span>source<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, events<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -281,15 +291,13 @@
 									<h5>source: <span class="tsd-signature-type">string</span></h5>
 								</li>
 								<li>
-									<h5>event: <span class="tsd-signature-type">any</span></h5>
-									<div class="tsd-comment tsd-typography tsd-comment-text">
-									</div>
+									<h5>events: <span class="tsd-signature-type">any</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/lambdaserver.ts:23</li>
+									<li>Defined in packages/aws/src/services/lambdaserver.ts:22</li>
 								</ul>
 							</aside>
 						</li>

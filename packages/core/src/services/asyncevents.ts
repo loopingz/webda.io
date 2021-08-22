@@ -99,7 +99,16 @@ export class EventServiceParameters extends ServiceParameters {
   /**
    * Make the event sending asynchronous
    */
-  sync?: boolean = false;
+  sync?: boolean;
+
+  /**
+   * @inheritdoc
+   */
+  constructor(params: any) {
+    super(params);
+    this.queues ??= {};
+    this.sync ??= false;
+  }
 }
 
 /**
@@ -126,15 +135,14 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
    * Setup the default routes
    */
   async computeParameters(): Promise<void> {
-    if (this.parameters.queues) {
-      Object.keys(this.parameters.queues).forEach(key => {
-        // Define default as first queue
-        if (!this._defaultQueue) {
-          this._defaultQueue = key;
-        }
-        this._queues[key] = this.getService<Queue>(this.parameters.queues[key]);
-      });
-    }
+    Object.keys(this.parameters.queues).forEach(key => {
+      // Define default as first queue
+      if (!this._defaultQueue) {
+        this._defaultQueue = key;
+      }
+      this._queues[key] = this.getService<Queue>(this.parameters.queues[key]);
+    });
+
     this._async = !this.parameters.sync;
     // Check we have at least one queue to handle asynchronous
     if (this._async && Object.keys(this._queues).length < 1) {

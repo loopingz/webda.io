@@ -49,7 +49,7 @@ export class EchoService extends Service<EchoServiceParameters> {
   }
 
   /** @ignore */
-  execute(ctx: Context): Promise<any> {
+  async execute(ctx: Context): Promise<any> {
     if (this.parameters.mime) {
       ctx.writeHead(200, {
         "Content-Type": this.parameters.mime
@@ -60,8 +60,6 @@ export class EchoService extends Service<EchoServiceParameters> {
     } else {
       ctx.write(this.parameters.result);
     }
-    ctx.end();
-    return Promise.resolve();
   }
 
   /**

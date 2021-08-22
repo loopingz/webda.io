@@ -5,6 +5,7 @@ import { Queue } from "../queues/queueservice";
 import { Store } from "../stores/store";
 import { WebdaTest } from "../test";
 import { AsyncEvent, EventService } from "./asyncevents";
+import * as sinon from "sinon";
 
 @suite
 class AsyncEventsTest extends WebdaTest {
@@ -64,5 +65,49 @@ class AsyncEventsTest extends WebdaTest {
     await users.delete("test");
     assert.strictEqual(eventsCount, 2);
     assert.strictEqual(priorityEventsCount, 2);
+  }
+
+  @test worker() {
+    let eventService: EventService = <EventService>this.webda.getService("AsyncEvents");
+    eventService._queues = {
+      plop: {
+        // @ts-ignore
+        consume: () => "ploper"
+      },
+      default: {
+        // @ts-ignore
+        consume: () => "default"
+      }
+    };
+    assert.strictEqual(eventService.worker("plop"), "ploper");
+    assert.strictEqual(eventService.worker(), "default");
+  }
+
+  @test async computeParameters() {
+    let evt = new EventService(this.webda, "none", { sync: false });
+    await assert.rejects(() => evt.computeParameters(), /Need at least one queue for async to be ready/);
+  }
+
+  @test async cov() {
+    let evt = new EventService(this.webda, "none", { sync: true });
+    assert.throws(
+      () => evt.bindAsyncListener(evt, "plop", undefined, "plop"),
+      /EventService is not configured for asynchronous/
+    );
+    await assert.rejects(
+      // @ts-ignore
+      () => evt.handleEvent({ getMapper: () => "plop" }),
+      /Callbacks should not be empty, possible application version mismatch between emitter and worker/
+    );
+    evt._async = true;
+    let stub = sinon.spy(this.webda.getService("users"), "on");
+    try {
+      evt.bindAsyncListener(this.webda.getService("users"), "plop", () => {}, "priority");
+      evt.bindAsyncListener(this.webda.getService("users"), "plop", () => {}, "priority");
+      // Should call 'on' only once
+      assert.strictEqual(stub.callCount, 1);
+    } finally {
+      stub.restore();
+    }
   }
 }

@@ -120,3 +120,5 @@ export default class KubeRunner<T extends KubeRunnerParameters = KubeRunnerParam
     };
   }
 }
+
+export { KubeRunner };

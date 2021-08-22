@@ -163,6 +163,11 @@
 		</div>
 		<div class="col-content">
 			<h1>Interface ConfigurationProvider</h1>
+			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
+					<div class="lead">
+						<p>Service that can store configuration</p>
+					</div>
+			</div></section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
@@ -201,13 +206,27 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Return true if the service can detect modification</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-text">
+								<p>If false, then ConfigurationService will set an interval
+								and check every checkInterval @{ConfigurationServiceParameters.checkInterval}</p>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>id: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>of the source to check</p>
+									</div>
 								</li>
 								<li>
 									<h5>callback: <span class="tsd-signature-type">function</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>to call if source has changed</p>
+									</div>
 									<ul class="tsd-parameters">
 										<li class="tsd-parameter-siganture">
 											<ul class="tsd-signatures tsd-kind-type-literal">
@@ -218,7 +237,7 @@
 													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 													<aside class="tsd-sources">
 														<ul>
-															<li>Defined in packages/core/src/services/configuration.ts:7</li>
+															<li>Defined in packages/core/src/services/configuration.ts:23</li>
 														</ul>
 													</aside>
 												</li>
@@ -230,7 +249,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/configuration.ts:7</li>
+									<li>Defined in packages/core/src/services/configuration.ts:23</li>
 								</ul>
 							</aside>
 						</li>
@@ -248,12 +267,15 @@
 							<ul class="tsd-parameters">
 								<li>
 									<h5>id: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>of the configuration to retrieve</p>
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Map</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/configuration.ts:6</li>
+									<li>Defined in packages/core/src/services/configuration.ts:13</li>
 								</ul>
 							</aside>
 						</li>

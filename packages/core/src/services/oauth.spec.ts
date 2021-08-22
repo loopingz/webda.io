@@ -56,6 +56,17 @@ class OAuthServiceTest extends WebdaTest {
 
     ctx.setHttpContext(new HttpContext("bouzouf.com", "GET", "/fake", "https", 80, null, { referer: "bouzouf12.com" }));
     assert.strictEqual(await this.service.checkRequest(ctx), false, "should not allow bouzouf12.com referer");
+
+    ctx.setHttpContext(new HttpContext("bouzouf.com", "GET", "/plop", "https", 80, null, { referer: "bouzouf.com" }));
+    assert.strictEqual(await this.service.checkRequest(ctx), false, "should allow bouzouf.com only on its own url");
+
+    ctx.setHttpContext(new HttpContext("bouzouf.com", "GET", "/fake", "https", 80, null, {}));
+    assert.strictEqual(await this.service.checkRequest(ctx), false, "should not allow without referer");
+
+    this.service.getParameters().no_referer = true;
+
+    ctx.setHttpContext(new HttpContext("bouzouf.com", "GET", "/fake", "https", 80, null, {}));
+    assert.strictEqual(await this.service.checkRequest(ctx), true, "should allow without referer");
   }
 
   @test
@@ -100,6 +111,17 @@ class OAuthServiceTest extends WebdaTest {
     await this.getExecutor(ctx, "webda.io", "GET", "/bouzouf/callback").execute(ctx);
     assert.strictEqual(event, 2);
     assert.strictEqual(ctx.getSession().redirect, "bouzouf.com");
+
+    // @ts-ignore
+    this.service.parameters = this.service.loadParameters({
+      authenticationService: "Authentication2",
+      exposeScope: true,
+      scope: ["email", "image"],
+      url: "/bouzouf"
+    });
+    ctx.getHttpContext().getHeaders().referer = "http://myownwebsite.com";
+    this.service._redirect(ctx);
+    assert.strictEqual(ctx.getSession().redirect, "http://myownwebsite.com");
   }
 
   @test

@@ -79,7 +79,6 @@ export class OAuthServiceParameters extends ServiceParameters {
     super(params);
     this.scope ??= ["email"];
     this.exposeScope ??= false;
-    this.authorized_uris ??= [];
     this.authenticationService ??= "Authentication";
   }
 }
@@ -87,8 +86,6 @@ export class OAuthServiceParameters extends ServiceParameters {
 /**
  * OAuth service implementing the default OAuth workflow
  * It is abstract as it does not manage any provider as is
- *
- * @todo add some basic doc on OAuth workflow
  */
 export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServiceParameters>
   extends Service<T>
@@ -110,7 +107,11 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
    * @param params
    */
   loadParameters(params: any): ServiceParameters {
-    return new OAuthServiceParameters(params);
+    let result = new OAuthServiceParameters(params);
+    if (result.authorized_uris === undefined) {
+      this.log("WARN", "Not defining authorized_uris is a security risk");
+    }
+    return result;
   }
 
   /**

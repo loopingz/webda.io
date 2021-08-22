@@ -160,6 +160,9 @@
 								<a href="_webda_core.AclModel.html#__acls" class="tsd-kind-icon">__acls</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_core.AclModel.html#__class" class="tsd-kind-icon">__class</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.AclModel.html#__ctx" class="tsd-kind-icon">__ctx</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -325,6 +328,7 @@
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.AclModel.html#__acls" class="tsd-kind-icon">__acls</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.AclModel.html#__class" class="tsd-kind-icon">__class</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.AclModel.html#__ctx" class="tsd-kind-icon">__ctx</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.AclModel.html#__store" class="tsd-kind-icon">__store</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.AclModel.html#_creationDate" class="tsd-kind-icon">_creation<wbr>Date</a></li>
@@ -390,6 +394,11 @@
 								<p>Inherited from <a href="_webda_core.CoreModel.html">CoreModel</a>.<a href="_webda_core.CoreModel.html#constructor">constructor</a></p>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.AclModel.html" class="tsd-signature-type">AclModel</a></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/models/coremodel.ts:66</li>
+								</ul>
+							</aside>
 						</li>
 					</ul>
 			</section>    </section>
@@ -401,6 +410,19 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in packages/core/src/models/aclmodel.ts:8</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="__class" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">__class<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Class reference to the object</p>
+						</div>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/models/coremodel.ts:37</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -466,7 +488,7 @@
 					<div class="tsd-signature tsd-kind-icon">json<wbr>Excludes<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = ...</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/models/coremodel.ts:37</li>
+							<li>Defined in packages/core/src/models/coremodel.ts:33</li>
 						</ul>
 					</aside>
 			</section>    </section>
@@ -475,7 +497,7 @@
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="_httpGetAcls" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">_http<wbr>Get<wbr>Acls<span class="tsd-signature-symbol">(</span>ctx<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Map</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">_http<wbr>Get<wbr>Acls<span class="tsd-signature-symbol">(</span>ctx<span class="tsd-signature-symbol">: </span><a href="_webda_core.Context.html" class="tsd-signature-type">Context</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -484,10 +506,10 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>ctx: <span class="tsd-signature-type">any</span></h5>
+									<h5>ctx: <a href="_webda_core.Context.html" class="tsd-signature-type">Context</a></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Map</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in packages/core/src/models/aclmodel.ts:18</li>
@@ -498,7 +520,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="_httpPutAcls" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">_http<wbr>Put<wbr>Acls<span class="tsd-signature-symbol">(</span>ctx<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">_http<wbr>Put<wbr>Acls<span class="tsd-signature-symbol">(</span>ctx<span class="tsd-signature-symbol">: </span><a href="_webda_core.Context.html" class="tsd-signature-type">Context</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -507,7 +529,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>ctx: <span class="tsd-signature-type">any</span></h5>
+									<h5>ctx: <a href="_webda_core.Context.html" class="tsd-signature-type">Context</a></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
@@ -545,7 +567,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:294</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:297</li>
 								</ul>
 							</aside>
 						</li>
@@ -568,7 +590,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:370</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:373</li>
 								</ul>
 							</aside>
 						</li>
@@ -591,7 +613,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:377</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:380</li>
 								</ul>
 							</aside>
 						</li>
@@ -614,7 +636,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:384</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:387</li>
 								</ul>
 							</aside>
 						</li>
@@ -637,7 +659,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:391</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:394</li>
 								</ul>
 							</aside>
 						</li>
@@ -660,7 +682,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:398</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:401</li>
 								</ul>
 							</aside>
 						</li>
@@ -692,7 +714,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:407</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:410</li>
 								</ul>
 							</aside>
 						</li>
@@ -715,7 +737,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:414</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:417</li>
 								</ul>
 							</aside>
 						</li>
@@ -748,7 +770,7 @@
 							<p>filtered object to be serialized</p>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:342</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:345</li>
 								</ul>
 							</aside>
 						</li>
@@ -777,7 +799,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:121</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:124</li>
 								</ul>
 							</aside>
 						</li>
@@ -836,7 +858,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:205</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:208</li>
 								</ul>
 							</aside>
 						</li>
@@ -865,7 +887,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:284</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:287</li>
 								</ul>
 							</aside>
 						</li>
@@ -907,7 +929,7 @@
 							</ul>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:128</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:131</li>
 								</ul>
 							</aside>
 						</li>
@@ -932,7 +954,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.Context.html" class="tsd-signature-type">Context</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:165</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:168</li>
 								</ul>
 							</aside>
 						</li>
@@ -997,7 +1019,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">T</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:327</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:330</li>
 								</ul>
 							</aside>
 						</li>
@@ -1020,7 +1042,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:172</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:175</li>
 								</ul>
 							</aside>
 						</li>
@@ -1039,7 +1061,7 @@
 							<p>the uuid of the object</p>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:70</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:73</li>
 								</ul>
 							</aside>
 						</li>
@@ -1091,7 +1113,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:114</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:117</li>
 								</ul>
 							</aside>
 						</li>
@@ -1129,7 +1151,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:138</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:141</li>
 								</ul>
 							</aside>
 						</li>
@@ -1156,7 +1178,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.AclModel.html" class="tsd-signature-type">AclModel</a><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:181</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:184</li>
 								</ul>
 							</aside>
 						</li>
@@ -1183,7 +1205,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.AclModel.html" class="tsd-signature-type">AclModel</a><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:217</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:220</li>
 								</ul>
 							</aside>
 						</li>
@@ -1235,7 +1257,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:156</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:159</li>
 								</ul>
 							</aside>
 						</li>
@@ -1264,7 +1286,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:80</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:83</li>
 								</ul>
 							</aside>
 						</li>
@@ -1288,7 +1310,7 @@
 							<p>Object to serialize</p>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:363</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:366</li>
 								</ul>
 							</aside>
 						</li>
@@ -1317,7 +1339,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:307</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:310</li>
 								</ul>
 							</aside>
 						</li>
@@ -1350,7 +1372,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:233</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:236</li>
 								</ul>
 							</aside>
 						</li>
@@ -1384,7 +1406,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:261</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:264</li>
 								</ul>
 							</aside>
 						</li>
@@ -1411,7 +1433,7 @@
 							</ul>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:89</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:92</li>
 								</ul>
 							</aside>
 						</li>
@@ -1437,7 +1459,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">JSONSchema6</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:251</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:254</li>
 								</ul>
 							</aside>
 						</li>
@@ -1460,7 +1482,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/models/coremodel.ts:107</li>
+									<li>Defined in packages/core/src/models/coremodel.ts:110</li>
 								</ul>
 							</aside>
 						</li>

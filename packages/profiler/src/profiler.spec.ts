@@ -13,6 +13,7 @@ export class ProfilerServiceTest extends WebdaTest {
     let profiler = this.getService<Profiler>("Profiler");
     // Just for COV
     Profiler.getModda();
+
     assert.notStrictEqual(profiler, undefined);
     assert.notStrictEqual(mail, undefined);
     assert.notStrictEqual(service, undefined);

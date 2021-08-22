@@ -7,7 +7,15 @@ export class ProfilerParameters extends ServiceParameters {
   /**
    * Disable the service
    */
-  disabled: boolean = false;
+  disabled?: boolean;
+
+  /**
+   * @inheritdoc
+   */
+  constructor(params: any) {
+    super(params);
+    this.disabled ??= false;
+  }
 }
 /**
  * Profiling service
@@ -15,6 +23,12 @@ export class ProfilerParameters extends ServiceParameters {
  * Mesure timing of each method and display them in TRACE
  */
 export default class Profiler<T extends ProfilerParameters = ProfilerParameters> extends Service<T> {
+  /**
+   * @inheritdoc
+   */
+  loadParameters(params: any) {
+    return new ProfilerParameters(params);
+  }
   /**
    * Return all methods from an object
    *
@@ -74,7 +88,7 @@ export default class Profiler<T extends ProfilerParameters = ProfilerParameters>
    * @param service to check
    */
   excludeService(service: Service): boolean {
-    return service instanceof LoggerService || this === service;
+    return service instanceof LoggerService || service instanceof Profiler || this === service;
   }
   /**
    * Patch all services method: interlacing our pre/post processor
@@ -96,6 +110,9 @@ export default class Profiler<T extends ProfilerParameters = ProfilerParameters>
         ((service, method) => {
           const originalMethod = services[service][method];
           services[service][method] = (...args) => {
+            if (!this.isEnabled()) {
+              return originalMethod.bind(services[service], ...args)();
+            }
             let data = this.preprocessor(services[service], method);
             let res;
             try {
@@ -161,9 +178,6 @@ export default class Profiler<T extends ProfilerParameters = ProfilerParameters>
    * Add listeners on `Webda.Init.Services` and `Webda.Request`
    */
   resolve() {
-    if (!this.isEnabled()) {
-      return;
-    }
     this._webda.addListener("Webda.Init.Services", async services => {
       this.patchServices(services);
     });

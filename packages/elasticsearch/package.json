@@ -42,7 +42,8 @@
       "lcov",
       "json"
     ],
-    "report-dir": "./reports"
+    "report-dir": "./reports",
+    "exclude": ["**/*.spec.ts"]
   },
   "publishConfig": {
     "access": "public"

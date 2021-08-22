@@ -10,7 +10,19 @@ import {
 import { Core } from "../core";
 
 export class LoggerServiceParameters extends ServiceParameters {
-  logLevel: WorkerLogLevel = "INFO";
+  /**
+   * Specify the log level of this service
+   */
+  logLevel: WorkerLogLevel;
+
+  /**
+   * @inheritdoc
+   */
+  constructor(params: any) {
+    super(params);
+    // Use the environment variable or fallback to INFO
+    this.logLevel ??= <any>process.env["LOG_LEVEL"] || "INFO";
+  }
 }
 
 /**
@@ -19,7 +31,7 @@ export class LoggerServiceParameters extends ServiceParameters {
 export class LoggerService<T extends LoggerServiceParameters = LoggerServiceParameters> extends Service<T> {}
 
 export class MemoryLoggerServiceParameters extends LoggerServiceParameters {
-  limit: number;
+  limit?: number;
 }
 /**
  * MemoryLoggerService expose MemoryLogger from @webda/workout
@@ -30,12 +42,19 @@ export class MemoryLoggerService<
   workoutLogger: MemoryLogger;
   constructor(webda: Core, name: string, params: any) {
     super(webda, name, params);
-    this.workoutLogger = new MemoryLogger(webda.getWorkerOutput(), params.logLevel, params.limit);
+    this.workoutLogger = new MemoryLogger(webda.getWorkerOutput(), this.parameters.logLevel, this.parameters.limit);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  loadParameters(params: any) {
+    return new MemoryLoggerServiceParameters(params);
   }
 }
 
 export class ConsoleLoggerServiceParameters extends LoggerServiceParameters {
-  format: string;
+  format?: string;
 }
 /**
  * ConsoleLoggerService expose ConsoleLogger from @webda/workout
@@ -46,14 +65,21 @@ export class ConsoleLoggerService<
   workoutLogger: ConsoleLogger;
   constructor(webda: Core, name: string, params: any) {
     super(webda, name, params);
-    this.workoutLogger = new ConsoleLogger(webda.getWorkerOutput(), params.logLevel, params.format);
+    this.workoutLogger = new ConsoleLogger(webda.getWorkerOutput(), this.parameters.logLevel, this.parameters.format);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  loadParameters(params: any) {
+    return new ConsoleLoggerServiceParameters(params);
   }
 }
 
 export class FileLoggerServiceParameters extends LoggerServiceParameters {
-  format: string;
+  format?: string;
   file: string;
-  sizeLimit: number;
+  sizeLimit?: number;
 }
 /**
  * FileLoggerService expose FileLogger from `@webda/workout`
@@ -66,11 +92,18 @@ export class FileLoggerService<
     super(webda, name, params);
     this.workoutLogger = new FileLogger(
       webda.getWorkerOutput(),
-      params.logLevel,
-      params.file,
-      params.sizeLimit,
-      params.format
+      this.parameters.logLevel,
+      this.parameters.file,
+      this.parameters.sizeLimit,
+      this.parameters.format
     );
+  }
+
+  /**
+   * @inheritdoc
+   */
+  loadParameters(params: any) {
+    return new FileLoggerServiceParameters(params);
   }
 }
 
@@ -84,6 +117,13 @@ export class Logger implements WorkoutLogger {
   constructor(output: WorkerOutput, clazz: string) {
     this.output = output;
     this.clazz = clazz;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  loadParameters(params: any) {
+    return new LoggerServiceParameters(params);
   }
 
   log(level: WorkerLogLevel, ...args) {

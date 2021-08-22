@@ -219,7 +219,7 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_profiler.Profiler.html#isEnabled" class="tsd-kind-icon">is<wbr>Enabled</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 								<a href="_webda_profiler.Profiler.html#loadParameters" class="tsd-kind-icon">load<wbr>Parameters</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -336,7 +336,7 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_profiler.Profiler.html#initRoutes" class="tsd-kind-icon">init<wbr>Routes</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_profiler.Profiler.html#instrumentRequest" class="tsd-kind-icon">instrument<wbr>Request</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_profiler.Profiler.html#isEnabled" class="tsd-kind-icon">is<wbr>Enabled</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_profiler.Profiler.html#loadParameters" class="tsd-kind-icon">load<wbr>Parameters</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_profiler.Profiler.html#loadParameters" class="tsd-kind-icon">load<wbr>Parameters</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_profiler.Profiler.html#log" class="tsd-kind-icon">log</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_profiler.Profiler.html#logMetrics" class="tsd-kind-icon">log<wbr>Metrics</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_profiler.Profiler.html#onAsync" class="tsd-kind-icon">on<wbr>Async</a></li>
@@ -639,7 +639,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/profiler/src/profiler.ts:76</li>
+									<li>Defined in packages/profiler/src/profiler.ts:90</li>
 								</ul>
 							</aside>
 						</li>
@@ -670,7 +670,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">[]</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/profiler/src/profiler.ts:23</li>
+									<li>Defined in packages/profiler/src/profiler.ts:37</li>
 								</ul>
 							</aside>
 						</li>
@@ -857,7 +857,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/profiler/src/profiler.ts:139</li>
+									<li>Defined in packages/profiler/src/profiler.ts:156</li>
 								</ul>
 							</aside>
 						</li>
@@ -879,25 +879,24 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/profiler/src/profiler.ts:129</li>
+									<li>Defined in packages/profiler/src/profiler.ts:146</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 					<a name="loadParameters" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">load<wbr>Parameters<span class="tsd-signature-symbol">(</span>params<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">ServiceParameters</span></li>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+						<li class="tsd-signature tsd-kind-icon">load<wbr>Parameters<span class="tsd-signature-symbol">(</span>params<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_profiler.ProfilerParameters.html" class="tsd-signature-type">ProfilerParameters</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Service.loadParameters</p>
+								<p>Overrides Service.loadParameters</p>
 							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Load the parameters for a service</p>
-								</div>
+							<div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>inheritdoc</dt>
+								<dd></dd></dl>
 							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -905,10 +904,10 @@
 									<h5>params: <span class="tsd-signature-type">any</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">ServiceParameters</span></h4>
+							<h4 class="tsd-returns-title">Returns <a href="_webda_profiler.ProfilerParameters.html" class="tsd-signature-type">ProfilerParameters</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/service.d.ts:79</li>
+									<li>Defined in packages/profiler/src/profiler.ts:29</li>
 								</ul>
 							</aside>
 						</li>
@@ -970,7 +969,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/profiler/src/profiler.ts:66</li>
+									<li>Defined in packages/profiler/src/profiler.ts:80</li>
 								</ul>
 							</aside>
 						</li>
@@ -1036,7 +1035,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/profiler/src/profiler.ts:82</li>
+									<li>Defined in packages/profiler/src/profiler.ts:96</li>
 								</ul>
 							</aside>
 						</li>
@@ -1085,7 +1084,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/profiler/src/profiler.ts:53</li>
+									<li>Defined in packages/profiler/src/profiler.ts:67</li>
 								</ul>
 							</aside>
 						</li>
@@ -1127,7 +1126,7 @@
 							</ul>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/profiler/src/profiler.ts:40</li>
+									<li>Defined in packages/profiler/src/profiler.ts:54</li>
 								</ul>
 							</aside>
 						</li>
@@ -1177,7 +1176,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/profiler/src/profiler.ts:163</li>
+									<li>Defined in packages/profiler/src/profiler.ts:180</li>
 								</ul>
 							</aside>
 						</li>
@@ -1232,7 +1231,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">ModdaDefinition</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/profiler/src/profiler.ts:179</li>
+									<li>Defined in packages/profiler/src/profiler.ts:193</li>
 								</ul>
 							</aside>
 						</li>

@@ -202,8 +202,6 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
         .createServer(async (req, res) => {
           if (req.url.indexOf("/oauth2callback") > -1) {
             try {
-              console.log(req.url);
-              console.log(new URL(req.url, `http://localhost:3000`));
               // acquire the code from the querystring, and close the web server.
               const code = new URL(req.url, `http://localhost:3000`).searchParams.get("code");
               if (code) {

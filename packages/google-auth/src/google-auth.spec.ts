@@ -128,6 +128,8 @@ class GoogleAuthTest extends WebdaTest {
     await this.service.getLocalClient(
       null,
       url => {
+        // cov only
+        fetch("http://localhost:3000/cov", {});
         fetch("http://localhost:3000/oauth2callback?code=u1", {});
       },
       async t => {

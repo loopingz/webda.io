@@ -2,6 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { WebdaTest } from "../test";
 import { CoreModel } from "..";
+import * as sinon from "sinon";
 const Task = require("../../test/models/task");
 
 @suite
@@ -64,5 +65,58 @@ class CoreModelTest extends WebdaTest {
     ctx.write(task);
     let result = JSON.parse(ctx.getResponseBody());
     assert.strictEqual(result._gotContext, true);
+  }
+
+  @test async cov() {
+    let task = new Task();
+    assert.deepStrictEqual(new CoreModel().getAvailableActions(), {});
+    await assert.rejects(() => new CoreModel().canAct(undefined, "test"), /403/);
+    assert.ok(!task.isAttached());
+    const unattachedMsg = /No store linked to this object/;
+    await assert.rejects(() => task.refresh(), unattachedMsg);
+    await assert.rejects(() => task.save(), unattachedMsg);
+    await assert.rejects(() => task.delete(), unattachedMsg);
+    await assert.rejects(() => task.update({ change: false }), unattachedMsg);
+    assert.throws(() => task.getService("ResourceService"), unattachedMsg);
+    let store = {
+      getService: this.webda.getService.bind(this.webda),
+      delete: () => {},
+      patch: () => {}
+    };
+    // @ts-ignore
+    task.attach(store);
+    assert.ok(task.isAttached());
+    assert.strictEqual(task.getStore(), store);
+    assert.notStrictEqual(task.generateUid(), undefined);
+    let stub = sinon.stub(Task, "getUuidField").callsFake(() => "bouzouf");
+    let deleteSpy = sinon.spy(store, "delete");
+    let updateSpy = sinon.stub(store, "patch").callsFake(() => ({ plop: "bouzouf" }));
+    try {
+      task.setUuid("test");
+      assert.strictEqual(task.getUuid(), "test");
+      assert.strictEqual(task.bouzouf, "test");
+      await task.delete();
+      assert.strictEqual(deleteSpy.callCount, 1);
+      await task.update({ plop: "bouzouf" });
+      assert.strictEqual(updateSpy.callCount, 1);
+      assert.strictEqual(task.plop, "bouzouf");
+    } finally {
+      stub.restore();
+      deleteSpy.restore();
+    }
+    assert.strictEqual(this.getService("ResourceService"), task.getService("ResourceService"));
+  }
+
+  @test async refresh() {
+    let task = new Task();
+    task.__store = {
+      get: () => undefined
+    };
+    await task.refresh();
+    task.__store = {
+      get: () => ({ plop: "bouzouf" })
+    };
+    await task.refresh();
+    assert.strictEqual(task.plop, "bouzouf");
   }
 }

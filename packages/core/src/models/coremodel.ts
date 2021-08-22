@@ -11,16 +11,12 @@ interface CoreModelDefinition {
   getUuidField(): string;
 }
 
-class CoreModelMapper<T extends CoreModel> {
-  private __store: Store<CoreModel>;
-
-  constructor(uuid, store, properties = {}) {
-    this.__store = store;
-    this[this.__store.getModel().getUuidField()] = uuid;
-  }
-
-  async load(): Promise<T> {
-    return <T>await this.__store.get(this[this.__store.getModel().getUuidField()]);
+/**
+ * Sent if action required attached CoreModel is trigger
+ */
+export class CoreModelUnattachedError extends Error {
+  constructor() {
+    super("No store linked to this object");
   }
 }
 
@@ -35,6 +31,10 @@ class CoreModelMapper<T extends CoreModel> {
  */
 class CoreModel {
   static jsonExcludes = ["__store", "__ctx"];
+  /**
+   * Class reference to the object
+   */
+  __class: any;
   /**
    * Object context
    *
@@ -63,13 +63,16 @@ class CoreModel {
    */
   __deleted: boolean;
 
+  constructor() {
+    this.__class = new.target;
+  }
   /**
    *
    * @returns the uuid of the object
    */
   getUuid(): string {
     // @ts-ignore
-    return this[CoreModel.getUuidField()];
+    return this[this.__class.getUuidField()];
   }
 
   /**
@@ -78,7 +81,7 @@ class CoreModel {
    * @param target
    */
   setUuid(uuid: string, target: any = this): void {
-    target[target.getUuidField()] = uuid;
+    target[this.__class.getUuidField()] = uuid;
   }
 
   /**
@@ -180,7 +183,7 @@ class CoreModel {
    */
   async refresh(): Promise<this> {
     if (!this.__store) {
-      throw Error("No store linked to this object");
+      throw new CoreModelUnattachedError();
     }
     let obj = await this.__store.get(this.getUuid());
     if (obj) {
@@ -204,7 +207,7 @@ class CoreModel {
    */
   async delete(): Promise<void> {
     if (!this.__store) {
-      throw Error("No store linked to this object");
+      throw new CoreModelUnattachedError();
     }
     return this.__store.delete(this.getUuid());
   }
@@ -216,7 +219,7 @@ class CoreModel {
    */
   async save(): Promise<this> {
     if (!this.__store) {
-      throw Error("No store linked to this object");
+      throw new CoreModelUnattachedError();
     }
     let obj = await this.__store.save(this);
     for (var i in obj) {
@@ -232,9 +235,9 @@ class CoreModel {
    */
   async update(changes): Promise<void> {
     if (!this.__store) {
-      throw Error("No store linked to this object");
+      throw new CoreModelUnattachedError();
     }
-    changes[this.__store.getModel().getUuidField()] = this[this.__store.getModel().getUuidField()];
+    changes[this.__class.getUuidField()] = this[this.__class.getUuidField()];
     let obj = await this.__store.patch(changes);
     for (var i in obj) {
       this[i] = obj[i];
@@ -326,7 +329,7 @@ class CoreModel {
    */
   getService<T extends Service>(service): T {
     if (!this.__store) {
-      return undefined;
+      throw new CoreModelUnattachedError();
     }
     return this.__store.getService<T>(service);
   }

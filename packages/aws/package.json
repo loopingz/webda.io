@@ -48,7 +48,7 @@
       "lcov",
       "json"
     ],
-    "exclude": ["**/*.spec.ts"]
+    "exclude": ["**/*.spec.ts", "test/**/*"]
   },
   "publishConfig": {
     "access": "public"

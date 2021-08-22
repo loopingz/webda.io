@@ -15,12 +15,12 @@ class AclModel extends CoreModel {
     this.__acls = acls;
   }
 
-  async _httpGetAcls(ctx) {
-    return this.__acls;
+  async _httpGetAcls(ctx: Context) {
+    ctx.write(this.__acls);
   }
 
-  async _httpPutAcls(ctx) {
-    this.__acls = ctx.body;
+  async _httpPutAcls(ctx: Context) {
+    this.__acls = ctx.getRequestBody();
     await this.save();
   }
 
@@ -48,7 +48,7 @@ class AclModel extends CoreModel {
   }
 
   async canAct(ctx: Context, action: string) {
-    if (!this.__acls || !ctx.getCurrentUserId()) {
+    if (!this.getAcls() || !ctx.getCurrentUserId()) {
       throw 403;
     }
     let user = await ctx.getCurrentUser();

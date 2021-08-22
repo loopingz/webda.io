@@ -128,12 +128,12 @@ export default class ConfigurationService<
   /**
    * Watch a specific configuration modification
    *
-   * @param jsonpath JSON Path to the object to watch
+   * @param jsonPath JSON Path to the object to watch
    * @param callback Method to call with the updated version
-   * @param defaultValue Default value of the jsonpath if it does not exist
+   * @param defaultValue Default value of the jsonPath if it does not exist
    */
-  watch(jsonpath: string, callback: (update: any) => void | Promise<void>, defaultValue: any = undefined) {
-    this.watchs.push({ path: jsonpath, callback, defaultValue });
+  watch(jsonPath: string, callback: (update: any) => void | Promise<void>, defaultValue: any = undefined) {
+    this.watchs.push({ path: jsonPath, callback, defaultValue });
   }
 
   /**

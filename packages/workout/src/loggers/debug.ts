@@ -1,6 +1,9 @@
 import { FileLogger } from "./file";
 import { WorkerMessage, WorkerOutput } from "..";
 
+/**
+ * Unit test in file.spec.ts
+ */
 export class DebugLogger extends FileLogger {
   constructor(output: WorkerOutput, filepath: string) {
     super(output, "TRACE", filepath, -1);

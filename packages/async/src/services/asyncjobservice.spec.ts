@@ -33,6 +33,7 @@ class AsyncJobServiceTest extends WebdaTest {
     const service = this.getValidService();
     // @ts-ignore
     service.queue = {
+      // @ts-ignore
       consume: async callback => {}
     };
     await service.worker();

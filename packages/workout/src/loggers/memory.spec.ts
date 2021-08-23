@@ -49,5 +49,8 @@ class MemoryConsoleTest {
     logger.clear();
     assert.strictEqual(logger.getMessages().length, 0);
     assert.strictEqual(logger.getLogs().length, 0);
+    logger.setLogLevel("ERROR");
+    this.output.log("WARN", "Test 3");
+    assert.strictEqual(logger.getLogs().length, 0);
   }
 }

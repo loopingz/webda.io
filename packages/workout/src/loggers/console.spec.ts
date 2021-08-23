@@ -3,6 +3,7 @@ import { suite, test } from "@testdeck/mocha";
 import * as sinon from "sinon";
 import { WorkerOutput } from "..";
 import { ConsoleLogger } from "./console";
+import { WorkerLog, WorkerMessage } from "../core";
 
 @suite
 class ConsoleLoggerTest {
@@ -31,5 +32,23 @@ class ConsoleLoggerTest {
     } finally {
       log.restore();
     }
+  }
+
+  @test
+  cov() {
+    ConsoleLogger.display(new WorkerMessage("log", undefined, { log: new WorkerLog("INFO", undefined, {}, "plop") }));
+    const msg = new WorkerMessage("log", undefined, { log: new WorkerLog("INFO", undefined, {}, "plop") });
+    msg.timestamp = Date.now();
+    assert.strictEqual(ConsoleLogger.format(msg, "%5$r"), "bad log format: %5$r");
+    assert.ok(
+      ConsoleLogger.format(msg).match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z [ INFO] undefined {} plop/) !==
+        undefined
+    );
+  }
+
+  @test
+  titleSet() {
+    this.output = new WorkerOutput();
+    ConsoleLogger.handleMessage(new WorkerMessage("title.set", this.output, {}), "TRACE");
   }
 }

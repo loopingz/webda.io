@@ -526,7 +526,7 @@ export class Core extends events.EventEmitter {
         }
       }
       await Promise.all(inits);
-      this.emit("Webda.Init.Services", this.services);
+      this.emitSync("Webda.Init.Services", this.services);
       resolve();
     });
     return this._init;
@@ -993,7 +993,7 @@ export class Core extends events.EventEmitter {
     if (!noInit) {
       await res.init();
     }
-    this.emit("Webda.NewContext", res);
+    this.emitSync("Webda.NewContext", res);
     return <T>res;
   }
 

@@ -46,6 +46,7 @@ import * as dateFormat from "dateformat";
 import { JSONSchema6 } from "json-schema";
 import { FileUtils, JSONUtils } from "./utils/serializers";
 import { EchoService } from "./services/echo";
+import { CronService } from "./services/cron";
 
 /**
  * Return the gather information from the repository
@@ -225,6 +226,7 @@ export class Application {
     "webda/mailer": Mailer,
     "webda/asyncevents": EventService,
     "webda/resourceservice": ResourceService,
+    "webda/cronservice": CronService,
     "webda/echoservice": EchoService,
     "webda/versionservice": VersionService,
     "webda/memoryqueue": MemoryQueue,

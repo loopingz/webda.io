@@ -1,6 +1,6 @@
 import * as crontab from "node-cron";
 import { Service } from "./service";
-import { ModdaDefinition } from "..";
+import { ModdaDefinition, CancelablePromise } from "..";
 
 /**
  * Cron item
@@ -37,7 +37,7 @@ export class CronDefinition {
    * @param method
    * @param description
    */
-  constructor(cron: string, args: any[], serviceName: string = "", method: string = "", description: string = "") {
+  constructor(cron: string, args: any[] = [], serviceName: string = "", method: string = "", description: string = "") {
     this.cron = cron;
     this.serviceName = serviceName;
     this.method = method;
@@ -104,11 +104,11 @@ class CronService extends Service {
     return this.crons;
   }
 
-  async work(annotations: string = "true") {
-    await this.run(annotations === "true");
+  work(annotations: string = "true"): CancelablePromise {
+    return this.run(annotations === "true");
   }
 
-  async run(annotations: boolean = true) {
+  run(annotations: boolean = true): CancelablePromise {
     this.log("INFO", "Running crontab with" + (annotations ? "" : "out"), "annotations");
     // Load all annotations
     if (annotations) {
@@ -145,9 +145,7 @@ class CronService extends Service {
     });
     // Remove from memory
     this.crons = [];
-    return new Promise(resolve => {
-      // Never ending promise
-    });
+    return new CancelablePromise();
   }
 
   schedule(cron: string, cb: () => any, description: string = "") {
@@ -160,9 +158,7 @@ class CronService extends Service {
       } catch (err) {
         // Based on stack trace (not super clean)
         let info = err.stack.split("\n")[2].match(/\((.*)\)/);
-        if (info) {
-          context = info[1].replace(process.cwd() + "/", "");
-        }
+        context = info[1].replace(process.cwd() + "/", "");
       }
       this.crons.push({ cron, cb, description, context });
     }

@@ -30,10 +30,6 @@ export class FileConfigurationService<
     await this.checkUpdate();
   }
 
-  stop() {
-    // Nothing to be done
-  }
-
   /**
    * Load the JSON from source defined file
    * @override

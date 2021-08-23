@@ -107,17 +107,6 @@ export class BinaryParameters extends ServiceParameters {
 
   constructor(params: any, service: Service) {
     super(params);
-    if (typeof params.expose == "boolean") {
-      if (params.expose) {
-        this.expose = {
-          url: "/" + service.getName().toLowerCase()
-        };
-      }
-    } else if (typeof params.expose == "string") {
-      this.expose = {
-        url: params.expose
-      };
-    }
     if (this.expose) {
       this.expose.restrict = this.expose.restrict || {};
     }
@@ -140,13 +129,6 @@ export class BinaryParameters extends ServiceParameters {
  */
 abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
   _lowercaseMaps: any;
-
-  /**
-   * @inheritdoc
-   */
-  loadParameters(params: any): ServiceParameters {
-    return new BinaryParameters(params, this);
-  }
 
   /**
    * When you store a binary to be able to retrieve it you need to store the information into another object

@@ -34,6 +34,7 @@
     "@types/yargs": "^17.0.2",
     "@webda/core": "^1.2.1",
     "@webda/workout": "^1.2.1",
+    "@webda/kubernetes": "^0.0.0",
     "archiver": "^5.3.0",
     "body-parser": "^1.19.0",
     "cli-progress": "^3.9.0",
@@ -72,7 +73,7 @@
       "lcov",
       "json"
     ],
-    "exclude": ["**/*.spec.ts"]
+    "exclude": ["**/*.spec.ts", "link_modules/**/*"]
   },
   "publishConfig": {
     "access": "public"

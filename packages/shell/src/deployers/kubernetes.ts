@@ -6,6 +6,7 @@ import * as jsonpath from "jsonpath";
 import { Deployer } from "./deployer";
 import { CronService, JSONUtils, CronDefinition } from "@webda/core";
 import * as crypto from "crypto";
+import { getKubernetesApiClient, KubernetesParameters } from "@webda/kubernetes";
 
 export interface KubernetesObject {
   kind: string;
@@ -44,16 +45,13 @@ export function KubernetesObjectToURI({ apiVersion, metadata: { name, namespace 
   return `${apiVersion || "v1"}/${namespace || "default"}/${kind.toLowerCase()}s/${name}`;
 }
 
-export interface KubernetesResources extends ContainerResources {
-  context?: string;
-  config?: string | Object;
+export interface KubernetesResources extends ContainerResources, KubernetesParameters {
   defaultNamespace?: string;
   resources?: KubernetesObject[];
   patchResources?: any; //{ [key: string]: any };
   resourcesFile?: string;
   resourcesFiles?: string[];
-  cronTemplate?: string | KubernetesObject;
-  debug?: boolean;
+  cronTemplate?: string | boolean | KubernetesObject;
 }
 
 const DEFAULT_API = {
@@ -64,9 +62,9 @@ export class Kubernetes extends Deployer<KubernetesResources> {
   client: k8s.KubernetesObjectApi;
   async loadDefaults() {
     await super.loadDefaults();
-    this.resources.defaultNamespace = this.resources.defaultNamespace || "default";
+    this.resources.defaultNamespace ??= "default";
     // Ensure resourcesFile is always an array
-    this.resources.resourcesFiles = this.resources.resourcesFiles || [];
+    this.resources.resourcesFiles ??= [];
     // Push resourcesFile to resourcesFiles array
     if (this.resources.resourcesFile && !this.resources.resourcesFiles.includes(this.resources.resourcesFile)) {
       this.resources.resourcesFiles.push(this.resources.resourcesFile);
@@ -93,7 +91,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     if (!resource.kind || !resource.metadata || !resource.metadata.name) {
       return false;
     }
-    resource.metadata.namespace = resource.metadata.namespace || this.resources.defaultNamespace;
+    resource.metadata.namespace ??= this.resources.defaultNamespace;
     if (!resource.apiVersion) {
       // Try to guess
       if (DEFAULT_API[resource.kind]) {
@@ -121,8 +119,6 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     }
 
     this.logger.log("INFO", "Initializing Kubernetes Client");
-    // Initiate Kubernetes
-    const kc = new k8s.KubeConfig();
     // Check all resource
     this.resources.resourcesFiles.forEach(resourcesFile => {
       if (!resourcesFile.match(/\.(ya?ml|json)$/i) || !fs.existsSync(resourcesFile)) {
@@ -130,26 +126,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
       }
     });
     // Load all type of configuration
-    if (this.resources.config) {
-      if (typeof this.resources.config === "string") {
-        if (!this.resources.config.match(/\.(ya?ml|json)$/i) || !fs.existsSync(this.resources.config)) {
-          throw new Error(`Configuration file does not exist or invalid format`);
-        }
-        if (this.resources.config.endsWith("json")) {
-          kc.loadFromOptions(JSON.parse(fs.readFileSync(this.resources.config, "utf8")));
-        } else {
-          kc.loadFromOptions(yaml.parse(fs.readFileSync(this.resources.config, "utf8")));
-        }
-      } else {
-        kc.loadFromOptions(this.resources.config);
-      }
-    } else {
-      kc.loadFromDefault();
-    }
-    if (this.resources.context) {
-      kc.setCurrentContext(this.resources.context);
-    }
-    this.client = k8s.KubernetesObjectApi.makeApiClient(kc);
+    this.client = <k8s.KubernetesObjectApi>this.getClient();
 
     // Manage CronJob - add resource if required
     if (this.resources.cronTemplate) {
@@ -175,7 +152,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
         .digest("hex");
       jsonpath.value(resource, '$.metadata.annotations["webda.io/crondeployer"]', cronDeployerId);
 
-      const k8sApi = kc.makeApiClient(k8s.BatchV1beta1Api);
+      const k8sApi = <k8s.BatchV1beta1Api>this.getClient(k8s.BatchV1beta1Api);
       let currentJobs = (
         await k8sApi.listNamespacedCronJob(resource.metadata.namespace || "default")
       ).body.items.filter(i => i.metadata.annotations["webda.io/crondeployer"] === cronDeployerId);
@@ -268,6 +245,10 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     }
   }
 
+  getClient(api?: any): k8s.ApiType | k8s.KubernetesObjectApi {
+    return getKubernetesApiClient(this.resources, api);
+  }
+
   async upsertKubernetesObject(resource: KubernetesObject) {
     try {
       // try to get the resource, if it does not exist an error will be thrown and we will end up in the catch
@@ -279,11 +260,6 @@ export class Kubernetes extends Deployer<KubernetesResources> {
           // Certificate are not patchable
           return;
         }
-        if (this.resources.debug) {
-          let count = 1;
-          while (fs.existsSync(`/tmp/resource.${count}.json`)) count++;
-          fs.writeFileSync(`/tmp/resource.${count}.json`, JSON.stringify(resource, undefined, 2));
-        }
         // we got the resource, so it exists, so patch it
         await this.client.patch(resource);
       } catch (e) {
@@ -294,11 +270,6 @@ export class Kubernetes extends Deployer<KubernetesResources> {
         }
       }
     } catch (e) {
-      if (this.resources.debug) {
-        let count = 1;
-        while (fs.existsSync(`/tmp/resource.${count}.json`)) count++;
-        fs.writeFileSync(`/tmp/resource.${count}.json`, JSON.stringify(resource, undefined, 2));
-      }
       // we did not get the resource, so it does not exist, so create it
       await this.client.create(resource);
     }

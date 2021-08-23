@@ -78,6 +78,8 @@ class ConsoleTest {
     let app = new SampleApplicationTest(`http://localhost:28080`);
     await app.testApi();
     await WebdaConsole.webda.stop();
+    this.commandLine(`serve --port 28081`);
+    await WebdaConsole.webda.stop();
   }
 
   /**
@@ -106,7 +108,9 @@ class ConsoleTest {
   async debugCommandLine() {
     WebdaSampleApplication.clean();
     console.log("Launch debug command line");
-    this.commandLine(`debug -d Dev -b 127.0.0.1 --port 28080`);
+    this.commandLine(
+      `debug -d Dev --bind=127.0.0.1 --logLevel=INFO --logLevels=ERROR,WARN,INFO,DEBUG,TRACE --port 28080`
+    );
     for (let i = 0; i < 100; i++) {
       if (WebdaConsole.webda) {
         break;
@@ -117,7 +121,6 @@ class ConsoleTest {
     await this.waitForStatus(DebuggerStatus.Serving);
     let app = new SampleApplicationTest(`http://localhost:28080`);
     // CSRF is disabled by default in debug mode
-    console.log("test API");
     await app.testApi(200);
     let p = this.waitForStatus(DebuggerStatus.Launching);
     // Add a new .ts
@@ -329,4 +332,30 @@ class DynamicService extends Service {
     await this.commandLine("schema Authentication authentication.json");
     assert.strictEqual(true, fs.existsSync(f));
   }
+
+  @test
+  async initLogger() {
+    process.env["LOG_LEVEL"] = "INFO";
+    // @ts-ignore
+    await WebdaConsole.initLogger({ logLevel: "TRACE" });
+    assert.strictEqual(process.env["LOG_LEVEL"], "TRACE");
+  }
+
+  /*
+  @test
+  async fakeTerm() {
+    WebdaConsole.fakeTerm();
+    await new Promise<void>((resolve) => {
+        
+      setTimeout(() => {
+        WebdaConsole.app.getWorkerOutput().returnInput("", "1");
+      }, 150);
+      setTimeout(() => {
+        WebdaConsole.app.getWorkerOutput().returnInput("", "0");
+        resolve();
+      }, 250);
+
+    })
+  }
+  */
 }

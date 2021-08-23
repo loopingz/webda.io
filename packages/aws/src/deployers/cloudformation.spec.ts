@@ -52,6 +52,23 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       PolicyName: "WebdaSampleApplicationPolicy",
       Roles: [{ Ref: "Role" }]
     });
+    this.deployer.resources.ResourcesToImport = [];
+    this.deployer.resources.ChangeSetType = "CREATE";
+    await assert.rejects(
+      () => this.deployer.defaultResources(),
+      /ChangeSetType cannot be anything else than IMPORT if you have ResourcesToImport set/
+    );
+    this.deployer.resources.ResourcesToImport = [];
+    this.deployer.resources.ChangeSetType = undefined;
+    this.deployer.resources.APIGatewayStage = {};
+    // @ts-ignore
+    this.deployer.resources.APIGatewayV2Domain = {};
+    // @ts-ignore
+    this.deployer.resources.Docker = { tag: "plop" };
+    this.deployer.getAWSIdentity = async () => ({
+      Account: "mine"
+    });
+    await this.deployer.defaultResources();
   }
 
   @test

@@ -4,6 +4,7 @@ import * as path from "path";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { DeployerTest } from "./deployer.spec";
 import { Container, ContainerResources } from "./container";
+import * as fs from "fs-extra";
 
 @suite
 class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> {
@@ -49,6 +50,19 @@ class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> 
   }
 
   @test
+  async params() {
+    // @ts-ignore
+    this.deployer.resources.containerClient = "bouzouf";
+    await assert.rejects(
+      () => this.deployer.loadDefaults(),
+      /Client profile 'bouzouf' does not exist for ContainerClient/
+    );
+    this.deployer.resources.includeWorkspaces = true;
+    this.deployer.resources.containerClient = "docker";
+    await this.deployer.loadDefaults();
+  }
+
+  @test
   testGetDockerfileWebdaShell() {
     let tag = require(__dirname + "/../../package.json").version;
     assert.strictEqual(
@@ -70,5 +84,61 @@ class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> 
       this.deployer.getDockerfileWebdaShell(),
       "# Install enforced @webda/shell version\nRUN yarn global add @webda/shell@0.1.0\n\n"
     );
+  }
+
+  @test
+  async testWorkspaceDockerfile() {
+    await this.deployer.loadDefaults();
+    assert.strictEqual(
+      this.deployer.getWorkspacesDockerfile().trim(),
+      `FROM node:lts-alpine
+LABEL webda.io/deployer=undefined
+LABEL webda.io/deployment=Production
+LABEL webda.io/version=1.2.1
+LABEL webda.io/application=@webda/sample-app
+LABEL webda.io/application/version=1.0.14
+EXPOSE 18080
+RUN mkdir -p /webda
+WORKDIR /webda
+ADD package.json /webda/
+
+RUN yarn install --production
+
+# Copy all packages content
+
+# Install enforced @webda/shell version
+RUN yarn global add @webda/shell@0.1.0
+
+# Update WORKDIR to project
+WORKDIR /sample-app
+
+# Add deployment
+COPY ../../sample-app/deployments /sample-app/deployments
+RUN webda -d Production config webda.config.json
+RUN rm -rf deployments
+
+# Change user
+USER 1000
+# Launch webda
+ENV WEBDA_COMMAND='serve'
+CMD webda --noCompile $WEBDA_COMMAND`.trim()
+    );
+  }
+
+  @test
+  async includeLinkModules() {
+    try {
+      this.deployer.resources.includeLinkModules = true;
+      this.deployer.resources.includeWorkspaces = true;
+      await this.deployer.loadDefaults();
+      this.deployer.resources.debugDockerfilePath = "./testDebugDocker";
+      this.deployer.getDockerfile();
+      let src = this.deployer.getWorkspacesDockerfile();
+      assert.ok(src.includes("ADD link_modules /webda/node_modules"));
+      assert.strictEqual(src, fs.readFileSync(this.deployer.resources.debugDockerfilePath).toString());
+    } finally {
+      fs.emptyDirSync("./link_modules");
+      fs.rmdirSync("./link_modules");
+    }
   }
 }

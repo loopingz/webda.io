@@ -39,6 +39,10 @@
    "name": "Packager",
    "type": "WebdaDeployer/Packager",
    "zipPath": "dist/plop.zip"
+  },
+  {
+    "name": "BadOne",
+    "type": "NotExistingOne"
   }
  ],
  "_type": "deployment",

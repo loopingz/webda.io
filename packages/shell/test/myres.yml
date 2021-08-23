@@ -1,0 +1,12 @@
+kind: Job
+metadata:
+    name: Bouzouf
+
+----
+kind: Deployment
+metadata:
+    name: Deploy
+
+
+----
+kind: FakeRes

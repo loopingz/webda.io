@@ -25,5 +25,22 @@ class DeploymentManagerTest {
     assert.strictEqual(deploymentManager.getOutput(), null);
     assert.notStrictEqual(deploymentManager.getWebda(), undefined);
     assert.rejects(() => deploymentManager.run("bozou", {}), /Unknown deployer type bozou/);
+    deploymentManager.getPackageDescription();
+  }
+
+  @test
+  async commandLine() {
+    let deploymentManager = new DeploymentManager(new WorkerOutput(), WebdaSampleApplication.getAppPath(), "Shell", {
+      out: console.log,
+      err: console.error
+    });
+    // @ts-ignore
+    assert.strictEqual(await deploymentManager.commandLine({ _: ["name", "deploy"] }), 1);
+    // @ts-ignore
+    deploymentManager.getDeployer = async () => ({
+      deploy: async () => {}
+    });
+    // @ts-ignore
+    assert.strictEqual(await deploymentManager.commandLine({ _: [] }), 0);
   }
 }

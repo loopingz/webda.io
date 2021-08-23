@@ -20,7 +20,7 @@ export interface KubernetesParameters {
  * @param params
  * @returns
  */
-export function getKubernetesApiClient(params: KubernetesParameters, api?: any): k8s.ApiType {
+export function getKubernetesApiClient(params: KubernetesParameters, api?: any): k8s.ApiType | k8s.KubernetesObjectApi {
   const kc = new k8s.KubeConfig();
   // Load all type of configuration
   if (params.config) {

@@ -80,6 +80,7 @@ class PackagerTest {
     // Ensure CachedModules are generated for packages
     assert.notStrictEqual(config.cachedModules, undefined);
     assert.strictEqual(config.cachedModules.services["WebdaDemo/CustomReusableService"], "./lib/services/reusable.js");
+    console.log(config.cachedModules.services["Webda/AWSSecretsManager"]);
     assert.strictEqual(
       config.cachedModules.services["Webda/AWSSecretsManager"].endsWith(
         "node_modules/@webda/aws/lib/services/secretsmanager.js"

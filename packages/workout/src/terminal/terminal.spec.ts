@@ -107,4 +107,30 @@ class TerminalTest {
       }, 90000);
     });
   }
+
+  @test
+  title() {
+    this.terminal.setTitle();
+    assert.strictEqual(this.terminal.title, "");
+    this.terminal.setTitle("plop");
+    assert.strictEqual(this.terminal.title, "plop");
+  }
+
+  @test
+  logos() {
+    this.terminal.setLogo(undefined);
+    assert.deepStrictEqual(this.terminal.getLogo(), []);
+    assert.strictEqual(this.terminal.logoWidth, 0);
+    this.terminal.setLogo(["ADB".yellow, "B"]);
+    assert.strictEqual(this.terminal.logoWidth, 3);
+  }
+
+  @test
+  position() {
+    this.terminal.clearScreen();
+    this.terminal.scrollUp(1);
+    this.terminal.scrollDown(1);
+    this.terminal.scrollUp(-1);
+    this.terminal.scrollDown(-1);
+  }
 }

@@ -1,5 +1,5 @@
 "use strict";
-import { Application, FileUtils, JSONUtils, Logger } from "@webda/core";
+import { Application, CancelablePromise, FileUtils, JSONUtils, Logger } from "@webda/core";
 import { ChildProcess, spawn } from "child_process";
 import * as colors from "colors";
 import * as crypto from "crypto";
@@ -101,24 +101,29 @@ export default class WebdaConsole {
     return y.parse(args);
   }
 
-  static async serve(argv) {
-    if (argv.deployment) {
-      // Loading first the configuration
-      this.output("Serve as deployment: " + argv.deployment);
-    } else {
-      this.output("Serve as development");
-    }
-    this.webda = new WebdaServer(this.app);
-    await this.webda.init();
-    this.webda.setDevMode(argv.devMode);
-    if (argv.devMode) {
-      this.output("Dev mode activated : wildcard CORS enabled");
-    }
+  static serve(argv): CancelablePromise {
+    return new CancelablePromise(
+      async () => {
+        if (argv.deployment) {
+          // Loading first the configuration
+          this.output("Serve as deployment: " + argv.deployment);
+        } else {
+          this.output("Serve as development");
+        }
+        this.webda = new WebdaServer(this.app);
+        await this.webda.init();
+        this.webda.setDevMode(argv.devMode);
+        if (argv.devMode) {
+          this.output("Dev mode activated : wildcard CORS enabled");
+        }
 
-    await this.webda.serve(argv.port, argv.websockets);
-    return new Promise(() => {
-      // Never release the promise
-    });
+        await this.webda.serve(argv.port, argv.websockets);
+      },
+      async () => {
+        // Close server
+        await this.webda.stop();
+      }
+    );
   }
 
   /**

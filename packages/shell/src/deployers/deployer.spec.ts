@@ -70,5 +70,6 @@ class CommonDeployerTest extends DeployerTest<TestDeployer> {
     assert.strictEqual(info.output, "bouzouf");
     info = await this.deployer.execute("cat 1>&2", "bouzouf");
     assert.strictEqual(info.error, "bouzouf");
+    await this.deployer.execute("[ 0 = 1 ]", undefined, true);
   }
 }

@@ -1,11 +1,18 @@
 import { suite, test } from "@testdeck/mocha";
 import { Logger } from "./logger";
 import * as assert from "assert";
-import { WaitExponentialDelay, WaitFor, WaitLinearDelay } from "./waiter";
+import { CancelablePromise, WaitExponentialDelay, WaitFor, WaitLinearDelay } from "./waiter";
 import * as sinon from "sinon";
 
 @suite
 class WaiterTest {
+  @test
+  async cancellablePromise() {
+    let promise = new CancelablePromise();
+    promise.cancel();
+    await assert.rejects(() => promise, /Cancelled/);
+  }
+
   @test
   async testWaitFor() {
     let logger = new Logger(undefined, undefined);

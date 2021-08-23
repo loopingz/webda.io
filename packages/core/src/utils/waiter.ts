@@ -131,3 +131,18 @@ export async function WaitFor<T = any>(
     mainReject("Timeout while waiting for " + title);
   });
 }
+
+/**
+ * Return a promise that can be cancelled
+ */
+export class CancelablePromise<T = void> extends Promise<T> {
+  cancel: () => void;
+  constructor(callback: (resolve: (res: T) => void, reject: (err: any) => void) => void = () => {}) {
+    let localReject;
+    super((resolve, reject) => {
+      localReject = () => reject("Cancelled");
+      callback(resolve, reject);
+    });
+    this.cancel = localReject;
+  }
+}

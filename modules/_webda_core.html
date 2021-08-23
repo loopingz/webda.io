@@ -160,6 +160,9 @@
 					<li class=" tsd-kind-class tsd-parent-kind-module root">
 						<a href="../classes/_webda_core.BinaryParameters.html" class="tsd-kind-icon">Binary<wbr>Parameters</a>
 					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter root">
+						<a href="../classes/_webda_core.CancelablePromise.html" class="tsd-kind-icon">Cancelable<wbr>Promise</a>
+					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module root">
 						<a href="../classes/_webda_core.ClientInfo.html" class="tsd-kind-icon">Client<wbr>Info</a>
 					</li>
@@ -258,6 +261,9 @@
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter root">
 						<a href="../classes/_webda_core.Mailer.html" class="tsd-kind-icon">Mailer</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-module root">
+						<a href="../classes/_webda_core.MailerParameters.html" class="tsd-kind-icon">Mailer<wbr>Parameters</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter root">
 						<a href="../classes/_webda_core.Mapper.html" class="tsd-kind-icon">Mapper</a>
@@ -602,6 +608,7 @@
 								<li class="tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter"><a href="../classes/_webda_core.Binary.html" class="tsd-kind-icon">Binary</a></li>
 								<li class="tsd-kind-class tsd-parent-kind-module"><a href="../classes/_webda_core.BinaryMap.html" class="tsd-kind-icon">Binary<wbr>Map</a></li>
 								<li class="tsd-kind-class tsd-parent-kind-module"><a href="../classes/_webda_core.BinaryParameters.html" class="tsd-kind-icon">Binary<wbr>Parameters</a></li>
+								<li class="tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter"><a href="../classes/_webda_core.CancelablePromise.html" class="tsd-kind-icon">Cancelable<wbr>Promise</a></li>
 								<li class="tsd-kind-class tsd-parent-kind-module"><a href="../classes/_webda_core.ConfigurationServiceParameters.html" class="tsd-kind-icon">Configuration<wbr>Service<wbr>Parameters</a></li>
 								<li class="tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter"><a href="../classes/_webda_core.ConsoleLoggerService.html" class="tsd-kind-icon">Console<wbr>Logger<wbr>Service</a></li>
 								<li class="tsd-kind-class tsd-parent-kind-module"><a href="../classes/_webda_core.ConsoleLoggerServiceParameters.html" class="tsd-kind-icon">Console<wbr>Logger<wbr>Service<wbr>Parameters</a></li>
@@ -625,6 +632,7 @@
 								<li class="tsd-kind-class tsd-parent-kind-module"><a href="../classes/_webda_core.Logger.html" class="tsd-kind-icon">Logger</a></li>
 								<li class="tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter"><a href="../classes/_webda_core.LoggerService.html" class="tsd-kind-icon">Logger<wbr>Service</a></li>
 								<li class="tsd-kind-class tsd-parent-kind-module"><a href="../classes/_webda_core.LoggerServiceParameters.html" class="tsd-kind-icon">Logger<wbr>Service<wbr>Parameters</a></li>
+								<li class="tsd-kind-class tsd-parent-kind-module"><a href="../classes/_webda_core.MailerParameters.html" class="tsd-kind-icon">Mailer<wbr>Parameters</a></li>
 								<li class="tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter"><a href="../classes/_webda_core.Mapper.html" class="tsd-kind-icon">Mapper</a></li>
 								<li class="tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter"><a href="../classes/_webda_core.MemoryLoggerService.html" class="tsd-kind-icon">Memory<wbr>Logger<wbr>Service</a></li>
 								<li class="tsd-kind-class tsd-parent-kind-module"><a href="../classes/_webda_core.MemoryLoggerServiceParameters.html" class="tsd-kind-icon">Memory<wbr>Logger<wbr>Service<wbr>Parameters</a></li>
@@ -1501,7 +1509,7 @@
 							</ul>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/cron.ts:183</li>
+									<li>Defined in packages/core/src/services/cron.ts:179</li>
 								</ul>
 							</aside>
 						</li>
@@ -1669,7 +1677,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
 					<a name="WaitFor" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
-						<li class="tsd-signature tsd-kind-icon">Wait<wbr>For&lt;T&gt;<span class="tsd-signature-symbol">(</span>callback<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span>, retries<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, title<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, logger<span class="tsd-signature-symbol">?: </span><a href="../classes/_webda_core.Logger.html" class="tsd-signature-type">Logger</a>, delayer<span class="tsd-signature-symbol">?: </span><a href="_webda_core.html#WaitDelayer" class="tsd-signature-type">WaitDelayer</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">Wait<wbr>For&lt;T&gt;<span class="tsd-signature-symbol">(</span>callback<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span>, retries<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, title<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span>, logger<span class="tsd-signature-symbol">?: </span><a href="../classes/_webda_core.Logger.html" class="tsd-signature-type">Logger</a>, delayer<span class="tsd-signature-symbol">?: </span><a href="_webda_core.html#WaitDelayer" class="tsd-signature-type">WaitDelayer</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1765,7 +1773,7 @@
 									</div>
 								</li>
 								<li>
-									<h5>title: <span class="tsd-signature-type">string</span></h5>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> title: <span class="tsd-signature-type">string</span></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
 										<p>to display</p>
 									</div>

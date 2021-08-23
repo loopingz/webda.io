@@ -22,7 +22,7 @@ class FileConsoleTest {
   }
 
   @test
-  testLogsOnlyAndFilter() {
+  async testLogsOnlyAndFilter() {
     let logger = new FileLogger(this.output, "TRACE", "./test-file.log");
     writeFileSync("./test-file2.log", "PAD\n".repeat(50));
     let logger2 = new FileLogger(this.output, "DEBUG", "./test-file2.log", 500, "%d");
@@ -30,11 +30,12 @@ class FileConsoleTest {
       this.output.log("DEBUG", `Test ${i}`);
     }
     this.output.log("TRACE", `Trace`);
+    await new Promise(resolve => process.nextTick(resolve));
     assert.ok(this.clean() > 2);
   }
 
   @test
-  debugLogger() {
+  async debugLogger() {
     let logger = new DebugLogger(this.output, "./test-file-debug.log");
     assert.strictEqual(logger.filter(), true);
     assert.notStrictEqual(
@@ -43,6 +44,7 @@ class FileConsoleTest {
         .match(/log:\d+:\{"progresses":\{\},"groups":\[\],"type":"log","timestamp":\d+}\n/),
       undefined
     );
+    await new Promise(resolve => process.nextTick(resolve));
     this.clean();
   }
 }

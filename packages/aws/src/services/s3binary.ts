@@ -18,11 +18,19 @@ import * as bluebird from "bluebird";
 import { Readable } from "stream";
 
 export class S3BinaryParameters extends BinaryParameters {
-  endpoint: string;
-  s3ForcePathStyle: boolean;
+  endpoint?: string;
+  s3ForcePathStyle?: boolean;
   bucket: string;
   CloudFormation: any;
   CloudFormationSkip: boolean;
+
+  constructor(params: any, service: Binary) {
+    super(params, service);
+    if (!this.bucket) {
+      throw new WebdaError("S3BUCKET_PARAMETER_REQUIRED", "Need to define a bucket at least");
+    }
+    this.s3ForcePathStyle ??= false;
+  }
 }
 
 /**
@@ -62,12 +70,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   computeParameters() {
     this.AWS = GetAWS(this.parameters);
-    if (this.parameters.bucket === undefined) {
-      throw new WebdaError("S3BUCKET_PARAMETER_REQUIRED", "Need to define a bucket at least");
-    }
     this._s3 = new this.AWS.S3({
       endpoint: this.parameters.endpoint,
-      s3ForcePathStyle: this.parameters.s3ForcePathStyle ?? false
+      s3ForcePathStyle: this.parameters.s3ForcePathStyle
     });
   }
 
@@ -317,7 +322,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       await this._s3.headObject({ Bucket: this.parameters.bucket, Key: this._getKey(hash) }).promise();
       return true;
     } catch (err) {
-      if (err !== "NotFound") {
+      if (err.code !== "NotFound") {
         throw err;
       }
     }

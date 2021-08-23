@@ -4,13 +4,13 @@ import * as fs from "fs";
 import { Binary, Store } from "..";
 import { test } from "@testdeck/mocha";
 
-class BinaryTest extends WebdaTest {
+class BinaryTest<T extends Binary = Binary> extends WebdaTest {
   getUserStore(): Store<any> {
     return <Store<any>>this.getService("Users");
   }
 
-  getBinary(): Binary {
-    return <Binary>this.getService("binary");
+  getBinary(): T {
+    return <T>this.getService<T>("binary");
   }
 
   getMap(): string {

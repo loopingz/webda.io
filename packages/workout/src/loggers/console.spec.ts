@@ -40,7 +40,10 @@ class ConsoleLoggerTest {
     const msg = new WorkerMessage("log", undefined, { log: new WorkerLog("INFO", undefined, {}, "plop") });
     msg.timestamp = Date.now();
     assert.strictEqual(ConsoleLogger.format(msg, "%5$r"), "bad log format: %5$r");
-    assert.ok(ConsoleLogger.format(msg).match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z [ INFO] undefined {} plop/));
+    assert.ok(
+      ConsoleLogger.format(msg).match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z \[ INFO\] undefined \{\} plop/) !==
+        null
+    );
   }
 
   @test

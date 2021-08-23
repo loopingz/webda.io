@@ -38,13 +38,15 @@ export class FileLogger {
     if (!this.outputStream) {
       if (fs.existsSync(this.filepath)) {
         this.outputCount += fs.lstatSync(this.filepath).size;
+      } else {
+        this.outputCount = 0;
       }
-      this.outputFileStream = fs.createWriteStream(this.filepath, { flags: "as" });
-      this.outputStream = this.outputFileStream;
+      this.outputStream = fs.createWriteStream(this.filepath, { flags: "a" });
     }
     let line = this.getLine(msg);
     this.outputStream.write(line);
     this.outputCount += line.length;
+
     if (this.sizeLimit > 0 && this.outputCount >= this.sizeLimit) {
       this.rotateLogs(this.filepath);
     }
@@ -67,6 +69,7 @@ export class FileLogger {
     let dirname = path.dirname(filepath);
     let num = fs.readdirSync(dirname).filter(n => n.startsWith(filename)).length + 1;
     fs.renameSync(filepath, path.join(dirname, filename + num));
-    this.outputStream = fs.createWriteStream(filepath, { flags: "as" });
+    this.outputStream = fs.createWriteStream(filepath, { flags: "a" });
+    this.outputCount = 0;
   }
 }

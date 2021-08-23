@@ -2,7 +2,7 @@ import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { WorkerOutput } from "..";
 import { FileLogger } from "./file";
-import { writeFileSync, unlinkSync, readdirSync } from "fs";
+import { writeFileSync, unlinkSync, readdirSync, lstatSync } from "fs";
 import { DebugLogger } from "./debug";
 import { WorkerMessage } from "../core";
 
@@ -25,13 +25,17 @@ class FileConsoleTest {
   async testLogsOnlyAndFilter() {
     let logger = new FileLogger(this.output, "TRACE", "./test-file.log");
     writeFileSync("./test-file2.log", "PAD\n".repeat(50));
-    let logger2 = new FileLogger(this.output, "DEBUG", "./test-file2.log", 500, "%d");
+    let logger2 = new FileLogger(this.output, "DEBUG", "./test-file2.log", 5000, "%(d)s [%(l)s] %(m)s");
     for (let i = 0; i < 200; i++) {
       this.output.log("DEBUG", `Test ${i}`);
     }
     this.output.log("TRACE", `Trace`);
     await new Promise(resolve => process.nextTick(resolve));
-    assert.ok(this.clean() > 2);
+    logger.outputStream.close();
+    logger2.outputStream.close();
+
+    // 2 for logger2 and 1 for logger1
+    assert.ok(this.clean() === 3);
   }
 
   @test

@@ -30,8 +30,14 @@ class FileConfigurationServiceTest extends WebdaTest {
 
   @test
   async initialLoad() {
-    assert.rejects(() => new FileConfigurationService(this.webda,"except", {}).init(), /Need a source for FileConfigurationService/);
-    assert.rejects(() => new FileConfigurationService(this.webda,"except", {source: "/plops"}).init(), /Need a source for FileConfigurationService/);
+    assert.rejects(
+      () => new FileConfigurationService(this.webda, "except", {}).init(),
+      /Need a source for FileConfigurationService/
+    );
+    assert.rejects(
+      () => new FileConfigurationService(this.webda, "except", { source: "/plops" }).init(),
+      /Need a source for FileConfigurationService/
+    );
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
     await new Promise<void>(resolve => {

@@ -4,6 +4,7 @@ import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { WebdaTest } from "../test";
 import { Context } from "../utils/context";
+import { MailerParameters } from "..";
 
 @suite
 class MailerTest extends WebdaTest {
@@ -31,12 +32,29 @@ class MailerTest extends WebdaTest {
       this.lastInfo = args;
     };
   }
+
   @test
-  unknownTemplate() {
+  params() {
+    let params = new MailerParameters({ templates: "ts", templatesEngine: "b" });
+    assert.strictEqual(params.templates, "ts");
+    assert.strictEqual(params.templatesEngine, "b");
+  }
+
+  @test
+  async unknownTemplate() {
     this.mailer._getTemplate("plop");
     assert.strictEqual(this.lastLevel, "WARN");
     assert.strictEqual(this.lastInfo[0], "No template found for");
     assert.strictEqual(this.lastInfo[1], "plop");
+    await assert.rejects(
+      () =>
+        this.mailer.send({
+          template: "plop",
+          from: "test@webda.io",
+          replacements: {}
+        }),
+      /Unknown mail template/
+    );
   }
   @test
   knownTemplate() {
@@ -46,34 +64,47 @@ class MailerTest extends WebdaTest {
     assert.strictEqual(this.lastLevel, undefined);
   }
   @test
-  knownTemplateOnSend() {
-    return this.mailer
-      .send({
-        template: "PASSPORT_EMAIL_RECOVERY",
-        from: "test@webda.io"
-      })
-      .then(() => {
-        assert.notStrictEqual(this.lastOptions, undefined);
-        assert.notStrictEqual(this.lastOptions.subject, undefined);
-        assert.notStrictEqual(this.lastOptions.html, undefined);
-        assert.notStrictEqual(this.lastOptions.text, undefined);
-      });
+  async knownTemplateOnSend() {
+    await this.mailer.send({
+      template: "PASSPORT_EMAIL_RECOVERY"
+    });
+    assert.notStrictEqual(this.lastOptions, undefined);
+    assert.notStrictEqual(this.lastOptions.subject, undefined);
+    assert.notStrictEqual(this.lastOptions.html, undefined);
+    assert.notStrictEqual(this.lastOptions.text, undefined);
   }
+
   @test
-  noTransporter() {
+  async sendManual() {
+    await this.mailer.send({ subject: "mine" });
+    assert.notStrictEqual(this.lastOptions, undefined);
+    assert.strictEqual(this.lastOptions.subject, "mine");
+  }
+
+  @test
+  async templateNoResult() {
+    this.mailer._getTemplate = () => {
+      return {
+        renderAll: async () => {
+          return {};
+        }
+      };
+    };
+    await this.mailer.send({ template: "mine" });
+    assert.notStrictEqual(this.lastOptions, undefined);
+    assert.strictEqual(this.lastOptions.subject, undefined);
+  }
+
+  @test
+  async noTransporter() {
     this.mailer._transporter = undefined;
-    let error;
-    return this.mailer
-      .send({
-        template: "PASSPORT_EMAIL_RECOVERY",
-        from: "test@webda.io"
-      })
-      .catch(err => {
-        error = err;
-      })
-      .then(() => {
-        assert.notStrictEqual(error, undefined);
-        assert.strictEqual(this.lastLevel, "ERROR");
-      });
+    await assert.rejects(
+      () =>
+        this.mailer.send({
+          template: "PASSPORT_EMAIL_RECOVERY",
+          from: "test@webda.io"
+        }),
+      /Cannot send email as no transporter is defined/
+    );
   }
 }

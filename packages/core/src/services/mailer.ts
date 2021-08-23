@@ -13,7 +13,7 @@ interface TemplatesMap {
   [key: string]: IEmailTemplate;
 }
 
-class MailerParameters extends ServiceParameters {
+export class MailerParameters extends ServiceParameters {
   /**
    * Specify which foldeer contains templates
    *
@@ -33,7 +33,7 @@ class MailerParameters extends ServiceParameters {
 
   constructor(params: any) {
     super(params);
-    this.templates ??= "templates";
+    this.templates ??= "./templates";
     this.templatesEngine ??= "mustache";
   }
 }
@@ -83,10 +83,12 @@ class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
     }
   }
 
-  async init(): Promise<void> {
-    this.parameters.templates = this.parameters.templates || "./templates";
-  }
-
+  /**
+   * Get a template by name
+   *
+   * @param name
+   * @returns
+   */
   _getTemplate(name) {
     if (!this._templates[name]) {
       // Load template
@@ -106,7 +108,7 @@ class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
         views: {
           root: templateDir,
           options: {
-            extension: this.parameters.templatesEngine || "mustache"
+            extension: this.parameters.templatesEngine
           }
         }
       });

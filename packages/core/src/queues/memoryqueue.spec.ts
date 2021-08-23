@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { Queue } from "../index";
+import { CancelablePromise, Queue } from "..";
 import { MemoryQueue } from "./memoryqueue";
 import { QueueTest } from "./queue.spec";
 
@@ -17,20 +17,21 @@ class MemoryQueueTest extends QueueTest {
   resolve: (value: unknown) => void;
   queue: Queue;
   failedIterations: any[];
+  workerPromise: CancelablePromise<void>;
 
   async receiveMessage<K>(proto?: { new (): K }) {
     this.seq++;
     switch (this.seq) {
       case 1:
         // Test the resume if no messages available
-        return Promise.resolve([]);
+        return [];
       case 2:
-        return Promise.resolve([
+        return [
           {
             ReceiptHandle: "msg1",
             Message: this.queue.unserialize(JSON.stringify({ title: "plop" }), proto)
           }
-        ]);
+        ];
       case 3:
         throw Error();
       case 4:
@@ -47,7 +48,7 @@ class MemoryQueueTest extends QueueTest {
         // Error on callback dont generate a double delay
         // @ts-ignore
         this.failedIterations.push(this.queue.failedIterations);
-        this.resolve(this.queue.stop());
+        this.resolve(this.workerPromise.cancel());
     }
   }
 
@@ -66,7 +67,7 @@ class MemoryQueueTest extends QueueTest {
           }
         ]);
       case 2:
-        this.resolve(this.queue.stop());
+        this.resolve(this.workerPromise.cancel());
     }
   }
 
@@ -101,7 +102,7 @@ class MemoryQueueTest extends QueueTest {
             throw Error();
         }
       };
-      queue.consume(callback, Title);
+      this.workerPromise = queue.consume(callback, Title);
     });
     assert.deepStrictEqual(this.failedIterations, [1, 0]);
   }
@@ -132,7 +133,7 @@ class MemoryQueueTest extends QueueTest {
             op *= 2;
           }
         };
-        queue.consume(callback);
+        this.workerPromise = queue.consume(callback);
       });
     };
     await run(true);
@@ -151,6 +152,8 @@ class MemoryQueueTest extends QueueTest {
     assert.strictEqual(queue.getParameters().expire, 30000, "default should be 30s");
     queue.getParameters().expire = 1000;
     queue.__clean();
+    // Should not have issue with unknown receipt
+    queue.deleteMessage("bouzouf");
     assert.strictEqual((await queue.receiveMessage()).length, 0);
     return this.simple(queue);
   }

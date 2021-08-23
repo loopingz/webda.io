@@ -50,14 +50,6 @@ class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueParamete
 
   async sendMessage(params) {
     var uid = uuid.v4();
-    if (!this._queue) {
-      console.log("weird");
-      try {
-        throw new Error();
-      } catch (err) {
-        console.log(err);
-      }
-    }
     // Avoid duplication
     while (this._queue[uid]) {
       uid = uuid.v4();

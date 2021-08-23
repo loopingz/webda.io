@@ -137,10 +137,18 @@ export async function WaitFor<T = any>(
  */
 export class CancelablePromise<T = void> extends Promise<T> {
   cancel: () => void;
-  constructor(callback: (resolve: (res: T) => void, reject: (err: any) => void) => void = () => {}) {
+  constructor(
+    callback: (resolve: (res: T) => void, reject: (err: any) => void) => void = () => {},
+    onCancel: () => void = undefined
+  ) {
     let localReject;
     super((resolve, reject) => {
-      localReject = () => reject("Cancelled");
+      localReject = () => {
+        if (onCancel) {
+          onCancel();
+        }
+        reject("Cancelled");
+      };
       callback(resolve, reject);
     });
     this.cancel = localReject;

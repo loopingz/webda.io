@@ -1,5 +1,5 @@
 import { Service, ServiceParameters } from "../services/service";
-import { WaitDelayerDefinition, WaitDelayer, WaitDelayerFactories } from "../utils/waiter";
+import { WaitDelayerDefinition, WaitDelayer, WaitDelayerFactories, CancelablePromise } from "../utils/waiter";
 
 /**
  * Raw message from queue
@@ -51,10 +51,6 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
    * Current timeout handler
    */
   protected _timeout: NodeJS.Timeout;
-  /**
-   * Set to interrupt current worker loop
-   */
-  protected _interrupt: boolean;
   /**
    * Callback function to call for each message
    */
@@ -128,9 +124,6 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
    * @returns
    */
   protected async consumerReceiveMessage() {
-    if (this._interrupt) {
-      return;
-    }
     try {
       let items = await this.receiveMessage(this.eventPrototype);
       this.failedIterations = 0;
@@ -158,7 +151,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
     } catch (err) {
       this.failedIterations += 1;
       this.log("ERROR", err);
-      setTimeout(this.consumerReceiveMessage.bind(this), this.delayer(this.failedIterations));
+      this._timeout = setTimeout(this.consumerReceiveMessage.bind(this), this.delayer(this.failedIterations));
     }
   }
 
@@ -168,23 +161,23 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
    * @param callback
    * @param eventPrototype
    */
-  async consume(callback: (event: T) => Promise<void>, eventPrototype?: { new (): T }) {
+  consume(callback: (event: T) => Promise<void>, eventPrototype?: { new (): T }): CancelablePromise {
     this.failedIterations = 0;
     this.callback = callback;
     this.eventPrototype = eventPrototype;
-    while (!this._interrupt) {
-      await this.consumerReceiveMessage();
-    }
-  }
-
-  /**
-   * Stop the worker
-   */
-  stop() {
-    this._interrupt = true;
-    if (this._timeout) {
-      clearTimeout(this._timeout);
-    }
+    return new CancelablePromise(
+      async () => {
+        while (1) {
+          await this.consumerReceiveMessage();
+        }
+      },
+      () => {
+        if (this._timeout) {
+          clearTimeout(this._timeout);
+          this._timeout = undefined;
+        }
+      }
+    );
   }
 }
 

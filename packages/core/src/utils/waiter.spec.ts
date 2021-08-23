@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import { Logger } from "./logger";
 import * as assert from "assert";
-import { CancelablePromise, WaitExponentialDelay, WaitFor, WaitLinearDelay } from "./waiter";
+import { CancelablePromise, WaitDelayerFactories, WaitExponentialDelay, WaitFor, WaitLinearDelay } from "./waiter";
 import * as sinon from "sinon";
 
 @suite
@@ -19,6 +19,9 @@ class WaiterTest {
     let consoleSpy = sinon.stub(logger, "log");
     sinon.stub(logger, "logProgressStart");
     sinon.stub(logger, "logProgressUpdate");
+    WaitDelayerFactories.registerFactory("static", () => {
+      return t => t;
+    });
     try {
       await assert.rejects(
         async () => await WaitFor(async () => false, 3, "title", logger, WaitExponentialDelay(1)),
@@ -64,6 +67,19 @@ class WaiterTest {
         elapsed > 2500 && elapsed < 3500,
         true,
         `Should have a duration close to 3 seconds, got: ${elapsed}ms`
+      );
+      // COV test
+      await WaitFor(async (resolve, reject) => {
+        resolve();
+        return true;
+      }, 3);
+      await WaitFor(
+        async (resolve, reject) => {
+          resolve();
+          return true;
+        },
+        3,
+        "title"
       );
     } finally {
       consoleSpy.restore();

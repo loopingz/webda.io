@@ -100,7 +100,7 @@ export class WaitDelayerFactories {
 export async function WaitFor<T = any>(
   callback: (resolve: (value?: T) => void, reject: (reason?: any) => void) => Promise<boolean>,
   retries: number,
-  title: string,
+  title?: string,
   logger?: Logger,
   delayer?: WaitDelayer
 ): Promise<T> {

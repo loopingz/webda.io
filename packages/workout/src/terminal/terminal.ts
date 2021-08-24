@@ -37,6 +37,7 @@ export class Terminal {
   logo: string[] = [];
   logoWidth: number = 0;
   _refresh: NodeJS.Timeout;
+  static refreshSpeed = 300;
 
   constructor(
     wo: WorkerOutput,
@@ -62,6 +63,7 @@ export class Terminal {
     process.stdout.write("\x1B[?12l\x1B[?47h\x1B[?25l");
 
     // Ensure we restore terminal on quit
+    /* istanbul ignore next  */
     process.on("beforeExit", () => this.resetTerm);
     this._refresh = setInterval(() => {
       this.progressChar++;
@@ -69,17 +71,13 @@ export class Terminal {
         this.progressChar = 0;
       }
       this.displayScreen();
-    }, 300);
+    }, Terminal.refreshSpeed);
 
     // Update on terminal resize
-    process.stdout.on("resize", size => {
-      this.height = process.stdout.rows;
-      if (this.hasProgress) {
-        this.displayScreen();
-      }
-    });
+    process.stdout.on("resize", this.resize.bind(this));
 
     // Manage input if any stdin
+    /* istanbul ignore if  */
     if (!process.stdin || !process.stdin.setRawMode) {
       return;
     }
@@ -87,47 +85,57 @@ export class Terminal {
     process.stdin.setEncoding("utf8");
     process.stdin.resume();
     process.stdin.setRawMode(true);
-    process.stdin.on("data", data => {
-      let str = data.toString();
-      if (str.charCodeAt(0) === 3) {
-        process.kill(process.pid, constants.signals.SIGINT);
-        return;
-      } else if (str.charCodeAt(0) === 127) {
-        if (this.inputValue.length) {
-          this.inputValue = this.inputValue.substr(0, this.inputValue.length - 1);
-        }
-      } else if (this.inputs.length) {
-        if (str === "\u001B\u005B\u0035\u007e") {
-          // PageUp
-          this.scrollUp(this.height);
-        } else if (str === "\u001B\u005B\u0036\u007e") {
-          // PageDown
-          this.scrollDown(this.height);
-        } else if (str === "\u001B\u005B\u0042") {
-          // Down
-          this.scrollDown(1);
-        } else if (str === "\u001B\u005B\u0041") {
-          // Up
-          this.scrollUp(1);
-        } else if (str.charCodeAt(0) === 13) {
-          // validate input
-          if (this.inputs[0].validate(this.inputValue)) {
-            this.wo.returnInput(this.inputs[0].uuid, this.inputValue);
-            this.inputValue = "";
-            this.inputs.shift();
-            if (!this.inputs.length) {
-              process.stdout.write("\x1B[?25l");
-            }
-          } else {
-            this.inputValid = false;
+    process.stdin.on("data", this.onData.bind(this));
+  }
+
+  onData(data) {
+    let str = data.toString();
+    /* istanbul ignore if  */
+    if (str.charCodeAt(0) === 3) {
+      process.kill(process.pid, constants.signals.SIGINT);
+      return;
+    } else if (str.charCodeAt(0) === 127) {
+      if (this.inputValue.length) {
+        this.inputValue = this.inputValue.substr(0, this.inputValue.length - 1);
+      }
+    } else if (str === "\u001B\u005B\u0035\u007e") {
+      // PageUp
+      this.scrollUp(this.height);
+    } else if (str === "\u001B\u005B\u0036\u007e") {
+      // PageDown
+      this.scrollDown(this.height);
+    } else if (str === "\u001B\u005B\u0042") {
+      // Down
+      this.scrollDown(1);
+    } else if (str === "\u001B\u005B\u0041") {
+      // Up
+      this.scrollUp(1);
+    } else if (this.inputs.length) {
+      if (str.charCodeAt(0) === 13) {
+        // validate input
+        if (this.inputs[0].validate(this.inputValue)) {
+          this.wo.returnInput(this.inputs[0].uuid, this.inputValue);
+          this.inputValue = "";
+          this.inputs.shift();
+          if (!this.inputs.length) {
+            process.stdout.write("\x1B[?25l");
           }
         } else {
-          this.inputValid = true;
-          this.inputValue += str;
+          this.inputValid = false;
         }
+      } else {
+        this.inputValid = true;
+        this.inputValue += str;
       }
+    }
+    this.displayScreen();
+  }
+
+  resize(size) {
+    this.height = process.stdout.rows;
+    if (this.hasProgress) {
       this.displayScreen();
-    });
+    }
   }
 
   scrollUp(increment: number) {
@@ -405,6 +413,7 @@ export class Terminal {
       let i = 0;
       for (let y in this.logo) {
         i = parseInt(y) + this.getFooterSize();
+        /* istanbul ignore next  */
         if (!linesData[i]) {
           continue;
         }

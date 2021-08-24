@@ -4,7 +4,7 @@ import { WorkerLogLevelEnum, WorkerOutput } from "..";
 import { Terminal } from "./terminal";
 import * as assert from "assert";
 import { WorkerInputType } from "@webda/workout";
-
+import { WorkerInput, WorkerMessage } from "../core";
 @suite
 class TerminalTest {
   output: WorkerOutput;
@@ -12,6 +12,7 @@ class TerminalTest {
   stubs: { [key: string]: any } = {};
 
   before() {
+    Terminal.refreshSpeed = 10;
     this.stubs["process.on"] = sinon.stub(process, "on");
     this.stubs["process.stdout.on"] = sinon.stub(process.stdout, "on");
     this.stubs["process.stdout.write"] = sinon.stub(process.stdout, "write");
@@ -27,6 +28,52 @@ class TerminalTest {
         this.stubs[i].restore();
       } catch (e) {}
     }
+  }
+
+  @test
+  async cov() {
+    new Terminal(this.output);
+    new Terminal(this.output, undefined, undefined, false);
+    this.output.log("INFO", "Test");
+    this.terminal.setLogo(["LOOPZ", "LOOPZ", "LOOPZ", "LOOPZ", "LOOPZ"]);
+    this.terminal.close();
+    this.terminal.close();
+    this.terminal.resize(10);
+    this.terminal.inputValue = "pl";
+    this.terminal.onData("\x7f");
+    assert.ok(this.terminal.inputValue === "p");
+    this.terminal.onData("\u001B\u005B\u0035\u007e");
+    this.terminal.onData("\u001B\u005B\u0036\u007e");
+    this.terminal.onData("\u001B\u005B\u0042");
+    this.terminal.onData("\u001B\u005B\u0041");
+    let uuidP = this.output.requestInput("My Question", undefined, [new RegExp(/\d+/)], true);
+    this.terminal.onData("\x0d");
+    this.terminal.onData("\x7f");
+    this.terminal.displayFooter();
+    this.terminal.onData("12");
+    this.terminal.onData("\x0d");
+    assert.ok((await uuidP) === "12");
+    this.terminal.onData("\x0d");
+
+    this.terminal.setLogo([]);
+    this.terminal.displayHistory(10000, false);
+
+    this.terminal.historySize = 10;
+    for (let i = 0; i < 12; i++) {
+      this.terminal.pushHistory("plop");
+    }
+    assert.ok(this.terminal.history.length === 10);
+    this.terminal.setTitle("plop".repeat(200));
+    this.terminal.displayTitle();
+  }
+
+  @test
+  async progress() {
+    this.output.startProgress("mine", 100, "test");
+    this.output.incrementProgress(10, "mine");
+    await new Promise(resolve => setTimeout(resolve, 200));
+    this.terminal.resize(10);
+    this.output.incrementProgress(100, "mine");
   }
 
   @test

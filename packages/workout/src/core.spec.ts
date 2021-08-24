@@ -1,6 +1,7 @@
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { WorkerOutput, WorkerProgress, WorkerInputType } from ".";
+import { WorkerInput } from "./core";
 
 function mapper([msg]) {
   let res = {};
@@ -31,6 +32,15 @@ class WorkerOutputTest {
     assert.deepStrictEqual(this.calls.map(mapper), [
       { type: "log", groups: [], progresses: {}, log: { level: "WARN", args: ["Test", "plop"] } }
     ]);
+  }
+
+  @test
+  async testValidator() {
+    let input = new WorkerInput("myId", "title");
+    assert.ok(input.validate("test"));
+    input.validators = [new RegExp(/nop/), new RegExp(/n.*/)];
+    assert.ok(input.validate("net"));
+    assert.ok(!input.validate("let"));
   }
 
   @test
@@ -247,5 +257,14 @@ class WorkerOutputTest {
     let received: any[] = this.calls.map(mapper);
     received.forEach(e => delete e.input.uuid);
     assert.deepStrictEqual(received, events);
+
+    // Test default not super valuable
+    let value = "";
+    this.output.waitForInput = async uuid => {
+      value = uuid;
+      return value;
+    };
+    let testDefault = await this.output.requestInput("My Question");
+    assert.strictEqual(await testDefault, value);
   }
 }

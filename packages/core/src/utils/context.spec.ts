@@ -14,7 +14,7 @@ class ContextTest extends WebdaTest {
   }
 
   @test
-  cov() {
+  async cov() {
     // Get the last lines
     this.ctx.logIn();
     console.log(this.ctx.getRoute());
@@ -25,12 +25,83 @@ class ContextTest extends WebdaTest {
     this.ctx.setServiceParameters({ id: "service" });
     assert.strictEqual(this.ctx.getServiceParameters().id, "service");
     assert.strictEqual(this.ctx.getPathParameters().id, "plop");
+    this.ctx.setExtension("mine", "plop");
+    assert.strictEqual(this.ctx.getExtension("mine"), "plop");
+    // @ts-ignore
+    assert.strictEqual(this.ctx.getRequestParameters(), this.ctx.parameters);
+    assert.strictEqual(this.ctx.isGlobal(), false);
+    // @ts-ignore
+    this.ctx.session = undefined;
+    assert.strictEqual(this.ctx.getSession(), undefined);
+    assert.strictEqual(this.ctx._promises.length, 0);
+    this.ctx.addAsyncRequest((async () => {})());
+    assert.strictEqual(this.ctx._promises.length, 1);
+
+    let caught = false;
+    this.ctx.on("error", () => {
+      caught = true;
+    });
+    this.ctx.emitError("plop");
+    assert.ok(caught);
+    this.ctx.log("INFO", "Test");
+
+    assert.rejects(() => this.ctx.execute(), /Not Implemented/);
+    let called = false;
+    this.ctx._executor = {
+      // @ts-ignore
+      plop: () => {
+        called = true;
+      }
+    };
+
+    this.ctx._route = {
+      // @ts-ignore
+      _method: this.ctx._executor.plop
+    };
+    await this.ctx.execute();
+    assert.ok(called);
+
+    // @ts-ignore
+    this.ctx._ended = true;
+    await this.ctx.end();
+
+    this.ctx.getHttpContext().setBody(undefined);
+    this.ctx.getRequestBody();
+
+    // @ts-ignore
+    this.ctx._ended = false;
+    // @ts-ignore
+    this.ctx._buffered = true;
+    this.ctx._stream = {
+      _body: []
+    };
+    this.ctx.statusCode = 204;
+    await this.ctx.end();
+    assert.strictEqual(this.ctx.statusCode, 200);
+    // @ts-ignore
+    this.ctx._body = undefined;
+    this.ctx._write("ppop", "", () => {});
+  }
+
+  @test
+  getRequest() {
+    // Need to finish this
+    let req = this.ctx.getRequest();
+    // cov
+    req.setTimeout(1, () => {});
   }
 
   @test
   getAbsoluteUrl() {
-    let ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "http", 80);
+    let ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "http", 80, undefined, {
+      cookie: "PHPSESSID=298zf09hf012fh2; csrftoken=u32t4o3tb3gg43; _gat=1"
+    });
     assert.strictEqual(ctx.getAbsoluteUrl("/test"), "http://test.webda.io/test");
+    assert.deepStrictEqual(ctx.getCookies(), {
+      PHPSESSID: "298zf09hf012fh2",
+      csrftoken: "u32t4o3tb3gg43",
+      _gat: "1"
+    });
     ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "https", 80);
     assert.strictEqual(ctx.getAbsoluteUrl(), "https://test.webda.io:80/uritemplate/plop");
     ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "http", 443);
@@ -42,6 +113,8 @@ class ContextTest extends WebdaTest {
     assert.strictEqual(ctx.getAbsoluteUrl("ftp://test"), "ftp://test");
     assert.strictEqual(ctx.getAbsoluteUrl("test/ftp://test"), "https://test.webda.io/test/ftp://test");
     assert.strictEqual(ctx.getAbsoluteUrl("https://www.loopingz.com"), "https://www.loopingz.com");
+    ctx.setPrefix("/plop/");
+    assert.strictEqual(ctx.prefix, "/plop");
   }
 
   @test

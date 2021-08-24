@@ -105,6 +105,8 @@ class FileQueue<T = any, K extends FileQueueParameters = FileQueueParameters> ex
       })
       .filter(f => !f.hasLock)
       .sort((a, b) => {
+        // It is not relevant as it is fs based
+        /* istanbul ignore if  */
         if (a.ctime > b.ctime) {
           return 1;
         }

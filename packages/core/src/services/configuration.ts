@@ -112,7 +112,7 @@ export default class ConfigurationService<
     if (!this.sourceService.getConfiguration) {
       throw new WebdaError(
         "CONFIGURATION_SOURCE_INVALID",
-        `Service ${source[0]} is not implementing ConfigurationProvider interface`
+        `Service '${source[0]}' is not implementing ConfigurationProvider interface`
       );
     }
     this.serializedConfiguration = JSON.stringify(this.parameters.default);

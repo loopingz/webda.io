@@ -313,8 +313,8 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       this._passwordVerifier = this.getService<PasswordVerifier>(this.parameters.password.verifier);
     }
 
-    if (this._identsStore === undefined || this._usersStore === undefined) {
-      throw Error("Unresolved dependency on idents and users services");
+    if (this.parameters.email && this.getMailMan() === undefined) {
+      throw Error("email authentication requires a Mailer service");
     }
   }
 
@@ -743,10 +743,6 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
   }
 
   async _handleEmail(ctx: Context) {
-    if (this._identsStore === undefined) {
-      this._webda.log("ERROR", "Email auth needs an ident store");
-      throw 500;
-    }
     let body = ctx.getRequestBody();
 
     // Register new email
@@ -758,11 +754,6 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       throw 400;
     }
     var mailConfig = this.parameters.email;
-    var mailerService = this.getMailMan();
-    if (mailerService === undefined) {
-      // Bad configuration ( might want to use other than 500 )
-      throw 500;
-    }
     var uuid = body.login.toLowerCase() + "_email";
     let ident: Ident = await this._identsStore.get(uuid);
     if (ident !== undefined && ident.getUser() !== undefined) {

@@ -5,6 +5,8 @@ import { Binary, Store } from "..";
 import { test } from "@testdeck/mocha";
 
 class BinaryTest<T extends Binary = Binary> extends WebdaTest {
+  getUrlResult: string = undefined;
+
   getUserStore(): Store<any> {
     return <Store<any>>this.getService("Users");
   }
@@ -119,6 +121,20 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     await binary.downloadTo(user1[map][0], "./downloadTo.tmp");
     // Check the result is the same
     assert.strictEqual(fs.readFileSync("./downloadTo.tmp").toString(), fs.readFileSync(this.getTestFile()).toString());
+    if (fs.existsSync("./downloadTo.tmp")) {
+      fs.unlinkSync("./downloadTo.tmp");
+    }
+    await user1[map][0].downloadTo("./downloadTo.tmp");
+    assert.strictEqual(fs.readFileSync("./downloadTo.tmp").toString(), fs.readFileSync(this.getTestFile()).toString());
+    if (fs.existsSync("./downloadTo.tmp")) {
+      fs.unlinkSync("./downloadTo.tmp");
+    }
+    user1[map][0].get();
+
+    // cov
+    binary._get(user1[map][0]);
+    assert.strictEqual(binary._getUrl(user1[map][0], ctx), this.getUrlResult);
+
     await userStore.delete(user1.uuid);
     value = await binary.getUsageCount(hash);
     assert.strictEqual(value, 0);

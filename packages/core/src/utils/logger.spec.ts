@@ -1,8 +1,8 @@
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { WebdaTest } from "../test";
-import { Logger } from "./logger";
-import { WorkerOutput } from "@webda/workout";
+import { FileLoggerService, Logger } from "./logger";
+import { FileLogger, WorkerOutput } from "@webda/workout";
 
 @suite
 class LoggerTest extends WebdaTest {
@@ -22,8 +22,15 @@ class LoggerTest extends WebdaTest {
     logger.log("DEBUG", "test");
     logger.logGroupOpen("bouzouf");
     logger.logProgressStart("test", 100, "plop");
+    logger.logWithContext("INFO", {}, "plop");
     logger.logProgressUpdate(50, "test");
     logger.logProgressIncrement(15, "test");
+    logger.logGroupClose();
     logger.logTitle("MyTitle");
+  }
+
+  @test
+  fileLogger() {
+    let logger = new FileLoggerService(this.webda, "flogger", {});
   }
 }

@@ -26,6 +26,40 @@ class FileBinaryTest extends BinaryTest {
       false
     );
   }
+
+  // Test parent class
+
+  @test
+  initMap() {
+    let binary = this.getBinary();
+    binary.initMap(undefined);
+    binary.initMap({ _init: true });
+    // Bad store
+    binary.initMap({
+      VersionService: {},
+      None: {},
+      MemoryIdents: "idents"
+    });
+  }
+
+  @test
+  _getFile() {
+    let binary = this.getBinary();
+    const files = [{}];
+    assert.strictEqual(binary._getFile({ files }), files[0]);
+    const req = {
+      body: "plop",
+      headers: {
+        contentType: "text/plain"
+      }
+    };
+    assert.deepStrictEqual(binary._getFile(req), {
+      buffer: "plop",
+      mimetype: "text/plain",
+      originalname: "",
+      size: 4
+    });
+  }
 }
 
 export { FileBinaryTest };

@@ -244,13 +244,14 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     this.initMap(this.parameters.map);
   }
 
-  _getUrl(info: BinaryMap, ctx: Context) {
-    return;
-  }
+  /**
+   * Return a direct access url
+   * @param info
+   * @param ctx
+   */
+  _getUrl(info: BinaryMap, ctx: Context) {}
 
-  _get(info: BinaryMap): Readable {
-    return;
-  }
+  abstract _get(info: BinaryMap): Readable;
 
   initMap(map) {
     if (map == undefined || map._init) {

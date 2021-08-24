@@ -5,6 +5,7 @@ import { suite, test } from "@testdeck/mocha";
 import { WebdaTest } from "../test";
 import { Context } from "../utils/context";
 import { MailerParameters } from "..";
+import { Mailer } from "./mailer";
 
 @suite
 class MailerTest extends WebdaTest {
@@ -93,6 +94,16 @@ class MailerTest extends WebdaTest {
     await this.mailer.send({ template: "mine" });
     assert.notStrictEqual(this.lastOptions, undefined);
     assert.strictEqual(this.lastOptions.subject, undefined);
+  }
+
+  @test
+  computeParameters() {
+    let mailer = new Mailer(this.webda, "m", { SES: {}, transport: "ses" });
+    mailer.computeParameters();
+    mailer = new Mailer(this.webda, "m", { transport: "ses" });
+    mailer.computeParameters();
+    mailer = new Mailer(this.webda, "m", { transport: "unknown" });
+    mailer.computeParameters();
   }
 
   @test

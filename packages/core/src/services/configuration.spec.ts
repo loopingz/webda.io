@@ -3,7 +3,7 @@ import { suite, test } from "@testdeck/mocha";
 import { CoreModel } from "../models/coremodel";
 import { Store } from "../stores/store";
 import { WebdaTest } from "../test";
-import { ConfigurationService } from "./configuration";
+import { ConfigurationService, ConfigurationServiceParameters } from "./configuration";
 
 @suite
 class ConfigurationServiceTest extends WebdaTest {
@@ -19,6 +19,26 @@ class ConfigurationServiceTest extends WebdaTest {
     await this.webda.getService("ConfigurationStore").__clean();
     (<ConfigurationService>this.webda.getService("ConfigurationService")).stop();
   }
+
+  @test
+  async init() {
+    let service = new ConfigurationService(this.webda, "name", {});
+    assert.deepStrictEqual(service.getConfiguration(), {});
+    // @ts-ignore
+    service.configuration = { test: "plop" };
+    assert.deepStrictEqual(service.getConfiguration(), { test: "plop" });
+    await assert.rejects(() => service.init(), /Need a source for ConfigurationService/);
+    service.getParameters().source = "none:plopId";
+    await assert.rejects(() => service.init(), /Need a valid service for source/);
+    service.getParameters().source = "DefinedMailer";
+    await assert.rejects(() => service.init(), /Need a valid source/);
+    service.getParameters().source = "DefinedMailer:none";
+    await assert.rejects(
+      () => service.init(),
+      /Service 'DefinedMailer' is not implementing ConfigurationProvider interface/
+    );
+  }
+
   @test
   async initialLoad() {
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
@@ -38,5 +58,7 @@ class ConfigurationServiceTest extends WebdaTest {
     });
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    // @ts-ignore
+    await this.webda.getService<ConfigurationService>("ConfigurationService").checkUpdate();
   }
 }

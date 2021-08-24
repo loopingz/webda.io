@@ -67,20 +67,16 @@ class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
    * Compute parameters
    */
   computeParameters() {
-    try {
-      let config: any = {};
-      Object.assign(config, this.parameters);
-      if (config.transport === "ses" && !config.SES) {
-        let aws = require("aws-sdk");
-        aws.config.update(config);
-        config.SES = new aws.SES({
-          apiVersion: "2010-12-01"
-        });
-      }
-      this._transporter = nodemailer.createTransport(config);
-    } catch (ex) {
-      this._transporter = undefined;
+    let config: any = {};
+    Object.assign(config, this.parameters);
+    if (config.transport === "ses" && !config.SES) {
+      let aws = require("aws-sdk");
+      aws.config.update(config);
+      config.SES = new aws.SES({
+        apiVersion: "2010-12-01"
+      });
     }
+    this._transporter = nodemailer.createTransport(config);
   }
 
   /**
@@ -93,13 +89,6 @@ class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
     if (!this._templates[name]) {
       // Load template
       let templateDir = this.parameters.templates + "/";
-      if (!fs.existsSync(templateDir)) {
-        templateDir = __dirname + "/../templates/";
-        if (!fs.existsSync(templateDir)) {
-          this._webda.log("WARN", "No template found for", name);
-          return;
-        }
-      }
       if (!fs.existsSync(templateDir + name)) {
         this._webda.log("WARN", "No template found for", name);
         return;

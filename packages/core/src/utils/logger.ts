@@ -119,13 +119,6 @@ export class Logger implements WorkoutLogger {
     this.clazz = clazz;
   }
 
-  /**
-   * @inheritdoc
-   */
-  loadParameters(params: any) {
-    return new LoggerServiceParameters(params);
-  }
-
   log(level: WorkerLogLevel, ...args) {
     this.logWithContext(level, { class: this.clazz }, ...args);
   }

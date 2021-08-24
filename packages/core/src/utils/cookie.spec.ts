@@ -4,6 +4,8 @@ import { HttpContext } from "./context";
 import { test, suite } from "@testdeck/mocha";
 import * as assert from "assert";
 import { serialize as cookieSerialize } from "cookie";
+import { SessionCookie } from "./cookie";
+import * as sinon from "sinon";
 
 const SECRET =
   "Lp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5EN";
@@ -101,6 +103,13 @@ class CookieTest extends WebdaTest {
     assert.strictEqual(cookie.needSave(), false);
   }
 
+  @test("session cookie") sessionCookie() {
+    var cookie = new SessionCookie(this._ctx);
+    assert.strictEqual(cookie.isLogged(), false);
+    cookie.login("plop", "");
+    assert.strictEqual(cookie.isLogged(), true);
+  }
+
   @test("Cookie parameters") testCookieParameters() {
     var cookie = new SecureCookie(
       "test",
@@ -136,6 +145,28 @@ class CookieTest extends WebdaTest {
       maxAge: 3600,
       sameSite: "Lax"
     });
+  }
+
+  @test("bad cookie")
+  testBad() {
+    this._ctx.getHttpContext().cookies = {
+      testor: "badCookie"
+    };
+    let stub = sinon.stub(this._ctx, "log").callsFake(() => {});
+    try {
+      new SecureCookie(
+        "testor",
+        {
+          secret: "plop".repeat(64)
+        },
+        this._ctx
+      );
+      console.log(stub.getCall(0));
+      assert.strictEqual(stub.getCall(0).args[0], "WARN");
+      assert.ok(stub.getCall(0).args[1].match(/Ignoring bad cookie/));
+    } finally {
+      stub.restore();
+    }
   }
 
   @test("Normal enc/dec") testEncryption() {

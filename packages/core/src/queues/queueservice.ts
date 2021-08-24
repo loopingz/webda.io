@@ -107,7 +107,9 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
     if (this._timeout) {
       clearTimeout(this._timeout);
     }
-    this._timeout = setTimeout(this.consumerReceiveMessage.bind(this), 1000);
+    return new Promise(resolve => {
+      this._timeout = setTimeout(resolve, 1000);
+    });
   }
 
   /**
@@ -151,7 +153,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
     } catch (err) {
       this.failedIterations += 1;
       this.log("ERROR", err);
-      this._timeout = setTimeout(this.consumerReceiveMessage.bind(this), this.delayer(this.failedIterations));
+      return new Promise(resolve => setTimeout(resolve, this.delayer(this.failedIterations)));
     }
   }
 
@@ -165,17 +167,15 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
     this.failedIterations = 0;
     this.callback = callback;
     this.eventPrototype = eventPrototype;
+    let cancelled = false;
     return new CancelablePromise(
       async () => {
-        while (1) {
+        while (!cancelled) {
           await this.consumerReceiveMessage();
         }
       },
       () => {
-        if (this._timeout) {
-          clearTimeout(this._timeout);
-          this._timeout = undefined;
-        }
+        cancelled = true;
       }
     );
   }

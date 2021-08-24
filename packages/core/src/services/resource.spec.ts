@@ -2,10 +2,11 @@ import * as assert from "assert";
 import * as fs from "fs";
 import { suite, test } from "@testdeck/mocha";
 import { WebdaTest } from "../test";
+import ResourceService, { ResourceServiceParameters } from "./resource";
 
 @suite
 class ResourceTest extends WebdaTest {
-  resource;
+  resource: ResourceService;
   resourceModel;
   ctx;
   async before(init: boolean = true) {
@@ -19,14 +20,52 @@ class ResourceTest extends WebdaTest {
   async parentFolder() {
     let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/../config.json");
     assert.notStrictEqual(executor, undefined);
-    await assert.rejects(executor.execute.bind(executor, this.ctx), err => err == 401);
+    await assert.rejects(
+      () => executor.execute(this.ctx),
+      err => err == 401
+    );
+  }
+
+  @test
+  params() {
+    let params = new ResourceServiceParameters({
+      url: "/test/",
+      rootRedirect: true
+    });
+    assert.strictEqual(params.url, "/test/");
+    assert.strictEqual(params.folder, "./test/");
+  }
+
+  @test
+  async redirect() {
+    this.resource.getParameters().rootRedirect = true;
+    this.webda.getRouter().removeRoute("/");
+    assert.ok(this.webda.getRouter().getRouteFromUrl(this.ctx, "GET", "/") === undefined);
+    this.resource.initRoutes();
+    assert.ok(this.webda.getRouter().getRouteFromUrl(this.ctx, "GET", "/") !== undefined);
+    this.resource._redirect(this.ctx);
+    assert.strictEqual(this.ctx.getResponseHeaders().Location, "http://test.webda.io/resources/");
+    ResourceService.getModda();
+  }
+
+  @test
+  async index() {
+    let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/");
+    // index.html does not exist in our case
+    await assert.rejects(
+      () => executor.execute(this.ctx),
+      err => err == 404
+    );
   }
 
   @test
   async unknownFile() {
     let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/config.unknown.json");
     assert.notStrictEqual(executor, undefined);
-    await assert.rejects(executor.execute.bind(executor, this.ctx), err => err == 404);
+    await assert.rejects(
+      () => executor.execute(this.ctx),
+      err => err == 404
+    );
   }
 
   @test

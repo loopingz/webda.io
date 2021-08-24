@@ -50,8 +50,13 @@ class Injector {
     if (this.parameter) {
       name = service.getParameters()[this.parameter] || this.value;
     }
-    service[this.property] = service.getService(this.value);
+    service[this.property] = service.getService(name);
     if (!service[this.property] && !this.optional) {
+      if (this.parameter) {
+        throw new Error(
+          `Injector did not found bean '${name}'(parameter:${this.parameter}) for '${service.getName()}'`
+        );
+      }
       throw new Error(`Injector did not found bean '${name}' for '${service.getName()}'`);
     }
   }
@@ -76,6 +81,8 @@ class Injector {
  * consider a parameter and it will resolve by calling `this.getService(this.getParameters()[parameterOrName] || defaultValue)`
  *
  * @param parameterOrName of the service to inject
+ *
+ * Might consider to split into two annotations
  */
 export function Inject(parameterOrName: string, defaultValue?: string | boolean, optional?: boolean) {
   return function (target: any, propertyName: string): void {

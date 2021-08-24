@@ -13,15 +13,15 @@ class Title {
 }
 @suite
 class MemoryQueueTest extends QueueTest {
-  seq: number;
-  resolve: (value: unknown) => void;
-  queue: Queue;
-  failedIterations: any[];
-  workerPromise: CancelablePromise<void>;
+  static seq: number;
+  static resolve: (value: unknown) => void;
+  static queue: Queue;
+  static failedIterations: any[];
+  static workerPromise: CancelablePromise<void>;
 
   async receiveMessage<K>(proto?: { new (): K }) {
-    this.seq++;
-    switch (this.seq) {
+    MemoryQueueTest.seq++;
+    switch (MemoryQueueTest.seq) {
       case 1:
         // Test the resume if no messages available
         return [];
@@ -29,7 +29,7 @@ class MemoryQueueTest extends QueueTest {
         return [
           {
             ReceiptHandle: "msg1",
-            Message: this.queue.unserialize(JSON.stringify({ title: "plop" }), proto)
+            Message: MemoryQueueTest.queue.unserialize(JSON.stringify({ title: "plop" }), proto)
           }
         ];
       case 3:
@@ -37,26 +37,27 @@ class MemoryQueueTest extends QueueTest {
       case 4:
         // An error occured it should double the pause
         // @ts-ignore
-        this.failedIterations.push(this.queue.failedIterations);
+        MemoryQueueTest.failedIterations.push(MemoryQueueTest.queue.failedIterations);
         return Promise.resolve([
           {
             ReceiptHandle: "msg2",
-            Message: this.queue.unserialize(JSON.stringify({ title: "plop2" }), proto)
+            Message: MemoryQueueTest.queue.unserialize(JSON.stringify({ title: "plop2" }), proto)
           }
         ]);
       case 5:
         // Error on callback dont generate a double delay
         // @ts-ignore
-        this.failedIterations.push(this.queue.failedIterations);
-        this.resolve(this.workerPromise.cancel());
+        MemoryQueueTest.failedIterations.push(MemoryQueueTest.queue.failedIterations);
+        MemoryQueueTest.resolve(MemoryQueueTest.workerPromise.cancel());
+        return [];
     }
   }
 
   async receiveMessageParallelism<K>(proto?: { new (): K }) {
-    this.seq++;
-    switch (this.seq) {
+    MemoryQueueTest.seq++;
+    switch (MemoryQueueTest.seq) {
       case 1:
-        return Promise.resolve([
+        return [
           {
             ReceiptHandle: "msg1",
             Message: { title: "plop" }
@@ -65,35 +66,36 @@ class MemoryQueueTest extends QueueTest {
             ReceiptHandle: "msg2",
             Message: { title: "plop2" }
           }
-        ]);
+        ];
       case 2:
-        this.resolve(this.workerPromise.cancel());
+        MemoryQueueTest.resolve(MemoryQueueTest.workerPromise.cancel());
+        return [];
     }
   }
 
   @test
   async worker() {
-    this.failedIterations = [];
+    MemoryQueueTest.failedIterations = [];
     await new Promise(resolve => {
-      this.resolve = resolve;
-      let queue: Queue = new MemoryQueue(undefined, undefined, {
+      MemoryQueueTest.resolve = resolve;
+      let queue: Queue = new MemoryQueue(this.webda, "q", {
         workerParallelism: false
       });
-      this.queue = queue;
+      MemoryQueueTest.queue = queue;
       // @ts-ignore
       queue.delayer = () => 1;
-      this.seq = 0;
+      MemoryQueueTest.seq = 0;
       // @ts-ignore
       queue._webda = <any>{
         log: () => {}
       };
-      queue.receiveMessage = this.receiveMessage.bind(this);
+      queue.receiveMessage = this.receiveMessage.bind(queue);
       queue.deleteMessage = async handle => {
         // Should only have the msg1 handle in deleteMessage as msg2 is fake error
         assert.strictEqual(handle, "msg1");
       };
       let callback = async event => {
-        switch (this.seq) {
+        switch (MemoryQueueTest.seq) {
           case 2:
             assert.strictEqual(event.title, "plop");
             return;
@@ -102,9 +104,9 @@ class MemoryQueueTest extends QueueTest {
             throw Error();
         }
       };
-      this.workerPromise = queue.consume(callback, Title);
+      MemoryQueueTest.workerPromise = queue.consume(callback, Title);
     });
-    assert.deepStrictEqual(this.failedIterations, [1, 0]);
+    assert.deepStrictEqual(MemoryQueueTest.failedIterations, [1, 0]);
   }
 
   @test
@@ -112,17 +114,17 @@ class MemoryQueueTest extends QueueTest {
     let op = 0;
     const run = async (parallel: boolean) => {
       await new Promise(resolve => {
-        let queue: Queue = new MemoryQueue(undefined, undefined, { workerParallelism: parallel });
-        this.queue = queue;
-        this.resolve = resolve;
+        let queue: Queue = new MemoryQueue(this.webda, "q", { workerParallelism: parallel });
+        MemoryQueueTest.queue = queue;
+        MemoryQueueTest.resolve = resolve;
         // @ts-ignore
         queue.delayer = () => 1;
-        this.seq = 0;
+        MemoryQueueTest.seq = 0;
         // @ts-ignore
         queue._webda = <any>{
           log: () => {}
         };
-        queue.receiveMessage = this.receiveMessageParallelism.bind(this);
+        queue.receiveMessage = this.receiveMessageParallelism.bind(queue);
         queue.deleteMessage = async handle => {};
         let callback = async event => {
           if (event.title === "plop") {
@@ -133,7 +135,7 @@ class MemoryQueueTest extends QueueTest {
             op *= 2;
           }
         };
-        this.workerPromise = queue.consume(callback);
+        MemoryQueueTest.workerPromise = queue.consume(callback, undefined);
       });
     };
     await run(true);
@@ -156,5 +158,23 @@ class MemoryQueueTest extends QueueTest {
     queue.deleteMessage("bouzouf");
     assert.strictEqual((await queue.receiveMessage()).length, 0);
     return this.simple(queue);
+  }
+
+  @test
+  async uuid() {
+    let queue: MemoryQueue = <MemoryQueue>this.getService("memoryqueue");
+    let first = true;
+    let callCount = 0;
+    // @ts-ignore
+    queue._queue = new Proxy(queue._queue, {
+      get: (q, prop) => {
+        callCount += 1;
+        if (callCount === 1) {
+          return "plop";
+        }
+      }
+    });
+    await queue.sendMessage({});
+    assert.strictEqual(callCount, 2);
   }
 }

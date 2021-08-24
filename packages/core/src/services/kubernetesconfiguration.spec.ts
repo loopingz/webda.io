@@ -5,6 +5,7 @@ import { outputFileSync, emptyDirSync, ensureSymlinkSync } from "fs-extra";
 import * as path from "path";
 import * as yaml from "yaml";
 import { mkdirSync, unlinkSync } from "fs";
+import { KubernetesConfigurationService } from "..";
 
 class AbstractKubernetesConfigurationServiceTest extends WebdaTest {
   folder: string = __dirname + "/../../test/kube";
@@ -64,6 +65,15 @@ class AbstractKubernetesConfigurationServiceTest extends WebdaTest {
 class KubernetesConfigurationServiceTest extends AbstractKubernetesConfigurationServiceTest {
   async before() {
     await super.before(true);
+  }
+
+  @test
+  async cov() {
+    let serv = new KubernetesConfigurationService(this.webda, "t", {});
+    serv.getParameters().source = undefined;
+    assert.rejects(() => serv.init(), /Need a source for KubernetesConfigurationService/);
+    serv.getParameters().source = "/notexisting";
+    assert.rejects(() => serv.init(), /Need a source for KubernetesConfigurationService/);
   }
 
   @test

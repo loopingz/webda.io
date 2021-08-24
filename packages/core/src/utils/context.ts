@@ -441,12 +441,10 @@ class Context extends EventEmitter {
       await Promise.all(this._promises);
       if (this._buffered && this._stream._body !== undefined) {
         this._body = Buffer.concat(this._stream._body);
+        this.statusCode = 200;
       }
       if (!this._flushHeaders) {
         this._flushHeaders = true;
-        if (this._body !== undefined && this.statusCode == 204) {
-          this.statusCode = 200;
-        }
         this._webda.flushHeaders(this);
       }
       this._webda.flush(this);
@@ -487,10 +485,15 @@ class Context extends EventEmitter {
     return this._body;
   }
 
+  /**
+   * Retrieve a http.IncomingMessage valid from Context
+   *
+   * Need more testing
+   * @returns
+   */
   getRequest(): http.IncomingMessage {
     const s = require("stream");
-    var stream = new s.Readable();
-    stream.push(JSON.stringify(this.getRequestBody()));
+    var stream = s.Readable.from([JSON.stringify(this.getRequestBody())]);
     return <http.IncomingMessage>{
       httpVersionMajor: 1,
       httpVersionMinor: 0,

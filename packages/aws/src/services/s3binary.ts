@@ -345,14 +345,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   _getUrl(info, ctx: Context) {
     // Dont return any url if
     if (!ctx) return;
-    return (
-      ctx._route._http.protocol +
-      "://" +
-      ctx._route._http.headers.host +
-      this.parameters.expose.url +
-      "/upload/data/" +
-      ctx.getRequestBody().hash
-    );
+    ctx.getHttpContext().getAbsoluteUrl(this.parameters.expose.url + "/upload/data/" + ctx.getRequestBody().hash);
   }
 
   /**

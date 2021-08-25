@@ -34,6 +34,7 @@ class TerminalTest {
   async cov() {
     new Terminal(this.output);
     new Terminal(this.output, undefined, undefined, false);
+    this.output.setInteractive(true);
     this.output.log("INFO", "Test");
     this.terminal.setLogo(["LOOPZ", "LOOPZ", "LOOPZ", "LOOPZ", "LOOPZ"]);
     this.terminal.close();

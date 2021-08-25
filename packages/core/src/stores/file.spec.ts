@@ -15,8 +15,16 @@ class FileStoreTest extends StoreTest {
   }
 
   @test
+  async cov() {
+    let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
+    // Shoud return directly
+    await identStore.incrementAttribute("test", "test", 0);
+  }
+
+  @test
   async modelActions() {
     let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
+    assert.notStrictEqual(identStore.getModel(), undefined);
     let eventFired = 0;
     let executor, ctx;
     identStore.on("Store.Action", evt => {

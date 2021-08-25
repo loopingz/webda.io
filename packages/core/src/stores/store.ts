@@ -441,9 +441,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     super.computeParameters();
     const p = this.parameters;
     this._model = this._webda.getModel(p.model);
-    if (!this._model) {
-      throw new Error(`${p.model} model is not found`);
-    }
     this._uuidField = this._model.getUuidField();
     this._lastUpdateField = p.lastUpdateField || "_lastUpdate";
     this._creationDateField = p.creationDateField || "_creationDate";
@@ -644,9 +641,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     return false;
   }
 
-  async _incrementAttribute(uid: string, prop: string, value: number, updateDate: Date): Promise<any> {
-    throw Error("Virtual abstract class - concrete only for MixIn usage");
-  }
+  abstract _incrementAttribute(uid: string, prop: string, value: number, updateDate: Date): Promise<any>;
 
   async incrementAttribute(uid: string, prop: string, value: number) {
     // If value === 0 no need to update anything
@@ -709,7 +704,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     }
   }
 
-  async _upsertItemToCollection(
+  abstract _upsertItemToCollection(
     uid: string,
     prop: string,
     item: any,
@@ -717,9 +712,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     itemWriteCondition: any,
     itemWriteConditionField: string,
     updateDate: Date
-  ): Promise<any> {
-    throw Error("Virtual abstract class - concrete only for MixIn usage");
-  }
+  ): Promise<any>;
 
   async deleteItemFromCollection(
     uid: string,
@@ -749,16 +742,14 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     });
   }
 
-  async _deleteItemFromCollection(
+  abstract _deleteItemFromCollection(
     uid: string,
     prop: string,
     index: number,
     itemWriteCondition: any,
     itemWriteConditionField: string,
     updateDate: Date
-  ): Promise<any> {
-    throw Error("Virtual abstract class - concrete only for MixIn usage");
-  }
+  ): Promise<any>;
 
   async createIndex() {
     if (!this.parameters.index || (await this.exists("index"))) {
@@ -849,9 +840,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     return object;
   }
 
-  async _save(object: CoreModel): Promise<any> {
-    throw Error("Virtual abstract class - concrete only for MixIn usage");
-  }
+  abstract _save(object: CoreModel): Promise<any>;
 
   async patch(object: any, reverseMap = true) {
     return this.update(object, reverseMap, true);
@@ -1192,23 +1181,9 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     return Promise.all(promises);
   }
 
-  async _update(
-    object,
-    uid,
-    itemWriteCondition: any = undefined,
-    itemWriteConditionField: string = undefined
-  ): Promise<any> {
-    throw Error("Virtual abstract class - concrete only for MixIn usage");
-  }
+  abstract _update(object, uid, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any>;
 
-  async _patch(
-    object: any,
-    uid: string,
-    itemWriteCondition: any = undefined,
-    itemWriteConditionField: string = undefined
-  ): Promise<any> {
-    throw Error("Virtual abstract class - concrete only for MixIn usage");
-  }
+  abstract _patch(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any>;
 
   async cascadeDelete(obj: any, uuid: string): Promise<any> {
     // We dont need uuid but Binary store will need it
@@ -1284,17 +1259,11 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
    * @abstract
    * @params {String} uuid of the object
    */
-  async exists(uid: string): Promise<boolean> {
-    throw Error("Virtual abstract class - concrete only for MixIn usage");
-  }
+  abstract exists(uid: string): Promise<boolean>;
 
-  async _delete(uid: string, writeCondition?, itemWriteConditionField?: string): Promise<void> {
-    throw Error("Virtual abstract class - concrete only for MixIn usage");
-  }
+  abstract _delete(uid: string, writeCondition?, itemWriteConditionField?: string): Promise<void>;
 
-  async _get(uid: string): Promise<any> {
-    throw Error("Virtual abstract class - concrete only for MixIn usage");
-  }
+  abstract _get(uid: string): Promise<any>;
 
   /**
    * Get an object
@@ -1302,9 +1271,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
    * @param {Array} uuid to gets if undefined then retrieve the all table
    * @return {Promise} the objects retrieved ( can be [] if not found )
    */
-  async getAll(list = undefined): Promise<T[]> {
-    throw Error("Virtual abstract class - concrete only for MixIn usage");
-  }
+  abstract getAll(list?: string[]): Promise<T[]>;
 
   /**
    * By default we cannot know if the store will trigger or not
@@ -1379,9 +1346,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     return result;
   }
 
-  async _find(request, offset, limit): Promise<CoreModel[]> {
-    throw Error("Virtual abstract class - concrete only for MixIn usage");
-  }
+  abstract _find(request, offset, limit): Promise<CoreModel[]>;
 
   // ADD THE EXECUTOR PART
 

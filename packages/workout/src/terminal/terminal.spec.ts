@@ -4,9 +4,9 @@ import { WorkerLogLevelEnum, WorkerOutput } from "..";
 import { Terminal } from "./terminal";
 import * as assert from "assert";
 import { WorkerInputType } from "@webda/workout";
-import { WorkerInput, WorkerMessage } from "../core";
+import { WorkerInput, WorkerMessage, WorkerProgress } from "../core";
 
-var stdin = require('mock-stdin').stdin();
+var stdin = require("mock-stdin").stdin();
 
 @suite
 class TerminalTest {
@@ -84,6 +84,9 @@ class TerminalTest {
     assert.strictEqual(this.terminal.scrollY, -1);
     this.terminal.scrollDown(10000);
     assert.strictEqual(this.terminal.scrollY, -1);
+
+    this.terminal.width = 30;
+    this.terminal.displayProgress(new WorkerProgress("uu", 100, [], "longtitle".repeat(100)));
   }
 
   @test

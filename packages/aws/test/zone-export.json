@@ -1,0 +1,76 @@
+{
+  "domain": "webda.io",
+  "entries": [
+    {
+      "Name": "webda.io.",
+      "Type": "A",
+      "ResourceRecords": [],
+      "AliasTarget": {
+        "HostedZoneId": "Z666",
+        "DNSName": "test.cloudfront.net.",
+        "EvaluateTargetHealth": false
+      }
+    },
+    {
+      "Name": "webda.io.",
+      "Type": "MX",
+      "TTL": 300,
+      "ResourceRecords": [
+        {
+          "Value": "1 aspmx.l.google.com."
+        },
+        {
+          "Value": "5 alt1.aspmx.l.google.com."
+        },
+        {
+          "Value": "5 alt2.aspmx.l.google.com."
+        },
+        {
+          "Value": "10 aspmx2.googlemail.com."
+        },
+        {
+          "Value": "10 aspmx3.googlemail.com."
+        }
+      ]
+    },
+    {
+      "Name": "webda.io.",
+      "Type": "NS",
+      "TTL": 172800,
+      "ResourceRecords": [
+        {
+          "Value": "ns-1028.awsdns-83.com."
+        },
+        {
+          "Value": "ns-0211.awsdns-85.org."
+        },
+        {
+          "Value": "ns-0707.awsdns-21.net."
+        },
+        {
+          "Value": "ns-1014.awsdns-18.co.uk."
+        }
+      ]
+    },
+    {
+      "Name": "webda.io.",
+      "Type": "SPF",
+      "TTL": 300,
+      "ResourceRecords": [
+        {
+          "Value": "\"v=spf1 include:_spf.google.com ~all\""
+        }
+      ]
+    },
+    {
+      "Name": "_123.webda.io.",
+      "Type": "CNAME",
+      "TTL": 300,
+      "ResourceRecords": [
+        {
+          "Value": "ljhkl.111.acm-validations.aws."
+        }
+      ]
+    }
+  ]
+}

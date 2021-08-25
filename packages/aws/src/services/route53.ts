@@ -62,7 +62,7 @@ export class Route53Service extends Service {
       targetZone = await this.getZoneForDomainName(domain);
     }
     if (!targetZone) {
-      throw Error("Domain is not handled on AWS");
+      throw Error(`Domain '${domain}' is not handled on AWS`);
     }
     await r53
       .changeResourceRecordSets({
@@ -98,7 +98,7 @@ export class Route53Service extends Service {
     let r53 = new AWS.Route53();
     const zone = await Route53Service.getZoneForDomainName(domain);
     if (!zone) {
-      throw new Error(`Zone cannot be found: ${domain}`);
+      throw new Error(`Domain '${domain}' is not handled on AWS`);
     }
     const result = [];
     let res: PromiseResult<AWS.Route53.ListResourceRecordSetsResponse, AWS.AWSError>;
@@ -123,7 +123,7 @@ export class Route53Service extends Service {
     const targetZone = await this.getZoneForDomainName(data.domain);
     const r53 = new AWS.Route53();
     if (!targetZone) {
-      throw Error("Domain is not handled on AWS");
+      throw Error(`Domain '${data.domain}' is not handled on AWS`);
     }
     await r53
       .changeResourceRecordSets({

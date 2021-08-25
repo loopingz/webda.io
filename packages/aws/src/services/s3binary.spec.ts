@@ -5,6 +5,9 @@ import { checkLocalStack } from "../index.spec";
 import { S3Binary, S3BinaryParameters } from "./s3binary";
 import { GetAWS } from ".";
 import { DynamoDBTest } from "./dynamodb.spec";
+import * as AWSMock from "aws-sdk-mock";
+import * as AWS from "aws-sdk";
+import * as sinon from "sinon";
 
 function streamToString(stream) {
   const chunks = [];
@@ -87,6 +90,61 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
 
     assert.strictEqual(policies.Resource[0], "arn:aws:s3:::webda-test");
     assert.strictEqual(policies.Resource[1], "arn:aws:s3:::webda-test/*");
+
+    this.getBinary().getParameters().CloudFormationSkip = true;
+    assert.deepStrictEqual(
+      // @ts-ignore
+      this.getBinary().getCloudFormation({
+        getDefaultTags: () => []
+      }),
+      {}
+    );
+  }
+
+  @test
+  async forEachFile() {
+    let keys = [];
+    try {
+      AWSMock.setSDKInstance(AWS);
+      var spyChanges = sinon.stub().callsFake((p, c) => {
+        if (spyChanges.callCount === 1) {
+          return c(null, {
+            Contents: [
+              { Key: "test/test.txt" },
+              { Key: "test/test.json" },
+              { Key: "test2/test.txt" },
+              { Key: "loop.txt" }
+            ].filter(i => {
+              return i.Key.startsWith(p.Prefix);
+            }),
+            NextContinuationToken: "2"
+          });
+        }
+        return c(null, { Contents: [] });
+      });
+      AWSMock.mock("S3", "listObjectsV2", spyChanges);
+      await this.getBinary().forEachFile(
+        "myBucket",
+        async (Key: string) => {
+          keys.push(Key);
+        },
+        undefined,
+        /.*\.txt/
+      );
+      assert.deepStrictEqual(keys, ["test/test.txt", "test2/test.txt", "loop.txt"]);
+      keys = [];
+      spyChanges.resetHistory();
+      await this.getBinary().forEachFile(
+        "myBucket",
+        async (Key: string) => {
+          keys.push(Key);
+        },
+        "test/"
+      );
+      assert.deepStrictEqual(keys, ["test/test.txt", "test/test.json"]);
+    } finally {
+      AWSMock.restore();
+    }
   }
 
   @test

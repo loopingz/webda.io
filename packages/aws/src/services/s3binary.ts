@@ -415,7 +415,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
           params.ContinuationToken = NextContinuationToken;
           for (let f in Contents) {
             let { Key } = Contents[f];
-            if (filter && filter.exec(Key) === undefined) {
+            if (filter && filter.exec(Key) === null) {
               continue;
             }
             await callback(Key, page);

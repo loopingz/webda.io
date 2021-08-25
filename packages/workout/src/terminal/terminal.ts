@@ -17,6 +17,7 @@ export class Terminal {
   tty: boolean;
   wo: WorkerOutput;
   height: number;
+  width: number;
   history: string[] = [];
   historySize: number = 2000;
   scrollY: number = -1;
@@ -57,7 +58,7 @@ export class Terminal {
       return;
     }
     this.wo.on("message", async msg => this.router(msg));
-    this.height = process.stdout.rows;
+    this.resize();
 
     // Reset term
     process.stdout.write("\x1B[?12l\x1B[?47h\x1B[?25l");
@@ -131,8 +132,9 @@ export class Terminal {
     this.displayScreen();
   }
 
-  resize(size) {
+  resize() {
     this.height = process.stdout.rows;
+    this.width = process.stdout.columns;
     if (this.hasProgress) {
       this.displayScreen();
     }
@@ -278,7 +280,7 @@ export class Terminal {
 
   displayString(str, limit: number = undefined) {
     if (!limit) {
-      limit = process.stdout.columns;
+      limit = this.width;
     }
     let len = this.getTrueLength(str);
     if (len > limit) {
@@ -315,7 +317,7 @@ export class Terminal {
   }
 
   displayTitle() {
-    let pads = (process.stdout.columns - this.title.length - 4) / 2;
+    let pads = (this.width - this.title.length - 4) / 2;
     if (pads < 0) {
       pads = 0;
     }
@@ -332,10 +334,10 @@ export class Terminal {
     let line = this.displayString(
       `${bar} ${Math.floor(p.current).toString().padStart(numberLength)}/${p.total} ${percent}% ${
         p.title || ""
-      }`.padEnd(process.stdout.columns - 2)
+      }`.padEnd(this.width - 2)
     );
-    if (line.length > process.stdout.columns - 2) {
-      line = line.substr(0, process.stdout.columns - 2);
+    if (line.length > this.width - 2) {
+      line = line.substr(0, this.width - 2);
     }
     return `${line}\n`;
   }
@@ -343,7 +345,7 @@ export class Terminal {
   displayFooter() {
     // Separator
 
-    let res = this.progressChars[this.progressChar] + " " + "\u2015".repeat(process.stdout.columns - 2) + "\n";
+    let res = this.progressChars[this.progressChar] + " " + "\u2015".repeat(this.width - 2) + "\n";
     let values = Object.values(this.progresses);
     let k = values.length;
     if (this.title) {
@@ -400,15 +402,15 @@ export class Terminal {
       j = 0;
     }
     while (j < 0) {
-      res += " ".repeat(process.stdout.columns) + "\n";
+      res += " ".repeat(this.width) + "\n";
       j++;
     }
     for (; j < history.length; j++) {
-      let line = this.displayString(history[j].padEnd(process.stdout.columns));
+      let line = this.displayString(history[j].padEnd(this.width));
       res += `${line}\n`;
     }
     // Inserting logo
-    if (this.height > 30 && process.stdout.columns > 50 && this.logo.length) {
+    if (this.height > 30 && this.width > 50 && this.logo.length) {
       let linesData = res.split("\n");
       let i = 0;
       for (let y in this.logo) {
@@ -418,7 +420,7 @@ export class Terminal {
           continue;
         }
         linesData[i] =
-          this.displayString(linesData[i].trim(), process.stdout.columns - this.logoWidth - 1) +
+          this.displayString(linesData[i].trim(), this.width - this.logoWidth - 1) +
           this.logo[y].padEnd(this.logoWidth) +
           " ";
       }

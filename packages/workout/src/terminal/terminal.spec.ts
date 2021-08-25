@@ -5,6 +5,9 @@ import { Terminal } from "./terminal";
 import * as assert from "assert";
 import { WorkerInputType } from "@webda/workout";
 import { WorkerInput, WorkerMessage } from "../core";
+
+var stdin = require('mock-stdin').stdin();
+
 @suite
 class TerminalTest {
   output: WorkerOutput;
@@ -36,10 +39,14 @@ class TerminalTest {
     new Terminal(this.output, undefined, undefined, false);
     this.output.setInteractive(true);
     this.output.log("INFO", "Test");
+
+    this.terminal.height = 50;
+    this.terminal.width = 100;
+
     this.terminal.setLogo(["LOOPZ", "LOOPZ", "LOOPZ", "LOOPZ", "LOOPZ"]);
     this.terminal.close();
     this.terminal.close();
-    this.terminal.resize(10);
+    this.terminal.resize();
     this.terminal.inputValue = "pl";
     this.terminal.onData("\x7f");
     assert.ok(this.terminal.inputValue === "p");
@@ -56,6 +63,8 @@ class TerminalTest {
     assert.ok((await uuidP) === "12");
     this.terminal.onData("\x0d");
 
+    this.terminal.height = 50;
+    this.terminal.width = 100;
     this.terminal.setLogo([]);
     this.terminal.displayHistory(10000, false);
 
@@ -66,6 +75,15 @@ class TerminalTest {
     assert.ok(this.terminal.history.length === 10);
     this.terminal.setTitle("plop".repeat(200));
     this.terminal.displayTitle();
+
+    this.terminal.scrollY = 1;
+    this.terminal.scrollUp(10);
+    assert.ok(this.terminal.scrollY === 0);
+    this.terminal.scrollY = -1;
+    this.terminal.scrollDown(10);
+    assert.strictEqual(this.terminal.scrollY, -1);
+    this.terminal.scrollDown(10000);
+    assert.strictEqual(this.terminal.scrollY, -1);
   }
 
   @test
@@ -73,7 +91,7 @@ class TerminalTest {
     this.output.startProgress("mine", 100, "test");
     this.output.incrementProgress(10, "mine");
     await new Promise(resolve => setTimeout(resolve, 200));
-    this.terminal.resize(10);
+    this.terminal.resize();
     this.output.incrementProgress(100, "mine");
   }
 

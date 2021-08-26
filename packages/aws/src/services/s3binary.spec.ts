@@ -92,13 +92,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     assert.strictEqual(policies.Resource[1], "arn:aws:s3:::webda-test/*");
 
     this.getBinary().getParameters().CloudFormationSkip = true;
-    assert.deepStrictEqual(
-      // @ts-ignore
-      this.getBinary().getCloudFormation({
-        getDefaultTags: () => []
-      }),
-      {}
-    );
+    assert.deepStrictEqual(this.getBinary().getCloudFormation(undefined), {});
   }
 
   @test

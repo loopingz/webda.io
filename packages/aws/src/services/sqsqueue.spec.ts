@@ -4,7 +4,7 @@ import { suite, test, timeout } from "@testdeck/mocha";
 import { checkLocalStack } from "../index.spec";
 import { SQSQueue } from "./sqsqueue";
 import { GetAWS } from "./aws-mixin";
-
+import * as sinon from "sinon";
 @suite
 class SQSQueueTest extends QueueTest {
   async before() {
@@ -37,9 +37,14 @@ class SQSQueueTest extends QueueTest {
   @test
   @timeout(80000)
   async basic() {
-    await this.webda.getService("sqsqueue").__clean();
+    let queue: SQSQueue = <SQSQueue>this.webda.getService("sqsqueue");
+    await queue.__clean();
     // Update timeout to 80000ms as Purge can only be sent once every 60s
-    return this.simple(this.webda.getService("sqsqueue"), true);
+    await this.simple(queue, true);
+    queue.getParameters().MessageGroupId = "myGroup";
+    await queue.sendMessage({});
+    queue.getParameters().CloudFormationSkip = true;
+    assert.deepStrictEqual(queue.getCloudFormation(null), {});
   }
 
   @test
@@ -61,5 +66,29 @@ class SQSQueueTest extends QueueTest {
       error = true;
     }
     assert.strictEqual(error, true);
+  }
+
+  @test
+  async purgeQueueError() {
+    let queue: SQSQueue = <SQSQueue>this.webda.getService("sqsqueue");
+    let stub = sinon.stub(queue.sqs, "purgeQueue").callsFake((params: any) => {
+      return {
+        promise: async () => {
+          let error: any = new Error("AWS.SimpleQueueService.PurgeQueueInProgress");
+          error.code = "AWS.SimpleQueueService.PurgeQueueInProgress";
+          error.retryDelay = 1;
+          throw error;
+        }
+      };
+    });
+    await assert.rejects(() => queue.__clean(), /AWS.SimpleQueueService.PurgeQueueInProgress/);
+    stub.callsFake((_, c) => {
+      return {
+        promise: async () => {
+          throw new Error("Other");
+        }
+      };
+    });
+    await assert.rejects(() => queue.__clean(), /Other/);
   }
 }

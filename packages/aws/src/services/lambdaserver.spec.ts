@@ -193,6 +193,21 @@ class LambdaHandlerTest extends WebdaAwsTest {
   }
 
   @test
+  async cov() {
+    this.ensureGoodCSRF();
+    this.evt.headers["X-Forwarded-Port"] = "wew";
+    this.evt.headers["Content-Type"] = "text/plain";
+    this.evt.body = "{wew''";
+    // Should fallback on port 443
+    await this.handler.handleRequest(this.evt, this.context);
+    this.evt.headers["Content-Type"] = "application/json";
+    await assert.rejects(
+      () => this.handler.handleRequest(this.evt, this.context),
+      /Unexpected token w in JSON at position 1/
+    );
+  }
+
+  @test
   async handleRequestQueryParams() {
     // TODO Check parameter retrieval
     this.evt.queryStringParameters = {

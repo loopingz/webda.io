@@ -40,6 +40,7 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
     this.webda.log("DEBUG", "Plop 1", "Test");
     this.webda.log("DEBUG", "Plop 2", "Test");
     this.webda.log("DEBUG", "Plop 3", "Test");
+    this.webda.getLogger("whatever").logProgressStart("test", 100, "other");
     this.webda.log("DEBUG", "Plop 4", "Test");
     await this.webda.emitSync("Webda.Result");
     let res = await this.service._cloudwatch
@@ -49,6 +50,31 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
       .promise();
     assert.strictEqual(res.logStreams.length, 1);
     assert.notStrictEqual(res.logStreams[0].lastEventTimestamp, undefined);
+    this.service.getParameters().logGroupName = undefined;
+    await assert.rejects(() => this.service.init(), /Require a log group `logGroupName` parameter/);
+  }
+
+  @test
+  aws() {
+    assert.deepStrictEqual(this.service.getARNPolicy("plop"), {
+      Action: ["logs:*"],
+      Effect: "Allow",
+      Resource: [
+        "arn:aws:logs:us-east-1:plop:log-group:webda-test",
+        "arn:aws:logs:us-east-1:plop:log-group:webda-test:*:*"
+      ],
+      Sid: "CloudWatchLoggerCloudWatchLogger"
+    });
+    assert.deepStrictEqual(this.service.getCloudFormation(), {
+      CloudWatchLoggerLogGroup: {
+        Properties: {
+          LogGroupName: "webda-test"
+        },
+        Type: "AWS::Logs::LogGroup"
+      }
+    });
+    this.service.getParameters().CloudFormationSkip = true;
+    assert.deepStrictEqual(this.service.getCloudFormation(), {});
   }
 
   @test

@@ -46,5 +46,12 @@ class SecretsManagerTest extends WebdaAwsTest {
     });
     result = await this.service.get("webda-test-unit-test");
     assert.strictEqual(result["Authentication.providers.email.text"], "Bouzouf2");
+    assert.ok(!this.service.canTriggerConfiguration(undefined, undefined));
+    assert.deepStrictEqual(this.service.getARNPolicy("plop"), {
+      Action: ["secretsmanager:*"],
+      Effect: "Allow",
+      Resource: ["arn:aws:secretsmanager:us-east-1:plop:secret:*"],
+      Sid: "AWSSecretsManagerAWSSecretsManager"
+    });
   }
 }

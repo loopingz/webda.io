@@ -179,9 +179,8 @@ export default class LambdaServer extends Webda {
     var protocol = headers["CloudFront-Forwarded-Proto"] || "https";
     var port = headers["X-Forwarded-Port"] || 443;
     if (typeof port === "string") {
-      try {
-        port = Number(port);
-      } catch (err) {
+      port = Number(port);
+      if (isNaN(port)) {
         port = 443;
       }
     }

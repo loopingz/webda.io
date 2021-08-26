@@ -475,4 +475,23 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       "fc45f69f910da129848cd265448a5d00"
     );
   }
+
+  @test
+  async cov() {
+    assert.strictEqual(this.deployer.getRegion(), "us-east-1");
+  }
+
+  @test
+  replaceForAWS() {
+    assert.strictEqual(this.deployer._replaceForAWS("my/id"), "my_id");
+    assert.strictEqual(this.deployer._replaceForAWS("myid"), "myid");
+  }
+
+  @test
+  transformArrayTagsToMap() {
+    assert.deepStrictEqual(this.deployer.transformArrayTagsToMap([{ Key: "Test", Value: "plop" }]), { Test: "plop" });
+    assert.deepStrictEqual(this.deployer.transformArrayTagsToMap({ Test: "plop" }), { Test: "plop" });
+    assert.deepStrictEqual(this.deployer.getDefaultTagsAsMap(), {});
+    assert.deepStrictEqual(this.deployer.getDefaultTags("me"), []);
+  }
 }

@@ -22,26 +22,7 @@ class LambdaCallerParameters extends RunnerParameters {
 /**
  * A service that calls a Lambda function and retrieve its result
  */
-class LambdaCaller<T extends LambdaCallerParameters = LambdaCallerParameters>
-  extends Runner<T>
-  implements AWSEventsHandler
-{
-  static EventSource = "webda:lambdajob";
-  /**
-   * @inheritdoc
-   */
-  isAWSEventHandled(source: string, events: any): boolean {
-    return source === LambdaCaller.EventSource;
-  }
-
-  /**
-   * @inheritdoc
-   */
-  async handleAWSEvent(source: string, events: any): Promise<void> {
-    const event: LambdaAsyncJobEvent = <LambdaAsyncJobEvent>events.Records.shift();
-    return this.getService<AsyncJobService>(event.jobInfo.JOB_ORCHESTRATOR).runWebdaAsyncAction(event.jobInfo);
-  }
-
+class LambdaCaller<T extends LambdaCallerParameters = LambdaCallerParameters> extends Runner<T> {
   /**
    * @inheritdoc
    */
@@ -50,14 +31,12 @@ class LambdaCaller<T extends LambdaCallerParameters = LambdaCallerParameters>
     // Use the AWSEvents framework
     return this.execute(
       {
-        events: {
-          Records: [
-            <LambdaAsyncJobEvent>{
-              eventSource: LambdaCaller.EventSource,
-              jobInfo: info
-            }
-          ]
-        }
+        command: "launch",
+        service: info.JOB_ORCHESTRATOR,
+        method: "runWebdaAsyncAction",
+        args: [info],
+        // We also put the value in JOB_INFO for other type of runner
+        JOB_INFO: info
       },
       true
     );
@@ -81,9 +60,6 @@ class LambdaCaller<T extends LambdaCallerParameters = LambdaCallerParameters>
   resolve() {
     super.resolve();
     this.client = new AWS.Lambda();
-    if (this.getWebda() instanceof LambdaServer) {
-      (<LambdaServer>this.getWebda()).registerAWSEventsHandler(this);
-    }
   }
 
   /**

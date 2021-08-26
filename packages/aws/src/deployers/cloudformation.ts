@@ -2,7 +2,7 @@ import * as path from "path";
 import * as YAML from "yaml";
 import { AWSDeployer, AWSDeployerResources } from ".";
 import { CloudFormationContributor } from "../services";
-import { WebdaError } from "@webda/core";
+import { JSONUtils, WebdaError } from "@webda/core";
 import { ContainerResources } from "@webda/shell";
 import * as fs from "fs";
 import AWS = require("aws-sdk");
@@ -233,6 +233,8 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
 
   /**
    * Import Open API to APIGateway
+   *
+   * This is the restApiId to import to
    */
   APIGatewayImportOpenApi?: string;
   // Deploy images and ECR
@@ -277,6 +279,9 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     }
     this.resources.ChangeSetType = this.resources.ChangeSetType || "CREATE";
     this.resources.AssetsBucket = this.resources.AssetsBucket || packageDesc.webda.aws.AssetsBucket;
+    if (!this.resources.AssetsBucket) {
+      throw new WebdaError("ASSETS_BUCKET_REQUIRED", "AssetsBucket must be defined");
+    }
     this.resources.AssetsPrefix = this.resources.AssetsPrefix || "${deployment}/${deployer.name}/";
     this.resources.Description = this.resources.Description || "Deployed by @webda/aws/cloudformation";
     this.resources.FileName = this.resources.FileName || `cloudformation-${this.resources.name}`;
@@ -699,8 +704,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
           })
           .promise();
       } else {
-        this.logger.log("ERROR", err);
-        return;
+        throw err;
       }
     }
     return changeSet;
@@ -717,6 +721,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
     // Wait for change set
     this.logger.log("TRACE", `ChangeSet: ${changeSet}`);
+    // It will trigger an exception if timeout
     let changes = await this.waitFor(
       async (resolve, reject) => {
         let localChanges = await cloudformation
@@ -728,17 +733,12 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         }
         if (localChanges.Status === "ROLLBACK_COMPLETE") {
           reject();
-          return true;
         }
       },
       50,
       "Waiting for ChangeSet to be ready...",
       5000
     );
-    if (changes.Status === "UPDATE_IN_PROGRESS") {
-      this.logger.log("ERROR", "Timeout waiting for Stack to update");
-      return;
-    }
     if (changes.Status === "FAILED") {
       if (
         changes.StatusReason ===
@@ -793,11 +793,15 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
           display = true;
         }
       }
-      await new Promise(resolve => setTimeout(resolve, 10000));
-      i++;
+      // If we are done do not pause
+      if (Timeout) {
+        await this.sleep(10);
+        i++;
+      }
     } while (i < 60 && Timeout);
     if (Timeout) {
       this.logger.log("WARN", "Timeout while waiting for stack to update");
+      return;
     }
     /*
     CloudFormation does not update Stage when resources are modified
@@ -832,6 +836,14 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
           .promise();
       }
     }
+  }
+
+  /**
+   * Pause for x seconds
+   * @param seconds
+   */
+  async sleep(sec: number): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, sec * 1000));
   }
 
   async Resources() {
@@ -1065,9 +1077,6 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       S3Bucket,
       S3Key: AssetsPrefix + path.basename(ZipPath)
     };
-    if (!S3Bucket) {
-      throw new WebdaError("ASSETS_BUCKET_REQUIRED", "AssetsBucket must be defined");
-    }
     // Create the package
     await this.manager.run("WebdaAWSDeployer/LambdaPackager", LambdaPackager);
     // Copy package to S3
@@ -1083,12 +1092,26 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     return result;
   }
 
+  /**
+   * Init the project on AWS
+   *
+   * It creates a CloudFormation stack with one ECR and one Bucket
+   * and save their name in package.json(webda.aws)
+   *
+   * If you want to use your own ECR and S3 for assets just add
+   * them inside your package.json with `webda.aws.AssetsBucket` and
+   * `webda.aws.Repository`
+   *
+   * @param console
+   * @returns
+   */
   static async init(console) {
     let packageDescr = console.app.getAppPath("package.json");
     if (!fs.existsSync(packageDescr)) {
+      console.log("ERROR", "package.json not found");
       return -1;
     }
-    let pkg = JSON.parse(fs.readFileSync(packageDescr).toString());
+    let pkg = JSONUtils.loadFile(packageDescr);
     pkg.webda = pkg.webda || {};
     let sts = new AWS.STS();
     let identity;
@@ -1135,7 +1158,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         })
         .promise();
       console.log("INFO", "Updating package description with default information");
-      fs.writeFileSync(packageDescr, JSON.stringify(pkg, undefined, 2));
+      JSONUtils.saveFile(pkg, packageDescr);
       return 0;
     } else {
       // Check if stack already exists

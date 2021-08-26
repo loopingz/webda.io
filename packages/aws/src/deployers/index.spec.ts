@@ -55,6 +55,53 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
   }
 
   @test
+  mapToArrayTags() {
+    let deployer = new TestAWSDeployer(this.manager, { Tags: { Test: "Plop" } });
+    assert.deepStrictEqual(deployer.resources.Tags, [{ Key: "Test", Value: "Plop" }]);
+    assert.deepStrictEqual(deployer.transformMapTagsToArray([{ Key: "Test", Value: "Plop" }]), [
+      { Key: "Test", Value: "Plop" }
+    ]);
+  }
+
+  @test
+  async putFilesOnBucket() {
+    try {
+      await this.deployer.putFilesOnBucket("plop", []);
+      await assert.rejects(
+        // @ts-ignore
+        () => this.deployer.putFilesOnBucket("plop", [{ key: "/test" }]),
+        /Should have src and key defined/
+      );
+      let Contents = [{ Key: "awsevents.js", Size: 587, ETag: '"312d05552187d3fdfdda3860fbeef48f"' }];
+      let stub = sinon.stub().callsFake((p, c) => {
+        return c(null, {
+          Contents
+        });
+      });
+      AWSMock.mock("S3", "listObjectsV2", stub);
+      // Fake any uploads
+      let uploads = [];
+      AWSMock.mock("S3", "putObject", (p, c) => {
+        uploads.push(p);
+        c(null, {});
+      });
+      sinon.stub(this.deployer, "createBucket").callsFake(() => {});
+      await this.deployer.putFolderOnBucket("plop", "./test/moddas");
+      assert.strictEqual(uploads.length, 0);
+      Contents[0].ETag = "plop";
+      await this.deployer.putFolderOnBucket("plop", "./test/moddas");
+      assert.strictEqual(uploads.length, 1);
+      uploads = [];
+      Contents[0].ETag = '"312d05552187d3fdfdda3860fbeef48f"';
+      Contents[0].Size = 123;
+      await this.deployer.putFolderOnBucket("plop", "./test/moddas");
+      assert.strictEqual(uploads.length, 1);
+    } finally {
+      AWSMock.restore();
+    }
+  }
+
+  @test
   async testGetPolicyDocument() {
     try {
       AWSMock.mock("STS", "getCallerIdentity", callback => {
@@ -62,8 +109,14 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
           Account: "test"
         });
       });
+      // @ts-ignore
+      this.manager.getWebda().getServices()["customservice"].getARNPolicy = () => {
+        return [
+          { Sid: "", Effect: "Allow", Action: [], Resource: "*" },
+          { Sid: "", Effect: "Allow", Action: [], Resource: "*" }
+        ];
+      };
       let result = await this.deployer.getPolicyDocument();
-      console.log(result.Statement);
       assert.strictEqual(result.Statement.length, 4);
     } finally {
       AWSMock.restore();
@@ -479,6 +532,19 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
   @test
   async cov() {
     assert.strictEqual(this.deployer.getRegion(), "us-east-1");
+    this.deployer.waitFor(
+      async resolve => {
+        resolve();
+        return true;
+      },
+      1,
+      "test",
+      1
+    );
+    this.deployer.resources.Tags = [{ Key: "plop", Value: "test" }];
+    // @ts-ignore
+    this.deployer.resources.Plop = { Tags: { plop2: "oké yep" } };
+    assert.strictEqual(this.deployer.getDefaultTagsAsS3Tagging("Plop"), "plop2=ok%C3%A9%20yep&plop=test");
   }
 
   @test

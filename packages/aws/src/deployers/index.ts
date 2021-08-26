@@ -111,7 +111,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     });
     this.resources.endpoints = this.resources.endpoints || {};
     this.resources.Tags = this.resources.Tags || {};
-    if (Array.isArray(this.resources.Tags)) {
+    if (!Array.isArray(this.resources.Tags)) {
       this.resources.Tags = this.transformMapTagsToArray(this.resources.Tags);
     }
     this.AWS = AWS;
@@ -288,12 +288,12 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    *
    * @param key of the resources to add
    */
-  getDefaultTags(key: string | object[] = undefined): { Key: string; Value: string }[] {
+  getDefaultTags(key: string | TagsDefinition = undefined): { Key: string; Value: string }[] {
     let Tags;
     if (typeof key === "string") {
       Tags = this.resources[key] ? this.transformMapTagsToArray(this.resources[key].Tags) || [] : [];
     } else {
-      Tags = key || [];
+      Tags = this.transformMapTagsToArray(key) || [];
     }
     if (this.resources.Tags.length) {
       let TagKeys = Tags.map(t => t.Key);
@@ -307,7 +307,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    *
    * @param key of the resources to add
    */
-  getDefaultTagsAsMap(key: string | object[] = undefined): { [key: string]: string } {
+  getDefaultTagsAsMap(key: string | TagsDefinition = undefined): { [key: string]: string } {
     return this.transformArrayTagsToMap(this.getDefaultTags(key));
   }
 
@@ -315,7 +315,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    * Return the S3 Tagging string
    * @param key of the resources to add
    */
-  getDefaultTagsAsS3Tagging(key: string | object[] = undefined) {
+  getDefaultTagsAsS3Tagging(key: string | TagsDefinition = undefined) {
     return this.getDefaultTags(key)
       .map(tag => `${encodeURIComponent(tag.Key)}=${encodeURIComponent(tag.Value)}`)
       .join("&");
@@ -483,13 +483,13 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
         // Update to match recuring policy - might need to split if policy too big
         let res = (<IAMPolicyContributor>(<any>services[i])).getARNPolicy(me.Account, this.AWS.config.region);
         if (Array.isArray(res)) {
-          Array.prototype.push.apply(statements, res);
+          statements.push(...res);
         } else {
           statements.push(res);
         }
       }
     }
-    Array.prototype.push.apply(statements, this.getARNPolicy(me.Account, this.AWS.config.region));
+    statements.push(...this.getARNPolicy(me.Account, this.AWS.config.region));
     let policyDocument = {
       Version: "2012-10-17",
       Statement: [...statements, ...additionalStatements]
@@ -598,8 +598,6 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     if (!files.length) {
       return;
     }
-    // Create the bucket
-    await this.createBucket(bucket);
     files.forEach(f => {
       if (f.src === undefined) {
         throw Error("Should have src and key defined");
@@ -607,6 +605,9 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
         f.key = path.relative(process.cwd(), f.src);
       }
     });
+
+    // Create the bucket
+    await this.createBucket(bucket);
     // Retrieve current files to only upload the one we do not have
     let currentFiles = {};
     let Prefix = files.reduce((prev, cur) => this.commonPrefix(prev, cur.key), files[0].key);

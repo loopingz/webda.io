@@ -79,7 +79,10 @@ class OwnerModelTest extends WebdaTest {
   @test("PUT") async put() {
     await this.beforeEach();
     this._ctx.session.login("fake_user", "fake_ident");
-    let executor = this.getExecutor(this._ctx, "test.webda.io", "PUT", "/tasks/task_user1", { public: true });
+    let executor = this.getExecutor(this._ctx, "test.webda.io", "PUT", "/tasks/task_user1", {
+      public: true,
+      name: "needed"
+    });
     await executor.execute(this._ctx);
     let result = JSON.parse(this._ctx.getResponseBody());
     assert.strictEqual(result.uuid, "task_user1");

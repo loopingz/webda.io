@@ -1,4 +1,12 @@
-import { CoreModel, ModdaDefinition, Store, StoreParameters, WebdaError } from "@webda/core";
+import {
+  CoreModel,
+  ModdaDefinition,
+  Store,
+  StoreParameters,
+  WebdaError,
+  UpdateConditionFailError,
+  StoreNotFoundError
+} from "@webda/core";
 import { CloudFormationContributor } from ".";
 import { CloudFormationDeployer } from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
@@ -44,10 +52,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
   computeParameters() {
     super.computeParameters();
     if (this.parameters.table === undefined) {
-      throw new WebdaError(
-        "DYNAMODB_TABLE_PARAMETER_REQUIRED",
-        "Need to define a table,accessKeyId,secretAccessKey at least"
-      );
+      throw new WebdaError("DYNAMODB_TABLE_PARAMETER_REQUIRED", "Need to define a table at least");
     }
     this._client = new (GetAWS(this.parameters).DynamoDB.DocumentClient)({
       endpoint: this.parameters.endpoint
@@ -169,7 +174,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
   /**
    * @inheritdoc
    */
-  async _removeAttribute(uuid: string, attribute: string) {
+  async _removeAttribute(uuid: string, attribute: string, itemWriteCondition?: any, itemWriteConditionField?: string) {
     var params: any = {
       TableName: this.parameters.table,
       Key: {
@@ -180,15 +185,26 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     attrs["#attr"] = attribute;
     attrs["#lastUpdate"] = this._lastUpdateField;
     params.ExpressionAttributeNames = attrs;
+    params.ConditionExpression = "attribute_exists(#uu)";
     params.ExpressionAttributeValues = {
       ":lastUpdate": this._serializeDate(new Date())
     };
     params.UpdateExpression = "REMOVE #attr SET #lastUpdate = :lastUpdate";
+    if (itemWriteCondition) {
+      this.setWriteCondition(params, itemWriteCondition, itemWriteConditionField);
+    } else {
+      attrs["#uu"] = "uuid";
+      params.ConditionExpression = "attribute_exists(#uu)";
+    }
+
     try {
       await this._client.update(params).promise();
     } catch (err) {
       if (err.code === "ConditionalCheckFailedException") {
-        throw Error("UpdateCondition not met");
+        if (!itemWriteConditionField) {
+          throw new StoreNotFoundError(uuid, this.getName());
+        }
+        throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);
       }
       throw err;
     }
@@ -222,7 +238,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
       await this._client.update(params).promise();
     } catch (err) {
       if (err.code === "ConditionalCheckFailedException") {
-        throw Error("UpdateCondition not met");
+        throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
       }
       throw err;
     }
@@ -270,7 +286,47 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
       await this._client.update(params).promise();
     } catch (err) {
       if (err.code === "ConditionalCheckFailedException") {
-        throw Error("UpdateCondition not met");
+        throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * REturn the write condition as string
+   * @param writeCondition
+   * @param field
+   * @returns
+   */
+  setWriteCondition(params: any, writeCondition: any, field: string = this._lastUpdateField): void {
+    params.ExpressionAttributeNames ??= {};
+    params.ExpressionAttributeValues ??= {};
+    params.ExpressionAttributeNames["#cf"] = field;
+    if (writeCondition instanceof Date) {
+      writeCondition = this._serializeDate(writeCondition);
+    }
+    params.ExpressionAttributeValues[":cf"] = writeCondition;
+    params.ConditionExpression = "#cf = :cf";
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async _delete(uid: string, writeCondition?: any, itemWriteConditionField?: string) {
+    var params: any = {
+      TableName: this.parameters.table,
+      Key: {
+        uuid: uid
+      }
+    };
+    if (writeCondition) {
+      this.setWriteCondition(params, writeCondition, itemWriteConditionField);
+    }
+    try {
+      await this._client.delete(params).promise();
+    } catch (err) {
+      if (err.code === "ConditionalCheckFailedException") {
+        throw new UpdateConditionFailError(uid, itemWriteConditionField, writeCondition);
       }
       throw err;
     }
@@ -279,33 +335,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
   /**
    * @inheritdoc
    */
-  _getWriteCondition(writeCondition) {
-    if (writeCondition instanceof Date) {
-      writeCondition = this._serializeDate(writeCondition);
-    }
-    return this._lastUpdateField + " = " + writeCondition;
-  }
-
-  /**
-   * @inheritdoc
-   */
-  async _delete(uid: string, writeCondition = undefined) {
-    var params: any = {
-      TableName: this.parameters.table,
-      Key: {
-        uuid: uid
-      }
-    };
-    if (writeCondition) {
-      params.WriteCondition = this._getWriteCondition(writeCondition);
-    }
-    await this._client.delete(params).promise();
-  }
-
-  /**
-   * @inheritdoc
-   */
-  async _patch(object: any, uid: string, writeCondition = undefined) {
+  async _patch(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string) {
     object = this._cleanObject(object);
     var expr = "SET ";
     var sep = "";
@@ -337,16 +367,23 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
       ExpressionAttributeNames: attrs
     };
     // The Write Condition checks the value before writing
-    if (writeCondition) {
-      params.WriteCondition = this._getWriteCondition(writeCondition);
+    if (itemWriteCondition) {
+      this.setWriteCondition(params, itemWriteCondition, itemWriteConditionField);
     }
-    return this._client.update(params).promise();
+    try {
+      return this._client.update(params).promise();
+    } catch (err) {
+      if (err.code === "ConditionalCheckFailedException") {
+        throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
+      }
+      throw err;
+    }
   }
 
   /**
    * @inheritdoc
    */
-  async _update(object: any, uid: string, writeCondition = undefined) {
+  async _update(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any> {
     object = this._cleanObject(object);
     object.uuid = uid;
     var params: any = {
@@ -354,11 +391,18 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
       Item: object
     };
     // The Write Condition checks the value before writing
-    if (writeCondition) {
-      params.WriteCondition = this._getWriteCondition(writeCondition);
+    if (itemWriteCondition) {
+      this.setWriteCondition(params, itemWriteCondition, itemWriteConditionField);
     }
-    await this._client.put(params).promise();
-    return object;
+    try {
+      await this._client.put(params).promise();
+      return object;
+    } catch (err) {
+      if (err.code === "ConditionalCheckFailedException") {
+        throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
+      }
+      throw err;
+    }
   }
 
   /**
@@ -412,36 +456,52 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
   /**
    * @inheritdoc
    */
-  async _get(uid) {
+  async _get(uid: string, raiseIfNotFound: boolean = false): Promise<T> {
     var params = {
       TableName: this.parameters.table,
       Key: {
         uuid: uid
       }
     };
-    return (await this._client.get(params).promise()).Item;
+    let item = (await this._client.get(params).promise()).Item;
+    if (!item) {
+      if (raiseIfNotFound) {
+        throw new StoreNotFoundError(uid, this.getName());
+      }
+      return undefined;
+    }
+    return this.initModel(item);
   }
 
   /**
    * @inheritdoc
    */
-  _incrementAttribute(uid, prop, value, updateDate: Date) {
+  async _incrementAttribute(uid, prop, value, updateDate: Date) {
     var params = {
       TableName: this.parameters.table,
       Key: {
         uuid: uid
       },
       UpdateExpression: "SET #a2 = :v2 ADD #a1 :v1",
+      ConditionExpression: "attribute_exists(#uu)",
       ExpressionAttributeValues: {
         ":v1": value,
         ":v2": this._serializeDate(updateDate)
       },
       ExpressionAttributeNames: {
         "#a1": prop,
-        "#a2": this._lastUpdateField
+        "#a2": this._lastUpdateField,
+        "#uu": "uuid"
       }
     };
-    return this._client.update(params).promise();
+    try {
+      return await this._client.update(params).promise();
+    } catch (err) {
+      if (err.code === "ConditionalCheckFailedException") {
+        throw new StoreNotFoundError(uid, this.getName());
+      }
+      throw err;
+    }
   }
 
   /**

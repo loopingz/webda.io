@@ -139,17 +139,16 @@ class CoreModel {
    * @param secure if false will ignore any _ variable
    */
   load(raw: any, secure: boolean = false) {
-    if (!raw) {
-      return;
-    }
-    if (!raw.uuid) {
-      raw.uuid = this.generateUid(raw);
-    }
+    // Object assign with filter
     for (let prop in raw) {
       if (!secure && prop[0] === "_") {
         continue;
       }
       this[prop] = raw[prop];
+    }
+
+    if (!this.getUuid()) {
+      this.setUuid(this.generateUid(raw));
     }
   }
 
@@ -263,7 +262,7 @@ class CoreModel {
    */
   async validate(ctx: Context, updates: any = undefined): Promise<boolean> {
     // Load updates before validating itself
-    if (!updates) {
+    if (updates) {
       this.load(updates);
     }
     if (!ctx.getWebda().validateSchema(this, this)) {

@@ -110,7 +110,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       "GET",
       exposePath + "/users/" + user1.uuid + "/" + map + "/0"
     );
-    await this.assertThrowsAsync(executor.execute.bind(executor, ctx), res => res == 403);
+    await assert.rejects(executor.execute(ctx), res => res == 403);
     ctx.session.userId = user1.uuid;
     executor = this.getExecutor(ctx, "test.webda.io", "GET", exposePath + "/users/" + user1.uuid + "/" + map + "/0");
     await executor.execute(ctx);
@@ -147,17 +147,17 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     let user1 = await userStore.save({
       test: "plop"
     });
-    await this.assertThrowsAsync(
-      binary.store.bind(
-        binary,
-        userStore,
-        user1,
-        "images2",
-        {
-          path: this.getTestFile()
-        },
-        {}
-      ),
+    await assert.rejects(
+      () =>
+        binary.store(
+          userStore,
+          user1,
+          "images2",
+          {
+            path: this.getTestFile()
+          },
+          {}
+        ),
       err => true
     );
   }

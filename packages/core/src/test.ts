@@ -109,15 +109,6 @@ class WebdaTest {
   }
 
   /**
-   * Should use assert.rejects
-   *
-   * @deprecated
-   */
-  async assertThrowsAsync(fn, regExp = undefined) {
-    return assert.rejects(fn, regExp);
-  }
-
-  /**
    * Pause for time ms
    *
    * @param time ms

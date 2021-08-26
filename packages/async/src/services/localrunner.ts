@@ -88,7 +88,7 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
 
     return {
       agent: Runner.getAgentInfo(),
-      pid: child.pid,
+      pid: child.pid
     };
   }
 

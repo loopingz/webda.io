@@ -6,37 +6,33 @@ const WebdaIdent = require("../../lib/index.js").Ident;
  * @class
  */
 class Ident extends WebdaIdent {
-
   static getActions() {
     return {
-      'plop': {},
-      'index': {
+      plop: {},
+      index: {
         global: true,
-        method: 'GET'
+        method: "GET"
       },
-      'yop': {
-        method: ['GET', 'POST']
+      yop: {
+        method: ["GET", "POST"]
       }
     };
   }
 
   _yop() {
-
+    return "youpi";
   }
 
-  canAct(ctx, action) {
-
-  }
+  canAct(ctx, action) {}
 
   static _index(ctx) {
-    ctx.write('indexer');
+    ctx.write("indexer");
   }
 
   _plop(ctx) {
-    this._plop = true;
-    ctx.write(this);
+    ctx.write({ _plop: true });
     return Promise.resolve();
   }
 }
 
-module.exports = Ident
+module.exports = Ident;

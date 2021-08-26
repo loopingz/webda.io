@@ -191,6 +191,13 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
   }
 
   /**
+   * Return service representation
+   */
+  toString() {
+    return this.parameters.type + "[" + this._name + "]";
+  }
+
+  /**
    * Resolve parameters
    * Call initRoutes and initBeanRoutes
    */

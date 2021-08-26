@@ -58,4 +58,10 @@ class ServiceTest extends WebdaTest {
       stub.restore();
     }
   }
+
+  @test
+  toStringMethod() {
+    let service = new FakeService(this.webda, "plop", { type: "FakeService" });
+    assert.strictEqual(service.toString(), "FakeService[plop]");
+  }
 }

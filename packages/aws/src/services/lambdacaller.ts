@@ -1,8 +1,7 @@
 "use strict";
 import { ModdaDefinition, ServiceParameters } from "@webda/core";
-import { AsyncAction, Runner, RunnerParameters, JobInfo, AsyncJobService } from "@webda/async";
+import { AsyncAction, Runner, RunnerParameters, JobInfo } from "@webda/async";
 import * as AWS from "aws-sdk";
-import LambdaServer, { AWSEventsHandler } from "./lambdaserver";
 
 export interface LambdaAsyncJobEvent {
   eventSource: string;

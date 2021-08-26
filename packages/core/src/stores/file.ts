@@ -1,10 +1,10 @@
 "use strict";
 import * as fs from "fs";
 import * as path from "path";
-import { ModdaDefinition, WebdaError } from "../core";
+import { ModdaDefinition } from "../core";
 import { CoreModel } from "../models/coremodel";
-import { Store, StoreParameters } from "./store";
-import { emptyDirSync } from "fs-extra";
+import { JSONUtils } from "../utils/serializers";
+import { Store, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";
 
 class FileStoreParameters extends StoreParameters {
   /**
@@ -49,13 +49,20 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
     }
   }
 
+  /**
+   * Get the file path of an object
+   * @param uid of the object
+   * @returns
+   */
   file(uid) {
     return `${this.parameters.folder}/${uid}${FileStore.EXTENSION}`;
   }
 
+  /**
+   * @override
+   */
   async exists(uid) {
-    // existsSync is deprecated might change it
-    return Promise.resolve(fs.existsSync(this.file(uid)));
+    return fs.existsSync(this.file(uid));
   }
 
   async _find(request, offset, limit): Promise<any> {
@@ -65,12 +72,15 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
     return Promise.all(files.map(f => this._get(f)));
   }
 
-  _save(object) {
+  /**
+   * @override
+   */
+  async _save(object: T) {
     fs.writeFileSync(
-      this.file(object[this._uuidField]),
+      this.file(object.getUuid()),
       JSON.stringify(object.toStoredJSON(), undefined, this.parameters.beautify)
     );
-    return Promise.resolve(object);
+    return object;
   }
 
   /**
@@ -85,22 +95,28 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
     itemWriteConditionField: string,
     updateDate: Date
   ) {
-    return this.emulateUpsertItemToCollection(
-      await this._get(uid),
-      prop,
-      item,
-      index,
-      itemWriteCondition,
-      itemWriteConditionField,
-      updateDate
-    );
+    try {
+      // Need to keep sync to avoid conflicts
+      return await this.simulateUpsertItemToCollection(
+        this.initModel(JSONUtils.loadFile(this.file(uid))),
+        prop,
+        item,
+        updateDate,
+        index,
+        itemWriteCondition,
+        itemWriteConditionField
+      );
+    } catch (err) {
+      throw new StoreNotFoundError(uid, this.getName());
+    }
   }
 
   /**
    * @inheritdoc
    */
-  async _removeAttribute(uuid: string, attribute: string) {
-    let res = await this._get(uuid);
+  async _removeAttribute(uuid: string, attribute: string, writeCondition?: any, writeConditionField?: string) {
+    let res = await this._get(uuid, true);
+    this.checkUpdateCondition(res, writeConditionField, writeCondition);
     delete res[attribute];
     await this._save(res);
   }
@@ -108,15 +124,16 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   /**
    * @inheritdoc
    */
-  async _deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
-    let res = await this._get(uid);
-    if (res === undefined) {
-      throw Error("NotFound");
-    }
-
-    if (itemWriteCondition && res[prop][index][itemWriteConditionField] != itemWriteCondition) {
-      throw Error("UpdateCondition not met");
-    }
+  async _deleteItemFromCollection(
+    uid: string,
+    prop: string,
+    index: number,
+    itemWriteCondition: any,
+    itemWriteConditionField: string,
+    updateDate: Date
+  ) {
+    let res = await this._get(uid, true);
+    this.checkCollectionUpdateCondition(res, prop, itemWriteConditionField, itemWriteCondition, index);
     res[prop].splice(index, 1);
     res[this._lastUpdateField] = updateDate;
     return this._save(res);
@@ -125,49 +142,38 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   /**
    * @inheritdoc
    */
-  async _delete(uid, writeCondition, writeConditionField) {
-    let res = await this._get(uid);
-    if (writeCondition && res && res[writeConditionField] != writeCondition) {
-      return Promise.reject(Error("UpdateCondition not met"));
+  async _delete(uid: string) {
+    const filePath = this.file(uid);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
     }
-    if (res) {
-      fs.unlinkSync(this.file(uid));
-    }
-    return Promise.resolve();
   }
 
   /**
    * @inheritdoc
    */
-  async _patch(object, uid, writeCondition, writeConditionField) {
-    let stored = await this._get(uid || object[this._uuidField]);
-    if (!stored) {
-      return Promise.reject(Error("NotFound"));
-    }
-    if (writeCondition && stored[writeConditionField] != writeCondition) {
-      return Promise.reject(Error("UpdateCondition not met"));
-    }
+  async _patch(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<any> {
+    let stored = await this._get(uid, true);
+    this.checkUpdateCondition(stored, writeConditionField, writeCondition);
     for (var prop in object) {
       stored[prop] = object[prop];
     }
     return this._save(stored);
   }
 
-  async _update(object, uid, writeCondition, writeConditionField) {
-    let stored = await this._get(uid || object[this._uuidField]);
-    if (!stored) {
-      throw new WebdaError("STORE_NOTFOUND", "NotFound");
-    }
-    if (writeCondition && stored[writeConditionField] != writeCondition) {
-      console.log(stored[this._lastUpdateField], writeCondition, this._lastUpdateField, object[writeCondition]);
-      throw new WebdaError("STORE_UPDATE_CONDITION_NOT_MET", "UpdateCondition not met");
-    }
-    let coreModel = new CoreModel();
-    coreModel.load(object, true);
-    return this._save(coreModel);
+  /**
+   * @override
+   */
+  async _update(object: any, uid: string, writeCondition?: any, writeConditionField?: string): Promise<any> {
+    let stored = await this._get(uid, true);
+    this.checkUpdateCondition(stored, writeConditionField, writeCondition);
+    return this._save(this.initModel(object));
   }
 
-  async getAll(uids): Promise<any> {
+  /**
+   * @override
+   */
+  async getAll(uids?: string[]): Promise<any> {
     if (!uids) {
       uids = [];
       var files = fs.readdirSync(this.parameters.folder);
@@ -177,25 +183,30 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
     }
     let result = [];
     for (let i in uids) {
-      result.push(this._get(uids[i]));
+      let model = this._get(uids[i]);
+      result.push(model);
     }
-    return Promise.all(result);
+    return (await Promise.all(result)).filter(f => f !== undefined);
   }
 
-  async _get(uid: string): Promise<any> {
+  /**
+   * @override
+   */
+  async _get(uid: string, raiseIfNotFound: boolean = false): Promise<T> {
     let res = await this.exists(uid);
     if (res) {
       let data = fs.readFileSync(this.file(uid));
       return this.initModel(JSON.parse(data.toString()));
+    } else if (raiseIfNotFound) {
+      throw new StoreNotFoundError(uid, this.getName());
     }
   }
 
-  async _incrementAttribute(uid, prop, value, updateDate: Date) {
-    let found = this.exists(uid);
-    if (!found) {
-      throw Error("NotFound");
-    }
-    let stored = await this._get(uid);
+  /**
+   * @override
+   */
+  async _incrementAttribute(uid: string, prop: string, value: number, updateDate: Date): Promise<any> {
+    let stored = await this._get(uid, true);
     if (stored[prop] === undefined) {
       stored[prop] = 0;
     }
@@ -204,11 +215,12 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
     return this._save(stored);
   }
 
-  async __clean() {
-    if (!fs.existsSync(this.parameters.folder)) {
-      return;
-    }
-    emptyDirSync(this.parameters.folder);
+  /**
+   * @override
+   */
+  async __clean(): Promise<void> {
+    // This is only during test
+    require("fs-extra").emptyDirSync(this.parameters.folder);
     if (this.parameters.index) {
       await this.createIndex();
     }

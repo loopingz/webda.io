@@ -1,10 +1,18 @@
 "use strict";
 import * as assert from "assert";
-import { Store } from "../index";
+import { Store, StoreParameters } from "../index";
 import { WebdaTest } from "../test";
-import { test } from "@testdeck/mocha";
+import { suite, test } from "@testdeck/mocha";
 import * as Idents from "../../test/models/ident";
 
+@suite
+class StoreParametersTest {
+  @test
+  cov() {
+    let params = new StoreParameters({ expose: "/plop", lastUpdateField: "bz", creationDateField: "c" }, undefined);
+    assert.deepStrictEqual(params.expose, { url: "/plop", restrict: {} });
+  }
+}
 abstract class StoreTest extends WebdaTest {
   abstract getIdentStore(): Store<any>;
   abstract getUserStore(): Store<any>;
@@ -184,7 +192,8 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(index[ident1.uuid], undefined);
 
     assert.strictEqual(eventFired, 13);
-    await identStore.delete(ident2.uuid, true);
+    // Force sync delete - overriding the asyncDelete parameter
+    await identStore.forceDelete(ident2.uuid);
     ident = await identStore.get(ident2.uuid);
     assert.strictEqual(ident, undefined);
     assert.strictEqual(eventFired, 15);
@@ -228,24 +237,24 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(ident.actions.length, 2);
     assert.strictEqual(ident.actions[0].type, "plop2");
     assert.strictEqual(ident.actions[0].uuid, "action_1");
-    await this.assertThrowsAsync(
-      identStore.upsertItemToCollection.bind(
-        identStore,
-        ident.uuid,
-        "actions",
-        {
-          uuid: "action_1",
-          type: "plop2",
-          date: new Date()
-        },
-        0,
-        "plop",
-        "type"
-      ),
+    await assert.rejects(
+      () =>
+        identStore.upsertItemToCollection(
+          ident.uuid,
+          "actions",
+          {
+            uuid: "action_1",
+            type: "plop2",
+            date: new Date()
+          },
+          0,
+          "plop",
+          "type"
+        ),
       err => true
     );
-    await this.assertThrowsAsync(
-      identStore.deleteItemFromCollection.bind(identStore, ident.uuid, "actions", 0, "action_2"),
+    await assert.rejects(
+      () => identStore.deleteItemFromCollection(ident.uuid, "actions", 0, "action_2"),
       err => true
     );
     await ident.refresh();
@@ -297,7 +306,7 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(users[0] instanceof userStore._model, true);
     assert.strictEqual(users[1] instanceof userStore._model, true);
     assert.strictEqual(users[2] instanceof userStore._model, true);
-    users = await userStore.getAll([user1.uuid, user3.uuid]);
+    users = await userStore.getAll([user1.uuid, user3.uuid, "fake"]);
     assert.strictEqual(users.length, 2);
     assert.strictEqual(users[0] instanceof userStore._model, true);
     assert.strictEqual(users[1] instanceof userStore._model, true);
@@ -391,7 +400,7 @@ abstract class StoreTest extends WebdaTest {
 
     // Check DELETE
     eventFired = 0;
-    await identStore.delete(ident1.uuid, true);
+    await identStore.forceDelete(ident1.uuid);
     assert.strictEqual(eventFired, 2);
     eventFired = 0;
     ident = await identStore.get(ident1.uuid);
@@ -401,6 +410,110 @@ abstract class StoreTest extends WebdaTest {
   }
   assertLastUpdateNotEqual(d1, d2, msg) {
     assert.notStrictEqual(d1, d2, msg);
+  }
+
+  @test
+  async exists() {
+    let store = this.getIdentStore();
+    let model = await store.save({});
+    assert.ok(await store.exists(model.getUuid()));
+    assert.ok(!(await store.exists("bouzouf")));
+  }
+
+  @test
+  async incrementAttribute() {
+    let store = this.getIdentStore();
+    let model = await store.save({ counter: 0 });
+    await store.incrementAttribute(model.getUuid(), "counter", 3);
+    await store.incrementAttribute(model.getUuid(), "counter2", 2);
+    await model.refresh();
+    assert.strictEqual(model.counter, 3);
+    assert.strictEqual(model.counter2, 2);
+    await assert.rejects(() => store.incrementAttribute("bouzouf", "counter", 1), /Item not found bouzouf Store\(/);
+  }
+
+  @test
+  async removeAttribute() {
+    let store = this.getIdentStore();
+    let model = await store.save({ counter: 0, counter2: 12, counter3: 13 });
+    await store.removeAttribute(model.getUuid(), "counter");
+    await model.refresh();
+    assert.strictEqual(model.counter, undefined);
+    await assert.rejects(() => store.removeAttribute("bouzouf", "counter"), /Item not found bouzouf Store\(/);
+    await assert.rejects(
+      () => store.removeAttribute(model.getUuid(), "counter2", 10, "counter3"),
+      /UpdateCondition not met on [a-z0-9\-]+.counter3 === 10/
+    );
+    await model.refresh();
+    assert.strictEqual(model.counter2, 12);
+  }
+
+  @test
+  async setAttribute() {
+    let store = this.getIdentStore();
+    let model = await store.save({ counter: 0 });
+    await store.setAttribute(model.getUuid(), "counter", 3);
+    await store.setAttribute(model.getUuid(), "status", "TESTED");
+    await model.refresh();
+    assert.strictEqual(model.counter, 3);
+    assert.strictEqual(model.status, "TESTED");
+    await assert.rejects(() => store.setAttribute("bouzouf", "counter", 4), /Item not found bouzouf Store\(/);
+  }
+
+  @test
+  async delete() {
+    let store = this.getIdentStore();
+    let model = await store.save({ counter: 1 });
+    // Delete with condition
+    await assert.rejects(
+      () => store.delete(model.getUuid(), 4, "counter"),
+      /UpdateCondition not met on [a-z0-9\-]+.counter === 4/
+    );
+    await store.delete(model.getUuid(), 1, "counter");
+    // Test without condition
+    model = await store.save({ counter: 2 });
+    await store.delete(model);
+
+    // Deleting a non-existing object should be ignored
+    await store.forceDelete("unknown");
+  }
+
+  @test
+  async update() {
+    let store = this.getIdentStore();
+    let model = await store.save({ counter: 1 });
+    let model2 = await store.get(model.getUuid());
+    store.on("Store.Update", async () => {
+      model2._lastUpdate = new Date();
+      await store._update(model2, model2.getUuid());
+      await this.sleep(1);
+    });
+    model.plop = "yop";
+    // Delete with condition
+    await assert.rejects(
+      () => store.update(model),
+      /UpdateCondition not met on [a-z0-9\-]+._lastUpdate === \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/
+    );
+  }
+
+  @test
+  async upsertItem() {
+    let store = this.getIdentStore();
+    let model = await store.save({ logs: [] });
+    let ps = [];
+    for (let i = 0; i < 10; i++) {
+      ps.push(store.upsertItemToCollection(model.getUuid(), "logs", `line${i}`));
+    }
+    await Promise.all(ps);
+    await model.refresh();
+    assert.strictEqual(model.logs.length, 10);
+  }
+
+  @test
+  async find() {
+    // Unknown how to do yet
+    let store = this.getIdentStore();
+    await store.find();
   }
 }
 

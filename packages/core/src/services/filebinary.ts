@@ -291,17 +291,11 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     return this.updateSuccess(targetStore, object, property, index, file, metadatas);
   }
 
+  /**
+   * Clean all data
+   */
   async ___cleanData(): Promise<void> {
-    var ids = fs.readdirSync(this.parameters.folder);
-    for (var i in ids) {
-      var hash = ids[i];
-      var files = fs.readdirSync(this.parameters.folder + hash);
-      for (var file in files) {
-        fs.unlinkSync(this.parameters.folder + hash + "/" + files[file]);
-      }
-      fs.rmdirSync(this.parameters.folder + hash + "/");
-    }
-    return Promise.resolve();
+    require("fs-extra").emptyDirSync(this.parameters.folder);
   }
 
   static getModda(): ModdaDefinition {

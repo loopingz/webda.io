@@ -1,24 +1,20 @@
 "use strict";
 import { v4 as uuidv4 } from "uuid";
-import { EventWithContext } from "../core";
+import { EventWithContext, WebdaError } from "../core";
 import { ConfigurationProvider } from "../index";
 import { CoreModel, CoreModelDefinition } from "../models/coremodel";
 import { Service, ServiceParameters } from "../services/service";
 import { Context } from "../utils/context";
 
-/**
- * Use to define a mapper
- */
-export class Mapper<T> {
-  uuid: string;
-
-  constructor(uuid: string, properties: any) {
-    Object.assign(this, properties);
-    this.uuid = uuid;
+export class StoreNotFoundError extends WebdaError {
+  constructor(uuid: string, storeName: string) {
+    super("STORE_NOTFOUND", `Item not found ${uuid} Store(${storeName})`);
   }
+}
 
-  async get(): Promise<T> {
-    return undefined;
+export class UpdateConditionFailError extends WebdaError {
+  constructor(uuid: string, conditionField: string, condition: string) {
+    super("STORE_UPDATE_CONDITION_FAILED", `UpdateCondition not met on ${uuid}.${conditionField} === ${condition}`);
   }
 }
 
@@ -283,6 +279,38 @@ export interface MapStoreParameter {
   target: string;
 }
 
+export type ExposeParameters = {
+  /**
+   * URL endpoint to use to expose REST Resources API
+   *
+   * @default service.getName().toLowerCase()
+   */
+  url?: string;
+  /**
+   * You can restrict any part of the CRUD
+   *
+   * @default {}
+   */
+  restrict?: {
+    /**
+     * Do not expose the POST
+     */
+    create?: boolean;
+    /**
+     * Do not expose the PUT and PATCH
+     */
+    update?: boolean;
+    /**
+     * Do not expose the GET
+     */
+    get?: boolean;
+    /**
+     * Do not expose the DELETE
+     */
+    delete?: boolean;
+  };
+};
+
 /**
  * Store parameter
  */
@@ -324,37 +352,7 @@ export class StoreParameters extends ServiceParameters {
   /**
    * Expose the service to an urls
    */
-  expose?: {
-    /**
-     * URL endpoint to use to expose REST Resources API
-     *
-     * @default service.getName().toLowerCase()
-     */
-    url?: string;
-    /**
-     * You can restrict any part of the CRUD
-     *
-     * @default {}
-     */
-    restrict?: {
-      /**
-       * Do not expose the POST
-       */
-      create?: boolean;
-      /**
-       * Do not expose the PUT and PATCH
-       */
-      update?: boolean;
-      /**
-       * Do not expose the GET
-       */
-      get?: boolean;
-      /**
-       * Do not expose the DELETE
-       */
-      delete?: boolean;
-    };
-  };
+  expose?: ExposeParameters | boolean | string;
 
   constructor(params: any, service: Service<any>) {
     super(params);
@@ -417,12 +415,29 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
   extends Service<K>
   implements ConfigurationProvider
 {
+  /**
+   * Contain the reverse map
+   */
   _reverseMap: any[] = [];
+  /**
+   * Contains cascade delete information
+   */
   _cascade: any[] = [];
+  /**
+   * Contains the current model
+   */
   _model: CoreModelDefinition;
-  _exposeUrl: string;
+  /**
+   * Contain the model update date
+   */
   _lastUpdateField: string;
+  /**
+   * Contain the model creation date
+   */
   _creationDateField: string;
+  /**
+   * Contain the model uuid field
+   */
   protected _uuidField: string = "uuid";
 
   /**
@@ -442,18 +457,23 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     const p = this.parameters;
     this._model = this._webda.getModel(p.model);
     this._uuidField = this._model.getUuidField();
-    this._lastUpdateField = p.lastUpdateField || "_lastUpdate";
-    this._creationDateField = p.creationDateField || "_creationDate";
+    this._lastUpdateField = p.lastUpdateField;
+    this._creationDateField = p.creationDateField;
   }
 
+  /**
+   * Return Store current model
+   * @returns
+   */
   getModel() {
     return this._model;
   }
 
-  getUuidField() {
-    return this._uuidField;
-  }
-
+  /**
+   * Create index if not existing
+   *
+   * @inheritdoc
+   */
   async init(): Promise<void> {
     this.initMap(this.parameters.map);
     if (this.parameters.index) {
@@ -461,11 +481,15 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     }
   }
 
+  /**
+   * @inheritdoc
+   */
   initRoutes() {
     if (!this.parameters.expose) {
       return;
     }
-    const expose = this.parameters.expose;
+    // We enforce ExposeParameters within the constructor
+    const expose = <ExposeParameters>this.parameters.expose;
 
     if (!expose.restrict.create) {
       this.addRoute(expose.url, ["POST"], this.httpCreate, {
@@ -498,7 +522,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     if (!expose.restrict.delete) {
       methods.push("DELETE");
     }
-    this._exposeUrl = expose.url;
     if (methods.length) {
       this.addRoute(expose.url + "/{uuid}", methods, this.httpRoute, {
         model: this._model.name,
@@ -559,9 +582,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       Object.keys(actions).forEach(name => {
         let action: any = actions[name];
         action.name = name;
-        if (!action.name) {
-          throw Error("Action needs a name got:" + action);
-        }
         if (!action.method) {
           action.method = ["PUT"];
         }
@@ -588,10 +608,21 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     }
   }
 
+  /**
+   * Get the url where the store is exposed
+   */
   getUrl(): string {
-    return this._exposeUrl;
+    return (<ExposeParameters>this.parameters.expose).url;
   }
 
+  /**
+   * Init a model from the current stored data
+   *
+   * Initial the reverse map as well
+   *
+   * @param object
+   * @returns
+   */
   initModel(object: any = {}): T {
     // Make sure to send a model object
     if (!(object instanceof this._model)) {
@@ -599,9 +630,13 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       model.load(object, true);
       object = model;
     }
+    if (!object.getUuid()) {
+      object.setUuid(object.generateUid(object));
+    }
     object.__store = this;
     for (var i in this._reverseMap) {
       for (var j in object[this._reverseMap[i].property]) {
+        // Use Partial
         object[this._reverseMap[i].property][j] = this._reverseMap[i].store.initModel(
           object[this._reverseMap[i].property][j]
         );
@@ -611,6 +646,13 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     return object;
   }
 
+  /**
+   * Add reverse map information
+   *
+   * @param prop
+   * @param cascade
+   * @param store
+   */
   addReverseMap(prop, cascade, store) {
     this._reverseMap.push({
       property: prop,
@@ -640,8 +682,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     }
     return false;
   }
-
-  abstract _incrementAttribute(uid: string, prop: string, value: number, updateDate: Date): Promise<any>;
 
   async incrementAttribute(uid: string, prop: string, value: number) {
     // If value === 0 no need to update anything
@@ -698,35 +738,19 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       let updates = {};
       updates[this._lastUpdateField] = updateDate;
       if (this.isMapped(prop)) {
-        updates[prop] = object.prop;
+        updates[prop] = object[prop];
       }
       await this.handleMap(object, this.parameters.map, updates);
     }
   }
-
-  abstract _upsertItemToCollection(
-    uid: string,
-    prop: string,
-    item: any,
-    index: number,
-    itemWriteCondition: any,
-    itemWriteConditionField: string,
-    updateDate: Date
-  ): Promise<any>;
 
   async deleteItemFromCollection(
     uid: string,
     prop: string,
     index: number,
     itemWriteCondition: any,
-    itemWriteConditionField: string
+    itemWriteConditionField: string = this._uuidField
   ) {
-    if (index === undefined || prop === undefined) {
-      throw Error("Invalid Argument");
-    }
-    if (itemWriteConditionField === undefined) {
-      itemWriteConditionField = this._uuidField;
-    }
     let updateDate = new Date();
     await this._deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate);
     await this._handleMapFromPartial(uid, updateDate);
@@ -741,15 +765,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       }
     });
   }
-
-  abstract _deleteItemFromCollection(
-    uid: string,
-    prop: string,
-    index: number,
-    itemWriteCondition: any,
-    itemWriteConditionField: string,
-    updateDate: Date
-  ): Promise<any>;
 
   async createIndex() {
     if (!this.parameters.index || (await this.exists("index"))) {
@@ -783,14 +798,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     }
   }
 
-  toString() {
-    return this.parameters.type + "[" + this._name + "]";
-  }
-
-  generateUid() {
-    return uuidv4();
-  }
-
   /**
    * Save an object
    *
@@ -805,17 +812,17 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
         object[this._reverseMap[i].property] = [];
       }
     }
-    object[this._creationDateField] = object[this._lastUpdateField] = new Date();
+
     object = this.initModel(object);
+    if (!object.getUuid()) {
+      throw new Error(object);
+    }
+    // Dates should be store by the Store
+    object[this._creationDateField] ??= new Date();
+    object[this._lastUpdateField] = new Date();
+
     if (ctx) {
       object.setContext(ctx);
-    }
-    if (!object[this._uuidField]) {
-      object[this._uuidField] = object.generateUid();
-      object[this._creationDateField] = new Date();
-      if (!object[this._uuidField]) {
-        object[this._uuidField] = this.generateUid();
-      }
     }
     await this.emitSync("Store.Save", <EventStoreSave>{
       object: object,
@@ -834,43 +841,90 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       await this.handleMap(object, this.parameters.map, "created");
     }
     // Handle index
-    if (this.parameters.index && object[this._uuidField] !== "index" && object[this._uuidField]) {
+    if (this.parameters.index && object.getUuid() !== "index" && object.getUuid()) {
       await this.handleIndex(object, "created");
     }
     return object;
   }
 
-  abstract _save(object: CoreModel): Promise<any>;
-
+  /**
+   * Patch an object
+   *
+   * @param object
+   * @param reverseMap
+   * @returns
+   */
   async patch(object: any, reverseMap = true) {
     return this.update(object, reverseMap, true);
   }
 
-  async emulateUpsertItemToCollection(
-    model: CoreModel,
-    prop,
-    item,
-    index,
-    itemWriteCondition,
-    itemWriteConditionField,
-    updateDate: Date
-  ) {
-    if (model === undefined) {
-      throw Error("NotFound");
-    }
-    if (index === undefined) {
-      if (itemWriteCondition !== undefined && model[prop].length !== itemWriteCondition) {
-        throw Error("UpdateCondition not met");
+  /**
+   * Check if an UpdateCondition is met
+   * @param model
+   * @param conditionField
+   * @param condition
+   * @param uid
+   */
+  checkUpdateCondition(model: T, conditionField?: string, condition?: any, uid?: string) {
+    if (conditionField) {
+      if (model[conditionField] !== condition) {
+        throw new UpdateConditionFailError(uid ? uid : model.getUuid(), conditionField, condition);
       }
+    }
+  }
+
+  /**
+   * Check if an UpdateCondition is met
+   * @param model
+   * @param conditionField
+   * @param condition
+   * @param uid
+   */
+  checkCollectionUpdateCondition(
+    model: T,
+    collection: string,
+    conditionField?: string,
+    condition?: any,
+    index?: number
+  ) {
+    // No index so addition to collection
+    if (index === null) {
+      // The condition must be length of the collection
+      if (!model[collection] || model[collection].length !== condition) {
+        throw new UpdateConditionFailError(model.getUuid(), collection, condition);
+      }
+    } else if (condition && model[collection][index][conditionField] !== condition) {
+      throw new UpdateConditionFailError(model.getUuid(), `${collection}[${index}].${conditionField}`, condition);
+    }
+  }
+
+  /**
+   *
+   * @param model
+   * @param prop
+   * @param item
+   * @param index
+   * @param itemWriteCondition
+   * @param itemWriteConditionField
+   * @param updateDate
+   */
+  async simulateUpsertItemToCollection(
+    model: T,
+    prop: string,
+    item: any,
+    updateDate: Date,
+    index?: number,
+    itemWriteCondition?: any,
+    itemWriteConditionField?: string
+  ) {
+    this.checkCollectionUpdateCondition(model, prop, itemWriteConditionField, itemWriteCondition, index);
+    if (index === undefined) {
       if (model[prop] === undefined) {
         model[prop] = [item];
       } else {
         model[prop].push(item);
       }
     } else {
-      if (itemWriteCondition && model[prop][index][itemWriteConditionField] != itemWriteCondition) {
-        throw Error("UpdateCondition not met");
-      }
       model[prop][index] = item;
     }
     model[this._lastUpdateField] = updateDate;
@@ -902,7 +956,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     }
 
     object[this._lastUpdateField] = new Date();
-    let load = await this._get(object[this._uuidField]);
+    let load = await this._get(object[this._uuidField], true);
     loaded = this.initModel(load);
     await this.handleMap(loaded, this.parameters.map, object);
     // Handle index
@@ -1045,7 +1099,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     });
   }
 
-  _handleUpdatedMapMapper(object, map, mapped, store, updates) {
+  _handleUpdatedMapMapper(object: CoreModel, map, mapped: CoreModel, store: Store, updates) {
     // Update the mapper
     var mapper: any = {};
     mapper[this._uuidField] = object[this._uuidField];
@@ -1076,7 +1130,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     );
   }
 
-  _handleDeletedMap(object, map, mapped, store) {
+  async _handleDeletedMap(object: CoreModel, map, mapped: CoreModel, store: Store) {
     // Remove from the collection
     if (mapped[map.target] === undefined) {
       return Promise.resolve();
@@ -1091,10 +1145,9 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
         this._uuidField
       );
     }
-    return Promise.resolve();
   }
 
-  _handleCreatedMap(object, map, mapped, store) {
+  async _handleCreatedMap(object: CoreModel, map, mapped: CoreModel, store: Store) {
     // Add to the object
     var mapper: any = {};
     mapper[this._uuidField] = object[this._uuidField];
@@ -1108,7 +1161,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     return store.upsertItemToCollection(mapped[this._uuidField], map.target, mapper);
   }
 
-  async _handleMapProperty(store, object, property, updates) {
+  async _handleMapProperty(store: Store, object, property, updates) {
     let mapped = await store.get(object[property.key] || updates[property.key]);
     if (mapped == undefined) {
       return;
@@ -1121,14 +1174,20 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     } else if (typeof updates == "object") {
       return this._handleUpdatedMap(object, property, mapped, store, updates);
     } else {
-      return Promise.reject(Error("Unknown handleMap type " + updates));
+      throw Error("Unknown handleMap type " + updates);
     }
   }
 
-  abstract _removeAttribute(uuid: string, attribute: string): Promise<void>;
-
-  async removeAttribute(uuid: string, attribute: string) {
-    return this._removeAttribute(uuid, attribute);
+  /**
+   * Remove an attribute from an object
+   *
+   * @param uuid
+   * @param attribute
+   * @returns
+   */
+  async removeAttribute(uuid: string, attribute: string, itemWriteCondition?: any, itemWriteConditionField?: string) {
+    // Probably want to genereate some events from here
+    return this._removeAttribute(uuid, attribute, itemWriteCondition, itemWriteConditionField);
   }
 
   async handleIndex(object: CoreModel, updates: object | string) {
@@ -1181,13 +1240,25 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     return Promise.all(promises);
   }
 
-  abstract _update(object, uid, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any>;
-
-  abstract _patch(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any>;
-
+  /**
+   * Cascade delete a related object
+   *
+   * @param obj
+   * @param uuid
+   * @returns
+   */
   async cascadeDelete(obj: any, uuid: string): Promise<any> {
     // We dont need uuid but Binary store will need it
     return this.delete(obj[this._uuidField]);
+  }
+
+  /**
+   * Delete an object from the store without condition nor async
+   * @param uid to delete
+   * @returns
+   */
+  async forceDelete(uid: string): Promise<void> {
+    return this.delete(uid, undefined, undefined, true);
   }
 
   /**
@@ -1197,20 +1268,31 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
    * @param {Boolean} delete sync even if asyncDelete is active
    * @return {Promise} the deletion promise
    */
-  async delete(uid, sync = false) {
+  async delete(
+    uid: string | T,
+    writeCondition?: any,
+    writeConditionField?: string,
+    sync: boolean = false
+  ): Promise<void> {
     /** @ignore */
     let to_delete: T;
+    // Allow full object or just its uuid
     if (typeof uid === "object") {
       to_delete = uid;
       uid = to_delete[this._uuidField];
-      if (!(to_delete instanceof this._model)) {
-        to_delete = this.initModel(await this._get(uid));
-      }
     } else {
-      to_delete = this.initModel(await this._get(uid));
+      to_delete = await this._get(uid);
+      if (to_delete === undefined) {
+        return;
+      }
+      to_delete = this.initModel(to_delete);
     }
-    if (to_delete === undefined) {
-      throw 404;
+
+    // Check condition as we have the object
+    if (writeCondition) {
+      if (to_delete[writeConditionField] !== writeCondition) {
+        throw new UpdateConditionFailError(to_delete.getUuid(), writeConditionField, writeCondition);
+      }
     }
     await this.emitSync("Store.Delete", <EventStoreDelete>{
       object: to_delete,
@@ -1242,10 +1324,10 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
         {
           __deleted: true
         },
-        uid
+        to_delete.getUuid()
       );
     } else {
-      await this._delete(uid);
+      await this._delete(to_delete.getUuid(), writeCondition, writeConditionField);
     }
     await this.emitSync("Store.Deleted", <EventStoreDeleted>{
       object: to_delete,
@@ -1253,25 +1335,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     });
     await to_delete._onDeleted();
   }
-
-  /**
-   * Check if an object exists
-   * @abstract
-   * @params {String} uuid of the object
-   */
-  abstract exists(uid: string): Promise<boolean>;
-
-  abstract _delete(uid: string, writeCondition?, itemWriteConditionField?: string): Promise<void>;
-
-  abstract _get(uid: string): Promise<any>;
-
-  /**
-   * Get an object
-   *
-   * @param {Array} uuid to gets if undefined then retrieve the all table
-   * @return {Promise} the objects retrieved ( can be [] if not found )
-   */
-  abstract getAll(list?: string[]): Promise<T[]>;
 
   /**
    * By default we cannot know if the store will trigger or not
@@ -1298,6 +1361,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       if (i === this._uuidField || i === this._lastUpdateField || i.startsWith("_")) {
         continue;
       }
+      // @ts-ignore
       result[i] = object[i];
     }
     return result;
@@ -1328,6 +1392,33 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     return object;
   }
 
+  /**
+   * Set one attribute in an object
+   *
+   * this is an helper function that calls patch
+   *
+   * @param uid of the object
+   * @param property to update1
+   * @param value new value
+   * @returns
+   */
+  async setAttribute(uid: string, property: string, value: any): Promise<void> {
+    let patch: any = {};
+    patch[property] = value;
+    patch[this.getUuidField()] = uid;
+    await this.patch(patch);
+  }
+
+  /**
+   * Search inside the store
+   *
+   * Still need to define a good abstraction for it
+   *
+   * @param request
+   * @param offset
+   * @param limit
+   * @returns
+   */
   async find(request: any = undefined, offset: number = 0, limit: number = undefined): Promise<any> {
     await this.emitSync("Store.Find", <EventStoreFind>{
       request: request,
@@ -1346,10 +1437,10 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     return result;
   }
 
-  abstract _find(request, offset, limit): Promise<CoreModel[]>;
-
-  // ADD THE EXECUTOR PART
-
+  /**
+   * Handle POST
+   * @param ctx
+   */
   async httpCreate(ctx: Context) {
     let body = ctx.getRequestBody();
     var object = new this._model();
@@ -1376,13 +1467,13 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     });
   }
 
+  /**
+   * Handle obect action
+   * @param ctx
+   */
   async httpAction(ctx: Context) {
     let action = ctx.getHttpContext().getUrl().split("/").pop();
-    let uuid = ctx.parameter("uuid");
-    if (!uuid) {
-      throw 400;
-    }
-    let object = await this.get(uuid, ctx);
+    let object = await this.get(ctx.parameter("uuid"), ctx);
     if (object === undefined || object.__deleted) {
       throw 404;
     }
@@ -1406,6 +1497,10 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     });
   }
 
+  /**
+   * Handle collection action
+   * @param ctx
+   */
   async httpGlobalAction(ctx: Context) {
     let action = ctx.getHttpContext().getUrl().split("/").pop();
     await this.emitSync("Store.Action", <EventStoreAction>{
@@ -1437,13 +1532,13 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     let object = await this.get(uuid, ctx);
     if (!object || object.__deleted) throw 404;
     await object.canAct(ctx, "update");
-    try {
-      await object.validate(ctx, body);
-    } catch (err) {
-      this.log("INFO", "Object invalid", err);
-      throw 400;
-    }
     if (ctx.getHttpContext().getMethod() === "PATCH") {
+      try {
+        await object.validate(ctx, body);
+      } catch (err) {
+        this.log("INFO", "Object invalid", err);
+        throw 400;
+      }
       let updateObject: any = new this._model();
       updateObject.setContext(ctx);
       updateObject.load(body);
@@ -1458,6 +1553,13 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
           updateObject[i] = object[i];
         }
       }
+      try {
+        await updateObject.validate(ctx);
+      } catch (err) {
+        this.log("INFO", "Object invalid", err);
+        throw 400;
+      }
+
       // Add mappers back to
       object = await this.update(updateObject);
     }
@@ -1524,6 +1626,94 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       return this.httpUpdate(ctx);
     }
   }
+
+  /**
+   * Return the model uuid field
+   */
+  getUuidField(): string {
+    return this._uuidField;
+  }
+
+  // All the abstract method
+  abstract _find(request, offset, limit): Promise<CoreModel[]>;
+
+  /**
+   * Check if an object exists
+   * @abstract
+   * @params {String} uuid of the object
+   */
+  abstract exists(uid: string): Promise<boolean>;
+
+  /**
+   * The underlying store should recheck writeCondition only if it does not require
+   * another get()
+   *
+   * @param uid
+   * @param writeCondition
+   * @param itemWriteConditionField
+   */
+  abstract _delete(uid: string, writeCondition?: any, itemWriteConditionField?: string): Promise<void>;
+
+  /**
+   * Retrieve an element from the store
+   *
+   * @param uid to retrieve
+   * @param raiseIfNotFound raise an StoreNotFound exception if not found
+   */
+  abstract _get(uid: string, raiseIfNotFound?: boolean): Promise<T>;
+
+  /**
+   * Get an object
+   *
+   * @param {Array} uuid to gets if undefined then retrieve the all table
+   * @return {Promise} the objects retrieved ( can be [] if not found )
+   */
+  abstract getAll(list?: string[]): Promise<T[]>;
+
+  abstract _update(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any>;
+
+  abstract _patch(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any>;
+
+  abstract _removeAttribute(
+    uuid: string,
+    attribute: string,
+    itemWriteCondition?: any,
+    itemWriteConditionField?: string
+  ): Promise<void>;
+
+  /**
+   * Save within the store
+   * @param object
+   */
+  abstract _save(object: T): Promise<any>;
+
+  /**
+   * Increment the attribute
+   * @param uid
+   * @param prop
+   * @param value
+   * @param updateDate
+   */
+  abstract _incrementAttribute(uid: string, prop: string, value: number, updateDate: Date): Promise<any>;
+
+  abstract _upsertItemToCollection(
+    uid: string,
+    prop: string,
+    item: any,
+    index: number,
+    itemWriteCondition: any,
+    itemWriteConditionField: string,
+    updateDate: Date
+  ): Promise<any>;
+
+  abstract _deleteItemFromCollection(
+    uid: string,
+    prop: string,
+    index: number,
+    itemWriteCondition: any,
+    itemWriteConditionField: string,
+    updateDate: Date
+  ): Promise<any>;
 }
 
 export { Store };

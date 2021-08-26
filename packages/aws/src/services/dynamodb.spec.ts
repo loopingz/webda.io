@@ -1,10 +1,11 @@
-import { CoreModel, Ident, Store } from "@webda/core";
+import { Ident, Store } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { checkLocalStack } from "../index.spec";
 import { DynamoStore } from "./dynamodb";
 import { GetAWS } from "./aws-mixin";
+import * as sinon from "sinon";
 
 @suite
 export class DynamoDBTest extends StoreTest {
@@ -128,5 +129,34 @@ export class DynamoDBTest extends StoreTest {
       userStore.getARNPolicy("777").Resource[0],
       "arn:aws:dynamodb:us-east-1:777:table/webda-test-users"
     );
+    userStore.getParameters().CloudFormationSkip = true;
+    assert.deepStrictEqual(userStore.getCloudFormation(undefined), {});
+  }
+
+  @test
+  async patchSkip() {
+    let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
+    let s = sinon.spy(userStore._client, "update");
+    try {
+      await userStore._patch({ uuid: "test" }, "test");
+      assert.strictEqual(s.callCount, 0);
+    } finally {
+      s.restore();
+    }
+  }
+
+  @test
+  async deleteWithCondition() {
+    await assert.rejects(
+      () => (<DynamoStore<any>>this.getService("users"))._delete("nop", new Date(), "p"),
+      /UpdateCondition not met on nop.p === .*/
+    );
+  }
+
+  @test
+  params() {
+    let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
+    userStore.getParameters().table = undefined;
+    assert.throws(() => userStore.computeParameters(), /Need to define a table at least/);
   }
 }

@@ -3,6 +3,8 @@ import { FileStore, CoreModel, Store } from "../index";
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { HttpContext } from "../utils/context";
+import { removeSync } from "fs-extra";
+import { existsSync } from "fs";
 
 @suite
 class FileStoreTest extends StoreTest {
@@ -11,7 +13,14 @@ class FileStoreTest extends StoreTest {
   }
 
   getIdentStore(): Store<any> {
-    return this.getService<Store<any>>("Idents");
+    // Need to slow down the _get
+    let store = <Store<any>>this.getService("Idents");
+    let original = store._get.bind(store);
+    store._get = async (...args) => {
+      await this.sleep(1);
+      return original(...args);
+    };
+    return store;
   }
 
   @test
@@ -19,6 +28,12 @@ class FileStoreTest extends StoreTest {
     let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
     // Shoud return directly
     await identStore.incrementAttribute("test", "test", 0);
+    removeSync(identStore.getParameters().folder);
+    // Should not fail
+    await identStore.__clean();
+    // Should recreate folder
+    identStore.computeParameters();
+    existsSync(identStore.getParameters().folder);
   }
 
   @test
@@ -39,7 +54,7 @@ class FileStoreTest extends StoreTest {
     });
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/idents/coucou/plop");
     assert.notStrictEqual(executor, undefined);
-    await this.assertThrowsAsync(executor.execute.bind(executor, ctx), err => err == 404);
+    await assert.rejects(executor.execute(ctx), err => err == 404);
     await identStore.save({
       uuid: "coucou"
     });
@@ -48,7 +63,13 @@ class FileStoreTest extends StoreTest {
     assert.strictEqual(JSON.parse(ctx.getResponseBody())._plop, true);
     assert.strictEqual(eventFired, 2);
     assert.notStrictEqual(this.getExecutor(ctx, "test.webda.io", "POST", "/idents/coucou/yop"), null);
-    assert.notStrictEqual(this.getExecutor(ctx, "test.webda.io", "GET", "/idents/coucou/yop"), null);
+    executor = this.getExecutor(ctx, "test.webda.io", "GET", "/idents/coucou/yop");
+    assert.notStrictEqual(executor, null);
+
+    // Test with action returning the result instead of writing it
+    ctx.resetResponse();
+    await executor.execute(ctx);
+    assert.strictEqual(ctx.getResponseBody(), "youpi");
   }
 
   @test
@@ -69,6 +90,16 @@ class FileStoreTest extends StoreTest {
     // Our fake index action is just outputing 'indexer'
     assert.strictEqual(ctx.getResponseBody(), "indexer");
     assert.strictEqual(eventFired, 1);
+
+    ctx.resetResponse();
+    // Return some infos instead of using ctx
+    // @ts-ignore
+    identStore._model._index = async () => {
+      return "vouzouf";
+    };
+    await executor.execute(ctx);
+    // Our fake index action is just outputing 'indexer'
+    assert.strictEqual(ctx.getResponseBody(), "vouzouf");
   }
 
   @test
@@ -94,7 +125,7 @@ class FileStoreTest extends StoreTest {
       type: "CRUD2",
       uuid: "PLOP"
     });
-    await this.assertThrowsAsync(executor.execute.bind(executor, ctx), err => err == 409);
+    await assert.rejects(executor.execute(ctx), err => err == 409);
     // Verify the none overide of UUID
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/users/PLOP", {
       type: "CRUD2",
@@ -137,13 +168,22 @@ class FileStoreTest extends StoreTest {
     await this.getExecutor(ctx, "test.webda.io", "DELETE", "/users/PLOP").execute(ctx);
     eventFired = 0;
     executor = this.getExecutor(ctx, "test.webda.io", "GET", "/users/PLOP");
-    await this.assertThrowsAsync(executor.execute.bind(executor, ctx), err => err == 404);
+    await assert.rejects(
+      () => executor.execute(ctx),
+      err => err == 404
+    );
     eventFired++;
     executor = this.getExecutor(ctx, "test.webda.io", "DELETE", "/users/PLOP");
-    await this.assertThrowsAsync(executor.execute.bind(executor, ctx), err => err == 404);
+    await assert.rejects(
+      () => executor.execute(ctx),
+      err => err == 404
+    );
     eventFired++;
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/users/PLOP");
-    await this.assertThrowsAsync(executor.execute.bind(executor, ctx), err => err == 404);
+    await assert.rejects(
+      () => executor.execute(ctx),
+      err => err == 404
+    );
     eventFired++;
     assert.strictEqual(eventFired, 3);
   }
@@ -161,7 +201,7 @@ class FileStoreTest extends StoreTest {
     });
     assert.notStrictEqual(executor, undefined);
     ctx.getSession().login("fake_user", "fake_ident");
-    await this.assertThrowsAsync(executor.execute.bind(executor, ctx), err => err == 400);
+    await assert.rejects(executor.execute(ctx), err => err == 400);
     executor = this.getExecutor(ctx, "test.webda.io", "POST", "/tasks", {
       name: "Task #1"
     });
@@ -172,6 +212,23 @@ class FileStoreTest extends StoreTest {
     assert.strictEqual(task._autoListener, 2);
     task = await taskStore.get(task.uuid);
     assert.strictEqual(task._autoListener, 1);
+
+    executor = this.getExecutor(ctx, "test.webda.io", "PUT", `/tasks/${task.uuid}`, {
+      test: "plop"
+    });
+    await assert.rejects(() => executor.execute(ctx), /400/);
+    executor = this.getExecutor(ctx, "test.webda.io", "PATCH", `/tasks/${task.uuid}`, {
+      name: 123
+    });
+    await assert.rejects(() => executor.execute(ctx), /400/);
+  }
+
+  @test
+  computeParams() {
+    let usersStore: FileStore<any> = <FileStore<any>>this.getUserStore();
+    removeSync(usersStore.getParameters().folder);
+    usersStore.computeParameters();
+    assert.ok(existsSync(usersStore.getParameters().folder));
   }
 }
 

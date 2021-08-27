@@ -1176,14 +1176,6 @@ export class Application {
       this.log("DEBUG", "Found new CoreModel implementation", this.completeNamespace(obj.name));
       this.appModule["models"][this.completeNamespace(obj.name)] = path.relative(this.appPath, absolutePath);
       this.addModel(this.completeNamespace(obj.name), obj);
-    } else if (this.extends(obj, Service)) {
-      this.log("DEBUG", "Found new Service implementation", this.completeNamespace(obj.name));
-      this.appModule.services[this.completeNamespace(obj.name)] = path.relative(this.appPath, absolutePath);
-      this.addService(this.completeNamespace(obj.name), obj);
-    } else if (this.extends(obj, AbstractDeployer)) {
-      this.log("DEBUG", "Found new Deployer implementation", this.completeNamespace(obj.name));
-      this.appModule.deployers[this.completeNamespace(obj.name)] = path.relative(this.appPath, absolutePath);
-      this.addDeployer(this.completeNamespace(obj.name), obj);
     }
   }
 

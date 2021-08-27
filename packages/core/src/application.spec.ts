@@ -158,4 +158,24 @@ class ApplicationTest extends WebdaTest {
     let executor = this.getExecutor(ctx, "test.webda.io", "GET", "/urltemplate/666");
     assert.notStrictEqual(executor, undefined);
   }
+
+  @test
+  cov() {
+    assert.throws(
+      () => new Application("/notexisting"),
+      /Not a webda application folder or webda.config.json file: unexisting.*/
+    );
+    let app = new Application(__dirname + "/../test/config.old-default.json");
+    assert.ok(!app.extends(null, String));
+  }
+
+  @test
+  loadJavascriptFile() {
+    let app = new Application(__dirname + "/../test/config.old-default.json");
+    // @ts-ignore
+    let fct = app.loadJavascriptFile.bind(app);
+    fct(path.join(__dirname, "..", "test", "models", "task.js"));
+    fct(path.join(__dirname, "..", "test", "models", "task.js"));
+    fct(path.join(__dirname, "..", "test", "moddas", "fakeservice.js"));
+  }
 }

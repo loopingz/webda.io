@@ -157,7 +157,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       if (foundData) return;
       return this.getSignedUrl(params.Key, "putObject", params);
     }
-    await this.updateSuccess(targetStore, object, property, undefined, body, body.metadatas);
+    await this.updateSuccess(object, property, undefined, body, body.metadatas);
     await this.putMarker(body.hash, uid, store);
     return this.getSignedUrl(params.Key, "putObject", params);
   }
@@ -296,11 +296,11 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   /**
    * @inheritdoc
    */
-  async delete(targetStore: Store<CoreModel>, object: CoreModel, property: string, index: number) {
+  async delete(object: CoreModel, property: string, index: number) {
     let hash = object[property][index].hash;
-    let update = await this.deleteSuccess(targetStore, object, property, index);
+    await this.deleteSuccess(object, property, index);
     await this._cleanUsage(hash, object.getUuid());
-    return update;
+    return object.refresh();
   }
 
   /**
@@ -458,15 +458,8 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   /**
    * @inheritdoc
    */
-  async store(
-    targetStore: Store<CoreModel>,
-    object: CoreModel,
-    property: string,
-    file,
-    metadatas: any,
-    index?: number
-  ): Promise<any> {
-    this._checkMap(targetStore.getName(), property);
+  async store(object: CoreModel, property: string, file, metadatas: any, index?: number): Promise<any> {
+    this._checkMap(object.getStore().getName(), property);
     this._prepareInput(file);
     file = { ...file, ...this._getHashes(file.buffer) };
     let data = await this._getS3(file.hash);
@@ -488,16 +481,16 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         })
         .promise();
     }
-    await this.putMarker(file.hash, object.getUuid(), targetStore.getName());
-    return this.updateSuccess(targetStore, object, property, index, file, metadatas);
+    await this.putMarker(file.hash, object.getUuid(), object.getStore().getName());
+    return this.updateSuccess(object, property, index, file, metadatas);
   }
 
   /**
    * @inheritdoc
    */
-  async update(targetStore, object, property, index, file, metadatas) {
+  async update(object, property, index, file, metadatas) {
     await this._cleanUsage(object[property][index].hash, object.uuid);
-    return this.store(targetStore, object, property, file, metadatas, index);
+    return this.store(object, property, file, metadatas, index);
   }
 
   /**

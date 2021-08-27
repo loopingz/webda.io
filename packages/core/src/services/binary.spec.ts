@@ -63,7 +63,6 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       test: "plop"
     });
     await binary.store(
-      userStore,
       user1,
       map,
       {
@@ -78,7 +77,6 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     let value = await binary.getUsageCount(hash);
     assert.strictEqual(value, 1);
     await binary.store(
-      userStore,
       user2,
       map,
       {
@@ -93,7 +91,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     hash = user[map][0].hash;
     value = await binary.getUsageCount(hash);
     assert.strictEqual(value, 2);
-    await binary.delete(userStore, user, map, 0);
+    await binary.delete(user, map, 0);
     user = await userStore.get(user2.uuid);
     assert.strictEqual(user[map].length, 0);
     value = await binary.getUsageCount(hash);
@@ -150,7 +148,6 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     await assert.rejects(
       () =>
         binary.store(
-          userStore,
           user1,
           "images2",
           {
@@ -174,7 +171,6 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       test: "plop"
     });
     await binary.store(
-      userStore,
       user1,
       map,
       {
@@ -188,7 +184,6 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     let value = await binary.getUsageCount(user[map][0].hash);
     assert.strictEqual(value, 1);
     await binary.update(
-      userStore,
       user,
       map,
       0,

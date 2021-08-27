@@ -35,6 +35,14 @@ export class BinaryMap {
    * Hash of the binary
    */
   hash: string;
+  /**
+   * Size of the file
+   */
+  size: number;
+  /**
+   * Mimetype
+   */
+  mime: string;
 
   constructor(service, obj) {
     for (var i in obj) {
@@ -44,7 +52,7 @@ export class BinaryMap {
   }
 
   /**
-   * Get the CoreModel
+   * Get the binary data
    *
    * @returns
    */
@@ -76,6 +84,9 @@ export class BinaryMap {
 export class BinaryParameters extends ServiceParameters {
   /**
    * Define the map to Object collection
+   *
+   * key is a Store name
+   * the string[] represent all valids attributes to store files in
    */
   map: { [key: string]: string[] };
   /**
@@ -114,8 +125,16 @@ export class BinaryParameters extends ServiceParameters {
 }
 /**
  * This is an abstract service to represent a storage of files
- * The binary allow you to expose this service as HTTP ( therefore is an executor )
- * It needs an object to attach the binary too
+ * The binary allow you to expose this service as HTTP
+ *
+ * It supports two modes:
+ *  - attached to a CoreModel (attach, detach, reattach)
+ *  - pure storage with no managed id (read, write, delete)
+ *
+ * As we have deduplication builtin you can get some stats
+ * - getUsageCount(hash)
+ * - getUsageCountForRaw()
+ * - getUsageCountForMap()
  *
  * The Binary storage should store only once a binary and reference every object that are used by this binary, so it can be cleaned.
  *
@@ -147,7 +166,6 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    * ```
    *
    *
-   * @param {Store} targetStore The store that handles the object to attach binary to
    * @param {CoreModel} object The object uuid to get from the store
    * @param {String} property The object property to add the file to
    * @param {Object} file The file by itself
@@ -155,14 +173,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    * @emits 'binaryCreate'
    */
 
-  abstract store(
-    targetStore: Store<CoreModel>,
-    object: CoreModel,
-    property: string,
-    file,
-    metadatas: any,
-    index?: number
-  ): Promise<any>;
+  abstract store(object: CoreModel, property: string, file, metadatas: any, index?: number): Promise<any>;
 
   /**
    * The store can retrieve how many time a binary has been used
@@ -172,8 +183,6 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
   /**
    * Update a binary
    *
-   *
-   * @param {Store} targetStore The store that handles the object to attach binary to
    * @param {String} object The object uuid to get from the store
    * @param {String} property The object property to add the file to
    * @param {Number} index The index of the file to change in the property
@@ -181,24 +190,17 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    * @param {Object} metadatas to add to the binary object
    * @emits 'binaryUpdate'
    */
-  abstract update(targetStore, object, property, index, file, metadatas): Promise<CoreModel>;
+  abstract update(object, property, index, file, metadatas): Promise<CoreModel>;
 
   /**
    * Update a binary
    *
-   *
-   * @param {Store} targetStore The store that handles the object to attach binary to
    * @param {CoreModel} object The object uuid to get from the store
    * @param {String} property The object property to add the file to
    * @param {Number} index The index of the file to change in the property
    * @emits 'binaryDelete'
    */
-  abstract delete(
-    targetStore: Store<CoreModel>,
-    object: CoreModel,
-    property: string,
-    index: number
-  ): Promise<CoreModel>;
+  abstract delete(object: CoreModel, property: string, index: number): Promise<CoreModel>;
 
   /**
    * Get a binary
@@ -220,7 +222,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    * @param {Object} info The reference stored in your target object
    * @param {String} filepath to save the binary to
    */
-  downloadTo(info, filename) {
+  downloadTo(info: BinaryMap, filename) {
     var readStream: any = this._get(info);
     var writeStream = fs.createWriteStream(filename);
     return new Promise<void>((resolve, reject) => {
@@ -239,8 +241,11 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     });
   }
 
-  /** @ignore */
-  async init(): Promise<void> {
+  /**
+   * @override
+   */
+  resolve() {
+    super.resolve();
     this.initMap(this.parameters.map);
   }
 
@@ -315,7 +320,13 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     }
   }
 
-  _checkMap(name, property) {
+  /**
+   * Check if a map is defined
+   *
+   * @param name
+   * @param property
+   */
+  _checkMap(name: string, property: string) {
     var map = this.parameters.map[this._lowercaseMaps[name.toLowerCase()]];
     if (map === undefined) {
       throw Error("Unknown mapping");
@@ -337,19 +348,12 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     return false;
   }
 
-  async updateSuccess(
-    targetStore: Store,
-    object: CoreModel,
-    property: string,
-    index: number,
-    file: any,
-    metadatas: any
-  ) {
+  async updateSuccess(object: CoreModel, property: string, index: number, file: any, metadatas: any) {
     var fileObj: BinaryMap = {
       ...file,
       metadatas
     };
-    var object_uid = object[targetStore.getUuidField()];
+    var object_uid = object.getUuid();
     var info;
     var update;
     var promise;
@@ -359,16 +363,11 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
       target: object
     });
     if (index === undefined || index < 0) {
-      promise = targetStore.upsertItemToCollection(object_uid, property, fileObj);
+      promise = object.getStore().upsertItemToCollection(object_uid, property, fileObj);
     } else {
-      promise = targetStore.upsertItemToCollection(
-        object_uid,
-        property,
-        fileObj,
-        index,
-        object[property][index].hash,
-        "hash"
-      );
+      promise = object
+        .getStore()
+        .upsertItemToCollection(object_uid, property, fileObj, index, object[property][index].hash, "hash");
       info = object[property][index];
     }
     let updated = await promise;
@@ -409,21 +408,14 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    * @param index
    * @returns
    */
-  deleteSuccess(targetStore: Store, object: CoreModel, property: string, index: number) {
+  async deleteSuccess(object: CoreModel, property: string, index: number) {
     var info: BinaryMap = object[property][index];
-    var update;
-    return targetStore
-      .deleteItemFromCollection(object[targetStore.getUuidField()], property, index, info.hash, "hash")
-      .then(updated => {
-        update = updated;
-        return this.emitSync("Binary.Delete", <EventBinaryDelete>{
-          object: info,
-          service: this
-        });
-      })
-      .then(() => {
-        return Promise.resolve(update);
-      });
+    let update = object.getStore().deleteItemFromCollection(object.getUuid(), property, index, info.hash, "hash");
+    await this.emitSync("Binary.Delete", <EventBinaryDelete>{
+      object: info,
+      service: this
+    });
+    return update;
   }
 
   _getFile(req) {
@@ -545,8 +537,8 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
 
   async httpPost(ctx: Context) {
     let targetStore = this._verifyMapAndStore(ctx);
-    let object = await targetStore.get(ctx.parameter("uid"));
-    object = await this.store(targetStore, object, ctx.parameter("property"), this._getFile(ctx), ctx.getRequestBody());
+    let object = await targetStore.get(ctx.parameter("uid"), ctx);
+    object = await this.store(object, ctx.parameter("property"), this._getFile(ctx), ctx.getRequestBody());
     ctx.write(object);
   }
 
@@ -590,7 +582,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
   async httpRoute(ctx: Context) {
     let targetStore = this._verifyMapAndStore(ctx);
     let uid = ctx.parameter("uid");
-    let object = await targetStore.get(uid);
+    let object = await targetStore.get(uid, ctx);
     if (object === undefined) {
       throw 404;
     }
@@ -633,10 +625,10 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
         throw 412;
       }
       if (ctx.getHttpContext().getMethod() === "DELETE") {
-        object = await this.delete(targetStore, object, property, index);
+        object = await this.delete(object, property, index);
         ctx.write(object);
       } else if (ctx.getHttpContext().getMethod() === "PUT") {
-        object = await this.update(targetStore, object, property, index, this._getFile(ctx), ctx.getRequestBody());
+        object = await this.update(object, property, index, this._getFile(ctx), ctx.getRequestBody());
         ctx.write(object);
       }
     }

@@ -487,7 +487,11 @@ export default class WebdaConsole {
 
   /**
    * Print a Fake Terminal to play with @webda/workout
+   * 
+   * This is a non-supported method therefore no specific unit test
+   * as there is no value in it
    */
+  /* istanbul ignore next */
   static async fakeTerm() {
     let res;
     let i = 1;

@@ -173,9 +173,6 @@
 							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="_webda_core.Store.html#_creationDateField" class="tsd-kind-icon">_creation<wbr>Date<wbr>Field</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="_webda_core.Store.html#_exposeUrl" class="tsd-kind-icon">_expose<wbr>Url</a>
-							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.Store.html#_initException" class="tsd-kind-icon">_init<wbr>Exception</a>
 							</li>
@@ -275,6 +272,12 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_core.Store.html#cascadeDelete" class="tsd-kind-icon">cascade<wbr>Delete</a>
 							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_webda_core.Store.html#checkCollectionUpdateCondition" class="tsd-kind-icon">check<wbr>Collection<wbr>Update<wbr>Condition</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_webda_core.Store.html#checkUpdateCondition" class="tsd-kind-icon">check<wbr>Update<wbr>Condition</a>
+							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 								<a href="_webda_core.Store.html#computeParameters" class="tsd-kind-icon">compute<wbr>Parameters</a>
 							</li>
@@ -291,16 +294,13 @@
 								<a href="_webda_core.Store.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="_webda_core.Store.html#emulateUpsertItemToCollection" class="tsd-kind-icon">emulate<wbr>Upsert<wbr>Item<wbr>ToCollection</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_core.Store.html#exists" class="tsd-kind-icon">exists</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_core.Store.html#find" class="tsd-kind-icon">find</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="_webda_core.Store.html#generateUid" class="tsd-kind-icon">generate<wbr>Uid</a>
+								<a href="_webda_core.Store.html#forceDelete" class="tsd-kind-icon">force<wbr>Delete</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_core.Store.html#get" class="tsd-kind-icon">get</a>
@@ -404,10 +404,16 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_core.Store.html#save" class="tsd-kind-icon">save</a>
 							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_webda_core.Store.html#setAttribute" class="tsd-kind-icon">set<wbr>Attribute</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_webda_core.Store.html#simulateUpsertItemToCollection" class="tsd-kind-icon">simulate<wbr>Upsert<wbr>Item<wbr>ToCollection</a>
+							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.Store.html#toPublicJSON" class="tsd-kind-icon">to<wbr>PublicJSON</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.Store.html#toString" class="tsd-kind-icon">to<wbr>String</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
@@ -514,7 +520,6 @@
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.Store.html#_cascade" class="tsd-kind-icon">_cascade</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Store.html#_createException" class="tsd-kind-icon">_create<wbr>Exception</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.Store.html#_creationDateField" class="tsd-kind-icon">_creation<wbr>Date<wbr>Field</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.Store.html#_exposeUrl" class="tsd-kind-icon">_expose<wbr>Url</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Store.html#_initException" class="tsd-kind-icon">_init<wbr>Exception</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Store.html#_initTime" class="tsd-kind-icon">_init<wbr>Time</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.Store.html#_lastUpdateField" class="tsd-kind-icon">_last<wbr>Update<wbr>Field</a></li>
@@ -553,15 +558,16 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_core.Store.html#addRoute" class="tsd-kind-icon">add<wbr>Route</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#canTriggerConfiguration" class="tsd-kind-icon">can<wbr>Trigger<wbr>Configuration</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#cascadeDelete" class="tsd-kind-icon">cascade<wbr>Delete</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#checkCollectionUpdateCondition" class="tsd-kind-icon">check<wbr>Collection<wbr>Update<wbr>Condition</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#checkUpdateCondition" class="tsd-kind-icon">check<wbr>Update<wbr>Condition</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_core.Store.html#computeParameters" class="tsd-kind-icon">compute<wbr>Parameters</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#createIndex" class="tsd-kind-icon">create<wbr>Index</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#delete" class="tsd-kind-icon">delete</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#deleteItemFromCollection" class="tsd-kind-icon">delete<wbr>Item<wbr>From<wbr>Collection</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Store.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#emulateUpsertItemToCollection" class="tsd-kind-icon">emulate<wbr>Upsert<wbr>Item<wbr>ToCollection</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#exists" class="tsd-kind-icon">exists</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#find" class="tsd-kind-icon">find</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#generateUid" class="tsd-kind-icon">generate<wbr>Uid</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#forceDelete" class="tsd-kind-icon">force<wbr>Delete</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#get" class="tsd-kind-icon">get</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#getAll" class="tsd-kind-icon">get<wbr>All</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#getConfiguration" class="tsd-kind-icon">get<wbr>Configuration</a></li>
@@ -596,8 +602,10 @@
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#removeMapper" class="tsd-kind-icon">remove<wbr>Mapper</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Store.html#resolve" class="tsd-kind-icon">resolve</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#save" class="tsd-kind-icon">save</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#setAttribute" class="tsd-kind-icon">set<wbr>Attribute</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#simulateUpsertItemToCollection" class="tsd-kind-icon">simulate<wbr>Upsert<wbr>Item<wbr>ToCollection</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Store.html#toPublicJSON" class="tsd-kind-icon">to<wbr>PublicJSON</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#toString" class="tsd-kind-icon">to<wbr>String</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Store.html#toString" class="tsd-kind-icon">to<wbr>String</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#update" class="tsd-kind-icon">update</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Store.html#upsertItemToCollection" class="tsd-kind-icon">upsert<wbr>Item<wbr>ToCollection</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_core.Store.html#getModda" class="tsd-kind-icon">get<wbr>Modda</a></li>
@@ -663,9 +671,14 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="_cascade" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">_cascade<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Contains cascade delete information</p>
+						</div>
+					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/stores/store.ts:421</li>
+							<li>Defined in packages/core/src/stores/store.ts:425</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -679,17 +692,14 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="_creationDateField" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">_creation<wbr>Date<wbr>Field<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Contain the model creation date</p>
+						</div>
+					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/stores/store.ts:425</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="_exposeUrl" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">_expose<wbr>Url<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/src/stores/store.ts:423</li>
+							<li>Defined in packages/core/src/stores/store.ts:437</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -711,17 +721,27 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="_lastUpdateField" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">_last<wbr>Update<wbr>Field<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Contain the model update date</p>
+						</div>
+					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/stores/store.ts:424</li>
+							<li>Defined in packages/core/src/stores/store.ts:433</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="_model" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">_model<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_webda_core.CoreModelDefinition.html" class="tsd-signature-type">CoreModelDefinition</a></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Contains the current model</p>
+						</div>
+					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/stores/store.ts:422</li>
+							<li>Defined in packages/core/src/stores/store.ts:429</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -740,17 +760,27 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="_reverseMap" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">_reverse<wbr>Map<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Contain the reverse map</p>
+						</div>
+					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/stores/store.ts:420</li>
+							<li>Defined in packages/core/src/stores/store.ts:421</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
 					<a name="_uuidField" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">_uuid<wbr>Field<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &quot;uuid&quot;</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Contain the model uuid field</p>
+						</div>
+					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/stores/store.ts:426</li>
+							<li>Defined in packages/core/src/stores/store.ts:441</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -818,7 +848,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:329</li>
+									<li>Defined in packages/core/src/services/service.ts:336</li>
 								</ul>
 							</aside>
 						</li>
@@ -832,6 +862,12 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>The underlying store should recheck writeCondition only if it does not require
+									another get()</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -842,12 +878,14 @@
 								</li>
 								<li>
 									<h5><span class="tsd-flag ts-flagOptional">Optional</span> itemWriteConditionField: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1264</li>
+									<li>Defined in packages/core/src/stores/store.ts:1655</li>
 								</ul>
 							</aside>
 						</li>
@@ -885,7 +923,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:745</li>
+									<li>Defined in packages/core/src/stores/store.ts:1709</li>
 								</ul>
 							</aside>
 						</li>
@@ -914,7 +952,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1349</li>
+									<li>Defined in packages/core/src/stores/store.ts:1638</li>
 								</ul>
 							</aside>
 						</li>
@@ -922,22 +960,36 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="_get" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">_get<span class="tsd-signature-symbol">(</span>uid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">_get<span class="tsd-signature-symbol">(</span>uid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, raiseIfNotFound<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Retrieve an element from the store</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>uid: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>to retrieve</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> raiseIfNotFound: <span class="tsd-signature-type">boolean</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>raise an StoreNotFound exception if not found</p>
+									</div>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1266</li>
+									<li>Defined in packages/core/src/stores/store.ts:1663</li>
 								</ul>
 							</aside>
 						</li>
@@ -945,7 +997,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="_handleCreatedMap" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">_handle<wbr>Created<wbr>Map<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, map<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, mapped<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, store<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+						<li class="tsd-signature tsd-kind-icon">_handle<wbr>Created<wbr>Map<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a>, map<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, mapped<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a>, store<span class="tsd-signature-symbol">: </span><a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -954,22 +1006,22 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>object: <span class="tsd-signature-type">any</span></h5>
+									<h5>object: <a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a></h5>
 								</li>
 								<li>
 									<h5>map: <span class="tsd-signature-type">any</span></h5>
 								</li>
 								<li>
-									<h5>mapped: <span class="tsd-signature-type">any</span></h5>
+									<h5>mapped: <a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a></h5>
 								</li>
 								<li>
-									<h5>store: <span class="tsd-signature-type">any</span></h5>
+									<h5>store: <a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1097</li>
+									<li>Defined in packages/core/src/stores/store.ts:1150</li>
 								</ul>
 							</aside>
 						</li>
@@ -977,7 +1029,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="_handleDeletedMap" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">_handle<wbr>Deleted<wbr>Map<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, map<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, mapped<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, store<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+						<li class="tsd-signature tsd-kind-icon">_handle<wbr>Deleted<wbr>Map<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a>, map<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, mapped<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a>, store<span class="tsd-signature-symbol">: </span><a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -986,22 +1038,22 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>object: <span class="tsd-signature-type">any</span></h5>
+									<h5>object: <a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a></h5>
 								</li>
 								<li>
 									<h5>map: <span class="tsd-signature-type">any</span></h5>
 								</li>
 								<li>
-									<h5>mapped: <span class="tsd-signature-type">any</span></h5>
+									<h5>mapped: <a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a></h5>
 								</li>
 								<li>
-									<h5>store: <span class="tsd-signature-type">any</span></h5>
+									<h5>store: <a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1079</li>
+									<li>Defined in packages/core/src/stores/store.ts:1133</li>
 								</ul>
 							</aside>
 						</li>
@@ -1030,7 +1082,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:694</li>
+									<li>Defined in packages/core/src/stores/store.ts:734</li>
 								</ul>
 							</aside>
 						</li>
@@ -1038,7 +1090,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="_handleMapProperty" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">_handle<wbr>Map<wbr>Property<span class="tsd-signature-symbol">(</span>store<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, updates<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">_handle<wbr>Map<wbr>Property<span class="tsd-signature-symbol">(</span>store<span class="tsd-signature-symbol">: </span><a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span>, object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, updates<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1047,7 +1099,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>store: <span class="tsd-signature-type">any</span></h5>
+									<h5>store: <a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span></h5>
 								</li>
 								<li>
 									<h5>object: <span class="tsd-signature-type">any</span></h5>
@@ -1059,10 +1111,10 @@
 									<h5>updates: <span class="tsd-signature-type">any</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1111</li>
+									<li>Defined in packages/core/src/stores/store.ts:1164</li>
 								</ul>
 							</aside>
 						</li>
@@ -1070,7 +1122,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="_handleUpdatedMap" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">_handle<wbr>Updated<wbr>Map<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, map<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, mapped<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, store<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, updates<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">_handle<wbr>Updated<wbr>Map<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, map<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, mapped<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, store<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, updates<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1094,10 +1146,10 @@
 									<h5>updates: <span class="tsd-signature-type">any</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:963</li>
+									<li>Defined in packages/core/src/stores/store.ts:1017</li>
 								</ul>
 							</aside>
 						</li>
@@ -1105,7 +1157,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="_handleUpdatedMapMapper" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">_handle<wbr>Updated<wbr>Map<wbr>Mapper<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, map<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, mapped<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, store<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, updates<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+						<li class="tsd-signature tsd-kind-icon">_handle<wbr>Updated<wbr>Map<wbr>Mapper<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a>, map<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, mapped<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a>, store<span class="tsd-signature-symbol">: </span><a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span>, updates<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1114,25 +1166,25 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>object: <span class="tsd-signature-type">any</span></h5>
+									<h5>object: <a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a></h5>
 								</li>
 								<li>
 									<h5>map: <span class="tsd-signature-type">any</span></h5>
 								</li>
 								<li>
-									<h5>mapped: <span class="tsd-signature-type">any</span></h5>
+									<h5>mapped: <a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a></h5>
 								</li>
 								<li>
-									<h5>store: <span class="tsd-signature-type">any</span></h5>
+									<h5>store: <a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span></h5>
 								</li>
 								<li>
 									<h5>updates: <span class="tsd-signature-type">any</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1048</li>
+									<li>Defined in packages/core/src/stores/store.ts:1102</li>
 								</ul>
 							</aside>
 						</li>
@@ -1164,7 +1216,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1034</li>
+									<li>Defined in packages/core/src/stores/store.ts:1088</li>
 								</ul>
 							</aside>
 						</li>
@@ -1199,7 +1251,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1026</li>
+									<li>Defined in packages/core/src/stores/store.ts:1080</li>
 								</ul>
 							</aside>
 						</li>
@@ -1213,6 +1265,11 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Increment the attribute</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -1226,12 +1283,14 @@
 								</li>
 								<li>
 									<h5>updateDate: <span class="tsd-signature-type">Date</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:644</li>
+									<li>Defined in packages/core/src/stores/store.ts:1697</li>
 								</ul>
 							</aside>
 						</li>
@@ -1263,7 +1322,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1186</li>
+									<li>Defined in packages/core/src/stores/store.ts:1675</li>
 								</ul>
 							</aside>
 						</li>
@@ -1271,7 +1330,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="_removeAttribute" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">_remove<wbr>Attribute<span class="tsd-signature-symbol">(</span>uuid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, attribute<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">_remove<wbr>Attribute<span class="tsd-signature-symbol">(</span>uuid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, attribute<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, itemWriteCondition<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span>, itemWriteConditionField<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1285,11 +1344,17 @@
 								<li>
 									<h5>attribute: <span class="tsd-signature-type">string</span></h5>
 								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> itemWriteCondition: <span class="tsd-signature-type">any</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> itemWriteConditionField: <span class="tsd-signature-type">string</span></h5>
+								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1128</li>
+									<li>Defined in packages/core/src/stores/store.ts:1677</li>
 								</ul>
 							</aside>
 						</li>
@@ -1297,22 +1362,29 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="_save" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">_save<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">_save<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Save within the store</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>object: <a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a></h5>
+									<h5>object: <span class="tsd-signature-type">T</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:843</li>
+									<li>Defined in packages/core/src/stores/store.ts:1688</li>
 								</ul>
 							</aside>
 						</li>
@@ -1320,7 +1392,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="_update" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">_update<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, uid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, itemWriteCondition<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span>, itemWriteConditionField<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">_update<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, uid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, itemWriteCondition<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span>, itemWriteConditionField<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1332,7 +1404,7 @@
 									<h5>object: <span class="tsd-signature-type">any</span></h5>
 								</li>
 								<li>
-									<h5>uid: <span class="tsd-signature-type">any</span></h5>
+									<h5>uid: <span class="tsd-signature-type">string</span></h5>
 								</li>
 								<li>
 									<h5><span class="tsd-flag ts-flagOptional">Optional</span> itemWriteCondition: <span class="tsd-signature-type">any</span></h5>
@@ -1344,7 +1416,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1184</li>
+									<li>Defined in packages/core/src/stores/store.ts:1673</li>
 								</ul>
 							</aside>
 						</li>
@@ -1385,7 +1457,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:707</li>
+									<li>Defined in packages/core/src/stores/store.ts:1699</li>
 								</ul>
 							</aside>
 						</li>
@@ -1399,6 +1471,11 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Add reverse map information</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -1409,12 +1486,14 @@
 								</li>
 								<li>
 									<h5>store: <span class="tsd-signature-type">any</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:614</li>
+									<li>Defined in packages/core/src/stores/store.ts:656</li>
 								</ul>
 							</aside>
 						</li>
@@ -1461,7 +1540,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:215</li>
+									<li>Defined in packages/core/src/services/service.ts:222</li>
 								</ul>
 							</aside>
 						</li>
@@ -1500,7 +1579,7 @@
 													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 													<aside class="tsd-sources">
 														<ul>
-															<li>Defined in packages/core/src/stores/store.ts:1282</li>
+															<li>Defined in packages/core/src/stores/store.ts:1345</li>
 														</ul>
 													</aside>
 												</li>
@@ -1512,7 +1591,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1282</li>
+									<li>Defined in packages/core/src/stores/store.ts:1345</li>
 								</ul>
 							</aside>
 						</li>
@@ -1526,6 +1605,11 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Cascade delete a related object</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -1538,7 +1622,86 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1188</li>
+									<li>Defined in packages/core/src/stores/store.ts:1250</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="checkCollectionUpdateCondition" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">check<wbr>Collection<wbr>Update<wbr>Condition<span class="tsd-signature-symbol">(</span>model<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span>, collection<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, conditionField<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span>, condition<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span>, index<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Check if an UpdateCondition is met</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>model: <span class="tsd-signature-type">T</span></h5>
+								</li>
+								<li>
+									<h5>collection: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> conditionField: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> condition: <span class="tsd-signature-type">any</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> index: <span class="tsd-signature-type">number</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/stores/store.ts:883</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="checkUpdateCondition" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">check<wbr>Update<wbr>Condition<span class="tsd-signature-symbol">(</span>model<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span>, conditionField<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span>, condition<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span>, uid<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Check if an UpdateCondition is met</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>model: <span class="tsd-signature-type">T</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> conditionField: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> condition: <span class="tsd-signature-type">any</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> uid: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/stores/store.ts:868</li>
 								</ul>
 							</aside>
 						</li>
@@ -1565,7 +1728,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:440</li>
+									<li>Defined in packages/core/src/stores/store.ts:455</li>
 								</ul>
 							</aside>
 						</li>
@@ -1582,7 +1745,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:754</li>
+									<li>Defined in packages/core/src/stores/store.ts:769</li>
 								</ul>
 							</aside>
 						</li>
@@ -1590,7 +1753,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="delete" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">delete<span class="tsd-signature-symbol">(</span>uid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, sync<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">delete<span class="tsd-signature-symbol">(</span>uid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">T</span>, writeCondition<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span>, writeConditionField<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span>, sync<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1604,7 +1767,13 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>uid: <span class="tsd-signature-type">any</span></h5>
+									<h5>uid: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">T</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> writeCondition: <span class="tsd-signature-type">any</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> writeConditionField: <span class="tsd-signature-type">string</span></h5>
 								</li>
 								<li>
 									<h5>sync: <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = false</span></h5>
@@ -1614,7 +1783,7 @@
 							<p>the deletion promise</p>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1200</li>
+									<li>Defined in packages/core/src/stores/store.ts:1271</li>
 								</ul>
 							</aside>
 						</li>
@@ -1622,7 +1791,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="deleteItemFromCollection" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">delete<wbr>Item<wbr>From<wbr>Collection<span class="tsd-signature-symbol">(</span>uid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, prop<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, index<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, itemWriteCondition<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, itemWriteConditionField<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">delete<wbr>Item<wbr>From<wbr>Collection<span class="tsd-signature-symbol">(</span>uid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, prop<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, index<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, itemWriteCondition<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, itemWriteConditionField<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1643,13 +1812,13 @@
 									<h5>itemWriteCondition: <span class="tsd-signature-type">any</span></h5>
 								</li>
 								<li>
-									<h5>itemWriteConditionField: <span class="tsd-signature-type">string</span></h5>
+									<h5>itemWriteConditionField: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = ...</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:717</li>
+									<li>Defined in packages/core/src/stores/store.ts:747</li>
 								</ul>
 							</aside>
 						</li>
@@ -1681,48 +1850,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:278</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="emulateUpsertItemToCollection" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">emulate<wbr>Upsert<wbr>Item<wbr>ToCollection<span class="tsd-signature-symbol">(</span>model<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a>, prop<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, item<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, index<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, itemWriteCondition<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, itemWriteConditionField<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, updateDate<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Date</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>model: <a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a></h5>
-								</li>
-								<li>
-									<h5>prop: <span class="tsd-signature-type">any</span></h5>
-								</li>
-								<li>
-									<h5>item: <span class="tsd-signature-type">any</span></h5>
-								</li>
-								<li>
-									<h5>index: <span class="tsd-signature-type">any</span></h5>
-								</li>
-								<li>
-									<h5>itemWriteCondition: <span class="tsd-signature-type">any</span></h5>
-								</li>
-								<li>
-									<h5>itemWriteConditionField: <span class="tsd-signature-type">any</span></h5>
-								</li>
-								<li>
-									<h5>updateDate: <span class="tsd-signature-type">Date</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:849</li>
+									<li>Defined in packages/core/src/services/service.ts:285</li>
 								</ul>
 							</aside>
 						</li>
@@ -1755,7 +1883,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1262</li>
+									<li>Defined in packages/core/src/stores/store.ts:1645</li>
 								</ul>
 							</aside>
 						</li>
@@ -1769,6 +1897,13 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Search inside the store</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-text">
+								<p>Still need to define a good abstraction for it</p>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -1784,24 +1919,38 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1331</li>
+									<li>Defined in packages/core/src/stores/store.ts:1422</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="generateUid" class="tsd-anchor"></a>
+					<a name="forceDelete" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">generate<wbr>Uid<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+						<li class="tsd-signature tsd-kind-icon">force<wbr>Delete<span class="tsd-signature-symbol">(</span>uid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Delete an object from the store without condition nor async</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>uid: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>to delete</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:790</li>
+									<li>Defined in packages/core/src/stores/store.ts:1260</li>
 								</ul>
 							</aside>
 						</li>
@@ -1833,7 +1982,7 @@
 							<p>the object retrieved ( can be undefined if not found )</p>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1312</li>
+									<li>Defined in packages/core/src/stores/store.ts:1376</li>
 								</ul>
 							</aside>
 						</li>
@@ -1862,7 +2011,7 @@
 							<p>the objects retrieved ( can be [] if not found )</p>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1274</li>
+									<li>Defined in packages/core/src/stores/store.ts:1671</li>
 								</ul>
 							</aside>
 						</li>
@@ -1891,7 +2040,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Map</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1291</li>
+									<li>Defined in packages/core/src/stores/store.ts:1354</li>
 								</ul>
 							</aside>
 						</li>
@@ -1917,7 +2066,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:945</li>
+									<li>Defined in packages/core/src/stores/store.ts:999</li>
 								</ul>
 							</aside>
 						</li>
@@ -1931,10 +2080,15 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Return Store current model</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <a href="../interfaces/_webda_core.CoreModelDefinition.html" class="tsd-signature-type">CoreModelDefinition</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:449</li>
+									<li>Defined in packages/core/src/stores/store.ts:468</li>
 								</ul>
 							</aside>
 						</li>
@@ -1957,7 +2111,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:320</li>
+									<li>Defined in packages/core/src/services/service.ts:327</li>
 								</ul>
 							</aside>
 						</li>
@@ -2018,7 +2172,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">K</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:305</li>
+									<li>Defined in packages/core/src/services/service.ts:312</li>
 								</ul>
 							</aside>
 						</li>
@@ -2032,10 +2186,15 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Get the url where the store is exposed</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:591</li>
+									<li>Defined in packages/core/src/stores/store.ts:614</li>
 								</ul>
 							</aside>
 						</li>
@@ -2049,10 +2208,15 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Return the model uuid field</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:453</li>
+									<li>Defined in packages/core/src/stores/store.ts:1633</li>
 								</ul>
 							</aside>
 						</li>
@@ -2101,7 +2265,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1134</li>
+									<li>Defined in packages/core/src/stores/store.ts:1193</li>
 								</ul>
 							</aside>
 						</li>
@@ -2130,7 +2294,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1161</li>
+									<li>Defined in packages/core/src/stores/store.ts:1220</li>
 								</ul>
 							</aside>
 						</li>
@@ -2144,16 +2308,23 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Handle obect action</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>ctx: <a href="_webda_core.Context.html" class="tsd-signature-type">Context</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1379</li>
+									<li>Defined in packages/core/src/stores/store.ts:1474</li>
 								</ul>
 							</aside>
 						</li>
@@ -2167,16 +2338,23 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Handle POST</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>ctx: <a href="_webda_core.Context.html" class="tsd-signature-type">Context</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1353</li>
+									<li>Defined in packages/core/src/stores/store.ts:1444</li>
 								</ul>
 							</aside>
 						</li>
@@ -2207,7 +2385,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1479</li>
+									<li>Defined in packages/core/src/stores/store.ts:1581</li>
 								</ul>
 							</aside>
 						</li>
@@ -2221,16 +2399,23 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Handle collection action</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>ctx: <a href="_webda_core.Context.html" class="tsd-signature-type">Context</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1409</li>
+									<li>Defined in packages/core/src/stores/store.ts:1504</li>
 								</ul>
 							</aside>
 						</li>
@@ -2261,7 +2446,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1505</li>
+									<li>Defined in packages/core/src/stores/store.ts:1607</li>
 								</ul>
 							</aside>
 						</li>
@@ -2292,7 +2477,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1433</li>
+									<li>Defined in packages/core/src/stores/store.ts:1528</li>
 								</ul>
 							</aside>
 						</li>
@@ -2321,7 +2506,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:646</li>
+									<li>Defined in packages/core/src/stores/store.ts:686</li>
 								</ul>
 							</aside>
 						</li>
@@ -2344,7 +2529,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:457</li>
+									<li>Defined in packages/core/src/stores/store.ts:477</li>
 								</ul>
 							</aside>
 						</li>
@@ -2367,7 +2552,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:764</li>
+									<li>Defined in packages/core/src/stores/store.ts:779</li>
 								</ul>
 							</aside>
 						</li>
@@ -2381,6 +2566,13 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Init a model from the current stored data</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-text">
+								<p>Initial the reverse map as well</p>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -2390,7 +2582,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">T</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:595</li>
+									<li>Defined in packages/core/src/stores/store.ts:626</li>
 								</ul>
 							</aside>
 						</li>
@@ -2413,7 +2605,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:464</li>
+									<li>Defined in packages/core/src/stores/store.ts:487</li>
 								</ul>
 							</aside>
 						</li>
@@ -2436,7 +2628,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:624</li>
+									<li>Defined in packages/core/src/stores/store.ts:666</li>
 								</ul>
 							</aside>
 						</li>
@@ -2465,7 +2657,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:431</li>
+									<li>Defined in packages/core/src/stores/store.ts:446</li>
 								</ul>
 							</aside>
 						</li>
@@ -2497,7 +2689,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:349</li>
+									<li>Defined in packages/core/src/services/service.ts:356</li>
 								</ul>
 							</aside>
 						</li>
@@ -2535,7 +2727,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:297</li>
+									<li>Defined in packages/core/src/services/service.ts:304</li>
 								</ul>
 							</aside>
 						</li>
@@ -2549,6 +2741,11 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Patch an object</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -2561,7 +2758,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:845</li>
+									<li>Defined in packages/core/src/stores/store.ts:857</li>
 								</ul>
 							</aside>
 						</li>
@@ -2588,7 +2785,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:269</li>
+									<li>Defined in packages/core/src/services/service.ts:276</li>
 								</ul>
 							</aside>
 						</li>
@@ -2596,12 +2793,17 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="removeAttribute" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">remove<wbr>Attribute<span class="tsd-signature-symbol">(</span>uuid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, attribute<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">remove<wbr>Attribute<span class="tsd-signature-symbol">(</span>uuid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, attribute<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, itemWriteCondition<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span>, itemWriteConditionField<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Remove an attribute from an object</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -2610,11 +2812,17 @@
 								<li>
 									<h5>attribute: <span class="tsd-signature-type">string</span></h5>
 								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> itemWriteCondition: <span class="tsd-signature-type">any</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> itemWriteConditionField: <span class="tsd-signature-type">string</span></h5>
+								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:1130</li>
+									<li>Defined in packages/core/src/stores/store.ts:1188</li>
 								</ul>
 							</aside>
 						</li>
@@ -2640,7 +2848,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:954</li>
+									<li>Defined in packages/core/src/stores/store.ts:1008</li>
 								</ul>
 							</aside>
 						</li>
@@ -2664,7 +2872,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:197</li>
+									<li>Defined in packages/core/src/services/service.ts:204</li>
 								</ul>
 							</aside>
 						</li>
@@ -2696,7 +2904,95 @@
 							<p>with saved object</p>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:801</li>
+									<li>Defined in packages/core/src/stores/store.ts:808</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="setAttribute" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">set<wbr>Attribute<span class="tsd-signature-symbol">(</span>uid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, value<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Set one attribute in an object</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-text">
+								<p>this is an helper function that calls patch</p>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>uid: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>of the object</p>
+									</div>
+								</li>
+								<li>
+									<h5>property: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>to update1</p>
+									</div>
+								</li>
+								<li>
+									<h5>value: <span class="tsd-signature-type">any</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+										<p>new value</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/stores/store.ts:1405</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="simulateUpsertItemToCollection" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">simulate<wbr>Upsert<wbr>Item<wbr>ToCollection<span class="tsd-signature-symbol">(</span>model<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span>, prop<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, item<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, updateDate<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Date</span>, index<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span>, itemWriteCondition<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span>, itemWriteConditionField<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>model: <span class="tsd-signature-type">T</span></h5>
+								</li>
+								<li>
+									<h5>prop: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>item: <span class="tsd-signature-type">any</span></h5>
+								</li>
+								<li>
+									<h5>updateDate: <span class="tsd-signature-type">Date</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> index: <span class="tsd-signature-type">number</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> itemWriteCondition: <span class="tsd-signature-type">any</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> itemWriteConditionField: <span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/stores/store.ts:911</li>
 								</ul>
 							</aside>
 						</li>
@@ -2729,24 +3025,30 @@
 							<p>The export of the strip object ( removed all attribute with _ )</p>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:251</li>
+									<li>Defined in packages/core/src/services/service.ts:258</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="toString" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">to<wbr>String<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#toString">toString</a></p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Return service representation</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:786</li>
+									<li>Defined in packages/core/src/services/service.ts:196</li>
 								</ul>
 							</aside>
 						</li>
@@ -2784,7 +3086,7 @@
 							<p>with saved object</p>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:887</li>
+									<li>Defined in packages/core/src/stores/store.ts:941</li>
 								</ul>
 							</aside>
 						</li>
@@ -2822,7 +3124,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/stores/store.ts:666</li>
+									<li>Defined in packages/core/src/stores/store.ts:706</li>
 								</ul>
 							</aside>
 						</li>
@@ -2848,7 +3150,7 @@
 							</h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:313</li>
+									<li>Defined in packages/core/src/services/service.ts:320</li>
 								</ul>
 							</aside>
 						</li>
@@ -2874,7 +3176,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">JSONSchema6</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:360</li>
+									<li>Defined in packages/core/src/services/service.ts:367</li>
 								</ul>
 							</aside>
 						</li>

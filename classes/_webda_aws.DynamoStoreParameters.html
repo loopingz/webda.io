@@ -323,7 +323,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_aws.DynamoStoreParameters.html" class="tsd-signature-type">DynamoStoreParameters</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:348</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:347</li>
 								</ul>
 							</aside>
 						</li>
@@ -336,7 +336,7 @@
 					<div class="tsd-signature tsd-kind-icon">Cloud<wbr>Formation<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/dynamodb.ts:11</li>
+							<li>Defined in packages/aws/src/services/dynamodb.ts:19</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -344,7 +344,7 @@
 					<div class="tsd-signature tsd-kind-icon">Cloud<wbr>Formation<wbr>Skip<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/dynamodb.ts:12</li>
+							<li>Defined in packages/aws/src/services/dynamodb.ts:20</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -357,7 +357,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:313</li>
+							<li>Defined in packages/core/lib/stores/store.d.ts:342</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -374,7 +374,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:291</li>
+							<li>Defined in packages/core/lib/stores/store.d.ts:320</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -382,83 +382,20 @@
 					<div class="tsd-signature tsd-kind-icon">endpoint<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/dynamodb.ts:10</li>
+							<li>Defined in packages/aws/src/services/dynamodb.ts:18</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="expose" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">expose<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
+					<div class="tsd-signature tsd-kind-icon">expose<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">ExposeParameters</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
 							<p>Expose the service to an urls</p>
 						</div>
 					</div>
-					<div class="tsd-type-declaration">
-						<h4>Type declaration</h4>
-						<ul class="tsd-parameters">
-							<li class="tsd-parameter">
-								<h5><span class="tsd-flag ts-flagOptional">Optional</span> restrict<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">object</span></h5>
-								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-									<div class="lead">
-										<p>You can restrict any part of the CRUD</p>
-									</div>
-									</div><div class="tsd-comment tsd-typography tsd-comment-tags">
-									<dl class="tsd-comment-tags"><dt>default</dt>
-										<dd><p>{}</p>
-									</dd></dl>
-								</div>
-								<ul class="tsd-parameters">
-									<li class="tsd-parameter">
-										<h5><span class="tsd-flag ts-flagOptional">Optional</span> create<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span></h5>
-										<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-											<div class="lead">
-												<p>Do not expose the POST</p>
-											</div>
-										</div>
-									</li>
-									<li class="tsd-parameter">
-										<h5><span class="tsd-flag ts-flagOptional">Optional</span> delete<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span></h5>
-										<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-											<div class="lead">
-												<p>Do not expose the DELETE</p>
-											</div>
-										</div>
-									</li>
-									<li class="tsd-parameter">
-										<h5><span class="tsd-flag ts-flagOptional">Optional</span> get<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span></h5>
-										<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-											<div class="lead">
-												<p>Do not expose the GET</p>
-											</div>
-										</div>
-									</li>
-									<li class="tsd-parameter">
-										<h5><span class="tsd-flag ts-flagOptional">Optional</span> update<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span></h5>
-										<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-											<div class="lead">
-												<p>Do not expose the PUT and PATCH</p>
-											</div>
-										</div>
-									</li>
-								</ul>
-							</li>
-							<li class="tsd-parameter">
-								<h5><span class="tsd-flag ts-flagOptional">Optional</span> url<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span></h5>
-								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-									<div class="lead">
-										<p>URL endpoint to use to expose REST Resources API</p>
-									</div>
-									</div><div class="tsd-comment tsd-typography tsd-comment-tags">
-									<dl class="tsd-comment-tags"><dt>default</dt>
-										<dd><p>service.getName().toLowerCase()</p>
-									</dd></dl>
-								</div>
-							</li>
-						</ul>
-					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:317</li>
+							<li>Defined in packages/core/lib/stores/store.d.ts:346</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -471,7 +408,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:301</li>
+							<li>Defined in packages/core/lib/stores/store.d.ts:330</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -488,7 +425,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:285</li>
+							<li>Defined in packages/core/lib/stores/store.d.ts:314</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -511,7 +448,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:307</li>
+							<li>Defined in packages/core/lib/stores/store.d.ts:336</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -528,7 +465,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:297</li>
+							<li>Defined in packages/core/lib/stores/store.d.ts:326</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -536,7 +473,7 @@
 					<div class="tsd-signature tsd-kind-icon">region<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/dynamodb.ts:13</li>
+							<li>Defined in packages/aws/src/services/dynamodb.ts:21</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -544,7 +481,7 @@
 					<div class="tsd-signature tsd-kind-icon">scan<wbr>Page<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/dynamodb.ts:14</li>
+							<li>Defined in packages/aws/src/services/dynamodb.ts:22</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -552,7 +489,7 @@
 					<div class="tsd-signature tsd-kind-icon">table<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/dynamodb.ts:9</li>
+							<li>Defined in packages/aws/src/services/dynamodb.ts:17</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">

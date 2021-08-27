@@ -2,7 +2,8 @@ import { BinaryTest } from "./binary.spec";
 import * as assert from "assert";
 import { FileBinary } from "./filebinary";
 import { suite, test } from "@testdeck/mocha";
-import { Binary } from "./binary";
+import { removeSync } from "fs-extra";
+import * as fs from "fs";
 
 @suite
 class FileBinaryTest extends BinaryTest {
@@ -59,6 +60,39 @@ class FileBinaryTest extends BinaryTest {
       originalname: "",
       size: 4
     });
+  }
+
+  @test
+  initRoutes() {
+    let binary = this.getBinary();
+    binary.getParameters().expose = undefined;
+    binary.initRoutes();
+    // @ts-ignore
+    binary._name = "Binary";
+    binary.initRoutes();
+  }
+
+  @test
+  async verifyMapAndStore() {
+    let binary = this.getBinary();
+    let ctx = await this.newContext();
+    ctx.setPathParameters({ store: "Store", property: "images" });
+    console.log(binary.getParameters().map);
+    assert.throws(() => binary._verifyMapAndStore(ctx), /404/);
+    ctx.setPathParameters({ store: "users", property: "images" });
+    assert.strictEqual(binary._verifyMapAndStore(ctx), this.getService("users"));
+    ctx.setPathParameters({ store: "users", property: "images2" });
+    assert.throws(() => binary._verifyMapAndStore(ctx), /404/);
+    ctx.setPathParameters({ store: "notexisting", property: "images" });
+    assert.throws(() => binary._verifyMapAndStore(ctx), /404/);
+  }
+
+  @test
+  computeParameters() {
+    let binary = <FileBinary>this.getBinary();
+    removeSync(binary.getParameters().folder);
+    binary.computeParameters();
+    assert.ok(fs.existsSync(binary.getParameters().folder));
   }
 }
 

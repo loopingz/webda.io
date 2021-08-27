@@ -142,7 +142,8 @@
       "type": "FileBinary",
       "folder": "./test/data/binaries",
       "map": {
-        "users": ["images"]
+        "users": ["images"],
+        "notexisting": ["images"]
       },
       "expose": {
         "url": "/binary"

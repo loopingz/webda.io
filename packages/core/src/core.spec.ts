@@ -1,12 +1,18 @@
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
-import { Core, WebsiteOriginFilter } from "./core";
+import { Core, OriginFilter, WebdaError, WebsiteOriginFilter } from "./core";
 import { Application, Authentication, Bean, Route, Service } from "./index";
 import { Store } from "./stores/store";
 import { WebdaTest } from "./test";
 import { Context, HttpContext } from "./utils/context";
+import * as sinon from "sinon";
 
+class BadService {
+  constructor() {
+    throw new Error();
+  }
+}
 @Bean
 class ExceptionExecutor extends Service {
   @Route("/route/broken/{type}")
@@ -27,6 +33,11 @@ class ExceptionExecutor extends Service {
   async onPostString(ctx) {
     ctx.write("CodeCoveragePOST");
   }
+}
+
+class ImplicitBean extends Service {
+  @Route("/whynot")
+  async whynot() {}
 }
 
 @suite
@@ -110,6 +121,13 @@ class CSRFTest extends WebdaTest {
   }
 
   @test
+  async originFilter() {
+    let filter = new OriginFilter(["https://localhost3"]);
+    this.ctx.setHttpContext(new HttpContext("localhost3", "GET", "/", "https", 443, {}));
+    assert.strictEqual(await filter.checkRequest(this.ctx), true);
+  }
+
+  @test
   async websiteObject() {
     // Use object
     this.filter = new WebsiteOriginFilter({
@@ -162,6 +180,29 @@ class CoreTest extends WebdaTest {
     let openapi = webda.exportOpenAPI();
     assert.notStrictEqual(openapi.paths["/contacts"], undefined);
     assert.notStrictEqual(openapi.paths["/contacts/{uuid}"], undefined);
+    app.addModel("webda/anotherContext", Context);
+    app.getConfiguration().openapi = {
+      tags: [{ name: "Zzzz" }, { name: "Aaaaa" }]
+    };
+    app.getPackageDescription = () => ({
+      license: "GPL"
+    });
+    app.getSchemaResolver().fromPrototype = type => {
+      let res = {
+        definitions: {},
+        properties: {},
+        title: type.name
+      };
+      res.definitions[`other$${type.name}`] = {
+        description: `Fake ${type.name}`
+      };
+      return res;
+    };
+    openapi = webda.exportOpenAPI();
+    assert.strictEqual(openapi.info.license.name, "GPL");
+    assert.deepStrictEqual(openapi.tags, [{ name: "Aaaaa" }, { name: "contacts" }, { name: "Zzzz" }]);
+    // @ts-ignore
+    assert.ok(Object.keys(openapi.definitions).length > 10);
   }
 
   @test
@@ -188,7 +229,7 @@ class CoreTest extends WebdaTest {
   @test
   getServicesImplementations() {
     let moddas = this.webda.getServicesImplementations();
-    assert.strictEqual(Object.keys(moddas).length, 20);
+    assert.strictEqual(Object.keys(moddas).length, 21);
   }
 
   @test
@@ -326,6 +367,15 @@ class CoreTest extends WebdaTest {
         }),
       Error
     );
+    await assert.rejects(
+      () =>
+        this.webda.reinit({
+          "$.Bouzouf": {
+            Testor: "plop"
+          }
+        }),
+      /Configuration is not designed to add dynamically services/
+    );
   }
 
   assertInitError(service, msg) {
@@ -355,5 +405,84 @@ class CoreTest extends WebdaTest {
     // assertInitError("ConfigurationServiceBadSource", "Need a valid service");
     // assertInitError("ConfigurationServiceBadSourceNoId", "Need a valid source");
     // assertInitError("ConfigurationServiceBadSourceWithId", "is not implementing ConfigurationProvider interface");
+    let err = new WebdaError("CODE", "");
+    assert.strictEqual(err.getCode(), "CODE");
+  }
+
+  @test
+  cov() {
+    assert.deepStrictEqual(this.webda.getDeployers(), {});
+    this.webda.registerModel("mine", {});
+    assert.strictEqual(this.webda.getSalt(), this.webda.getConfiguration().parameters.salt);
+  }
+
+  @test
+  async listenersTest() {
+    let stub = sinon.stub();
+    let stub2 = sinon.stub().callsFake(async () => {});
+    this.webda.on("Test", stub);
+    this.webda.on("Test", stub2);
+    await this.webda.emitSync("Test");
+    assert.strictEqual(stub.callCount, 1);
+    assert.strictEqual(stub2.callCount, 1);
+  }
+
+  @test
+  createServices() {
+    console.log(this.webda.getApplication());
+    // @ts-ignore
+    let method = this.webda.createServices.bind(this.webda);
+    method(["definedmailer"]);
+    // @ts-ignore
+    this.webda.getApplication().getService = type => {
+      if (type === "Test/VoidStore") {
+        throw new Error();
+      } else {
+        return BadService;
+      }
+    };
+    method();
+  }
+
+  @test
+  async badInit() {
+    let service = this.webda.getService("definedmailer");
+    service.init = async () => {
+      throw new Error("Not happy");
+    };
+    service.reinit = async () => {
+      throw new Error("Not happy");
+    };
+    // @ts-ignore
+    await this.webda.initService("definedmailer");
+    assert.notStrictEqual(service._initException, undefined);
+    // @ts-ignore
+    await this.webda.reinitService("definedmailer");
+  }
+
+  @test
+  sandbox() {
+    const code = `let protected = false;
+    let json = require('jsonpath');
+    try { 
+      require('net'); 
+    } catch (err) { 
+      protected = err.message === "not allowed"
+    }
+    module.exports = function() { return protected }`;
+    assert.strictEqual(
+      this.webda.sandbox(code, {
+        require: function (mod) {
+          // We need to add more control here
+          if (mod === "net") {
+            throw Error("not allowed");
+          }
+          // if the module is okay to load, load it:
+          return require.apply(this, arguments);
+        }
+      }),
+      true
+    );
+    assert.throws(() => this.webda.sandbox(code), /not allowed/);
   }
 }

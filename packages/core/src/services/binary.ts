@@ -4,6 +4,7 @@ import * as fs from "fs";
 import * as mime from "mime-types";
 import * as path from "path";
 import { Readable } from "stream";
+import { WebdaError } from "..";
 import { CoreModel } from "../models/coremodel";
 import { Store } from "../stores/store";
 import { Context } from "../utils/context";
@@ -21,6 +22,23 @@ export interface EventBinaryDelete extends EventBinary {}
 export interface EventBinaryCreate extends EventBinaryUploadSuccess {}
 export interface EventBinaryUpdate extends EventBinaryUploadSuccess {
   old: BinaryMap;
+}
+
+export class BinaryNotFoundError extends WebdaError {
+  constructor(hash: string, storeName: string) {
+    super("BINARY_NOTFOUND", `Binary not found ${hash} BinaryService(${storeName})`);
+  }
+}
+
+export interface BinaryFile {
+  path?: string;
+  buffer?: Buffer;
+  name?: string;
+  originalname?: string;
+  size?: number;
+  mimetype?: string;
+  challenge?: string;
+  hash?: string;
 }
 
 /**
@@ -173,7 +191,13 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    * @emits 'binaryCreate'
    */
 
-  abstract store(object: CoreModel, property: string, file, metadatas: any, index?: number): Promise<any>;
+  abstract store(
+    object: CoreModel,
+    property: string,
+    file: BinaryFile,
+    metadatas?: { [key: string]: any },
+    index?: number
+  ): Promise<void>;
 
   /**
    * The store can retrieve how many time a binary has been used
@@ -190,7 +214,13 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    * @param {Object} metadatas to add to the binary object
    * @emits 'binaryUpdate'
    */
-  abstract update(object, property, index, file, metadatas): Promise<CoreModel>;
+  abstract update(
+    object: CoreModel,
+    property: string,
+    index: number,
+    file: BinaryFile,
+    metadatas?: { [key: string]: any }
+  ): Promise<void>;
 
   /**
    * Update a binary
@@ -200,7 +230,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    * @param {Number} index The index of the file to change in the property
    * @emits 'binaryDelete'
    */
-  abstract delete(object: CoreModel, property: string, index: number): Promise<CoreModel>;
+  abstract delete(object: CoreModel, property: string, index: number): Promise<void>;
 
   /**
    * Get a binary
@@ -235,7 +265,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
         } catch (err) {
           this._webda.log("ERROR", err);
         }
-        return reject();
+        return reject(src);
       });
       readStream.pipe(writeStream);
     });
@@ -299,7 +329,12 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     return new BinaryMap(this, obj);
   }
 
-  _getHashes(buffer) {
+  /**
+   * Create hashes
+   * @param buffer
+   * @returns
+   */
+  _getHashes(buffer: Buffer): { hash: string; challenge: string } {
     var result: any = {};
     // Using MD5 as S3 content verification use md5
     var hash = crypto.createHash("md5");
@@ -310,7 +345,11 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     return result;
   }
 
-  _prepareInput(file) {
+  /**
+   * Update the BinaryFile
+   * @param file
+   */
+  _prepareInput(file: BinaryFile) {
     if (file.path !== undefined) {
       file.buffer = fs.readFileSync(file.path);
       file.originalname = path.basename(file.path);
@@ -318,6 +357,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
       file.size = fs.statSync(file.path).size;
       file.mimetype = mime.lookup(file.path) || "application/octet-stream";
     }
+    Object.assign(file, this._getHashes(file.buffer));
   }
 
   /**
@@ -331,9 +371,6 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     if (map === undefined) {
       throw Error("Unknown mapping");
     }
-    if (typeof map === "string" && map !== property) {
-      throw Error("Unknown mapping");
-    }
     if (Array.isArray(map) && map.indexOf(property) === -1) {
       throw Error("Unknown mapping");
     }
@@ -344,36 +381,29 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     return re.test(challenge);
   }
 
-  challenge(hash, challenge) {
-    return false;
-  }
-
-  async updateSuccess(object: CoreModel, property: string, index: number, file: any, metadatas: any) {
+  async updateSuccess(object: CoreModel, property: string, index: number, file: any, metadatas?: any): Promise<void> {
     var fileObj: BinaryMap = {
       ...file,
       metadatas
     };
     var object_uid = object.getUuid();
     var info;
-    var update;
-    var promise;
     await this.emitSync("Binary.UploadSuccess", <EventBinaryUploadSuccess>{
       object: fileObj,
       service: this,
       target: object
     });
     if (index === undefined || index < 0) {
-      promise = object.getStore().upsertItemToCollection(object_uid, property, fileObj);
+      await object.getStore().upsertItemToCollection(object_uid, property, fileObj);
     } else {
-      promise = object
+      info = object[property][index];
+      await object
         .getStore()
         .upsertItemToCollection(object_uid, property, fileObj, index, object[property][index].hash, "hash");
-      info = object[property][index];
     }
-    let updated = await promise;
-    update = updated;
     if (info) {
       if (info.hash !== file.hash) {
+        // ??
         await this.cascadeDelete(info, object_uid);
       }
       await this.emitSync("Binary.Update", <EventBinaryUpdate>{
@@ -389,7 +419,6 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
         target: object
       });
     }
-    return update;
   }
 
   /**
@@ -418,6 +447,11 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     return update;
   }
 
+  /**
+   * Get file either from multipart post or raw
+   * @param req
+   * @returns
+   */
   _getFile(req) {
     var file;
     if (req.files !== undefined) {
@@ -440,6 +474,9 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     this._initRoutes();
   }
 
+  protected getOperationName(): string {
+    return this._name.toLowerCase() === "Binary" ? "" : this._name;
+  }
   /**
    * This is used to allow subclasses to add more route
    */
@@ -449,14 +486,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
       return false;
     }
 
-    let name = this._name;
-    if (name === "Binary") {
-      name = "";
-    }
-
-    if (!this.parameters.expose.url) {
-      return false;
-    }
+    let name = this.getOperationName();
 
     if (!this.parameters.expose.restrict.get) {
       url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}";
@@ -538,8 +568,8 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
   async httpPost(ctx: Context) {
     let targetStore = this._verifyMapAndStore(ctx);
     let object = await targetStore.get(ctx.parameter("uid"), ctx);
-    object = await this.store(object, ctx.parameter("property"), this._getFile(ctx), ctx.getRequestBody());
-    ctx.write(object);
+    await object.canAct(ctx, "attach_binary");
+    await this.store(object, ctx.parameter("property"), this._getFile(ctx), ctx.getRequestBody());
   }
 
   _verifyMapAndStore(ctx: Context): Store<CoreModel> {
@@ -550,10 +580,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
       throw 404;
     }
     let property = ctx.parameter("property");
-    if (typeof map === "string" && map !== property) {
-      throw 404;
-    }
-    if (Array.isArray(map) && map.indexOf(property) == -1) {
+    if (map.indexOf(property) == -1) {
       throw 404;
     }
     var targetStore: Store<CoreModel> = this.getService<Store<CoreModel>>(store);
@@ -563,11 +590,19 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     return targetStore;
   }
 
+  /**
+   * By default no challenge is managed so throws 404
+   *
+   * @param ctx
+   */
   async putRedirectUrl(ctx: Context): Promise<string> {
     // Dont handle the redirect url
     throw 404;
   }
 
+  /**
+   * Mechanism to add a data based on challenge
+   */
   async httpChallenge(ctx: Context) {
     let url = await this.putRedirectUrl(ctx);
     let base64String = Buffer.from(ctx.getRequestBody().hash, "hex").toString("base64");
@@ -578,22 +613,25 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     });
   }
 
-  // Executor side
+  /**
+   * Manage the different routes
+   * @param ctx
+   */
   async httpRoute(ctx: Context) {
+    // First verify if map exist
     let targetStore = this._verifyMapAndStore(ctx);
-    let uid = ctx.parameter("uid");
-    let object = await targetStore.get(uid, ctx);
+    // Get the object
+    let object = await targetStore.get(ctx.parameter("uid"), ctx);
     if (object === undefined) {
       throw 404;
     }
     let property = ctx.parameter("property");
     let index = ctx.parameter("index");
-    if (object[property] !== undefined && typeof object[property] !== "object") {
-      throw 403;
-    }
-    if (object[property] === undefined || object[property][index] === undefined) {
+    // Should be an array
+    if (!Array.isArray(object[property]) || object[property].length <= index) {
       throw 404;
     }
+    // Check permissions
     let action = "unknown";
     if (ctx.getHttpContext().getMethod() === "GET") {
       action = "get_binary";
@@ -603,6 +641,8 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
       action = "attach_binary";
     }
     await object.canAct(ctx, action);
+
+    // Now do the action
     if (ctx.getHttpContext().getMethod() === "GET") {
       var file = object[property][index];
       ctx.writeHead(200, {
@@ -610,26 +650,29 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
         "Content-Length": file.size
       });
       let readStream: any = await this.get(file);
-      await new Promise<void>((resolve, reject) => {
-        // We replaced all the event handlers with a simple call to readStream.pipe()
-        ctx._stream.on("finish", src => {
-          return resolve();
+      try {
+        await new Promise<void>((resolve, reject) => {
+          // We replaced all the event handlers with a simple call to readStream.pipe()
+          ctx._stream.on("finish", src => {
+            return resolve();
+          });
+          ctx._stream.on("error", src => {
+            return reject();
+          });
+          readStream.pipe(ctx._stream);
         });
-        ctx._stream.on("error", src => {
-          return reject();
-        });
-        readStream.pipe(ctx._stream);
-      });
+      } catch (err) {
+        this.log("ERROR", err);
+        throw 500;
+      }
     } else {
       if (object[property][index].hash !== ctx.parameter("hash")) {
         throw 412;
       }
       if (ctx.getHttpContext().getMethod() === "DELETE") {
-        object = await this.delete(object, property, index);
-        ctx.write(object);
+        await this.delete(object, property, index);
       } else if (ctx.getHttpContext().getMethod() === "PUT") {
-        object = await this.update(object, property, index, this._getFile(ctx), ctx.getRequestBody());
-        ctx.write(object);
+        await this.update(object, property, index, this._getFile(ctx), ctx.getRequestBody());
       }
     }
   }

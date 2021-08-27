@@ -11,10 +11,10 @@ class Ident extends WebdaIdent {
       plop: {},
       index: {
         global: true,
-        method: "GET"
+        methods: ["GET"]
       },
       yop: {
-        method: ["GET", "POST"]
+        methods: ["GET", "POST"]
       }
     };
   }

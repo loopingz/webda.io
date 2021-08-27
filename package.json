@@ -55,5 +55,8 @@
     "publish": {
       "conventionalCommits": true
     }
+  },
+  "webda": {
+    "randomLink": "./test.json"
   }
 }

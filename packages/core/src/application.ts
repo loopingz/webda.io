@@ -310,7 +310,7 @@ export class Application {
     }
     this.appPath = path.dirname(file);
     try {
-      this.baseConfiguration = JSON.parse(fs.readFileSync(file).toString() || "{}");
+      this.baseConfiguration = JSON.parse(fs.readFileSync(file).toString());
     } catch (err) {
       this.log("WARN", err);
       if (allowModule) {
@@ -700,7 +700,11 @@ export class Application {
     };
     let info = this.getPackageDescription();
     try {
-      let tags = execSync(`git tag --points-at HEAD`, options).toString().trim().split("\n");
+      let tags = execSync(`git tag --points-at HEAD`, options)
+        .toString()
+        .trim()
+        .split("\n")
+        .filter(tag => tag !== "");
       let tag = "";
       let version = info.version;
       if (tags.includes(`${info.name}@${info.version}`)) {
@@ -727,7 +731,7 @@ export class Application {
         commit: "unknown",
         branch: "unknown",
         tag: "",
-        short: "0000000",
+        short: "00000000",
         tags: [],
         version: info.version
       };
@@ -791,8 +795,8 @@ export class Application {
    * @param replacements additional replacements to run
    */
   replaceVariables(object: any, replacements: any = {}) {
-    if (typeof this[object] === "string") {
-      return this.stringParameter(object);
+    if (typeof object === "string") {
+      return this.stringParameter(object, replacements);
     }
     let app = this;
     return JSON.parse(

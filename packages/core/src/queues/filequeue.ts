@@ -104,6 +104,7 @@ class FileQueue<T = any, K extends FileQueueParameters = FileQueueParameters> ex
         return res;
       })
       .filter(f => !f.hasLock)
+      /* istanbul ignore next  */
       .sort((a, b) => {
         // It is not relevant as it is fs based
         /* istanbul ignore if  */

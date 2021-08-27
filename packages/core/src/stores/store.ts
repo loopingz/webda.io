@@ -1,8 +1,7 @@
 "use strict";
-import { v4 as uuidv4 } from "uuid";
 import { EventWithContext, WebdaError } from "../core";
 import { ConfigurationProvider } from "../index";
-import { CoreModel, CoreModelDefinition } from "../models/coremodel";
+import { CoreModel, CoreModelDefinition, ModelAction } from "../models/coremodel";
 import { Service, ServiceParameters } from "../services/service";
 import { Context } from "../utils/context";
 
@@ -580,29 +579,27 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     if (this._model && this._model.getActions) {
       let actions = this._model.getActions();
       Object.keys(actions).forEach(name => {
-        let action: any = actions[name];
-        action.name = name;
-        if (!action.method) {
-          action.method = ["PUT"];
+        let action: ModelAction = actions[name];
+        if (!action.methods) {
+          action.methods = ["PUT"];
         }
+        let executer;
         if (action.global) {
           // By default will grab the object and then call the action
-          if (!action._method) {
-            if (!this._model["_" + action.name]) {
-              throw Error("Action static method _" + action.name + " does not exist");
-            }
-            action._method = this.httpGlobalAction;
+
+          if (!this._model["_" + name]) {
+            throw Error("Action static method _" + name + " does not exist");
           }
-          this.addRoute(expose.url + "/" + action.name, action.method, action._method, action.openapi);
+          executer = this.httpGlobalAction;
+          this.addRoute(expose.url + "/" + name, action.methods, executer, action.openapi);
         } else {
           // By default will grab the object and then call the action
-          if (!action._method) {
-            if (!this._model.prototype["_" + action.name]) {
-              throw Error("Action method _" + action.name + " does not exist");
-            }
-            action._method = this.httpAction;
+          if (!this._model.prototype["_" + name]) {
+            throw Error("Action method _" + name + " does not exist");
           }
-          this.addRoute(expose.url + "/{uuid}/" + action.name, action.method, action._method, action.openapi);
+          executer = this.httpAction;
+
+          this.addRoute(expose.url + "/{uuid}/" + name, action.methods, executer, action.openapi);
         }
       });
     }

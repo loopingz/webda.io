@@ -30,6 +30,10 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     await super.before();
   }
 
+  // Override getNotFound as exception is raised after
+  @test
+  async getNotFound() {}
+
   async cleanData() {
     var s3 = new (GetAWS({}).S3)({
       endpoint: "http://localhost:4572",

@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import { ModdaDefinition } from "../core";
 import { Context } from "../utils/context";
-import { Binary, BinaryMap, BinaryParameters } from "./binary";
+import { Binary, BinaryMap, BinaryNotFoundError, BinaryParameters } from "./binary";
 import { Service, ServiceParameters } from "./service";
 import { join } from "path";
 import { CoreModel, Store } from "..";
@@ -60,7 +60,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     }
     // Will redirect to this URL for direct upload
     let url = this.parameters.expose.url + "/upload/data/{hash}";
-    let name = this._name === "Binary" ? "" : this._name;
+    let name = this.getOperationName();
     if (!this.parameters.expose.restrict.create) {
       this.addRoute(url, ["PUT"], this.storeBinary, {
         put: {
@@ -84,7 +84,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
   _get(info: BinaryMap): Readable {
     var path = this._getPath(info.hash, "data");
     if (!fs.existsSync(path)) {
-      throw 404;
+      throw new BinaryNotFoundError(info.hash, this.getName());
     }
     // @ts-ignore
     return <ReadableStream<any>>fs.createReadStream(path);
@@ -225,11 +225,10 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
   /**
    * @inheritdoc
    */
-  async delete(object: CoreModel, property: string, index: number): Promise<CoreModel> {
+  async delete(object: CoreModel, property: string, index: number): Promise<void> {
     var hash = object[property][index].hash;
     await this.deleteSuccess(object, property, index);
     await this._cleanUsage(hash, object.getUuid());
-    return object.refresh();
   }
 
   challenge(hash, challenge) {
@@ -263,24 +262,24 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
   /**
    * @inheritdoc
    */
-  async store(object: CoreModel, property: string, file, metadatas: any, index?: number): Promise<any> {
+  async store(object: CoreModel, property: string, file, metadatas?: any, index?: number): Promise<any> {
     return this.update(object, property, undefined, file, metadatas);
   }
 
   /**
    * @inheritdoc
    */
-  async update(object, property, index, file, metadatas): Promise<CoreModel> {
+  async update(object: CoreModel, property: string, index: number, file, metadatas?): Promise<void> {
     let storeName = object.getStore().getName();
     this._checkMap(storeName, property);
     this._prepareInput(file);
-    file = { ...file, ...this._getHashes(file.buffer) };
     if (fs.existsSync(this._getPath(file.hash))) {
-      this._touch(this._getPath(file.hash, `${storeName}_${object.uuid}`));
-      return this.updateSuccess(object, property, index, file, metadatas);
+      this._touch(this._getPath(file.hash, `${storeName}_${object.getUuid()}`));
+      await this.updateSuccess(object, property, index, file, metadatas);
+      return;
     }
     this._store(file, object);
-    return this.updateSuccess(object, property, index, file, metadatas);
+    await this.updateSuccess(object, property, index, file, metadatas);
   }
 
   /**

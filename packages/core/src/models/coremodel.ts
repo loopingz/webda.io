@@ -1,13 +1,32 @@
 "use strict";
 import { v4 as uuidv4 } from "uuid";
 import { Store } from "../stores/store";
-import { Context } from "../utils/context";
+import { Context, HttpMethodType } from "../utils/context";
 import { Service } from "..";
 import { JSONSchema6 } from "json-schema";
 
-interface CoreModelDefinition {
+export interface ModelAction {
+  /**
+   * Method for the route
+   *
+   * By default ["PUT"]
+   */
+  methods?: HttpMethodType[];
+  /**
+   * Define if the action is global or per object
+   *
+   * The method that implement the action must be called
+   * `_${actionName}`
+   */
+  global: boolean;
+  /**
+   * Additional openapi info
+   */
+  openapi?: any;
+}
+export interface CoreModelDefinition {
   new (): CoreModel;
-  getActions(): any;
+  getActions(): { [key: string]: ModelAction };
   getUuidField(): string;
 }
 
@@ -418,4 +437,4 @@ class CoreModel {
   }
 }
 
-export { CoreModel, CoreModelDefinition };
+export { CoreModel };

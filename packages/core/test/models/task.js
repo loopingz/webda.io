@@ -10,11 +10,9 @@ class Task extends OwnerModel {
   static getActions() {
     return {
       actionable: {
-        method: "GET"
+        methods: ["GET"]
       },
-      impossible: {
-        method: "PUT"
-      }
+      impossible: {}
     };
   }
 

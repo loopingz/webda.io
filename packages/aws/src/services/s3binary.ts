@@ -9,7 +9,9 @@ import {
   ModdaDefinition,
   Store,
   EventBinaryGet,
-  WebdaError
+  WebdaError,
+  BinaryFile,
+  BinaryNotFoundError
 } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
@@ -85,7 +87,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     }
     // Will use getRedirectUrl so override the default route
     var url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}";
-    let name = this._name === "Binary" ? "" : this._name;
+    let name = this.getOperationName();
     if (!this.parameters.expose.restrict.get) {
       this.addRoute(url, ["GET"], this.getRedirectUrl, {
         get: {
@@ -300,7 +302,6 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     let hash = object[property][index].hash;
     await this.deleteSuccess(object, property, index);
     await this._cleanUsage(hash, object.getUuid());
-    return object.refresh();
   }
 
   /**
@@ -458,10 +459,15 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   /**
    * @inheritdoc
    */
-  async store(object: CoreModel, property: string, file, metadatas: any, index?: number): Promise<any> {
+  async store(
+    object: CoreModel,
+    property: string,
+    file: BinaryFile,
+    metadatas?: { [key: string]: any },
+    index?: number
+  ): Promise<void> {
     this._checkMap(object.getStore().getName(), property);
     this._prepareInput(file);
-    file = { ...file, ...this._getHashes(file.buffer) };
     let data = await this._getS3(file.hash);
     if (data === undefined) {
       let s3metas: any = {};
@@ -482,7 +488,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         .promise();
     }
     await this.putMarker(file.hash, object.getUuid(), object.getStore().getName());
-    return this.updateSuccess(object, property, index, file, metadatas);
+    await this.updateSuccess(object, property, index, file, metadatas);
   }
 
   /**
@@ -490,7 +496,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   async update(object, property, index, file, metadatas) {
     await this._cleanUsage(object[property][index].hash, object.uuid);
-    return this.store(object, property, file, metadatas, index);
+    await this.store(object, property, file, metadatas, index);
   }
 
   /**

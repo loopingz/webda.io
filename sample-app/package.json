@@ -44,6 +44,7 @@
     "access": "public"
   },
   "webda": {
-    "namespace": "WebdaDemo"
+    "namespace": "WebdaDemo",
+    "randomLink": "./test.json"
   }
 }

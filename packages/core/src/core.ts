@@ -202,6 +202,10 @@ export interface Configuration {
       path: string;
     };
     /**
+     * Application salt
+     */
+    salt?: string;
+    /**
      * Define the api url
      */
     apiUrl?: string;
@@ -233,9 +237,17 @@ export interface RequestFilter<T extends Context = Context> {
  * @category CoreFeatures
  */
 export class OriginFilter implements RequestFilter<Context> {
-  origins: string[];
+  regexs: RegExp[];
   constructor(origins: string[]) {
-    this.origins = origins;
+    this.regexs = origins.map(origin => {
+      if (!origin.endsWith("$")) {
+        origin += "$";
+      }
+      if (!origin.startsWith("^")) {
+        origin = "^" + origin;
+      }
+      return new RegExp(origin);
+    });
   }
   /**
    *
@@ -244,15 +256,7 @@ export class OriginFilter implements RequestFilter<Context> {
    */
   async checkRequest(context: Context): Promise<boolean> {
     let httpContext = context.getHttpContext();
-    for (let i in this.origins) {
-      let origin = this.origins[i];
-      if (!origin.endsWith("$")) {
-        origin += "$";
-      }
-      if (!origin.startsWith("^")) {
-        origin = "^" + origin;
-      }
-      let regexp = new RegExp(origin);
+    for (let regexp of this.regexs) {
       if (httpContext.origin.match(regexp)) {
         return true;
       }
@@ -418,9 +422,9 @@ export class Core extends events.EventEmitter {
 
   /**
    * Get absolute url with subpath
-   * @param subpath 
+   * @param subpath
    */
-  getApiUrl(subpath: string = "") : string {
+  getApiUrl(subpath: string = ""): string {
     if (subpath.length > 0 && !subpath.startsWith("/")) {
       subpath = "/" + subpath;
     }
@@ -429,11 +433,11 @@ export class Core extends events.EventEmitter {
 
   /**
    * Return application path with subpath
-   * 
+   *
    * Helper that redirect to this.application.getAppPath
-   * 
-   * @param subpath 
-   * @returns 
+   *
+   * @param subpath
+   * @returns
    */
   getAppPath(subpath: string = ""): string {
     return this.application.getAppPath(subpath);
@@ -541,24 +545,17 @@ export class Core extends events.EventEmitter {
    * @param {Object} executor The executor to expose as executor
    * @param {String} code to execute
    */
-  sandbox(executor, code) {
-    var sandbox: vm.Context = {
-      // Should be custom console
-      console: console,
-      webda: executor._webda,
-      executor: executor,
-      module: {},
-      require: function (mod) {
-        // We need to add more control here
-        if (mod === "net") {
-          throw Error("not allowed");
-        }
-        // if the module is okay to load, load it:
-        return require.apply(this, arguments);
+  sandbox(code, context?: vm.Context) {
+    context ??= {
+      require: () => {
+        throw Error("not allowed");
       }
     };
-    vm.runInNewContext(code, sandbox);
-    return sandbox.module.exports(executor);
+    context.module = {
+      exports: {}
+    };
+    vm.runInNewContext(code, context);
+    return context.module.exports();
   }
 
   /**
@@ -661,9 +658,7 @@ export class Core extends events.EventEmitter {
    */
   getService<T extends Service>(name: string = ""): T {
     name = name.toLowerCase();
-    if (this.services !== undefined) {
-      return <T>this.services[name];
-    }
+    return <T>this.services[name];
   }
 
   /**
@@ -762,9 +757,6 @@ export class Core extends events.EventEmitter {
     }
 
     var executor = this.getService(route.executor);
-    if (executor === undefined) {
-      return false;
-    }
     ctx.setRoute({ ...this.configuration, ...route });
     ctx.setExecutor(executor);
     return true;
@@ -826,7 +818,7 @@ export class Core extends events.EventEmitter {
     }
     if (JSON.stringify(Object.keys(configuration)) !== JSON.stringify(Object.keys(this.configuration.services))) {
       this.log("ERROR", "Configuration update cannot modify services");
-      return this._initPromise;
+      throw new WebdaError("REINIT_SERVICE_INJECTION", "Configuration is not designed to add dynamically services");
     }
     this.configuration.services = configuration;
     let inits: Promise<void>[] = [];
@@ -847,12 +839,6 @@ export class Core extends events.EventEmitter {
    */
   protected createServices(excludes: string[] = []): void {
     var services = this.configuration.services;
-    if (this.services === undefined) {
-      this.services = {};
-    }
-    if (services === undefined) {
-      services = {};
-    }
     for (let i in beans) {
       if (!beans[i].bean) {
         this.log("DEBUG", "Implicit @Bean due to a @Route", beans[i].constructor.name);
@@ -867,9 +853,8 @@ export class Core extends events.EventEmitter {
       this.application.addService(`Beans/${name}`, beans[i].constructor);
     }
 
-    let service;
     // Construct services
-    for (service in services) {
+    for (let service in services) {
       if (excludes.indexOf(service.toLowerCase()) >= 0) {
         continue;
       }
@@ -1015,8 +1000,8 @@ export class Core extends events.EventEmitter {
     var result;
     var promises = [];
     var listeners = this.listeners(eventType);
-    for (var i in listeners) {
-      result = listeners[i](event, ...data);
+    for (let listener of listeners) {
+      result = listener(event, ...data);
       if (result instanceof Promise) {
         promises.push(result);
       }
@@ -1097,9 +1082,6 @@ export class Core extends events.EventEmitter {
       let desc: JSONSchema6 = {
         type: "object"
       };
-      if (model instanceof Context) {
-        continue;
-      }
       let modelDescription = this.getModel(i);
       // Only export CoreModel info
       if (!this.application.extends(modelDescription, CoreModel)) {
@@ -1108,11 +1090,12 @@ export class Core extends events.EventEmitter {
       let schema = this.application.getSchemaResolver().fromPrototype(modelDescription);
       if (schema) {
         for (let j in schema.definitions) {
-          openapi.definitions[j] = openapi.definitions[j] ?? schema.definitions[j];
+          openapi.definitions[j] ??= schema.definitions[j];
         }
         delete schema.definitions;
         desc = schema;
       }
+      // @ts-ignore
       openapi.definitions[model.name.split("/").pop()] = desc;
     }
     this.router.completeOpenAPI(openapi, skipHidden);

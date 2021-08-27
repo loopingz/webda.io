@@ -167,7 +167,7 @@ class MemoryStore<T extends CoreModel, K extends StoreParameters = StoreParamete
     updateDate: Date
   ) {
     return this.simulateUpsertItemToCollection(
-      this._getSync(uid),
+      this._getSync(uid, true),
       prop,
       item,
       updateDate,

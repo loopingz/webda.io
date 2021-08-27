@@ -2,12 +2,14 @@ import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { WebdaTest } from "./test";
 import { HttpContext } from "./utils/context";
+import { RouteInfo } from "./router";
 
 @suite
 class RouterTest extends WebdaTest {
   @test
   testGetRouteMethodsFromUrl() {
-    this.webda.addRoute("/plop", { methods: ["GET"], executor: "DefinedMailer" });
+    const info: RouteInfo = { methods: ["GET"], executor: "DefinedMailer" };
+    this.webda.addRoute("/plop", info);
     assert.deepStrictEqual(this.webda.getRouter().getRouteMethodsFromUrl("/"), ["GET", "POST"]);
     assert.deepStrictEqual(this.webda.getRouter().getRouteMethodsFromUrl("/plop"), ["GET"]);
     this.webda.addRoute("/plop", { methods: ["POST"], executor: "DefinedMailer" });
@@ -21,6 +23,8 @@ class RouterTest extends WebdaTest {
       { level: "TRACE", args: ["Add route /plop"] },
       { level: "WARN", args: ["GET /plop overlap with another defined route"] }
     ]);
+    // Should be skipped
+    this.webda.addRoute("/plop", info);
   }
 
   @test
@@ -54,5 +58,26 @@ class RouterTest extends WebdaTest {
     ctx = await this.webda.newContext(httpContext);
     assert.strictEqual(this.webda.updateContextWithRoute(ctx), true);
     assert.strictEqual(ctx.getPathParameters().uuid, "bouzouf");
+  }
+
+  @test
+  completeOpenApi() {
+    let api = { paths: {}, info: { title: "Plop", version: "1.0" }, openapi: "", tags: [{ name: "test" }] };
+    const info: RouteInfo = {
+      methods: ["GET"],
+      executor: "DefinedMailer",
+      openapi: {
+        tags: ["plop", "test"],
+        hidden: true
+      }
+    };
+    this.webda.addRoute("/plop{?*path}", info);
+    this.webda.getRouter().remapRoutes();
+    this.webda.getRouter().completeOpenAPI(api);
+    assert.strictEqual(api.paths["/plop"], undefined);
+    this.webda.getRouter().completeOpenAPI(api, false);
+    assert.notStrictEqual(api.paths["/plop"], undefined);
+    assert.deepStrictEqual(api.paths["/plop"].get.tags, ["plop", "test"]);
+    assert.ok(api.tags.filter(f => f.name === "plop").length === 1);
   }
 }

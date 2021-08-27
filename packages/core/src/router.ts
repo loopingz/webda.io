@@ -56,6 +56,7 @@ export class Router {
    */
   addRoute(url: string, info: RouteInfo): void {
     this.webda.log("TRACE", `Add route ${url}`);
+    info.openapi ??= {};
     if (this.routes[url]) {
       // If route is already added do not do anything
       if (this.routes[url].includes(info)) {
@@ -217,11 +218,6 @@ export class Router {
     };
     for (let i in this.routes) {
       this.routes[i].forEach((route: RouteInfo) => {
-        if (!route.openapi) {
-          route.openapi = {
-            methods: {}
-          };
-        }
         if (route.openapi.hidden && skipHidden) {
           return;
         }

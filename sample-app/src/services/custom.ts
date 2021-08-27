@@ -6,7 +6,7 @@ class CustomService extends Service {
     ctx.write(this.output(ctx.getParameters().msg));
   }
 
-  @Route("/test", ["GET"])
+  @Route("/test", "GET")
   test(ctx: Context) {
     ctx.write("Tested");
   }

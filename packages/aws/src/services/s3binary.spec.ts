@@ -183,4 +183,34 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     await this.getBinary()._cleanHash("bouzouf");
     // TO CONTINUE (localstack might not handle V2)
   }
+
+  @test
+  async redirectUrl() {
+    let { user1, ctx } = await this.setupDefault();
+    // Making sure we are redirected on GET
+    let executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
+    await executor.execute(ctx);
+    assert.ok(ctx.getResponseHeaders().Location !== undefined);
+  }
+
+  @test
+  async redirectUrlInfo() {
+    let { user1, ctx } = await this.setupDefault();
+    // Making sure we are redirected on GET
+    let executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0/url`, {});
+    await executor.execute(ctx);
+    assert.ok(ctx.getResponseHeaders().Location === undefined);
+    assert.notStrictEqual(JSON.parse(ctx.getResponseBody()).Location, undefined);
+  }
+
+  @test
+  async httpGetError() {
+    // GET is not through classic binary
+    // Skip it
+  }
+
+  @test
+  async challenge() {
+    await this.testChallenge(false);
+  }
 }

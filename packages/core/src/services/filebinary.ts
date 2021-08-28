@@ -6,6 +6,7 @@ import { Service, ServiceParameters } from "./service";
 import { join } from "path";
 import { CoreModel, Store } from "..";
 import { Readable } from "stream";
+import * as jwt from "jsonwebtoken";
 
 export class FileBinaryParameters extends BinaryParameters {
   /**
@@ -59,7 +60,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
       return false;
     }
     // Will redirect to this URL for direct upload
-    let url = this.parameters.expose.url + "/upload/data/{hash}";
+    let url = this.parameters.expose.url + "/upload/data/{hash}{?token}";
     let name = this.getOperationName();
     if (!this.parameters.expose.restrict.create) {
       this.addRoute(url, ["PUT"], this.storeBinary, {
@@ -105,9 +106,13 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
 
   getPutUrl(ctx: Context) {
     // Get a full URL, this method should be in a Route Object
+    // Add a JWT token for 60s
+    let token = jwt.sign({ hash: ctx.getRequestBody().hash }, this.getWebda().getSecret(), {
+      expiresIn: 60
+    });
     return ctx
       .getHttpContext()
-      .getAbsoluteUrl(this.parameters.expose.url + "/upload/data/" + ctx.getRequestBody().hash);
+      .getAbsoluteUrl(this.parameters.expose.url + "/upload/data/" + ctx.getRequestBody().hash + `?token=${token}`);
   }
 
   /**
@@ -115,18 +120,15 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
    *
    * @ignore
    */
-  async putRedirectUrl(ctx: Context): Promise<string> {
+  async putRedirectUrl(ctx: Context): Promise<{ url: string; method: string }> {
     let body = ctx.getRequestBody();
-    if (body.hash === undefined) {
-      this._webda.log("WARN", "Request not conform", body);
-      throw 400;
-    }
     let uid = ctx.parameter("uid");
     let store = ctx.parameter("store");
     let property = ctx.parameter("property");
+    let result = { url: this.getPutUrl(ctx), method: "PUT" };
     if (fs.existsSync(this._getPath(body.hash, store + "_" + uid))) {
       if (!fs.existsSync(this._getPath(body.hash, "data"))) {
-        return Promise.resolve(this.getPutUrl(ctx));
+        return result;
       }
       // If the link is already register just return directly ok
       return;
@@ -145,7 +147,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
       return;
     }
     // Return the url to upload the binary now
-    return this.getPutUrl(ctx);
+    return result;
   }
 
   /**
@@ -161,6 +163,15 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     var result = this._getHashes(body);
     if (ctx.parameter("hash") !== result.hash) {
       throw 400;
+    }
+    // Verify token
+    try {
+      let dt = jwt.verify(ctx.parameter("token"), this.getWebda().getSecret());
+      if (dt.hash !== result.hash) {
+        throw 403;
+      }
+    } catch (err) {
+      throw 403;
     }
     if (!fs.existsSync(this._getPath(result.hash))) {
       // The folder should have been create by a previous request
@@ -232,14 +243,8 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
   }
 
   challenge(hash, challenge) {
-    if (!this._validChallenge(challenge)) {
-      return false;
-    }
     var path = this._getPath(hash);
-    if (!fs.existsSync(path) || !fs.existsSync(path + "/_" + challenge)) {
-      return false;
-    }
-    return true;
+    return fs.existsSync(path) && fs.existsSync(`${path}/_${challenge}`);
   }
 
   /**

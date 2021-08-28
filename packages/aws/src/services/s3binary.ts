@@ -123,18 +123,13 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   /**
    * @inheritdoc
    */
-  async putRedirectUrl(ctx: Context): Promise<string> {
+  async putRedirectUrl(ctx: Context): Promise<{ url: string; method: string }> {
     let body = ctx.getRequestBody();
-    if (body.hash === undefined) {
-      this._webda.log("WARN", "Request not conform", body);
-      throw 403;
-    }
     let uid = ctx.parameter("uid");
     let store = ctx.parameter("store");
     let property = ctx.parameter("property");
     let targetStore = this._verifyMapAndStore(ctx);
     let object: any = await targetStore.get(uid);
-    await object.canAct(ctx, "attach_binary");
     var base64String = Buffer.from(body.hash, "hex").toString("base64");
     var params = {
       Bucket: this.parameters.bucket,
@@ -151,17 +146,35 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       .promise();
     let foundMap = false;
     let foundData = false;
+    let challenge;
     for (let i in data.Contents) {
       if (data.Contents[i].Key.endsWith("data")) foundData = true;
       if (data.Contents[i].Key.endsWith(uid)) foundMap = true;
+      if (data.Contents[i].Key.split("/").pop().startsWith("challenge_")) {
+        challenge = data.Contents[i].Key.split("/").pop().substr("challenge_".length);
+      }
     }
     if (foundMap) {
       if (foundData) return;
-      return this.getSignedUrl(params.Key, "putObject", params);
+      return { url: this.getSignedUrl(params.Key, "putObject", params), method: "PUT" };
+    }
+    if (foundData) {
+      if (challenge) {
+        // challenge and data prove it exists
+        if (challenge === body.challenge) {
+          await this.updateSuccess(object, property, undefined, body, body.metadatas);
+          return;
+        }
+      } else {
+        // Set challenge aside for now
+        await this.putMarker(body.hash, `challenge_${body.challenge}`, "challenge");
+      }
+    } else {
+      await this.putMarker(body.hash, `challenge_${body.challenge}`, "challenge");
     }
     await this.updateSuccess(object, property, undefined, body, body.metadatas);
     await this.putMarker(body.hash, uid, store);
-    return this.getSignedUrl(params.Key, "putObject", params);
+    return { url: this.getSignedUrl(params.Key, "putObject", params), method: "PUT" };
   }
 
   /**
@@ -212,38 +225,39 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   }
 
   /**
-   * @inheritdoc
+   * Redirect to the temporary link to S3 object
+   * or return it if returnInfo=true
+   *
+   * @param ctx of the request
+   * @param returnInfo
    */
-  async getRedirectUrl(ctx) {
+  async getRedirectUrl(ctx, returnInfo: boolean = false) {
     let uid = ctx.parameter("uid");
     let index = ctx.parameter("index");
     let property = ctx.parameter("property");
     let targetStore = this._verifyMapAndStore(ctx);
-    let obj = await targetStore.get(uid);
-    if (obj === undefined || obj[property] === undefined || obj[property][index] === undefined) {
+    let object = await targetStore.get(uid);
+    if (!object || !Array.isArray(object[property]) || object[property].length <= index) {
       throw 404;
     }
-    await obj.canAct(ctx, "get_binary");
-    let url = await this.getRedirectUrlFromObject(obj, property, index, ctx);
-    ctx.writeHead(302, {
-      Location: url
-    });
-    ctx.end();
+    await object.canAct(ctx, "get_binary");
+    let url = await this.getRedirectUrlFromObject(object, property, index, ctx);
+    if (returnInfo) {
+      ctx.write({ Location: url });
+    } else {
+      ctx.writeHead(302, {
+        Location: url
+      });
+    }
   }
 
+  /**
+   * Return the temporary link to S3 object
+   * @param ctx
+   * @returns
+   */
   async getRedirectUrlInfo(ctx) {
-    let uid = ctx.parameter("uid");
-    let property = ctx.parameter("property");
-    let index = ctx.parameter("index");
-    let targetStore = this._verifyMapAndStore(ctx);
-    let obj = await targetStore.get(uid);
-    if (obj === undefined || obj[property] === undefined || obj[property][index] === undefined) {
-      throw 404;
-    }
-    await obj.canAct(ctx, "get_binary");
-    let url = await this.getRedirectUrlFromObject(obj, property, index, ctx);
-    ctx.write({ Location: url });
-    ctx.end();
+    return this.getRedirectUrl(ctx, true);
   }
 
   _get(info: BinaryMap): Readable {
@@ -266,7 +280,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         Prefix: this._getKey(hash, "")
       })
       .promise();
-    return data.Contents.length ? data.Contents.length - 1 : 0;
+    return data.Contents.filter(k => !(k.Key.includes("data") || k.Key.includes("challenge"))).length;
   }
 
   /**
@@ -341,12 +355,6 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       return hash + "/data";
     }
     return hash + "/" + postfix;
-  }
-
-  _getUrl(info, ctx: Context) {
-    // Dont return any url if
-    if (!ctx) return;
-    ctx.getHttpContext().getAbsoluteUrl(this.parameters.expose.url + "/upload/data/" + ctx.getRequestBody().hash);
   }
 
   /**
@@ -487,6 +495,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         })
         .promise();
     }
+    // Set challenge aside for now
+    await this.putMarker(file.hash, `challenge_${file.challenge}`, "challenge");
+
     await this.putMarker(file.hash, object.getUuid(), object.getStore().getName());
     await this.updateSuccess(object, property, index, file, metadatas);
   }

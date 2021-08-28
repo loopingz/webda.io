@@ -13,7 +13,7 @@ class RouterTest extends WebdaTest {
     assert.deepStrictEqual(this.webda.getRouter().getRouteMethodsFromUrl("/"), ["GET", "POST"]);
     assert.deepStrictEqual(this.webda.getRouter().getRouteMethodsFromUrl("/plop"), ["GET"]);
     this.webda.addRoute("/plop", { methods: ["POST"], executor: "DefinedMailer" });
-    assert.deepStrictEqual(this.webda.getRouter().getRouteMethodsFromUrl("/plop"), ["GET", "POST"]);
+    assert.deepStrictEqual(this.webda.getRouter().getRouteMethodsFromUrl("/plop"), ["POST", "GET"]);
     let call = [];
     this.webda.log = (level, ...args) => {
       call.push({ level, args });

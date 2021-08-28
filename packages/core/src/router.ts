@@ -69,7 +69,8 @@ export class Router {
           this.webda.log("WARN", `${m} ${url} overlap with another defined route`);
         }
       });
-      this.routes[url].push(info);
+      // Last added need to be overriding
+      this.routes[url].unshift(info);
     } else {
       this.routes[url] = [info];
     }

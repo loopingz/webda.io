@@ -3,6 +3,7 @@ import { CoreModel, Store, MemoryStore } from "../index";
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { HttpContext } from "../utils/context";
+import { StoreNotFoundError } from "./store";
 
 @suite
 class MemoryStoreTest extends StoreTest {
@@ -57,6 +58,12 @@ class MemoryStoreTest extends StoreTest {
     let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
     identStore.getParameters().expose = undefined;
     identStore.initRoutes();
+  }
+
+  @test
+  getSync() {
+    let identStore: MemoryStore<CoreModel> = <MemoryStore<CoreModel>>this.getIdentStore();
+    assert.throws(() => identStore._getSync("plop", true), StoreNotFoundError);
   }
 
   @test

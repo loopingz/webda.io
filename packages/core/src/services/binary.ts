@@ -69,6 +69,16 @@ export class BinaryMap {
     this.__store = service;
   }
 
+  toJSON() {
+    let res = {};
+    Object.keys(this)
+      .filter(k => !k.startsWith("__"))
+      .forEach(k => {
+        res[k] = this[k];
+      });
+    return res;
+  }
+
   /**
    * Get the binary data
    *
@@ -279,13 +289,6 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     this.initMap(this.parameters.map);
   }
 
-  /**
-   * Return a direct access url
-   * @param info
-   * @param ctx
-   */
-  _getUrl(info: BinaryMap, ctx: Context) {}
-
   abstract _get(info: BinaryMap): Readable;
 
   initMap(map) {
@@ -376,11 +379,6 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     }
   }
 
-  _validChallenge(challenge) {
-    var re = /[0-9A-Fa-f]{64}/g;
-    return re.test(challenge);
-  }
-
   async updateSuccess(object: CoreModel, property: string, index: number, file: any, metadatas?: any): Promise<void> {
     var fileObj: BinaryMap = {
       ...file,
@@ -393,6 +391,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
       service: this,
       target: object
     });
+    // @ts-ignore
     if (index === undefined || index < 0) {
       await object.getStore().upsertItemToCollection(object_uid, property, fileObj);
     } else {
@@ -529,7 +528,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
 
     if (!this.parameters.expose.restrict.create) {
       // Add file with challenge
-      url = this.parameters.expose.url + "/upload/{store}/{uid}/{property}/{index}";
+      url = this.parameters.expose.url + "/upload/{store}/{uid}/{property}";
       this.addRoute(url, ["PUT"], this.httpChallenge, {
         put: {
           operationId: `put${name}Binary`,
@@ -595,7 +594,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    *
    * @param ctx
    */
-  async putRedirectUrl(ctx: Context): Promise<string> {
+  async putRedirectUrl(ctx: Context): Promise<{ url: string; method?: string }> {
     // Dont handle the redirect url
     throw 404;
   }
@@ -604,10 +603,23 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    * Mechanism to add a data based on challenge
    */
   async httpChallenge(ctx: Context) {
+    let property = ctx.parameter("property");
+    let body = ctx.getRequestBody();
+    if (!body.hash || !body.challenge) {
+      throw 400;
+    }
+    // First verify if map exist
+    let targetStore = this._verifyMapAndStore(ctx);
+    // Get the object
+    let object = await targetStore.get(ctx.parameter("uid"), ctx);
+    if (object === undefined) {
+      throw 404;
+    }
+    await object.canAct(ctx, "attach_binary");
     let url = await this.putRedirectUrl(ctx);
     let base64String = Buffer.from(ctx.getRequestBody().hash, "hex").toString("base64");
     ctx.write({
-      url: url,
+      ...url,
       done: url === undefined,
       md5: base64String
     });

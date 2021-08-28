@@ -89,7 +89,7 @@ class WebdaTest {
     host: string = "test.webda.io",
     method: HttpMethodType = "GET",
     url: string = "/",
-    body: object = {},
+    body: any = {},
     headers: object = {}
   ): Executor {
     if (!ctx) {

@@ -1,4 +1,4 @@
-import { Ident, Store } from "@webda/core";
+import { Ident, Store, UpdateConditionFailError } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
@@ -6,6 +6,9 @@ import { checkLocalStack } from "../index.spec";
 import { DynamoStore } from "./dynamodb";
 import { GetAWS } from "./aws-mixin";
 import * as sinon from "sinon";
+import * as AWSMock from "aws-sdk-mock";
+import * as AWS from "aws-sdk";
+import { WorkerOutput } from "@webda/workout";
 
 @suite
 export class DynamoDBTest extends StoreTest {
@@ -158,5 +161,105 @@ export class DynamoDBTest extends StoreTest {
     let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
     userStore.getParameters().table = undefined;
     assert.throws(() => userStore.computeParameters(), /Need to define a table at least/);
+  }
+
+  @test
+  async errors() {
+    let stubs = [];
+    try {
+      const faultyMethod = () => {
+        throw new Error("Unknown");
+      };
+      let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
+      stubs = ["update", "delete", "put"].map(method => {
+        return sinon.stub(userStore._client, method).callsFake(faultyMethod);
+      });
+      stubs.push(
+        sinon.stub(userStore._client, "scan").callsFake((p, c) => {
+          c(new Error("Unknown"), null);
+        })
+      );
+      await assert.rejects(() => userStore._removeAttribute("plop", "test"), /Unknown/);
+      await assert.rejects(
+        () => userStore._deleteItemFromCollection("plop", "test", 1, "plop", 2, new Date()),
+        /Unknown/
+      );
+      await assert.rejects(
+        () => userStore._upsertItemToCollection("plop", "test", 1, "plop", 2, 3, new Date()),
+        /Unknown/
+      );
+      await assert.rejects(() => userStore._delete("plop"), /Unknown/);
+      await assert.rejects(() => userStore._patch({ t: "l" }, "plop"), /Unknown/);
+      await assert.rejects(() => userStore._update({ t: "l" }, "plop"), /Unknown/);
+      await assert.rejects(() => userStore._scan([]), /Unknown/);
+      await assert.rejects(() => userStore._incrementAttribute("plop", "t", 1, new Date()), /Unknown/);
+    } finally {
+      stubs.forEach(s => s.restore());
+      AWSMock.restore();
+    }
+  }
+
+  @test
+  async patch() {
+    let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
+    let stub = sinon.stub(userStore._client, "update").callsFake(() => {
+      let err = new Error();
+      // @ts-ignore
+      err.code = "ConditionalCheckFailedException";
+      throw err;
+    });
+    try {
+      assert.rejects(() => userStore._patch({ t: "l" }, "plop"), UpdateConditionFailError);
+    } finally {
+      stub.restore();
+    }
+  }
+
+  @test
+  async findRequest() {
+    let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
+    userStore._find({ Test: "" });
+  }
+
+  @test
+  async copyTable() {
+    try {
+      const results = [];
+      let stub;
+      let output = new WorkerOutput();
+      for (let i = 0; i < 50; i++) {
+        results.push({ Item: { S: `Title ${i}` } });
+      }
+      AWSMock.mock("DynamoDB", "describeTable", (p, c) => {
+        c(null, {
+          Table: {
+            ItemCount: 10
+          }
+        });
+      });
+      AWSMock.mock("DynamoDB", "scan", (p, c) => {
+        let offset = 0;
+        let LastEvaluatedKey;
+        if (p.ExclusiveStartKey) {
+          offset = parseInt(p.ExclusiveStartKey.year.N);
+        }
+        if (offset + 35 < results.length) {
+          LastEvaluatedKey = { year: { N: (offset + 35).toString() } };
+        }
+
+        c(null, {
+          Items: results.slice(offset, 35),
+          LastEvaluatedKey
+        });
+      });
+      stub = sinon.stub().callsFake((_, c) => {
+        c(null, {});
+      });
+      AWSMock.mock("DynamoDB", "batchWriteItem", stub);
+      let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
+      await DynamoStore.copyTable(output, "table1", "table2");
+    } finally {
+      AWSMock.restore();
+    }
   }
 }

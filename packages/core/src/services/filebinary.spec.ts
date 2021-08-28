@@ -8,29 +8,6 @@ import * as fs from "fs";
 @suite
 class FileBinaryTest extends BinaryTest {
   @test
-  isValidChallenge() {
-    let binary: FileBinary = <FileBinary>this.getService("binary");
-    assert.strictEqual(
-      binary._validChallenge("54b249c8a7c2cdc6945c5c426fbe2b4b41e5045059c43ddc5e134b17e8157980"),
-      true
-    );
-    assert.strictEqual(
-      binary._validChallenge("54b249c8a7c2cdc6945c5c426fbe2b4b41e5045059c43ddc5e134b17e815798G"),
-      false
-    );
-    assert.strictEqual(
-      binary._validChallenge("54b249c8a7c2cdc6945c5c426fbe2b4b41e5045059c43ddc5e134b17e815798"),
-      false
-    );
-    assert.strictEqual(
-      binary._validChallenge("54b249c8a7c2cdc6945c5c426fbe2b4b41e5045059c43ddc5e134b17e815798."),
-      false
-    );
-  }
-
-  // Test parent class
-
-  @test
   initMap() {
     let binary = this.getBinary();
     binary.initMap(undefined);
@@ -93,6 +70,11 @@ class FileBinaryTest extends BinaryTest {
     removeSync(binary.getParameters().folder);
     binary.computeParameters();
     assert.ok(fs.existsSync(binary.getParameters().folder));
+  }
+
+  @test
+  async challenge() {
+    await this.testChallenge();
   }
 }
 

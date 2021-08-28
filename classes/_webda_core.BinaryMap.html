@@ -160,6 +160,12 @@
 							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="_webda_core.BinaryMap.html#hash" class="tsd-kind-icon">hash</a>
 							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="_webda_core.BinaryMap.html#mime" class="tsd-kind-icon">mime</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="_webda_core.BinaryMap.html#size" class="tsd-kind-icon">size</a>
+							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_core.BinaryMap.html#downloadTo" class="tsd-kind-icon">download<wbr>To</a>
 							</li>
@@ -206,6 +212,8 @@
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.BinaryMap.html#__ctx" class="tsd-kind-icon">__ctx</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.BinaryMap.html#__store" class="tsd-kind-icon">__store</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.BinaryMap.html#hash" class="tsd-kind-icon">hash</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.BinaryMap.html#mime" class="tsd-kind-icon">mime</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.BinaryMap.html#size" class="tsd-kind-icon">size</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
@@ -242,7 +250,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.BinaryMap.html" class="tsd-signature-type">BinaryMap</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:39</li>
+									<li>Defined in packages/core/src/services/binary.ts:65</li>
 								</ul>
 							</aside>
 						</li>
@@ -255,7 +263,7 @@
 					<div class="tsd-signature tsd-kind-icon">__ctx<span class="tsd-signature-symbol">:</span> <a href="_webda_core.Context.html" class="tsd-signature-type">Context</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/binary.ts:32</li>
+							<li>Defined in packages/core/src/services/binary.ts:50</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -263,7 +271,7 @@
 					<div class="tsd-signature tsd-kind-icon">__store<span class="tsd-signature-symbol">:</span> <a href="_webda_core.Binary.html" class="tsd-signature-type">Binary</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.BinaryParameters.html" class="tsd-signature-type">BinaryParameters</a><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/binary.ts:33</li>
+							<li>Defined in packages/core/src/services/binary.ts:51</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -276,7 +284,33 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/binary.ts:37</li>
+							<li>Defined in packages/core/src/services/binary.ts:55</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="mime" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">mime<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Mimetype</p>
+						</div>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/services/binary.ts:63</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="size" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">size<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Size of the file</p>
+						</div>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/services/binary.ts:59</li>
 						</ul>
 					</aside>
 			</section>    </section>
@@ -307,7 +341,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:63</li>
+									<li>Defined in packages/core/src/services/binary.ts:89</li>
 								</ul>
 							</aside>
 						</li>
@@ -323,13 +357,13 @@
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
-									<p>Get the CoreModel</p>
+									<p>Get the binary data</p>
 								</div>
 							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Readable</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:51</li>
+									<li>Defined in packages/core/src/services/binary.ts:77</li>
 								</ul>
 							</aside>
 						</li>
@@ -359,7 +393,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:71</li>
+									<li>Defined in packages/core/src/services/binary.ts:97</li>
 								</ul>
 							</aside>
 						</li>

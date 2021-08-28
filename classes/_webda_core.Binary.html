@@ -221,9 +221,6 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_core.Binary.html#cascadeDelete" class="tsd-kind-icon">cascade<wbr>Delete</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="_webda_core.Binary.html#challenge" class="tsd-kind-icon">challenge</a>
-							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.Binary.html#computeParameters" class="tsd-kind-icon">compute<wbr>Parameters</a>
 							</li>
@@ -245,6 +242,9 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.Binary.html#getName" class="tsd-kind-icon">get<wbr>Name</a>
 							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+								<a href="_webda_core.Binary.html#getOperationName" class="tsd-kind-icon">get<wbr>Operation<wbr>Name</a>
+							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.Binary.html#getParameters" class="tsd-kind-icon">get<wbr>Parameters</a>
 							</li>
@@ -265,6 +265,9 @@
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_core.Binary.html#httpRoute" class="tsd-kind-icon">http<wbr>Route</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_core.Binary.html#init" class="tsd-kind-icon">init</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_core.Binary.html#initMap" class="tsd-kind-icon">init<wbr>Map</a>
@@ -290,7 +293,7 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.Binary.html#reinit" class="tsd-kind-icon">reinit</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 								<a href="_webda_core.Binary.html#resolve" class="tsd-kind-icon">resolve</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
@@ -326,10 +329,20 @@
 			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
 					<div class="lead">
 						<p>This is an abstract service to represent a storage of files
-							The binary allow you to expose this service as HTTP ( therefore is an executor )
-						It needs an object to attach the binary too</p>
+						The binary allow you to expose this service as HTTP</p>
 					</div>
 					</div><div class="tsd-comment tsd-typography tsd-comment-text">
+					<p>It supports two modes:</p>
+					<ul>
+						<li>attached to a CoreModel (attach, detach, reattach)</li>
+						<li>pure storage with no managed id (read, write, delete)</li>
+					</ul>
+					<p>As we have deduplication builtin you can get some stats</p>
+					<ul>
+						<li>getUsageCount(hash)</li>
+						<li>getUsageCountForRaw()</li>
+						<li>getUsageCountForMap()</li>
+					</ul>
 					<p>The Binary storage should store only once a binary and reference every object that are used by this binary, so it can be cleaned.</p>
 					</div><div class="tsd-comment tsd-typography tsd-comment-tags">
 					<dl class="tsd-comment-tags"><dt>see</dt>
@@ -403,7 +416,6 @@
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Binary.html#_verifyMapAndStore" class="tsd-kind-icon">_verify<wbr>Map<wbr>And<wbr>Store</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_core.Binary.html#addRoute" class="tsd-kind-icon">add<wbr>Route</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Binary.html#cascadeDelete" class="tsd-kind-icon">cascade<wbr>Delete</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Binary.html#challenge" class="tsd-kind-icon">challenge</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Binary.html#computeParameters" class="tsd-kind-icon">compute<wbr>Parameters</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Binary.html#delete" class="tsd-kind-icon">delete</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Binary.html#deleteSuccess" class="tsd-kind-icon">delete<wbr>Success</a></li>
@@ -411,6 +423,7 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Binary.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Binary.html#get" class="tsd-kind-icon">get</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Binary.html#getName" class="tsd-kind-icon">get<wbr>Name</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="_webda_core.Binary.html#getOperationName" class="tsd-kind-icon">get<wbr>Operation<wbr>Name</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Binary.html#getParameters" class="tsd-kind-icon">get<wbr>Parameters</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="_webda_core.Binary.html#getService" class="tsd-kind-icon">get<wbr>Service</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Binary.html#getUsageCount" class="tsd-kind-icon">get<wbr>Usage<wbr>Count</a></li>
@@ -418,6 +431,7 @@
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Binary.html#httpChallenge" class="tsd-kind-icon">http<wbr>Challenge</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Binary.html#httpPost" class="tsd-kind-icon">http<wbr>Post</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Binary.html#httpRoute" class="tsd-kind-icon">http<wbr>Route</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Binary.html#init" class="tsd-kind-icon">init</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Binary.html#initMap" class="tsd-kind-icon">init<wbr>Map</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Binary.html#initModel" class="tsd-kind-icon">init<wbr>Model</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_core.Binary.html#initRoutes" class="tsd-kind-icon">init<wbr>Routes</a></li>
@@ -426,7 +440,7 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Binary.html#onAsync" class="tsd-kind-icon">on<wbr>Async</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Binary.html#putRedirectUrl" class="tsd-kind-icon">put<wbr>Redirect<wbr>Url</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Binary.html#reinit" class="tsd-kind-icon">reinit</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Binary.html#resolve" class="tsd-kind-icon">resolve</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_core.Binary.html#resolve" class="tsd-kind-icon">resolve</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Binary.html#store" class="tsd-kind-icon">store</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Binary.html#toPublicJSON" class="tsd-kind-icon">to<wbr>PublicJSON</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Binary.html#toString" class="tsd-kind-icon">to<wbr>String</a></li>
@@ -518,7 +532,7 @@
 					<div class="tsd-signature tsd-kind-icon">_lowercase<wbr>Maps<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/binary.ts:131</li>
+							<li>Defined in packages/core/src/services/binary.ts:168</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -607,25 +621,32 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="_checkMap" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">_check<wbr>Map<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">_check<wbr>Map<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Check if a map is defined</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>name: <span class="tsd-signature-type">any</span></h5>
+									<h5>name: <span class="tsd-signature-type">string</span></h5>
 								</li>
 								<li>
-									<h5>property: <span class="tsd-signature-type">any</span></h5>
+									<h5>property: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:318</li>
+									<li>Defined in packages/core/src/services/binary.ts:369</li>
 								</ul>
 							</aside>
 						</li>
@@ -648,7 +669,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Readable</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:254</li>
+									<li>Defined in packages/core/src/services/binary.ts:289</li>
 								</ul>
 							</aside>
 						</li>
@@ -662,6 +683,11 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Get file either from multipart post or raw</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -671,7 +697,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:429</li>
+									<li>Defined in packages/core/src/services/binary.ts:455</li>
 								</ul>
 							</aside>
 						</li>
@@ -679,22 +705,35 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="_getHashes" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">_get<wbr>Hashes<span class="tsd-signature-symbol">(</span>buffer<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+						<li class="tsd-signature tsd-kind-icon">_get<wbr>Hashes<span class="tsd-signature-symbol">(</span>buffer<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Create hashes</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>buffer: <span class="tsd-signature-type">any</span></h5>
+									<h5>buffer: <span class="tsd-signature-type">Buffer</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">object</span></h4>
+							<ul class="tsd-parameters">
+								<li class="tsd-parameter">
+									<h5>challenge<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li class="tsd-parameter">
+									<h5>hash<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:297</li>
+									<li>Defined in packages/core/src/services/binary.ts:337</li>
 								</ul>
 							</aside>
 						</li>
@@ -727,7 +766,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:252</li>
+									<li>Defined in packages/core/src/services/binary.ts:287</li>
 								</ul>
 							</aside>
 						</li>
@@ -749,7 +788,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:454</li>
+									<li>Defined in packages/core/src/services/binary.ts:483</li>
 								</ul>
 							</aside>
 						</li>
@@ -757,22 +796,29 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="_prepareInput" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">_prepare<wbr>Input<span class="tsd-signature-symbol">(</span>file<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">_prepare<wbr>Input<span class="tsd-signature-symbol">(</span>file<span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.BinaryFile.html" class="tsd-signature-type">BinaryFile</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Update the BinaryFile</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>file: <span class="tsd-signature-type">any</span></h5>
+									<h5>file: <a href="../interfaces/_webda_core.BinaryFile.html" class="tsd-signature-type">BinaryFile</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:308</li>
+									<li>Defined in packages/core/src/services/binary.ts:352</li>
 								</ul>
 							</aside>
 						</li>
@@ -795,7 +841,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:331</li>
+									<li>Defined in packages/core/src/services/binary.ts:379</li>
 								</ul>
 							</aside>
 						</li>
@@ -818,7 +864,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:553</li>
+									<li>Defined in packages/core/src/services/binary.ts:575</li>
 								</ul>
 							</aside>
 						</li>
@@ -902,33 +948,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:402</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="challenge" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">challenge<span class="tsd-signature-symbol">(</span>hash<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, challenge<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>hash: <span class="tsd-signature-type">any</span></h5>
-								</li>
-								<li>
-									<h5>challenge: <span class="tsd-signature-type">any</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:336</li>
+									<li>Defined in packages/core/src/services/binary.ts:430</li>
 								</ul>
 							</aside>
 						</li>
@@ -959,7 +979,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="delete" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">delete<span class="tsd-signature-symbol">(</span>targetStore<span class="tsd-signature-symbol">: </span><a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span>, object<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, index<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">delete<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, index<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -976,12 +996,6 @@
 							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
-								<li>
-									<h5>targetStore: <a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span></h5>
-									<div class="tsd-comment tsd-typography tsd-comment-text">
-										<p>The store that handles the object to attach binary to</p>
-									</div>
-								</li>
 								<li>
 									<h5>object: <a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
@@ -1001,10 +1015,10 @@
 									</div>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:196</li>
+									<li>Defined in packages/core/src/services/binary.ts:233</li>
 								</ul>
 							</aside>
 						</li>
@@ -1012,7 +1026,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="deleteSuccess" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">delete<wbr>Success<span class="tsd-signature-symbol">(</span>targetStore<span class="tsd-signature-symbol">: </span><a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span>, object<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, index<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">delete<wbr>Success<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, index<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1020,9 +1034,6 @@
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
-								<li>
-									<h5>targetStore: <a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span></h5>
-								</li>
 								<li>
 									<h5>object: <a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a></h5>
 								</li>
@@ -1033,10 +1044,10 @@
 									<h5>index: <span class="tsd-signature-type">number</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:412</li>
+									<li>Defined in packages/core/src/services/binary.ts:440</li>
 								</ul>
 							</aside>
 						</li>
@@ -1044,7 +1055,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="downloadTo" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">download<wbr>To<span class="tsd-signature-symbol">(</span>info<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, filename<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">download<wbr>To<span class="tsd-signature-symbol">(</span>info<span class="tsd-signature-symbol">: </span><a href="_webda_core.BinaryMap.html" class="tsd-signature-type">BinaryMap</a>, filename<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1058,7 +1069,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>info: <span class="tsd-signature-type">any</span></h5>
+									<h5>info: <a href="_webda_core.BinaryMap.html" class="tsd-signature-type">BinaryMap</a></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
 										<p>The reference stored in your target object</p>
 									</div>
@@ -1070,7 +1081,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:223</li>
+									<li>Defined in packages/core/src/services/binary.ts:255</li>
 								</ul>
 							</aside>
 						</li>
@@ -1137,7 +1148,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Readable</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:209</li>
+									<li>Defined in packages/core/src/services/binary.ts:241</li>
 								</ul>
 							</aside>
 						</li>
@@ -1161,6 +1172,23 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in packages/core/src/services/service.ts:327</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+					<a name="getOperationName" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Operation<wbr>Name<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/services/binary.ts:477</li>
 								</ul>
 							</aside>
 						</li>
@@ -1249,7 +1277,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:170</li>
+									<li>Defined in packages/core/src/services/binary.ts:205</li>
 								</ul>
 							</aside>
 						</li>
@@ -1286,6 +1314,11 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Mechanism to add a data based on challenge</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -1295,7 +1328,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:579</li>
+									<li>Defined in packages/core/src/services/binary.ts:606</li>
 								</ul>
 							</aside>
 						</li>
@@ -1318,7 +1351,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:546</li>
+									<li>Defined in packages/core/src/services/binary.ts:568</li>
 								</ul>
 							</aside>
 						</li>
@@ -1332,16 +1365,49 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Manage the different routes</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>ctx: <a href="_webda_core.Context.html" class="tsd-signature-type">Context</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:590</li>
+									<li>Defined in packages/core/src/services/binary.ts:620</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="init" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">init<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#init">init</a></p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Will be called after all the Services are created</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>abstract</dt>
+								<dd></dd></dl>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/services/service.ts:268</li>
 								</ul>
 							</aside>
 						</li>
@@ -1364,7 +1430,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:256</li>
+									<li>Defined in packages/core/src/services/binary.ts:291</li>
 								</ul>
 							</aside>
 						</li>
@@ -1387,7 +1453,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.BinaryMap.html" class="tsd-signature-type">BinaryMap</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:293</li>
+									<li>Defined in packages/core/src/services/binary.ts:328</li>
 								</ul>
 							</aside>
 						</li>
@@ -1410,7 +1476,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:446</li>
+									<li>Defined in packages/core/src/services/binary.ts:472</li>
 								</ul>
 							</aside>
 						</li>
@@ -1523,16 +1589,23 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>By default no challenge is managed so throws 404</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>ctx: <a href="_webda_core.Context.html" class="tsd-signature-type">Context</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:574</li>
+									<li>Defined in packages/core/src/services/binary.ts:598</li>
 								</ul>
 							</aside>
 						</li>
@@ -1564,26 +1637,24 @@
 							</aside>
 						</li>
 					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 					<a name="resolve" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 						<li class="tsd-signature tsd-kind-icon">resolve<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#resolve">resolve</a></p>
+								<p>Overrides <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#resolve">resolve</a></p>
 							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Resolve parameters
-									Call initRoutes and initBeanRoutes</p>
-								</div>
+							<div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>override</dt>
+								<dd></dd></dl>
 							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:204</li>
+									<li>Defined in packages/core/src/services/binary.ts:277</li>
 								</ul>
 							</aside>
 						</li>
@@ -1591,7 +1662,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="store" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">store<span class="tsd-signature-symbol">(</span>targetStore<span class="tsd-signature-symbol">: </span><a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span>, object<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, file<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, metadatas<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, index<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">store<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, file<span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.BinaryFile.html" class="tsd-signature-type">BinaryFile</a>, metadatas<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">object</span>, index<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1621,12 +1692,6 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>targetStore: <a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span></h5>
-									<div class="tsd-comment tsd-typography tsd-comment-text">
-										<p>The store that handles the object to attach binary to</p>
-									</div>
-								</li>
-								<li>
 									<h5>object: <a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
 										<p>The object uuid to get from the store</p>
@@ -1639,25 +1704,30 @@
 									</div>
 								</li>
 								<li>
-									<h5>file: <span class="tsd-signature-type">any</span></h5>
+									<h5>file: <a href="../interfaces/_webda_core.BinaryFile.html" class="tsd-signature-type">BinaryFile</a></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
 										<p>The file by itself</p>
 									</div>
 								</li>
 								<li>
-									<h5>metadatas: <span class="tsd-signature-type">any</span></h5>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> metadatas: <span class="tsd-signature-type">object</span></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
 										<p>to add to the binary object</p>
 									</div>
+									<ul class="tsd-parameters">
+										<li class="tsd-parameter-index-signature">
+											<h5><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">any</span></h5>
+										</li>
+									</ul>
 								</li>
 								<li>
 									<h5><span class="tsd-flag ts-flagOptional">Optional</span> index: <span class="tsd-signature-type">number</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:158</li>
+									<li>Defined in packages/core/src/services/binary.ts:194</li>
 								</ul>
 							</aside>
 						</li>
@@ -1721,7 +1791,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="update" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">update<span class="tsd-signature-symbol">(</span>targetStore<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, index<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, file<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, metadatas<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">update<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, index<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, file<span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.BinaryFile.html" class="tsd-signature-type">BinaryFile</a>, metadatas<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1739,46 +1809,45 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>targetStore: <span class="tsd-signature-type">any</span></h5>
-									<div class="tsd-comment tsd-typography tsd-comment-text">
-										<p>The store that handles the object to attach binary to</p>
-									</div>
-								</li>
-								<li>
-									<h5>object: <span class="tsd-signature-type">any</span></h5>
+									<h5>object: <a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
 										<p>The object uuid to get from the store</p>
 									</div>
 								</li>
 								<li>
-									<h5>property: <span class="tsd-signature-type">any</span></h5>
+									<h5>property: <span class="tsd-signature-type">string</span></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
 										<p>The object property to add the file to</p>
 									</div>
 								</li>
 								<li>
-									<h5>index: <span class="tsd-signature-type">any</span></h5>
+									<h5>index: <span class="tsd-signature-type">number</span></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
 										<p>The index of the file to change in the property</p>
 									</div>
 								</li>
 								<li>
-									<h5>file: <span class="tsd-signature-type">any</span></h5>
+									<h5>file: <a href="../interfaces/_webda_core.BinaryFile.html" class="tsd-signature-type">BinaryFile</a></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
 										<p>The file by itself</p>
 									</div>
 								</li>
 								<li>
-									<h5>metadatas: <span class="tsd-signature-type">any</span></h5>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> metadatas: <span class="tsd-signature-type">object</span></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
 										<p>to add to the binary object</p>
 									</div>
+									<ul class="tsd-parameters">
+										<li class="tsd-parameter-index-signature">
+											<h5><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">any</span></h5>
+										</li>
+									</ul>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:184</li>
+									<li>Defined in packages/core/src/services/binary.ts:217</li>
 								</ul>
 							</aside>
 						</li>
@@ -1786,7 +1855,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="updateSuccess" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">update<wbr>Success<span class="tsd-signature-symbol">(</span>targetStore<span class="tsd-signature-symbol">: </span><a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span>, object<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, index<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, file<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, metadatas<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">update<wbr>Success<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, index<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, file<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, metadatas<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1794,9 +1863,6 @@
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
-								<li>
-									<h5>targetStore: <a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span></h5>
-								</li>
 								<li>
 									<h5>object: <a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a></h5>
 								</li>
@@ -1810,13 +1876,13 @@
 									<h5>file: <span class="tsd-signature-type">any</span></h5>
 								</li>
 								<li>
-									<h5>metadatas: <span class="tsd-signature-type">any</span></h5>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> metadatas: <span class="tsd-signature-type">any</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:340</li>
+									<li>Defined in packages/core/src/services/binary.ts:384</li>
 								</ul>
 							</aside>
 						</li>

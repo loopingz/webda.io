@@ -185,6 +185,19 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   }
 
   @test
+  async cascadeDelete() {
+    let stubDelete = sinon.stub(this.getBinary()._s3, "deleteObject").callsFake(() => {
+      throw new Error();
+    });
+    try {
+      // @ts-ignore
+      await this.getBinary().cascadeDelete({ hash: "pp" }, "pp");
+    } finally {
+      stubDelete.restore();
+    }
+  }
+
+  @test
   async redirectUrl() {
     let { user1, ctx } = await this.setupDefault();
     // Making sure we are redirected on GET
@@ -212,5 +225,20 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   @test
   async challenge() {
     await this.testChallenge(false);
+  }
+
+  @test
+  async badErrors() {
+    let stub = sinon.stub(this.getBinary()._s3, "headObject").callsFake(() => ({
+      promise: async () => {
+        throw new Error("Fake");
+      }
+    }));
+    try {
+      await assert.rejects(() => this.getBinary()._getS3("plop"));
+      await assert.rejects(() => this.getBinary()._exists("plop"));
+    } finally {
+      stub.restore();
+    }
   }
 }

@@ -129,8 +129,8 @@ class HttpContext {
     return this.headers;
   }
 
-  getHeader(name: string): string {
-    return this.headers[name.toLowerCase()];
+  getHeader(name: string, def?: string): string {
+    return this.headers[name.toLowerCase()] || def;
   }
 
   setBody(body) {

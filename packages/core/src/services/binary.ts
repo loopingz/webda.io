@@ -10,10 +10,17 @@ import { Store } from "../stores/store";
 import { Context } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
+/**
+ * Represent basic EventBinary
+ */
 export interface EventBinary {
   object: BinaryMap;
   service: Binary;
 }
+
+/**
+ * Emitted when someone download a binary
+ */
 export interface EventBinaryGet extends EventBinary {}
 export interface EventBinaryUploadSuccess extends EventBinary {
   target: CoreModel;
@@ -24,20 +31,54 @@ export interface EventBinaryUpdate extends EventBinaryUploadSuccess {
   old: BinaryMap;
 }
 
+/**
+ * Emitted if binary does not exist
+ */
 export class BinaryNotFoundError extends WebdaError {
   constructor(hash: string, storeName: string) {
     super("BINARY_NOTFOUND", `Binary not found ${hash} BinaryService(${storeName})`);
   }
 }
 
+/**
+ * Represent a file to store
+ */
 export interface BinaryFile {
+  /**
+   * Path on the hard drive
+   */
   path?: string;
+  /**
+   * Content
+   */
   buffer?: Buffer;
+  /**
+   * Current name
+   */
   name?: string;
+  /**
+   * Original name
+   */
   originalname?: string;
+  /**
+   * Size of the binary
+   */
   size?: number;
+  /**
+   * Mimetype of the binary
+   */
   mimetype?: string;
+  /**
+   * Will be computed by the service
+   * 
+   * hash of the content prefixed by 'WEBDA'
+   */
   challenge?: string;
+  /**
+   * Will be computed by the service
+   * 
+   * hash of the content
+   */
   hash?: string;
 }
 
@@ -47,7 +88,13 @@ export interface BinaryFile {
  * @class BinaryMap
  */
 export class BinaryMap {
+  /**
+   * Current context
+   */
   __ctx: Context;
+  /**
+   * Link to the binary store
+   */
   __store: Binary;
   /**
    * Hash of the binary
@@ -69,6 +116,10 @@ export class BinaryMap {
     this.__store = service;
   }
 
+  /**
+   * Prevent all the attributes starting with '__' to be serialized
+   * @returns 
+   */
   toJSON() {
     let res = {};
     Object.keys(this)
@@ -233,7 +284,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
   ): Promise<void>;
 
   /**
-   * Update a binary
+   * Delete a binary
    *
    * @param {CoreModel} object The object uuid to get from the store
    * @param {String} property The object property to add the file to
@@ -291,6 +342,12 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
 
   abstract _get(info: BinaryMap): Readable;
 
+  /**
+   * Init the declared maps, adding reverse maps
+   * 
+   * @param map 
+   * @returns 
+   */
   initMap(map) {
     if (map == undefined || map._init) {
       return;
@@ -328,7 +385,12 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     }
   }
 
-  initModel(obj) {
+  /**
+   * Based on the raw Map init a BinaryMap
+   * @param obj 
+   * @returns 
+   */
+  initModel(obj: any) : BinaryMap {
     return new BinaryMap(this, obj);
   }
 
@@ -402,7 +464,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     }
     if (info) {
       if (info.hash !== file.hash) {
-        // ??
+        // Remove usage as 
         await this.cascadeDelete(info, object_uid);
       }
       await this.emitSync("Binary.Update", <EventBinaryUpdate>{
@@ -451,15 +513,15 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    * @param req
    * @returns
    */
-  _getFile(req) {
+  _getFile(req: Context) {
     var file;
     if (req.files !== undefined) {
       file = req.files[0];
     } else {
       file = {};
-      file.buffer = req.body;
-      file.mimetype = req.headers.contentType;
-      file.size = req.body.length;
+      file.buffer = req.getRequestBody();
+      file.mimetype = req.getHttpContext().getHeader("Content-Type", "application/octet-stream");
+      file.size = file.buffer.length;
       file.originalname = "";
     }
     return file;
@@ -473,9 +535,14 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     this._initRoutes();
   }
 
+  /**
+   * Return the name of the service for OpenAPI
+   * @returns 
+   */
   protected getOperationName(): string {
     return this._name.toLowerCase() === "Binary" ? "" : this._name;
   }
+
   /**
    * This is used to allow subclasses to add more route
    */
@@ -507,7 +574,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     if (!this.parameters.expose.restrict.create) {
       // No need the index to add file
       url = this.parameters.expose.url + "/{store}/{uid}/{property}";
-      this.addRoute(url, ["POST"], this.httpPost, {
+      this.addRoute(url, ["POST"], this.httpRoute, {
         post: {
           operationId: `add${name}Binary`,
           description: "Add a binary linked to an object",
@@ -564,13 +631,11 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     return true;
   }
 
-  async httpPost(ctx: Context) {
-    let targetStore = this._verifyMapAndStore(ctx);
-    let object = await targetStore.get(ctx.parameter("uid"), ctx);
-    await object.canAct(ctx, "attach_binary");
-    await this.store(object, ctx.parameter("property"), this._getFile(ctx), ctx.getRequestBody());
-  }
-
+  /**
+   * Based on the request parameter verify it match a known mapping
+   * @param ctx 
+   * @returns 
+   */
   _verifyMapAndStore(ctx: Context): Store<CoreModel> {
     let store = ctx.parameter("store").toLowerCase();
     // To avoid any probleme lowercase everything
@@ -649,7 +714,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
       action = "get_binary";
     } else if (ctx.getHttpContext().getMethod() === "DELETE") {
       action = "detach_binary";
-    } else if (ctx.getHttpContext().getMethod() === "PUT") {
+    } else if (ctx.getHttpContext().getMethod() === "POST") {
       action = "attach_binary";
     }
     await object.canAct(ctx, action);
@@ -678,13 +743,13 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
         throw 500;
       }
     } else {
-      if (object[property][index].hash !== ctx.parameter("hash")) {
-        throw 412;
-      }
       if (ctx.getHttpContext().getMethod() === "DELETE") {
+        if (object[property][index].hash !== ctx.parameter("hash")) {
+          throw 412;
+        }
         await this.delete(object, property, index);
-      } else if (ctx.getHttpContext().getMethod() === "PUT") {
-        await this.update(object, property, index, this._getFile(ctx), ctx.getRequestBody());
+      } else if (ctx.getHttpContext().getMethod() === "POST") {
+        await this.store(object, property, this._getFile(ctx), ctx.getRequestBody());
       }
     }
   }

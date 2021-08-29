@@ -1,7 +1,7 @@
 import { WebdaTest } from "../test";
 import * as assert from "assert";
 import * as fs from "fs";
-import { Binary, Context, Store, User } from "..";
+import { Binary, CacheService, Context, Store, User } from "..";
 import { suite, test } from "@testdeck/mocha";
 import * as sinon from "sinon";
 import { CoreModel } from "../models/coremodel";
@@ -289,8 +289,8 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
      */
     ctx.getHttpContext().setBody("MY_IMAGE");
     ctx.getSession().login(user1.getUuid(), "fake");
-    // Know it is badly managed
-    // PUT is in the same spot
+    // Need to verify
+    await executor.execute(ctx);
   }
 
   async setupDefault(
@@ -406,6 +406,8 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     await executor.execute(ctx);
     let info = JSON.parse(ctx.getResponseBody());
     assert.ok(!info.done, "should not be done yet");
+    // Execute twice as we should still get an upload
+    await executor.execute(ctx);
     let url = new URL(info.url);
 
     if (url.host === "test.webda.io") {
@@ -468,11 +470,33 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
 }
 
 @suite
-class BinaryAbstractTest {
+class BinaryAbstractTest extends WebdaTest {
   @test
   async cov() {
     let service = new TestBinaryService(undefined, "plop", {});
+    let ctx = await this.newContext();
     await assert.rejects(() => service.putRedirectUrl(undefined), /404/);
+    ctx.getHttpContext().setBody({
+      hash: "plop"
+    })
+    await assert.rejects(() => service.httpChallenge(ctx), /400/);
+    ctx = await this.newContext();
+    ctx.getHttpContext().setBody({
+      challenge: "plop"
+    })
+    await assert.rejects(() => service.httpChallenge(ctx), /400/);
+    ctx = await this.newContext();
+    let binary = this.getService<Binary>("binary");
+    ctx.setPathParameters({
+      property: "images",
+      store: "users",
+      uid: "notfound"
+    });
+    ctx.getHttpContext().setBody({
+      hash: "p",
+      challenge: "z"
+    });
+    await assert.rejects(() => binary.httpChallenge(ctx), /404/);
   }
 }
 

@@ -50,6 +50,8 @@ export class S3BinaryParameters extends BinaryParameters {
  *  region: ""
  *
  * See Binary the general interface
+ *
+ * We can register on S3 Event to get info when /data is pushed
  */
 export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   extends Binary<T>
@@ -165,10 +167,8 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
           await this.updateSuccess(object, property, undefined, body, body.metadatas);
           return;
         }
-      } else {
-        // Set challenge aside for now
-        await this.putMarker(body.hash, `challenge_${body.challenge}`, "challenge");
       }
+      // Need to do something?
     } else {
       await this.putMarker(body.hash, `challenge_${body.challenge}`, "challenge");
     }
@@ -290,7 +290,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     let files = (
       await this._s3.listObjectsV2({ Bucket: this.parameters.bucket, Prefix: this._getKey(hash, "") }).promise()
     ).Contents;
-    await bluebird.all(
+    await bluebird.map(
       files,
       file => this._s3.deleteObject({ Bucket: this.parameters.bucket, Key: file.Key }).promise(),
       { concurrency: 5 }

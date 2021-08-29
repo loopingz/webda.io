@@ -17,6 +17,8 @@ export class UpdateConditionFailError extends WebdaError {
   }
 }
 
+type MapUpdates = "created" | "deleted" | {[key: string]: any};
+
 interface EventStore {
   /**
    * Target object
@@ -310,6 +312,8 @@ export type ExposeParameters = {
   };
 };
 
+type StoreMaps = {[key: string]: MapStoreParameter};
+
 /**
  * Store parameter
  */
@@ -341,9 +345,7 @@ export class StoreParameters extends ServiceParameters {
    *
    * {@link Pages/pages/Store}
    */
-  map: {
-    [key: string]: MapStoreParameter;
-  };
+  map: StoreMaps;
   /**
    * async delete
    */
@@ -733,7 +735,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       if (this.isMapped(prop)) {
         updates[prop] = object[prop];
       }
-      await this.handleMap(object, this.parameters.map, updates);
+      await this.handleMap(object, updates);
     }
   }
 
@@ -807,9 +809,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     }
 
     object = this.initModel(object);
-    if (!object.getUuid()) {
-      throw new Error(object);
-    }
+
     // Dates should be store by the Store
     object[this._creationDateField] ??= new Date();
     object[this._lastUpdateField] = new Date();
@@ -831,7 +831,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     });
     await object._onSaved();
     if (this.parameters.map != undefined) {
-      await this.handleMap(object, this.parameters.map, "created");
+      await this.handleMap(object, "created");
     }
     // Handle index
     if (this.parameters.index && object.getUuid() !== "index" && object.getUuid()) {
@@ -951,7 +951,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     object[this._lastUpdateField] = new Date();
     let load = await this._get(object[this._uuidField], true);
     loaded = this.initModel(load);
-    await this.handleMap(loaded, this.parameters.map, object);
+    await this.handleMap(loaded, object);
     // Handle index
     if (this.parameters.index && loaded[this._uuidField] !== "index" && loaded[this._uuidField]) {
       await this.handleIndex(loaded, object);
@@ -1070,28 +1070,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     }
   }
 
-  _handleUpdatedMapTransferOut(object, map, mapped, store, updates) {
-    var update = {};
-    update[map.target] = mapped[map.target];
-    return store.update(update, mapped[this._uuidField], false).then(() => {
-      return this._handleUpdatedMapTransferIn(object, map, store, updates);
-    });
-  }
-
-  _handleUpdatedMapTransferIn(object, map, store, updates) {
-    // TODO Should be update
-    return store.get(updates[map.key]).then(mapped => {
-      if (mapped == undefined) {
-        return Promise.resolve();
-      }
-      // Enforce the collection if needed
-      if (mapped[map.target] == undefined) {
-        mapped[map.target] = [];
-      }
-      return this._handleUpdatedMapMapper(object, map, mapped, store, updates);
-    });
-  }
-
   _handleUpdatedMapMapper(object: CoreModel, map, mapped: CoreModel, store: Store, updates) {
     // Update the mapper
     var mapper: any = {};
@@ -1123,10 +1101,10 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     );
   }
 
-  async _handleDeletedMap(object: CoreModel, map, mapped: CoreModel, store: Store) {
+  async _handleDeletedMap(object: CoreModel, map: MapStoreParameter, mapped: CoreModel, store: Store) {
     // Remove from the collection
     if (mapped[map.target] === undefined) {
-      return Promise.resolve();
+      return;
     }
     let i = this.getMapper(mapped[map.target], object[this._uuidField]);
     if (i >= 0) {
@@ -1140,7 +1118,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     }
   }
 
-  async _handleCreatedMap(object: CoreModel, map, mapped: CoreModel, store: Store) {
+  async _handleCreatedMap(object: CoreModel, map: MapStoreParameter, mapped: CoreModel, store: Store) {
     // Add to the object
     var mapper: any = {};
     mapper[this._uuidField] = object[this._uuidField];
@@ -1154,20 +1132,18 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     return store.upsertItemToCollection(mapped[this._uuidField], map.target, mapper);
   }
 
-  async _handleMapProperty(store: Store, object, property, updates) {
-    let mapped = await store.get(object[property.key] || updates[property.key]);
+  async _handleMapProperty(store: Store, object: CoreModel, map: MapStoreParameter, updates: MapUpdates) {
+    let mapped = await store.get(object[map.key] || updates[map.key]);
     if (mapped == undefined) {
       return;
     }
 
     if (updates === "created") {
-      return this._handleCreatedMap(object, property, mapped, store);
+      return this._handleCreatedMap(object, map, mapped, store);
     } else if (updates == "deleted") {
-      return this._handleDeletedMap(object, property, mapped, store);
+      return this._handleDeletedMap(object, map, mapped, store);
     } else if (typeof updates == "object") {
-      return this._handleUpdatedMap(object, property, mapped, store, updates);
-    } else {
-      throw Error("Unknown handleMap type " + updates);
+      return this._handleUpdatedMap(object, map, mapped, store, updates);
     }
   }
 
@@ -1183,7 +1159,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     return this._removeAttribute(uuid, attribute, itemWriteCondition, itemWriteConditionField);
   }
 
-  async handleIndex(object: CoreModel, updates: object | string) {
+  async handleIndex(object: CoreModel, updates: MapUpdates) {
     let mapUpdates = {};
     if (typeof updates === "object") {
       let toUpdate = false;
@@ -1210,25 +1186,17 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     await this._patch(mapUpdates, "index");
   }
 
-  async handleMap(object, map, updates): Promise<any[]> {
+  async handleMap(object: CoreModel, updates: MapUpdates): Promise<any[]> {
     let promises = [];
-    if (object === undefined) {
-      return;
-    }
-    for (let prop in map) {
+    for (let prop in this.parameters.map) {
       // No mapped property or not in the object
       if (
-        map[prop].key === undefined ||
-        (object[map[prop].key] === undefined && updates[map[prop].key] === undefined)
+        (object[this.parameters.map[prop].key] === undefined && updates[this.parameters.map[prop].key] === undefined)
       ) {
         continue;
       }
       let store: Store<CoreModel, any> = this.getService<Store<CoreModel, any>>(prop);
-      // Cant find the store for this collection
-      if (store == undefined) {
-        continue;
-      }
-      promises.push(this._handleMapProperty(store, object, map[prop], updates));
+      promises.push(this._handleMapProperty(store, object, this.parameters.map[prop], updates));
     }
     return Promise.all(promises);
   }
@@ -1293,7 +1261,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     });
     await to_delete._onDelete();
     if (this.parameters.map != undefined) {
-      await this.handleMap(to_delete, this.parameters.map, "deleted");
+      await this.handleMap(to_delete, "deleted");
     }
     // Handle index
     if (this.parameters.index && to_delete[this._uuidField] !== "index" && to_delete[this._uuidField]) {

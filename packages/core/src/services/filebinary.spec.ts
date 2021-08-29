@@ -29,7 +29,7 @@ class FileBinaryTest extends BinaryTest {
     assert.strictEqual(binary._getFile({ files }), files[0]);
     let ctx = await this.newContext();
     ctx.getHttpContext().setBody("plop");
-    ctx.getHttpContext().headers = {"content-type": "text/plain"};
+    ctx.getHttpContext().headers = { "content-type": "text/plain" };
     assert.deepStrictEqual(binary._getFile(ctx), {
       buffer: "plop",
       mimetype: "text/plain",
@@ -75,7 +75,7 @@ class FileBinaryTest extends BinaryTest {
   async challenge() {
     await this.testChallenge();
   }
-  
+
   @test
   async badTokens() {
     let binary = <FileBinary>this.getBinary();
@@ -88,20 +88,20 @@ class FileBinaryTest extends BinaryTest {
     });
     ctx.getHttpContext().setBody("PLOP");
     await assert.rejects(() => binary.storeBinary(ctx), /403/);
-    token = jwt.sign({hash: "PLOP2"}, this.webda.getSecret());
+    token = jwt.sign({ hash: "PLOP2" }, this.webda.getSecret());
     ctx.setPathParameters({
       hash,
       token
     });
     await assert.rejects(() => binary.storeBinary(ctx), /403/);
     // expired token
-    token = jwt.sign({hash, exp: Math.floor(Date.now() / 1000) - (60 * 60)}, this.webda.getSecret());
+    token = jwt.sign({ hash, exp: Math.floor(Date.now() / 1000) - 60 * 60 }, this.webda.getSecret());
     ctx.setPathParameters({
       hash,
       token
     });
     await assert.rejects(() => binary.storeBinary(ctx), /403/);
-    token = jwt.sign({hash}, this.webda.getSecret());
+    token = jwt.sign({ hash }, this.webda.getSecret());
     ctx.setPathParameters({
       hash,
       token

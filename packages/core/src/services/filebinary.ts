@@ -136,7 +136,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     // Get the target object to add the mapping
     let targetStore = this._verifyMapAndStore(ctx);
     let object = await targetStore.get(uid, ctx);
-    await this.updateSuccess(object, property, undefined, body, body.metadatas);
+    await this.uploadSuccess(object, property, body, body.metadatas);
     // Need to store the usage of the file
     if (!fs.existsSync(this._getPath(body.hash))) {
       fs.mkdirSync(this._getPath(body.hash));
@@ -267,24 +267,17 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
   /**
    * @inheritdoc
    */
-  async store(object: CoreModel, property: string, file, metadatas?: any, index?: number): Promise<any> {
-    return this.update(object, property, undefined, file, metadatas);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  async update(object: CoreModel, property: string, index: number, file, metadatas?): Promise<void> {
+  async store(object: CoreModel, property: string, file, metadatas?: any): Promise<any> {
     let storeName = object.getStore().getName();
     this._checkMap(storeName, property);
     this._prepareInput(file);
     if (fs.existsSync(this._getPath(file.hash))) {
       this._touch(this._getPath(file.hash, `${storeName}_${object.getUuid()}`));
-      await this.updateSuccess(object, property, index, file, metadatas);
+      await this.uploadSuccess(object, property, file, metadatas);
       return;
     }
     this._store(file, object);
-    await this.updateSuccess(object, property, index, file, metadatas);
+    await this.uploadSuccess(object, property, file, metadatas);
   }
 
   /**

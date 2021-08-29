@@ -5,6 +5,7 @@ import { suite, test } from "@testdeck/mocha";
 import { HttpContext } from "../utils/context";
 import { removeSync } from "fs-extra";
 import { existsSync } from "fs";
+import { Ident } from "../models/ident";
 
 @suite
 class FileStoreTest extends StoreTest {
@@ -34,6 +35,11 @@ class FileStoreTest extends StoreTest {
     // Should recreate folder
     identStore.computeParameters();
     existsSync(identStore.getParameters().folder);
+
+    let ident = new identStore._model();
+    identStore.initModel(ident);
+    assert.notStrictEqual(ident.getUuid(), undefined);
+    console.log(identStore.getParameters().map);
   }
 
   @test

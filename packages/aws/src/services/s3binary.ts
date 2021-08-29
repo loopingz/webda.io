@@ -164,7 +164,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       if (challenge) {
         // challenge and data prove it exists
         if (challenge === body.challenge) {
-          await this.updateSuccess(object, property, undefined, body, body.metadatas);
+          await this.uploadSuccess(object, property, body, body.metadatas);
           return;
         }
       }
@@ -172,7 +172,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     } else {
       await this.putMarker(body.hash, `challenge_${body.challenge}`, "challenge");
     }
-    await this.updateSuccess(object, property, undefined, body, body.metadatas);
+    await this.uploadSuccess(object, property, body, body.metadatas);
     await this.putMarker(body.hash, uid, store);
     return { url: this.getSignedUrl(params.Key, "putObject", params), method: "PUT" };
   }
@@ -471,8 +471,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     object: CoreModel,
     property: string,
     file: BinaryFile,
-    metadatas?: { [key: string]: any },
-    index?: number
+    metadatas?: { [key: string]: any }
   ): Promise<void> {
     this._checkMap(object.getStore().getName(), property);
     this._prepareInput(file);
@@ -499,15 +498,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     await this.putMarker(file.hash, `challenge_${file.challenge}`, "challenge");
 
     await this.putMarker(file.hash, object.getUuid(), object.getStore().getName());
-    await this.updateSuccess(object, property, index, file, metadatas);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  async update(object, property, index, file, metadatas) {
-    await this._cleanUsage(object[property][index].hash, object.uuid);
-    await this.store(object, property, file, metadatas, index);
+    await this.uploadSuccess(object, property, file, metadatas);
   }
 
   /**

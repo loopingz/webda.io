@@ -241,27 +241,6 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     assert.strictEqual(user[map].length, 1);
     let value = await binary.getUsageCount(user[map][0].hash);
     assert.strictEqual(value, 1);
-    await binary.update(
-      user,
-      map,
-      0,
-      {
-        path: this.getTestFile()
-      },
-      {}
-    );
-    value = await binary.getUsageCount(user[map][0].hash);
-    assert.strictEqual(value, 1);
-    user = await userStore.get(user1.uuid);
-    assert.notStrictEqual(user[map], undefined);
-    assert.strictEqual(user[map].length, 1);
-    assert.notStrictEqual(hash, user[map][0].hash);
-    assert.strictEqual(user[map][0].mimetype, "text/plain");
-    assert.strictEqual(user[map][0].name, "Dockerfile.txt");
-    value = await binary.getUsageCount(hash);
-    assert.strictEqual(value, 0);
-    value = await binary.getUsageCount(user[map][0].hash);
-    assert.strictEqual(value, 1);
   }
 
   @test
@@ -478,12 +457,12 @@ class BinaryAbstractTest extends WebdaTest {
     await assert.rejects(() => service.putRedirectUrl(undefined), /404/);
     ctx.getHttpContext().setBody({
       hash: "plop"
-    })
+    });
     await assert.rejects(() => service.httpChallenge(ctx), /400/);
     ctx = await this.newContext();
     ctx.getHttpContext().setBody({
       challenge: "plop"
-    })
+    });
     await assert.rejects(() => service.httpChallenge(ctx), /400/);
     ctx = await this.newContext();
     let binary = this.getService<Binary>("binary");

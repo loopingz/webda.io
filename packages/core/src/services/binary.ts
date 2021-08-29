@@ -27,9 +27,6 @@ export interface EventBinaryUploadSuccess extends EventBinary {
 }
 export interface EventBinaryDelete extends EventBinary {}
 export interface EventBinaryCreate extends EventBinaryUploadSuccess {}
-export interface EventBinaryUpdate extends EventBinaryUploadSuccess {
-  old: BinaryMap;
-}
 
 /**
  * Emitted if binary does not exist
@@ -70,13 +67,13 @@ export interface BinaryFile {
   mimetype?: string;
   /**
    * Will be computed by the service
-   * 
+   *
    * hash of the content prefixed by 'WEBDA'
    */
   challenge?: string;
   /**
    * Will be computed by the service
-   * 
+   *
    * hash of the content
    */
   hash?: string;
@@ -118,7 +115,7 @@ export class BinaryMap {
 
   /**
    * Prevent all the attributes starting with '__' to be serialized
-   * @returns 
+   * @returns
    */
   toJSON() {
     let res = {};
@@ -256,32 +253,13 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     object: CoreModel,
     property: string,
     file: BinaryFile,
-    metadatas?: { [key: string]: any },
-    index?: number
+    metadatas?: { [key: string]: any }
   ): Promise<void>;
 
   /**
    * The store can retrieve how many time a binary has been used
    */
   abstract getUsageCount(hash): Promise<number>;
-
-  /**
-   * Update a binary
-   *
-   * @param {String} object The object uuid to get from the store
-   * @param {String} property The object property to add the file to
-   * @param {Number} index The index of the file to change in the property
-   * @param {Object} file The file by itself
-   * @param {Object} metadatas to add to the binary object
-   * @emits 'binaryUpdate'
-   */
-  abstract update(
-    object: CoreModel,
-    property: string,
-    index: number,
-    file: BinaryFile,
-    metadatas?: { [key: string]: any }
-  ): Promise<void>;
 
   /**
    * Delete a binary
@@ -344,9 +322,9 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
 
   /**
    * Init the declared maps, adding reverse maps
-   * 
-   * @param map 
-   * @returns 
+   *
+   * @param map
+   * @returns
    */
   initMap(map) {
     if (map == undefined || map._init) {
@@ -387,10 +365,10 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
 
   /**
    * Based on the raw Map init a BinaryMap
-   * @param obj 
-   * @returns 
+   * @param obj
+   * @returns
    */
-  initModel(obj: any) : BinaryMap {
+  initModel(obj: any): BinaryMap {
     return new BinaryMap(this, obj);
   }
 
@@ -441,7 +419,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     }
   }
 
-  async updateSuccess(object: CoreModel, property: string, index: number, file: any, metadatas?: any): Promise<void> {
+  async uploadSuccess(object: CoreModel, property: string, file: any, metadatas?: any): Promise<void> {
     var fileObj: BinaryMap = {
       ...file,
       metadatas
@@ -453,33 +431,12 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
       service: this,
       target: object
     });
-    // @ts-ignore
-    if (index === undefined || index < 0) {
-      await object.getStore().upsertItemToCollection(object_uid, property, fileObj);
-    } else {
-      info = object[property][index];
-      await object
-        .getStore()
-        .upsertItemToCollection(object_uid, property, fileObj, index, object[property][index].hash, "hash");
-    }
-    if (info) {
-      if (info.hash !== file.hash) {
-        // Remove usage as 
-        await this.cascadeDelete(info, object_uid);
-      }
-      await this.emitSync("Binary.Update", <EventBinaryUpdate>{
-        object: fileObj,
-        old: info,
-        service: this,
-        target: object
-      });
-    } else {
-      await this.emitSync("Binary.Create", <EventBinaryCreate>{
-        object: fileObj,
-        service: this,
-        target: object
-      });
-    }
+    await object.getStore().upsertItemToCollection(object_uid, property, fileObj);
+    await this.emitSync("Binary.Create", <EventBinaryCreate>{
+      object: fileObj,
+      service: this,
+      target: object
+    });
   }
 
   /**
@@ -537,7 +494,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
 
   /**
    * Return the name of the service for OpenAPI
-   * @returns 
+   * @returns
    */
   protected getOperationName(): string {
     return this._name.toLowerCase() === "Binary" ? "" : this._name;
@@ -633,8 +590,8 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
 
   /**
    * Based on the request parameter verify it match a known mapping
-   * @param ctx 
-   * @returns 
+   * @param ctx
+   * @returns
    */
   _verifyMapAndStore(ctx: Context): Store<CoreModel> {
     let store = ctx.parameter("store").toLowerCase();

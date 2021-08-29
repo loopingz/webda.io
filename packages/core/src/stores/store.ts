@@ -669,10 +669,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     }
     let map = this.parameters.map;
     for (let prop in map) {
-      // No mapped property or not in the object
-      if (map[prop].key === undefined) {
-        continue;
-      }
       if (map[prop].fields.split(",").indexOf(property) >= 0) {
         return true;
       }
@@ -774,7 +770,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
   }
 
   initMap(map) {
-    if (map == undefined || map._init) {
+    if (map === undefined || map._init) {
       return;
     }
     for (var prop in map) {

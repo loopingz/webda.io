@@ -142,9 +142,8 @@ export class BinaryMap {
    * Shortcut to call {@link Binary.downloadTo} with current object
    *
    * @param filename
-   * @returns
    */
-  downloadTo(filename: string) {
+  async downloadTo(filename: string) : Promise<void> {
     return this.__store.downloadTo(this, filename);
   }
 
@@ -291,8 +290,8 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    * @param {Object} info The reference stored in your target object
    * @param {String} filepath to save the binary to
    */
-  downloadTo(info: BinaryMap, filename) {
-    var readStream: any = this._get(info);
+  async downloadTo(info: BinaryMap, filename) : Promise<void> {
+    var readStream: any = await this._get(info);
     var writeStream = fs.createWriteStream(filename);
     return new Promise<void>((resolve, reject) => {
       writeStream.on("finish", src => {

@@ -164,9 +164,11 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     await this.getBinary().putObject(this.getBinary()._getKey("bouzouf"), "plop");
     assert.ok(await this.getBinary()._exists("bouzouf"));
     assert.strict(
-      await Binary.streamToBuffer(this.getBinary().getObject(this.getBinary()._getKey("bouzouf"))).toString("utf8"),
+      (await Binary.streamToBuffer(this.getBinary().getObject(this.getBinary()._getKey("bouzouf")))).toString("utf8"),
       "plop"
     );
+    assert.notStrictEqual(await this.getBinary().exists(this.getBinary()._getKey("bouzouf")), null);
+    assert.strictEqual(await this.getBinary().exists(this.getBinary()._getKey("bouzouf2")), null);
   }
 
   @test
@@ -232,6 +234,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     try {
       await assert.rejects(() => this.getBinary()._getS3("plop"));
       await assert.rejects(() => this.getBinary()._exists("plop"));
+      await assert.rejects(() => this.getBinary().exists("plop"));
     } finally {
       stub.restore();
     }

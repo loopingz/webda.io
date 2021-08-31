@@ -270,6 +270,25 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   }
 
   /**
+   * Check if an object exists on S3
+   * @param key 
+   * @param bucket 
+   */
+  async exists(Key: string, Bucket: string = this.parameters.bucket) : Promise<AWS.S3.HeadObjectOutput | null> {
+    try {
+      return await this._s3.headObject({
+        Bucket,
+        Key
+      }).promise();
+    } catch (err) {
+      if (err.code === "NotFound") {
+        return null;
+      }
+      throw err;
+    }
+  }
+
+  /**
    * @inheritdoc
    */
   async getUsageCount(hash: string): Promise<number> {

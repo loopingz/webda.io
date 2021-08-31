@@ -12,16 +12,6 @@ export class ImageUser extends User {
   images: BinaryMap[];
 }
 
-// codesnippet from https://stackoverflow.com/questions/14269233/node-js-how-to-read-a-stream-into-a-buffer
-async function stream2buffer(stream: any): Promise<Buffer> {
-  return new Promise<Buffer>((resolve, reject) => {
-    const _buf = Array<any>();
-    stream.on("data", chunk => _buf.push(chunk));
-    stream.on("end", () => resolve(Buffer.concat(_buf)));
-    stream.on("error", err => reject(`error converting stream - ${err}`));
-  });
-}
-
 class TestBinaryService extends Binary {
   store(object: CoreModel, property: string, file: any, metadatas: any, index?: number): Promise<any> {
     throw new Error("Method not implemented.");
@@ -409,7 +399,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
 
     await user1.refresh();
     assert.strictEqual(user1.images.length, 2);
-    assert.strictEqual((await stream2buffer(await binary.get(user1.images[1]))).toString(), "PLOP");
+    assert.strictEqual((await Binary.streamToBuffer(await binary.get(user1.images[1]))).toString(), "PLOP");
     // If we try to re upload it should be already up
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", `/binary/upload/users/${user1.getUuid()}/images`, {
       hash,

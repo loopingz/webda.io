@@ -8,15 +8,7 @@ import { DynamoDBTest } from "./dynamodb.spec";
 import * as AWSMock from "aws-sdk-mock";
 import * as AWS from "aws-sdk";
 import * as sinon from "sinon";
-
-function streamToString(stream) {
-  const chunks = [];
-  return new Promise((resolve, reject) => {
-    stream.on("data", chunk => chunks.push(Buffer.from(chunk)));
-    stream.on("error", err => reject(err));
-    stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
-  });
-}
+import { Binary } from "@webda/core";
 
 @suite
 class S3BinaryTest extends BinaryTest<S3Binary> {
@@ -171,7 +163,10 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     assert.ok(!(await this.getBinary()._exists("bouzouf")));
     await this.getBinary().putObject(this.getBinary()._getKey("bouzouf"), "plop");
     assert.ok(await this.getBinary()._exists("bouzouf"));
-    assert.strict(await streamToString(this.getBinary().getObject(this.getBinary()._getKey("bouzouf"))), "plop");
+    assert.strict(
+      await Binary.streamToBuffer(this.getBinary().getObject(this.getBinary()._getKey("bouzouf"))).toString("utf8"),
+      "plop"
+    );
   }
 
   @test

@@ -260,7 +260,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     return this.getRedirectUrl(ctx, true);
   }
 
-  _get(info: BinaryMap): Readable {
+  async _get(info: BinaryMap): Promise<Readable> {
     return this._s3
       .getObject({
         Bucket: this.parameters.bucket,

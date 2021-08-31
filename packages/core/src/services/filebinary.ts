@@ -82,7 +82,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
   /**
    * @inheritdoc
    */
-  _get(info: BinaryMap): Readable {
+  async _get(info: BinaryMap): Promise<Readable> {
     var path = this._getPath(info.hash, "data");
     if (!fs.existsSync(path)) {
       throw new BinaryNotFoundError(info.hash, this.getName());

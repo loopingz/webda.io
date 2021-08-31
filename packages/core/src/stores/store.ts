@@ -17,7 +17,7 @@ export class UpdateConditionFailError extends WebdaError {
   }
 }
 
-type MapUpdates = "created" | "deleted" | {[key: string]: any};
+type MapUpdates = "created" | "deleted" | { [key: string]: any };
 
 interface EventStore {
   /**
@@ -312,7 +312,7 @@ export type ExposeParameters = {
   };
 };
 
-type StoreMaps = {[key: string]: MapStoreParameter};
+type StoreMaps = { [key: string]: MapStoreParameter };
 
 /**
  * Store parameter
@@ -1190,9 +1190,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     let promises = [];
     for (let prop in this.parameters.map) {
       // No mapped property or not in the object
-      if (
-        (object[this.parameters.map[prop].key] === undefined && updates[this.parameters.map[prop].key] === undefined)
-      ) {
+      if (object[this.parameters.map[prop].key] === undefined && updates[this.parameters.map[prop].key] === undefined) {
         continue;
       }
       let store: Store<CoreModel, any> = this.getService<Store<CoreModel, any>>(prop);

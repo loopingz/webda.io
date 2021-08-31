@@ -277,7 +277,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    * @param {Object} info The reference stored in your target object
    * @emits 'binaryGet'
    */
-  async get(info: BinaryMap) {
+  async get(info: BinaryMap): Promise<Readable> {
     await this.emitSync("Binary.Get", <EventBinaryGet>{
       object: info,
       service: this
@@ -318,7 +318,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     this.initMap(this.parameters.map);
   }
 
-  abstract _get(info: BinaryMap): Readable;
+  abstract _get(info: BinaryMap): Promise<Readable>;
 
   /**
    * Init the declared maps, adding reverse maps
@@ -386,6 +386,22 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
     result.hash = hash.update(buffer).digest("hex");
     result.challenge = challenge.update(buffer).digest("hex");
     return result;
+  }
+
+  /**
+   * Read a stream to a buffer
+   *
+   * @param stream
+   * @returns
+   */
+  static streamToBuffer(stream: Readable): Promise<Buffer> {
+    // codesnippet from https://stackoverflow.com/questions/14269233/node-js-how-to-read-a-stream-into-a-buffer
+    const chunks = [];
+    return new Promise((resolve, reject) => {
+      stream.on("data", chunk => chunks.push(Buffer.from(chunk)));
+      stream.on("error", err => reject(err));
+      stream.on("end", () => resolve(Buffer.concat(chunks)));
+    });
   }
 
   /**

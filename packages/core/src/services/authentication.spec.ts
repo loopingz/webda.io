@@ -74,11 +74,20 @@ class AuthenticationTest extends WebdaTest {
     assert.strictEqual(this.authentication.getUrl(), "/auth");
     this.authentication.getParameters().password.verifier = "VersionService";
     this.authentication.computeParameters();
+    assert.strictEqual(await this.authentication.getPasswordRecoveryInfos("bouzouf"), undefined);
     assert.strictEqual(this.authentication._passwordVerifier, this.getService("VersionService"));
     let params = new AuthenticationParameters({});
     assert.strictEqual(params.identStore, "idents");
     assert.strictEqual(params.userStore, "users");
     assert.strictEqual(params.url, "/auth");
+    params = new AuthenticationParameters({
+      identStore: "id",
+      userStore: "us",
+      url: "/aaa"
+    });
+    assert.strictEqual(params.identStore, "id");
+    assert.strictEqual(params.userStore, "us");
+    assert.strictEqual(params.url, "/aaa");
     let auth = new Authentication(this.webda, "auth", { email: { mailer: "plop" } });
     assert.throws(() => auth.resolve(), /email authentication requires a Mailer service/);
   }
@@ -100,7 +109,7 @@ class AuthenticationTest extends WebdaTest {
       }
     );
     this.events = 0;
-    // Should reject because?
+    // Should reject because it is login and not email
     await assert.rejects(
       () => executor.execute(ctx),
       res => res == 400
@@ -225,6 +234,9 @@ class AuthenticationTest extends WebdaTest {
     assert.strictEqual(this.mailer.sent.length, 3);
     assert.strictEqual(this.events, 2); // Register + Login
     assert.notStrictEqual(ctx.getSession().getUserId(), undefined);
+
+    // Register while logged-in should fail with 410
+    await assert.rejects(() => executor.execute(ctx), /410/);
   }
 
   @test("register - bad password") async registerBadPassword() {
@@ -317,6 +329,16 @@ class AuthenticationTest extends WebdaTest {
     );
     assert.strictEqual(ctx.getSession().getUserId(), undefined);
     assert.strictEqual(this.events, 1);
+    assert.strictEqual(await (await this.identStore.get("test2@webda.io_email"))._failedLogin, 1);
+    // Re log to reinit failedLogin
+    ctx.getHttpContext().setBody({
+      login: "test2@webda.io",
+      password: "testtest"
+    });
+    ctx.reinit();
+    ctx.newSession();
+    await executor.execute(ctx);
+    assert.strictEqual(await (await this.identStore.get("test2@webda.io_email"))._failedLogin, 0);
   }
 
   @test("passwordRecovery") async testPasswordRecovery() {
@@ -332,10 +354,7 @@ class AuthenticationTest extends WebdaTest {
       password: "retesttest"
     });
     tokenInfo = await this.authentication.getPasswordRecoveryInfos(userId, -10);
-    await assert.rejects(
-      () => executor.execute(ctx),
-      res => res == 400
-    );
+    await assert.rejects(() => executor.execute(ctx), /400/);
     // Missing the body
     executor = this.getExecutor(ctx, "test.webda.io", "POST", "/auth/email/passwordRecovery", {
       token: tokenInfo.token,
@@ -343,10 +362,14 @@ class AuthenticationTest extends WebdaTest {
       password: "retesttest",
       login: userId
     });
-    await assert.rejects(
-      () => executor.execute(ctx),
-      res => res == 403
-    );
+    await assert.rejects(() => executor.execute(ctx), /403/);
+    executor = this.getExecutor(ctx, "test.webda.io", "POST", "/auth/email/passwordRecovery", {
+      token: tokenInfo.token,
+      expire: tokenInfo.expire,
+      password: "retesttest",
+      login: "unknown"
+    });
+    await assert.rejects(() => executor.execute(ctx), /403/);
     // Missing the body
     ctx.getHttpContext().setBody({
       token: tokenInfo.token,
@@ -355,12 +378,21 @@ class AuthenticationTest extends WebdaTest {
       login: userId
     });
     ctx.reinit();
-    await assert.rejects(
-      () => executor.execute(ctx),
-      res => res == 410
-    );
+    await assert.rejects(() => executor.execute(ctx), /410/);
     tokenInfo = await this.authentication.getPasswordRecoveryInfos(userId);
     // Missing the body
+    ctx.getHttpContext().setBody({ ...tokenInfo, login: userId, password: "a" });
+    ctx.reinit();
+    await assert.rejects(() => executor.execute(ctx), /400/);
+    // @ts-ignore
+    this.authentication._passwordVerifier = {
+      validate: async (p: string) => {
+        return p === "retesttest";
+      }
+    };
+    ctx.getHttpContext().setBody({ ...tokenInfo, login: userId, password: "anyotherpass" });
+    ctx.reinit();
+    await assert.rejects(() => executor.execute(ctx), /400/);
     ctx.getHttpContext().setBody({ ...tokenInfo, login: userId, password: "retesttest" });
     ctx.reinit();
     await executor.execute(ctx);
@@ -379,10 +411,9 @@ class AuthenticationTest extends WebdaTest {
     assert.notStrictEqual(this.mailer.sent[0].replacements.infos, undefined);
     assert.notStrictEqual(this.mailer.sent[0].replacements.infos.expire, undefined);
     assert.notStrictEqual(this.mailer.sent[0].replacements.infos.token, undefined);
-    await assert.rejects(
-      () => executor.execute(ctx),
-      res => res == 429
-    );
+    await assert.rejects(() => executor.execute(ctx), /429/);
+    executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/email/test66@webda.io/recover");
+    await assert.rejects(() => executor.execute(ctx), /404/);
   }
 
   @test("add email to existing account") async addEmailToAccount() {
@@ -390,13 +421,7 @@ class AuthenticationTest extends WebdaTest {
     let ctx = await this.newContext();
     await this.registerTest2(ctx);
     this.mailer.sent = [];
-    let executor = this.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", {
-      login: "test2@webda.io",
-      password: "testtest"
-    });
-    await executor.execute(ctx);
-    assert.notStrictEqual(ctx.getSession().getUserId(), undefined);
-    executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/email/newtest@webda.io/validate", {
+    let executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/email/newtest@webda.io/validate", {
       login: "test2@webda.io",
       password: "retesttest"
     });
@@ -420,6 +445,13 @@ class AuthenticationTest extends WebdaTest {
 
     // Try to validate with wrong email
     ctx.getSession().userId = "anotheruser";
+    executor = this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "GET",
+      "/auth/email/callback?email=" + match[1] + "&user=" + match[4]
+    );
+    await assert.rejects(() => executor.execute(ctx), /400/);
     executor = this.getExecutor(
       ctx,
       "test.webda.io",
@@ -449,31 +481,25 @@ class AuthenticationTest extends WebdaTest {
     await executor.execute(ctx);
     assert.strictEqual(ctx.statusCode, 302);
     assert.strictEqual(ctx.getResponseHeaders().Location, "https://webda.io/user.html?validation=email");
+    // Check ident is added to the user
     ident = await this.identStore.get("newtest@webda.io_email");
     assert.notStrictEqual(ident._validation, undefined);
     // Verify exception if same user try to revalidate
     executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/email/newtest@webda.io/validate");
-    await assert.rejects(
-      () => executor.execute(ctx),
-      res => res == 412
-    );
-    // Check ident is added to the user
-    // TODO Redo this one
-    /*
-    let user = await ctx.getCurrentUser();
-    assert.strictEqual(
-      user.getIdents().filter(item => item.uuid === "newtest@webda.io_email")
-        .length,
-      1
-    );
-    */
+    await assert.rejects(() => executor.execute(ctx), /412/);
     // Verify exception if different user try to validate
     ctx.getSession().userId = "bouzouf";
     executor = this.getExecutor(ctx, "test.webda.io", "GET", "/auth/email/newtest@webda.io/validate");
-    await assert.rejects(
-      () => executor.execute(ctx),
-      res => res == 409
-    );
+    await assert.rejects(() => executor.execute(ctx), /409/);
+
+    // Check register on validated email does not work
+    ctx.newSession();
+    executor = this.getExecutor(ctx, "test.webda.io", "POST", "/auth/email", {
+      login: "newtest@webda.io",
+      password: "testtest",
+      register: true
+    });
+    await assert.rejects(() => executor.execute(ctx), /409/);
 
     // Validation with no user
     ctx.newSession();
@@ -486,8 +512,26 @@ class AuthenticationTest extends WebdaTest {
     await executor.execute(ctx);
     assert.strictEqual(ctx.statusCode, 302);
     assert.strictEqual(ctx.getResponseHeaders().Location, "https://webda.io/user.html?validation=email");
+    await this.identStore.delete("newtest2@webda.io_email", undefined, undefined, true);
+    await executor.execute(ctx);
+    assert.ok(await this.identStore.exists("newtest2@webda.io_email"));
   }
 
   @test
-  emailAddition() {}
+  async redirectEmailRegister() {
+    let token = this.authentication.generateEmailValidationToken(undefined, "test@webda.io");
+    let ctx = await this.newContext();
+    let executor = this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "GET",
+      `/auth/email/callback?email=test@webda.io&token=${token}`
+    );
+    await executor.execute(ctx);
+    assert.strictEqual(ctx.statusCode, 302);
+    assert.strictEqual(
+      ctx.getResponseHeaders().Location,
+      `https://webda.io/register.html?token=${token}&email=test@webda.io`
+    );
+  }
 }

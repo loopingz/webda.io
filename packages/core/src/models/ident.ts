@@ -18,8 +18,14 @@ class Ident extends OwnerModel {
   _user: string;
   __new: boolean;
   _failedLogin: number;
-  _lastValidationEmail: number;
-  _validation: Date;
+  /**
+   * If EmailIdent
+   */
+  _lastValidationEmail?: number;
+  /**
+   * When the ident was validated
+   */
+  _validation?: Date;
 
   static init(
     type: string,

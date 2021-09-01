@@ -77,10 +77,23 @@ class OAuthServiceTest extends WebdaTest {
     assert.rejects(() => this.service.handleReturn(undefined, undefined, undefined), /403/);
     let ctx = await this.newContext();
     await this.webda.getService<Store<Ident>>("Idents").__clean();
+    // Register with oauth
     await this.service.handleReturn(ctx, "plop", { email: "rcattiau@gmail.com" }, undefined);
     // We should have two idents existing now
     assert.strictEqual(await this.webda.getService<Store<Ident>>("Idents").exists("plop_fake"), true);
     assert.strictEqual(await this.webda.getService<Store<Ident>>("Idents").exists("rcattiau@gmail.com_email"), true);
+    ctx.newSession();
+    // Log with known ident / email
+    assert.strictEqual(ctx.getSession().getIdentUsed(), undefined);
+    await this.service.handleReturn(ctx, "plop", { email: "rcattiau@gmail.com" }, undefined);
+    assert.strictEqual(ctx.getSession().getIdentUsed(), "plop_fake");
+    let userId = ctx.getCurrentUserId();
+    ctx.newSession();
+    // Log with new ident / known email
+    await this.service.handleReturn(ctx, "plop2", { email: "rcattiau@gmail.com" }, undefined);
+    assert.strictEqual(ctx.getSession().getIdentUsed(), "plop2_fake");
+    assert.strictEqual(ctx.getCurrentUserId(), userId);
+    await this.service.handleReturn(ctx, "plop3", { email: "rcattiau@gmail.com" }, undefined);
     // Default to false for token
     assert.rejects(() => this.getExecutor(ctx, "webda.io", "GET", "/fake/scope").execute(ctx), /404/);
     assert.rejects(() => this.getExecutor(ctx, "webda.io", "POST", "/fake/token").execute(ctx), /404/);

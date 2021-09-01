@@ -332,7 +332,6 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
       return;
     }
     this._lowercaseMaps = {};
-    console.log(map);
     for (var prop in map) {
       this._lowercaseMaps[prop.toLowerCase()] = prop;
       var reverseStore = this._webda.getService(prop);

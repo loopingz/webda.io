@@ -16,6 +16,7 @@ Basic configuration
 ```javascript
 "successRedirect": "https://shootandprove.loopingz.com/user.html", // Redirect to this page after login
 "failureRedirect": "/login-error", // Redirect to this page after failed login
+"registerRedirect": "/login-error", // Redirect to this page after email is validated
 "userStore": "", // If you want to override the userStore name by default Users
 "identStore": "", // If you want to override the identStore name by default Idents
 "providers": {
@@ -53,9 +54,51 @@ The email authentication has two modes, one that register the user without waiti
 ```
 
 The email authentication expose
-POST /auth/email
-if the body contains register=true then it will perform registration, if not then only login returning 404 if unknown user, 403 for bad password, 204 for successful login
-GET /auth/callback
+
+`POST /auth/email`
+
+The body of the request looks like:
+
+```
+{
+  "login": "myemail@webda.io",
+  "password": "mypass",
+  "register": true,
+  "token": "myEmailToken",
+  ...
+}
+```
+
+With `register=true` in the body:
+
+- `204`: Registration done or pending (depending on postValidation and body)
+- `400`: Bad request: either missing arguments or password invalid
+- `409`: Login already used
+
+With `register=false|undefined`:
+
+- `204`: Successful login
+- `403`: Bad password
+- `404`: Unknown user
+
+`GET /auth/me`: returns current user
+
+`GET /auth`: returns available authentication
+
+`DELETE /auth`: logout
+
+`GET /auth/email/callback`: Callback url to validate email, will redirect to another page
+
+- `successRedirect`: if email is valid and nothing else to do
+- `registerRedirect`: if email is valid but still require to finish the registration process
+- `failureRedirect?reason=badUser`: if user logged in is different from the user who started the process
+- `failureRedirect?reason=badToken`: if validation token is invalid
+
+`GET /auth/email/{email}/recover`: start the password reset process by sending an email
+
+`POST /auth/email/passwordRecovery`: finish the password reset process
+
+`GET /auth/email/{email}/validate`: start the password validation process by sending an email
 
 ## OAuth
 

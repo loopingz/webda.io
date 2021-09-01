@@ -59,6 +59,7 @@
     },
     "Authentication": {
       "successRedirect": "https://webda.io/user.html",
+      "registerRedirect": "https://webda.io/register.html",
       "failureRedirect": "/login-error",
       "email": {
         "from": "",

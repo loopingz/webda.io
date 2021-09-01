@@ -29,13 +29,20 @@ export interface EventAuthenticationRegister extends EventAuthenticationGetMe {
 export interface EventAuthenticationLogout extends EventWithContext {}
 
 /**
+ * Sent when a user update his password
+ */
+export interface EventAuthenticationPasswordUpdate extends EventAuthenticationGetMe {
+  password: string;
+}
+
+/**
  * Emitted when user login
  */
 export interface EventAuthenticationLogin extends EventWithContext {
   userId: string;
   user?: User;
   identId: string;
-  ident?: Ident;
+  ident: Ident;
 }
 
 /**
@@ -53,8 +60,9 @@ export interface PasswordVerifier extends Service {
    * return false
    *
    * @param password to verify
+   * @param user to verify from
    */
-  validate(password: string): Promise<boolean>;
+  validate(password: string, user?: User): Promise<boolean>;
 }
 
 /**
@@ -114,6 +122,12 @@ export class AuthenticationParameters extends ServiceParameters {
      * @default 3600000 * 4
      */
     delay: number;
+    /**
+     * When a delay is added between two attempt to authenticate
+     *
+     * @default 3
+     */
+    failedLoginBeforeDelay: number;
   };
   password: {
     /**
@@ -138,6 +152,10 @@ export class AuthenticationParameters extends ServiceParameters {
    * Redirect to this page when email validation succeed
    */
   successRedirect: string;
+  /**
+   * Redirect to this page once email is validate to finish the registration process
+   */
+  registerRedirect: string;
 
   constructor(params: any) {
     super(params);
@@ -149,6 +167,7 @@ export class AuthenticationParameters extends ServiceParameters {
     };
     if (this.email) {
       this.email.delay ??= 3600000 * 4;
+      this.email.failedLoginBeforeDelay ??= 3;
     }
   }
 }
@@ -322,6 +341,14 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     this.providers.add(name);
   }
 
+  /**
+   * Send or resend an email to validate the email address
+   *
+   * @param ctx
+   * @throws 409 if ident is linked to someone else
+   * @throws 412 if the email is already validated
+   * @throws 429 if a validation email has been sent recently
+   */
   async _sendEmailValidation(ctx) {
     let identKey = ctx.parameters.email + "_email";
     let ident = await this._identsStore.get(identKey);
@@ -332,12 +359,15 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
         _type: "email"
       });
     } else {
+      // If the ident is linked to someone else - might want to remove it
       if (ident.getUser() !== ctx.getCurrentUserId()) {
         throw 409;
       }
+      // If the email is already validated
       if (ident._validation) {
         throw 412;
       }
+      //
       if (ident._lastValidationEmail >= Date.now() - this.parameters.email.delay) {
         throw 429;
       }
@@ -368,25 +398,6 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       return;
     }
     ctx.write(Array.from(this.providers));
-  }
-
-  async _registerNewEmail(ctx) {
-    if (!ctx.getCurrentUserId()) {
-      throw 403;
-    }
-    let ident = await this._identsStore.get(ctx.body.email + "_email");
-    if (ident) {
-      if (ident._validation) {
-        throw 409;
-      }
-    } else {
-      await this._identsStore.save({
-        uuid: `${ctx.body.email}_email`,
-        _lastValidationEmail: Date.now(),
-        _type: "email"
-      });
-    }
-    await this.sendValidationEmail(ctx, ctx.body.email);
   }
 
   async onIdentLogin(ctx: Context, provider: string, identId: string, profile: any, tokens: any = undefined) {
@@ -451,10 +462,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     await this.login(ctx, user, ident);
   }
 
-  async registerUser(ctx: Context, datas, user: any = undefined): Promise<any> {
-    if (!user) {
-      user = this._usersStore.initModel();
-    }
+  async registerUser(ctx: Context, datas, user: any = this._usersStore.initModel()): Promise<any> {
     user.email = datas.email;
     user.locale = ctx.getLocale();
     await this.emitSync("Authentication.Register", <EventAuthenticationRegister>{
@@ -505,15 +513,15 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     await this.sendRecoveryEmail(ctx, user, email);
   }
 
-  async _verifyPassword(password: string) {
+  async _verifyPassword(password: string, user?: User) {
     if (this._passwordVerifier) {
-      if (!(await this._passwordVerifier.validate(password))) {
+      if (!(await this._passwordVerifier.validate(password, user))) {
         throw 400;
       }
       return;
     }
     let regexp = new RegExp(this.parameters.password.regexp);
-    if (!regexp.exec(password)) {
+    if (regexp.exec(password) === null) {
       throw 400;
     }
   }
@@ -538,16 +546,22 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     if (body.expire < Date.now()) {
       throw 410;
     }
-    await this._verifyPassword(body.password);
+    await this._verifyPassword(body.password, user);
+    let password = this.hashPassword(body.password);
     await this._usersStore.patch({
-      __password: this.hashPassword(body.password),
+      __password: password,
       uuid: body.login.toLowerCase()
+    });
+    await this.emitSync("Authentication.PasswordUpdate", <EventAuthenticationPasswordUpdate>{
+      user,
+      password,
+      context: ctx
     });
   }
 
   async _handleEmailCallback(ctx: Context) {
     if (!ctx.parameter("token")) {
-      throw 404;
+      throw 400;
     }
     let validation = ctx.parameter("token");
     if (validation !== this.generateEmailValidationToken(ctx.parameter("user"), ctx.parameter("email"))) {
@@ -567,8 +581,17 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       });
       return;
     }
+
+    if (!ctx.parameter("user")) {
+      ctx.writeHead(302, {
+        Location: `${this.parameters.registerRedirect}?token=${ctx.parameter("token")}&email=${ctx.parameter("email")}`
+      });
+      return;
+    }
+
     var uuid = ctx.parameter("email") + "_email";
     let ident = await this._identsStore.get(uuid);
+    // Would mean the ident got delete in the mean time... hyper low likely hood
     if (ident === undefined) {
       ident = this._identsStore.initModel({
         uuid
@@ -584,26 +607,35 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     });
   }
 
+  /**
+   * Send an email to recover the user password
+   *
+   * @param ctx
+   * @param user
+   * @param email
+   * @returns
+   */
   async sendRecoveryEmail(ctx: Context, user, email: string) {
     let infos = await this.getPasswordRecoveryInfos(user);
     var mailer: Mailer = this.getMailMan();
-    let locale = user.locale;
-    if (!locale) {
-      locale = ctx.getLocale();
-    }
-    let replacements = { ...this.parameters.email, infos, to: email, context: ctx };
+    let locale = user.locale || ctx.getLocale();
     let mailOptions = {
       to: email,
       locale: locale,
       template: "PASSPORT_EMAIL_RECOVERY",
-      replacements: replacements
+      replacements: { ...this.parameters.email, infos, to: email, context: ctx }
     };
-    if (!user.locale) {
-      mailOptions.locale = ctx.getLocale();
-    }
     return mailer.send(mailOptions);
   }
 
+  /**
+   * Send an email to validate the user email by sending a unique link to
+   * his email
+   *
+   * @param ctx
+   * @param email
+   * @returns
+   */
   async sendValidationEmail(ctx: Context, email: string) {
     var mailer: Mailer = this.getMailMan();
     let replacements = {
@@ -612,11 +644,10 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       url: ctx
         .getHttpContext()
         .getAbsoluteUrl(
-          this.parameters.url +
-            "/email/callback?email=" +
-            email +
-            "&token=" +
-            this.generateEmailValidationToken(ctx.getCurrentUserId(), email)
+          `${this.parameters.url}/email/callback?email=${email}&token=${this.generateEmailValidationToken(
+            ctx.getCurrentUserId(),
+            email
+          )}`
         )
     };
     let userId = ctx.getCurrentUserId();
@@ -678,11 +709,12 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
    * @param ident
    * @returns
    */
-  async login(ctx: Context, user: User | string, ident: Ident | string) {
+  async login(ctx: Context, user: User | string, ident: Ident) {
     var event: EventAuthenticationLogin = {
       context: ctx,
       userId: "",
-      identId: ""
+      identId: ident.uuid,
+      ident
     };
 
     if (typeof user == "object") {
@@ -691,14 +723,8 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     } else {
       event.userId = user;
     }
-
-    if (typeof ident == "object") {
-      event.identId = ident.uuid;
-      event.ident = ident;
-    } else {
-      event.identId = ident;
-    }
     event.context = ctx;
+
     ctx.getSession().login(event.userId, event.identId);
     return this.emitSync("Authentication.Login", event);
   }
@@ -707,6 +733,12 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     return this.getService<Mailer>(this.parameters.email.mailer ? this.parameters.email.mailer : "Mailer");
   }
 
+  /**
+   * Handle a user login request
+   *
+   * @param ctx
+   * @param ident
+   */
   protected async handleLogin(ctx: Context, ident: Ident) {
     let updates: any = {};
     let user: User = await this._usersStore.get(ident.getUser());
@@ -727,10 +759,8 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
         user,
         context: ctx
       });
-      if (ident._failedLogin === undefined) {
-        ident._failedLogin = 0;
-      }
-      updates._failedLogin = ident._failedLogin++;
+      ident._failedLogin ??= 0;
+      updates._failedLogin = ident._failedLogin + 1;
       updates._lastFailedLogin = new Date();
       updates.uuid = ident.uuid;
       // Swalow exeception issue to double check !
@@ -742,13 +772,19 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     }
   }
 
+  /**
+   * Handle the POST /auth/email
+   *
+   * @param ctx
+   * @returns
+   */
   async _handleEmail(ctx: Context) {
-    let body = ctx.getRequestBody();
-
-    // Register new email
-    if (body.email && !body.password) {
-      return this._registerNewEmail(ctx);
+    // If called while logged in reject
+    if (ctx.getCurrentUserId()) {
+      throw 410;
     }
+
+    let body = ctx.getRequestBody();
 
     if (body.password === undefined || body.login === undefined) {
       throw 400;
@@ -758,7 +794,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     let ident: Ident = await this._identsStore.get(uuid);
     if (ident !== undefined && ident.getUser() !== undefined) {
       // Register on an known user
-      if (!ctx.parameter("register")) {
+      if (!body.register) {
         await this.handleLogin(ctx, ident);
         return;
       }
@@ -771,14 +807,11 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     // TODO Handle add of email on authenticated user
     var email = body.login.toLowerCase();
     // Read the form
-    if (body.register || ctx.parameter("register")) {
+    if (body.register) {
       var validation = undefined;
       // Need to check email before creation
       if (!mailConfig.postValidation) {
         if (body.token == this.generateEmailValidationToken(ctx.getCurrentUserId(), email)) {
-          if (body.user !== ctx.getCurrentUserId()) {
-            throw 412;
-          }
           validation = new Date();
         } else {
           ctx.write({});
@@ -792,6 +825,11 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       delete body.password;
       delete body.register;
       let user = await this.registerUser(ctx, {}, body);
+      await this.emitSync("Authentication.PasswordCreate", <EventAuthenticationPasswordUpdate>{
+        user,
+        password: body.__password,
+        context: ctx
+      });
       user = await this._usersStore.save(user);
       var newIdent: any = this._identsStore.initModel({
         uuid: uuid,

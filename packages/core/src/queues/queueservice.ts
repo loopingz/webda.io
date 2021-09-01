@@ -130,7 +130,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
       let items = await this.receiveMessage(this.eventPrototype);
       this.failedIterations = 0;
       if (items.length === 0) {
-        return this.consumerResume();
+        return;
       }
       const msgWorker = async msg => {
         try {
@@ -149,7 +149,6 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
           await msgWorker(item);
         }
       }
-      return this.consumerResume();
     } catch (err) {
       this.failedIterations += 1;
       this.log("ERROR", err);

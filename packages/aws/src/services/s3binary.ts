@@ -7,11 +7,9 @@ import {
   Context,
   CoreModel,
   ModdaDefinition,
-  Store,
   EventBinaryGet,
   WebdaError,
-  BinaryFile,
-  BinaryNotFoundError
+  BinaryFile
 } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";

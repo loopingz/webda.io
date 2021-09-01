@@ -4,7 +4,7 @@ import { Context } from "../utils/context";
 import { Binary, BinaryMap, BinaryNotFoundError, BinaryParameters } from "./binary";
 import { Service, ServiceParameters } from "./service";
 import { join } from "path";
-import { CoreModel, Store } from "..";
+import { CoreModel } from "..";
 import { Readable } from "stream";
 import * as jwt from "jsonwebtoken";
 

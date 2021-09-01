@@ -603,8 +603,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
     if (map === undefined) {
       throw 404;
     }
-    let property = ctx.parameter("property");
-    if (map.indexOf(property) == -1) {
+    if (map.indexOf(ctx.parameter("property")) == -1) {
       throw 404;
     }
     var targetStore: Store<CoreModel> = this.getService<Store<CoreModel>>(store);

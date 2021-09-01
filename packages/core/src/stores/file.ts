@@ -4,7 +4,7 @@ import * as path from "path";
 import { ModdaDefinition } from "../core";
 import { CoreModel } from "../models/coremodel";
 import { JSONUtils } from "../utils/serializers";
-import { Store, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";
+import { Store, StoreNotFoundError, StoreParameters } from "./store";
 
 class FileStoreParameters extends StoreParameters {
   /**

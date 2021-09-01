@@ -21,7 +21,7 @@
   "scripts": {
     "build": "tsc",
     "pretest": "npm run build",
-    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts",
+    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts src/*.spec.ts",
     "lint": "prettier --check src/**/*",
     "lint:fix": "prettier --write src/**/*"
   },
@@ -73,7 +73,10 @@
       "lcov",
       "json"
     ],
-    "exclude": ["**/*.spec.ts", "link_modules/**/*"]
+    "exclude": [
+      "**/*.spec.ts",
+      "link_modules/**/*"
+    ]
   },
   "publishConfig": {
     "access": "public"

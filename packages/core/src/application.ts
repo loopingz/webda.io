@@ -704,7 +704,7 @@ export class Application {
         .toString()
         .trim()
         .split("\n")
-        .filter(tag => tag !== "");
+        .filter(t => t !== "");
       let tag = "";
       let version = info.version;
       if (tags.includes(`${info.name}@${info.version}`)) {

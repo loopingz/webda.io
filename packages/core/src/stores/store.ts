@@ -2,7 +2,6 @@
 import { EventWithContext, WebdaError } from "../core";
 import { ConfigurationProvider } from "../index";
 import { CoreModel, CoreModelDefinition, ModelAction } from "../models/coremodel";
-import { BinaryMap } from "../services/binary";
 import { Service, ServiceParameters } from "../services/service";
 import { Context } from "../utils/context";
 
@@ -1222,7 +1221,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     // Allow full object or just its uuid
     if (typeof uid === "object") {
       to_delete = uid;
-      uid = to_delete.getUuid();
     } else {
       to_delete = await this._get(uid);
       if (to_delete === undefined) {

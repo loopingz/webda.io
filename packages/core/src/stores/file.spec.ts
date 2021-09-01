@@ -5,7 +5,8 @@ import { suite, test } from "@testdeck/mocha";
 import { HttpContext } from "../utils/context";
 import { removeSync } from "fs-extra";
 import { existsSync } from "fs";
-import { Ident } from "../models/ident";
+import { UpdateConditionFailError } from "./store";
+import * as sinon from "sinon";
 
 @suite
 class FileStoreTest extends StoreTest {
@@ -42,10 +43,36 @@ class FileStoreTest extends StoreTest {
 
     // Test guard-rails (seems hardly reachable so might be useless)
     assert.strictEqual(identStore.getMapper([], "id"), -1);
-    assert.strictEqual(await identStore._handleUpdatedMap({}, undefined, undefined, undefined, {}), undefined);
-    // @ts-ignore
-    assert.strictEqual(await identStore._handleDeletedMap(undefined, { target: "plop" }, {}, undefined), undefined);
+    assert.strictEqual(
+      // @ts-ignore
+      await identStore._handleUpdatedMap(ident, { key: "none", fields: [] }, undefined, undefined, {}),
+      undefined
+    );
+    assert.strictEqual(
+      // @ts-ignore
+      await identStore._handleDeletedMap(undefined, { target: "plop", fields: [] }, {}, undefined),
+      undefined
+    );
     assert.strictEqual(await identStore.handleIndex(undefined, { plop: true }), undefined);
+
+    assert.throws(
+      () => identStore.checkCollectionUpdateCondition(ident, "plops", undefined, 1, null),
+      UpdateConditionFailError
+    );
+    // @ts-ignore
+    ident.plops = [];
+    assert.throws(
+      () => identStore.checkCollectionUpdateCondition(ident, "plops", undefined, 1, null),
+      UpdateConditionFailError
+    );
+    identStore.checkCollectionUpdateCondition(ident, "plops", undefined, 0, null);
+
+    // COV _handleUpdatedMapMapper case where the item collection were modified without webda control
+    // @ts-ignore - we cheat with a ident also mapping as user
+    ident.idents = [];
+    let stb = sinon.stub(identStore, "upsertItemToCollection").callsFake(async () => {});
+    await identStore._handleUpdatedMapMapper(ident, identStore.getParameters().map["Users"], ident, identStore, "plop");
+    assert.strictEqual(stb.getCall(0).args.length, 3);
   }
 
   @test
@@ -57,7 +84,10 @@ class FileStoreTest extends StoreTest {
     );
     assert.strictEqual(await identStore.getConfiguration("plop"), undefined);
     await identStore.save({ plop: 1, other: true, uuid: "plop" });
-    assert.strictEqual(await identStore.getConfiguration("plop"), { other: true, plop: 1 });
+    assert.deepStrictEqual(await identStore.getConfiguration("plop"), {
+      other: true,
+      plop: 1
+    });
   }
 
   @test

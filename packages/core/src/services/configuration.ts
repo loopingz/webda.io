@@ -10,7 +10,7 @@ interface ConfigurationProvider {
    *
    * @param id of the configuration to retrieve
    */
-  getConfiguration(id: string): Promise<Map<string, any>>;
+  getConfiguration(id: string): Promise<{ [key: string]: any }>;
   /**
    * Return true if the service can detect modification
    *

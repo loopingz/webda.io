@@ -487,4 +487,7 @@ class AuthenticationTest extends WebdaTest {
     assert.strictEqual(ctx.statusCode, 302);
     assert.strictEqual(ctx.getResponseHeaders().Location, "https://webda.io/user.html?validation=email");
   }
+
+  @test
+  emailAddition() {}
 }

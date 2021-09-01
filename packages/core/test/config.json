@@ -106,7 +106,7 @@
         "Users": {
           "key": "_user",
           "target": "idents",
-          "fields": "type,_lastUpdate",
+          "fields": "type,_lastUpdate,counter",
           "cascade": true
         },
         "notexisting": {

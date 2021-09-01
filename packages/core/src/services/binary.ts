@@ -6,7 +6,7 @@ import * as path from "path";
 import { Readable } from "stream";
 import { WebdaError } from "..";
 import { CoreModel } from "../models/coremodel";
-import { Store } from "../stores/store";
+import { MappingService, Store } from "../stores/store";
 import { Context } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
@@ -221,7 +221,10 @@ export class BinaryParameters extends ServiceParameters {
  * @abstract
  * @class Binary
  */
-abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Service<T> {
+abstract class Binary<T extends BinaryParameters = BinaryParameters>
+  extends Service<T>
+  implements MappingService<BinaryMap>
+{
   _lowercaseMaps: any;
 
   /**
@@ -339,24 +342,10 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
         continue;
       }
       if (typeof map[prop] === "string") {
-        reverseStore.addReverseMap(
-          map[prop],
-          {
-            store: this._name,
-            name: map[prop]
-          },
-          this
-        );
+        reverseStore.addReverseMap(map[prop], this, true);
       } else {
         for (let i in map[prop]) {
-          reverseStore.addReverseMap(
-            map[prop][i],
-            {
-              store: this._name,
-              name: map[prop][i]
-            },
-            this
-          );
+          reverseStore.addReverseMap(map[prop][i], this, true);
         }
       }
     }

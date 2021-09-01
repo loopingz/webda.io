@@ -7,6 +7,7 @@ import * as sinon from "sinon";
 import { CoreModel } from "../models/coremodel";
 import { BinaryMap, BinaryNotFoundError } from "./binary";
 import axios from "axios";
+import EventEmitter = require("events");
 
 export class ImageUser extends User {
   images: BinaryMap[];
@@ -476,6 +477,15 @@ class BinaryAbstractTest extends WebdaTest {
       challenge: "z"
     });
     await assert.rejects(() => binary.httpChallenge(ctx), /404/);
+  }
+
+  @test
+  async streamToBufferError() {
+    let stream = new EventEmitter();
+    // @ts-ignore
+    let p = assert.rejects(() => Binary.streamToBuffer(stream), /Bad I\/O/);
+    stream.emit("error", new Error("Bad I/O"));
+    await p;
   }
 }
 

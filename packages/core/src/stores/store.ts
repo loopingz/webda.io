@@ -376,6 +376,7 @@ export class StoreParameters extends ServiceParameters {
       expose.restrict = expose.restrict || {};
       this.expose = expose;
     }
+    this.map ??= {};
     // Init map the right way
     for (let i in this.map) {
       this.map[i].fields ??= [];
@@ -384,6 +385,16 @@ export class StoreParameters extends ServiceParameters {
       }
     }
   }
+}
+
+/**
+ * A mapping service allow to link two object together
+ *
+ * Therefore they need to handle the cascadeDelete
+ */
+export interface MappingService<T = any> {
+  cascadeDelete(obj: any, uuid: string): Promise<any>;
+  initModel(object: any): T;
 }
 
 /**
@@ -422,16 +433,16 @@ export class StoreParameters extends ServiceParameters {
  */
 abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters = StoreParameters>
   extends Service<K>
-  implements ConfigurationProvider
+  implements ConfigurationProvider, MappingService<T>
 {
   /**
    * Contain the reverse map
    */
-  _reverseMap: any[] = [];
+  _reverseMap: { mapper: MappingService; property: string }[] = [];
   /**
    * Contains cascade delete information
    */
-  _cascade: any[] = [];
+  _cascadeDeletes: { mapper: MappingService; property: string }[] = [];
   /**
    * Contains the current model
    */
@@ -484,7 +495,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
    * @inheritdoc
    */
   async init(): Promise<void> {
-    this.initMap(this.parameters.map);
+    this.initMap();
     if (this.parameters.index) {
       await this.createIndex();
     }
@@ -642,9 +653,10 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     }
     object.__store = this;
     for (var i in this._reverseMap) {
+      object[this._reverseMap[i].property] ??= [];
       for (var j in object[this._reverseMap[i].property]) {
         // Use Partial
-        object[this._reverseMap[i].property][j] = this._reverseMap[i].store.initModel(
+        object[this._reverseMap[i].property][j] = this._reverseMap[i].mapper.initModel(
           object[this._reverseMap[i].property][j]
         );
         object[this._reverseMap[i].property][j].setContext(object.getContext());
@@ -660,21 +672,21 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
    * @param cascade
    * @param store
    */
-  addReverseMap(prop, cascade, store) {
+  addReverseMap(prop: string, store: MappingService, cascade: boolean = false) {
     this._reverseMap.push({
       property: prop,
-      store: store
+      mapper: store
     });
     if (cascade) {
-      this._cascade.push(cascade);
+      this._cascadeDeletes.push({
+        mapper: store,
+        property: prop
+      });
     }
   }
 
   isMapped(property: string): boolean {
     if (property === undefined) {
-      return false;
-    }
-    if (!this.parameters.map) {
       return false;
     }
     let map = this.parameters.map;
@@ -779,25 +791,16 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     await this.save(index);
   }
 
-  initMap(map) {
-    if (map === undefined || map._init) {
-      return;
-    }
-    for (var prop in map) {
-      var reverseStore: Store<CoreModel, any> = this._webda.getService<Store<CoreModel, any>>(prop);
+  initMap() {
+    let map = this.parameters.map;
+    for (let prop in map) {
+      let reverseStore: Store<CoreModel, any> = this._webda.getService<Store<CoreModel, any>>(prop);
       if (reverseStore === undefined || !(reverseStore instanceof Store)) {
         map[prop]["-onerror"] = "NoStore";
         this.log("WARN", "Can't setup mapping as store \"", prop, "\" doesn't exist");
         continue;
       }
-      var cascade = undefined;
-      if (map[prop].cascade) {
-        cascade = {
-          store: this._name,
-          name: map[prop].target
-        };
-      }
-      reverseStore.addReverseMap(map[prop].target, cascade, this);
+      reverseStore.addReverseMap(map[prop].target, this, map[prop].cascade);
     }
   }
 
@@ -809,13 +812,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
    * @return {Promise} with saved object
    */
   async save(object, ctx: Context = undefined) {
-    /** @ignore */
-    for (var i in this._reverseMap) {
-      if (object[this._reverseMap[i].property] === undefined) {
-        object[this._reverseMap[i].property] = [];
-      }
-    }
-
     object = this.initModel(object);
 
     // Dates should be store by the Store
@@ -838,9 +834,8 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       store: this
     });
     await object._onSaved();
-    if (this.parameters.map != undefined) {
-      await this.handleMap(object, "created");
-    }
+    await this.handleMap(object, "created");
+
     // Handle index
     if (this.parameters.index && object.getUuid() !== "index" && object.getUuid()) {
       await this.handleIndex(object, "created");
@@ -1003,7 +998,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
    * @param uuid
    * @returns
    */
-  getMapper(map: BinaryMap[], uuid: string): number {
+  getMapper(map: any[], uuid: string): number {
     for (var i = 0; i < map.length; i++) {
       if (map[i][this._uuidField] === uuid) {
         return i;
@@ -1012,27 +1007,33 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     return -1;
   }
 
-  async _handleUpdatedMap(object, map, mapped, store, updates) {
+  /**
+   * Create an object mapper
+   *
+   * @param map map to create mapper for
+   * @param object for the mapper to represent
+   * @param updates to the object being made
+   * @returns mapper object and found = true if updates will impact the mapper
+   */
+  createMapper(map: MapStoreParameter, object: T, updates: any): [mapper: any, found: boolean] {
     var mapper = {};
+    let found = Object.keys(updates).includes(map.key);
     mapper[this._uuidField] = object[this._uuidField];
-    // Update only if the key field has been updated
-    var found = false;
-    for (var field in updates) {
-      for (let mapperfield of map.fields) {
-        // Create the mapper object
-        if (updates[mapperfield] !== undefined) {
-          mapper[mapperfield] = updates[mapperfield];
-          found = true;
-        } else if (object[mapperfield] !== undefined) {
-          mapper[mapperfield] = object[mapperfield];
-        }
-      }
-      // TODO Need to verify also if fields are updated
-      if (field == map.key) {
+    for (let mapperfield of map.fields) {
+      // Create the mapper object
+      if (updates[mapperfield] !== undefined) {
+        mapper[mapperfield] = updates[mapperfield];
         found = true;
-        break;
+      } else if (object[mapperfield] !== undefined) {
+        mapper[mapperfield] = object[mapperfield];
       }
     }
+    return [mapper, found];
+  }
+
+  async _handleUpdatedMap(object: T, map: MapStoreParameter, mapped, store, updates) {
+    let [mapper, found] = this.createMapper(map, object, updates);
+
     if (!found) {
       // None of the mapped keys has been modified -> return
       return;
@@ -1040,15 +1041,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
 
     // check if reference object has changed
     if (updates[map.key] != undefined && mapped[this._uuidField] != updates[map.key]) {
-      // create mapper
-      for (let mapperfield of map.fields) {
-        // Create the mapper object
-        if (updates[mapperfield] !== undefined) {
-          mapper[mapperfield] = updates[mapperfield];
-        } else if (object[mapperfield] !== undefined) {
-          mapper[mapperfield] = object[mapperfield];
-        }
-      }
       let i = this.getMapper(mapped[map.target], object[this._uuidField]);
       if (i >= 0) {
         // Remove the data from old object
@@ -1063,21 +1055,11 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       // Add the data to new object
       await store.upsertItemToCollection(updates[map.key], map.target, mapper);
     } else {
-      return this._handleUpdatedMapMapper(object, map, mapped, store, updates);
+      return this._handleUpdatedMapMapper(object, map, mapped, store, mapper);
     }
   }
 
-  _handleUpdatedMapMapper(object: CoreModel, map, mapped: CoreModel, store: Store, updates) {
-    // Update the mapper
-    var mapper: any = {};
-    mapper[this._uuidField] = object[this._uuidField];
-    for (var field of map.fields) {
-      if (updates[field] != undefined) {
-        mapper[field] = updates[field];
-      } else {
-        mapper[field] = object[field];
-      }
-    }
+  _handleUpdatedMapMapper(object: CoreModel, map: MapStoreParameter, mapped: CoreModel, store: Store, mapper) {
     // Remove old reference
     let i = this.getMapper(mapped[map.target], object[this._uuidField]);
     // If not found just add it to the collection
@@ -1095,7 +1077,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     );
   }
 
-  async _handleDeletedMap(object: CoreModel, map: MapStoreParameter, mapped: CoreModel, store: Store) {
+  async _handleDeletedMap(object: T, map: MapStoreParameter, mapped: CoreModel, store: Store) {
     // Remove from the collection
     if (mapped[map.target] === undefined) {
       return;
@@ -1112,19 +1094,22 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     }
   }
 
-  async _handleCreatedMap(object: CoreModel, map: MapStoreParameter, mapped: CoreModel, store: Store) {
+  async _handleCreatedMap(object: T, map: MapStoreParameter, mapped: CoreModel, store: Store) {
     // Add to the object
-    var mapper: any = {};
-    mapper[this._uuidField] = object[this._uuidField];
-    // Add info to the mapped
-    for (let field of map.fields) {
-      mapper[field] = object[field];
-    }
-
+    let [mapper] = this.createMapper(map, object, {});
     return store.upsertItemToCollection(mapped[this._uuidField], map.target, mapper);
   }
 
-  async _handleMapProperty(store: Store, object: CoreModel, map: MapStoreParameter, updates: MapUpdates) {
+  /**
+   * Manage one mapping update
+   *
+   * @param store
+   * @param object
+   * @param map
+   * @param updates
+   * @returns
+   */
+  async _handleMapProperty(store: Store, object: T, map: MapStoreParameter, updates: MapUpdates) {
     let mapped = await store.get(object[map.key] || updates[map.key]);
     if (mapped == undefined) {
       return;
@@ -1178,7 +1163,14 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     await this._patch(mapUpdates, "index");
   }
 
-  async handleMap(object: CoreModel, updates: MapUpdates): Promise<any[]> {
+  /**
+   * Handle all maps of an object
+   *
+   * @param object
+   * @param updates to the object to be made
+   * @returns
+   */
+  async handleMap(object: T, updates: MapUpdates): Promise<any[]> {
     let promises = [];
     for (let prop in this.parameters.map) {
       // No mapped property or not in the object
@@ -1230,7 +1222,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     // Allow full object or just its uuid
     if (typeof uid === "object") {
       to_delete = uid;
-      uid = to_delete[this._uuidField];
+      uid = to_delete.getUuid();
     } else {
       to_delete = await this._get(uid);
       if (to_delete === undefined) {
@@ -1245,31 +1237,31 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
         throw new UpdateConditionFailError(to_delete.getUuid(), writeConditionField, writeCondition);
       }
     }
+    // Send preevent
     await this.emitSync("Store.Delete", <EventStoreDelete>{
       object: to_delete,
       store: this
     });
     await to_delete._onDelete();
-    if (this.parameters.map != undefined) {
-      await this.handleMap(to_delete, "deleted");
-    }
+
+    // Handle map
+    await this.handleMap(to_delete, "deleted");
+
     // Handle index
-    if (this.parameters.index && to_delete[this._uuidField] !== "index" && to_delete[this._uuidField]) {
+    if (this.parameters.index && to_delete.getUuid() !== "index" && to_delete.getUuid()) {
       await this.handleIndex(to_delete, "deleted");
     }
-    if (this._cascade != undefined && to_delete !== undefined) {
-      var promises = [];
-      // Should deactiate the mapping in that case
-      for (let i in this._cascade) {
-        if (typeof this._cascade[i] != "object" || to_delete[this._cascade[i].name] == undefined) continue;
-        var targetStore: Store<CoreModel, any> = this.getService<Store<CoreModel, any>>(this._cascade[i].store);
-        if (targetStore == undefined) continue;
-        for (var item in to_delete[this._cascade[i].name]) {
-          promises.push(targetStore.cascadeDelete(to_delete[this._cascade[i].name][item], to_delete[this._uuidField]));
-        }
+
+    // Should deactivate the mapping in that case
+    var promises = [];
+    for (let cascade of this._cascadeDeletes) {
+      for (let item of to_delete[cascade.property]) {
+        promises.push(cascade.mapper.cascadeDelete(item, to_delete.getUuid()));
       }
-      await Promise.all(promises);
     }
+    await Promise.all(promises);
+
+    // If async we just tag the object as deleted
     if (this.parameters.asyncDelete && !sync) {
       await this._patch(
         {
@@ -1278,8 +1270,11 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
         to_delete.getUuid()
       );
     } else {
+      // Delete from the DB for real
       await this._delete(to_delete.getUuid(), writeCondition, writeConditionField);
     }
+
+    // Send post event
     await this.emitSync("Store.Deleted", <EventStoreDeleted>{
       object: to_delete,
       store: this
@@ -1302,17 +1297,16 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
    * @param {string} id
    * @returns {Promise<Map<string, any>>}
    */
-  async getConfiguration(id: string): Promise<Map<string, any>> {
+  async getConfiguration(id: string): Promise<{ [key: string]: any }> {
     let object = await this._get(id);
     if (!object) {
       return undefined;
     }
-    let result = new Map<string, any>();
+    let result: { [key: string]: any } = {};
     for (let i in object) {
       if (i === this._uuidField || i === this._lastUpdateField || i.startsWith("_")) {
         continue;
       }
-      // @ts-ignore
       result[i] = object[i];
     }
     return result;

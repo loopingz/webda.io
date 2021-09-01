@@ -271,6 +271,9 @@
 								<a href="_webda_aws.S3Binary.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_webda_aws.S3Binary.html#exists" class="tsd-kind-icon">exists</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_aws.S3Binary.html#forEachFile" class="tsd-kind-icon">for<wbr>Each<wbr>File</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -317,9 +320,6 @@
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_aws.S3Binary.html#httpChallenge" class="tsd-kind-icon">http<wbr>Challenge</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_aws.S3Binary.html#httpPost" class="tsd-kind-icon">http<wbr>Post</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_aws.S3Binary.html#httpRoute" class="tsd-kind-icon">http<wbr>Route</a>
@@ -369,17 +369,17 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_aws.S3Binary.html#toString" class="tsd-kind-icon">to<wbr>String</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-								<a href="_webda_aws.S3Binary.html#update" class="tsd-kind-icon">update</a>
-							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_aws.S3Binary.html#updateSuccess" class="tsd-kind-icon">update<wbr>Success</a>
+								<a href="_webda_aws.S3Binary.html#uploadSuccess" class="tsd-kind-icon">upload<wbr>Success</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-static">
 								<a href="_webda_aws.S3Binary.html#getModda" class="tsd-kind-icon">get<wbr>Modda</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
 								<a href="_webda_aws.S3Binary.html#getSchema" class="tsd-kind-icon">get<wbr>Schema</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+								<a href="_webda_aws.S3Binary.html#streamToBuffer" class="tsd-kind-icon">stream<wbr>ToBuffer</a>
 							</li>
 						</ul>
 					</li>
@@ -429,6 +429,7 @@
 						secretAccessKey: &quot;&quot;
 					region: &quot;&quot;</p>
 					<p>See Binary the general interface</p>
+					<p>We can register on S3 Event to get info when /data is pushed</p>
 			</div></section>
 			<section class="tsd-panel tsd-type-parameters">
 				<h3>Type parameters</h3>
@@ -504,6 +505,7 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.S3Binary.html#deleteSuccess" class="tsd-kind-icon">delete<wbr>Success</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.S3Binary.html#downloadTo" class="tsd-kind-icon">download<wbr>To</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.S3Binary.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.S3Binary.html#exists" class="tsd-kind-icon">exists</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.S3Binary.html#forEachFile" class="tsd-kind-icon">for<wbr>Each<wbr>File</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.S3Binary.html#get" class="tsd-kind-icon">get</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.S3Binary.html#getARNPolicy" class="tsd-kind-icon">getARNPolicy</a></li>
@@ -520,7 +522,6 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_aws.S3Binary.html#getUsageCount" class="tsd-kind-icon">get<wbr>Usage<wbr>Count</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.S3Binary.html#getWebda" class="tsd-kind-icon">get<wbr>Webda</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.S3Binary.html#httpChallenge" class="tsd-kind-icon">http<wbr>Challenge</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.S3Binary.html#httpPost" class="tsd-kind-icon">http<wbr>Post</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.S3Binary.html#httpRoute" class="tsd-kind-icon">http<wbr>Route</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.S3Binary.html#init" class="tsd-kind-icon">init</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.S3Binary.html#initMap" class="tsd-kind-icon">init<wbr>Map</a></li>
@@ -537,10 +538,10 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_aws.S3Binary.html#store" class="tsd-kind-icon">store</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.S3Binary.html#toPublicJSON" class="tsd-kind-icon">to<wbr>PublicJSON</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.S3Binary.html#toString" class="tsd-kind-icon">to<wbr>String</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_aws.S3Binary.html#update" class="tsd-kind-icon">update</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.S3Binary.html#updateSuccess" class="tsd-kind-icon">update<wbr>Success</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.S3Binary.html#uploadSuccess" class="tsd-kind-icon">upload<wbr>Success</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-static"><a href="_webda_aws.S3Binary.html#getModda" class="tsd-kind-icon">get<wbr>Modda</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_aws.S3Binary.html#getSchema" class="tsd-kind-icon">get<wbr>Schema</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_aws.S3Binary.html#streamToBuffer" class="tsd-kind-icon">stream<wbr>ToBuffer</a></li>
 							</ul>
 						</section>
 					</div>
@@ -601,7 +602,7 @@
 					<div class="tsd-signature tsd-kind-icon">AWS<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/s3binary.ts:58</li>
+							<li>Defined in packages/aws/src/services/s3binary.ts:60</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -633,7 +634,7 @@
 					<div class="tsd-signature tsd-kind-icon">_lowercase<wbr>Maps<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/lib/services/binary.d.ts:142</li>
+							<li>Defined in packages/core/lib/services/binary.d.ts:188</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -654,7 +655,7 @@
 					<div class="tsd-signature tsd-kind-icon">_s3<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">S3</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/s3binary.ts:59</li>
+							<li>Defined in packages/aws/src/services/s3binary.ts:61</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -756,7 +757,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/binary.d.ts:236</li>
+									<li>Defined in packages/core/lib/services/binary.d.ts:286</li>
 								</ul>
 							</aside>
 						</li>
@@ -783,7 +784,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:289</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:310</li>
 								</ul>
 							</aside>
 						</li>
@@ -813,7 +814,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">PromiseResult</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">DeleteObjectOutput</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">AWSError</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:303</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:324</li>
 								</ul>
 							</aside>
 						</li>
@@ -840,7 +841,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:335</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:356</li>
 								</ul>
 							</aside>
 						</li>
@@ -848,7 +849,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 					<a name="_get" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-						<li class="tsd-signature tsd-kind-icon">_get<span class="tsd-signature-symbol">(</span>info<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">BinaryMap</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Readable</span></li>
+						<li class="tsd-signature tsd-kind-icon">_get<span class="tsd-signature-symbol">(</span>info<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">BinaryMap</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Readable</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -861,7 +862,7 @@
 									<h5>info: <span class="tsd-signature-type">BinaryMap</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Readable</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Readable</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in packages/aws/src/services/s3binary.ts:263</li>
@@ -872,7 +873,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="_getFile" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">_get<wbr>File<span class="tsd-signature-symbol">(</span>req<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+						<li class="tsd-signature tsd-kind-icon">_get<wbr>File<span class="tsd-signature-symbol">(</span>req<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Context</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -887,13 +888,13 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>req: <span class="tsd-signature-type">any</span></h5>
+									<h5>req: <span class="tsd-signature-type">Context</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/binary.d.ts:259</li>
+									<li>Defined in packages/core/lib/services/binary.d.ts:309</li>
 								</ul>
 							</aside>
 						</li>
@@ -930,7 +931,7 @@
 							</ul>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/binary.d.ts:221</li>
+									<li>Defined in packages/core/lib/services/binary.d.ts:264</li>
 								</ul>
 							</aside>
 						</li>
@@ -961,7 +962,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:353</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:374</li>
 								</ul>
 							</aside>
 						</li>
@@ -989,7 +990,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">PromiseResult</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">HeadObjectOutput</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">AWSError</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:365</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:386</li>
 								</ul>
 							</aside>
 						</li>
@@ -1011,7 +1012,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:84</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:86</li>
 								</ul>
 							</aside>
 						</li>
@@ -1042,7 +1043,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/binary.d.ts:229</li>
+									<li>Defined in packages/core/lib/services/binary.d.ts:279</li>
 								</ul>
 							</aside>
 						</li>
@@ -1057,6 +1058,11 @@
 							<aside class="tsd-sources">
 								<p>Inherited from Binary._verifyMapAndStore</p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Based on the request parameter verify it match a known mapping</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -1066,7 +1072,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Store</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">CoreModel</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">StoreParameters</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/binary.d.ts:270</li>
+									<li>Defined in packages/core/lib/services/binary.d.ts:328</li>
 								</ul>
 							</aside>
 						</li>
@@ -1144,7 +1150,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:324</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:345</li>
 								</ul>
 							</aside>
 						</li>
@@ -1166,7 +1172,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:73</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:75</li>
 								</ul>
 							</aside>
 						</li>
@@ -1200,7 +1206,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:315</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:336</li>
 								</ul>
 							</aside>
 						</li>
@@ -1230,7 +1236,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/binary.d.ts:253</li>
+									<li>Defined in packages/core/lib/services/binary.d.ts:303</li>
 								</ul>
 							</aside>
 						</li>
@@ -1265,7 +1271,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/binary.d.ts:208</li>
+									<li>Defined in packages/core/lib/services/binary.d.ts:241</li>
 								</ul>
 							</aside>
 						</li>
@@ -1298,6 +1304,37 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in packages/core/lib/services/service.d.ts:138</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="exists" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">exists<span class="tsd-signature-symbol">(</span>Key<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, Bucket<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">HeadObjectOutput</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Check if an object exists on S3</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>Key: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>Bucket: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = ...</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">HeadObjectOutput</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/aws/src/services/s3binary.ts:277</li>
 								</ul>
 							</aside>
 						</li>
@@ -1343,7 +1380,7 @@
 													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 													<aside class="tsd-sources">
 														<ul>
-															<li>Defined in packages/aws/src/services/s3binary.ts:409</li>
+															<li>Defined in packages/aws/src/services/s3binary.ts:430</li>
 														</ul>
 													</aside>
 												</li>
@@ -1367,7 +1404,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:407</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:428</li>
 								</ul>
 							</aside>
 						</li>
@@ -1403,7 +1440,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Readable</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/binary.d.ts:201</li>
+									<li>Defined in packages/core/lib/services/binary.d.ts:234</li>
 								</ul>
 							</aside>
 						</li>
@@ -1444,7 +1481,7 @@
 							</ul>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:516</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:528</li>
 								</ul>
 							</aside>
 						</li>
@@ -1478,7 +1515,7 @@
 							</ul>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:548</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:560</li>
 								</ul>
 							</aside>
 						</li>
@@ -1538,7 +1575,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:387</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:408</li>
 								</ul>
 							</aside>
 						</li>
@@ -1553,10 +1590,15 @@
 							<aside class="tsd-sources">
 								<p>Inherited from Binary.getOperationName</p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Return the name of the service for OpenAPI</p>
+								</div>
+							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/binary.d.ts:264</li>
+									<li>Defined in packages/core/lib/services/binary.d.ts:318</li>
 								</ul>
 							</aside>
 						</li>
@@ -1785,7 +1827,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:275</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:296</li>
 								</ul>
 							</aside>
 						</li>
@@ -1837,31 +1879,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/binary.d.ts:283</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="httpPost" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">http<wbr>Post<span class="tsd-signature-symbol">(</span>ctx<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Context</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from Binary.httpPost</p>
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>ctx: <span class="tsd-signature-type">Context</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/lib/services/binary.d.ts:269</li>
+									<li>Defined in packages/core/lib/services/binary.d.ts:341</li>
 								</ul>
 							</aside>
 						</li>
@@ -1892,7 +1910,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/binary.d.ts:288</li>
+									<li>Defined in packages/core/lib/services/binary.d.ts:346</li>
 								</ul>
 							</aside>
 						</li>
@@ -1933,16 +1951,23 @@
 							<aside class="tsd-sources">
 								<p>Inherited from Binary.initMap</p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Init the declared maps, adding reverse maps</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
 									<h5>map: <span class="tsd-signature-type">any</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/binary.d.ts:214</li>
+									<li>Defined in packages/core/lib/services/binary.d.ts:252</li>
 								</ul>
 							</aside>
 						</li>
@@ -1957,6 +1982,11 @@
 							<aside class="tsd-sources">
 								<p>Inherited from Binary.initModel</p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Based on the raw Map init a BinaryMap</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -1966,7 +1996,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">BinaryMap</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/binary.d.ts:215</li>
+									<li>Defined in packages/core/lib/services/binary.d.ts:258</li>
 								</ul>
 							</aside>
 						</li>
@@ -1989,7 +2019,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/binary.d.ts:263</li>
+									<li>Defined in packages/core/lib/services/binary.d.ts:313</li>
 								</ul>
 							</aside>
 						</li>
@@ -2020,7 +2050,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_aws.S3BinaryParameters.html" class="tsd-signature-type">S3BinaryParameters</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:66</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:68</li>
 								</ul>
 							</aside>
 						</li>
@@ -2174,7 +2204,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:445</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:466</li>
 								</ul>
 							</aside>
 						</li>
@@ -2202,7 +2232,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:126</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:128</li>
 								</ul>
 							</aside>
 						</li>
@@ -2251,7 +2281,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/binary.d.ts:212</li>
+									<li>Defined in packages/core/lib/services/binary.d.ts:245</li>
 								</ul>
 							</aside>
 						</li>
@@ -2259,7 +2289,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 					<a name="store" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-						<li class="tsd-signature tsd-kind-icon">store<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">CoreModel</span>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, file<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">BinaryFile</span>, metadatas<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">object</span>, index<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">store<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">CoreModel</span>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, file<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">BinaryFile</span>, metadatas<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -2289,14 +2319,11 @@
 										</li>
 									</ul>
 								</li>
-								<li>
-									<h5><span class="tsd-flag ts-flagOptional">Optional</span> index: <span class="tsd-signature-type">number</span></h5>
-								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:470</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:491</li>
 								</ul>
 							</aside>
 						</li>
@@ -2357,55 +2384,15 @@
 							</aside>
 						</li>
 					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-					<a name="update" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-						<li class="tsd-signature tsd-kind-icon">update<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, index<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, file<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, metadatas<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Overrides Binary.update</p>
-							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-tags">
-								<dl class="tsd-comment-tags"><dt>inheritdoc</dt>
-								<dd></dd></dl>
-							</div>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>object: <span class="tsd-signature-type">any</span></h5>
-								</li>
-								<li>
-									<h5>property: <span class="tsd-signature-type">any</span></h5>
-								</li>
-								<li>
-									<h5>index: <span class="tsd-signature-type">any</span></h5>
-								</li>
-								<li>
-									<h5>file: <span class="tsd-signature-type">any</span></h5>
-								</li>
-								<li>
-									<h5>metadatas: <span class="tsd-signature-type">any</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:508</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="updateSuccess" class="tsd-anchor"></a>
+					<a name="uploadSuccess" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">update<wbr>Success<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">CoreModel</span>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, index<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, file<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, metadatas<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">upload<wbr>Success<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">CoreModel</span>, property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, file<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, metadatas<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Binary.updateSuccess</p>
+								<p>Inherited from Binary.uploadSuccess</p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -2414,9 +2401,6 @@
 								</li>
 								<li>
 									<h5>property: <span class="tsd-signature-type">string</span></h5>
-								</li>
-								<li>
-									<h5>index: <span class="tsd-signature-type">number</span></h5>
 								</li>
 								<li>
 									<h5>file: <span class="tsd-signature-type">any</span></h5>
@@ -2428,7 +2412,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/binary.d.ts:237</li>
+									<li>Defined in packages/core/lib/services/binary.d.ts:287</li>
 								</ul>
 							</aside>
 						</li>
@@ -2450,7 +2434,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">ModdaDefinition</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/aws/src/services/s3binary.ts:570</li>
+									<li>Defined in packages/aws/src/services/s3binary.ts:582</li>
 								</ul>
 							</aside>
 						</li>
@@ -2477,6 +2461,35 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in packages/core/lib/services/service.d.ts:183</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+					<a name="streamToBuffer" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">stream<wbr>ToBuffer<span class="tsd-signature-symbol">(</span>stream<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Readable</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from Binary.streamToBuffer</p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Read a stream to a buffer</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>stream: <span class="tsd-signature-type">Readable</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/lib/services/binary.d.ts:274</li>
 								</ul>
 							</aside>
 						</li>

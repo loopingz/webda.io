@@ -211,9 +211,6 @@
 								<a href="_webda_core.Authentication.html#_passwordRecoveryEmail" class="tsd-kind-icon">_password<wbr>Recovery<wbr>Email</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="_webda_core.Authentication.html#_registerNewEmail" class="tsd-kind-icon">_register<wbr>New<wbr>Email</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webda_core.Authentication.html#_sendEmailValidation" class="tsd-kind-icon">_send<wbr>Email<wbr>Validation</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
@@ -406,7 +403,6 @@
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Authentication.html#_listAuthentications" class="tsd-kind-icon">_list<wbr>Authentications</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Authentication.html#_passwordRecovery" class="tsd-kind-icon">_password<wbr>Recovery</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Authentication.html#_passwordRecoveryEmail" class="tsd-kind-icon">_password<wbr>Recovery<wbr>Email</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Authentication.html#_registerNewEmail" class="tsd-kind-icon">_register<wbr>New<wbr>Email</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Authentication.html#_sendEmailValidation" class="tsd-kind-icon">_send<wbr>Email<wbr>Validation</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Authentication.html#_verifyPassword" class="tsd-kind-icon">_verify<wbr>Password</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Authentication.html#addProvider" class="tsd-kind-icon">add<wbr>Provider</a></li>
@@ -511,7 +507,7 @@
 					<div class="tsd-signature tsd-kind-icon">_idents<wbr>Store<span class="tsd-signature-symbol">:</span> <a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.Ident.html" class="tsd-signature-type">Ident</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/authentication.ts:179</li>
+							<li>Defined in packages/core/src/services/authentication.ts:198</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -548,7 +544,7 @@
 					<div class="tsd-signature tsd-kind-icon">_password<wbr>Verifier<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_webda_core.PasswordVerifier.html" class="tsd-signature-type">PasswordVerifier</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/authentication.ts:182</li>
+							<li>Defined in packages/core/src/services/authentication.ts:201</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -556,7 +552,7 @@
 					<div class="tsd-signature tsd-kind-icon">_users<wbr>Store<span class="tsd-signature-symbol">:</span> <a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.User.html" class="tsd-signature-type">User</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/authentication.ts:181</li>
+							<li>Defined in packages/core/src/services/authentication.ts:200</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -605,7 +601,7 @@
 					<div class="tsd-signature tsd-kind-icon">providers<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Set</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> = ...</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/authentication.ts:183</li>
+							<li>Defined in packages/core/src/services/authentication.ts:202</li>
 						</ul>
 					</aside>
 			</section>    </section>
@@ -655,7 +651,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:352</li>
+									<li>Defined in packages/core/src/services/authentication.ts:382</li>
 								</ul>
 							</aside>
 						</li>
@@ -669,6 +665,11 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Handle the POST /auth/email</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -678,7 +679,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:745</li>
+									<li>Defined in packages/core/src/services/authentication.ts:781</li>
 								</ul>
 							</aside>
 						</li>
@@ -701,7 +702,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:548</li>
+									<li>Defined in packages/core/src/services/authentication.ts:562</li>
 								</ul>
 							</aside>
 						</li>
@@ -724,7 +725,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:364</li>
+									<li>Defined in packages/core/src/services/authentication.ts:394</li>
 								</ul>
 							</aside>
 						</li>
@@ -747,7 +748,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:521</li>
+									<li>Defined in packages/core/src/services/authentication.ts:529</li>
 								</ul>
 							</aside>
 						</li>
@@ -770,30 +771,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:490</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="_registerNewEmail" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">_register<wbr>New<wbr>Email<span class="tsd-signature-symbol">(</span>ctx<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>ctx: <span class="tsd-signature-type">any</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:373</li>
+									<li>Defined in packages/core/src/services/authentication.ts:498</li>
 								</ul>
 							</aside>
 						</li>
@@ -807,6 +785,19 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Send or resend an email to validate the email address</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>throws</dt>
+									<dd><p>409 if ident is linked to someone else</p>
+									</dd><dt>throws</dt>
+									<dd><p>412 if the email is already validated</p>
+									</dd><dt>throws</dt>
+									<dd><p>429 if a validation email has been sent recently</p>
+								</dd></dl>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -816,7 +807,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:325</li>
+									<li>Defined in packages/core/src/services/authentication.ts:352</li>
 								</ul>
 							</aside>
 						</li>
@@ -824,7 +815,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="_verifyPassword" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">_verify<wbr>Password<span class="tsd-signature-symbol">(</span>password<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">_verify<wbr>Password<span class="tsd-signature-symbol">(</span>password<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, user<span class="tsd-signature-symbol">?: </span><a href="_webda_core.User.html" class="tsd-signature-type">User</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -835,11 +826,14 @@
 								<li>
 									<h5>password: <span class="tsd-signature-type">string</span></h5>
 								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> user: <a href="_webda_core.User.html" class="tsd-signature-type">User</a></h5>
+								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:508</li>
+									<li>Defined in packages/core/src/services/authentication.ts:516</li>
 								</ul>
 							</aside>
 						</li>
@@ -862,7 +856,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:321</li>
+									<li>Defined in packages/core/src/services/authentication.ts:340</li>
 								</ul>
 							</aside>
 						</li>
@@ -943,7 +937,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:650</li>
+									<li>Defined in packages/core/src/services/authentication.ts:681</li>
 								</ul>
 							</aside>
 						</li>
@@ -1001,7 +995,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:818</li>
+									<li>Defined in packages/core/src/services/authentication.ts:856</li>
 								</ul>
 							</aside>
 						</li>
@@ -1018,7 +1012,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.Mailer.html" class="tsd-signature-type">Mailer</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.MailerParameters.html" class="tsd-signature-type">MailerParameters</a><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:706</li>
+									<li>Defined in packages/core/src/services/authentication.ts:732</li>
 								</ul>
 							</aside>
 						</li>
@@ -1090,7 +1084,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.PasswordRecoveryInfos.html" class="tsd-signature-type">PasswordRecoveryInfos</a><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:468</li>
+									<li>Defined in packages/core/src/services/authentication.ts:476</li>
 								</ul>
 							</aside>
 						</li>
@@ -1145,7 +1139,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:293</li>
+									<li>Defined in packages/core/src/services/authentication.ts:312</li>
 								</ul>
 							</aside>
 						</li>
@@ -1182,6 +1176,11 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Handle a user login request</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -1189,12 +1188,14 @@
 								</li>
 								<li>
 									<h5>ident: <a href="_webda_core.Ident.html" class="tsd-signature-type">Ident</a></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:710</li>
+									<li>Defined in packages/core/src/services/authentication.ts:742</li>
 								</ul>
 							</aside>
 						</li>
@@ -1225,7 +1226,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:640</li>
+									<li>Defined in packages/core/src/services/authentication.ts:671</li>
 								</ul>
 							</aside>
 						</li>
@@ -1256,7 +1257,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:659</li>
+									<li>Defined in packages/core/src/services/authentication.ts:690</li>
 								</ul>
 							</aside>
 						</li>
@@ -1305,7 +1306,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:192</li>
+									<li>Defined in packages/core/src/services/authentication.ts:211</li>
 								</ul>
 							</aside>
 						</li>
@@ -1334,7 +1335,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.AuthenticationParameters.html" class="tsd-signature-type">AuthenticationParameters</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:188</li>
+									<li>Defined in packages/core/src/services/authentication.ts:207</li>
 								</ul>
 							</aside>
 						</li>
@@ -1374,7 +1375,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="login" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">login<span class="tsd-signature-symbol">(</span>ctx<span class="tsd-signature-symbol">: </span><a href="_webda_core.Context.html" class="tsd-signature-type">Context</a>, user<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><a href="_webda_core.User.html" class="tsd-signature-type">User</a>, ident<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><a href="_webda_core.Ident.html" class="tsd-signature-type">Ident</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">login<span class="tsd-signature-symbol">(</span>ctx<span class="tsd-signature-symbol">: </span><a href="_webda_core.Context.html" class="tsd-signature-type">Context</a>, user<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><a href="_webda_core.User.html" class="tsd-signature-type">User</a>, ident<span class="tsd-signature-symbol">: </span><a href="_webda_core.Ident.html" class="tsd-signature-type">Ident</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1394,13 +1395,13 @@
 									<h5>user: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><a href="_webda_core.User.html" class="tsd-signature-type">User</a></h5>
 								</li>
 								<li>
-									<h5>ident: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><a href="_webda_core.Ident.html" class="tsd-signature-type">Ident</a></h5>
+									<h5>ident: <a href="_webda_core.Ident.html" class="tsd-signature-type">Ident</a></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:681</li>
+									<li>Defined in packages/core/src/services/authentication.ts:712</li>
 								</ul>
 							</aside>
 						</li>
@@ -1428,7 +1429,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:666</li>
+									<li>Defined in packages/core/src/services/authentication.ts:697</li>
 								</ul>
 							</aside>
 						</li>
@@ -1501,7 +1502,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:392</li>
+									<li>Defined in packages/core/src/services/authentication.ts:403</li>
 								</ul>
 							</aside>
 						</li>
@@ -1530,7 +1531,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:454</li>
+									<li>Defined in packages/core/src/services/authentication.ts:465</li>
 								</ul>
 							</aside>
 						</li>
@@ -1595,6 +1596,11 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Send an email to recover the user password</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -1610,7 +1616,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:587</li>
+									<li>Defined in packages/core/src/services/authentication.ts:618</li>
 								</ul>
 							</aside>
 						</li>
@@ -1624,6 +1630,12 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Send an email to validate the user email by sending a unique link to
+									his email</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -1636,7 +1648,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:607</li>
+									<li>Defined in packages/core/src/services/authentication.ts:639</li>
 								</ul>
 							</aside>
 						</li>
@@ -1659,7 +1671,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:297</li>
+									<li>Defined in packages/core/src/services/authentication.ts:316</li>
 								</ul>
 							</aside>
 						</li>
@@ -1682,7 +1694,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:301</li>
+									<li>Defined in packages/core/src/services/authentication.ts:320</li>
 								</ul>
 							</aside>
 						</li>
@@ -1761,7 +1773,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="../interfaces/_webda_core.ModdaDefinition.html" class="tsd-signature-type">ModdaDefinition</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:823</li>
+									<li>Defined in packages/core/src/services/authentication.ts:861</li>
 								</ul>
 							</aside>
 						</li>

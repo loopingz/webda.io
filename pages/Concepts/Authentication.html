@@ -190,6 +190,7 @@
 				<p>Basic configuration</p>
 				<pre><code class="language-javascript"><span style="color: #A31515">&quot;successRedirect&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;https://shootandprove.loopingz.com/user.html&quot;</span><span style="color: #000000">, </span><span style="color: #008000">// Redirect to this page after login</span>
 <span style="color: #A31515">&quot;failureRedirect&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;/login-error&quot;</span><span style="color: #000000">, </span><span style="color: #008000">// Redirect to this page after failed login</span>
+<span style="color: #A31515">&quot;registerRedirect&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;/login-error&quot;</span><span style="color: #000000">, </span><span style="color: #008000">// Redirect to this page after email is validated</span>
 <span style="color: #A31515">&quot;userStore&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;&quot;</span><span style="color: #000000">, </span><span style="color: #008000">// If you want to override the userStore name by default Users</span>
 <span style="color: #A31515">&quot;identStore&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;&quot;</span><span style="color: #000000">, </span><span style="color: #008000">// If you want to override the identStore name by default Idents</span>
 <span style="color: #A31515">&quot;providers&quot;</span><span style="color: #000000">: {</span>
@@ -220,10 +221,42 @@
 <span style="color: #000000">},</span>
 <span style="color: #000000">...</span>
 </code></pre>
-				<p>The email authentication expose
-					POST /auth/email
-					if the body contains register=true then it will perform registration, if not then only login returning 404 if unknown user, 403 for bad password, 204 for successful login
-				GET /auth/callback</p>
+				<p>The email authentication expose</p>
+				<p><code>POST /auth/email</code></p>
+				<p>The body of the request looks like:</p>
+				<pre><code><span style="color: #000000">{</span>
+<span style="color: #000000">  </span><span style="color: #A31515">&quot;login&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;myemail@webda.io&quot;</span><span style="color: #000000">,</span>
+<span style="color: #000000">  </span><span style="color: #A31515">&quot;password&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;mypass&quot;</span><span style="color: #000000">,</span>
+<span style="color: #000000">  </span><span style="color: #A31515">&quot;register&quot;</span><span style="color: #000000">: </span><span style="color: #0000FF">true</span><span style="color: #000000">,</span>
+<span style="color: #000000">  </span><span style="color: #A31515">&quot;token&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;myEmailToken&quot;</span><span style="color: #000000">,</span>
+<span style="color: #000000">  ...</span>
+<span style="color: #000000">}</span>
+</code></pre>
+				<p>With <code>register=true</code> in the body:</p>
+				<ul>
+					<li><code>204</code>: Registration done or pending (depending on postValidation and body)</li>
+					<li><code>400</code>: Bad request: either missing arguments or password invalid</li>
+					<li><code>409</code>: Login already used</li>
+				</ul>
+				<p>With <code>register=false|undefined</code>:</p>
+				<ul>
+					<li><code>204</code>: Successful login</li>
+					<li><code>403</code>: Bad password</li>
+					<li><code>404</code>: Unknown user</li>
+				</ul>
+				<p><code>GET /auth/me</code>: returns current user</p>
+				<p><code>GET /auth</code>: returns available authentication</p>
+				<p><code>DELETE /auth</code>: logout</p>
+				<p><code>GET /auth/email/callback</code>: Callback url to validate email, will redirect to another page</p>
+				<ul>
+					<li><code>successRedirect</code>: if email is valid and nothing else to do</li>
+					<li><code>registerRedirect</code>: if email is valid but still require to finish the registration process</li>
+					<li><code>failureRedirect?reason=badUser</code>: if user logged in is different from the user who started the process</li>
+					<li><code>failureRedirect?reason=badToken</code>: if validation token is invalid</li>
+				</ul>
+				<p><code>GET /auth/email/{email}/recover</code>: start the password reset process by sending an email</p>
+				<p><code>POST /auth/email/passwordRecovery</code>: finish the password reset process</p>
+				<p><code>GET /auth/email/{email}/validate</code>: start the password validation process by sending an email</p>
 				<a href="#oauth" id="oauth" style="color: inherit; text-decoration: none;">
 					<h2>OAuth</h2>
 				</a>

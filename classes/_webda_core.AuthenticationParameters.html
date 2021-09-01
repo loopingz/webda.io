@@ -169,6 +169,9 @@
 								<a href="_webda_core.AuthenticationParameters.html#password" class="tsd-kind-icon">password</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="_webda_core.AuthenticationParameters.html#registerRedirect" class="tsd-kind-icon">register<wbr>Redirect</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="_webda_core.AuthenticationParameters.html#salt" class="tsd-kind-icon">salt</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
@@ -221,6 +224,7 @@
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.AuthenticationParameters.html#failureRedirect" class="tsd-kind-icon">failure<wbr>Redirect</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.AuthenticationParameters.html#identStore" class="tsd-kind-icon">ident<wbr>Store</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.AuthenticationParameters.html#password" class="tsd-kind-icon">password</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.AuthenticationParameters.html#registerRedirect" class="tsd-kind-icon">register<wbr>Redirect</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.AuthenticationParameters.html#salt" class="tsd-kind-icon">salt</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.AuthenticationParameters.html#successRedirect" class="tsd-kind-icon">success<wbr>Redirect</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.AuthenticationParameters.html#type" class="tsd-kind-icon">type</a></li>
@@ -257,7 +261,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.AuthenticationParameters.html" class="tsd-signature-type">AuthenticationParameters</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/authentication.ts:142</li>
+									<li>Defined in packages/core/src/services/authentication.ts:160</li>
 								</ul>
 							</aside>
 						</li>
@@ -289,6 +293,18 @@
 								</div>
 							</li>
 							<li class="tsd-parameter">
+								<h5>failed<wbr>Login<wbr>Before<wbr>Delay<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5>
+								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+									<div class="lead">
+										<p>When a delay is added between two attempt to authenticate</p>
+									</div>
+									</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+									<dl class="tsd-comment-tags"><dt>default</dt>
+										<dd><p>3</p>
+									</dd></dl>
+								</div>
+							</li>
+							<li class="tsd-parameter">
 								<h5><span class="tsd-flag ts-flagOptional">Optional</span> mailer<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span></h5>
 								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 									<div class="lead">
@@ -316,7 +332,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/authentication.ts:98</li>
+							<li>Defined in packages/core/src/services/authentication.ts:106</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -329,7 +345,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/authentication.ts:136</li>
+							<li>Defined in packages/core/src/services/authentication.ts:150</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -346,7 +362,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/authentication.ts:84</li>
+							<li>Defined in packages/core/src/services/authentication.ts:92</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -379,7 +395,20 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/authentication.ts:118</li>
+							<li>Defined in packages/core/src/services/authentication.ts:132</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="registerRedirect" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">register<wbr>Redirect<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Redirect to this page once email is validate to finish the registration process</p>
+						</div>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/services/authentication.ts:158</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -392,7 +421,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/authentication.ts:132</li>
+							<li>Defined in packages/core/src/services/authentication.ts:146</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -405,7 +434,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/authentication.ts:140</li>
+							<li>Defined in packages/core/src/services/authentication.ts:154</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -431,7 +460,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/authentication.ts:94</li>
+							<li>Defined in packages/core/src/services/authentication.ts:102</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -448,7 +477,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/authentication.ts:90</li>
+							<li>Defined in packages/core/src/services/authentication.ts:98</li>
 						</ul>
 					</aside>
 			</section>    </section>

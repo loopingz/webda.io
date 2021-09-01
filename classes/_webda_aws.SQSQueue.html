@@ -240,9 +240,6 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 								<a href="_webda_aws.SQSQueue.html#consumerReceiveMessage" class="tsd-kind-icon">consumer<wbr>Receive<wbr>Message</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-								<a href="_webda_aws.SQSQueue.html#consumerResume" class="tsd-kind-icon">consumer<wbr>Resume</a>
-							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 								<a href="_webda_aws.SQSQueue.html#deleteMessage" class="tsd-kind-icon">delete<wbr>Message</a>
 							</li>
@@ -409,7 +406,6 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.SQSQueue.html#computeParameters" class="tsd-kind-icon">compute<wbr>Parameters</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.SQSQueue.html#consume" class="tsd-kind-icon">consume</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_aws.SQSQueue.html#consumerReceiveMessage" class="tsd-kind-icon">consumer<wbr>Receive<wbr>Message</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_aws.SQSQueue.html#consumerResume" class="tsd-kind-icon">consumer<wbr>Resume</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_aws.SQSQueue.html#deleteMessage" class="tsd-kind-icon">delete<wbr>Message</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.SQSQueue.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_aws.SQSQueue.html#getARNPolicy" class="tsd-kind-icon">getARNPolicy</a></li>
@@ -808,7 +804,7 @@
 													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 													<aside class="tsd-sources">
 														<ul>
-															<li>Defined in packages/core/lib/queues/queueservice.d.ts:110</li>
+															<li>Defined in packages/core/lib/queues/queueservice.d.ts:106</li>
 														</ul>
 													</aside>
 												</li>
@@ -830,7 +826,7 @@
 													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">T</span></h4>
 													<aside class="tsd-sources">
 														<ul>
-															<li>Defined in packages/core/lib/queues/queueservice.d.ts:111</li>
+															<li>Defined in packages/core/lib/queues/queueservice.d.ts:107</li>
 														</ul>
 													</aside>
 												</li>
@@ -842,7 +838,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">CancelablePromise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/queues/queueservice.d.ts:110</li>
+									<li>Defined in packages/core/lib/queues/queueservice.d.ts:106</li>
 								</ul>
 							</aside>
 						</li>
@@ -865,30 +861,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/queues/queueservice.d.ts:103</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-					<a name="consumerResume" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-						<li class="tsd-signature tsd-kind-icon">consumer<wbr>Resume<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from Queue.consumerResume</p>
-							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Resume the work</p>
-								</div>
-							</div>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/lib/queues/queueservice.d.ts:93</li>
+									<li>Defined in packages/core/lib/queues/queueservice.d.ts:99</li>
 								</ul>
 							</aside>
 						</li>
@@ -1361,7 +1334,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/queues/queueservice.d.ts:97</li>
+									<li>Defined in packages/core/lib/queues/queueservice.d.ts:93</li>
 								</ul>
 							</aside>
 						</li>

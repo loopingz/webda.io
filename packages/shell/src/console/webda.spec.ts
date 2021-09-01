@@ -8,7 +8,9 @@ import { ServerStatus } from "../handlers/http";
 import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import { DebuggerStatus, WebdaConsole } from "./webda";
 import { MemoryLogger, WorkerOutput } from "@webda/workout";
-import { FileUtils, Logger, Module, WebdaError } from "@webda/core";
+import { Application, FileUtils, JSONUtils, Logger, Module, WebdaError } from "@webda/core";
+import * as sinon from "sinon";
+import { TypescriptSchemaResolver } from "../compiler";
 
 class DebugLogger extends MemoryLogger {
   getLogs(start: number = 0) {
@@ -23,16 +25,13 @@ class ConsoleTest {
   logger: DebugLogger;
   dynamicFile: string;
   workerOutput: WorkerOutput;
-  async commandLine(line, addAppPath: boolean = true) {
+  async commandLine(line, addAppPath: boolean = true, versions: any = undefined) {
     if (addAppPath) {
       line = `--appPath ${WebdaSampleApplication.getAppPath()} ` + line;
     }
+    versions ??= { core: { path: "", version: "1.0.0", type: "" }, shell: { path: "", version: "1.0.0", type: "" } };
     line = "--notty " + line;
-    return await WebdaConsole.handleCommand(
-      line.split(" "),
-      { core: { path: "", version: "1.0.0", type: "" }, shell: { path: "", version: "1.0.0", type: "" } },
-      this.workerOutput
-    );
+    return await WebdaConsole.handleCommand(line.split(" "), versions, this.workerOutput);
   }
 
   checkTestDeploymentConfig(config) {
@@ -42,7 +41,11 @@ class ConsoleTest {
   }
 
   async before() {
-    let dynamicFile = path.join(WebdaSampleApplication.getAppPath(), "src", "services", "dynamic.ts");
+    let dynamicFile = path.join(WebdaSampleApplication.getAppPath(), "lib", "services", "dynamic.js");
+    if (fs.existsSync(dynamicFile)) {
+      fs.unlinkSync(dynamicFile);
+    }
+    dynamicFile = path.join(WebdaSampleApplication.getAppPath(), "src", "services", "dynamic.ts");
     if (fs.existsSync(dynamicFile)) {
       fs.unlinkSync(dynamicFile);
     }
@@ -50,6 +53,13 @@ class ConsoleTest {
     this.workerOutput = new WorkerOutput();
     WebdaConsole.logger = new Logger(this.workerOutput, "webda/console");
     this.logger = new DebugLogger(this.workerOutput, "INFO");
+    try {
+      fs.mkdirSync(WebdaSampleApplication.getAppPath("node_modules/@webda"), { recursive: true });
+      fs.symlinkSync(
+        path.join(__dirname, "../../../aws"),
+        WebdaSampleApplication.getAppPath("node_modules/@webda/aws")
+      );
+    } catch (err) {}
   }
 
   async after() {
@@ -64,15 +74,58 @@ class ConsoleTest {
     await this.commandLine("--noCompile help");
   }
 
+  async waitForInput(output: WorkerOutput): Promise<string> {
+    let timeout = 100;
+    while (!Object.keys(output.inputs).length) {
+      await new Promise(resolve => process.nextTick(resolve));
+      if (--timeout <= 0) {
+        throw new Error("Wait for input timeout");
+      }
+    }
+    return Object.keys(output.inputs).pop();
+  }
+
   @test
-  async serveCommandLine() {
-    this.commandLine(`serve -d Dev --port 28080`);
+  async newDeployment() {
+    // Just to initiate it
+    await this.commandLine("help");
+    let output = WebdaConsole.app.getWorkerOutput();
+    output.setInteractive(true);
+    let deploymentPath = WebdaConsole.app.getAppPath("deployments/bouzouf.json");
+    if (fs.existsSync(deploymentPath)) {
+      fs.unlinkSync(deploymentPath);
+    }
+    await this.commandLine("new-deployment bouzouf");
+    assert.ok(fs.existsSync(deploymentPath));
+
+    console.log("pre cmdline2 deployment", deploymentPath);
+    // @ts-ignore
+    let cl = this.commandLine("new-deployment");
+    let input = await this.waitForInput(output);
+    output.returnInput(input, "bouzouf");
+    input = await this.waitForInput(output);
+    output.returnInput(input, "bouzouf2");
+    // Might want to sleep more
+    await new Promise(resolve => process.nextTick(resolve));
+    fs.unlinkSync(deploymentPath);
+    deploymentPath = WebdaConsole.app.getAppPath("deployments/bouzouf2.json");
+    assert.ok(fs.existsSync(deploymentPath));
+    fs.unlinkSync(deploymentPath);
+  }
+
+  async waitForWebda() {
     for (let i = 0; i < 100; i++) {
       if (WebdaConsole.webda) {
         break;
       }
       await new Promise(resolve => setTimeout(resolve, 100));
     }
+  }
+
+  @test
+  async serveCommandLine() {
+    this.commandLine(`serve -d Dev --port 28080`);
+    await this.waitForWebda();
     await WebdaConsole.webda.waitForStatus(ServerStatus.Started);
     assert.strictEqual(WebdaConsole.webda.getServerStatus(), ServerStatus.Started);
     let app = new SampleApplicationTest(`http://localhost:28080`);
@@ -80,6 +133,8 @@ class ConsoleTest {
     await WebdaConsole.webda.stop();
     this.commandLine(`serve --port 28081`);
     await WebdaConsole.webda.stop();
+    let p = WebdaConsole.serve({ port: Math.floor(Math.random() * 10000 + 10000) });
+    await p.cancel();
   }
 
   /**
@@ -156,6 +211,34 @@ class DynamicService extends Service {
       }
     }
     fs.unlinkSync(this.dynamicFile);
+    // Create a faulty one
+    fs.writeFileSync(
+      this.dynamicFile,
+      `import { Context, Route, Service } from "@webda/core";
+
+class DynamicService extend Service {
+    @Route("/myNewRoute", ["GET"])
+    test(ctx: Context) {
+        ctx.write("Debugger Rox!");
+    }
+}
+      
+`
+    );
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    fs.unlinkSync(this.dynamicFile);
+    let stub = sinon.stub(process, "exit").callsFake(() => {});
+    try {
+      WebdaConsole.onSIGINT();
+      // @ts-ignore
+      WebdaConsole.terminal = {
+        close: () => {}
+      };
+      WebdaConsole.onSIGINT();
+    } finally {
+      stub.restore();
+      WebdaConsole.terminal = undefined;
+    }
   }
 
   @test
@@ -298,6 +381,7 @@ class DynamicService extends Service {
   async types() {
     await this.commandLine("types");
     let logs = this.logger.getLogs();
+    console.log(JSONUtils.stringify(logs));
     assert.strictEqual(logs.length, 3, "We should have 3 logs with Deployers, Services, Models");
   }
 
@@ -331,6 +415,8 @@ class DynamicService extends Service {
     }
     await this.commandLine("schema Authentication authentication.json");
     assert.strictEqual(true, fs.existsSync(f));
+    // Send it to output
+    await this.commandLine("schema Authentication");
   }
 
   @test
@@ -341,21 +427,278 @@ class DynamicService extends Service {
     assert.strictEqual(process.env["LOG_LEVEL"], "TRACE");
   }
 
-  /*
   @test
-  async fakeTerm() {
-    WebdaConsole.fakeTerm();
-    await new Promise<void>((resolve) => {
-        
-      setTimeout(() => {
-        WebdaConsole.app.getWorkerOutput().returnInput("", "1");
-      }, 150);
-      setTimeout(() => {
-        WebdaConsole.app.getWorkerOutput().returnInput("", "0");
-        resolve();
-      }, 250);
-
-    })
+  async executeShellExtension() {
+    // Create a fake js file
+    let appPath = path.join(__dirname, "..", "..", "test", "fakeoldapp");
+    let jsPath = path.join(appPath, "fake.js");
+    let jsTerminalPath = path.join(appPath, "terminal.js");
+    try {
+      fs.mkdirSync(appPath, { recursive: true });
+      fs.writeFileSync(
+        jsPath,
+        `module.exports = {
+      default: (console, args) => {
+        return "plop_" + args._.join("_")
+      }
+    }`
+      );
+      // Launch it
+      assert.strictEqual(
+        await WebdaConsole.executeShellExtension(
+          {
+            require: path.join(appPath, "fake.js"),
+            description: ""
+          },
+          "",
+          { _: [] }
+        ),
+        "plop_"
+      );
+      // Launch it
+      assert.strictEqual(
+        await WebdaConsole.executeShellExtension(
+          {
+            require: "fake.js",
+            description: "",
+            export: "default"
+          },
+          appPath,
+          { _: ["test"] }
+        ),
+        "plop_test"
+      );
+      WebdaConsole.extensions["bouzouf"] = {
+        description: "Fake unit test extension",
+        require: "fake.js",
+        terminal: "terminal.js",
+        relPath: appPath
+      };
+      fs.writeFileSync(
+        jsTerminalPath,
+        `
+module.exports = {
+  default: require("@webda/shell").WebdaTerminal
+}
+      `
+      );
+      await WebdaConsole.handleCommand(
+        `--noCompile --appPath ${WebdaSampleApplication.getAppPath()} bouzouf`.split(" "),
+        {
+          core: { path: "", version: "2.0.0", type: "" },
+          shell: { path: "", version: "1.0.0", type: "" }
+        },
+        this.workerOutput
+      );
+    } finally {
+      if (fs.existsSync(jsPath)) {
+        fs.unlinkSync(jsPath);
+      }
+      if (fs.existsSync(jsTerminalPath)) {
+        fs.unlinkSync(jsTerminalPath);
+      }
+      delete WebdaConsole.extensions["bouzouf"];
+    }
   }
-  */
+
+  @test
+  async version() {
+    // Call with --version
+    await this.commandLine("--version");
+  }
+
+  @test
+  async badAppFolder() {
+    await this.commandLine("--appPath /nonexisting", false);
+  }
+
+  @test
+  async migrateConfig() {
+    let appPath = path.join(__dirname, "..", "..", "test", "fakeoldapp");
+    fs.mkdirSync(appPath, { recursive: true });
+    fs.writeFileSync(path.join(appPath, "webda.config.json"), "{}");
+    if (fs.existsSync(path.join(appPath, "newfile.json"))) {
+      fs.unlinkSync(path.join(appPath, "newfile.json"));
+    }
+    // call with just migrate-configuration mynewfile.json
+    await this.commandLine(`--appPath ${appPath} migrate-configuration newfile.json`, false);
+    assert.deepStrictEqual(JSONUtils.loadFile(path.join(appPath, "newfile.json")), {
+      module: {
+        deployers: {},
+        services: {},
+        models: {}
+      },
+      parameters: {},
+      services: {},
+      version: 2
+    });
+    // call with just migrate-configuration
+    await this.commandLine(`--appPath ${appPath} migrate-configuration`, false);
+    assert.deepStrictEqual(
+      JSONUtils.loadFile(path.join(appPath, "newfile.json")),
+      JSONUtils.loadFile(path.join(appPath, "webda.config.json"))
+    );
+  }
+
+  @test
+  async deploy() {
+    // call one dummy deploy
+    assert.strictEqual(await this.commandLine(`deploy`), -1);
+    assert.strictEqual(await this.commandLine(`deploy testor`), -1);
+    assert.strictEqual(await this.commandLine(`deploy -d Dev`), 0);
+    assert.strictEqual(await this.commandLine(`deploy -d Bouzouf`), -1);
+    let badFile = WebdaSampleApplication.getAppPath("deployments/Bad.json");
+    // TODO Add a faulty deployment
+    try {
+      fs.writeFileSync(badFile, "plop");
+      assert.strictEqual(await this.commandLine(`deploy -d Bad`), -1);
+    } finally {
+      fs.unlinkSync(badFile);
+    }
+  }
+
+  @test
+  async initYeoman() {
+    let yeoman = require("yeoman-environment");
+    let register = sinon.stub();
+    let run = sinon.stub();
+    let stub = sinon.stub(yeoman, "createEnv").callsFake(() => {
+      return {
+        register,
+        run
+      };
+    });
+    try {
+      await this.commandLine(`init`, false);
+      assert.ok(register.getCall(0).args[0].endsWith("node_modules/generator-webda/generators/app/index.js"));
+      assert.strictEqual(register.getCall(0).args[1], "webda");
+      register.resetHistory();
+
+      await this.commandLine(`init webda`, false);
+      assert.ok(register.getCall(0).args[0].endsWith("node_modules/generator-webda/generators/app/index.js"));
+      assert.strictEqual(register.getCall(0).args[1], "webda");
+      register.resetHistory();
+
+      await this.commandLine(`init webda:app`, false);
+      assert.ok(register.getCall(0).args[0].endsWith("node_modules/generator-webda/generators/app/index.js"));
+      assert.strictEqual(register.getCall(0).args[1], "webda");
+      register.resetHistory();
+    } finally {
+      stub.restore();
+    }
+  }
+
+  @test
+  async typescriptWatch() {
+    WebdaConsole.app = WebdaSampleApplication;
+    WebdaConsole.typescriptWatch(WebdaConsole.getTransform(() => {}));
+    let stub = sinon.stub(process, "exit").callsFake(() => {});
+    try {
+      WebdaConsole.tscCompiler.emit("exit", 1);
+      assert.deepStrictEqual(stub.getCall(0).args, [1]);
+    } finally {
+      stub.restore();
+    }
+  }
+
+  @test
+  async generateRandomStringError() {
+    // Test error
+    let stub = sinon.stub(require("crypto"), "randomBytes").callsFake((_, callback) => {
+      callback("ERROR", null);
+    });
+    try {
+      await assert.rejects(() => WebdaConsole.generateRandomString(), /ERROR/);
+    } finally {
+      stub.restore();
+    }
+  }
+
+  @test
+  async handleCommand() {
+    let packagePath = WebdaSampleApplication.getAppPath("package.json");
+    let originalContent = fs.readFileSync(packagePath).toString();
+    let logoPath = WebdaSampleApplication.getAppPath("none.txt");
+    if (fs.existsSync(logoPath)) {
+      fs.unlinkSync(logoPath);
+    }
+    try {
+      process.stdout.isTTY = true;
+      await WebdaConsole.handleCommand(
+        `--noCompile --appPath ${WebdaSampleApplication.getAppPath()} help`.split(" "),
+        {
+          core: { path: "", version: "2.0.0", type: "" },
+          shell: { path: "", version: "1.0.0", type: "" }
+        },
+        this.workerOutput
+      );
+      let pack = JSONUtils.loadFile(packagePath);
+      pack.webda = {
+        logo: ["A", "A"]
+      };
+      JSONUtils.saveFile(pack, packagePath);
+      await WebdaConsole.handleCommand(
+        `--noCompile --appPath ${WebdaSampleApplication.getAppPath()} help`.split(" "),
+        {
+          core: { path: "", version: "2.0.0", type: "" },
+          shell: { path: "", version: "1.0.0", type: "" }
+        },
+        this.workerOutput
+      );
+      pack.webda = {
+        logo: "none.txt"
+      };
+      JSONUtils.saveFile(pack, packagePath);
+      await WebdaConsole.handleCommand(
+        `--noCompile --appPath ${WebdaSampleApplication.getAppPath()} help`.split(" "),
+        {
+          core: { path: "", version: "2.0.0", type: "" },
+          shell: { path: "", version: "1.0.0", type: "" }
+        },
+        this.workerOutput
+      );
+      fs.writeFileSync(logoPath, "AA\nBB");
+      await WebdaConsole.handleCommand(
+        `--noCompile --appPath ${WebdaSampleApplication.getAppPath()} help`.split(" "),
+        {
+          core: { path: "", version: "2.0.0", type: "" },
+          shell: { path: "", version: "1.0.0", type: "" }
+        },
+        this.workerOutput
+      );
+    } finally {
+      process.stdout.isTTY = false;
+      fs.writeFileSync(packagePath, originalContent);
+    }
+  }
+
+  @test
+  loadExtensions() {
+    fs.writeFileSync(WebdaSampleApplication.getAppPath("webda.shell.json"), "[;p[");
+    try {
+      WebdaConsole.loadExtensions(WebdaSampleApplication.getAppPath());
+    } finally {
+      fs.unlinkSync(WebdaSampleApplication.getAppPath("webda.shell.json"));
+    }
+  }
+
+  @test
+  generateConfigurationSchemaTest() {
+    WebdaConsole.app = new Application(WebdaSampleApplication.getAppPath());
+    const config = WebdaSampleApplication.getConfiguration();
+    let stub = sinon.stub(WebdaConsole.app, "getConfiguration").callsFake(() => {
+      return {
+        ...config,
+        services: {
+          ...config.services,
+          emptyOne: undefined
+        }
+      };
+    });
+    try {
+      WebdaConsole.generateConfigurationSchema();
+    } finally {
+      stub.restore();
+    }
+  }
 }

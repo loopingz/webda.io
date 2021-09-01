@@ -3,6 +3,7 @@ import { suite, test } from "@testdeck/mocha";
 import { WebdaSampleApplication } from "../index.spec";
 import { DeploymentManager } from "./deploymentmanager";
 import { WorkerOutput } from "@webda/workout";
+import WebdaConsole from "../console/webda";
 
 @suite
 class DeploymentManagerTest {

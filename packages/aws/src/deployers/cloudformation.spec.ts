@@ -1,11 +1,10 @@
 import { DeploymentManager } from "@webda/shell";
-import { DeployerTest } from "@webda/shell/lib/deployers/deployer.spec";
-import { suite, test, testOverload } from "@testdeck/mocha";
+import { DeployerTest } from "@webda/shell/lib/deployers/deployertest";
+import { suite, test } from "@testdeck/mocha";
 import * as sinon from "sinon";
 import { CloudFormationDeployer } from "./cloudformation";
 import { MockAWSDeployerMethods } from "./index.spec";
 import * as assert from "assert";
-import { LambdaPackager } from "./lambdapackager";
 import * as AWS from "aws-sdk";
 import * as AWSMock from "aws-sdk-mock";
 import { JSONUtils } from "@webda/core";

@@ -4,7 +4,7 @@ import { WorkerLogLevelEnum, WorkerOutput } from "..";
 import { Terminal } from "./terminal";
 import * as assert from "assert";
 import { WorkerInputType } from "@webda/workout";
-import { WorkerInput, WorkerMessage, WorkerProgress } from "../core";
+import { WorkerProgress } from "../core";
 
 var stdin = require("mock-stdin").stdin();
 

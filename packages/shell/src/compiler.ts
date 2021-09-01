@@ -29,6 +29,7 @@ export function programFromConfig(app: Application): ts.Program {
   delete options.declarationMap;
   const importer = app.getAppPath(".importer.ts");
   const module = app.getModules();
+
   let sources = [
     ...Object.values(module.services).filter(s => s.startsWith("./node_modules")),
     ...Object.values(module.deployers).filter(s => s.startsWith("./node_modules"))
@@ -152,17 +153,14 @@ export class TypescriptSchemaResolver extends DefaultSchemaResolver {
     if (symbol.typeParameters) {
       let found;
       symbol.typeParameters.forEach(param => {
-        if (found) {
-          return;
-        }
         if (!param.symbol.declarations[0].constraint) {
           return;
         }
-        found = param.symbol.declarations[0].constraint.typeName.escapedText;
-        if (this.symbols[found] && this.extends(this.symbols[found], parameterClass)) {
+        let info = param.symbol.declarations[0].constraint.typeName.escapedText;
+        if (this.symbols[info] && this.extends(this.symbols[info], parameterClass)) {
+          found = info;
           return;
         }
-        found = undefined;
       });
       if (found) {
         return this.generator.getSchemaForSymbol(found);

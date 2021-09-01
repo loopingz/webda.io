@@ -7,7 +7,7 @@ export default class ConfigurationService extends Service implements RequestFilt
   webdaApplication: Application;
 
   async checkRequest(context: Context): Promise<boolean> {
-    if (context.getHttpContext().root === "http://localhost:18181") {
+    if (context.getHttpContext().getHeader("origin") === "localhost:18181") {
       return true;
     }
     return false;

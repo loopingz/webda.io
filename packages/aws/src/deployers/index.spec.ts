@@ -1,5 +1,5 @@
 import { DeploymentManager } from "@webda/shell";
-import { DeployerTest } from "@webda/shell/lib/deployers/deployer.spec";
+import { DeployerTest } from "@webda/shell/lib/deployers/deployertest";
 import * as assert from "assert";
 import * as AWS from "aws-sdk";
 import * as AWSMock from "aws-sdk-mock";

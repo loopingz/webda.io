@@ -248,46 +248,12 @@ export default class WebdaConsole {
         // Might want to auto restart
       });
     };
-
-    let modification = -1;
     // Typescript mode -> launch compiler and update after compile is finished
+    /* istanbul ignore else */
     if (this.app.isTypescript()) {
-      let webdaConsole = this;
-      let transform = new Transform({
-        transform(chunk, encoding, callback) {
-          let info = chunk.toString().trim();
-          if (info.length < 4) {
-            callback();
-            return;
-          }
-          info.split("\n").forEach(line => {
-            if (line.indexOf("TSFILE:") >= 0) {
-              modification++;
-              return;
-            }
-            if (line.substring(0, 8).match(/\d{1,2}:\d{2}:\d{2}/)) {
-              // Might generate issue with some localization
-              let offset = 2 - line.indexOf(":");
-              // Simulate the colors , typescript compiler detect it is not on a tty
-              if (line.match(/Found [1-9]\d* error/)) {
-                webdaConsole.logger.log("ERROR", line.substring(14 - offset));
-              } else {
-                webdaConsole.output(line.substring(14 - offset));
-                if (line.indexOf("Found 0 errors. Watching for file changes.") >= 0) {
-                  modification = 0;
-                  webdaConsole.setDebuggerStatus(DebuggerStatus.Launching);
-                  launchServe();
-                }
-              }
-            } else {
-              webdaConsole.output(line);
-            }
-          });
-          callback();
-        }
-      });
-      this.typescriptWatch(transform);
+      this.typescriptWatch(WebdaConsole.getTransform(launchServe));
     } else {
+      /** deprecated */
       // Traditional js
       var listener = (event, filename) => {
         // Dont reload unless it is a true code changes
@@ -311,8 +277,50 @@ export default class WebdaConsole {
       });
       launchServe();
     }
-    return new Promise(() => {
+    return new CancelablePromise(() => {
       // Never return
+    });
+  }
+
+  /**
+   * Get stream transformer
+   * @param launchServe
+   */
+  static getTransform(launchServe: () => void): Transform {
+    let modification = -1;
+    let webdaConsole = this;
+    return new Transform({
+      transform(chunk, encoding, callback) {
+        let info = chunk.toString().trim();
+        if (info.length < 4) {
+          callback();
+          return;
+        }
+        info.split("\n").forEach(line => {
+          if (line.indexOf("TSFILE:") >= 0) {
+            modification++;
+            return;
+          }
+          if (line.substring(0, 8).match(/\d{1,2}:\d{2}:\d{2}/)) {
+            // Might generate issue with some localization
+            let offset = 2 - line.indexOf(":");
+            // Simulate the colors , typescript compiler detect it is not on a tty
+            if (line.match(/Found [1-9]\d* error/)) {
+              webdaConsole.logger.log("ERROR", line.substring(14 - offset));
+            } else {
+              webdaConsole.output(line.substring(14 - offset));
+              if (line.indexOf("Found 0 errors. Watching for file changes.") >= 0) {
+                modification = 0;
+                webdaConsole.setDebuggerStatus(DebuggerStatus.Launching);
+                launchServe();
+              }
+            }
+          } else {
+            webdaConsole.output(line);
+          }
+        });
+        callback();
+      }
     });
   }
 
@@ -351,9 +359,9 @@ export default class WebdaConsole {
     let json = JSON.stringify(this.app.getConfiguration(), null, " ");
 
     if (argv._.length > 1) {
-      fs.writeFileSync(argv._[1], json);
+      fs.writeFileSync(this.app.getAppPath(<string>argv._[1]), json);
     } else {
-      fs.writeFileSync("webda.config.json", json);
+      fs.writeFileSync(this.app.getAppPath("webda.config.json"), json);
     }
     return 0;
   }
@@ -363,7 +371,7 @@ export default class WebdaConsole {
    * @param argv
    */
   static async deploy(argv: yargs.Arguments): Promise<number> {
-    let manager = new DeploymentManager(this.app.getWorkerOutput(), process.cwd(), <string>argv.deployment);
+    let manager = new DeploymentManager(this.app.getWorkerOutput(), this.app.getAppPath(), <string>argv.deployment);
     argv._ = argv._.slice(1);
     return manager.commandLine(argv);
   }
@@ -381,7 +389,7 @@ export default class WebdaConsole {
     let generatorAction = "app";
     // Cannot start with :
     if (generatorName.indexOf(":") > 0) {
-      [generatorAction, generatorName] = generatorName.split(":");
+      [generatorName, generatorAction] = generatorName.split(":");
     }
     const yeoman = require("yeoman-environment");
     const env = yeoman.createEnv();
@@ -560,11 +568,12 @@ export default class WebdaConsole {
         }
       ],
       deploy: [WebdaConsole.deploy, "Deploy the application"],
+      "new-deployment": [DeploymentManager.newDeployment, "Deploy the application"],
       serviceconfig: [WebdaConsole.serviceConfig, "Display the configuration of a service"],
       launch: [WebdaConsole.worker, "Launch a method of a service"],
       debug: [WebdaConsole.debug, "Debug current application"],
       config: [WebdaConsole.config, "Generate the configuration of the application"],
-      "migrate-config": [WebdaConsole.migrateConfig, "Migrate and save the configuration"],
+      "migrate-configuration": [WebdaConsole.migrateConfig, "Migrate and save the configuration"],
       init: [WebdaConsole.init, "Initiate a new webda project"],
       module: [WebdaConsole.generateModule, "Generate the module for the application"],
       openapi: [
@@ -667,7 +676,6 @@ export default class WebdaConsole {
         definitions: res.definitions
       };
       const appServices = this.app.getConfiguration().services;
-
       Object.keys(appServices).forEach(k => {
         if (!appServices[k]) {
           return;
@@ -682,12 +690,6 @@ export default class WebdaConsole {
               .map(dkey => ({ $ref: `#/definitions/${dkey}` }))
           ]
         };
-        const serviceType = appServices[k].type;
-        const definition: Definition = (res.definitions[key] = <Definition>resolver.fromServiceType(serviceType));
-        if (definition && definition.required) {
-          delete definition.required;
-          (<Definition>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
-        }
       });
       Object.keys(this.app.getDeployers()).forEach(serviceType => {
         const key = `DeployerType$${serviceType.replace(/\//g, "$")}`;
@@ -871,7 +873,7 @@ export default class WebdaConsole {
           }
         }
       }
-      if (this.terminal && this.terminal.getLogo() === undefined) {
+      if (this.terminal && this.terminal.getLogo().length === 0) {
         this.terminal.setDefaultLogo();
       }
 
@@ -941,7 +943,7 @@ export default class WebdaConsole {
    * @param argv arguments passed to the shell
    */
   static async executeShellExtension(ext: WebdaShellExtension, relPath: string, argv: any) {
-    ext.export = ext.export || "default";
+    ext.export ??= "default";
     const data = require(path.join(relPath, ext.require));
     return data[ext.export](this, argv);
   }

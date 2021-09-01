@@ -3,7 +3,7 @@ import { suite, test } from "@testdeck/mocha";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import ChainDeployer from "./chaindeployer";
 import { Deployer } from "./deployer";
-import { DeployerTest } from "./deployer.spec";
+import { DeployerTest } from "./deployertest";
 
 class BouzoufDeployer extends Deployer<any> {
   static lastResources: any;

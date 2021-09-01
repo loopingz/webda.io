@@ -72,7 +72,6 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
       }
       dir = path.join(dir, "..");
     } while (fs.existsSync(dir));
-    return undefined;
   }
 
   static getPackageLastChanges(pkg: string, includeWorkspace: boolean = false): string {
@@ -89,7 +88,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
       }
     }
     let main = Packager.loadPackageInfo(pkg);
-    main.files = main.files || [];
+    main.files ??= [];
     main.files.forEach(p => {
       let includeDir = path.join(pkg, p);
       if (fs.existsSync(includeDir)) {
@@ -213,11 +212,11 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
 
     var files;
     let appPath = this.app.getAppPath();
-    let packageFile = this.app.getAppPath("/package.json");
+    let packageFile = this.app.getAppPath("package.json");
     if (fs.existsSync(packageFile)) {
       files = require(packageFile).files;
     }
-    files = files || fs.readdirSync(appPath);
+    files ??= fs.readdirSync(appPath);
     for (let i in files) {
       let name = files[i];
       if (name.startsWith(".")) continue;
@@ -232,6 +231,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     // Include specified modules
     let deps = [...this.resources.package.modules.includes];
     deps.push(...Object.keys(Packager.getDependencies(appPath)));
+    console.log(deps);
     // Remove any excludes modules
     this.resources.package.modules.excludes.forEach(i => {
       let id = deps.indexOf(i);
@@ -270,9 +270,6 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
       const originalFile = archive._append;
       archive._append = (from, to) => {
         let name = from;
-        if (typeof from === "object") {
-          name = from.name;
-        }
         let exclude = false;
         this.resources.package.excludePatterns.forEach(r => {
           if (exclude || new RegExp(r).exec(from)) {
@@ -288,9 +285,6 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
 
       archive.pipe(output);
       for (let i in toPacks) {
-        if (!fs.existsSync(toPacks[i])) {
-          continue;
-        }
         var stat = fs.lstatSync(toPacks[i]);
         let dstPath = path.relative(appPath, toPacks[i]).replace(/\.\.\//g, "");
         if (stat.isSymbolicLink() && this.resources.includeLinkModules) {
@@ -310,7 +304,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
             name: "entrypoint.js"
           });
         } else {
-          throw Error("Cannot find the entrypoint for Lambda: " + entrypoint);
+          throw Error("Cannot find the entrypoint for Packager: " + entrypoint);
         }
       }
 
@@ -342,7 +336,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
       archive.file(`${packageFile}`, { name: `${toPath}/package.json` });
       files = require(packageFile).files;
     }
-    files = files || fs.readdirSync(fromPath);
+    files ??= fs.readdirSync(fromPath);
     files.forEach(file => {
       if (file.startsWith(".") || file === "package.json") return;
       var stat = fs.lstatSync(`${fromPath}/${file}`);

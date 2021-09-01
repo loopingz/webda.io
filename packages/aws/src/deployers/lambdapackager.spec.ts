@@ -1,4 +1,4 @@
-import { DeployerTest } from "@webda/shell/lib/deployers/deployer.spec";
+import { DeployerTest } from "@webda/shell/lib/deployers/deployertest";
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import * as path from "path";

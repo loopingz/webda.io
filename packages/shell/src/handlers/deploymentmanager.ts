@@ -9,6 +9,7 @@ import { WorkerOutput } from "@webda/workout";
 import * as fs from "fs";
 import * as path from "path";
 import { Kubernetes } from "../deployers/kubernetes";
+import WebdaConsole from "../console/webda";
 
 export interface DeployerConstructor {
   new (manager: DeploymentManager, resources: any): Deployer<any>;
@@ -73,29 +74,34 @@ export class DeploymentManager {
     });
   }
 
-  static async new(application: Application) {
+  static async newDeployment(argv: yargs.Arguments) {
+    // Remove the command
+    argv._.shift();
+    let name = argv._.shift();
+    let application = WebdaConsole.app;
     let output = application.getWorkerOutput();
     application.loadModules();
-    this.addBuiltinDeployers(application);
+    DeploymentManager.addBuiltinDeployers(application);
     let deployment: Deployment = {
+      $schema: "../.webda-deployment-schema.json",
       units: [],
       resources: {},
       services: {},
       parameters: {}
     };
-    let name = await output.requestInput("Name");
-    while (fs.existsSync(path.join("deployments", name + ".json"))) {
+    name ??= await output.requestInput("Name");
+    let deploymentPath = application.getAppPath(path.join("deployments", name + ".json"));
+    while (fs.existsSync(deploymentPath)) {
       output.log("ERROR", "Deployment already exists");
       name = await output.requestInput("Name");
+      deploymentPath = application.getAppPath(path.join("deployments", name + ".json"));
     }
-    output.log("INFO", "You can customize the parameters,resources and services objects within the deployment");
+
     fs.writeFileSync(
-      path.join("deployments", name + ".json"),
+      deploymentPath,
       JSON.stringify({ ...deployment, name: undefined }, undefined, 2)
     );
-    let deployersDefinition = <any>application.getDeployers();
-    output.log("INFO", "Deployers available");
-    Object.keys(deployersDefinition).forEach(t => output.log("INFO", "Deployer:", t));
+    output.log("INFO", "You can customize the parameters,resources and services objects within the deployment", deploymentPath);
   }
 
   /**

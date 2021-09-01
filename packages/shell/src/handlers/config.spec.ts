@@ -29,7 +29,9 @@ class WebdaConfigurationServerTest {
     if (!this.server) {
       return;
     }
-    await this.server.stop();
+    try {
+      await this.server.stop();
+    } catch (err) {}
     this.server = undefined;
   }
 
@@ -38,7 +40,7 @@ class WebdaConfigurationServerTest {
       ...options,
       headers: {
         Host: "localhost",
-        Origin: "http://localhost:18181",
+        Origin: "localhost:18181",
         ...options.headers
       }
     });
@@ -55,6 +57,23 @@ class WebdaConfigurationServerTest {
     let cfg = JSON.parse(fs.readFileSync(WebdaSampleApplication.getAppPath("webda.config.json")).toString());
     cfg.parameters.sessionSecret = "PLOP";
     assert.strictEqual(JSON.stringify(res), JSON.stringify(cfg));
+    res = await this.fetch("/configuration", { method: "PUT" });
+  }
+
+  @test
+  async checkRequest() {
+    // Will config.webda.io will host later on the configuration tool
+    let res = await this.fetch(`/configuration`, {
+      headers: {
+        Origin: "https://config.webda.io"
+      }
+    });
+    assert.strictEqual(res.status, 401);
+  }
+
+  @test
+  async testNpm() {
+    let res = await this.fetch("/npm", { method: "POST" });
   }
 
   @test

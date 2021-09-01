@@ -75,7 +75,8 @@
     ],
     "exclude": [
       "**/*.spec.ts",
-      "link_modules/**/*"
+      "link_modules/**/*",
+      "test/**"
     ]
   },
   "publishConfig": {

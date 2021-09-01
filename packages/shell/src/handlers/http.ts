@@ -1,4 +1,13 @@
-import { ClientInfo, Core as Webda, HttpContext, WebdaError, EventWebdaRequest, EventWebdaResult } from "@webda/core";
+import {
+  ClientInfo,
+  Core as Webda,
+  HttpContext,
+  WebdaError,
+  EventWebdaRequest,
+  EventWebdaResult,
+  WaitFor,
+  WaitLinearDelay
+} from "@webda/core";
 import * as http from "http";
 import { serialize as cookieSerialize } from "cookie";
 const path = require("path");
@@ -19,10 +28,6 @@ export class WebdaServer extends Webda {
 
   setDevMode(devMode: boolean) {
     this.devMode = devMode;
-  }
-
-  logRequest(...args) {
-    this.logger.logWithContext("INFO", { type: "REQUEST" }, ...args);
   }
 
   output(...args) {
@@ -260,11 +265,7 @@ export class WebdaServer extends Webda {
       this.serveStaticWebsite(express, app);
 
       this.http = http.createServer(app).listen(port, bind);
-      process.on("SIGINT", function () {
-        if (this.http) {
-          this.http.close();
-        }
-      });
+      process.on("SIGINT", this.onSIGINT.bind(this));
       this.http.on("close", () => {
         this.serverStatus = ServerStatus.Stopped;
       });
@@ -280,6 +281,13 @@ export class WebdaServer extends Webda {
     } catch (err) {
       this.log("ERROR", err);
       this.serverStatus = ServerStatus.Stopped;
+      throw err;
+    }
+  }
+
+  onSIGINT() {
+    if (this.http) {
+      this.http.close();
     }
   }
 
@@ -297,17 +305,18 @@ export class WebdaServer extends Webda {
    * @param timeout max number of ms to wait for
    */
   async waitForStatus(status: ServerStatus.Stopped | ServerStatus.Started, timeout: number = 60000) {
-    let time = 0;
-    do {
-      if (this.getServerStatus() === status) {
-        return;
-      }
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      time += 1000;
-      if (timeout < time) {
-        throw new WebdaError("WAIT_FOR_TIMEOUT", "Timeout");
-      }
-    } while (true);
+    return WaitFor(
+      async resolve => {
+        if (this.getServerStatus() === status) {
+          resolve();
+          return true;
+        }
+      },
+      timeout / 1000,
+      "Waiting for server status",
+      undefined,
+      WaitLinearDelay(1000)
+    );
   }
 
   /**

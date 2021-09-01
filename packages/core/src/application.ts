@@ -914,6 +914,9 @@ export class Application {
 
   /**
    * Return if the application is a typescript application
+   * 
+   * Webda will soon drop support for non javascript application
+   * @deprecated
    */
   isTypescript() {
     return fs.existsSync(`${this.appPath}/tsconfig.json`);

@@ -2,12 +2,25 @@ import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
 import { DeploymentManager } from "../handlers/deploymentmanager";
-import { DeployerTest } from "./deployer.spec";
+import { DeployerTest } from "./deployertest";
 import { Container, ContainerResources } from "./container";
 import * as fs from "fs-extra";
+import * as sinon from "sinon";
+import { WebdaSampleApplication } from "../index.spec";
 
 @suite
 class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> {
+  async before() {
+    await super.before();
+    try {
+      fs.mkdirSync(WebdaSampleApplication.getAppPath("node_modules/@webda"), { recursive: true });
+      fs.symlinkSync(
+        path.join(__dirname, "../../../aws"),
+        WebdaSampleApplication.getAppPath("node_modules/@webda/aws")
+      );
+    } catch (err) {}
+  }
+
   async getDeployer(manager: DeploymentManager) {
     return new Container(manager, {
       name: "deployer",
@@ -16,6 +29,11 @@ class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> 
     });
   }
 
+  @test
+  cov() {
+    this.deployer.manager.getDeploymentName = () => "";
+    assert.strictEqual(this.deployer.addDeploymentToImage(), "");
+  }
   @test
   async deploy() {
     this.deployer.execute = this.mockExecute;
@@ -127,7 +145,9 @@ CMD webda --noCompile $WEBDA_COMMAND`.trim()
 
   @test
   async includeLinkModules() {
+    let stub;
     try {
+      stub = sinon.stub(this.deployer, "execute").callsFake(() => {});
       this.deployer.resources.includeLinkModules = true;
       this.deployer.resources.includeWorkspaces = true;
       await this.deployer.loadDefaults();
@@ -136,9 +156,13 @@ CMD webda --noCompile $WEBDA_COMMAND`.trim()
       let src = this.deployer.getWorkspacesDockerfile();
       assert.ok(src.includes("ADD link_modules /webda/node_modules"));
       assert.strictEqual(src, fs.readFileSync(this.deployer.resources.debugDockerfilePath).toString());
+      this.deployer.resources.logFile = "mylog";
+      this.deployer.resources.errorFile = "myerror";
+      await this.deployer.deploy();
     } finally {
       fs.emptyDirSync("./link_modules");
       fs.rmdirSync("./link_modules");
+      stub.restore();
     }
   }
 }

@@ -8,6 +8,16 @@ import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaSampleApplication } from "../index.spec";
 import { Packager } from "./packager";
 import { WorkerOutput } from "@webda/workout";
+import * as fse from "fs-extra";
+
+function createComplexApp() {
+  /**
+   * Create a structure in /
+   */
+  fse.mkdirSync("/tmp/workspace");
+  fse.copySync(WebdaSampleApplication.getAppPath(), "/tmp/workspace/sample-app");
+  // Create some symlink
+}
 
 @suite
 class PackagerTest {
@@ -96,5 +106,52 @@ class PackagerTest {
       "./lib/services/reusable.js"
     ]);
     assert.strictEqual(config.parameters.accessKeyId, "PROD_KEY");
+    deployer = new Packager(
+      new DeploymentManager(new WorkerOutput(), WebdaSampleApplication.getAppPath(), "Production"),
+      {
+        name: "deployer",
+        type: "Packager",
+        entrypoint: "nope.js",
+        zipPath,
+        includeLinkModules: true
+      }
+    );
+    await deployer.loadDefaults();
+    await assert.rejects(() => deployer.deploy(), /Cannot find the entrypoint for Packager: /);
+    deployer = new Packager(
+      new DeploymentManager(new WorkerOutput(), WebdaSampleApplication.getAppPath(), "Production"),
+      {
+        name: "deployer",
+        type: "Packager",
+        package: {
+          modules: {
+            includes: ["nonexisting"],
+            excludes: ["bluebird"]
+          }
+        },
+        entrypoint: WebdaSampleApplication.getAppPath("lib/services/bean.js"),
+        zipPath,
+        includeLinkModules: true
+      }
+    );
+    await deployer.loadDefaults();
+    await deployer.deploy();
+  }
+
+  @test
+  getWorkspacesRoot() {
+    assert.strictEqual(Packager.getWorkspacesRoot("/tmp"), undefined);
+    fs.mkdirSync("/tmp/.git");
+    try {
+      assert.strictEqual(Packager.getWorkspacesRoot("/tmp"), undefined);
+    } finally {
+      fs.rmdirSync("/tmp/.git");
+    }
+  }
+
+  @test
+  getResolvedDependencies() {
+    // Call getResolvedDependencies
+    Packager.getResolvedDependencies("node_modules/yargs");
   }
 }

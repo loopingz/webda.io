@@ -1,11 +1,10 @@
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import * as path from "path";
 import { DeploymentManager } from "../handlers/deploymentmanager";
-import { DeployerTest } from "./deployer.spec";
+import { DeployerTest } from "./deployertest";
 import { Kubernetes, KubernetesObjectToURI, KubernetesResources } from "./kubernetes";
-import * as kubeModule from "@webda/kubernetes";
 import * as sinon from "sinon";
+import { YAMLUtils } from "@webda/core";
 
 @suite
 class KubernetesDeployerTest extends DeployerTest<Kubernetes> {
@@ -69,6 +68,8 @@ class KubernetesDeployerTest extends DeployerTest<Kubernetes> {
 
   @test
   async deploy() {
+    let patchError = false;
+    let completeStub;
     await this.deployer.loadDefaults();
     this.deployer.resources.resourcesFiles = ["plop.te"];
     await assert.rejects(() => this.deployer.deploy(), /f/);
@@ -79,12 +80,42 @@ class KubernetesDeployerTest extends DeployerTest<Kubernetes> {
     let client = sinon.stub(this.deployer, "getClient").callsFake(api => {
       if (api) {
         return {
-          listNamespacedCronJob: async () => ({ body: { items: [] } })
+          deleteNamespacedCronJob: async () => {},
+          listNamespacedCronJob: async () => ({
+            body: {
+              items: [
+                {
+                  spec: {
+                    schedule: "10 * * * *"
+                  },
+                  metadata: {
+                    name: "beanservice-cron-037b410f",
+                    namespace: "default",
+                    annotations: {
+                      "webda.io/crondeployer": "e63d39145a743541c090bbc9f0869bd871ff6fa42a6d4e10387e2cf3762fe5e9",
+                      "webda.io/cronid": "037b410f",
+                      "webda.io/crondescription": "10 * * * *: beanservice.cron()",
+                      "webda.io/deployer": undefined,
+                      "webda.io/deployment": "Production",
+                      "webda.io/version": "1.2.1",
+                      "webda.io/application.name": "@webda/sample-app",
+                      "webda.io/application.version": "1.0.14"
+                    }
+                  }
+                }
+              ]
+            }
+          })
         };
       } else {
         return {
           read: async () => ({ body: {} }),
-          patch: async () => ({})
+          patch: async () => {
+            if (patchError) {
+              throw new Error();
+            }
+            return {};
+          }
         };
       }
     });
@@ -108,9 +139,120 @@ class KubernetesDeployerTest extends DeployerTest<Kubernetes> {
         bad: {}
       };
       await this.deployer.deploy();
+      this.deployer.resources.cronTemplate = "./test/myres.yml";
+      patchError = true;
+      await this.deployer.deploy();
+      this.deployer.resources.cronTemplate = YAMLUtils.parse(`apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: \${cron.serviceName}-\${cron.method.toLowerCase()}-\${cron.cronId}
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - image: \${resources.tag}
+              imagePullPolicy: Always
+              name: scheduled-job
+              resources: {}
+          restartPolicy: Never
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+  schedule: \${cron.cron}
+  successfulJobsHistoryLimit: 3
+`);
+      completeStub = sinon.stub(this.deployer, "completeResource").callsFake(() => {
+        return completeStub.callCount < 1;
+      });
+      // Errors are logged but do not fail whole deployment
+      await this.deployer.deploy();
     } finally {
       client.restore();
       runner.restore();
+      if (completeStub) {
+        completeStub.restore();
+      }
     }
+  }
+
+  @test
+  async upsertKubernetesObject() {
+    // @ts-ignore
+    this.deployer.client = this.deployer.getClient();
+    let patch = sinon.stub(this.deployer.client, "patch");
+    let read = sinon.stub(this.deployer.client, "read");
+    let create = sinon.stub(this.deployer.client, "create");
+    // Test no update on certificate
+    await this.deployer.upsertKubernetesObject({
+      kind: "Certificate",
+      apiVersion: "certmanager.k8s.io/v1alpha1",
+      metadata: {
+        name: "plop",
+        namespace: "default"
+      }
+    });
+    assert.strictEqual(read.callCount, 1);
+    assert.strictEqual(patch.callCount, 0);
+    assert.strictEqual(create.callCount, 0);
+    read.resetHistory();
+
+    // Test creation
+    read.callsFake(async () => {
+      throw new Error();
+    });
+    await this.deployer.upsertKubernetesObject({
+      kind: "Certificate",
+      apiVersion: "certmanager.k8s.io/v1alpha1",
+      metadata: {
+        name: "plop",
+        namespace: "default"
+      }
+    });
+    assert.strictEqual(read.callCount, 1);
+    assert.strictEqual(patch.callCount, 0);
+    assert.strictEqual(create.callCount, 1);
+    read.resetHistory();
+    create.resetHistory();
+
+    read.callsFake(async () => {});
+    patch.callsFake(async () => {
+      throw new Error();
+    });
+    await this.deployer.upsertKubernetesObject({
+      kind: "Deployment",
+      apiVersion: "certmanager.k8s.io/v1alpha1",
+      metadata: {
+        name: "plop",
+        namespace: "default"
+      }
+    });
+    assert.strictEqual(read.callCount, 1);
+    assert.strictEqual(patch.callCount, 1);
+    assert.strictEqual(create.callCount, 0);
+    read.resetHistory();
+    patch.resetHistory();
+
+    patch.callsFake(async () => {
+      throw {
+        body: {
+          kind: "Status",
+          message: "Error in kubernetes"
+        }
+      };
+    });
+    await this.deployer.upsertKubernetesObject({
+      kind: "Deployment",
+      apiVersion: "certmanager.k8s.io/v1alpha1",
+      metadata: {
+        name: "plop",
+        namespace: "default"
+      }
+    });
+    assert.strictEqual(read.callCount, 1);
+    assert.strictEqual(patch.callCount, 1);
+    assert.strictEqual(create.callCount, 0);
   }
 }

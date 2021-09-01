@@ -1,6 +1,12 @@
-import { ModdaDefinition, Service } from "@webda/core";
+import { ModdaDefinition, Service, ServiceParameters } from "@webda/core";
 
-export default class CustomReusableService extends Service {
+class CustomReusableServiceParameters extends ServiceParameters {
+  mandatoryField: string;
+}
+
+export default class CustomReusableService<
+  T extends CustomReusableServiceParameters = CustomReusableServiceParameters
+> extends Service<T> {
   static getModda(): ModdaDefinition {
     return {
       uuid: "WebdaDemo/CustomReusableService",

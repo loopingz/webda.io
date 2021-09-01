@@ -233,7 +233,7 @@ export class DynamoDBTest extends StoreTest {
       AWSMock.mock("DynamoDB", "describeTable", (p, c) => {
         c(null, {
           Table: {
-            ItemCount: 10
+            ItemCount: 50
           }
         });
       });

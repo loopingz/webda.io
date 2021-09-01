@@ -96,7 +96,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
         };
         params.RequestItems[target] = items.map(Item => ({ PutRequest: { Item } }));
         await db.batchWriteItem(params).promise();
-        //output.incrementProgress(items.length, "copyTable");
+        output.incrementProgress(items.length, "copyTable");
       } while (true);
       ExclusiveStartKey = info.LastEvaluatedKey;
     } while (ExclusiveStartKey);

@@ -2,6 +2,7 @@
 import { EventWithContext, WebdaError } from "../core";
 import { ConfigurationProvider } from "../index";
 import { CoreModel, CoreModelDefinition, ModelAction } from "../models/coremodel";
+import { BinaryMap } from "../services/binary";
 import { Service, ServiceParameters } from "../services/service";
 import { Context } from "../utils/context";
 
@@ -268,7 +269,7 @@ export interface MapStoreParameter {
   /**
    * Other fields to duplicate inside the model
    */
-  fields: string;
+  fields?: string | string[];
   /**
    * Delete if target object is delete
    * @default false
@@ -374,6 +375,13 @@ export class StoreParameters extends ServiceParameters {
     if (expose) {
       expose.restrict = expose.restrict || {};
       this.expose = expose;
+    }
+    // Init map the right way
+    for (let i in this.map) {
+      this.map[i].fields ??= [];
+      if (typeof this.map[i].fields === "string") {
+        this.map[i].fields = (<string>this.map[i].fields).split(",");
+      }
     }
   }
 }
@@ -671,7 +679,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     }
     let map = this.parameters.map;
     for (let prop in map) {
-      if (map[prop].fields.split(",").indexOf(property) >= 0) {
+      if (map[prop].fields.indexOf(property) >= 0) {
         return true;
       }
     }
@@ -989,7 +997,13 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     return saved;
   }
 
-  getMapper(map, uuid) {
+  /**
+   * Get index of the mapper for an object
+   * @param map
+   * @param uuid
+   * @returns
+   */
+  getMapper(map: BinaryMap[], uuid: string): number {
     for (var i = 0; i < map.length; i++) {
       if (map[i][this._uuidField] === uuid) {
         return i;
@@ -998,32 +1012,19 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     return -1;
   }
 
-  removeMapper(map, uuid) {
-    let i = this.getMapper(map, uuid);
-    if (i >= 0) {
-      map.splice(i, 1);
-      return true;
-    }
-    return false;
-  }
-
   async _handleUpdatedMap(object, map, mapped, store, updates) {
     var mapper = {};
     mapper[this._uuidField] = object[this._uuidField];
     // Update only if the key field has been updated
     var found = false;
     for (var field in updates) {
-      if (map.fields) {
-        let fields = map.fields.split(",");
-        for (let i in fields) {
-          let mapperfield = fields[i];
-          // Create the mapper object
-          if (updates[mapperfield] !== undefined) {
-            mapper[mapperfield] = updates[mapperfield];
-            found = true;
-          } else if (object[mapperfield] !== undefined) {
-            mapper[mapperfield] = object[mapperfield];
-          }
+      for (let mapperfield of map.fields) {
+        // Create the mapper object
+        if (updates[mapperfield] !== undefined) {
+          mapper[mapperfield] = updates[mapperfield];
+          found = true;
+        } else if (object[mapperfield] !== undefined) {
+          mapper[mapperfield] = object[mapperfield];
         }
       }
       // TODO Need to verify also if fields are updated
@@ -1040,16 +1041,12 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     // check if reference object has changed
     if (updates[map.key] != undefined && mapped[this._uuidField] != updates[map.key]) {
       // create mapper
-      if (map.fields) {
-        let fields = map.fields.split(",");
-        for (var j in fields) {
-          let mapperfield = fields[j];
-          // Create the mapper object
-          if (updates[mapperfield] !== undefined) {
-            mapper[mapperfield] = updates[mapperfield];
-          } else if (object[mapperfield] !== undefined) {
-            mapper[mapperfield] = object[mapperfield];
-          }
+      for (let mapperfield of map.fields) {
+        // Create the mapper object
+        if (updates[mapperfield] !== undefined) {
+          mapper[mapperfield] = updates[mapperfield];
+        } else if (object[mapperfield] !== undefined) {
+          mapper[mapperfield] = object[mapperfield];
         }
       }
       let i = this.getMapper(mapped[map.target], object[this._uuidField]);
@@ -1074,14 +1071,11 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     // Update the mapper
     var mapper: any = {};
     mapper[this._uuidField] = object[this._uuidField];
-    if (map.fields) {
-      var fields = map.fields.split(",");
-      for (var field in fields) {
-        if (updates[fields[field]] != undefined) {
-          mapper[fields[field]] = updates[fields[field]];
-        } else {
-          mapper[fields[field]] = object[fields[field]];
-        }
+    for (var field of map.fields) {
+      if (updates[field] != undefined) {
+        mapper[field] = updates[field];
+      } else {
+        mapper[field] = object[field];
       }
     }
     // Remove old reference
@@ -1123,12 +1117,10 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     var mapper: any = {};
     mapper[this._uuidField] = object[this._uuidField];
     // Add info to the mapped
-    if (map.fields) {
-      var fields = map.fields.split(",");
-      for (var field in fields) {
-        mapper[fields[field]] = object[fields[field]];
-      }
+    for (let field of map.fields) {
+      mapper[field] = object[field];
     }
+
     return store.upsertItemToCollection(mapped[this._uuidField], map.target, mapper);
   }
 

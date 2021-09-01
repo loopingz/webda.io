@@ -108,6 +108,10 @@
           "target": "idents",
           "fields": "type,_lastUpdate",
           "cascade": true
+        },
+        "notexisting": {
+          "key": "_test",
+          "target": "plops"
         }
       },
       "index": ["type", "_lastUpdate"],

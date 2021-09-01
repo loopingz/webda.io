@@ -323,13 +323,13 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    * Init the declared maps, adding reverse maps
    *
    * @param map
-   * @returns
    */
-  initMap(map) {
+  initMap(map): void {
     if (map == undefined || map._init) {
       return;
     }
     this._lowercaseMaps = {};
+    console.log(map);
     for (var prop in map) {
       this._lowercaseMaps[prop.toLowerCase()] = prop;
       var reverseStore = this._webda.getService(prop);
@@ -512,7 +512,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters> extends Ser
    * @returns
    */
   protected getOperationName(): string {
-    return this._name.toLowerCase() === "Binary" ? "" : this._name;
+    return this._name.toLowerCase() === "binary" ? "" : this._name;
   }
 
   /**

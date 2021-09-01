@@ -39,7 +39,25 @@ class FileStoreTest extends StoreTest {
     let ident = new identStore._model();
     identStore.initModel(ident);
     assert.notStrictEqual(ident.getUuid(), undefined);
-    console.log(identStore.getParameters().map);
+
+    // Test guard-rails (seems hardly reachable so might be useless)
+    assert.strictEqual(identStore.getMapper([], "id"), -1);
+    assert.strictEqual(await identStore._handleUpdatedMap({}, undefined, undefined, undefined, {}), undefined);
+    // @ts-ignore
+    assert.strictEqual(await identStore._handleDeletedMap(undefined, { target: "plop" }, {}, undefined), undefined);
+    assert.strictEqual(await identStore.handleIndex(undefined, { plop: true }), undefined);
+  }
+
+  @test
+  async configuration() {
+    let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
+    assert.strictEqual(
+      identStore.canTriggerConfiguration("plop", () => {}),
+      false
+    );
+    assert.strictEqual(await identStore.getConfiguration("plop"), undefined);
+    await identStore.save({ plop: 1, other: true, uuid: "plop" });
+    assert.strictEqual(await identStore.getConfiguration("plop"), { other: true, plop: 1 });
   }
 
   @test

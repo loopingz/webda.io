@@ -101,18 +101,6 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
   abstract size(): Promise<number>;
 
   /**
-   * Resume the work
-   */
-  protected async consumerResume() {
-    if (this._timeout) {
-      clearTimeout(this._timeout);
-    }
-    return new Promise(resolve => {
-      this._timeout = setTimeout(resolve, 1000);
-    });
-  }
-
-  /**
    * Create the delayer
    */
   public resolve() {

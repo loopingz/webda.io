@@ -242,7 +242,6 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
   @test
   async httpCreate() {
     let userStore = this.getUserStore();
-    let binary = this.getBinary();
     let user1 = await userStore.save({
       test: "plop"
     });
@@ -305,6 +304,17 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     await executor.execute(ctx);
     await user1.refresh();
     assert.ok(user1.images.length === 0);
+  }
+
+  @test
+  getOperationName() {
+    let binary = this.getBinary();
+    // @ts-ignore
+    assert.strictEqual(binary.getOperationName(), "");
+    // @ts-ignore
+    binary._name = "Other";
+    // @ts-ignore
+    assert.strictEqual(binary.getOperationName(), binary.getName());
   }
 
   @test

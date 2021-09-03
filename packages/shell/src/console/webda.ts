@@ -910,7 +910,7 @@ export default class WebdaConsole {
       }
 
       if (extension) {
-        this.log("DEBUG", "Launching extension " + argv._[0]);
+        this.log("DEBUG", "Launching extension " + argv._[0], extension);
         // Load lib
         argv._.shift();
         // TODO Implement a second yargs parser for the extension

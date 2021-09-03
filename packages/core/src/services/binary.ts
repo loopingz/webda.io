@@ -627,7 +627,6 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
    * Mechanism to add a data based on challenge
    */
   async httpChallenge(ctx: Context) {
-    let property = ctx.parameter("property");
     let body = ctx.getRequestBody();
     if (!body.hash || !body.challenge) {
       throw 400;

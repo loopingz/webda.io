@@ -2,7 +2,8 @@
     "name": "myWebdaApp",
     "dependencies": {
         "@webda/core": "^1.2.1",
-        "@webda/aws": "^1.2.1"
+        "@webda/aws": "^1.2.1",
+        "package1": "0.0.0"
     },
     "resolutions": {
         "@webda/core": "1.2.1"

@@ -13,28 +13,27 @@ import { Application } from "@webda/core";
 import * as sinon from "sinon";
 import { EventEmitter } from "events";
 
-function createComplexApp() {
-  /**
-   * Create a structure in /
-   */
-  fse.mkdirSync("/tmp/workspace");
-  fse.copySync(WebdaSampleApplication.getAppPath(), "/tmp/workspace/sample-app");
-  // Create some symlink
-}
-
 const WorkspaceApp = new Application(path.join(__dirname, "..", "..", "test", "fakeworkspace", "app1"));
 export { WorkspaceApp };
 
 fse.mkdirSync(path.join(__dirname, "..", "..", "test", "fakeworkspace", "node_modules", "@webda"), { recursive: true });
+fse.mkdirSync("/tmp/.webda-unit-test", { recursive: true });
 try {
-  fse.symlinkSync(
-    path.join(__dirname, "..", "..", "..", "aws"),
-    path.join(__dirname, "..", "..", "test", "fakeworkspace", "node_modules", "@webda", "aws")
-  );
-  fse.symlinkSync(
-    path.join(__dirname, "..", "..", "test", "fakeworkspace", "package1"),
-    path.join(__dirname, "..", "..", "test", "fakeworkspace", "node_modules", "package1")
-  );
+  fse.copySync(path.join(__dirname, "..", "..", "test", "fakeworkspace", "package2"), "/tmp/.webda-unit-test/package2");
+  [
+    [path.join(__dirname, "..", "..", "..", "aws"), "@webda/aws"],
+    [path.join(__dirname, "..", "..", "test", "fakeworkspace", "package1"), "package1"],
+    [path.join("/tmp/.webda-unit-test", "package2"), "package2"]
+  ].forEach(link => {
+    let dst = path.join(__dirname, "..", "..", "test", "fakeworkspace", "node_modules", ...link[1].split("/"));
+    // Remove symbolic link
+    try {
+      if (fse.lstatSync(dst)) {
+        fse.unlinkSync(dst);
+      }
+    } catch (err) {}
+    fse.symlinkSync(link[0], dst);
+  });
 } catch (err) {}
 
 @suite
@@ -163,6 +162,17 @@ class PackagerTest {
       assert.strictEqual(Packager.getWorkspacesRoot("/tmp"), undefined);
     } finally {
       fs.rmdirSync("/tmp/.git");
+    }
+  }
+
+  @test
+  getDependencies() {
+    let cwd = process.cwd();
+    try {
+      process.chdir(path.join(__dirname, "..", "..", "..", ".."));
+      Packager.getDependencies("packages/core");
+    } finally {
+      process.chdir(cwd);
     }
   }
 

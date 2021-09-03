@@ -8,6 +8,7 @@ import * as fs from "fs-extra";
 import * as sinon from "sinon";
 import { WebdaSampleApplication } from "../index.spec";
 import { WorkspaceApp } from "./packager.spec";
+import { Packager } from "@webda/shell";
 
 @suite
 class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> {
@@ -34,6 +35,9 @@ class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> 
   cov() {
     this.deployer.manager.getDeploymentName = () => "";
     assert.strictEqual(this.deployer.addDeploymentToImage(), "");
+
+    // Should return without doing anything
+    this.deployer.copyPackageToLinkModules(WorkspaceApp.getAppPath());
   }
   @test
   async deploy() {
@@ -89,6 +93,9 @@ class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> 
       `# Install current @webda/shell version\nRUN yarn global add @webda/shell@${tag}\n\n`
     );
     process.env.WEBDA_SHELL_DEV = path.resolve(path.join(__dirname, "/../../"));
+    // Do not really care if they fail or not
+    fs.mkdirSync(".webda-shell", {recursive: true});
+    fs.writeFileSync(".webda-shell/hash", "badhash");
     assert.deepStrictEqual(this.deployer.getDockerfileWebdaShell().split("\n"), [
       "# Use development Webda Shell version",
       "ADD .webda-shell /devshell",
@@ -151,6 +158,7 @@ CMD webda --noCompile $WEBDA_COMMAND`.trim()
     try {
       this.deployer.app = WorkspaceApp;
       process.chdir(WorkspaceApp.getAppPath());
+
       stub = sinon.stub(this.deployer, "execute").callsFake(() => {});
       this.deployer.resources.includeLinkModules = true;
       this.deployer.resources.includeWorkspaces = true;
@@ -162,7 +170,15 @@ CMD webda --noCompile $WEBDA_COMMAND`.trim()
       assert.strictEqual(src, fs.readFileSync(this.deployer.resources.debugDockerfilePath).toString());
       this.deployer.resources.logFile = "mylog";
       this.deployer.resources.errorFile = "myerror";
+      this.deployer.resources.excludePackages = ["package1"];
       await this.deployer.deploy();
+
+      let res = this.deployer.copyPackageFilesTo(path.join(WorkspaceApp.getAppPath(), ".."), "");
+      assert.deepStrictEqual(res.split("\n").slice(2, 5), [
+        "RUN rm -rf /node_modules/@webda/aws && rm -rf /webda/node_modules/@webda/aws",
+        "RUN rm -rf /node_modules/package1 && rm -rf /webda/node_modules/package1",
+        "RUN rm -rf /node_modules/package2 && rm -rf /webda/node_modules/package2"
+      ]);
     } finally {
       fs.emptyDirSync("./link_modules");
       fs.rmdirSync("./link_modules");

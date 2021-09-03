@@ -98,7 +98,6 @@ class ConsoleTest {
     await this.commandLine("new-deployment bouzouf");
     assert.ok(fs.existsSync(deploymentPath));
 
-    console.log("pre cmdline2 deployment", deploymentPath);
     // @ts-ignore
     let cl = this.commandLine("new-deployment");
     let input = await this.waitForInput(output);
@@ -147,7 +146,6 @@ class ConsoleTest {
     let time = 0;
     do {
       let currentStatus = WebdaConsole.getDebuggerStatus();
-      console.log("Status:", currentStatus, "required", status);
       if (currentStatus === status) {
         return;
       }
@@ -381,7 +379,6 @@ class DynamicService extend Service {
   async types() {
     await this.commandLine("types");
     let logs = this.logger.getLogs();
-    console.log(JSONUtils.stringify(logs));
     assert.strictEqual(logs.length, 3, "We should have 3 logs with Deployers, Services, Models");
   }
 
@@ -483,6 +480,7 @@ module.exports = {
         ),
         "plop_test"
       );
+      process.stdout.isTTY = true;
       WebdaConsole.extensions["bouzouf"] = {
         description: "Fake unit test extension",
         require: "fake.js",

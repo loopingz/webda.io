@@ -1,0 +1,17 @@
+{
+    "name": "myWebdaApp",
+    "dependencies": {
+        "@webda/core": "^1.2.1",
+        "@webda/aws": "^1.2.1"
+    },
+    "resolutions": {
+        "@webda/core": "1.2.1"
+    },
+    "files": [
+        "folder",
+        "index.js",
+        "node_modules",
+        ".hide",
+        "webda.config.json"
+    ]
+}

@@ -97,11 +97,12 @@ export class DeploymentManager {
       deploymentPath = application.getAppPath(path.join("deployments", name + ".json"));
     }
 
-    fs.writeFileSync(
-      deploymentPath,
-      JSON.stringify({ ...deployment, name: undefined }, undefined, 2)
+    fs.writeFileSync(deploymentPath, JSON.stringify({ ...deployment, name: undefined }, undefined, 2));
+    output.log(
+      "INFO",
+      "You can customize the parameters,resources and services objects within the deployment",
+      deploymentPath
     );
-    output.log("INFO", "You can customize the parameters,resources and services objects within the deployment", deploymentPath);
   }
 
   /**

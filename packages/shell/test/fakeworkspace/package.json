@@ -1,0 +1,7 @@
+{
+    "name": "myWorkspace",
+    "workspaces": [
+        "package1",
+        "app1"
+    ]
+}

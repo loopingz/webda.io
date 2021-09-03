@@ -174,6 +174,11 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     }
   }
 
+  getArchiver() {
+    var archiver = require("archiver");
+    return archiver("zip");
+  }
+
   /**
    * Generate a full code package including dependencies
    */
@@ -187,7 +192,6 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     this.app.generateModule();
     this.app.loadModules();
 
-    var archiver = require("archiver");
     let targetDir = path.dirname(zipPath);
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir);
@@ -231,7 +235,6 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     // Include specified modules
     let deps = [...this.resources.package.modules.includes];
     deps.push(...Object.keys(Packager.getDependencies(appPath)));
-    console.log(deps);
     // Remove any excludes modules
     this.resources.package.modules.excludes.forEach(i => {
       let id = deps.indexOf(i);
@@ -241,7 +244,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     });
 
     // Include workspace deps
-    let workspace = Packager.getWorkspacesRoot();
+    let workspace = Packager.getWorkspacesRoot(this.app.getAppPath());
     deps.forEach(dep => {
       // Include package dep
       if (fs.existsSync(`${appPath}/node_modules/${dep}`)) {
@@ -254,7 +257,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     });
 
     var output = fs.createWriteStream(zipPath);
-    var archive = archiver("zip");
+    var archive = this.getArchiver();
     return new Promise<void>((resolve, reject) => {
       output.on("close", () => {
         this.packagesGenerated[zipPath + entrypoint || ""] = true;

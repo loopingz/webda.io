@@ -9,6 +9,9 @@ import { WebdaSampleApplication } from "../index.spec";
 import { Packager } from "./packager";
 import { WorkerOutput } from "@webda/workout";
 import * as fse from "fs-extra";
+import { Application } from "@webda/core";
+import * as sinon from "sinon";
+import { EventEmitter } from "events";
 
 function createComplexApp() {
   /**
@@ -18,6 +21,21 @@ function createComplexApp() {
   fse.copySync(WebdaSampleApplication.getAppPath(), "/tmp/workspace/sample-app");
   // Create some symlink
 }
+
+const WorkspaceApp = new Application(path.join(__dirname, "..", "..", "test", "fakeworkspace", "app1"));
+export { WorkspaceApp };
+
+fse.mkdirSync(path.join(__dirname, "..", "..", "test", "fakeworkspace", "node_modules", "@webda"), { recursive: true });
+try {
+  fse.symlinkSync(
+    path.join(__dirname, "..", "..", "..", "aws"),
+    path.join(__dirname, "..", "..", "test", "fakeworkspace", "node_modules", "@webda", "aws")
+  );
+  fse.symlinkSync(
+    path.join(__dirname, "..", "..", "test", "fakeworkspace", "package1"),
+    path.join(__dirname, "..", "..", "test", "fakeworkspace", "node_modules", "package1")
+  );
+} catch (err) {}
 
 @suite
 class PackagerTest {
@@ -90,7 +108,6 @@ class PackagerTest {
     // Ensure CachedModules are generated for packages
     assert.notStrictEqual(config.cachedModules, undefined);
     assert.strictEqual(config.cachedModules.services["WebdaDemo/CustomReusableService"], "./lib/services/reusable.js");
-    console.log(config.cachedModules.services["Webda/AWSSecretsManager"]);
     assert.strictEqual(
       config.cachedModules.services["Webda/AWSSecretsManager"].endsWith(
         "node_modules/@webda/aws/lib/services/secretsmanager.js"
@@ -151,7 +168,59 @@ class PackagerTest {
 
   @test
   getResolvedDependencies() {
-    // Call getResolvedDependencies
-    Packager.getResolvedDependencies("node_modules/yargs");
+    let stub = sinon.stub(Packager, "getDependencies").callsFake(() => {
+      return {
+        yargs: [{ version: ">=1.0.0" }, { version: "<1.0.0" }]
+      };
+    });
+    try {
+      Packager.getResolvedDependencies("yargs");
+      stub.callsFake(() => {
+        return {
+          yargs: [{ version: ">=0.9.8" }]
+        };
+      });
+      assert.deepStrictEqual(Packager.getResolvedDependencies("yargs"), { yargs: ">=0.9.8" });
+    } finally {
+      stub.restore();
+    }
+  }
+
+  @test
+  async workspacesPackager() {
+    fse.removeSync(path.join(WorkspaceApp.getAppPath(), "dist"));
+    let zipPath = path.join(WorkspaceApp.getAppPath(), "dist", "package-2");
+    let deployer = new Packager(new DeploymentManager(new WorkerOutput(), WorkspaceApp.getAppPath(), "Production"), {
+      name: "deployer",
+      type: "Packager",
+      package: {
+        modules: {
+          includes: ["nonexisting"],
+          excludes: ["bluebird"]
+        }
+      },
+      zipPath,
+      includeLinkModules: true
+    });
+    await deployer.loadDefaults();
+    await deployer.deploy();
+
+    // Do archive error
+    let stub = sinon.stub(deployer, "getArchiver").callsFake(() => {
+      let evt = new EventEmitter();
+      // @ts-ignore
+      evt.pipe = () => {
+        evt.emit("error", new Error("I/O"));
+      };
+      return evt;
+    });
+    try {
+      // Should not retry to create package
+      await deployer.deploy();
+      deployer.packagesGenerated = {};
+      await assert.rejects(() => deployer.deploy(), /I\/O/);
+    } finally {
+      stub.restore();
+    }
   }
 }

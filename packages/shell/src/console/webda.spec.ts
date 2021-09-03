@@ -443,6 +443,21 @@ class DynamicService extend Service {
       }
     }`
       );
+      fs.writeFileSync(
+        jsTerminalPath,
+        `
+class FakeTerminal {
+  constructor(...args) {}
+  close() {}
+  setLogo() {}
+  setDefaultLogo() {}
+  getLogo() {return ["",""]}
+}
+module.exports = {
+  default: FakeTerminal
+}
+      `
+      );
       // Launch it
       assert.strictEqual(
         await WebdaConsole.executeShellExtension(
@@ -474,14 +489,6 @@ class DynamicService extend Service {
         terminal: "terminal.js",
         relPath: appPath
       };
-      fs.writeFileSync(
-        jsTerminalPath,
-        `
-module.exports = {
-  default: require("@webda/shell").WebdaTerminal
-}
-      `
-      );
       await WebdaConsole.handleCommand(
         `--noCompile --appPath ${WebdaSampleApplication.getAppPath()} bouzouf`.split(" "),
         {

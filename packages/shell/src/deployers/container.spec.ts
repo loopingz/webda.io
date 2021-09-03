@@ -7,6 +7,7 @@ import { Container, ContainerResources } from "./container";
 import * as fs from "fs-extra";
 import * as sinon from "sinon";
 import { WebdaSampleApplication } from "../index.spec";
+import { WorkspaceApp } from "./packager.spec";
 
 @suite
 class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> {
@@ -146,7 +147,10 @@ CMD webda --noCompile $WEBDA_COMMAND`.trim()
   @test
   async includeLinkModules() {
     let stub;
+    let cwd = process.cwd();
     try {
+      this.deployer.app = WorkspaceApp;
+      process.chdir(WorkspaceApp.getAppPath());
       stub = sinon.stub(this.deployer, "execute").callsFake(() => {});
       this.deployer.resources.includeLinkModules = true;
       this.deployer.resources.includeWorkspaces = true;
@@ -162,6 +166,7 @@ CMD webda --noCompile $WEBDA_COMMAND`.trim()
     } finally {
       fs.emptyDirSync("./link_modules");
       fs.rmdirSync("./link_modules");
+      process.chdir(cwd);
       stub.restore();
     }
   }

@@ -306,7 +306,7 @@ export default class ElasticSearchService<
    * @returns
    */
   async bulk(index: string, objects: any) {
-    let client = await this.getClient();
+    let client = this.getClient();
     let stats = { added: 0, updated: 0, errors: 0, errorsId: [] };
     try {
       if (Array.isArray(objects)) {
@@ -377,7 +377,7 @@ export default class ElasticSearchService<
    * @param index
    * @returns
    */
-  async count(index: string = undefined): Promise<Number> {
+  async count(index: string = undefined): Promise<number> {
     if (!index) {
       return (await this._client.count()).body.count;
     }
@@ -405,8 +405,8 @@ export default class ElasticSearchService<
   /**
    * @inheritdoc
    */
-  async __clean() {
-    return await Promise.all(
+  async __clean() : Promise<void> {
+    await Promise.all(
       Object.values(this.indexes).map(async index => {
         await this._client.deleteByQuery<null>({
           index: index.name,

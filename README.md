@@ -5,6 +5,7 @@
 ![CI](https://github.com/loopingz/webda.io/workflows/CI/badge.svg)
 
 [![Join the chat at https://gitter.im/loopingz/webda](https://badges.gitter.im/loopingz/webda.svg)](https://gitter.im/loopingz/webda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![codecov](https://codecov.io/gh/loopingz/webda.io/branch/main/graph/badge.svg?token=8N9DNM3K3O)](https://codecov.io/gh/loopingz/webda.io)
 [![SonarCloud.io](https://sonarcloud.io/api/project_badges/measure?project=webda.io&metric=alert_status)](https://sonarcloud.io/dashboard/index/webda.io)
 ![CodeQL](https://github.com/loopingz/webda.io/workflows/CodeQL/badge.svg)
 
@@ -23,8 +24,6 @@ The **webda.config.json** contains the configuration of the app, defining Servic
 ## Quickstart
 
 You should checkout our demo project : [link](https://github.com/loopingz/webda.io/sample-app/)
-
-Check our video presentation on [Youtube](https://www.youtube.com/playlist?list=PLfn1MAL4_e7ERdqj9rWlmEkK5gMkL4bKI)
 
 #### Create a project
 

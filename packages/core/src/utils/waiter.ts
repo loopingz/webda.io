@@ -156,3 +156,37 @@ export class CancelablePromise<T = void> extends Promise<T> {
     this.cancel = localReject;
   }
 }
+
+/**
+ * Create a promise that will loop on the same callback until cancelled
+ */
+export class CancelableLoopPromise extends Promise<void> {
+  cancel: () => Promise<void>;
+  constructor(
+    callback: (canceller: () => Promise<void>) => Promise<void>,
+    onCancel: () => void = undefined
+  ) {
+    let localReject;
+    let shouldRun = true;
+    super((resolve) => {
+      localReject = async () => {
+        if (onCancel) {
+          await onCancel();
+        }
+        shouldRun = false;
+      };
+      let loop = () => {
+        if (shouldRun) {
+          return callback(localReject).then(loop);
+        }
+        return;
+      };
+      resolve(callback(localReject).then(loop));
+    });
+    this.cancel = localReject;
+  }
+
+  static get [Symbol.species]() {
+    return Promise;
+  }
+}

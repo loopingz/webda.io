@@ -1,7 +1,14 @@
 import { suite, test } from "@testdeck/mocha";
 import { Logger } from "./logger";
 import * as assert from "assert";
-import { CancelablePromise, WaitDelayerFactories, WaitExponentialDelay, WaitFor, WaitLinearDelay } from "./waiter";
+import {
+  CancelableLoopPromise,
+  CancelablePromise,
+  WaitDelayerFactories,
+  WaitExponentialDelay,
+  WaitFor,
+  WaitLinearDelay
+} from "./waiter";
 import * as sinon from "sinon";
 
 @suite
@@ -9,8 +16,18 @@ class WaiterTest {
   @test
   async cancellablePromise() {
     let promise = new CancelablePromise();
-    promise.cancel();
+    await promise.cancel();
     await assert.rejects(() => promise, /Cancelled/);
+    let callback = false;
+    promise = new CancelablePromise(
+      () => {},
+      () => {
+        callback = true;
+      }
+    );
+    await promise.cancel();
+    await assert.rejects(() => promise, /Cancelled/);
+    assert.strictEqual(callback, true);
   }
 
   @test
@@ -84,5 +101,20 @@ class WaiterTest {
     } finally {
       consoleSpy.restore();
     }
+  }
+
+  @test
+  async loopPromise() {
+    let i = 0;
+    await new CancelableLoopPromise(
+      async canceller => {
+        i++;
+        if (i > 10) {
+          await canceller();
+        }
+      },
+      () => {}
+    );
+    assert.strictEqual(i, 11);
   }
 }

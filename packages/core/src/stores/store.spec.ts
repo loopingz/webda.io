@@ -401,7 +401,7 @@ abstract class StoreTest extends WebdaTest {
     // Check DELETE
     eventFired = 0;
     await identStore.forceDelete(ident1.uuid);
-    assert.strictEqual(eventFired, 2);
+    assert.strictEqual(eventFired, 3);
     eventFired = 0;
     ident = await identStore.get(ident1.uuid);
     assert.strictEqual(ident, undefined);

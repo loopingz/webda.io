@@ -9,7 +9,7 @@
     "lint": "prettier --check src/**/*",
     "lint:fix": "prettier --write src/**/*",
     "pretest": "npm run build",
-    "test": ""
+    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/*.spec.ts"
   },
   "repository": {
     "type": "git",
@@ -31,8 +31,8 @@
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
+    "@elastic/elasticsearch": "^7.14.1",
     "@webda/core": "^1.2.1",
-    "elasticsearch": "^16.7.2",
     "yaml": "^1.10.2"
   },
   "nyc": {
@@ -43,7 +43,9 @@
       "json"
     ],
     "report-dir": "./reports",
-    "exclude": ["**/*.spec.ts"]
+    "exclude": [
+      "**/*.spec.ts"
+    ]
   },
   "publishConfig": {
     "access": "public"

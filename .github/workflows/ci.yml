@@ -38,6 +38,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Configure sysctl limits
+        run: |
+          sudo swapoff -a
+          sudo sysctl -w vm.swappiness=1
+          sudo sysctl -w fs.file-max=262144
+          sudo sysctl -w vm.max_map_count=262144
+
+      - name: Runs Elasticsearch
+        uses: elastic/elastic-github-actions/elasticsearch@master
+        with:
+          stack-version: 7.14.0
+          
       - name: Install dependencies
         run: yarn
 

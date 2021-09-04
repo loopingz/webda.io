@@ -9,7 +9,9 @@
     },
     "ESService": {
       "type": "Webda/ElasticSearchService",
-      "server": "localhost:4571",
+      "client": {
+        "node": "http://localhost:9200"
+      },
       "indexes": {
         "articles": {
           "store": "MemoryStore",

@@ -94,7 +94,7 @@ class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> 
     );
     process.env.WEBDA_SHELL_DEV = path.resolve(path.join(__dirname, "/../../"));
     // Do not really care if they fail or not
-    fs.mkdirSync(".webda-shell", {recursive: true});
+    fs.mkdirSync(".webda-shell", { recursive: true });
     fs.writeFileSync(".webda-shell/hash", "badhash");
     assert.deepStrictEqual(this.deployer.getDockerfileWebdaShell().split("\n"), [
       "# Use development Webda Shell version",

@@ -155,6 +155,7 @@ export interface EventStorePartialUpdated {
        */
       index: number;
     };
+    deleteAttribute?: string;
   };
 }
 
@@ -1131,8 +1132,13 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
    * @returns
    */
   async removeAttribute(uuid: string, attribute: string, itemWriteCondition?: any, itemWriteConditionField?: string) {
-    // Probably want to genereate some events from here
-    return this._removeAttribute(uuid, attribute, itemWriteCondition, itemWriteConditionField);
+    await this._removeAttribute(uuid, attribute, itemWriteCondition, itemWriteConditionField);
+    await this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
+      object_id: uuid,
+      partial_update: {
+        deleteAttribute: attribute
+      }
+    });
   }
 
   async handleIndex(object: CoreModel, updates: MapUpdates) {

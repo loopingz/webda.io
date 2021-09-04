@@ -91,4 +91,12 @@ class SQSQueueTest extends QueueTest {
     });
     await assert.rejects(() => queue.__clean(), /Other/);
   }
+
+  @test
+  getMaxConsumers() {
+    let queue = new SQSQueue(this.webda, "plop", { maxConsumers: 30 });
+    assert.strictEqual(queue.getMaxConsumers(), 3);
+    queue.getParameters().maxConsumers = 3;
+    assert.strictEqual(queue.getMaxConsumers(), 1);
+  }
 }

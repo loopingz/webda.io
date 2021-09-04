@@ -1,5 +1,11 @@
 import { Service, ServiceParameters } from "../services/service";
-import { WaitDelayerDefinition, WaitDelayer, WaitDelayerFactories, CancelablePromise } from "../utils/waiter";
+import {
+  WaitDelayerDefinition,
+  WaitDelayer,
+  WaitDelayerFactories,
+  CancelablePromise,
+  CancelableLoopPromise
+} from "../utils/waiter";
 
 /**
  * Raw message from queue
@@ -28,6 +34,14 @@ export class QueueParameters extends ServiceParameters {
    * @default true
    */
   workerParallelism?: boolean;
+  /**
+   * Max number of queue consumers
+   * Queue will auto increase to this max number if queue is loaded
+   * and it will decrease to just one consumer if no messages are available
+   *
+   * @default 10
+   */
+  maxConsumers: number;
 
   /**
    * @inheritdoc
@@ -35,6 +49,7 @@ export class QueueParameters extends ServiceParameters {
   constructor(params: any) {
     super(params);
     this.workerParallelism ??= true;
+    this.maxConsumers ??= 10;
   }
 }
 
@@ -113,12 +128,14 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
    *
    * @returns
    */
-  protected async consumerReceiveMessage() {
+  protected async consumerReceiveMessage(): Promise<{ speed: number; items: number }> {
     try {
+      let speed = Date.now();
       let items = await this.receiveMessage(this.eventPrototype);
+      speed = Date.now() - speed;
       this.failedIterations = 0;
       if (items.length === 0) {
-        return;
+        return { speed, items: items.length };
       }
       const msgWorker = async msg => {
         try {
@@ -137,11 +154,27 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
           await msgWorker(item);
         }
       }
+      return { speed, items: items.length };
     } catch (err) {
       this.failedIterations += 1;
       this.log("ERROR", err);
-      return new Promise(resolve => setTimeout(resolve, this.delayer(this.failedIterations)));
+      await new Promise(resolve => setTimeout(resolve, this.delayer(this.failedIterations)));
+      return { speed: 0, items: -1 };
     }
+  }
+
+  /**
+   * Return the max consumers for the queue
+   *
+   * It is overridable so if a queue can retrieve several message at once
+   * it can just use the worker // and several messages at once
+   *
+   * SQS for example will return this.parameters.maxConsumers / 10
+   *
+   * @returns
+   */
+  getMaxConsumers(): number {
+    return this.parameters.maxConsumers;
   }
 
   /**
@@ -154,17 +187,30 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
     this.failedIterations = 0;
     this.callback = callback;
     this.eventPrototype = eventPrototype;
-    let cancelled = false;
-    return new CancelablePromise(
-      async () => {
-        while (!cancelled) {
-          await this.consumerReceiveMessage();
-        }
-      },
-      () => {
-        cancelled = true;
+    let consumers = new Set<CancelableLoopPromise>();
+    let childQueueCallback = async (canceller: () => Promise<void>) => {
+      let res = await this.consumerReceiveMessage();
+      // If an error occured or no results found, stop the child
+      if (res.items <= 0) {
+        await canceller();
       }
-    );
+    };
+    let parentQueueCallback = async (canceller: () => Promise<void>) => {
+      let res = await this.consumerReceiveMessage();
+      if (res.items > 0 && res.speed < 3000 && consumers.size < this.getMaxConsumers() - 1) {
+        this.log("TRACE", `Launching a new queue consumer for ${this.getName()}`);
+        let consumer = new CancelableLoopPromise(childQueueCallback);
+        // Add consumer to our list
+        consumers.add(consumer);
+        // Remove consumer once finished
+        consumer.finally(() => {
+          consumers.delete(consumer);
+        });
+      }
+    };
+    return new CancelableLoopPromise(parentQueueCallback, async () => {
+      return Promise.all(Array.from(consumers).map(c => c.cancel()));
+    });
   }
 }
 

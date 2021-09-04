@@ -20,6 +20,7 @@ class MemoryQueueTest extends QueueTest {
   static workerPromise: CancelablePromise<void>;
 
   async receiveMessage<K>(proto?: { new (): K }) {
+    console.log("receiveMessage", MemoryQueueTest.seq);
     MemoryQueueTest.seq++;
     switch (MemoryQueueTest.seq) {
       case 1:

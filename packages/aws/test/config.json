@@ -28,7 +28,8 @@
     "SQSQueue": {
       "type": "SQSQueue",
       "endpoint": "http://localhost:4576",
-      "queue": "http://localhost:4576/queue/webda-test"
+      "queue": "http://localhost:4576/queue/webda-test",
+      "maxConsumers": 1
     },
     "DebugMailer": {},
     "AWSSecretsManager": {

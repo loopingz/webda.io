@@ -103,14 +103,26 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
    * @inheritdoc
    */
   async receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
-    let queueArg = {
+    let queueArg: AWS.SQS.ReceiveMessageRequest = {
       QueueUrl: this.parameters.queue,
       WaitTimeSeconds: this.parameters.WaitTimeSeconds,
-      AttributeNames: ["MessageGroupId"]
+      AttributeNames: ["MessageGroupId"],
+      MaxNumberOfMessages: this.parameters.maxConsumers > 10 ? 10 : this.parameters.maxConsumers
     };
     let data = await this.sqs.receiveMessage(queueArg).promise();
     data.Messages ??= [];
     return data.Messages.map(m => ({ ReceiptHandle: m.ReceiptHandle, Message: this.unserialize(m.Body, proto) }));
+  }
+
+  /**
+   * We will retrieve more than one message on receiveMessage if maxConsumers is higher
+   * therefore we need to divide by 10 (the max number of group messaged) to get the number
+   * of consumers
+   *
+   * @returns
+   */
+  getMaxConsumers(): number {
+    return Math.ceil(this.parameters.maxConsumers / 10);
   }
 
   /**

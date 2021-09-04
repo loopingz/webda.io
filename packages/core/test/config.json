@@ -42,7 +42,8 @@
     },
     "MemoryQueue": {
       "type": "MemoryQueue",
-      "expire": 1
+      "expire": 1,
+      "maxConsumers": 1
     },
     "FileQueue": {
       "type": "FileQueue",

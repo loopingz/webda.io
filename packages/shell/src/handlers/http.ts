@@ -2,7 +2,6 @@ import {
   ClientInfo,
   Core as Webda,
   HttpContext,
-  WebdaError,
   EventWebdaRequest,
   EventWebdaResult,
   WaitFor,

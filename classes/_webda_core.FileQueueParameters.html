@@ -163,6 +163,9 @@
 								<a href="_webda_core.FileQueueParameters.html#folder" class="tsd-kind-icon">folder</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_core.FileQueueParameters.html#maxConsumers" class="tsd-kind-icon">max<wbr>Consumers</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.FileQueueParameters.html#type" class="tsd-kind-icon">type</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -207,6 +210,7 @@
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.FileQueueParameters.html#expire" class="tsd-kind-icon">expire</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.FileQueueParameters.html#folder" class="tsd-kind-icon">folder</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.FileQueueParameters.html#maxConsumers" class="tsd-kind-icon">max<wbr>Consumers</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.FileQueueParameters.html#type" class="tsd-kind-icon">type</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.FileQueueParameters.html#workerDelayer" class="tsd-kind-icon">worker<wbr>Delayer</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.FileQueueParameters.html#workerParallelism" class="tsd-kind-icon">worker<wbr>Parallelism</a></li>
@@ -280,6 +284,25 @@
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="maxConsumers" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">max<wbr>Consumers<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Max number of queue consumers
+								Queue will auto increase to this max number if queue is loaded
+							and it will decrease to just one consumer if no messages are available</p>
+						</div>
+						</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+						<dl class="tsd-comment-tags"><dt>default</dt>
+							<dd><p>10</p>
+						</dd></dl>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/queues/queueservice.ts:44</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="type" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">type<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -302,7 +325,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/queues/queueservice.ts:25</li>
+							<li>Defined in packages/core/src/queues/queueservice.ts:31</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -319,7 +342,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/queues/queueservice.ts:30</li>
+							<li>Defined in packages/core/src/queues/queueservice.ts:36</li>
 						</ul>
 					</aside>
 			</section>    </section>

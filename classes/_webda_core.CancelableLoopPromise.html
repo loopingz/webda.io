@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>QueueParameters |
+	<title>CancelableLoopPromise |
 	webda.io</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -64,7 +64,7 @@
 				<a href="../modules/_webda_core.html">@webda/core</a>
 			</li>
 			<li>
-				<a href="_webda_core.QueueParameters.html">QueueParameters</a>
+				<a href="_webda_core.CancelableLoopPromise.html">CancelableLoopPromise</a>
 			</li>
 		</ul>
 	</div>
@@ -138,18 +138,10 @@
 				<div>
 					<ul class="tsd-hierarchy">
 						<li>
-							<span class="tsd-signature-type">ServiceParameters</span>
+							<span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span>
 							<ul class="tsd-hierarchy">
 								<li>
-									<span class="target">QueueParameters</span>
-									<ul class="tsd-hierarchy">
-										<li>
-											<span class="tsd-signature-type">MemoryQueueParameters</span>
-										</li>
-										<li>
-											<span class="tsd-signature-type">FileQueueParameters</span>
-										</li>
-									</ul>
+									<span class="target">CancelableLoopPromise</span>
 								</li>
 							</ul>
 						</li>
@@ -159,22 +151,16 @@
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-class tsd-parent-kind-module root">
-						<a href="_webda_core.QueueParameters.html" class="tsd-kind-icon">Queue<wbr>Parameters</a>
+						<a href="_webda_core.CancelableLoopPromise.html" class="tsd-kind-icon">Cancelable<wbr>Loop<wbr>Promise</a>
 						<ul>
 							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
-								<a href="_webda_core.QueueParameters.html#constructor" class="tsd-kind-icon">constructor</a>
+								<a href="_webda_core.CancelableLoopPromise.html#constructor" class="tsd-kind-icon">constructor</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="_webda_core.QueueParameters.html#maxConsumers" class="tsd-kind-icon">max<wbr>Consumers</a>
+								<a href="_webda_core.CancelableLoopPromise.html#cancel" class="tsd-kind-icon">cancel</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.QueueParameters.html#type" class="tsd-kind-icon">type</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="_webda_core.QueueParameters.html#workerDelayer" class="tsd-kind-icon">worker<wbr>Delayer</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="_webda_core.QueueParameters.html#workerParallelism" class="tsd-kind-icon">worker<wbr>Parallelism</a>
+							<li class=" tsd-kind-get-signature tsd-parent-kind-class tsd-is-static">
+								<a href="_webda_core.CancelableLoopPromise.html#_Symbol_species_" class="tsd-kind-icon">[<wbr>Symbol.species]</a>
 							</li>
 						</ul>
 					</li>
@@ -184,27 +170,20 @@
 			</nav>
 		</div>
 		<div class="col-content">
-			<h1>Class QueueParameters</h1>
-			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-tags">
-					<dl class="tsd-comment-tags"><dt>inheritdoc</dt>
-					<dd></dd></dl>
+			<h1>Class CancelableLoopPromise</h1>
+			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
+					<div class="lead">
+						<p>Create a promise that will loop on the same callback until cancelled</p>
+					</div>
 			</div></section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<a href="_webda_core.ServiceParameters.html" class="tsd-signature-type">ServiceParameters</a>
+						<span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span>
 						<ul class="tsd-hierarchy">
 							<li>
-								<span class="target">QueueParameters</span>
-								<ul class="tsd-hierarchy">
-									<li>
-										<a href="_webda_core.MemoryQueueParameters.html" class="tsd-signature-type">MemoryQueueParameters</a>
-									</li>
-									<li>
-										<a href="_webda_core.FileQueueParameters.html" class="tsd-signature-type">FileQueueParameters</a>
-									</li>
-								</ul>
+								<span class="target">CancelableLoopPromise</span>
 							</li>
 						</ul>
 					</li>
@@ -216,16 +195,19 @@
 						<section class="tsd-index-section ">
 							<h3>Constructors</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_core.QueueParameters.html#constructor" class="tsd-kind-icon">constructor</a></li>
+								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_core.CancelableLoopPromise.html#constructor" class="tsd-kind-icon">constructor</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.QueueParameters.html#maxConsumers" class="tsd-kind-icon">max<wbr>Consumers</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.QueueParameters.html#type" class="tsd-kind-icon">type</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.QueueParameters.html#workerDelayer" class="tsd-kind-icon">worker<wbr>Delayer</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.QueueParameters.html#workerParallelism" class="tsd-kind-icon">worker<wbr>Parallelism</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.CancelableLoopPromise.html#cancel" class="tsd-kind-icon">cancel</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section ">
+							<h3>Accessors</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-get-signature tsd-parent-kind-class tsd-is-static"><a href="_webda_core.CancelableLoopPromise.html#_Symbol_species_" class="tsd-kind-icon">[<wbr>Symbol.species]</a></li>
 							</ul>
 						</section>
 					</div>
@@ -236,31 +218,83 @@
 				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
 					<a name="constructor" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Queue<wbr>Parameters<span class="tsd-signature-symbol">(</span>params<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_core.QueueParameters.html" class="tsd-signature-type">QueueParameters</a></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Cancelable<wbr>Loop<wbr>Promise<span class="tsd-signature-symbol">(</span>callback<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span>, onCancel<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_core.CancelableLoopPromise.html" class="tsd-signature-type">CancelableLoopPromise</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Overrides <a href="_webda_core.ServiceParameters.html">ServiceParameters</a>.<a href="_webda_core.ServiceParameters.html#constructor">constructor</a></p>
+								<p>Overrides Promise&lt;void&gt;.constructor</p>
 							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Copy all parameters into the object by default</p>
-								</div>
-							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>params: <span class="tsd-signature-type">any</span></h5>
-									<div class="tsd-comment tsd-typography tsd-comment-text">
-										<p>from webda.config.json</p>
-									</div>
+									<h5>callback: <span class="tsd-signature-type">function</span></h5>
+									<ul class="tsd-parameters">
+										<li class="tsd-parameter-siganture">
+											<ul class="tsd-signatures tsd-kind-type-literal">
+												<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>canceller<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+											</ul>
+											<ul class="tsd-descriptions">
+												<li class="tsd-description">
+													<h4 class="tsd-parameters-title">Parameters</h4>
+													<ul class="tsd-parameters">
+														<li>
+															<h5>canceller: <span class="tsd-signature-type">function</span></h5>
+															<ul class="tsd-parameters">
+																<li class="tsd-parameter-siganture">
+																	<ul class="tsd-signatures tsd-kind-type-literal">
+																		<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+																	</ul>
+																	<ul class="tsd-descriptions">
+																		<li class="tsd-description">
+																			<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+																			<aside class="tsd-sources">
+																				<ul>
+																					<li>Defined in packages/core/src/utils/waiter.ts:166</li>
+																				</ul>
+																			</aside>
+																		</li>
+																	</ul>
+																</li>
+															</ul>
+														</li>
+													</ul>
+													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+													<aside class="tsd-sources">
+														<ul>
+															<li>Defined in packages/core/src/utils/waiter.ts:166</li>
+														</ul>
+													</aside>
+												</li>
+											</ul>
+										</li>
+									</ul>
+								</li>
+								<li>
+									<h5>onCancel: <span class="tsd-signature-type">function</span><span class="tsd-signature-symbol"> = ...</span></h5>
+									<ul class="tsd-parameters">
+										<li class="tsd-parameter-siganture">
+											<ul class="tsd-signatures tsd-kind-type-literal">
+												<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+											</ul>
+											<ul class="tsd-descriptions">
+												<li class="tsd-description">
+													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+													<aside class="tsd-sources">
+														<ul>
+															<li>Defined in packages/core/src/utils/waiter.ts:167</li>
+														</ul>
+													</aside>
+												</li>
+											</ul>
+										</li>
+									</ul>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <a href="_webda_core.QueueParameters.html" class="tsd-signature-type">QueueParameters</a></h4>
+							<h4 class="tsd-returns-title">Returns <a href="_webda_core.CancelableLoopPromise.html" class="tsd-signature-type">CancelableLoopPromise</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/queues/queueservice.ts:49</li>
+									<li>Defined in packages/core/src/utils/waiter.ts:165</li>
 								</ul>
 							</aside>
 						</li>
@@ -269,67 +303,53 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="maxConsumers" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">max<wbr>Consumers<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
-					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-						<div class="lead">
-							<p>Max number of queue consumers
-								Queue will auto increase to this max number if queue is loaded
-							and it will decrease to just one consumer if no messages are available</p>
-						</div>
-						</div><div class="tsd-comment tsd-typography tsd-comment-tags">
-						<dl class="tsd-comment-tags"><dt>default</dt>
-							<dd><p>10</p>
-						</dd></dl>
+					<a name="cancel" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">cancel<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">function</span></div>
+					<div class="tsd-type-declaration">
+						<h4>Type declaration</h4>
+						<ul class="tsd-parameters">
+							<li class="tsd-parameter-siganture">
+								<ul class="tsd-signatures tsd-kind-type-literal tsd-parent-kind-class">
+									<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+								</ul>
+								<ul class="tsd-descriptions">
+									<li class="tsd-description">
+										<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+										<aside class="tsd-sources">
+											<ul>
+												<li>Defined in packages/core/src/utils/waiter.ts:164</li>
+											</ul>
+										</aside>
+									</li>
+								</ul>
+							</li>
+						</ul>
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/queues/queueservice.ts:44</li>
+							<li>Defined in packages/core/src/utils/waiter.ts:164</li>
 						</ul>
 					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="type" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">type<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-						<div class="lead">
-							<p>Type of the service</p>
-						</div>
-					</div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/src/services/service.ts:105</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="workerDelayer" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">worker<wbr>Delayer<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_webda_core.WaitDelayerDefinition.html" class="tsd-signature-type">WaitDelayerDefinition</a></div>
-					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-						<div class="lead">
-							<p>Delayer between two failed attempts to process messages</p>
-						</div>
-					</div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/src/queues/queueservice.ts:31</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="workerParallelism" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">worker<wbr>Parallelism<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
-					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-						<div class="lead">
-							<p>Define if worker should process multi message received in //</p>
-						</div>
-						</div><div class="tsd-comment tsd-typography tsd-comment-tags">
-						<dl class="tsd-comment-tags"><dt>default</dt>
-							<dd><p>true</p>
-						</dd></dl>
-					</div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/src/queues/queueservice.ts:36</li>
-						</ul>
-					</aside>
+			</section>    </section>
+			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Accessors</h2>
+				<section class="tsd-panel tsd-member tsd-kind-get-signature tsd-parent-kind-class tsd-is-static">
+					<a name="_Symbol_species_" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-get-signature tsd-parent-kind-class tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">get</span> [Symbol.species]<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">PromiseConstructor</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">PromiseConstructor</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/utils/waiter.ts:189</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
 			</section>    </section>
 			<!--{&quot;options&quot;:&quot;/home/runner/work/webda.io/webda.io&quot;,&quot;tsconfig&quot;:&quot;/home/runner/work/webda.io/webda.io&quot;,&quot;packages&quot;:[&quot;/home/runner/work/webda.io/webda.io&quot;],&quot;entryPoints&quot;:[],&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;/home/runner/work/webda.io/webda.io/packages/*/node_modules&quot;,&quot;/home/runner/work/webda.io/webda.io/packages/*/src/**/*.spec.ts&quot;,&quot;/home/runner/work/webda.io/webda.io/sample-app&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;/home/runner/work/webda.io/webda.io/docs/media&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;/home/runner/work/webda.io/webda.io/.built-docs&quot;,&quot;json&quot;:&quot;&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;/home/runner/work/webda.io/webda.io/readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;sort&quot;:[&quot;kind&quot;,&quot;instance-first&quot;,&quot;alphabetical&quot;],&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;treatWarningsAsErrors&quot;:false,&quot;listInvalidSymbolLinks&quot;:false,&quot;outline&quot;:[],&quot;excludeReferences&quot;:false,&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true,&quot;noJekyll&quot;:true,&quot;githubPagesDomain&quot;:&quot;docs.webda.io&quot;,&quot;enablePageLinks&quot;:true,&quot;enableSearch&quot;:true,&quot;failBuildOnInvalidPageLink&quot;:false,&quot;listInvalidPageLinks&quot;:false,&quot;output&quot;:&quot;pages&quot;,&quot;sources&quot;:[&quot;./docs/pages/&quot;]}}-->
 			<footer class="with-border-bottom">

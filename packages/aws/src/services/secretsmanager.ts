@@ -41,6 +41,13 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
     return this.get(id);
   }
 
+  /**
+   * Create a new secret on AWS SecretsManager
+   * 
+   * @param id 
+   * @param values 
+   * @param params 
+   */
   async create(id: string, values: any = {}, params: any = {}) {
     params.Name = id;
     params.SecretString = JSON.stringify(values);

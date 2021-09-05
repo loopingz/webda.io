@@ -141,7 +141,7 @@ export class CancelablePromise<T = void> extends Promise<T> {
     callback: (resolve: (res: T) => void, reject: (err: any) => void) => void = () => {
       // noop
     },
-    onCancel: () => void = undefined
+    onCancel: () => Promise<void> = undefined
   ) {
     let localReject;
     super((resolve, reject) => {
@@ -164,7 +164,7 @@ export class CancelableLoopPromise extends Promise<void> {
   cancel: () => Promise<void>;
   constructor(
     callback: (canceller: () => Promise<void>) => Promise<void>,
-    onCancel: () => void = undefined
+    onCancel: () => Promise<void> = undefined
   ) {
     let localReject;
     let shouldRun = true;

@@ -1,28 +1,40 @@
+import { Logger } from ".";
 import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "..";
 
 /**
  * Record all messages in memory
  */
-export class MemoryLogger {
+export class MemoryLogger extends Logger {
+  /**
+   * Messages received
+   */
   protected messages: WorkerMessage[] = [];
+  /**
+   * Also store other message than logs if true
+   */
   protected includeAll: boolean;
-  protected level: WorkerLogLevel;
+  /**
+   * Max number of messages kept
+   */
+  protected limit: number;
 
   constructor(output: WorkerOutput, level: WorkerLogLevel = "DEBUG", limit = 2000, includeAll: boolean = false) {
+    super(output, level);
     this.includeAll = includeAll;
-    this.level = level;
-    output.on("message", (msg: WorkerMessage) => {
-      if (!includeAll && msg.type !== "log") {
-        return;
-      }
-      if (msg.type === "log" && !LogFilter(msg.log.level, this.level)) {
-        return;
-      }
-      this.messages.push(msg);
-      if (this.messages.length > limit) {
-        this.messages.shift();
-      }
-    });
+    this.limit = limit;
+  }
+
+  onMessage(msg: WorkerMessage) {
+    if (!this.includeAll && msg.type !== "log") {
+      return;
+    }
+    if (msg.type === "log" && !LogFilter(msg.log.level, this.level)) {
+      return;
+    }
+    this.messages.push(msg);
+    if (this.messages.length > this.limit) {
+      this.messages.shift();
+    }
   }
 
   /**

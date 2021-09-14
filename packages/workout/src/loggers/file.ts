@@ -1,11 +1,12 @@
 import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "..";
 import * as fs from "fs";
 import * as path from "path";
+import { Logger } from ".";
 
 /**
  * Record all messages in memory
  */
-export class FileLogger {
+export class FileLogger extends Logger {
   // File descriptor
   outputFileStream: fs.WriteStream;
   outputStream: any;
@@ -22,13 +23,10 @@ export class FileLogger {
     sizeLimit = 50 * 1024 * 1024, // 50Mb by default
     format = ConsoleLogger.defaultFormat
   ) {
-    this.level = level;
+    super(output, level);
     this.filepath = filepath;
     this.sizeLimit = sizeLimit;
     this.format = format;
-    output.on("message", (msg: WorkerMessage) => {
-      this.onMessage(msg);
-    });
   }
 
   onMessage(msg: WorkerMessage) {

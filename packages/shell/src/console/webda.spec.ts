@@ -22,6 +22,7 @@ class DebugLogger extends MemoryLogger {
 
 @suite
 class ConsoleTest {
+  static helpStub;
   logger: DebugLogger;
   dynamicFile: string;
   workerOutput: WorkerOutput;
@@ -34,11 +35,12 @@ class ConsoleTest {
       "@webda/shell": { path: "", version: "1.0.0", type: "" }
     };
     line = `--notty --logLevel=${logLevel} ` + line;
-    let stub = sinon.stub(WebdaConsole, "displayHelp").callsFake(() => {});
+    ConsoleTest.helpStub ??= sinon.stub(WebdaConsole, "displayHelp").callsFake(() => {});
     try {
       return await WebdaConsole.handleCommand(line.split(" "), versions, this.workerOutput);
     } finally {
-      stub.restore();
+      ConsoleTest.helpStub.restore();
+      ConsoleTest.helpStub = undefined;
     }
   }
 
@@ -96,7 +98,7 @@ class ConsoleTest {
   @test
   async newDeployment() {
     // Just to initiate it
-    await this.commandLine("serviceconfig");
+    await this.commandLine("service-configuration Test");
     let output = WebdaConsole.app.getWorkerOutput();
     output.setInteractive(true);
     let deploymentPath = WebdaConsole.app.getAppPath("deployments/bouzouf.json");
@@ -249,14 +251,14 @@ class DynamicService extend Service {
 
   @test
   async serviceconfigCommandLine() {
-    await this.commandLine("serviceconfig CustomService");
+    await this.commandLine("service-configuration CustomService");
     let logs = this.logger.getLogs();
     assert.strictEqual(logs.length, 1);
     assert.notStrictEqual(
       logs[0].log.args[0].match(/[\w\W]*"sessionSecret":[\w\W]*"type": "Beans\/CustomService"[\w\W]*/gm),
       undefined
     );
-    await this.commandLine("serviceconfig UnknownService");
+    await this.commandLine("service-configuration UnknownService");
     logs = this.logger.getLogs();
     assert.strictEqual(logs.length, 1);
     assert.strictEqual(logs[0].log.args[0], "\u001b[31mThe service UnknownService is missing\u001b[39m");
@@ -327,6 +329,12 @@ class DynamicService extend Service {
   @test
   async unknownCommandDisplayHelp() {
     let fallback = false;
+    if (ConsoleTest.helpStub) {
+      ConsoleTest.helpStub.restore();
+    }
+    ConsoleTest.helpStub = {
+      restore: () => {}
+    };
     let stub = sinon.stub(WebdaConsole, "parser").callsFake(async () => {
       const res = {
         showHelp: () => {

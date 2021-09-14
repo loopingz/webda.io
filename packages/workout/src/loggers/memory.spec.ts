@@ -28,6 +28,11 @@ class MemoryConsoleTest {
     this.output.log("INFO", "Test 1");
     this.output.log("DEBUG", "Test 1");
     assert.strictEqual(logger.getLogs().length, 5);
+    // Closing output should not capture new
+    logger.close();
+    this.output.log("INFO", "Test 1");
+    this.output.log("DEBUG", "Test 1");
+    assert.strictEqual(logger.getLogs().length, 5);
   }
 
   @test

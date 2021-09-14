@@ -37,6 +37,10 @@ export class Terminal {
   );
   logo: string[] = [];
   logoWidth: number = 0;
+  /**
+   * Contains the WorkerOutput listener
+   */
+  listener: (msg: WorkerMessage) => void;
   _refresh: NodeJS.Timeout;
   static refreshSpeed = 300;
 
@@ -52,12 +56,14 @@ export class Terminal {
     this.level = level ? level : <any>process.env.LOG_LEVEL || "INFO";
     // Fallback on basic ConsoleLogger if no tty
     if (!this.tty) {
-      this.wo.on("message", async msg => {
+      this.listener = async msg => {
         ConsoleLogger.handleMessage(msg, this.level, this.format);
-      });
+      };
+      this.wo.on("message", this.listener);
       return;
     }
-    this.wo.on("message", async msg => this.router(msg));
+    this.listener = async msg => this.router(msg);
+    this.wo.on("message", this.listener);
     this.resize();
 
     // Reset term
@@ -180,6 +186,7 @@ export class Terminal {
       process.stdin.setRawMode(false);
     }
     process.stdin.pause();
+    this.wo.removeListener("message", this.listener);
   }
 
   pushHistory(line) {

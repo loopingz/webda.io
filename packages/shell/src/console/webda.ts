@@ -21,6 +21,7 @@ export interface WebdaShellExtension {
   export?: string;
   description: string;
   terminal?: string;
+  command?: string;
   yargs?: any;
   // Internal usage only
   relPath?: string;
@@ -111,10 +112,10 @@ export default class WebdaConsole {
    */
   static async serviceConfig(argv): Promise<number> {
     this.webda = new WebdaServer(this.app);
-    let service_name = argv._[1];
-    let service = this.webda.getService(argv._[1]);
+    let serviceName = argv.name;
+    let service = this.webda.getService(serviceName);
     if (!service) {
-      let error = "The service " + service_name + " is missing";
+      let error = "The service " + serviceName + " is missing";
       this.output(colors.red(error));
       return -1;
     }
@@ -127,22 +128,23 @@ export default class WebdaConsole {
    * @param argv
    */
   static async worker(argv: yargs.Arguments) {
-    let service_name = <string>argv._[1];
+    let serviceName = <string>argv.serviceName;
     this.webda = new WebdaServer(this.app);
     await this.webda.init();
-    let service = this.webda.getService(service_name);
-    let method = argv._[2] || "work";
+    let service = this.webda.getService(serviceName);
+    let method = <string>argv.methodName || "work";
     if (!service) {
-      this.log("ERROR", `The service ${service_name} is missing`);
+      this.log("ERROR", `The service ${serviceName} is missing`);
       return -1;
     }
     if (!service[method]) {
-      this.log("ERROR", `The method ${method} is missing in service ${service_name}`);
+      this.log("ERROR", `The method ${method} is missing in service ${serviceName}`);
       return -1;
     }
     // Launch the worker with arguments
     let timestamp = new Date().getTime();
-    return Promise.resolve(service[method].apply(service, argv._.slice(3)))
+
+    return Promise.resolve(service[method](...(<string[]>argv.methodArguments)))
       .catch(err => {
         this.log("ERROR", "An error occured", err);
       })
@@ -336,8 +338,8 @@ export default class WebdaConsole {
   static async migrateConfig(argv: yargs.Arguments): Promise<number> {
     let json = JSON.stringify(this.app.getConfiguration(), null, " ");
 
-    if (argv._.length > 1) {
-      fs.writeFileSync(this.app.getAppPath(<string>argv._[1]), json);
+    if (argv.exportFile !== undefined) {
+      fs.writeFileSync(this.app.getAppPath(<string>argv.exportFile), json);
     } else {
       fs.writeFileSync(this.app.getAppPath("webda.config.json"), json);
     }
@@ -362,7 +364,7 @@ export default class WebdaConsole {
    */
   static async init(argv: yargs.Arguments, generatorName: string = "webda") {
     if (argv._.length > 1) {
-      generatorName = <string>argv._[1];
+      generatorName = <string>argv.generator;
     }
     let generatorAction = "app";
     // Cannot start with :
@@ -454,8 +456,8 @@ export default class WebdaConsole {
    */
   static async schema(argv: yargs.Arguments) {
     argv._.shift();
-    let symbol = <string>argv._.shift();
-    let filename = <string>argv._.shift();
+    let symbol = <string>argv.type;
+    let filename = <string>argv.exportFile;
     let resolver: TypescriptSchemaResolver = undefined;
     if (this.app.isTypescript()) {
       resolver = new TypescriptSchemaResolver(this.app, this.logger);
@@ -560,13 +562,21 @@ export default class WebdaConsole {
           return y.command("name", "Deployment name to create");
         }
       },
-      serviceconfig: {
+      "service-configuration": {
+        command: "service-configuration <name>",
         handler: WebdaConsole.serviceConfig,
-        description: "Display the configuration of a service"
+        description: "Display the configuration of a service",
+        module: y => {
+          return y.command("name", "Service name to display configuration for");
+        }
       },
       launch: {
+        command: "launch <serviceName> [methodName] [methodArguments...]",
         handler: WebdaConsole.worker,
-        description: "Launch a method of a service"
+        description: "Launch a method of a service",
+        module: y => {
+          return y.command("serviceName", "Service name to launch");
+        }
       },
       debug: {
         handler: WebdaConsole.debug,
@@ -577,22 +587,28 @@ export default class WebdaConsole {
         command: "config [exportFile]",
         description: "Generate the configuration of the application",
         module: y => {
-          return y.command("export", "File to export configuration to");
+          return y.command("exportFile", "File to export configuration to");
         }
       },
       "migrate-configuration": {
         handler: WebdaConsole.migrateConfig,
-        description: "Migrate and save the configuration"
+        command: "migrate-configuration [exportFile]",
+        description: "Migrate and save the configuration",
+        module: y => {
+          return y.command("exportFile", "File to export configuration to", { default: "webda.config.json" });
+        }
       },
       init: {
+        command: "init [generator]",
         handler: WebdaConsole.init,
-        description: "Initiate a new webda project"
+        description: "Initiate a new webda project using yeoman generator"
       },
       module: {
         handler: WebdaConsole.generateModule,
         description: "Generate the module for the application"
       },
       openapi: {
+        command: "openapi [exportFile]",
         handler: WebdaConsole.generateOpenAPI,
         description: "Generate the OpenAPI definition for the app",
         module: {
@@ -603,6 +619,7 @@ export default class WebdaConsole {
         }
       },
       schema: {
+        command: "schema <type> [exportFile]",
         handler: WebdaConsole.schema,
         description: "Generate a schema for a type"
       },
@@ -611,6 +628,7 @@ export default class WebdaConsole {
         description: "List all available types for this project"
       },
       "configuration-schema": {
+        command: "configuration-schema [configurationSchemaFile] [deploymentSchemaFile]",
         handler: WebdaConsole.configurationSchema,
         description: "Create the json schema that defines your webda.config.json",
         module: {
@@ -748,8 +766,7 @@ export default class WebdaConsole {
    * Generate a JSON Schema specific to the current configuration
    */
   static async configurationSchema(argv) {
-    argv._.shift();
-    this.generateConfigurationSchema(argv._.shift(), argv._.shift(), argv.full);
+    this.generateConfigurationSchema(argv.configurationSchemaFile, argv.deploymentSchemaFile, argv.full);
   }
 
   /**
@@ -830,16 +847,16 @@ export default class WebdaConsole {
         // Dynamic we load from the extension as it is more complex
         if (this.extensions[cmd].yargs === "dynamic") {
           parser = parser.command(
-            cmd,
-            this.extensions[cmd].description,
+            ext.command || cmd,
+            ext.description,
             require(path.join(ext.relPath, ext.require))["yargs"]
           );
           // Hybrid with builder
-        } else if (this.extensions[cmd].yargs && this.extensions[cmd].yargs.command) {
-          parser = parser.command({ ...this.extensions[cmd].yargs, handler: () => {} });
+        } else if (ext.yargs && ext.yargs.command) {
+          parser = parser.command({ ...ext.yargs, handler: () => {} });
         } else {
           // Simple case
-          parser = parser.command(cmd, this.extensions[cmd].description, this.extensions[cmd].yargs);
+          parser = parser.command(ext.command || cmd, ext.description, this.extensions[cmd].yargs);
         }
       });
       argv = parser.parse(args);
@@ -858,8 +875,9 @@ export default class WebdaConsole {
       }
     }
 
+    let logger;
     if (argv.notty || !process.stdout.isTTY || ["init"].indexOf(<string>argv._[0]) >= 0) {
-      new ConsoleLogger(output, <WorkerLogLevel>argv.logLevel, <string>argv.logFormat);
+      logger = new ConsoleLogger(output, <WorkerLogLevel>argv.logLevel, <string>argv.logFormat);
     } else {
       if (extension && extension.terminal) {
         // Allow override of terminal
@@ -975,6 +993,9 @@ export default class WebdaConsole {
         this.log("TRACE", "Closing terminal");
         this.terminal.close();
       }
+      if (logger) {
+        logger.close();
+      }
     }
     // Display help if nothing is found
     this.displayHelp(parser);
@@ -1037,7 +1058,7 @@ export default class WebdaConsole {
   static async generateOpenAPI(argv: yargs.Arguments): Promise<void> {
     this.webda = new WebdaServer(this.app);
     let openapi = this.webda.exportOpenAPI(!argv.includeHidden);
-    let name = <string>argv._[1] || "./openapi.json";
+    let name = <string>argv.exportFile || "./openapi.json";
     FileUtils.save(openapi, name);
   }
 

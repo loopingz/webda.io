@@ -2,6 +2,7 @@ import * as colors from "colors";
 import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "..";
 import * as util from "util";
 import { sprintf } from "sprintf-js";
+import { Logger } from ".";
 
 interface WorkerLogMessage {
   m: string;
@@ -12,17 +13,23 @@ interface WorkerLogMessage {
 /**
  * ConsoleLogger
  */
-export class ConsoleLogger {
+export class ConsoleLogger extends Logger {
   static defaultFormat = "%(d)s [%(l)s] %(m)s";
   format: string;
   level: WorkerLogLevel;
+  listener: (msg: WorkerMessage) => void;
+  output: WorkerOutput;
 
   constructor(output: WorkerOutput, level: WorkerLogLevel = undefined, format: string = ConsoleLogger.defaultFormat) {
-    this.level = level ? level : <any>process.env.LOG_LEVEL || "INFO";
+    super(output, level);
     this.format = format;
-    output.on("message", (msg: WorkerMessage) => {
-      ConsoleLogger.handleMessage(msg, this.level, this.format);
-    });
+  }
+
+  /**
+   * @override
+   */
+  onMessage(msg: WorkerMessage) {
+    ConsoleLogger.handleMessage(msg, this.level, this.format);
   }
 
   /**

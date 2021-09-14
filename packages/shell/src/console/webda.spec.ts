@@ -62,6 +62,7 @@ class ConsoleTest {
     this.dynamicFile = dynamicFile;
     this.workerOutput = new WorkerOutput();
     WebdaConsole.logger = new Logger(this.workerOutput, "webda/console");
+    WebdaConsole.webda = undefined;
     this.logger = new DebugLogger(this.workerOutput, "INFO");
     try {
       fs.mkdirSync(WebdaSampleApplication.getAppPath("node_modules/@webda"), { recursive: true });
@@ -170,17 +171,10 @@ class ConsoleTest {
   @test
   async debugCommandLine() {
     WebdaSampleApplication.clean();
-    console.log("Launch debug command line");
     this.commandLine(
-      `debug -d Dev --bind=127.0.0.1 --logLevel=INFO --logLevels=ERROR,WARN,INFO,DEBUG,TRACE --port 28080`
+      `debug -d Dev --bind=127.0.0.1 --logLevels=ERROR,WARN,INFO,DEBUG,TRACE --port 28080`, true, undefined, "INFO"
     );
-    for (let i = 0; i < 100; i++) {
-      if (WebdaConsole.webda) {
-        break;
-      }
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    console.log("Wait for serving");
+    await this.waitForWebda();
     await this.waitForStatus(DebuggerStatus.Serving);
     let app = new SampleApplicationTest(`http://localhost:28080`);
     // CSRF is disabled by default in debug mode
@@ -242,6 +236,10 @@ class DynamicService extend Service {
       WebdaConsole.terminal = {
         close: () => {}
       };
+      WebdaConsole.webda = {
+        // @ts-ignore
+        stop: () => {}
+      }
       WebdaConsole.onSIGINT();
     } finally {
       stub.restore();
@@ -366,7 +364,9 @@ class DynamicService extend Service {
         fs.unlinkSync(f);
       }
     });
-
+    // Just to initiate it
+    await this.commandLine("service-configuration Test");
+    await this.waitForWebda();
     WebdaConsole.webda.reinitResolvedRoutes();
     await this.commandLine(`-d Dev openapi`, true);
     assert.strictEqual(fs.existsSync("./openapi.json"), true);
@@ -663,10 +663,10 @@ module.exports = {
     try {
       process.stdout.isTTY = true;
       await WebdaConsole.handleCommand(
-        `--noCompile --appPath ${WebdaSampleApplication.getAppPath()} help`.split(" "),
+        `--noCompile --appPath ${WebdaSampleApplication.getAppPath()}`.split(" "),
         {
-          core: { path: "", version: "2.0.0", type: "" },
-          shell: { path: "", version: "1.0.0", type: "" }
+          "@webda/core": { path: "", version: "2.0.0", type: "" },
+          "@webda/shell": { path: "", version: "1.0.0", type: "" }
         },
         this.workerOutput
       );
@@ -676,10 +676,10 @@ module.exports = {
       };
       JSONUtils.saveFile(pack, packagePath);
       await WebdaConsole.handleCommand(
-        `--noCompile --appPath ${WebdaSampleApplication.getAppPath()} help`.split(" "),
+        `--noCompile --appPath ${WebdaSampleApplication.getAppPath()}`.split(" "),
         {
-          core: { path: "", version: "2.0.0", type: "" },
-          shell: { path: "", version: "1.0.0", type: "" }
+          "@webda/core": { path: "", version: "2.0.0", type: "" },
+          "@webda/shell": { path: "", version: "1.0.0", type: "" }
         },
         this.workerOutput
       );
@@ -688,19 +688,19 @@ module.exports = {
       };
       JSONUtils.saveFile(pack, packagePath);
       await WebdaConsole.handleCommand(
-        `--noCompile --appPath ${WebdaSampleApplication.getAppPath()} help`.split(" "),
+        `--noCompile --appPath ${WebdaSampleApplication.getAppPath()}`.split(" "),
         {
-          core: { path: "", version: "2.0.0", type: "" },
-          shell: { path: "", version: "1.0.0", type: "" }
+          "@webda/core": { path: "", version: "2.0.0", type: "" },
+          "@webda/shell": { path: "", version: "1.0.0", type: "" }
         },
         this.workerOutput
       );
       fs.writeFileSync(logoPath, "AA\nBB");
       await WebdaConsole.handleCommand(
-        `--noCompile --appPath ${WebdaSampleApplication.getAppPath()} help`.split(" "),
+        `--noCompile --appPath ${WebdaSampleApplication.getAppPath()}`.split(" "),
         {
-          core: { path: "", version: "2.0.0", type: "" },
-          shell: { path: "", version: "1.0.0", type: "" }
+          "@webda/core": { path: "", version: "2.0.0", type: "" },
+          "@webda/shell": { path: "", version: "1.0.0", type: "" }
         },
         this.workerOutput
       );
@@ -711,10 +711,23 @@ module.exports = {
   }
 
   @test
-  loadExtensions() {
+  async loadExtensions() {
     fs.writeFileSync(WebdaSampleApplication.getAppPath("webda.shell.json"), "[;p[");
     try {
       WebdaConsole.loadExtensions(WebdaSampleApplication.getAppPath());
+      fs.writeFileSync(WebdaSampleApplication.getAppPath("webda.shell.json"), JSONUtils.stringify(
+        {
+          commands: {
+            "plop": {
+              yargs: {
+                command: "plop",
+                describe: "Plop test command"
+              }
+            }
+          }
+        }
+      ));
+      await this.commandLine("help");
     } finally {
       fs.unlinkSync(WebdaSampleApplication.getAppPath("webda.shell.json"));
     }

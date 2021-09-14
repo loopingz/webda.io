@@ -229,7 +229,7 @@ export class Terminal {
     this.displayScreen();
   }
 
-  log(groups, level: WorkerLogLevel, ...args) {
+  log(groups: any[], level: WorkerLogLevel, ...args) {
     if (!LogFilter(level, this.level)) {
       return;
     }
@@ -261,7 +261,7 @@ export class Terminal {
     return size;
   }
 
-  stripColorString(str, limit: number) {
+  stripColorString(str, limit: number = -1) {
     let match;
     let regexp = /(?<before>[^\u001b]+)|(?<cmd>\u001b\[[\d;]+m)/gm;
     let originalString = "";
@@ -270,7 +270,7 @@ export class Terminal {
     while ((match = regexp.exec(str))) {
       match.groups.before = match.groups.before || "";
       match.groups.cmd = match.groups.cmd || "";
-      if (originalString.length + match.groups.before.length >= limit) {
+      if (limit > 0 && originalString.length + match.groups.before.length >= limit) {
         fullString += match.groups.before.substr(0, limit - originalString.length - 3) + "...";
         noMore = true;
         continue;

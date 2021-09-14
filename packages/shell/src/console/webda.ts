@@ -8,7 +8,7 @@ import { Transform } from "stream";
 import * as yargs from "yargs";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";
-import { WorkerOutput, WorkerLogLevel, ConsoleLogger, WorkerLogLevelEnum, MemoryLogger } from "@webda/workout";
+import { WorkerOutput, WorkerLogLevel, ConsoleLogger, WorkerLogLevelEnum, LogFilter } from "@webda/workout";
 import { WebdaTerminal } from "./terminal";
 import * as path from "path";
 import * as semver from "semver";
@@ -89,7 +89,7 @@ export default class WebdaConsole {
         } else {
           this.output("Serve as development");
         }
-        this.webda = new WebdaServer(this.app);
+        WebdaConsole.webda = new WebdaServer(this.app);
         await this.webda.init();
         this.webda.setDevMode(argv.devMode);
         if (argv.devMode) {
@@ -111,7 +111,7 @@ export default class WebdaConsole {
    * @param argv
    */
   static async serviceConfig(argv): Promise<number> {
-    this.webda = new WebdaServer(this.app);
+    WebdaConsole.webda = new WebdaServer(this.app);
     let serviceName = argv.name;
     let service = this.webda.getService(serviceName);
     if (!service) {
@@ -129,7 +129,7 @@ export default class WebdaConsole {
    */
   static async worker(argv: yargs.Arguments) {
     let serviceName = <string>argv.serviceName;
-    this.webda = new WebdaServer(this.app);
+    WebdaConsole.webda = new WebdaServer(this.app);
     await this.webda.init();
     let service = this.webda.getService(serviceName);
     let method = <string>argv.methodName || "work";
@@ -192,16 +192,14 @@ export default class WebdaConsole {
       }
 
       args.push("serve");
-      if (argv.logLevel) {
-        args.push("--logLevel");
-        args.push(<string>argv.logLevel);
-      }
       if (argv.logLevels) {
         args.push("--logLevels");
         args.push(<string>argv.logLevels);
       }
+      args.push("--logLevel");
+      args.push("TRACE");
       args.push("--logFormat");
-      args.push("%(m)s");
+      args.push("%(l)s|%(m)s");
       args.push("--notty");
       args.push("--devMode");
       let webdaConsole = this;
@@ -211,13 +209,22 @@ export default class WebdaConsole {
             .toString()
             .split("\n")
             .forEach(line => {
+              // Stip tags
+              line = line.replace(/\x1B\[(;?[0-9]{1,3})+[mGK]/g, "")
               if (line.indexOf("Server running at") >= 0) {
                 webdaConsole.setDebuggerStatus(DebuggerStatus.Serving);
                 webdaConsole.logger.logTitle("Webda Debug " + line);
                 return;
               }
               if (line.length < 4) return;
-              webdaConsole.output(line.trim());
+              let lvl = line.substr(0, 5).trim();
+              if (argv.logLevel) {
+                // Should compare the loglevel
+                if (!LogFilter(lvl, <any>argv.logLevel)) {
+                  return;
+                }
+              }
+              webdaConsole.output(line.substr(6));
             });
           callback();
         }
@@ -363,7 +370,7 @@ export default class WebdaConsole {
    * @param generatorName
    */
   static async init(argv: yargs.Arguments, generatorName: string = "webda") {
-    if (argv._.length > 1) {
+    if (argv.generator !== undefined) {
       generatorName = <string>argv.generator;
     }
     let generatorAction = "app";
@@ -844,6 +851,7 @@ export default class WebdaConsole {
       WebdaConsole.loadExtensions(argv.appPath || process.cwd());
       Object.keys(this.extensions).forEach(cmd => {
         let ext = this.extensions[cmd];
+        console.log(ext);
         // Dynamic we load from the extension as it is more complex
         if (this.extensions[cmd].yargs === "dynamic") {
           parser = parser.command(
@@ -853,7 +861,7 @@ export default class WebdaConsole {
           );
           // Hybrid with builder
         } else if (ext.yargs && ext.yargs.command) {
-          parser = parser.command({ ...ext.yargs, handler: () => {} });
+          parser = parser.command(ext.yargs);
         } else {
           // Simple case
           parser = parser.command(ext.command || cmd, ext.description, this.extensions[cmd].yargs);

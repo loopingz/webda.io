@@ -5,6 +5,7 @@ import { Terminal } from "./terminal";
 import * as assert from "assert";
 import { WorkerInputType } from "@webda/workout";
 import { WorkerProgress } from "../core";
+import { nextTick } from "process";
 
 var stdin = require("mock-stdin").stdin();
 
@@ -42,10 +43,11 @@ class TerminalTest {
 
     this.terminal.height = 50;
     this.terminal.width = 100;
-
+    
     this.terminal.setLogo(["LOOPZ", "LOOPZ", "LOOPZ", "LOOPZ", "LOOPZ"]);
     this.terminal.close();
     this.terminal.close();
+    this.output.addListener("message", this.terminal.listener);
     this.terminal.resize();
     this.terminal.inputValue = "pl";
     this.terminal.onData("\x7f");
@@ -55,14 +57,17 @@ class TerminalTest {
     this.terminal.onData("\u001B\u005B\u0042");
     this.terminal.onData("\u001B\u005B\u0041");
     let uuidP = this.output.requestInput("My Question", undefined, [new RegExp(/\d+/)], true);
+    await new Promise(resolve => nextTick(resolve));
+    assert.ok(this.terminal.inputs.length > 0, `Should have one input ${JSON.stringify(this.output.listeners)}`);
     this.terminal.onData("\x0d");
     this.terminal.onData("\x7f");
     this.terminal.displayFooter();
     this.terminal.onData("12");
+    
     this.terminal.onData("\x0d");
     assert.ok((await uuidP) === "12");
     this.terminal.onData("\x0d");
-
+    this.output.log("INFO", "Test4");
     this.terminal.height = 50;
     this.terminal.width = 100;
     this.terminal.setLogo([]);
@@ -72,6 +77,7 @@ class TerminalTest {
     for (let i = 0; i < 12; i++) {
       this.terminal.pushHistory("plop");
     }
+
     assert.ok(this.terminal.history.length === 10);
     this.terminal.setTitle("plop".repeat(200));
     this.terminal.displayTitle();

@@ -34,7 +34,12 @@ class ConsoleTest {
       "@webda/shell": { path: "", version: "1.0.0", type: "" }
     };
     line = `--notty --logLevel=${logLevel} ` + line;
-    return await WebdaConsole.handleCommand(line.split(" "), versions, this.workerOutput);
+    let stub = sinon.stub(WebdaConsole, "displayHelp").callsFake(() => {});
+    try {
+      return await WebdaConsole.handleCommand(line.split(" "), versions, this.workerOutput);
+    } finally {
+      stub.restore();
+    }
   }
 
   checkTestDeploymentConfig(config) {

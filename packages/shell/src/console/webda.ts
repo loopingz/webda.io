@@ -847,7 +847,7 @@ export default class WebdaConsole {
     }
 
     if (argv.help || <string>argv._[0] === "help") {
-      parser.showHelp(s => process.stdout.write(WebdaTerminal.webdaize(s)));
+      this.displayHelp(parser);
       return 0;
     }
 
@@ -977,6 +977,16 @@ export default class WebdaConsole {
       }
     }
     // Display help if nothing is found
+    this.displayHelp(parser);
+  }
+
+  /**
+   * Display help for parser
+   *
+   * Separated into a method to allow override
+   * @param parser
+   */
+  static displayHelp(parser) {
     parser.showHelp(s => process.stdout.write(WebdaTerminal.webdaize(s)));
   }
 

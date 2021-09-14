@@ -65,7 +65,7 @@ jobs:
       - name: Run AWS tests
         run: yarn run test --scope @webda/aws
 
-      - name: Run tests other modules
+      - name: Run other modules tests
         run: yarn run test --ignore @webda/shell  --ignore @webda/aws  --ignore @webda/core
 
       - name: SonarCloud Scan

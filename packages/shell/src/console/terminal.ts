@@ -55,7 +55,7 @@ export class WebdaTerminal extends Terminal {
   }
 
   setTitle(title: string = "") {
-    this.title = this.webdaize(title);
+    this.title = WebdaTerminal.webdaize(title, this.tty);
   }
 
   getBar(size: number, complete: boolean) {
@@ -72,8 +72,8 @@ export class WebdaTerminal extends Terminal {
    * @param str
    * @returns
    */
-  webdaize(str) {
-    if (!this.tty) {
+  static webdaize(str, isTTY: boolean = process.stdout.isTTY) {
+    if (!isTTY) {
       return str;
     }
     return str.replace(/(web)(da)/gi, "$1" + "$2".yellow);
@@ -83,6 +83,6 @@ export class WebdaTerminal extends Terminal {
    * @override
    */
   displayString(str: string, limit: number = undefined) {
-    return this.webdaize(super.displayString(str, limit));
+    return WebdaTerminal.webdaize(super.displayString(str, limit), this.tty);
   }
 }

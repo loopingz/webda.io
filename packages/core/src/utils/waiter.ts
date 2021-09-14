@@ -162,13 +162,10 @@ export class CancelablePromise<T = void> extends Promise<T> {
  */
 export class CancelableLoopPromise extends Promise<void> {
   cancel: () => Promise<void>;
-  constructor(
-    callback: (canceller: () => Promise<void>) => Promise<void>,
-    onCancel: () => Promise<void> = undefined
-  ) {
+  constructor(callback: (canceller: () => Promise<void>) => Promise<void>, onCancel: () => Promise<void> = undefined) {
     let localReject;
     let shouldRun = true;
-    super((resolve) => {
+    super(resolve => {
       localReject = async () => {
         if (onCancel) {
           await onCancel();

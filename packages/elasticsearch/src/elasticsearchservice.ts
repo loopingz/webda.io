@@ -405,7 +405,7 @@ export default class ElasticSearchService<
   /**
    * @inheritdoc
    */
-  async __clean() : Promise<void> {
+  async __clean(): Promise<void> {
     await Promise.all(
       Object.values(this.indexes).map(async index => {
         await this._client.deleteByQuery<null>({

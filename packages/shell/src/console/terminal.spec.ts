@@ -11,12 +11,12 @@ class TerminalTest {
     let output = new WorkerOutput();
     let term = new WebdaTerminal(output, { webda: "1.1.0" });
     term.tty = false;
-    assert.strictEqual(term.webdaize("plop"), "plop");
-    assert.strictEqual(term.webdaize("webda"), "webda");
+    assert.strictEqual(WebdaTerminal.webdaize("plop", false), "plop");
+    assert.strictEqual(WebdaTerminal.webdaize("webda", false), "webda");
     term.tty = true;
-    assert.strictEqual(term.webdaize("webda"), "web\u001b[33mda\u001b[39m");
+    assert.strictEqual(WebdaTerminal.webdaize("webda", true), "web\u001b[33mda\u001b[39m");
     assert.strictEqual(term.displayString("webda").trim(), "web\u001b[33mda\u001b[39m");
-    let spy = sinon.spy(term, "webdaize");
+    let spy = sinon.spy(WebdaTerminal, "webdaize");
     try {
       term.setTitle("myTitle");
       term.handleTitleMessage(new WorkerMessage("title.set", output, {}));

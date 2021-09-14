@@ -172,10 +172,10 @@ export class Route53Service extends Service {
     const command = args._.shift();
     switch (command) {
       case "import":
-        await this.import(args._[0], false);
+        await this.import(args.file, false);
         break;
       case "export":
-        await this.export(args._[0], args._[1]);
+        await this.export(args.domain, args.file);
         break;
     }
   }

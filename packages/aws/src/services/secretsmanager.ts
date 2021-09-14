@@ -43,10 +43,10 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
 
   /**
    * Create a new secret on AWS SecretsManager
-   * 
-   * @param id 
-   * @param values 
-   * @param params 
+   *
+   * @param id
+   * @param values
+   * @param params
    */
   async create(id: string, values: any = {}, params: any = {}) {
     params.Name = id;

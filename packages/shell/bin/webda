@@ -14,12 +14,12 @@ function getVersion(packageName) {
 }
 
 let versions = {
-  core: {
+  "@webda/core": {
     path: "",
     version: "",
     type: ""
   },
-  shell: {
+  "@webda/shell": {
     path: "",
     version: "",
     type: ""
@@ -36,35 +36,35 @@ let versions = {
  */
 if (fs.existsSync("node_modules/@webda/core")) {
   // Local module of webda exists use it
-  versions.core.path = process.cwd() + "/node_modules/@webda/core";
-  versions.core.version = getVersion(versions.core.path);
-  versions.core.type = "local";
+  versions["@webda/core"].path = process.cwd() + "/node_modules/@webda/core";
+  versions["@webda/core"].version = getVersion(versions["@webda/core"].path);
+  versions["@webda/core"].type = "local";
 } else if (fs.existsSync("core.js") && fs.existsSync("services/executor.js")) {
-  versions.core.path = process.cwd();
-  versions.core.version = "dev";
-  versions.core.type = "development";
+  versions["@webda/core"].path = process.cwd();
+  versions["@webda/core"].version = "dev";
+  versions["@webda/core"].type = "development";
 } else {
   let dir = process.cwd() + "/..";
   while (path.resolve(dir) !== "/") {
     if (fs.existsSync(path.join(dir, "node_modules/@webda/core"))) {
-      versions.core.path = dir + "/node_modules/@webda/core";
-      versions.core.version = getVersion(versions.core.path);
-      versions.core.type = "local";
+      versions["@webda/core"].path = dir + "/node_modules/@webda/core";
+      versions["@webda/core"].version = getVersion(versions["@webda/core"].path);
+      versions["@webda/core"].type = "local";
       break;
     }
     dir = path.join(dir, "..");
   }
-  if (versions.core.type !== "local") {
+  if (versions["@webda/core"].type !== "local") {
     // Use the webda-shell default webda
-    versions.core.path = "@webda/core";
-    versions.core.version = getVersion(versions.core.path);
-    versions.core.type = "embedded";
+    versions["@webda/core"].path = "@webda/core";
+    versions["@webda/core"].version = getVersion(versions["@webda/core"].path);
+    versions["@webda/core"].type = "embedded";
   }
 }
-global.__webda = require(versions.core.path);
+global.__webda = require(versions["@webda/core"].path);
 global.__webda_shell = __dirname + "/..";
-versions.shell.path = __dirname + "/..";
-versions.shell.version = getVersion(__webda_shell);
+versions["@webda/shell"].path = __dirname + "/..";
+versions["@webda/shell"].version = getVersion(__webda_shell);
 
 /**
  * Search for webda.shell.json override or use standard

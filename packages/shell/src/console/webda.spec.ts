@@ -25,12 +25,15 @@ class ConsoleTest {
   logger: DebugLogger;
   dynamicFile: string;
   workerOutput: WorkerOutput;
-  async commandLine(line, addAppPath: boolean = true, versions: any = undefined) {
+  async commandLine(line, addAppPath: boolean = true, versions: any = undefined, logLevel: string = "ERROR") {
     if (addAppPath) {
       line = `--appPath ${WebdaSampleApplication.getAppPath()} ` + line;
     }
-    versions ??= { core: { path: "", version: "1.0.0", type: "" }, shell: { path: "", version: "1.0.0", type: "" } };
-    line = "--notty " + line;
+    versions ??= {
+      "@webda/core": { path: "", version: "1.0.0", type: "" },
+      "@webda/shell": { path: "", version: "1.0.0", type: "" }
+    };
+    line = `--notty --logLevel=${logLevel} ` + line;
     return await WebdaConsole.handleCommand(line.split(" "), versions, this.workerOutput);
   }
 
@@ -88,7 +91,7 @@ class ConsoleTest {
   @test
   async newDeployment() {
     // Just to initiate it
-    await this.commandLine("help");
+    await this.commandLine("serviceconfig");
     let output = WebdaConsole.app.getWorkerOutput();
     output.setInteractive(true);
     let deploymentPath = WebdaConsole.app.getAppPath("deployments/bouzouf.json");
@@ -319,11 +322,28 @@ class DynamicService extend Service {
   @test
   async unknownCommandDisplayHelp() {
     let fallback = false;
-    WebdaConsole.help = () => {
-      fallback = true;
-    };
-    await this.commandLine("--noCompile bouzouf", true);
-    assert.strictEqual(fallback, true);
+    let stub = sinon.stub(WebdaConsole, "parser").callsFake(async () => {
+      const res = {
+        showHelp: () => {
+          fallback = true;
+        },
+        command: () => {
+          return res;
+        },
+        parse: () => {
+          return {
+            _: []
+          };
+        }
+      };
+      return res;
+    });
+    try {
+      await this.commandLine("--noCompile bouzouf", true);
+      assert.strictEqual(fallback, true);
+    } finally {
+      stub.restore();
+    }
   }
 
   @test
@@ -490,8 +510,8 @@ module.exports = {
       await WebdaConsole.handleCommand(
         `--noCompile --appPath ${WebdaSampleApplication.getAppPath()} bouzouf`.split(" "),
         {
-          core: { path: "", version: "2.0.0", type: "" },
-          shell: { path: "", version: "1.0.0", type: "" }
+          "@webda/core": { path: "", version: "2.0.0", type: "" },
+          "@webda/shell": { path: "", version: "1.0.0", type: "" }
         },
         this.workerOutput
       );

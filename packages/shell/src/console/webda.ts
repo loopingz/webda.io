@@ -8,7 +8,7 @@ import { Transform } from "stream";
 import * as yargs from "yargs";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";
-import { WorkerOutput, WorkerLogLevel, ConsoleLogger, WorkerLogLevelEnum } from "@webda/workout";
+import { WorkerOutput, WorkerLogLevel, ConsoleLogger, WorkerLogLevelEnum, MemoryLogger } from "@webda/workout";
 import { WebdaTerminal } from "./terminal";
 import * as path from "path";
 import * as semver from "semver";
@@ -21,6 +21,7 @@ export interface WebdaShellExtension {
   export?: string;
   description: string;
   terminal?: string;
+  yargs?: any;
   // Internal usage only
   relPath?: string;
 }
@@ -43,39 +44,14 @@ export default class WebdaConsole {
   static onSIGINT: () => never = undefined;
   static extensions: { [key: string]: WebdaShellExtension } = {};
 
-  static bold(str: string) {
-    return colors.bold(colors.yellow(str));
-  }
-
-  static help(commands: string[] = []) {
-    var lines = [];
-    lines.push("USAGE: webda [config|debug|deploy|init|serve|launch]");
-    lines.push("");
-    lines.push("  --help                     Display this message and exit");
-    lines.push("");
-    lines.push(this.bold(" config") + ": Launch the configuration UI or export a deployment config");
-    lines.push(this.bold(" serviceconfig") + ": Display the configuration of a service with its deployment");
-    lines.push(this.bold(" init") + ": Init a sample project for your current version");
-    lines.push(this.bold(" module") + ": Generate a module definition based on the script scan");
-    lines.push(
-      this.bold(" serve") + " (DeployConfiguration): Serve current project, can serve with DeployConfiguration"
-    );
-    lines.push(this.bold(" deploy") + " DeployConfiguration: Deploy current project with DeployConfiguration name");
-    lines.push(this.bold(" worker") + ": Launch a worker on a queue");
-    lines.push(this.bold(" debug") + ": Debug current project");
-    lines.push(this.bold(" openapi") + ": Generate openapi file");
-    lines.push(this.bold(" generate-session-secret") + ": Generate a new session secret in parameters");
-    lines.push(this.bold(" launch") + " ServiceName method arg1 ...: Launch the ServiceName method with arg1 ...");
-    lines.push(...commands);
-    lines.forEach(line => {
-      this.output(line);
-    });
-  }
-
-  static async parser(args): Promise<yargs.Arguments> {
+  static async parser(args): Promise<yargs.Argv> {
     let y = yargs
       .exitProcess(false)
+      .version(false) // Use our custom display of version
+      .help(false) // Use our custom display of help
       .alias("d", "deployment")
+      .alias("v", "version")
+      .alias("h", "help")
       .option("log-level", {}) // No default to fallback on env or default of workout
       .option("log-format", {
         default: ConsoleLogger.defaultFormat
@@ -84,8 +60,10 @@ export default class WebdaConsole {
         type: "boolean"
       })
       .option("version", {
-        type: "boolean",
-        short: "v"
+        type: "boolean"
+      })
+      .option("help", {
+        type: "boolean"
       })
       .option("notty", {
         type: "boolean",
@@ -93,12 +71,12 @@ export default class WebdaConsole {
       })
       .option("app-path", { default: process.cwd() });
     let cmds = WebdaConsole.builtinCommands();
-    Object.keys(cmds).forEach(cmd => {
+    Object.keys(cmds).forEach(key => {
+      let cmd = cmds[key];
       // Remove the first element as it is the handler
-      // @ts-ignore
-      y = y.command(cmd, ...cmds[cmd].slice(1));
+      y = y.command(cmd.command || key, cmd.description, cmd.module);
     });
-    return y.parse(args);
+    return y;
   }
 
   static serve(argv): CancelablePromise {
@@ -340,8 +318,8 @@ export default class WebdaConsole {
   static async config(argv: yargs.Arguments): Promise<number> {
     if (argv.deployment) {
       let json = JSON.stringify(this.app.getConfiguration(<string>argv.deployment), null, " ");
-      if (argv._.length > 1) {
-        fs.writeFileSync(argv._[1], json);
+      if (argv.exportFile) {
+        fs.writeFileSync(<string>argv.exportFile, json);
       } else {
         this.output(json);
       }
@@ -432,13 +410,15 @@ export default class WebdaConsole {
     // Search for shell override
     if (fs.existsSync(getAppPath("node_modules"))) {
       let files = [];
-      let rec = p => {
+      let rec = (p, lvl = 0) => {
         try {
           fs.readdirSync(p).forEach(f => {
             let ap = path.join(p, f);
             let stat = fs.lstatSync(ap);
             if (stat.isDirectory() || stat.isSymbolicLink()) {
-              rec(ap);
+              if (lvl < 3) {
+                rec(ap, lvl + 1);
+              }
             } else if (f === "webda.shell.json" && stat.isFile()) {
               this.log("DEBUG", "Found shell extension", ap);
               files.push(ap);
@@ -453,7 +433,6 @@ export default class WebdaConsole {
       if (fs.existsSync(appCustom)) {
         files.push(appCustom);
       }
-
       // Load each files
       for (let i in files) {
         try {
@@ -544,12 +523,14 @@ export default class WebdaConsole {
   /**
    * Return the default builin command map
    */
-  static builtinCommands(): { [name: string]: [Function, string, any?] } {
+  static builtinCommands(): {
+    [name: string]: { command?: string; handler: Function; description: string; module?: any };
+  } {
     return {
-      serve: [
-        WebdaConsole.serve,
-        "Serve the application",
-        {
+      serve: {
+        handler: WebdaConsole.serve,
+        description: "Serve the application",
+        module: {
           devMode: {
             alias: "x"
           },
@@ -566,40 +547,87 @@ export default class WebdaConsole {
             default: false
           }
         }
-      ],
-      deploy: [WebdaConsole.deploy, "Deploy the application"],
-      "new-deployment": [DeploymentManager.newDeployment, "Deploy the application"],
-      serviceconfig: [WebdaConsole.serviceConfig, "Display the configuration of a service"],
-      launch: [WebdaConsole.worker, "Launch a method of a service"],
-      debug: [WebdaConsole.debug, "Debug current application"],
-      config: [WebdaConsole.config, "Generate the configuration of the application"],
-      "migrate-configuration": [WebdaConsole.migrateConfig, "Migrate and save the configuration"],
-      init: [WebdaConsole.init, "Initiate a new webda project"],
-      module: [WebdaConsole.generateModule, "Generate the module for the application"],
-      openapi: [
-        WebdaConsole.generateOpenAPI,
-        "Generate the OpenAPI definition for the app",
-        {
+      },
+      deploy: {
+        handler: WebdaConsole.deploy,
+        description: "Deploy the application"
+      },
+      "new-deployment": {
+        command: "new-deployment [name]",
+        handler: DeploymentManager.newDeployment,
+        description: "Create a new deployment for the application",
+        module: y => {
+          return y.command("name", "Deployment name to create");
+        }
+      },
+      serviceconfig: {
+        handler: WebdaConsole.serviceConfig,
+        description: "Display the configuration of a service"
+      },
+      launch: {
+        handler: WebdaConsole.worker,
+        description: "Launch a method of a service"
+      },
+      debug: {
+        handler: WebdaConsole.debug,
+        description: "Debug current application"
+      },
+      config: {
+        handler: WebdaConsole.config,
+        command: "config [exportFile]",
+        description: "Generate the configuration of the application",
+        module: y => {
+          return y.command("export", "File to export configuration to");
+        }
+      },
+      "migrate-configuration": {
+        handler: WebdaConsole.migrateConfig,
+        description: "Migrate and save the configuration"
+      },
+      init: {
+        handler: WebdaConsole.init,
+        description: "Initiate a new webda project"
+      },
+      module: {
+        handler: WebdaConsole.generateModule,
+        description: "Generate the module for the application"
+      },
+      openapi: {
+        handler: WebdaConsole.generateOpenAPI,
+        description: "Generate the OpenAPI definition for the app",
+        module: {
           "include-hidden": {
             type: "boolean",
             default: false
           }
         }
-      ],
-      schema: [WebdaConsole.schema, "Generate a schema for a type"],
-      types: [WebdaConsole.types, "List all available types for this project"],
-      "configuration-schema": [
-        WebdaConsole.configurationSchema,
-        "Create the json schema that defines your webda.config.json",
-        {
+      },
+      schema: {
+        handler: WebdaConsole.schema,
+        description: "Generate a schema for a type"
+      },
+      types: {
+        handler: WebdaConsole.types,
+        description: "List all available types for this project"
+      },
+      "configuration-schema": {
+        handler: WebdaConsole.configurationSchema,
+        description: "Create the json schema that defines your webda.config.json",
+        module: {
           full: {
             type: "boolean",
             default: false
           }
         }
-      ],
-      faketerm: [WebdaConsole.fakeTerm, "Launch a fake interactive terminal"],
-      "generate-session-secret": [WebdaConsole.generateSessionSecret, "Generate a new session secret"]
+      },
+      faketerm: {
+        handler: WebdaConsole.fakeTerm,
+        description: "Launch a fake interactive terminal"
+      },
+      "generate-session-secret": {
+        handler: WebdaConsole.generateSessionSecret,
+        description: "Generate a new session secret"
+      }
     };
   }
 
@@ -776,11 +804,14 @@ export default class WebdaConsole {
 
   static async handleCommandInternal(args, versions, output: WorkerOutput = undefined): Promise<number> {
     // Arguments parsing
-    let argv = await this.parser(args);
+    let parser = await this.parser(args);
+    let argv: any = parser.parse(args);
 
     // Output version
     if (argv.version) {
-      console.log("Version", this.getVersion());
+      for (let v in versions) {
+        console.log(WebdaTerminal.webdaize(`${v}: ${versions[v].version}`));
+      }
       return 0;
     }
 
@@ -792,9 +823,32 @@ export default class WebdaConsole {
     WebdaConsole.logger = new Logger(output, "console/webda");
 
     // Only load extension if the command is unknown
-    if (!WebdaConsole.builtinCommands()[argv._[0]]) {
-      WebdaConsole.loadExtensions(argv.appPath);
+    if (!WebdaConsole.builtinCommands()[argv._[0]] || argv.help) {
+      WebdaConsole.loadExtensions(argv.appPath || process.cwd());
+      Object.keys(this.extensions).forEach(cmd => {
+        let ext = this.extensions[cmd];
+        // Dynamic we load from the extension as it is more complex
+        if (this.extensions[cmd].yargs === "dynamic") {
+          parser = parser.command(
+            cmd,
+            this.extensions[cmd].description,
+            require(path.join(ext.relPath, ext.require))["yargs"]
+          );
+          // Hybrid with builder
+        } else if (this.extensions[cmd].yargs && this.extensions[cmd].yargs.command) {
+          parser = parser.command({ ...this.extensions[cmd].yargs, handler: () => {} });
+        } else {
+          // Simple case
+          parser = parser.command(cmd, this.extensions[cmd].description, this.extensions[cmd].yargs);
+        }
+      });
+      argv = parser.parse(args);
       extension = this.extensions[argv._[0]];
+    }
+
+    if (argv.help || <string>argv._[0] === "help") {
+      parser.showHelp(s => process.stdout.write(WebdaTerminal.webdaize(s)));
+      return 0;
     }
 
     if (["deploy", "install", "uninstall"].indexOf(<string>argv._[0]) >= 0) {
@@ -845,10 +899,10 @@ export default class WebdaConsole {
 
     try {
       // Display warning for versions mismatch
-      if (!this.withinPatchVersion(versions.core.version, versions.shell.version)) {
+      if (!this.withinPatchVersion(versions["@webda/core"].version, versions["@webda/shell"].version)) {
         output.log(
           "WARN",
-          `Versions mismatch: @webda/core (${versions.core.version}) and @webda/shell (${versions.shell.version}) are not within patch versions`
+          `Versions mismatch: @webda/core (${versions["@webda/core"].version}) and @webda/shell (${versions["@webda/shell"].version}) are not within patch versions`
         );
       }
 
@@ -905,7 +959,7 @@ export default class WebdaConsole {
 
       // Launch builtin commands
       if (WebdaConsole.builtinCommands()[argv._[0]]) {
-        await WebdaConsole.builtinCommands()[argv._[0]][0].bind(this)(argv);
+        await WebdaConsole.builtinCommands()[argv._[0]].handler.bind(this)(argv);
         return 0;
       }
 
@@ -916,24 +970,14 @@ export default class WebdaConsole {
         // TODO Implement a second yargs parser for the extension
         return await this.executeShellExtension(extension, extension.relPath, argv);
       }
-
-      let commands = [];
-      for (let j in WebdaConsole.extensions) {
-        commands.push(" " + this.bold(j) + ": " + WebdaConsole.extensions[j].description);
-      }
-
-      if (commands.length) {
-        commands.unshift("", "Extensions", "");
-        commands.push("");
-      }
-      // Display help if nothing is found
-      this.help(commands);
     } finally {
       if (this.terminal) {
         this.log("TRACE", "Closing terminal");
         this.terminal.close();
       }
     }
+    // Display help if nothing is found
+    parser.showHelp(s => process.stdout.write(WebdaTerminal.webdaize(s)));
   }
 
   /**

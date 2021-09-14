@@ -209,7 +209,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
       }
     };
     return new CancelableLoopPromise(parentQueueCallback, async () => {
-      return Promise.all(Array.from(consumers).map(c => c.cancel()));
+      await Promise.all(Array.from(consumers).map(c => c.cancel()));
     });
   }
 }

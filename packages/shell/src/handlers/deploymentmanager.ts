@@ -75,9 +75,7 @@ export class DeploymentManager {
   }
 
   static async newDeployment(argv: yargs.Arguments) {
-    // Remove the command
-    argv._.shift();
-    let name = argv._.shift();
+    let name = argv.name;
     let application = WebdaConsole.app;
     let output = application.getWorkerOutput();
     application.loadModules();

@@ -3,7 +3,6 @@ import { DynamoStore } from "./services/dynamodb";
 import { Route53Service } from "./services/route53";
 
 export class AWSShell {
-
   static async shellCommand(Console, args) {
     let command = args._.shift();
     switch (command) {
@@ -12,11 +11,7 @@ export class AWSShell {
       case "route53":
         return Route53Service.shell(Console, args);
       case "copyTable":
-        if (args._.length < 2) {
-          Console.logger.log("ERROR", "Require sourceTable and targetTable");
-          return 1;
-        }
-        DynamoStore.copyTable(Console.app.getWorkerOutput(), args._[0], args._[1]);
+        DynamoStore.copyTable(Console.app.getWorkerOutput(), args.sourceTable, args.targetTable);
         return 0;
       default:
         Console.logger.log("ERROR", `Unknown command ${command}`);
@@ -25,6 +20,23 @@ export class AWSShell {
   }
 }
 
+/**
+ * Create the command line parser
+ *
+ * @param yargs
+ * @returns
+ */
+function yargs(yargs) {
+  return yargs
+    .command("init", "Initiate a module")
+    .command("route53 <subcommand>", "Import or export DNS", yargs => {
+      return yargs
+        .command("export <domain> <file>", "Export a Route53 domain to a json file")
+        .command("import <file>", "Import a Route53 exported format to Route53");
+    })
+    .command("copyTable <sourceTable> <targetTable>", "Import or export DNS");
+}
+
 const ShellCommand = AWSShell.shellCommand;
 
-export { ShellCommand };
+export { ShellCommand, yargs };

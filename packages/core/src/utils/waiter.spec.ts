@@ -21,7 +21,7 @@ class WaiterTest {
     let callback = false;
     promise = new CancelablePromise(
       () => {},
-      () => {
+      async () => {
         callback = true;
       }
     );
@@ -113,7 +113,7 @@ class WaiterTest {
           await canceller();
         }
       },
-      () => {}
+      async () => {}
     );
     assert.strictEqual(i, 11);
   }

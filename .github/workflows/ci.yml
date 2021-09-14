@@ -49,15 +49,24 @@ jobs:
         uses: elastic/elastic-github-actions/elasticsearch@master
         with:
           stack-version: 7.14.0
-          
+
       - name: Install dependencies
         run: yarn
 
       - name: Build project
         run: yarn run build
 
-      - name: Run tests
-        run: yarn run test
+      - name: Run core tests
+        run: yarn run test --scope @webda/core
+
+      - name: Run shell tests
+        run: yarn run test --scope @webda/shell
+
+      - name: Run AWS tests
+        run: yarn run test --scope @webda/aws
+
+      - name: Run tests other modules
+        run: yarn run test --ignore @webda/shell  --ignore @webda/aws  --ignore @webda/core
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@master

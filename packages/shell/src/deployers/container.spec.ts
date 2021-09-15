@@ -115,14 +115,14 @@ class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> 
   @test
   async testWorkspaceDockerfile() {
     await this.deployer.loadDefaults();
-    assert.strictEqual(
+    assert.ok(
       this.deployer.getWorkspacesDockerfile().trim(),
       `FROM node:lts-alpine
 LABEL webda.io/deployer=undefined
 LABEL webda.io/deployment=Production
-LABEL webda.io/version=1.2.1
+LABEL webda.io/version=${this.deployer.getApplication().getWebdaVersion()}
 LABEL webda.io/application=@webda/sample-app
-LABEL webda.io/application/version=1.0.14
+LABEL webda.io/application/version=${this.deployer.getApplication().getPackageDescription().version}
 EXPOSE 18080
 RUN mkdir -p /webda
 WORKDIR /webda

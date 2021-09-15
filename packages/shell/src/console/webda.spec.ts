@@ -172,7 +172,10 @@ class ConsoleTest {
   async debugCommandLine() {
     WebdaSampleApplication.clean();
     this.commandLine(
-      `debug -d Dev --bind=127.0.0.1 --logLevels=ERROR,WARN,INFO,DEBUG,TRACE --port 28080`, true, undefined, "INFO"
+      `debug -d Dev --bind=127.0.0.1 --logLevels=ERROR,WARN,INFO,DEBUG,TRACE --port 28080`,
+      true,
+      undefined,
+      "INFO"
     );
     await this.waitForWebda();
     await this.waitForStatus(DebuggerStatus.Serving);
@@ -239,7 +242,7 @@ class DynamicService extend Service {
       WebdaConsole.webda = {
         // @ts-ignore
         stop: () => {}
-      }
+      };
       WebdaConsole.onSIGINT();
     } finally {
       stub.restore();
@@ -715,18 +718,19 @@ module.exports = {
     fs.writeFileSync(WebdaSampleApplication.getAppPath("webda.shell.json"), "[;p[");
     try {
       WebdaConsole.loadExtensions(WebdaSampleApplication.getAppPath());
-      fs.writeFileSync(WebdaSampleApplication.getAppPath("webda.shell.json"), JSONUtils.stringify(
-        {
+      fs.writeFileSync(
+        WebdaSampleApplication.getAppPath("webda.shell.json"),
+        JSONUtils.stringify({
           commands: {
-            "plop": {
+            plop: {
               yargs: {
                 command: "plop",
                 describe: "Plop test command"
               }
             }
           }
-        }
-      ));
+        })
+      );
       await this.commandLine("help");
     } finally {
       fs.unlinkSync(WebdaSampleApplication.getAppPath("webda.shell.json"));

@@ -2,7 +2,7 @@ import { DeploymentManager } from "@webda/shell";
 import { DeployerTest } from "@webda/shell/lib/deployers/deployertest";
 import { suite, test } from "@testdeck/mocha";
 import * as sinon from "sinon";
-import { CloudFormationDeployer } from "./cloudformation";
+import { CloudFormationDeployer, LAMBDA_LATEST_VERSION } from "./cloudformation";
 import { MockAWSDeployerMethods } from "./index.spec";
 import * as assert from "assert";
 import * as AWS from "aws-sdk";
@@ -42,7 +42,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       Handler: "node_modules/@webda/aws/lib/deployers/lambda-entrypoint.handler",
       MemorySize: 2048,
       Role: { "Fn::GetAtt": ["Role", "Arn"] },
-      Runtime: "nodejs12.x",
+      Runtime: LAMBDA_LATEST_VERSION,
       Timeout: 30
     });
     assert.deepStrictEqual(this.deployer.resources.Policy, {

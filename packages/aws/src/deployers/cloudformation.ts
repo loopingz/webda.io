@@ -180,7 +180,7 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
     /**
      * Type of Runtime to use
      *
-     * @default "nodejs12.x"
+     * @default "nodejs14.x"
      */
     Runtime?;
     /**
@@ -251,6 +251,8 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
   CustomResources: any;
 }
 
+const LAMBDA_LATEST_VERSION = "nodejs14.x";
+export { LAMBDA_LATEST_VERSION };
 /**
  * Deploy the application and its resources using AWS CloudFormation
  */
@@ -298,7 +300,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       }
       this.resources.LambdaPackager ??= { zipPath };
       this.resources.LambdaPackager.zipPath = zipPath;
-      this.resources.Lambda.Runtime = this.resources.Lambda.Runtime || "nodejs12.x";
+      this.resources.Lambda.Runtime = this.resources.Lambda.Runtime || LAMBDA_LATEST_VERSION;
       this.resources.Lambda.MemorySize = this.resources.Lambda.MemorySize || 2048;
       this.resources.Lambda.Timeout = this.resources.Lambda.Timeout || 30;
       this.resources.Lambda.Handler =

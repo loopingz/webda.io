@@ -176,7 +176,6 @@ export class CancelableLoopPromise extends Promise<void> {
         if (shouldRun) {
           return callback(localReject).then(loop);
         }
-        return;
       };
       resolve(callback(localReject).then(loop));
     });

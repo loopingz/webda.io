@@ -210,7 +210,7 @@ export default class WebdaConsole {
             .split("\n")
             .forEach(line => {
               // Stip tags
-              line = line.replace(/\x1B\[(;?[0-9]{1,3})+[mGK]/g, "")
+              line = line.replace(/\x1B\[(;?\d{1,3})+[mGK]/g, "")
               if (line.indexOf("Server running at") >= 0) {
                 webdaConsole.setDebuggerStatus(DebuggerStatus.Serving);
                 webdaConsole.logger.logTitle("Webda Debug " + line);

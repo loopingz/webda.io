@@ -23,14 +23,14 @@ export class AWSShell {
 /**
  * Create the command line parser
  *
- * @param yargs
+ * @param y
  * @returns
  */
-function yargs(yargs) {
-  return yargs
+function yargs(y) {
+  return y
     .command("init", "Initiate a module")
-    .command("route53 <subcommand>", "Import or export DNS", yargs => {
-      return yargs
+    .command("route53 <subcommand>", "Import or export DNS", y2 => {
+      return y2
         .command("export <domain> <file>", "Export a Route53 domain to a json file")
         .command("import <file>", "Import a Route53 exported format to Route53");
     })

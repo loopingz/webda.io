@@ -46,7 +46,8 @@ export default class WebdaConsole {
   static extensions: { [key: string]: WebdaShellExtension } = {};
 
   static async parser(args): Promise<yargs.Argv> {
-    let y = yargs
+    let y = yargs()
+      // @ts-ignore
       .exitProcess(false)
       .version(false) // Use our custom display of version
       .help(false) // Use our custom display of help
@@ -851,7 +852,6 @@ export default class WebdaConsole {
       WebdaConsole.loadExtensions(argv.appPath || process.cwd());
       Object.keys(this.extensions).forEach(cmd => {
         let ext = this.extensions[cmd];
-        console.log(ext);
         // Dynamic we load from the extension as it is more complex
         if (this.extensions[cmd].yargs === "dynamic") {
           parser = parser.command(

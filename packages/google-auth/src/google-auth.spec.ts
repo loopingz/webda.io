@@ -122,7 +122,7 @@ class GoogleAuthTest extends WebdaTest {
           },
           null
         ),
-      /Cannot read property/
+      /Cannot read propert/
     );
     let token;
     await this.service.getLocalClient(

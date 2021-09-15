@@ -52,6 +52,7 @@
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.1.2",
+    "@types/node": "14.0.0",
     "sinon": "^11.1.1"
   }
 }

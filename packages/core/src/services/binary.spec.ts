@@ -1,14 +1,13 @@
 import { WebdaTest } from "../test";
 import * as assert from "assert";
 import * as fs from "fs";
-import { Binary, CacheService, Context, Store, User } from "..";
+import { Binary, Context, Store, User } from "..";
 import { suite, test } from "@testdeck/mocha";
 import * as sinon from "sinon";
 import { CoreModel } from "../models/coremodel";
 import { BinaryMap, BinaryNotFoundError } from "./binary";
 import axios from "axios";
-import EventEmitter = require("events");
-
+import { EventEmitter } from "events";
 export class ImageUser extends User {
   images: BinaryMap[];
 }
@@ -176,12 +175,12 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
         stub2.restore();
       }
     }
-
-    user1[map][0].get();
+    let buf1 = await Binary.streamToBuffer(await user1[map][0].get());
 
     // cov
-    binary._get(user1[map][0]);
+    let buf2 = await Binary.streamToBuffer(await binary._get(user1[map][0]));
 
+    assert.strictEqual(buf1.toString(), buf2.toString());
     await userStore.delete(user1.uuid);
     value = await binary.getUsageCount(hash);
     assert.strictEqual(value, 0);
@@ -260,24 +259,6 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     ctx.getSession().login(user1.getUuid(), "fake");
     // Need to verify
     await executor.execute(ctx);
-  }
-
-  async setupDefault(
-    withLogin: boolean = true
-  ): Promise<{ userStore: Store; binary: Binary; user1: ImageUser; ctx: Context }> {
-    let userStore = this.getUserStore();
-    let binary = this.getBinary();
-    let user1: ImageUser = await userStore.save({
-      test: "plop"
-    });
-    await binary.store(user1, "images", { path: this.getTestFile() });
-    await user1.refresh();
-    let ctx = await this.newContext();
-    if (withLogin) {
-      ctx.getSession().login(user1.getUuid(), "fake");
-    }
-    user1.setContext(ctx);
-    return { userStore, binary, user1, ctx };
   }
 
   @test
@@ -368,6 +349,24 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
         }),
       BinaryNotFoundError
     );
+  }
+
+  async setupDefault(
+    withLogin: boolean = true
+  ): Promise<{ userStore: Store; binary: Binary; user1: ImageUser; ctx: Context }> {
+    let userStore = this.getUserStore();
+    let binary = this.getBinary();
+    let user1: ImageUser = await userStore.save({
+      test: "plop"
+    });
+    await binary.store(user1, "images", { path: this.getTestFile() });
+    await user1.refresh();
+    let ctx = await this.newContext();
+    if (withLogin) {
+      ctx.getSession().login(user1.getUuid(), "fake");
+    }
+    user1.setContext(ctx);
+    return { userStore, binary, user1, ctx };
   }
 
   async testChallenge(remoteCheckHash: boolean = true) {

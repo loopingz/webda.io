@@ -87,8 +87,8 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     if (!fs.existsSync(path)) {
       throw new BinaryNotFoundError(info.hash, this.getName());
     }
-    // @ts-ignore
-    return <ReadableStream<any>>fs.createReadStream(path);
+    //return Readable.from(fs.readFileSync(path));
+    return fs.createReadStream(path);
   }
 
   _getPath(hash: string, postfix: string = undefined) {
@@ -207,11 +207,11 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
   async _cleanHash(hash: string): Promise<void> {
     const p = this._getPath(hash);
     if (!fs.existsSync(p)) return;
-    var files = fs.readdirSync(p);
-    for (var i in files) {
-      fs.unlinkSync(join(p, files[i]));
-    }
-    fs.rmdirSync(p);
+    try {
+      var files = fs.readdirSync(p);
+      files.forEach(file => fs.unlinkSync(join(p, file)));
+      fs.rmdirSync(p);
+    } catch (err) {}
   }
 
   /**
@@ -221,12 +221,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     const p = this._getPath(hash);
     if (!fs.existsSync(p)) return;
     var files = fs.readdirSync(p);
-    for (var i in files) {
-      if (files[i].endsWith(uuid)) {
-        console.log(files[i]);
-        fs.unlinkSync(this._getPath(hash, files[i]));
-      }
-    }
+    files.filter(f => f.endsWith(uuid)).forEach(f => fs.unlinkSync(this._getPath(hash, f)));
 
     if (files.length == 3) {
       await this._cleanHash(hash);
@@ -250,7 +245,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
   /**
    * @inheritdoc
    */
-  cascadeDelete(info: BinaryMap, uuid: string) {
+  async cascadeDelete(info: BinaryMap, uuid: string) {
     return this._cleanUsage(info.hash, "_" + uuid);
   }
 

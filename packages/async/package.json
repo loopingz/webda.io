@@ -1,6 +1,6 @@
 {
   "name": "@webda/async",
-  "version": "0.0.0",
+  "version": "1.5.0",
   "description": "Async System",
   "main": "lib/index.js",
   "scripts": {
@@ -20,7 +20,7 @@
   ],
   "dependencies": {
     "@types/node": "^16.4.14",
-    "@webda/core": "^1.2.1",
+    "@webda/core": "^1.5.0",
     "axios": "^0.21.1"
   },
   "devDependencies": {
@@ -41,7 +41,9 @@
       "lcov",
       "json"
     ],
-    "exclude": ["**/*.spec.ts"]
+    "exclude": [
+      "**/*.spec.ts"
+    ]
   },
   "bugs": {
     "url": "https://github.com/loopingz/webda.io/issues"

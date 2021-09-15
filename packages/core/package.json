@@ -1,6 +1,6 @@
 {
   "name": "@webda/core",
-  "version": "1.2.1",
+  "version": "1.5.0",
   "description": "Expose API with Lambda",
   "keywords": [
     "aws",
@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@types/json-schema": "^7.0.8",
-    "@webda/workout": "^1.2.1",
+    "@webda/workout": "^1.5.0",
     "accept-language": "^3.0.18",
     "ajv": "^8.6.2",
     "bcryptjs": "^2.4.3",

@@ -138,7 +138,12 @@
 				<div>
 					<ul class="tsd-hierarchy">
 						<li>
-							<span class="target">ConsoleLogger</span>
+							<span class="tsd-signature-type">Logger</span>
+							<ul class="tsd-hierarchy">
+								<li>
+									<span class="target">ConsoleLogger</span>
+								</li>
+							</ul>
 						</li>
 					</ul>
 				</div>
@@ -154,17 +159,29 @@
 					<li class="current tsd-kind-class tsd-parent-kind-module root">
 						<a href="_webda_workout.ConsoleLogger.html" class="tsd-kind-icon">Console<wbr>Logger</a>
 						<ul>
-							<li class=" tsd-kind-constructor tsd-parent-kind-class">
+							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
 								<a href="_webda_workout.ConsoleLogger.html#constructor" class="tsd-kind-icon">constructor</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="_webda_workout.ConsoleLogger.html#format" class="tsd-kind-icon">format</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-overwrite">
 								<a href="_webda_workout.ConsoleLogger.html#level" class="tsd-kind-icon">level</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-overwrite">
+								<a href="_webda_workout.ConsoleLogger.html#listener" class="tsd-kind-icon">listener</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-overwrite">
+								<a href="_webda_workout.ConsoleLogger.html#output" class="tsd-kind-icon">output</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-static">
 								<a href="_webda_workout.ConsoleLogger.html#defaultFormat" class="tsd-kind-icon">default<wbr>Format</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_workout.ConsoleLogger.html#close" class="tsd-kind-icon">close</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+								<a href="_webda_workout.ConsoleLogger.html#onMessage" class="tsd-kind-icon">on<wbr>Message</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
 								<a href="_webda_workout.ConsoleLogger.html#display" class="tsd-kind-icon">display</a>
@@ -232,7 +249,12 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">ConsoleLogger</span>
+						<span class="tsd-signature-type">Logger</span>
+						<ul class="tsd-hierarchy">
+							<li>
+								<span class="target">ConsoleLogger</span>
+							</li>
+						</ul>
 					</li>
 				</ul>
 			</section>
@@ -242,20 +264,24 @@
 						<section class="tsd-index-section ">
 							<h3>Constructors</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-constructor tsd-parent-kind-class"><a href="_webda_workout.ConsoleLogger.html#constructor" class="tsd-kind-icon">constructor</a></li>
+								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_workout.ConsoleLogger.html#constructor" class="tsd-kind-icon">constructor</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_workout.ConsoleLogger.html#format" class="tsd-kind-icon">format</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_workout.ConsoleLogger.html#level" class="tsd-kind-icon">level</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_workout.ConsoleLogger.html#level" class="tsd-kind-icon">level</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_workout.ConsoleLogger.html#listener" class="tsd-kind-icon">listener</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_workout.ConsoleLogger.html#output" class="tsd-kind-icon">output</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_webda_workout.ConsoleLogger.html#defaultFormat" class="tsd-kind-icon">default<wbr>Format</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_workout.ConsoleLogger.html#close" class="tsd-kind-icon">close</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_workout.ConsoleLogger.html#onMessage" class="tsd-kind-icon">on<wbr>Message</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_workout.ConsoleLogger.html#display" class="tsd-kind-icon">display</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_workout.ConsoleLogger.html#format-1" class="tsd-kind-icon">format</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_workout.ConsoleLogger.html#getColor" class="tsd-kind-icon">get<wbr>Color</a></li>
@@ -267,14 +293,15 @@
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Constructors</h2>
-				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class">
+				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
 					<a name="constructor" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
+					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
 						<li class="tsd-signature tsd-kind-icon">new <wbr>Console<wbr>Logger<span class="tsd-signature-symbol">(</span>output<span class="tsd-signature-symbol">: </span><a href="_webda_workout.WorkerOutput.html" class="tsd-signature-type">WorkerOutput</a>, level<span class="tsd-signature-symbol">?: </span><a href="../modules/_webda_workout.html#WorkerLogLevel" class="tsd-signature-type">WorkerLogLevel</a>, format<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_workout.ConsoleLogger.html" class="tsd-signature-type">ConsoleLogger</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
+								<p>Overrides Logger.constructor</p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -291,7 +318,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_workout.ConsoleLogger.html" class="tsd-signature-type">ConsoleLogger</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/workout/src/loggers/console.ts:20</li>
+									<li>Defined in packages/workout/src/loggers/console.ts:23</li>
 								</ul>
 							</aside>
 						</li>
@@ -304,15 +331,57 @@
 					<div class="tsd-signature tsd-kind-icon">format<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/workout/src/loggers/console.ts:17</li>
+							<li>Defined in packages/workout/src/loggers/console.ts:18</li>
 						</ul>
 					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-overwrite">
 					<a name="level" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">level<span class="tsd-signature-symbol">:</span> <a href="../modules/_webda_workout.html#WorkerLogLevel" class="tsd-signature-type">WorkerLogLevel</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/workout/src/loggers/console.ts:18</li>
+							<li>Defined in packages/workout/src/loggers/console.ts:19</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-overwrite">
+					<a name="listener" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">listener<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">function</span></div>
+					<div class="tsd-type-declaration">
+						<h4>Type declaration</h4>
+						<ul class="tsd-parameters">
+							<li class="tsd-parameter-siganture">
+								<ul class="tsd-signatures tsd-kind-type-literal tsd-parent-kind-class">
+									<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>msg<span class="tsd-signature-symbol">: </span><a href="_webda_workout.WorkerMessage.html" class="tsd-signature-type">WorkerMessage</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+								</ul>
+								<ul class="tsd-descriptions">
+									<li class="tsd-description">
+										<h4 class="tsd-parameters-title">Parameters</h4>
+										<ul class="tsd-parameters">
+											<li>
+												<h5>msg: <a href="_webda_workout.WorkerMessage.html" class="tsd-signature-type">WorkerMessage</a></h5>
+											</li>
+										</ul>
+										<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+										<aside class="tsd-sources">
+											<ul>
+												<li>Defined in packages/workout/src/loggers/console.ts:20</li>
+											</ul>
+										</aside>
+									</li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/workout/src/loggers/console.ts:20</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-overwrite">
+					<a name="output" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">output<span class="tsd-signature-symbol">:</span> <a href="_webda_workout.WorkerOutput.html" class="tsd-signature-type">WorkerOutput</a></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/workout/src/loggers/console.ts:21</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
@@ -320,13 +389,64 @@
 					<div class="tsd-signature tsd-kind-icon">default<wbr>Format<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &quot;%(d)s [%(l)s] %(m)s&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/workout/src/loggers/console.ts:16</li>
+							<li>Defined in packages/workout/src/loggers/console.ts:17</li>
 						</ul>
 					</aside>
 			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="close" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">close<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from Logger.close</p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Close the listener</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/workout/src/loggers/index.ts:29</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+					<a name="onMessage" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+						<li class="tsd-signature tsd-kind-icon">on<wbr>Message<span class="tsd-signature-symbol">(</span>msg<span class="tsd-signature-symbol">: </span><a href="_webda_workout.WorkerMessage.html" class="tsd-signature-type">WorkerMessage</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Overrides Logger.onMessage</p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>override</dt>
+								<dd></dd></dl>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>msg: <a href="_webda_workout.WorkerMessage.html" class="tsd-signature-type">WorkerMessage</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/workout/src/loggers/console.ts:31</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
 					<a name="display" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">display<span class="tsd-signature-symbol">(</span>msg<span class="tsd-signature-symbol">: </span><a href="_webda_workout.WorkerMessage.html" class="tsd-signature-type">WorkerMessage</a>, format<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -354,7 +474,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/workout/src/loggers/console.ts:73</li>
+									<li>Defined in packages/workout/src/loggers/console.ts:80</li>
 								</ul>
 							</aside>
 						</li>
@@ -387,7 +507,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/workout/src/loggers/console.ts:83</li>
+									<li>Defined in packages/workout/src/loggers/console.ts:90</li>
 								</ul>
 							</aside>
 						</li>
@@ -427,7 +547,7 @@
 											<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 											<aside class="tsd-sources">
 												<ul>
-													<li>Defined in packages/workout/src/loggers/console.ts:32</li>
+													<li>Defined in packages/workout/src/loggers/console.ts:39</li>
 												</ul>
 											</aside>
 										</li>
@@ -436,7 +556,7 @@
 							</ul>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/workout/src/loggers/console.ts:32</li>
+									<li>Defined in packages/workout/src/loggers/console.ts:39</li>
 								</ul>
 							</aside>
 						</li>
@@ -472,7 +592,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/workout/src/loggers/console.ts:49</li>
+									<li>Defined in packages/workout/src/loggers/console.ts:56</li>
 								</ul>
 							</aside>
 						</li>

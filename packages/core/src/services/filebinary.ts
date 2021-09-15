@@ -87,7 +87,6 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     if (!fs.existsSync(path)) {
       throw new BinaryNotFoundError(info.hash, this.getName());
     }
-    //return Readable.from(fs.readFileSync(path));
     return fs.createReadStream(path);
   }
 

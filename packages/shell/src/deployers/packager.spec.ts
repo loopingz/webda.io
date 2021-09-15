@@ -62,6 +62,7 @@ class PackagerTest {
       }
     );
     await deployer.loadDefaults();
+    console.log("Deploy");
     await deployer.deploy();
 
     // Check webda.config.json contains cachedModules
@@ -69,10 +70,10 @@ class PackagerTest {
     let captureFiles = {
       "webda.config.json": ""
     };
-    await new Promise(resolve =>
+    console.log("Read the zip");
+    await new Promise((resolve, reject) =>
       fs
         .createReadStream(zipPath + ".zip")
-        // @ts-ignore
         .pipe(unzip.Parse())
         .on("entry", function (entry) {
           var fileName = entry.path;
@@ -93,7 +94,9 @@ class PackagerTest {
           });
         })
         .on("close", resolve)
+        .on("error", reject)
     );
+    console.log("check zip content");
     //
     assert.notStrictEqual(files["lib/models/contact.js"], undefined);
     assert.notStrictEqual(files["lib/services/custom.js"], undefined);

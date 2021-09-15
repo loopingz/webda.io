@@ -43,7 +43,7 @@ class TerminalTest {
 
     this.terminal.height = 50;
     this.terminal.width = 100;
-    
+
     this.terminal.setLogo(["LOOPZ", "LOOPZ", "LOOPZ", "LOOPZ", "LOOPZ"]);
     this.terminal.close();
     this.terminal.close();
@@ -63,7 +63,7 @@ class TerminalTest {
     this.terminal.onData("\x7f");
     this.terminal.displayFooter();
     this.terminal.onData("12");
-    
+
     this.terminal.onData("\x0d");
     assert.ok((await uuidP) === "12");
     this.terminal.onData("\x0d");

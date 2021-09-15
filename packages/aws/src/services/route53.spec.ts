@@ -51,7 +51,7 @@ class Route53Test {
       await Route53Service.createDNSEntry("test.com", "A", "1.1.1.1");
 
       await Route53Service.shell(undefined, { _: ["export"], domain: "webda.io", file: "./myzone.json" });
-      await Route53Service.shell(undefined, { _: ["import"], file: "./test/zone-export.json"});
+      await Route53Service.shell(undefined, { _: ["import"], file: "./test/zone-export.json" });
     } finally {
       AWSMock.restore();
     }

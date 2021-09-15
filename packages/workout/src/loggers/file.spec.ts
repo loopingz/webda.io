@@ -5,6 +5,7 @@ import { FileLogger } from "./file";
 import { writeFileSync, unlinkSync, readdirSync, lstatSync } from "fs";
 import { DebugLogger } from "./debug";
 import { WorkerMessage } from "../core";
+import { WaitFor, WaitLinearDelay } from "@webda/core";
 
 @suite
 class FileConsoleTest {
@@ -25,12 +26,24 @@ class FileConsoleTest {
   async testLogsOnlyAndFilter() {
     let logger = new FileLogger(this.output, "TRACE", "./test-file.log");
     writeFileSync("./test-file2.log", "PAD\n".repeat(50));
+
     let logger2 = new FileLogger(this.output, "DEBUG", "./test-file2.log", 5000, "%(d)s [%(l)s] %(m)s");
     for (let i = 0; i < 200; i++) {
       this.output.log("DEBUG", `Test ${i}`);
     }
     this.output.log("TRACE", `Trace`);
-    await new Promise(resolve => process.nextTick(resolve));
+    await WaitFor<void>(
+      async resolve => {
+        if (readdirSync(".").filter(f => f.startsWith("test-file")).length === 3) {
+          resolve();
+        }
+        return false;
+      },
+      100,
+      "loggers",
+      undefined,
+      WaitLinearDelay(200)
+    );
     logger.outputStream.close();
     logger2.outputStream.close();
 

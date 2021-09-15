@@ -53,6 +53,9 @@
     "type": "git",
     "url": "git+https://github.com/loopingz/webda.io.git"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "webda": {
     "namespace": "Webda"
   }

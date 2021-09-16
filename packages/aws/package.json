@@ -58,7 +58,7 @@
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.1.2",
-    "@types/node": "14.0.0",
+    "@types/node": "16.9.1",
     "@webda/async": "^1.5.1",
     "@webda/shell": "^1.5.1",
     "aws-sdk-mock": "^5.2.1",

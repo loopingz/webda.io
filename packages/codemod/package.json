@@ -32,7 +32,7 @@
     "jscodeshift-add-imports": "^1.0.3"
   },
   "devDependencies": {
-    "@types/node": "14.0.0",
+    "@types/node": "16.9.1",
     "openapi-types": "^9.2.0"
   },
   "private": false

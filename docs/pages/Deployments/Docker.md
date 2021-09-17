@@ -21,7 +21,6 @@ CMD cd /server && node_modules/.bin/webda serve > /data/webda.log
 
 The configuration take only two parameters the tag of the image to create and if it needs to push the image after a succesfull build.
 
-
 ```javascript
 {
    tag: "mytag",
@@ -30,3 +29,10 @@ The configuration take only two parameters the tag of the image to create and if
 
 ```
 
+## Different webda versions
+
+If your current webda shell is not align with the application webda, you should set the environment `WEBDA_SHELL_DEPLOY_VERSION` when launching
+
+```
+WEBDA_SHELL_DEPLOY_VERSION=1.2.3 webda deploy -d Docker
+```

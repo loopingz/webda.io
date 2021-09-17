@@ -48,7 +48,7 @@
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@testdeck/mocha": "^0.1.2",
-    "@types/node": "14.0.0",
+    "@types/node": "16.9.2",
     "axios": "^0.21.1",
     "fs-extra": "^10.0.0",
     "glob": "^7.1.7",

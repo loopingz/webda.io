@@ -6,7 +6,6 @@ import { JSONUtils } from "../utils/serializers";
 import { MessageReceipt, Queue, QueueParameters } from "./queueservice";
 import * as fs from "fs";
 import { join } from "path";
-import { emptyDirSync } from "fs-extra";
 
 export class FileQueueParameters extends QueueParameters {
   /**
@@ -146,7 +145,9 @@ class FileQueue<T = any, K extends FileQueueParameters = FileQueueParameters> ex
    * @inheritdoc
    */
   async __clean() {
-    emptyDirSync(this.parameters.folder);
+    // Use require on purpose to avoid adding fs-extra as runtime dep
+    // The __clean method is only used by unit test
+    require("fs-extra").emptyDirSync(this.parameters.folder);
   }
 
   /**

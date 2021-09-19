@@ -371,7 +371,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
       this.setWriteCondition(params, itemWriteCondition, itemWriteConditionField);
     }
     try {
-      return this._client.update(params).promise();
+      await this._client.update(params).promise();
     } catch (err) {
       if (err.code === "ConditionalCheckFailedException") {
         throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);

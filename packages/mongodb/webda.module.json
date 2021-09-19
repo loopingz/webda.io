@@ -1,0 +1,8 @@
+{
+  "services": {
+    "Webda/MongoStore": "lib/mongodb.js"
+  },
+  "models": {},
+  "deployers": {},
+  "schemas": {}
+}

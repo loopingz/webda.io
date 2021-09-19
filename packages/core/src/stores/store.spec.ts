@@ -458,6 +458,24 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(model.counter, 3);
     assert.strictEqual(model.status, "TESTED");
     await assert.rejects(() => store.setAttribute("bouzouf", "counter", 4), /Item not found bouzouf Store\(/);
+    store.on("Store.PatchUpdate", async () => {
+      model._lastUpdate = new Date();
+      await store._update(model, model.getUuid());
+      await this.sleep(1);
+    });
+    await assert.rejects(
+      () => store.setAttribute(model.getUuid(), "counter", 4),
+      /UpdateCondition not met on [a-z0-9\-]+._lastUpdate === \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/
+    );
+    store.removeAllListeners("Store.PatchUpdate");
+    store.on("Store.PatchUpdate", async () => {
+      await store._delete(model.getUuid());
+      await this.sleep(1);
+    });
+    await assert.rejects(
+      () => store.setAttribute(model.getUuid(), "counter", 4),
+      /(Item not found .* Store.*)|(UpdateCondition not met on [a-z0-9\-]+._lastUpdate === \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)/
+    );
   }
 
   @test
@@ -493,6 +511,15 @@ abstract class StoreTest extends WebdaTest {
     await assert.rejects(
       () => store.update(model),
       /UpdateCondition not met on [a-z0-9\-]+._lastUpdate === \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/
+    );
+    store.removeAllListeners("Store.Update");
+    store.on("Store.Update", async () => {
+      await store._delete(model.getUuid());
+      await this.sleep(1);
+    });
+    await assert.rejects(
+      () => store.update(model),
+      /(Item not found .* Store.*)|(UpdateCondition not met on [a-z0-9\-]+._lastUpdate === \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)/
     );
   }
 

@@ -38,6 +38,14 @@ jobs:
         env:
           SERVICES: s3,dynamodb,secretsmanager,sqs,logs,elasticsearch
 
+      mongodb:
+        image: mongo
+        ports:
+          - 37017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: webda.io
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2

@@ -12,8 +12,13 @@ export class StoreNotFoundError extends WebdaError {
 }
 
 export class UpdateConditionFailError extends WebdaError {
-  constructor(uuid: string, conditionField: string, condition: string) {
-    super("STORE_UPDATE_CONDITION_FAILED", `UpdateCondition not met on ${uuid}.${conditionField} === ${condition}`);
+  constructor(uuid: string, conditionField: string, condition: string | Date) {
+    super(
+      "STORE_UPDATE_CONDITION_FAILED",
+      `UpdateCondition not met on ${uuid}.${conditionField} === ${
+        condition instanceof Date ? condition.toISOString() : condition
+      }`
+    );
   }
 }
 

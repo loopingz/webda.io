@@ -62,7 +62,6 @@ class PackagerTest {
       }
     );
     await deployer.loadDefaults();
-    console.log("Deploy");
     await deployer.deploy();
 
     // Check webda.config.json contains cachedModules
@@ -70,7 +69,6 @@ class PackagerTest {
     let captureFiles = {
       "webda.config.json": ""
     };
-    console.log("Read the zip");
     await new Promise((resolve, reject) =>
       fs
         .createReadStream(zipPath + ".zip")
@@ -96,7 +94,6 @@ class PackagerTest {
         .on("close", resolve)
         .on("error", reject)
     );
-    console.log("check zip content");
     //
     assert.notStrictEqual(files["lib/models/contact.js"], undefined);
     assert.notStrictEqual(files["lib/services/custom.js"], undefined);
@@ -137,7 +134,12 @@ class PackagerTest {
     );
     await deployer.loadDefaults();
     await assert.rejects(() => deployer.deploy(), /Cannot find the entrypoint for Packager: /);
-    deployer = new Packager(
+  }
+
+  @test
+  async excludePackages() {
+    let zipPath = path.join(WebdaSampleApplication.getAppPath(), "dist", "package-3");
+    let deployer = new Packager(
       new DeploymentManager(new WorkerOutput(), WebdaSampleApplication.getAppPath(), "Production"),
       {
         name: "deployer",

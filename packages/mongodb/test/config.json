@@ -1,0 +1,42 @@
+{
+    "version": 2,
+    "parameters": {
+        "url": "mongodb://root:webda.io@localhost:37017/"
+    },
+    "services": {
+      "mongoidents": {
+        "index": ["type", "_lastUpdate"],
+        "asyncDelete": true,
+        "map": {
+          "mongousers": {
+            "key": "_user",
+            "target": "idents",
+            "fields": "type,_lastUpdate",
+            "cascade": true
+          }
+        },
+        "expose": {
+          "restrict": {
+            "create": true,
+            "update": true,
+            "get": true
+          }
+        },
+        "model": "Webda/Ident",
+        "type": "MongoStore",
+        "collection": "idents"
+      },
+      "mongousers": {
+        "expose": {
+          "url": "/users",
+          "restrict": {
+            "authentication": true,
+            "create": true
+          }
+        },
+        "type": "MongoStore",
+        "model": "Webda/User",
+        "collection": "users"
+      }
+    }
+  }

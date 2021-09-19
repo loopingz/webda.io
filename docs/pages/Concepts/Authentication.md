@@ -96,6 +96,10 @@ With `register=false|undefined`:
 
 `GET /auth/email/{email}/recover`: start the password reset process by sending an email
 
+- `204`: Sucessfuly sent recovery email
+- `404`: Email does not exist
+- `429`: Recovery has been sent recently
+
 `POST /auth/email/passwordRecovery`: finish the password reset process
 
 `GET /auth/email/{email}/validate`: start the password validation process by sending an email

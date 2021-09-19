@@ -259,10 +259,21 @@ class AuthenticationTest extends WebdaTest {
     );
     // Activate post validation
     ctx.getExecutor().getParameters().email.postValidation = true;
-    await assert.rejects(
-      () => executor.execute(ctx),
-      res => res == 400
+    await assert.rejects(() => executor.execute(ctx), /400/);
+    executor = this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "POST",
+      "/auth/email",
+      {
+        login: "testBad@Webda.io",
+        register: true
+      },
+      {
+        "Accept-Language": "en-GB"
+      }
     );
+    await assert.rejects(() => executor.execute(ctx), /400/);
   }
 
   @test("/me") async me() {

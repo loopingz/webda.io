@@ -622,7 +622,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     let mailOptions = {
       to: email,
       locale: locale,
-      template: "PASSPORT_EMAIL_RECOVERY",
+      template: "EMAIL_RECOVERY",
       replacements: { ...this.parameters.email, infos, to: email, context: ctx }
     };
     return mailer.send(mailOptions);
@@ -657,7 +657,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     let mailOptions = {
       to: email,
       locale: ctx.getLocale(),
-      template: "PASSPORT_EMAIL_REGISTER",
+      template: "EMAIL_REGISTER",
       replacements: replacements
     };
     return mailer.send(mailOptions);
@@ -786,7 +786,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
 
     let body = ctx.getRequestBody();
 
-    if (body.password === undefined || body.login === undefined) {
+    if (body.login === undefined) {
       throw 400;
     }
     var mailConfig = this.parameters.email;
@@ -818,6 +818,9 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
           // token is undefined send an email
           return this.sendValidationEmail(ctx, email);
         }
+      }
+      if (!body.password) {
+        throw 400;
       }
       // Store with a _
       body.__password = this.hashPassword(body.password);

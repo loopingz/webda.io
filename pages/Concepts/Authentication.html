@@ -255,6 +255,11 @@
 					<li><code>failureRedirect?reason=badToken</code>: if validation token is invalid</li>
 				</ul>
 				<p><code>GET /auth/email/{email}/recover</code>: start the password reset process by sending an email</p>
+				<ul>
+					<li><code>204</code>: Sucessfuly sent recovery email</li>
+					<li><code>404</code>: Email does not exist</li>
+					<li><code>429</code>: Recovery has been sent recently</li>
+				</ul>
 				<p><code>POST /auth/email/passwordRecovery</code>: finish the password reset process</p>
 				<p><code>GET /auth/email/{email}/validate</code>: start the password validation process by sending an email</p>
 				<a href="#oauth" id="oauth" style="color: inherit; text-decoration: none;">

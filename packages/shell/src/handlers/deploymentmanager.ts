@@ -42,8 +42,8 @@ export class DeploymentManager {
     app.addDeployer("WebdaDeployer/Kubernetes", Kubernetes);
   }
 
-  constructor(output: WorkerOutput, folder: string, deploymentName: string, streams = undefined) {
-    this.application = new Application(folder, output);
+  constructor(app: Application, deploymentName: string, streams = undefined) {
+    this.application = app;
     this.application.compile();
     this.application.setCurrentDeployment(deploymentName);
     this.application.loadModules();
@@ -52,8 +52,8 @@ export class DeploymentManager {
     let deployment = this.application.getDeployment(deploymentName);
     this.webda = new Core(this.application);
     this.deployersDefinition = <any>this.application.getDeployers();
-    this.output = output;
-    this.logger = new Logger(output, `deploymentManager`);
+    this.output = app.getWorkerOutput();
+    this.logger = new Logger(this.output, `deploymentManager`);
     if (streams) {
       this.streams = streams;
     } else {

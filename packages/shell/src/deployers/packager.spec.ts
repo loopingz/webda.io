@@ -52,15 +52,12 @@ class PackagerTest {
       }
     });
 
-    let deployer = new Packager(
-      new DeploymentManager(new WorkerOutput(), WebdaSampleApplication.getAppPath(), "Production"),
-      {
-        name: "deployer",
-        type: "Packager",
-        zipPath,
-        includeLinkModules: true
-      }
-    );
+    let deployer = new Packager(new DeploymentManager(WebdaSampleApplication, "Production"), {
+      name: "deployer",
+      type: "Packager",
+      zipPath,
+      includeLinkModules: true
+    });
     await deployer.loadDefaults();
     await deployer.deploy();
 
@@ -122,16 +119,13 @@ class PackagerTest {
       "./lib/services/reusable.js"
     ]);
     assert.strictEqual(config.parameters.accessKeyId, "PROD_KEY");
-    deployer = new Packager(
-      new DeploymentManager(new WorkerOutput(), WebdaSampleApplication.getAppPath(), "Production"),
-      {
-        name: "deployer",
-        type: "Packager",
-        entrypoint: "nope.js",
-        zipPath,
-        includeLinkModules: true
-      }
-    );
+    deployer = new Packager(new DeploymentManager(WebdaSampleApplication, "Production"), {
+      name: "deployer",
+      type: "Packager",
+      entrypoint: "nope.js",
+      zipPath,
+      includeLinkModules: true
+    });
     await deployer.loadDefaults();
     await assert.rejects(() => deployer.deploy(), /Cannot find the entrypoint for Packager: /);
   }
@@ -139,22 +133,19 @@ class PackagerTest {
   @test
   async excludePackages() {
     let zipPath = path.join(WebdaSampleApplication.getAppPath(), "dist", "package-3");
-    let deployer = new Packager(
-      new DeploymentManager(new WorkerOutput(), WebdaSampleApplication.getAppPath(), "Production"),
-      {
-        name: "deployer",
-        type: "Packager",
-        package: {
-          modules: {
-            includes: ["nonexisting"],
-            excludes: ["bluebird"]
-          }
-        },
-        entrypoint: WebdaSampleApplication.getAppPath("lib/services/bean.js"),
-        zipPath,
-        includeLinkModules: true
-      }
-    );
+    let deployer = new Packager(new DeploymentManager(WebdaSampleApplication, "Production"), {
+      name: "deployer",
+      type: "Packager",
+      package: {
+        modules: {
+          includes: ["nonexisting"],
+          excludes: ["bluebird"]
+        }
+      },
+      entrypoint: WebdaSampleApplication.getAppPath("lib/services/bean.js"),
+      zipPath,
+      includeLinkModules: true
+    });
     await deployer.loadDefaults();
     await deployer.deploy();
   }
@@ -205,7 +196,7 @@ class PackagerTest {
   async workspacesPackager() {
     fse.removeSync(path.join(WorkspaceApp.getAppPath(), "dist"));
     let zipPath = path.join(WorkspaceApp.getAppPath(), "dist", "package-2");
-    let deployer = new Packager(new DeploymentManager(new WorkerOutput(), WorkspaceApp.getAppPath(), "Production"), {
+    let deployer = new Packager(new DeploymentManager(WorkspaceApp, "Production"), {
       name: "deployer",
       type: "Packager",
       package: {

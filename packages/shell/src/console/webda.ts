@@ -359,7 +359,7 @@ export default class WebdaConsole {
    * @param argv
    */
   static async deploy(argv: yargs.Arguments): Promise<number> {
-    let manager = new DeploymentManager(this.app.getWorkerOutput(), this.app.getAppPath(), <string>argv.deployment);
+    let manager = new DeploymentManager(this.app, <string>argv.deployment);
     argv._ = argv._.slice(1);
     return manager.commandLine(argv);
   }

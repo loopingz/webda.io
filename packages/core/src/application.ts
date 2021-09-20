@@ -914,7 +914,7 @@ export class Application {
 
   /**
    * Return if the application is a typescript application
-   * 
+   *
    * Webda will soon drop support for non javascript application
    * @deprecated
    */
@@ -932,6 +932,7 @@ export class Application {
     }
     // exec typescript
     if (this.isTypescript()) {
+      this.log("DEBUG", "Compiling application");
       execSync(`tsc -p ${this.appPath}`);
     }
     this.compiled = true;

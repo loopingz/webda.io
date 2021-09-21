@@ -13,15 +13,37 @@ class PostgresParameters extends SQLStoreParameters {
   postgresqlServer?: ClientConfig | PoolConfig;
 }
 
+/**
+ * Store data within PostgreSQL with JSONB
+ *
+ * The table should be created before with
+
+ * ```sql
+ * CREATE TABLE IF NOT EXISTS ${tableName}
+ * (
+ *   uuid uuid NOT NULL,
+ *   data jsonb,
+ *   CONSTRAINT ${tableName}_pkey PRIMARY KEY (uuid)
+ * );
+ * ```
+ *
+ */
 export default class PostgresStore<
   T extends CoreModel = CoreModel,
   K extends PostgresParameters = PostgresParameters
 > extends SQLStore<T, K> {
   client: Client | Pool;
+
+  /**
+   * @override
+   */
   loadParameters(params: any) {
     return new PostgresParameters(params, this);
   }
 
+  /**
+   * @override
+   */
   async init() {
     if (this.parameters.usePool) {
       this.client = new Pool(this.parameters.postgresqlServer);
@@ -32,6 +54,20 @@ export default class PostgresStore<
     await super.init();
   }
 
+  /**
+   * Return the postgresql client
+   * @returns
+   */
+  getClient() {
+    return this.client;
+  }
+
+  /**
+   * Execute a query on the server
+   *
+   * @param query
+   * @returns
+   */
   async executeQuery(query: string): Promise<SQLResult<T>> {
     this.log("DEBUG", "Query", query);
     let res = await this.client.query(query);
@@ -57,6 +93,9 @@ export default class PostgresStore<
     }
   }
 
+  /**
+   * @override
+   */
   async _removeAttribute(
     uuid: string,
     attribute: string,
@@ -77,6 +116,9 @@ export default class PostgresStore<
     }
   }
 
+  /**
+   * @override
+   */
   getQueryCondition(itemWriteCondition: any, itemWriteConditionField: string) {
     return ` AND data->>'${itemWriteConditionField}'='${itemWriteCondition}'`;
   }
@@ -96,7 +138,9 @@ export default class PostgresStore<
     }
   }
 
-  // DB should use JOIN
+  /**
+   * @override
+   */
   async _upsertItemToCollection(
     uuid: string,
     attribute: string,
@@ -128,6 +172,9 @@ export default class PostgresStore<
     }
   }
 
+  /**
+   * @override
+   */
   async _deleteItemFromCollection(
     uuid: string,
     attribute: string,
@@ -154,6 +201,9 @@ export default class PostgresStore<
     }
   }
 
+  /**
+   * @override
+   */
   static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/PostgresStore",

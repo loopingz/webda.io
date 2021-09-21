@@ -46,17 +46,6 @@ jobs:
           MONGO_INITDB_ROOT_USERNAME: root
           MONGO_INITDB_ROOT_PASSWORD: webda.io
 
-      postgres:
-        image: postgres
-        ports:
-          - 5234:5234
-        env:
-          POSTGRES_PASSWORD: webda.io
-          POSTGRES_USER: webda.io
-          POSTGRES_DB: webda.io
-        volumes:
-          - ./packages/postgres/test/init.sql:/docker-entrypoint-initdb.d/init.sql
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -77,6 +66,15 @@ jobs:
         with:
           stack-version: 7.14.0
 
+      - name: Setup postgresql
+        uses: Softwarepark/postgresql-action@v2
+        with:
+          postgresql version: "13" # See https://hub.docker.com/_/postgres for available versions
+          postgresql password: webda.io
+          postgresql user: webda.io
+          postgresql db: webda.io
+          postgresql init scripts: packages/postgres/test/sql
+
       - name: Install dependencies
         run: yarn
 
@@ -86,14 +84,14 @@ jobs:
       - name: Run core tests
         run: yarn run test --scope @webda/core
 
+      - name: Run Postgres tests
+        run: yarn run test --scope @webda/postgres
+
       - name: Run shell tests
         run: yarn run test --scope @webda/shell
 
       - name: Run AWS tests
         run: yarn run test --scope @webda/aws
-
-      - name: Run Postgres tests
-        run: yarn run test --scope @webda/postgres
 
       - name: Run other modules tests
         run: yarn run test --ignore @webda/shell  --ignore @webda/aws  --ignore @webda/core --ignore @webda/postgres

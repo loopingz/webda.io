@@ -289,9 +289,6 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     } catch (err) {
       if (err.code === "ConditionalCheckFailedException") {
         throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
-      } else if (err.code === "ValidationException") {
-        // Seems to receive this when item does not exist
-        throw new StoreNotFoundError(uid, this.getName());
       }
       throw err;
     }

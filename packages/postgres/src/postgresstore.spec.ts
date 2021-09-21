@@ -6,26 +6,6 @@ import PostgresStore from "./postgresstore";
 
 @suite
 export class PostgresTest extends StoreTest {
-  async before() {
-    await super.before();
-    `CREATE TABLE IF NOT EXISTS public.idents
-    (
-        uuid uuid NOT NULL,
-        data jsonb,
-        CONSTRAINT idents_pkey PRIMARY KEY (uuid)
-    );
-    
-    CREATE TABLE IF NOT EXISTS public.users
-    (
-        uuid uuid NOT NULL,
-        data jsonb,
-        CONSTRAINT users_pkey PRIMARY KEY (uuid)
-    );
-    
-    GRANT ALL ON TABLE public.users TO "webda.io";
-    GRANT ALL ON TABLE public.idents TO "webda.io";`;
-  }
-
   getIdentStore(): Store<any> {
     return <Store<any>>this.getService("idents");
   }
@@ -54,5 +34,6 @@ export class PostgresTest extends StoreTest {
     await store.init();
 
     assert.rejects(() => store._find({}, 12, 10), /Query should be a string/);
+    assert.strictEqual(store.getClient(), store.client);
   }
 }

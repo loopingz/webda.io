@@ -32,7 +32,6 @@
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
-    "@types/node": "^16.4.2",
     "@webda/core": "^1.5.1",
     "aws-sdk": "^2.953.0",
     "bluebird": "^3.7.2",

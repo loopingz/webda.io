@@ -225,9 +225,14 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
       params["$set"][prop + "." + index] = item;
       filter[prop + "." + index + "." + itemWriteConditionField] = itemWriteCondition;
     }
+
     let res = await this._collection.updateOne(filter, params);
-    if (res.matchedCount === 0 && itemWriteCondition) {
-      throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
+    if (res.matchedCount === 0) {
+      if (itemWriteCondition) {
+        throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
+      } else {
+        throw new StoreNotFoundError(uid, this.getName());
+      }
     }
   }
 

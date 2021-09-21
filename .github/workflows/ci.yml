@@ -46,6 +46,17 @@ jobs:
           MONGO_INITDB_ROOT_USERNAME: root
           MONGO_INITDB_ROOT_PASSWORD: webda.io
 
+      postgres:
+        image: postgres
+        ports:
+          - 5234:5234
+        env:
+          POSTGRES_PASSWORD: webda.io
+          POSTGRES_USER: webda.io
+          POSTGRES_DB: webda.io
+        volumes:
+          - ./packages/postgres/test/init.sql:/docker-entrypoint-initdb.d/init.sql
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -81,8 +92,11 @@ jobs:
       - name: Run AWS tests
         run: yarn run test --scope @webda/aws
 
+      - name: Run Postgres tests
+        run: yarn run test --scope @webda/postgres
+
       - name: Run other modules tests
-        run: yarn run test --ignore @webda/shell  --ignore @webda/aws  --ignore @webda/core
+        run: yarn run test --ignore @webda/shell  --ignore @webda/aws  --ignore @webda/core --ignore @webda/postgres
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@master

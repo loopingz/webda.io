@@ -1,0 +1,8 @@
+{
+  "services": {
+    "Webda/PostgresStore": "lib/postgresstore.js"
+  },
+  "models": {},
+  "deployers": {},
+  "schemas": {}
+}

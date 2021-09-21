@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "parameters": {
+    "database": "webda.io",
+    "postgresqlServer": {
+      "host": "localhost",
+      "user": "webda.io",
+      "database": "webda.io",
+      "password": "webda.io"
+    },
+    "sessionSecret": "Lp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5EN"
+  },
+  "services": {
+    "ConsoleLogger": {
+      "type": "Webda/ConsoleLogger",
+      "logLevel": "INFO"
+    },
+    "idents": {
+      "index": ["type", "_lastUpdate"],
+      "map": {
+        "users": {
+          "key": "_user",
+          "target": "idents",
+          "fields": "type,_lastUpdate",
+          "cascade": true
+        }
+      },
+      "expose": {
+        "restrict": {
+          "create": true,
+          "update": true,
+          "get": true
+        }
+      },
+      "asyncDelete": true,
+      "type": "PostgresStore",
+      "table": "public.idents",
+      "model": "Webda/Ident"
+    },
+    "users": {
+      "expose": {
+        "url": "/users",
+        "restrict": {
+          "authentication": true,
+          "create": true
+        }
+      },
+      "type": "PostgresStore",
+      "table": "public.users",
+      "model": "Webda/User"
+    }
+  }
+}

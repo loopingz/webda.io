@@ -1,6 +1,6 @@
 {
   "name": "@webda/profiler-aws-xray",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "Webda AWS XRay implementation",
   "main": "lib/index.js",
   "scripts": {
@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
-    "@webda/core": "^1.5.1",
+    "@webda/core": "^1.5.2",
     "aws-sdk": "^2.953.0",
     "aws-xray-sdk": "^3.3.3"
   },
@@ -52,7 +52,7 @@
   "devDependencies": {
     "@testdeck/mocha": "^0.1.2",
     "@types/node": "14.0.0",
-    "@webda/shell": "^1.5.1",
+    "@webda/shell": "^1.5.2",
     "aws-sdk-mock": "^5.2.1",
     "sinon": "^11.1.1"
   }

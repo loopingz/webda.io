@@ -82,12 +82,11 @@ class AclPolicyTest {
     this.model.__store = {
       save: async () => this.model
     };
-    this._ctx.getHttpContext().setBody({
-      acl: "mine"
-    });
+    this._ctx.setHttpContext(new HttpContext("test.webda.io", "PUT", "/", undefined, undefined, { acl: "mine" }));
     await this.model._acls(this._ctx);
     // @ts-ignore
     assert.strictEqual(this.model.getAcls().acl, "mine");
+    this._ctx.setHttpContext(new HttpContext("test.webda.io", "GET", "/", undefined, undefined, { acl: "mine" }));
     await this.model._acls(this._ctx);
     assert.deepStrictEqual(JSON.parse(this._ctx.getResponseBody()), {
       acl: "mine"

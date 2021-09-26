@@ -308,7 +308,7 @@ class ApplicationTest extends WebdaTest {
       // Basic with no tags
       CacheService.clearAllCache();
       let infos = app.getGitInformation();
-      assert.strictEqual(infos.branch, "master");
+      assert.ok(infos.branch.match(/(master)|(main)/) !== null);
       assert.strictEqual(infos.tag, "");
       assert.strictEqual(infos.tags.length, 0);
       assert.ok(infos.version.match(/0\.1\.1\+\d+/) !== null);

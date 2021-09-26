@@ -102,17 +102,27 @@ export class WebdaServer extends Webda {
       let origin = req.headers.Origin || req.headers.origin || req.headers.Referer;
       // Set predefined headers for CORS
 
-      if (this.devMode || (await this.checkRequest(ctx))) {
-        if (origin) {
-          res.setHeader("Access-Control-Allow-Origin", origin);
+      try {
+        if (this.devMode || (await this.checkRequest(ctx))) {
+          if (origin) {
+            res.setHeader("Access-Control-Allow-Origin", origin);
+          }
+        } else {
+          // Prevent CSRF
+          this.log("INFO", "CSRF denied from", origin);
+          res.writeHead(401);
+          res.end();
+          return;
         }
-      } else {
-        // Prevent CSRF
-        this.log("INFO", "CSRF denied from", origin);
-        res.writeHead(401);
-        res.end();
-        return;
+      } catch (err) {
+        if (typeof err === "number") {
+          res.writeHead(err);
+          res.end();
+          return;
+        }
+        throw err;
       }
+
       if (protocol === "https") {
         // Add the HSTS header
         res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");

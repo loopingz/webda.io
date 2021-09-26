@@ -9,6 +9,7 @@ import { createImportSpecifier, textChangeRangeIsUnchanged } from "typescript";
 class WebdaServerTest {
   server: WebdaServer;
   port: number;
+  badCheck: boolean = false;
 
   async init(deployment: string = undefined, startHttp: boolean = false, websockets: boolean = false) {
     WebdaSampleApplication.loadModules();
@@ -68,7 +69,32 @@ class WebdaServerTest {
       headers: { origin: "bouzouf", "x-forwarded-port": "443" }
     });
     assert.strictEqual(res.status, 500);
+
+    // Test hard stop on CSRF checkRequest
+    this.server.setDevMode(false);
+    res = await fetch(`http://localhost:${this.port}/test`, {
+      headers: { origin: "bouzouf", "x-forwarded-port": "443" }
+    });
+    assert.strictEqual(res.status, 401);
+    this.server.registerRequestFilter(this);
+    res = await fetch(`http://localhost:${this.port}/test`, {
+      headers: { origin: "bouzouf", "x-forwarded-port": "443" }
+    });
+    assert.strictEqual(res.status, 410);
+    this.badCheck = true;
+    res = await fetch(`http://localhost:${this.port}/test`, {
+      headers: { origin: "bouzouf", "x-forwarded-port": "443" }
+    });
+    assert.strictEqual(res.status, 500);
+
     stub.restore();
+  }
+
+  async checkRequest(): Promise<boolean> {
+    if (this.badCheck) {
+      throw new Error("Unknown");
+    }
+    throw 410;
   }
 
   @test

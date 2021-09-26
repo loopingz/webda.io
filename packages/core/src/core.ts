@@ -1031,12 +1031,9 @@ export class Core extends events.EventEmitter {
    * @param context Context of the request
    */
   protected async checkRequest(ctx: Context): Promise<boolean> {
-    for (let i in this._requestFilters) {
-      if (await this._requestFilters[i].checkRequest(ctx)) {
-        return true;
-      }
-    }
-    return false;
+    return (await Promise.all(this._requestFilters.map(filter => filter.checkRequest(ctx)))).reduce(
+      (prev, cur) => prev || cur
+    );
   }
 
   exportOpenAPI(skipHidden: boolean = true): OpenAPIV3.Document {

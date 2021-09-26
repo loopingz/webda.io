@@ -38,6 +38,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
   handler: LambdaServer;
   debugMailer: any;
   context: any = {};
+  badCheck: boolean = false;
 
   async before() {
     await checkLocalStack();
@@ -257,6 +258,24 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.evt.headers.Host = "test.webda.io";
     let res = await this.handler.handleRequest(this.evt, this.context);
     assert.strictEqual(res.headers["Access-Control-Allow-Origin"], this.evt.headers.Referer);
+  }
+
+  @test
+  async handleRequestHardStopCheckRequest() {
+    this.evt.headers.Referer = "https://test.webda.io";
+    this.evt.headers.Host = "test.webda.io";
+    this.handler.registerRequestFilter(this);
+    let res = await this.handler.handleRequest(this.evt, this.context);
+    assert.strictEqual(res.statusCode, 410);
+    this.badCheck = true;
+    await assert.rejects(() => this.handler.handleRequest(this.evt, this.context), /Unknown/);
+  }
+
+  async checkRequest(): Promise<boolean> {
+    if (this.badCheck) {
+      throw new Error("Unknown");
+    }
+    throw 410;
   }
 
   ensureGoodCSRF() {

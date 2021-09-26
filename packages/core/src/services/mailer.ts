@@ -2,6 +2,7 @@
 import * as Email from "email-templates";
 import * as fs from "fs";
 import * as nodemailer from "nodemailer";
+import path = require("path");
 import { ModdaDefinition } from "../core";
 import { Service, ServiceParameters } from "./service";
 
@@ -30,11 +31,19 @@ export class MailerParameters extends ServiceParameters {
    * Define the default sender
    */
   sender: string;
+  /**
+   * @see https://www.npmjs.com/package/email-templates
+   */
+  emailTemplateOptions?: any;
 
   constructor(params: any) {
     super(params);
     this.templates ??= "./templates";
     this.templatesEngine ??= "mustache";
+    this.emailTemplateOptions ??= {};
+    this.emailTemplateOptions.juiceResources ??= {};
+    this.emailTemplateOptions.juiceResources.webResources ??= {};
+    this.emailTemplateOptions.juiceResources.webResources.relativeTo ??= path.resolve(this.templates);
   }
 }
 
@@ -94,6 +103,7 @@ class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
         return;
       }
       this._templates[name] = new Email({
+        ...this.parameters.emailTemplateOptions,
         views: {
           root: templateDir,
           options: {

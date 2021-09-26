@@ -780,7 +780,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
    */
   async _handleEmail(ctx: Context) {
     // If called while logged in reject
-    if (ctx.getCurrentUserId()) {
+    if (ctx.getCurrentUserId() !== undefined) {
       throw 410;
     }
 
@@ -825,8 +825,10 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       // Store with a _
       body.__password = this.hashPassword(body.password);
       await this._verifyPassword(body.password);
+      // Remove useless attributes
       delete body.password;
       delete body.register;
+      delete body.token;
       let user = await this.registerUser(ctx, {}, body);
       await this.emitSync("Authentication.PasswordCreate", <EventAuthenticationPasswordUpdate>{
         user,

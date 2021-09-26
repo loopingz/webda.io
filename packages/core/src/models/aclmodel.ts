@@ -1,5 +1,5 @@
 "use strict";
-import { Context, CoreModel, User } from "../index";
+import { Context, CoreModel, ModelAction, User } from "../index";
 
 /**
  * Object that contains ACL to define its own permissions
@@ -7,12 +7,29 @@ import { Context, CoreModel, User } from "../index";
 class AclModel extends CoreModel {
   __acls: Map<string, string> = new Map<string, string>();
 
+  static getActions(): { [key: string]: ModelAction } {
+    return {
+      ...super.getActions(),
+      acls: {
+        methods: ["PUT", "GET"]
+      }
+    };
+  }
+
   getAcls() {
     return this.__acls;
   }
 
   setAcls(acls: Map<string, string>) {
     this.__acls = acls;
+  }
+
+  _acls(ctx: Context) {
+    if (ctx.getHttpContext().getMethod() === "PUT") {
+      return this._httpPutAcls(ctx);
+    } else if (ctx.getHttpContext().getMethod() === "GET") {
+      return this._httpGetAcls(ctx);
+    }
   }
 
   async _httpGetAcls(ctx: Context) {

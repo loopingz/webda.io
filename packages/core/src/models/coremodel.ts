@@ -5,6 +5,12 @@ import { Context, HttpMethodType } from "../utils/context";
 import { Service } from "..";
 import { JSONSchema6 } from "json-schema";
 
+/**
+ * Define an export of actions from Model
+ */
+export type ModelActions = {
+  [key: string]: ModelAction;
+};
 export interface ModelAction {
   /**
    * Method for the route
@@ -18,7 +24,7 @@ export interface ModelAction {
    * The method that implement the action must be called
    * `_${actionName}`
    */
-  global: boolean;
+  global?: boolean;
   /**
    * Additional openapi info
    */
@@ -108,7 +114,7 @@ class CoreModel {
    *
    * This will expose them by the Store with /storeUrl/{uuid}/{action}
    */
-  static getActions() {
+  static getActions(): ModelActions {
     return {};
   }
 
@@ -142,13 +148,6 @@ class CoreModel {
    */
   attach(store: Store<CoreModel>) {
     this.__store = store;
-  }
-
-  /**
-   * Get actions available for the current instance of an object
-   */
-  getAvailableActions() {
-    return {};
   }
 
   /**

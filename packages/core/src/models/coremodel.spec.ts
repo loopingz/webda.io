@@ -69,7 +69,6 @@ class CoreModelTest extends WebdaTest {
 
   @test async cov() {
     let task = new Task();
-    assert.deepStrictEqual(new CoreModel().getAvailableActions(), {});
     await assert.rejects(() => new CoreModel().canAct(undefined, "test"), /403/);
     assert.ok(!task.isAttached());
     const unattachedMsg = /No store linked to this object/;

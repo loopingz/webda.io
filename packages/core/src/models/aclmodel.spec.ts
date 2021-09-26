@@ -85,10 +85,10 @@ class AclPolicyTest {
     this._ctx.getHttpContext().setBody({
       acl: "mine"
     });
-    await this.model._httpPutAcls(this._ctx);
+    await this.model._acls(this._ctx);
     // @ts-ignore
     assert.strictEqual(this.model.getAcls().acl, "mine");
-    await this.model._httpGetAcls(this._ctx);
+    await this.model._acls(this._ctx);
     assert.deepStrictEqual(JSON.parse(this._ctx.getResponseBody()), {
       acl: "mine"
     });

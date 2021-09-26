@@ -74,6 +74,7 @@ With `register=true` in the body:
 - `204`: Registration done or pending (depending on postValidation and body)
 - `400`: Bad request: either missing arguments or password invalid
 - `409`: Login already used
+- `410`: User already logged in
 
 With `register=false|undefined`:
 

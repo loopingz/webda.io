@@ -17,3 +17,14 @@ CREATE TABLE IF NOT EXISTS ${tableName}
     CONSTRAINT ${tableName}_pkey PRIMARY KEY (uuid)
 );
 ```
+
+Webda do not enforce strong constraint on the uuid, to allow business type uuid like for idents
+
+```sql
+CREATE TABLE IF NOT EXISTS ${tableName}
+(
+	uuid varchar(300) NOT NULL,
+    data jsonb,
+    CONSTRAINT ${tableName}_pkey PRIMARY KEY (uuid)
+);
+```

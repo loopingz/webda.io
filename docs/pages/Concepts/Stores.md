@@ -144,3 +144,18 @@ The MongoDB configuration requires a collection and a mongo parameter where mong
 ## FileDB configuration
 
 The FileDB only requires a folder where to store the datas. It creates it if not exists
+
+## Model Actions
+
+When defining a model for a store, you can define action on the model, it will be by default a new endpoint
+
+For non-global action, they apply to an object
+
+```
+/store/{uuid}/{actionName}
+```
+
+If the action is global
+```
+/store/{actionName}
+```

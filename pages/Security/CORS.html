@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>Cookies |
+	<title>CORS |
 	webda.io</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -64,7 +64,7 @@
 				<a href="../Security.html">Security</a>
 			</li>
 			<li>
-				<a href="CookieConfiguration.html">Cookies</a>
+				<a href="CORS.html">CORS</a>
 			</li>
 		</ul>
 	</div>
@@ -89,16 +89,16 @@
 					<li class=" pp-nav pp-page pp-depth-0 pp-active root">
 						<a href="../Security.html" class="tsd-kind-icon">Security</a>
 					</li>
-					<li class=" pp-nav pp-page pp-depth-1 root">
-						<a href="CORS.html" class="tsd-kind-icon">CORS</a>
-					</li>
 				</ul>
 				<ul class="current">
 					<li class="current pp-nav pp-page pp-depth-1 root">
-						<a href="CookieConfiguration.html" class="tsd-kind-icon">Cookies</a>
+						<a href="CORS.html" class="tsd-kind-icon">CORS</a>
 					</li>
 				</ul>
 				<ul class="after-current">
+					<li class=" pp-nav pp-page pp-depth-1 root">
+						<a href="CookieConfiguration.html" class="tsd-kind-icon">Cookies</a>
+					</li>
 					<li class=" pp-nav pp-page pp-depth-1 root">
 						<a href="Hawk.html" class="tsd-kind-icon">Hawk</a>
 					</li>
@@ -155,23 +155,20 @@
 			</nav>
 		</div>
 		<div class="col-content">
-			<h1>Cookies</h1>
+			<h1>CORS</h1>
 			<div class="tsd-panel tsd-typography">
-				<p>By default the cookie is set with this options:</p>
-				<pre><code><span style="color: #000000">{</span>
-<span style="color: #000000">    path: </span><span style="color: #A31515">&quot;/&quot;</span><span style="color: #000000">,</span>
-<span style="color: #000000">    domain: </span><span style="color: #001080">ctx</span><span style="color: #000000">.</span><span style="color: #795E26">getHttpContext</span><span style="color: #000000">().</span><span style="color: #795E26">getHost</span><span style="color: #000000">(),</span>
-<span style="color: #000000">    httpOnly: </span><span style="color: #0000FF">true</span><span style="color: #000000">,</span>
-<span style="color: #000000">    secure: </span><span style="color: #001080">ctx</span><span style="color: #000000">.</span><span style="color: #795E26">getHttpContext</span><span style="color: #000000">().</span><span style="color: #795E26">getProtocol</span><span style="color: #000000">() == </span><span style="color: #A31515">&quot;https&quot;</span><span style="color: #000000">,</span>
-<span style="color: #000000">    maxAge: </span><span style="color: #098658">86400</span><span style="color: #000000"> * </span><span style="color: #098658">7</span><span style="color: #000000">,</span>
-<span style="color: #000000">    sameSite: </span><span style="color: #A31515">&quot;Lax&quot;</span>
-<span style="color: #000000">}</span>
-</code></pre>
-				<a href="#override-default-configuration" id="override-default-configuration" style="color: inherit; text-decoration: none;">
-					<h2>Override default configuration</h2>
+				<p>Any service can implement <code>RequestFilter</code> and will be called for every request</p>
+				<a href="#soft-vote" id="soft-vote" style="color: inherit; text-decoration: none;">
+					<h2>Soft vote</h2>
 				</a>
-				<p>By adding a cookie object in your <code>parameters</code> section of the <code>webda.config.json</code>
-				You can find the options here: (Cookie library)[<a href="https://www.npmjs.com/package/cookie%5D">https://www.npmjs.com/package/cookie]</a></p>
+				<p>The method <code>checkRequest(context: Context) : Promise&lt;boolean&gt;</code> is called, you can
+					return <code>false</code> if the filter is not allowing the request, meaning that any other
+				filter can still vet-in for the request by returning <code>true</code></p>
+				<a href="#hard-vote" id="hard-vote" style="color: inherit; text-decoration: none;">
+					<h2>Hard vote</h2>
+				</a>
+				<p>The method can throw an exception to stop the process and return to the client an
+				error.</p>
 			</div>
 			<!--{&quot;options&quot;:&quot;/home/runner/work/webda.io/webda.io&quot;,&quot;tsconfig&quot;:&quot;/home/runner/work/webda.io/webda.io&quot;,&quot;packages&quot;:[&quot;/home/runner/work/webda.io/webda.io&quot;],&quot;entryPoints&quot;:[],&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;/home/runner/work/webda.io/webda.io/packages/*/node_modules&quot;,&quot;/home/runner/work/webda.io/webda.io/packages/*/src/**/*.spec.ts&quot;,&quot;/home/runner/work/webda.io/webda.io/sample-app&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;/home/runner/work/webda.io/webda.io/docs/media&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;/home/runner/work/webda.io/webda.io/.built-docs&quot;,&quot;json&quot;:&quot;&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;/home/runner/work/webda.io/webda.io/readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;sort&quot;:[&quot;kind&quot;,&quot;instance-first&quot;,&quot;alphabetical&quot;],&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;treatWarningsAsErrors&quot;:false,&quot;listInvalidSymbolLinks&quot;:false,&quot;outline&quot;:[],&quot;excludeReferences&quot;:false,&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true,&quot;noJekyll&quot;:true,&quot;githubPagesDomain&quot;:&quot;docs.webda.io&quot;,&quot;enablePageLinks&quot;:true,&quot;enableSearch&quot;:true,&quot;failBuildOnInvalidPageLink&quot;:false,&quot;listInvalidPageLinks&quot;:false,&quot;output&quot;:&quot;pages&quot;,&quot;sources&quot;:[&quot;./docs/pages/&quot;]}}-->
 			<footer class="with-border-bottom">

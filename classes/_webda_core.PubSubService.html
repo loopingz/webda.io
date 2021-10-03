@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>MemoryQueue |
+	<title>PubSubService |
 	webda.io</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -64,7 +64,7 @@
 				<a href="../modules/_webda_core.html">@webda/core</a>
 			</li>
 			<li>
-				<a href="_webda_core.MemoryQueue.html">MemoryQueue</a>
+				<a href="_webda_core.PubSubService.html">PubSubService</a>
 			</li>
 		</ul>
 	</div>
@@ -144,10 +144,15 @@
 				<div>
 					<ul class="tsd-hierarchy">
 						<li>
-							<span class="tsd-signature-type">Queue</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">K</span><span class="tsd-signature-symbol">&gt;</span>
+							<span class="tsd-signature-type">Service</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">K</span><span class="tsd-signature-symbol">&gt;</span>
 							<ul class="tsd-hierarchy">
 								<li>
-									<span class="target">MemoryQueue</span>
+									<span class="target">PubSubService</span>
+									<ul class="tsd-hierarchy">
+										<li>
+											<span class="tsd-signature-type">Queue</span>
+										</li>
+									</ul>
 								</li>
 							</ul>
 						</li>
@@ -157,121 +162,97 @@
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter root">
-						<a href="_webda_core.MemoryQueue.html" class="tsd-kind-icon">Memory<wbr>Queue</a>
+						<a href="_webda_core.PubSubService.html" class="tsd-kind-icon">Pub<wbr>Sub<wbr>Service</a>
 						<ul>
 							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#constructor" class="tsd-kind-icon">constructor</a>
+								<a href="_webda_core.PubSubService.html#constructor" class="tsd-kind-icon">constructor</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#_createException" class="tsd-kind-icon">_create<wbr>Exception</a>
+								<a href="_webda_core.PubSubService.html#_createException" class="tsd-kind-icon">_create<wbr>Exception</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#_initException" class="tsd-kind-icon">_init<wbr>Exception</a>
+								<a href="_webda_core.PubSubService.html#_initException" class="tsd-kind-icon">_init<wbr>Exception</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#_initTime" class="tsd-kind-icon">_init<wbr>Time</a>
+								<a href="_webda_core.PubSubService.html#_initTime" class="tsd-kind-icon">_init<wbr>Time</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-								<a href="_webda_core.MemoryQueue.html#_name" class="tsd-kind-icon">_name</a>
+								<a href="_webda_core.PubSubService.html#_name" class="tsd-kind-icon">_name</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-								<a href="_webda_core.MemoryQueue.html#_timeout" class="tsd-kind-icon">_timeout</a>
+								<a href="_webda_core.PubSubService.html#_webda" class="tsd-kind-icon">_webda</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-								<a href="_webda_core.MemoryQueue.html#_webda" class="tsd-kind-icon">_webda</a>
+								<a href="_webda_core.PubSubService.html#logger" class="tsd-kind-icon">logger</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-								<a href="_webda_core.MemoryQueue.html#delayer" class="tsd-kind-icon">delayer</a>
+								<a href="_webda_core.PubSubService.html#parameters" class="tsd-kind-icon">parameters</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#eventPrototype" class="tsd-kind-icon">event<wbr>Prototype</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-								<a href="_webda_core.MemoryQueue.html#failedIterations" class="tsd-kind-icon">failed<wbr>Iterations</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-								<a href="_webda_core.MemoryQueue.html#logger" class="tsd-kind-icon">logger</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-								<a href="_webda_core.MemoryQueue.html#parameters" class="tsd-kind-icon">parameters</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-								<a href="_webda_core.MemoryQueue.html#__clean" class="tsd-kind-icon">__clean</a>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_core.PubSubService.html#__clean" class="tsd-kind-icon">__clean</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-								<a href="_webda_core.MemoryQueue.html#addRoute" class="tsd-kind-icon">add<wbr>Route</a>
+								<a href="_webda_core.PubSubService.html#addRoute" class="tsd-kind-icon">add<wbr>Route</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#computeParameters" class="tsd-kind-icon">compute<wbr>Parameters</a>
+								<a href="_webda_core.PubSubService.html#computeParameters" class="tsd-kind-icon">compute<wbr>Parameters</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_webda_core.PubSubService.html#consume" class="tsd-kind-icon">consume</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#consume" class="tsd-kind-icon">consume</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-								<a href="_webda_core.MemoryQueue.html#consumerReceiveMessage" class="tsd-kind-icon">consumer<wbr>Receive<wbr>Message</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-								<a href="_webda_core.MemoryQueue.html#deleteMessage" class="tsd-kind-icon">delete<wbr>Message</a>
+								<a href="_webda_core.PubSubService.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a>
+								<a href="_webda_core.PubSubService.html#getName" class="tsd-kind-icon">get<wbr>Name</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#getMaxConsumers" class="tsd-kind-icon">get<wbr>Max<wbr>Consumers</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#getName" class="tsd-kind-icon">get<wbr>Name</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#getParameters" class="tsd-kind-icon">get<wbr>Parameters</a>
+								<a href="_webda_core.PubSubService.html#getParameters" class="tsd-kind-icon">get<wbr>Parameters</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#getService" class="tsd-kind-icon">get<wbr>Service</a>
+								<a href="_webda_core.PubSubService.html#getService" class="tsd-kind-icon">get<wbr>Service</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#getWebda" class="tsd-kind-icon">get<wbr>Webda</a>
+								<a href="_webda_core.PubSubService.html#getWebda" class="tsd-kind-icon">get<wbr>Webda</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#init" class="tsd-kind-icon">init</a>
+								<a href="_webda_core.PubSubService.html#init" class="tsd-kind-icon">init</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#initRoutes" class="tsd-kind-icon">init<wbr>Routes</a>
+								<a href="_webda_core.PubSubService.html#initRoutes" class="tsd-kind-icon">init<wbr>Routes</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#log" class="tsd-kind-icon">log</a>
+								<a href="_webda_core.PubSubService.html#loadParameters" class="tsd-kind-icon">load<wbr>Parameters</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#onAsync" class="tsd-kind-icon">on<wbr>Async</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-overwrite">
-								<a href="_webda_core.MemoryQueue.html#receiveMessage" class="tsd-kind-icon">receive<wbr>Message</a>
+								<a href="_webda_core.PubSubService.html#log" class="tsd-kind-icon">log</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#reinit" class="tsd-kind-icon">reinit</a>
+								<a href="_webda_core.PubSubService.html#onAsync" class="tsd-kind-icon">on<wbr>Async</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#resolve" class="tsd-kind-icon">resolve</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-								<a href="_webda_core.MemoryQueue.html#sendMessage" class="tsd-kind-icon">send<wbr>Message</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-								<a href="_webda_core.MemoryQueue.html#size" class="tsd-kind-icon">size</a>
+								<a href="_webda_core.PubSubService.html#reinit" class="tsd-kind-icon">reinit</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#toPublicJSON" class="tsd-kind-icon">to<wbr>PublicJSON</a>
+								<a href="_webda_core.PubSubService.html#resolve" class="tsd-kind-icon">resolve</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_webda_core.PubSubService.html#sendMessage" class="tsd-kind-icon">send<wbr>Message</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#toString" class="tsd-kind-icon">to<wbr>String</a>
+								<a href="_webda_core.PubSubService.html#toPublicJSON" class="tsd-kind-icon">to<wbr>PublicJSON</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
-								<a href="_webda_core.MemoryQueue.html#unserialize" class="tsd-kind-icon">unserialize</a>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_core.PubSubService.html#toString" class="tsd-kind-icon">to<wbr>String</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-static">
-								<a href="_webda_core.MemoryQueue.html#getModda" class="tsd-kind-icon">get<wbr>Modda</a>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
+								<a href="_webda_core.PubSubService.html#unserialize" class="tsd-kind-icon">unserialize</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
-								<a href="_webda_core.MemoryQueue.html#getSchema" class="tsd-kind-icon">get<wbr>Schema</a>
+								<a href="_webda_core.PubSubService.html#getModda" class="tsd-kind-icon">get<wbr>Modda</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+								<a href="_webda_core.PubSubService.html#getSchema" class="tsd-kind-icon">get<wbr>Schema</a>
 							</li>
 						</ul>
 					</li>
@@ -281,12 +262,7 @@
 			</nav>
 		</div>
 		<div class="col-content">
-			<h1>Class MemoryQueue&lt;T, K&gt;</h1>
-			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
-					<div class="lead">
-						<p>FIFO Queue in Memory</p>
-					</div>
-			</div></section>
+			<h1>Class PubSubService&lt;T, K&gt;</h1>
 			<section class="tsd-panel tsd-type-parameters">
 				<h3>Type parameters</h3>
 				<ul class="tsd-type-parameters">
@@ -294,7 +270,7 @@
 						<h4>T</h4>
 					</li>
 					<li>
-						<h4>K<span class="tsd-signature-symbol">: </span><a href="_webda_core.MemoryQueueParameters.html" class="tsd-signature-type">MemoryQueueParameters</a></h4>
+						<h4>K<span class="tsd-signature-symbol">: </span><a href="_webda_core.ServiceParameters.html" class="tsd-signature-type">ServiceParameters</a></h4>
 					</li>
 				</ul>
 			</section>
@@ -302,10 +278,15 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<a href="_webda_core.Queue.html" class="tsd-signature-type">Queue</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">K</span><span class="tsd-signature-symbol">&gt;</span>
+						<a href="_webda_core.Service.html" class="tsd-signature-type">Service</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">K</span><span class="tsd-signature-symbol">&gt;</span>
 						<ul class="tsd-hierarchy">
 							<li>
-								<span class="target">MemoryQueue</span>
+								<span class="target">PubSubService</span>
+								<ul class="tsd-hierarchy">
+									<li>
+										<a href="_webda_core.Queue.html" class="tsd-signature-type">Queue</a>
+									</li>
+								</ul>
 							</li>
 						</ul>
 					</li>
@@ -317,54 +298,46 @@
 						<section class="tsd-index-section tsd-is-inherited">
 							<h3>Constructors</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#constructor" class="tsd-kind-icon">constructor</a></li>
+								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="_webda_core.PubSubService.html#constructor" class="tsd-kind-icon">constructor</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section tsd-is-inherited">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#_createException" class="tsd-kind-icon">_create<wbr>Exception</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#_initException" class="tsd-kind-icon">_init<wbr>Exception</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#_initTime" class="tsd-kind-icon">_init<wbr>Time</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_core.MemoryQueue.html#_name" class="tsd-kind-icon">_name</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_core.MemoryQueue.html#_timeout" class="tsd-kind-icon">_timeout</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_core.MemoryQueue.html#_webda" class="tsd-kind-icon">_webda</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_core.MemoryQueue.html#delayer" class="tsd-kind-icon">delayer</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#eventPrototype" class="tsd-kind-icon">event<wbr>Prototype</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_core.MemoryQueue.html#failedIterations" class="tsd-kind-icon">failed<wbr>Iterations</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_core.MemoryQueue.html#logger" class="tsd-kind-icon">logger</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_core.MemoryQueue.html#parameters" class="tsd-kind-icon">parameters</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#_createException" class="tsd-kind-icon">_create<wbr>Exception</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#_initException" class="tsd-kind-icon">_init<wbr>Exception</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#_initTime" class="tsd-kind-icon">_init<wbr>Time</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_core.PubSubService.html#_name" class="tsd-kind-icon">_name</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_core.PubSubService.html#_webda" class="tsd-kind-icon">_webda</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_core.PubSubService.html#logger" class="tsd-kind-icon">logger</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_core.PubSubService.html#parameters" class="tsd-kind-icon">parameters</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_core.MemoryQueue.html#__clean" class="tsd-kind-icon">__clean</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_core.MemoryQueue.html#addRoute" class="tsd-kind-icon">add<wbr>Route</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#computeParameters" class="tsd-kind-icon">compute<wbr>Parameters</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#consume" class="tsd-kind-icon">consume</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_core.MemoryQueue.html#consumerReceiveMessage" class="tsd-kind-icon">consumer<wbr>Receive<wbr>Message</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_core.MemoryQueue.html#deleteMessage" class="tsd-kind-icon">delete<wbr>Message</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#getMaxConsumers" class="tsd-kind-icon">get<wbr>Max<wbr>Consumers</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#getName" class="tsd-kind-icon">get<wbr>Name</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#getParameters" class="tsd-kind-icon">get<wbr>Parameters</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#getService" class="tsd-kind-icon">get<wbr>Service</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#getWebda" class="tsd-kind-icon">get<wbr>Webda</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#init" class="tsd-kind-icon">init</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#initRoutes" class="tsd-kind-icon">init<wbr>Routes</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#log" class="tsd-kind-icon">log</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#onAsync" class="tsd-kind-icon">on<wbr>Async</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-overwrite"><a href="_webda_core.MemoryQueue.html#receiveMessage" class="tsd-kind-icon">receive<wbr>Message</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#reinit" class="tsd-kind-icon">reinit</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#resolve" class="tsd-kind-icon">resolve</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_core.MemoryQueue.html#sendMessage" class="tsd-kind-icon">send<wbr>Message</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_core.MemoryQueue.html#size" class="tsd-kind-icon">size</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#toPublicJSON" class="tsd-kind-icon">to<wbr>PublicJSON</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#toString" class="tsd-kind-icon">to<wbr>String</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="_webda_core.MemoryQueue.html#unserialize" class="tsd-kind-icon">unserialize</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-static"><a href="_webda_core.MemoryQueue.html#getModda" class="tsd-kind-icon">get<wbr>Modda</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_core.MemoryQueue.html#getSchema" class="tsd-kind-icon">get<wbr>Schema</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#__clean" class="tsd-kind-icon">__clean</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_webda_core.PubSubService.html#addRoute" class="tsd-kind-icon">add<wbr>Route</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#computeParameters" class="tsd-kind-icon">compute<wbr>Parameters</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.PubSubService.html#consume" class="tsd-kind-icon">consume</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#getName" class="tsd-kind-icon">get<wbr>Name</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#getParameters" class="tsd-kind-icon">get<wbr>Parameters</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="_webda_core.PubSubService.html#getService" class="tsd-kind-icon">get<wbr>Service</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#getWebda" class="tsd-kind-icon">get<wbr>Webda</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#init" class="tsd-kind-icon">init</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#initRoutes" class="tsd-kind-icon">init<wbr>Routes</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#loadParameters" class="tsd-kind-icon">load<wbr>Parameters</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#log" class="tsd-kind-icon">log</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#onAsync" class="tsd-kind-icon">on<wbr>Async</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#reinit" class="tsd-kind-icon">reinit</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#resolve" class="tsd-kind-icon">resolve</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.PubSubService.html#sendMessage" class="tsd-kind-icon">send<wbr>Message</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#toPublicJSON" class="tsd-kind-icon">to<wbr>PublicJSON</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.PubSubService.html#toString" class="tsd-kind-icon">to<wbr>String</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter"><a href="_webda_core.PubSubService.html#unserialize" class="tsd-kind-icon">unserialize</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_core.PubSubService.html#getModda" class="tsd-kind-icon">get<wbr>Modda</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static"><a href="_webda_core.PubSubService.html#getSchema" class="tsd-kind-icon">get<wbr>Schema</a></li>
 							</ul>
 						</section>
 					</div>
@@ -375,12 +348,12 @@
 				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
 					<a name="constructor" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Memory<wbr>Queue&lt;T, K&gt;<span class="tsd-signature-symbol">(</span>webda<span class="tsd-signature-symbol">: </span><a href="_webda_core.Core.html" class="tsd-signature-type">Core</a>, name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, params<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_core.MemoryQueue.html" class="tsd-signature-type">MemoryQueue</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">K</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Pub<wbr>Sub<wbr>Service&lt;T, K&gt;<span class="tsd-signature-symbol">(</span>webda<span class="tsd-signature-symbol">: </span><a href="_webda_core.Core.html" class="tsd-signature-type">Core</a>, name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, params<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_core.PubSubService.html" class="tsd-signature-type">PubSubService</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">K</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#constructor">constructor</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#constructor">constructor</a></p>
 							</aside>
 							<h4 class="tsd-type-parameters-title">Type parameters</h4>
 							<ul class="tsd-type-parameters">
@@ -388,7 +361,7 @@
 									<h4>T</h4>
 								</li>
 								<li>
-									<h4>K<span class="tsd-signature-symbol">: </span><a href="_webda_core.MemoryQueueParameters.html" class="tsd-signature-type">MemoryQueueParameters</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">K</span><span class="tsd-signature-symbol">&gt;</span></h4>
+									<h4>K<span class="tsd-signature-symbol">: </span><a href="_webda_core.ServiceParameters.html" class="tsd-signature-type">ServiceParameters</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">K</span><span class="tsd-signature-symbol">&gt;</span></h4>
 								</li>
 							</ul>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -412,7 +385,7 @@
 									</div>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <a href="_webda_core.MemoryQueue.html" class="tsd-signature-type">MemoryQueue</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">K</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <a href="_webda_core.PubSubService.html" class="tsd-signature-type">PubSubService</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">K</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in packages/core/src/services/service.ts:157</li>
@@ -461,19 +434,6 @@
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-					<a name="_timeout" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">_timeout<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Timeout</span></div>
-					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-						<div class="lead">
-							<p>Current timeout handler</p>
-						</div>
-					</div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/src/queues/queueservice.ts:69</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 					<a name="_webda" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">_webda<span class="tsd-signature-symbol">:</span> <a href="_webda_core.Core.html" class="tsd-signature-type">Core</a></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -484,60 +444,6 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in packages/core/src/services/service.ts:131</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-					<a name="delayer" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">delayer<span class="tsd-signature-symbol">:</span> <a href="../modules/_webda_core.html#WaitDelayer" class="tsd-signature-type">WaitDelayer</a></div>
-					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-						<div class="lead">
-							<p>Delayer</p>
-						</div>
-					</div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/src/queues/queueservice.ts:81</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="eventPrototype" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">event<wbr>Prototype<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">function</span></div>
-					<div class="tsd-type-declaration">
-						<h4>Type declaration</h4>
-						<ul class="tsd-parameters">
-							<li class="tsd-parameter-siganture">
-								<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited">
-									<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span></li>
-								</ul>
-								<ul class="tsd-descriptions">
-									<li class="tsd-description">
-										<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">T</span></h4>
-										<aside class="tsd-sources">
-											<ul>
-												<li>Defined in packages/core/src/queues/queueservice.ts:82</li>
-											</ul>
-										</aside>
-									</li>
-								</ul>
-							</li>
-						</ul>
-					</div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/src/queues/queueservice.ts:82</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-					<a name="failedIterations" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">failed<wbr>Iterations<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
-					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-						<div class="lead">
-							<p>Current pause instance</p>
-						</div>
-					</div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/src/queues/queueservice.ts:77</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -571,25 +477,28 @@
 			</section>    </section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="__clean" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-						<li class="tsd-signature tsd-kind-icon">__clean<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">__clean<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Overrides <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#__clean">__clean</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#__clean">__clean</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
 									<p>Clean the service data, can only be used in test mode</p>
 								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>abstract</dt>
+								<dd></dd></dl>
 							</div>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/queues/memoryqueue.ts:94</li>
+									<li>Defined in packages/core/src/services/service.ts:336</li>
 								</ul>
 							</aside>
 						</li>
@@ -602,7 +511,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#addRoute">addRoute</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#addRoute">addRoute</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -649,7 +558,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#computeParameters">computeParameters</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#computeParameters">computeParameters</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -664,20 +573,18 @@
 							</aside>
 						</li>
 					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="consume" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">consume<span class="tsd-signature-symbol">(</span>callback<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span>, eventPrototype<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_core.CancelablePromise.html" class="tsd-signature-type">CancelablePromise</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">consume<span class="tsd-signature-symbol">(</span>callback<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span>, eventPrototype<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">function</span>, onBind<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_core.CancelablePromise.html" class="tsd-signature-type">CancelablePromise</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#consume">consume</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
-									<p>Work a queue calling the callback with every Event received
-									If the callback is called without exception the <code>deleteMessage</code> is called</p>
+									<p>Subscribe to a channel calling the callback with every Event received</p>
 								</div>
 							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -700,7 +607,7 @@
 													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 													<aside class="tsd-sources">
 														<ul>
-															<li>Defined in packages/core/src/queues/queueservice.ts:168</li>
+															<li>Defined in packages/core/src/queues/pubsubservice.ts:33</li>
 														</ul>
 													</aside>
 												</li>
@@ -722,7 +629,27 @@
 													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">T</span></h4>
 													<aside class="tsd-sources">
 														<ul>
-															<li>Defined in packages/core/src/queues/queueservice.ts:168</li>
+															<li>Defined in packages/core/src/queues/pubsubservice.ts:34</li>
+														</ul>
+													</aside>
+												</li>
+											</ul>
+										</li>
+									</ul>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> onBind: <span class="tsd-signature-type">function</span></h5>
+									<ul class="tsd-parameters">
+										<li class="tsd-parameter-siganture">
+											<ul class="tsd-signatures tsd-kind-type-literal">
+												<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+											</ul>
+											<ul class="tsd-descriptions">
+												<li class="tsd-description">
+													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+													<aside class="tsd-sources">
+														<ul>
+															<li>Defined in packages/core/src/queues/pubsubservice.ts:35</li>
 														</ul>
 													</aside>
 												</li>
@@ -734,61 +661,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.CancelablePromise.html" class="tsd-signature-type">CancelablePromise</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/queues/queueservice.ts:168</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-					<a name="consumerReceiveMessage" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-						<li class="tsd-signature tsd-kind-icon">consumer<wbr>Receive<wbr>Message<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#consumerReceiveMessage">consumerReceiveMessage</a></p>
-							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Receive and process message from the queue</p>
-								</div>
-							</div>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/src/queues/queueservice.ts:113</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-					<a name="deleteMessage" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-						<li class="tsd-signature tsd-kind-icon">delete<wbr>Message<span class="tsd-signature-symbol">(</span>receipt<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Overrides <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#deleteMessage">deleteMessage</a></p>
-							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Delete one message based on its receipt</p>
-								</div>
-							</div>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>receipt: <span class="tsd-signature-type">any</span></h5>
-									<div class="tsd-comment tsd-typography tsd-comment-text">
-									</div>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/src/queues/memoryqueue.ts:85</li>
+									<li>Defined in packages/core/src/queues/pubsubservice.ts:32</li>
 								</ul>
 							</aside>
 						</li>
@@ -801,7 +674,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#emitSync">emitSync</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#emitSync">emitSync</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -826,33 +699,6 @@
 						</li>
 					</ul>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="getMaxConsumers" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Max<wbr>Consumers<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#getMaxConsumers">getMaxConsumers</a></p>
-							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Return the max consumers for the queue</p>
-								</div>
-								</div><div class="tsd-comment tsd-typography tsd-comment-text">
-								<p>It is overridable so if a queue can retrieve several message at once
-								it can just use the worker // and several messages at once</p>
-								<p>SQS for example will return this.parameters.maxConsumers / 10</p>
-							</div>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/src/queues/queueservice.ts:158</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getName" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">get<wbr>Name<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
@@ -860,7 +706,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#getName">getName</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#getName">getName</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -883,7 +729,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#getParameters">getParameters</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#getParameters">getParameters</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -906,7 +752,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#getService">getService</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#getService">getService</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -944,7 +790,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#getWebda">getWebda</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#getWebda">getWebda</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -967,7 +813,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#init">init</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#init">init</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -993,7 +839,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#initRoutes">initRoutes</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#initRoutes">initRoutes</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -1009,6 +855,35 @@
 						</li>
 					</ul>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="loadParameters" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">load<wbr>Parameters<span class="tsd-signature-symbol">(</span>params<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_core.ServiceParameters.html" class="tsd-signature-type">ServiceParameters</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#loadParameters">loadParameters</a></p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Load the parameters for a service</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>params: <span class="tsd-signature-type">any</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="_webda_core.ServiceParameters.html" class="tsd-signature-type">ServiceParameters</a></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/services/service.ts:168</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="log" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 						<li class="tsd-signature tsd-kind-icon">log<span class="tsd-signature-symbol">(</span>level<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">WorkerLogLevel</span>, <span class="tsd-signature-symbol">...</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
@@ -1016,7 +891,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#log">log</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#log">log</a></p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -1048,7 +923,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#onAsync">onAsync</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#onAsync">onAsync</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -1078,58 +953,6 @@
 							</aside>
 						</li>
 					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-overwrite">
-					<a name="receiveMessage" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-overwrite">
-						<li class="tsd-signature tsd-kind-icon">receive<wbr>Message&lt;L&gt;<span class="tsd-signature-symbol">(</span>proto<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_webda_core.MessageReceipt.html" class="tsd-signature-type">MessageReceipt</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">L</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Overrides <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#receiveMessage">receiveMessage</a></p>
-							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Receive one or several messages</p>
-								</div>
-							</div>
-							<h4 class="tsd-type-parameters-title">Type parameters</h4>
-							<ul class="tsd-type-parameters">
-								<li>
-									<h4>L</h4>
-								</li>
-							</ul>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5><span class="tsd-flag ts-flagOptional">Optional</span> proto: <span class="tsd-signature-type">function</span></h5>
-									<ul class="tsd-parameters">
-										<li class="tsd-parameter-siganture">
-											<ul class="tsd-signatures tsd-kind-constructor">
-												<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">L</span></li>
-											</ul>
-											<ul class="tsd-descriptions">
-												<li class="tsd-description">
-													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">L</span></h4>
-													<aside class="tsd-sources">
-														<ul>
-															<li>Defined in packages/core/src/queues/memoryqueue.ts:67</li>
-														</ul>
-													</aside>
-												</li>
-											</ul>
-										</li>
-									</ul>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_webda_core.MessageReceipt.html" class="tsd-signature-type">MessageReceipt</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">L</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/src/queues/memoryqueue.ts:67</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="reinit" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -1138,7 +961,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#reinit">reinit</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#reinit">reinit</a></p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -1165,30 +988,30 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#resolve">resolve</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#resolve">resolve</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
-									<p>Create the delayer</p>
+									<p>Resolve parameters
+									Call initRoutes and initBeanRoutes</p>
 								</div>
 							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/queues/queueservice.ts:103</li>
+									<li>Defined in packages/core/src/services/service.ts:204</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="sendMessage" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-						<li class="tsd-signature tsd-kind-icon">send<wbr>Message<span class="tsd-signature-symbol">(</span>params<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">send<wbr>Message<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Overrides <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#sendMessage">sendMessage</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -1198,36 +1021,15 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>params: <span class="tsd-signature-type">any</span></h5>
+									<h5>event: <span class="tsd-signature-type">T</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/queues/memoryqueue.ts:51</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-					<a name="size" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
-						<li class="tsd-signature tsd-kind-icon">size<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Overrides <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#size">size</a></p>
-							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Return queue size</p>
-								</div>
-							</div>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/src/queues/memoryqueue.ts:47</li>
+									<li>Defined in packages/core/src/queues/pubsubservice.ts:12</li>
 								</ul>
 							</aside>
 						</li>
@@ -1240,7 +1042,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#toPublicJSON">toPublicJSON</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#toPublicJSON">toPublicJSON</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -1273,7 +1075,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#toString">toString</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#toString">toString</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -1288,15 +1090,14 @@
 							</aside>
 						</li>
 					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
 					<a name="unserialize" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
 						<li class="tsd-signature tsd-kind-icon">unserialize&lt;L&gt;<span class="tsd-signature-symbol">(</span>data<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, proto<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">L</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#unserialize">unserialize</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -1343,25 +1144,28 @@
 							</aside>
 						</li>
 					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-static">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
 					<a name="getModda" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-static">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Modda<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.ModdaDefinition.html" class="tsd-signature-type">ModdaDefinition</a></li>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Modda<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol"> | </span><a href="../interfaces/_webda_core.ModdaDefinition.html" class="tsd-signature-type">ModdaDefinition</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Overrides <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#getModda">getModda</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#getModda">getModda</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
 									<p>Return the Modda definition if any</p>
 								</div>
 							</div>
-							<h4 class="tsd-returns-title">Returns <a href="../interfaces/_webda_core.ModdaDefinition.html" class="tsd-signature-type">ModdaDefinition</a></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span>
+								<span class="tsd-signature-symbol"> | </span>
+								<a href="../interfaces/_webda_core.ModdaDefinition.html" class="tsd-signature-type">ModdaDefinition</a>
+							</h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/queues/memoryqueue.ts:101</li>
+									<li>Defined in packages/core/src/services/service.ts:320</li>
 								</ul>
 							</aside>
 						</li>
@@ -1374,7 +1178,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Queue.html">Queue</a>.<a href="_webda_core.Queue.html#getSchema">getSchema</a></p>
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#getSchema">getSchema</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">

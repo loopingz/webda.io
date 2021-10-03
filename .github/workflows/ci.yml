@@ -46,6 +46,11 @@ jobs:
           MONGO_INITDB_ROOT_USERNAME: root
           MONGO_INITDB_ROOT_PASSWORD: webda.io
 
+      amqp:
+        image: rabbitmq
+        ports:
+          - 5672:5672
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2

@@ -82,6 +82,8 @@ class AclPolicyTest {
     this.model.__store = {
       save: async () => this.model
     };
+    let actions = AclModel.getActions();
+    assert.notStrictEqual(actions.acls, undefined);
     this._ctx.setHttpContext(new HttpContext("test.webda.io", "PUT", "/", undefined, undefined, { acl: "mine" }));
     await this.model._acls(this._ctx);
     // @ts-ignore

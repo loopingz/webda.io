@@ -46,7 +46,8 @@
     "reporter": [
       "html",
       "lcov",
-      "json"
+      "json",
+      "text"
     ],
     "exclude": [
       "**/*.spec.ts",

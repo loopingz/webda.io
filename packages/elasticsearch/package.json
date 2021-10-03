@@ -40,7 +40,8 @@
     "reporter": [
       "html",
       "lcov",
-      "json"
+      "json",
+      "text"
     ],
     "report-dir": "./reports",
     "exclude": [

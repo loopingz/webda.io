@@ -70,7 +70,8 @@
     "reporter": [
       "html",
       "lcov",
-      "json"
+      "json",
+      "text"
     ],
     "exclude": [
       "src/test.ts",

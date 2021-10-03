@@ -1,4 +1,4 @@
-import { Service, ServiceParameters } from "../services/service";
+import { ServiceParameters } from "../services/service";
 import {
   WaitDelayerDefinition,
   WaitDelayer,
@@ -6,6 +6,7 @@ import {
   CancelablePromise,
   CancelableLoopPromise
 } from "../utils/waiter";
+import { PubSubService } from "./pubsubservice";
 
 /**
  * Raw message from queue
@@ -61,7 +62,7 @@ export class QueueParameters extends ServiceParameters {
  *
  * @category CoreServices
  */
-abstract class Queue<T = any, K extends QueueParameters = QueueParameters> extends Service<K> {
+abstract class Queue<T = any, K extends QueueParameters = QueueParameters> extends PubSubService<T, K> {
   /**
    * Current timeout handler
    */
@@ -81,28 +82,9 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
   eventPrototype: new () => T;
 
   /**
-   * Send an event to the queue
-   * @param event
-   */
-  abstract sendMessage(event: T): Promise<void>;
-
-  /**
    * Receive one or several messages
    */
   abstract receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]>;
-
-  /**
-   * Unserialize into class
-   * @param data
-   * @param proto
-   * @returns
-   */
-  unserialize<L>(data: string, proto?: { new (): L }): L {
-    if (proto) {
-      return Object.assign(new proto(), JSON.parse(data));
-    }
-    return JSON.parse(data);
-  }
 
   /**
    * Delete one message based on its receipt

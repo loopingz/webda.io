@@ -1,0 +1,9 @@
+{
+  "services": {
+    "Webda/AMQPQueue": "lib/queue.js",
+    "Webda/AMQPPubSub": "lib/pubsub.js"
+  },
+  "models": {},
+  "deployers": {},
+  "schemas": {}
+}

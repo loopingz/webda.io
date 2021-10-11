@@ -80,15 +80,16 @@
         "transport": "ses"
       }
     },
+    "MemoryIdentsMapper": {
+      "type": "Webda/Mapper",
+      "source": "MemoryIdents",
+      "targetAttribute": "idents",
+      "target": "MemoryUsers",
+      "attribute": "_user",
+      "fields": "type,_lastUpdate",
+      "cascade": true
+    },
     "MemoryIdents": {
-      "map": {
-        "MemoryUsers": {
-          "key": "_user",
-          "target": "idents",
-          "fields": "type,_lastUpdate",
-          "cascade": true
-        }
-      },
       "index": ["type", "_lastUpdate"],
       "asyncDelete": true,
       "expose": {
@@ -103,19 +104,16 @@
       },
       "type": "MemoryStore"
     },
+    "IdentsMapper": {
+      "type": "Webda/Mapper",
+      "source": "Idents",
+      "targetAttribute": "idents",
+      "target": "Users",
+      "attribute": "_user",
+      "fields": "type,_lastUpdate,counter",
+      "cascade": true
+    },
     "Idents": {
-      "map": {
-        "Users": {
-          "key": "_user",
-          "target": "idents",
-          "fields": "type,_lastUpdate,counter",
-          "cascade": true
-        },
-        "notexisting": {
-          "key": "_test",
-          "target": "plops"
-        }
-      },
       "index": ["type", "_lastUpdate"],
       "asyncDelete": true,
       "expose": {
@@ -135,7 +133,7 @@
         "url": "/users"
       },
       "type": "FileStore",
-      "folder": "./test/data/users",
+      "folder": "./test/data/idents",
       "model": "Webda/User"
     },
     "Tasks": {

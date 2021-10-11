@@ -15,16 +15,17 @@
       "type": "Webda/ConsoleLogger",
       "logLevel": "INFO"
     },
+    "IdentsMapper": {
+      "type": "Webda/Mapper",
+      "source": "Idents",
+      "targetAttribute": "idents",
+      "target": "Users",
+      "attribute": "_user",
+      "fields": "type,_lastUpdate,counter",
+      "cascade": true
+    },
     "idents": {
       "index": ["type", "_lastUpdate"],
-      "map": {
-        "users": {
-          "key": "_user",
-          "target": "idents",
-          "fields": "type,_lastUpdate",
-          "cascade": true
-        }
-      },
       "expose": {
         "restrict": {
           "create": true,

@@ -5,7 +5,7 @@ import { suite, test } from "@testdeck/mocha";
 import { HttpContext } from "../utils/context";
 import { removeSync } from "fs-extra";
 import { existsSync } from "fs";
-import { UpdateConditionFailError } from "./store";
+import { StoreNotFoundError, UpdateConditionFailError } from "./store";
 import * as sinon from "sinon";
 
 @suite
@@ -28,6 +28,30 @@ class FileStoreTest extends StoreTest {
   @test
   async cov() {
     let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
+    let userStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("users");
+    let user = await userStore.save({});
+    let ident = await identStore.save({
+      _user: user.getUuid()
+    });
+    const stub = sinon.stub(identStore, "_get").callsFake(async () => user);
+    try {
+      let res = await identStore.get(user.getUuid());
+      assert.strictEqual(res, undefined);
+      await assert.rejects(
+        () =>
+          identStore.update({
+            uuid: user.getUuid(),
+            plop: true
+          }),
+        StoreNotFoundError
+      );
+      await user.refresh();
+      assert.strictEqual(user.plop, undefined);
+      await identStore.delete(user.getUuid());
+    } finally {
+      stub.restore();
+    }
+
     // Shoud return directly
     await identStore.incrementAttribute("test", "test", 0);
     removeSync(identStore.getParameters().folder);
@@ -37,22 +61,11 @@ class FileStoreTest extends StoreTest {
     identStore.computeParameters();
     existsSync(identStore.getParameters().folder);
 
-    let ident = new identStore._model();
+    ident = new identStore._model();
     identStore.initModel(ident);
     assert.notStrictEqual(ident.getUuid(), undefined);
 
     // Test guard-rails (seems hardly reachable so might be useless)
-    assert.strictEqual(identStore.getMapper([], "id"), -1);
-    assert.strictEqual(
-      // @ts-ignore
-      await identStore._handleUpdatedMap(ident, { key: "none", fields: [] }, undefined, undefined, {}),
-      undefined
-    );
-    assert.strictEqual(
-      // @ts-ignore
-      await identStore._handleDeletedMap(undefined, { target: "plop", fields: [] }, {}, undefined),
-      undefined
-    );
     assert.strictEqual(await identStore.handleIndex(undefined, { plop: true }), undefined);
 
     assert.throws(
@@ -66,13 +79,6 @@ class FileStoreTest extends StoreTest {
       UpdateConditionFailError
     );
     identStore.checkCollectionUpdateCondition(ident, "plops", undefined, 0, null);
-
-    // COV _handleUpdatedMapMapper case where the item collection were modified without webda control
-    // @ts-ignore - we cheat with a ident also mapping as user
-    ident.idents = [];
-    let stb = sinon.stub(identStore, "upsertItemToCollection").callsFake(async () => {});
-    await identStore._handleUpdatedMapMapper(ident, identStore.getParameters().map["Users"], ident, identStore, "plop");
-    assert.strictEqual(stb.getCall(0).args.length, 3);
   }
 
   @test

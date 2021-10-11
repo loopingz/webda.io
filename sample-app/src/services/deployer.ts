@@ -20,8 +20,7 @@ class CustomDeployer extends Deployer<DeployerResources> {
       uuid: "WebdaDemo/CustomDeployer",
       category: "deployers",
       label: "Fake deployer for demo purpose",
-      description: "",
-      logo: ""
+      description: ""
     };
   }
 }

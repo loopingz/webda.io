@@ -6,7 +6,7 @@ import * as path from "path";
 import { Readable } from "stream";
 import { WebdaError } from "..";
 import { CoreModel } from "../models/coremodel";
-import { MappingService, Store } from "../stores/store";
+import { EventStoreDelete, EventStoreDeleted, MappingService, Store } from "../stores/store";
 import { Context } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
@@ -196,6 +196,7 @@ export class BinaryParameters extends ServiceParameters {
     if (this.expose) {
       this.expose.restrict = this.expose.restrict || {};
     }
+    this.map ??= {};
   }
 }
 /**
@@ -340,13 +341,17 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
         map[prop]["-onerror"] = "NoStore";
         continue;
       }
-      if (typeof map[prop] === "string") {
-        reverseStore.addReverseMap(map[prop], this, true);
-      } else {
-        for (let i in map[prop]) {
-          reverseStore.addReverseMap(map[prop][i], this, true);
-        }
+      for (let i in map[prop]) {
+        reverseStore.addReverseMap(map[prop][i], this);
       }
+      // Cascade delete
+      reverseStore.on("Store.Deleted", async (evt: EventStoreDeleted) => {
+        let infos = [];
+        if (evt.object[map[prop]]) {
+          infos.push(...evt.object[map[prop]]);
+        }
+        await Promise.all(infos.map(info => this.cascadeDelete(info, evt.object.getUuid())));
+      });
     }
   }
 

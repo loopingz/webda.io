@@ -5,8 +5,19 @@ import { Context, CoreModel, ModelAction, User } from "../index";
  * Object that contains ACL to define its own permissions
  */
 class AclModel extends CoreModel {
+  /**
+   * Object creator
+   */
+  _creator: string;
+  /**
+   * Permissions on the object
+   */
   __acls: Map<string, string> = new Map<string, string>();
 
+  /**
+   * Add acls actions
+   * @returns
+   */
   static getActions(): { [key: string]: ModelAction } {
     return {
       ...super.getActions(),
@@ -16,14 +27,38 @@ class AclModel extends CoreModel {
     };
   }
 
+  /**
+   * Ensure creator has all permissions by default
+   */
+  async _onSave() {
+    await super._onSave();
+    this._creator = this.getContext().getCurrentUserId();
+    if (this.__acls.size === 0) {
+      this.__acls.set(this._creator, "all");
+    }
+  }
+
+  /**
+   * Return object ACLs
+   * @returns
+   */
   getAcls() {
     return this.__acls;
   }
 
+  /**
+   * Set object ACLs
+   * @param acls
+   */
   setAcls(acls: Map<string, string>) {
     this.__acls = acls;
   }
 
+  /**
+   * Manage the ACL REST api actions
+   * @param ctx
+   * @returns
+   */
   _acls(ctx: Context) {
     if (ctx.getHttpContext().getMethod() === "PUT") {
       return this._httpPutAcls(ctx);
@@ -32,10 +67,17 @@ class AclModel extends CoreModel {
     }
   }
 
+  /**
+   * GET
+   * @param ctx
+   */
   async _httpGetAcls(ctx: Context) {
     ctx.write(this.__acls);
   }
 
+  /**
+   *
+   */
   async _httpPutAcls(ctx: Context) {
     this.__acls = ctx.getRequestBody();
     await this.save();

@@ -21,8 +21,8 @@ abstract class StoreTest extends WebdaTest {
 
   async before() {
     await super.before();
-    await this.getIdentStore().__clean();
     await this.getUserStore().__clean();
+    await this.getIdentStore().__clean();
   }
 
   getModelClass() {

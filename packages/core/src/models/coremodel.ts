@@ -34,6 +34,8 @@ export interface CoreModelDefinition {
   new (): CoreModel;
   getActions(): { [key: string]: ModelAction };
   getUuidField(): string;
+  getLastUpdateField(): string;
+  getCreationField(): string;
 }
 
 /**
@@ -61,6 +63,10 @@ class CoreModel {
    */
   __class: any;
   /**
+   * Type name
+   */
+  __type: string;
+  /**
    * Object context
    *
    * @TJS-ignore
@@ -77,6 +83,7 @@ class CoreModel {
    * Creation date
    */
   _creationDate: Date;
+
   /**
    * Last update date
    */
@@ -137,6 +144,20 @@ class CoreModel {
   }
 
   /**
+   * Get the UUID property
+   */
+  static getLastUpdateField(): string {
+    return "_lastUpdate";
+  }
+
+  /**
+   * Get the UUID property
+   */
+  static getCreationField(): string {
+    return "_creationDate";
+  }
+
+  /**
    * Return if an object is attached to its store
    */
   isAttached() {
@@ -164,6 +185,7 @@ class CoreModel {
       }
       this[prop] = raw[prop];
     }
+    this.__type = this.__class.name;
 
     if (!this.getUuid()) {
       this.setUuid(this.generateUid(raw));
@@ -327,6 +349,7 @@ class CoreModel {
   toStoredJSON(stringify = false): any | string {
     let obj = this._toJSON(true);
     obj.__store = undefined;
+    obj.__type = this.__class.name;
     if (stringify) {
       return JSON.stringify(obj, (key, value) => {
         if (CoreModel.jsonExcludes.indexOf(key) >= 0) {

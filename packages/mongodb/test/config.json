@@ -4,17 +4,18 @@
         "url": "mongodb://root:webda.io@localhost:37017/"
     },
     "services": {
+      "IdentsMapper": {
+        "type": "Webda/Mapper",
+        "source": "mongoidents",
+        "targetAttribute": "idents",
+        "target": "mongousers",
+        "attribute": "_user",
+        "fields": "type,_lastUpdate,counter",
+        "cascade": true
+      },
       "mongoidents": {
         "index": ["type", "_lastUpdate"],
         "asyncDelete": true,
-        "map": {
-          "mongousers": {
-            "key": "_user",
-            "target": "idents",
-            "fields": "type,_lastUpdate",
-            "cascade": true
-          }
-        },
         "expose": {
           "restrict": {
             "create": true,

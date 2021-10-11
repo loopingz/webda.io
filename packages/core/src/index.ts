@@ -41,6 +41,7 @@ export * from "./services/version";
 export * from "./stores/file";
 export * from "./stores/memory";
 export * from "./stores/store";
+export * from "./stores/mapper";
 // Utils
 export * from "./utils/abstractdeployer";
 export * from "./utils/context";

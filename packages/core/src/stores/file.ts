@@ -195,8 +195,11 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   async _get(uid: string, raiseIfNotFound: boolean = false): Promise<T> {
     let res = await this.exists(uid);
     if (res) {
-      let data = fs.readFileSync(this.file(uid));
-      return this.initModel(JSON.parse(data.toString()));
+      let data = JSON.parse(fs.readFileSync(this.file(uid)).toString());
+      if (data.__type !== this._model.name) {
+        return undefined;
+      }
+      return this.initModel(data);
     } else if (raiseIfNotFound) {
       throw new StoreNotFoundError(uid, this.getName());
     }

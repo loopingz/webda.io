@@ -35,7 +35,8 @@ import {
   User,
   WebdaError,
   VersionService,
-  FileQueue
+  FileQueue,
+  MapperService
 } from "./index";
 import { Deployment } from "./models/deployment";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
@@ -235,7 +236,8 @@ export class Application {
     "webda/fileconfigurationservice": FileConfigurationService,
     "webda/kubernetesconfigurationservice": KubernetesConfigurationService,
     "webda/consolelogger": ConsoleLoggerService,
-    "webda/memorylogger": MemoryLoggerService
+    "webda/memorylogger": MemoryLoggerService,
+    "webda/mapper": MapperService
   };
 
   /**
@@ -1004,7 +1006,7 @@ export class Application {
       if (fs.existsSync(absPath) && fs.lstatSync(absPath).isDirectory()) {
         absPath += "/**/*.js";
       }
-      glob.sync(absPath).forEach(this.loadJavascriptFile.bind(this));
+      glob.sync(absPath).forEach(f => this.loadJavascriptFile(f));
     });
     let moduleFile = path.join(this.appPath, "webda.module.json");
     let current = "";

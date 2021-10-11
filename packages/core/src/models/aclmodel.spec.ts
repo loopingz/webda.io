@@ -94,4 +94,11 @@ class AclPolicyTest {
       acl: "mine"
     });
   }
+
+  @test async onSave() {
+    this.model.setContext(this._ctx);
+    await this.model._onSave();
+    assert.deepStrictEqual(this.model.__acls, new Map<string, string>([["user-uid", "all"]]));
+    assert.strictEqual(this.model._creator, "user-uid");
+  }
 }

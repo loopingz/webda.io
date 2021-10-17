@@ -240,6 +240,11 @@ export default class WebdaConsole {
       });
     };
     // Typescript mode -> launch compiler and update after compile is finished
+    fs.watch(this.app.getAppPath("webda.config.json"), launchServe);
+    if (argv.deployment) {
+      fs.watch(this.app.getAppPath(`deployments/${argv.deployment}.json`), launchServe);
+    }
+    
     /* istanbul ignore else */
     if (this.app.isTypescript()) {
       this.typescriptWatch(WebdaConsole.getTransform(launchServe));

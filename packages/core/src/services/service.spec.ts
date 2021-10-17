@@ -64,4 +64,27 @@ class ServiceTest extends WebdaTest {
     let service = new FakeService(this.webda, "plop", { type: "FakeService" });
     assert.strictEqual(service.toString(), "FakeService[plop]");
   }
+
+  /**
+   * Ensure a message is displayed if listener is long
+   * Ensure error in listener are catched
+   */
+  @test
+  async longListener() {
+    let service = new FakeService(this.webda, "plop", {});
+    let logs = [];
+    service.log = (...args) => {
+      logs.push(args);
+    };
+    service.on("test", async () => {
+      await new Promise(resolve => setTimeout(resolve, 140));
+      throw new Error("My error");
+    });
+    await service.emitSync("test", undefined);
+    assert.strictEqual(logs.length, 2);
+    assert.deepStrictEqual(
+      logs.map(l => `${l[0]}_${l[1]}`),
+      ["ERROR_Listener error", "INFO_Long listener"]
+    );
+  }
 }

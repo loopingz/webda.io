@@ -280,19 +280,52 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
   }
 
   /**
+   * Display a message if the listener takes too long
+   * @param start
+   */
+  elapse(start: number) {
+    let elapsed = Date.now() - start;
+    if (elapsed > 100) {
+      this.log("INFO", "Long listener", elapsed, "ms");
+    }
+  }
+
+  /**
    * Emit the event with data and wait for Promise to finish if listener returned a Promise
    */
   emitSync(event, data): Promise<any[]> {
-    var result;
     var promises = [];
-    var listeners = this.listeners(event);
-    for (var i in listeners) {
-      result = listeners[i](data);
+    for (let listener of this.listeners(event)) {
+      let start = Date.now();
+      let result = listener(data);
       if (result instanceof Promise) {
-        promises.push(result);
+        promises.push(
+          result
+            .catch(err => {
+              this.log("ERROR", "Listener error", err);
+            })
+            .then(() => {
+              this.elapse(start);
+            })
+        );
+      } else {
+        this.elapse(start);
       }
     }
     return Promise.all(promises);
+  }
+
+  /**
+   * Override to allow capturing long listeners
+   * @override
+   */
+  emit(event: symbol | string, ...args: any[]): boolean {
+    for (let listener of this.listeners(event)) {
+      let start = Date.now();
+      listener(...args);
+      this.elapse(start);
+    }
+    return true;
   }
 
   /**

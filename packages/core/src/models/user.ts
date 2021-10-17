@@ -1,4 +1,5 @@
 "use strict";
+import { Ident } from "./ident";
 import { OwnerModel } from "./ownermodel";
 
 /**
@@ -25,15 +26,18 @@ class User extends OwnerModel {
   /**
    * Idents used by the user
    */
-  private _idents: any[] = [];
+  private _idents: Ident[] = [];
 
-  //getIdents(): CoreModelDefinition
   getGroups(): string[] {
     return this._groups;
   }
 
   getRoles(): string[] {
     return this._roles;
+  }
+
+  getIdents(): Ident[] {
+    return this._idents;
   }
 
   addRole(role: string) {
@@ -63,7 +67,7 @@ class User extends OwnerModel {
   }
 
   inGroup(group: string) {
-    if (group === "all") {
+    if (group === "all" || group === this.uuid) {
       return true;
     }
     return this._groups.indexOf(group) >= 0;

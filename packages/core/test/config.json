@@ -80,6 +80,15 @@
         "transport": "ses"
       }
     },
+    "MemoryIdentsIndexer": {
+      "type": "Webda/Aggregator",
+      "source": "MemoryIdents",
+      "target": "MemoryAggregators",
+      "fields": "type"
+    },
+    "MemoryAggregators": {
+      "type": "MemoryStore"
+    },
     "MemoryIdentsMapper": {
       "type": "Webda/Mapper",
       "source": "MemoryIdents",
@@ -90,7 +99,6 @@
       "cascade": true
     },
     "MemoryIdents": {
-      "index": ["type", "_lastUpdate"],
       "asyncDelete": true,
       "expose": {
         "url": "/memory/idents"
@@ -113,8 +121,14 @@
       "fields": "type,_lastUpdate,counter",
       "cascade": true
     },
+    "IdentsIndexer": {
+      "type": "Webda/Aggregator",
+      "source": "Idents",
+      "target": "MemoryAggregators",
+      "fields": "type,_lastUpdate",
+      "key": "idents-index"
+    },
     "Idents": {
-      "index": ["type", "_lastUpdate"],
       "asyncDelete": true,
       "expose": {
         "restrict": {

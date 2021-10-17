@@ -229,7 +229,7 @@ class CoreTest extends WebdaTest {
   @test
   getServicesImplementations() {
     let moddas = this.webda.getServicesImplementations();
-    assert.strictEqual(Object.keys(moddas).length, 23);
+    assert.strictEqual(Object.keys(moddas).length, 26);
   }
 
   @test
@@ -240,12 +240,12 @@ class CoreTest extends WebdaTest {
   @test
   getStores() {
     let moddas = this.webda.getStores();
-    assert.strictEqual(Object.keys(moddas).length, 5);
+    assert.strictEqual(Object.keys(moddas).length, 6);
   }
   @test
   getServicesImplementationsWithType() {
     let stores = this.webda.getServicesImplementations(Store);
-    assert.strictEqual(Object.keys(stores).length, 5);
+    assert.strictEqual(Object.keys(stores).length, 6);
   }
 
   @test

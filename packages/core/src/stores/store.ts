@@ -280,29 +280,6 @@ export interface EventStoreWebDelete extends EventWithContext {
   store: Store;
 }
 
-/**
- * Mapper parameters
- */
-export interface MapStoreParameter {
-  /**
-   * Key on the current model which holds the collection
-   */
-  key: string;
-  /**
-   * Other fields to duplicate inside the model
-   */
-  fields?: string | string[];
-  /**
-   * Delete if target object is delete
-   * @default false
-   */
-  cascade?: boolean;
-  /**
-   * Field to target on the object
-   */
-  target: string;
-}
-
 export type ExposeParameters = {
   /**
    * URL endpoint to use to expose REST Resources API
@@ -335,8 +312,6 @@ export type ExposeParameters = {
   };
 };
 
-type StoreMaps = { [key: string]: MapStoreParameter };
-
 /**
  * Store parameter
  */
@@ -348,16 +323,6 @@ export class StoreParameters extends ServiceParameters {
    */
   model?: string;
   /**
-   * Create an index object that link all other objects uuid
-   */
-  index?: string[];
-  /**
-   * You can define a Map between different Stores
-   *
-   * {@link Pages/pages/Store}
-   */
-  map: StoreMaps;
-  /**
    * async delete
    */
   asyncDelete: boolean;
@@ -365,6 +330,13 @@ export class StoreParameters extends ServiceParameters {
    * Expose the service to an urls
    */
   expose?: ExposeParameters | boolean | string;
+  /**
+   * Allow to load object that does not have the type data
+   *
+   * @deprecated 2.0
+   * @default true
+   */
+  strict?: boolean;
 
   constructor(params: any, service: Service<any>) {
     super(params);
@@ -384,14 +356,13 @@ export class StoreParameters extends ServiceParameters {
       expose.restrict = expose.restrict || {};
       this.expose = expose;
     }
-    this.map ??= {};
-    // Init map the right way
-    for (let i in this.map) {
-      this.map[i].fields ??= [];
-      if (typeof this.map[i].fields === "string") {
-        this.map[i].fields = (<string>this.map[i].fields).split(",");
-      }
+    if (params.map) {
+      throw new Error("Deprecated map usage, use a MapperService");
     }
+    if (params.index) {
+      throw new Error("Deprecated index usage, use an AggregatorService");
+    }
+    this.strict ??= true;
   }
 }
 
@@ -498,16 +469,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
 
   getObject(uid: string): Promise<CoreModel> {
     return this._get(uid);
-  }
-  /**
-   * Create index if not existing
-   *
-   * @inheritdoc
-   */
-  async init(): Promise<void> {
-    if (this.parameters.index) {
-      await this.createIndex();
-    }
   }
 
   /**
@@ -758,17 +719,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     });
   }
 
-  async createIndex() {
-    if (!this.parameters.index || (await this.exists("index"))) {
-      return;
-    }
-    let index: any = {};
-    index[this._uuidField] = "index";
-    index[this._lastUpdateField] = new Date();
-    index.__type = this._model.name;
-    await this.save(index);
-  }
-
   /**
    * Save an object
    *
@@ -802,10 +752,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     });
     await object._onSaved();
 
-    // Handle index
-    if (this.parameters.index && object.getUuid() !== "index" && object.getUuid()) {
-      await this.handleIndex(object, "created");
-    }
     return object;
   }
 
@@ -919,14 +865,13 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
 
     object[this._lastUpdateField] = new Date();
     let load = await this._get(object[this._uuidField], true);
-    if (load.__type !== this._model.name) {
+    if (load.__type !== this._model.name && this.parameters.strict) {
       this.log("WARN", `Object '${object[this._uuidField]}' was not created by this store`);
       throw new StoreNotFoundError(object[this._uuidField], this.getName());
     }
     loaded = this.initModel(load);
-    // Handle index
-    if (this.parameters.index && loaded[this._uuidField] !== "index" && loaded[this._uuidField]) {
-      await this.handleIndex(loaded, object);
+    if (object instanceof CoreModel) {
+      loaded.setContext(object.getContext());
     }
     await this.emitSync(`Store.${partialEvent}Update`, <EventStoreUpdate | EventStorePatchUpdate>{
       object: loaded,
@@ -978,33 +923,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     });
   }
 
-  async handleIndex(object: CoreModel, updates: MapUpdates) {
-    let mapUpdates = {};
-    if (typeof updates === "object") {
-      let toUpdate = false;
-      for (let i in updates) {
-        if (this.parameters.index.indexOf(i) >= 0) {
-          toUpdate = true;
-        }
-      }
-      if (!toUpdate) {
-        return;
-      }
-    } else if (updates === "deleted") {
-      await this.removeAttribute("index", object[this._uuidField]);
-      return;
-    } else if (updates === "created") {
-      updates = object;
-    }
-    let mapper = {};
-    this.parameters.index.forEach(id => {
-      mapper[id] = updates[id];
-    });
-    mapUpdates[object[this._uuidField]] = mapper;
-    mapUpdates[this._lastUpdateField] = new Date();
-    await this._patch(mapUpdates, "index");
-  }
-
   /**
    * Cascade delete a related object
    *
@@ -1049,7 +967,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       if (to_delete === undefined) {
         return;
       }
-      if (to_delete.__type !== this._model.name) {
+      if (to_delete.__type !== this._model.name && this.parameters.strict) {
         this.log("WARN", `Object '${uid}' was not created by this store`);
         return;
       }
@@ -1068,11 +986,6 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       store: this
     });
     await to_delete._onDelete();
-
-    // Handle index
-    if (this.parameters.index && to_delete.getUuid() !== "index" && to_delete.getUuid()) {
-      await this.handleIndex(to_delete, "deleted");
-    }
 
     // If async we just tag the object as deleted
     if (this.parameters.asyncDelete && !sync) {
@@ -1140,7 +1053,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     if (!object) {
       return undefined;
     }
-    if (object.__type !== this._model.name) {
+    if (object.__type !== this._model.name && this.parameters.strict) {
       this.log("WARN", `Object '${uid}' was not created by this store`);
       return undefined;
     }

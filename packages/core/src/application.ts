@@ -36,7 +36,8 @@ import {
   WebdaError,
   VersionService,
   FileQueue,
-  MapperService
+  MapperService,
+  AggregatorService
 } from "./index";
 import { Deployment } from "./models/deployment";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
@@ -237,7 +238,8 @@ export class Application {
     "webda/kubernetesconfigurationservice": KubernetesConfigurationService,
     "webda/consolelogger": ConsoleLoggerService,
     "webda/memorylogger": MemoryLoggerService,
-    "webda/mapper": MapperService
+    "webda/mapper": MapperService,
+    "webda/aggregator": AggregatorService
   };
 
   /**

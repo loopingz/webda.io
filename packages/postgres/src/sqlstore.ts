@@ -143,6 +143,5 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
 
   async __clean() {
     await this.query(`DELETE FROM ${this.parameters.table}`);
-    await this.createIndex();
   }
 }

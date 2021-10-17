@@ -6,6 +6,7 @@ import { suite, test } from "@testdeck/mocha";
 import * as Idents from "../../test/models/ident";
 import { StoreNotFoundError, UpdateConditionFailError } from "./store";
 import { v4 as uuidv4 } from "uuid";
+import { CoreModel } from "../models/coremodel";
 
 @suite
 class StoreParametersTest {
@@ -13,16 +14,32 @@ class StoreParametersTest {
   cov() {
     let params = new StoreParameters({ expose: "/plop", lastUpdateField: "bz", creationDateField: "c" }, undefined);
     assert.deepStrictEqual(params.expose, { url: "/plop", restrict: {} });
+    assert.throws(() => new StoreParameters({ map: {} }, undefined), Error);
+    assert.throws(() => new StoreParameters({ index: [] }, undefined), Error);
   }
 }
 abstract class StoreTest extends WebdaTest {
   abstract getIdentStore(): Store<any>;
   abstract getUserStore(): Store<any>;
 
+  /**
+   * By default no testing index
+   * @returns
+   */
+  async getIndex(): Promise<CoreModel> {
+    return undefined;
+  }
+
+  /**
+   * Recreate index if needed
+   */
+  async recreateIndex(): Promise<void> {}
+
   async before() {
     await super.before();
     await this.getUserStore().__clean();
     await this.getIdentStore().__clean();
+    await this.recreateIndex();
   }
 
   getModelClass() {
@@ -71,9 +88,12 @@ abstract class StoreTest extends WebdaTest {
     assert.notStrictEqual(user.idents, undefined);
     assert.strictEqual(user.idents.length, 1);
     // Retrieve index to verify it is in it too
-    let index = await identStore.get("index");
-    assert.notStrictEqual(index[ident1.uuid], undefined);
-    assert.strictEqual(index[ident1.uuid].type, "facebook");
+    let index = await this.getIndex();
+    // Do not force index test for store
+    if (index) {
+      assert.notStrictEqual(index[ident1.uuid], undefined);
+      assert.strictEqual(index[ident1.uuid].type, "facebook");
+    }
     let lastUpdate = user.idents[0]._lastUpdate;
     await this.sleep(10);
     await identStore.incrementAttribute(ident1.uuid, "counter", 1);
@@ -118,8 +138,10 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(user.idents.length, 2);
 
     // Check index
-    await index.refresh();
-    assert.notStrictEqual(index[ident2.uuid], undefined);
+    if (index) {
+      await index.refresh();
+      assert.notStrictEqual(index[ident2.uuid], undefined);
+    }
 
     ident2.type = "google2";
     // Update ident2 to check mapper update
@@ -131,8 +153,10 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(res._user, user1);
 
     // Check index
-    await index.refresh();
-    assert.strictEqual(index[ident2.uuid].type, "google2");
+    if (index) {
+      await index.refresh();
+      assert.strictEqual(index[ident2.uuid].type, "google2");
+    }
 
     user = await userStore.get(user1);
     assert.strictEqual(user.idents.length, 2);
@@ -189,16 +213,18 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(ident.__deleted, true);
 
     // Check index
-    await index.refresh();
-    assert.strictEqual(index[ident2.uuid], undefined);
-    assert.strictEqual(index[ident1.uuid], undefined);
+    if (index) {
+      await index.refresh();
+      assert.strictEqual(index[ident2.uuid], undefined);
+      assert.strictEqual(index[ident1.uuid], undefined);
+    }
 
-    assert.strictEqual(eventFired, 13);
+    assert.strictEqual(eventFired, 9);
     // Force sync delete - overriding the asyncDelete parameter
     await identStore.forceDelete(ident2.uuid);
     ident = await identStore.get(ident2.uuid);
     assert.strictEqual(ident, undefined);
-    assert.strictEqual(eventFired, 15);
+    assert.strictEqual(eventFired, 11);
   }
 
   @test
@@ -403,7 +429,7 @@ abstract class StoreTest extends WebdaTest {
     // Check DELETE
     eventFired = 0;
     await identStore.forceDelete(ident1.uuid);
-    assert.strictEqual(eventFired, 3);
+    assert.strictEqual(eventFired, 2);
     eventFired = 0;
     ident = await identStore.get(ident1.uuid);
     assert.strictEqual(ident, undefined);

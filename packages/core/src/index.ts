@@ -38,6 +38,7 @@ export * from "./services/resource";
 export * from "./services/service";
 export * from "./services/version";
 // Stores
+export * from "./stores/aggregator";
 export * from "./stores/file";
 export * from "./stores/memory";
 export * from "./stores/store";

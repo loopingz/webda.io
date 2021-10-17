@@ -1,3 +1,4 @@
+import { ModdaDefinition } from "../core";
 import { CoreModel } from "../models/coremodel";
 import { Inject, Service, ServiceParameters } from "../services/service";
 import { EventStoreDeleted, EventStorePartialUpdated, EventStoreSaved, EventStoreUpdate, Store } from "./store";
@@ -12,7 +13,7 @@ export interface Mapper {
 /**
  * Mapper configuration
  */
-class MapperParameters extends ServiceParameters {
+export class MapperParameters extends ServiceParameters {
   /**
    * Field to duplicate
    */
@@ -26,6 +27,12 @@ class MapperParameters extends ServiceParameters {
    */
   target: string;
   /**
+   * Async
+   *
+   * @default false
+   */
+  async: boolean;
+  /**
    * Attribute to use for link
    *
    * Depending on the type
@@ -38,6 +45,9 @@ class MapperParameters extends ServiceParameters {
    * The object will contain a Mapper
    */
   targetAttribute: string;
+  /**
+   * Delete source if target object is deleted
+   */
   cascade: boolean;
 
   constructor(params: any) {
@@ -60,14 +70,21 @@ export default class MapperService<T extends MapperParameters = MapperParameters
   @Inject("params:source")
   sourceService: Store;
 
+  /**
+   * @override
+   */
   loadParameters(params: any) {
     return new MapperParameters(params);
   }
 
+  /**
+   * @override
+   */
   resolve() {
     super.resolve();
     this.targetStore.addReverseMap(this.parameters.targetAttribute, this.sourceService);
-    this.sourceService.on("Store.PartialUpdated", async (evt: EventStorePartialUpdated) => {
+    const method = this.parameters.async ? "onAsync" : "on";
+    this.sourceService[method]("Store.PartialUpdated", async (evt: EventStorePartialUpdated) => {
       let prop;
       if (evt.partial_update.increment) {
         prop = evt.partial_update.increment.property;
@@ -78,21 +95,21 @@ export default class MapperService<T extends MapperParameters = MapperParameters
       }
       await this._handleMapFromPartial(evt.object_id, evt.updateDate, prop);
     });
-    this.sourceService.on("Store.Saved", async (evt: EventStoreSaved) => {
+    this.sourceService[method]("Store.Saved", async (evt: EventStoreSaved) => {
       await this.handleMap(evt.object, "created");
     });
-    this.sourceService.on("Store.Update", async (evt: EventStoreUpdate) => {
+    this.sourceService[method]("Store.Update", async (evt: EventStoreUpdate) => {
       await this.handleMap(evt.object, evt.update);
     });
-    this.sourceService.on("Store.PatchUpdate", async (evt: EventStoreUpdate) => {
+    this.sourceService[method]("Store.PatchUpdate", async (evt: EventStoreUpdate) => {
       await this.handleMap(evt.object, evt.update);
     });
-    this.sourceService.on("Store.Delete", async (evt: EventStoreDeleted) => {
+    this.sourceService[method]("Store.Delete", async (evt: EventStoreDeleted) => {
       await this.handleMap(evt.object, "deleted");
     });
     // Cascade delete when target is destroyed
     if (this.parameters.cascade) {
-      this.targetStore.on("Store.Deleted", async (evt: EventStoreDeleted) => {
+      this.targetStore[method]("Store.Deleted", async (evt: EventStoreDeleted) => {
         let maps = evt.object[this.parameters.targetAttribute];
         if (!maps) {
           return;
@@ -142,6 +159,14 @@ export default class MapperService<T extends MapperParameters = MapperParameters
     return [mapper, found];
   }
 
+  /**
+   * Update a mapper after source object was modified
+   *
+   * @param source
+   * @param target
+   * @param mapper
+   * @returns
+   */
   async _handleUpdatedMap(source: CoreModel, target: CoreModel, updates: any) {
     let [mapper, found] = this.createMapper(source, updates);
     if (!found) {
@@ -176,6 +201,14 @@ export default class MapperService<T extends MapperParameters = MapperParameters
     }
   }
 
+  /**
+   * Update a mapper after source object was modified without change in target
+   *
+   * @param source
+   * @param target
+   * @param mapper
+   * @returns
+   */
   _handleUpdatedMapMapper(source: CoreModel, target: CoreModel, mapper: Mapper) {
     // Remove old reference
     let i = this.getMapper(target[this.parameters.targetAttribute], source.getUuid());
@@ -194,33 +227,60 @@ export default class MapperService<T extends MapperParameters = MapperParameters
     );
   }
 
-  async _handleDeletedMap(object: CoreModel, mapped: CoreModel) {
+  /**
+   * Remove the mapper for a deleted object
+   *
+   * @param source
+   * @param target
+   * @returns
+   */
+  async _handleDeletedMap(source: CoreModel, target: CoreModel) {
     // Remove from the collection
-    if (mapped[this.parameters.targetAttribute] === undefined) {
+    if (target[this.parameters.targetAttribute] === undefined) {
       return;
     }
-    let i = this.getMapper(mapped[this.parameters.targetAttribute], object.getUuid());
+    let i = this.getMapper(target[this.parameters.targetAttribute], source.getUuid());
     if (i >= 0) {
       return this.targetStore.deleteItemFromCollection(
-        mapped.getUuid(),
+        target.getUuid(),
         this.parameters.targetAttribute,
         i,
-        object.getUuid(),
+        source.getUuid(),
         "uuid"
       );
     }
   }
 
-  async _handleCreatedMap(object: CoreModel, mapped: CoreModel) {
+  /**
+   * Add the mapper for a newly created object
+   *
+   * @param source
+   * @param target
+   * @returns
+   */
+  async _handleCreatedMap(source: CoreModel, target: CoreModel) {
     // Add to the object
-    let [mapper] = this.createMapper(object, {});
-    return this.targetStore.upsertItemToCollection(mapped.getUuid(), this.parameters.targetAttribute, mapper);
+    let [mapper] = this.createMapper(source, {});
+    return this.targetStore.upsertItemToCollection(target.getUuid(), this.parameters.targetAttribute, mapper);
   }
 
+  /**
+   * Return true if property belongs to the mapped properties
+   *
+   * @param property
+   * @returns
+   */
   isMapped(property: string): boolean {
     return this.parameters.fields.includes(property);
   }
 
+  /**
+   * Handle the map from a partial update
+   *
+   * @param uid
+   * @param updateDate
+   * @param prop
+   */
   async _handleMapFromPartial(uid: string, updateDate: Date, prop: string = undefined) {
     if (this.isMapped(prop) || this.isMapped(this.sourceService.getLastUpdateField())) {
       // Not optimal need to reload the object
@@ -246,10 +306,6 @@ export default class MapperService<T extends MapperParameters = MapperParameters
    * @returns
    */
   async handleMap(object: CoreModel, updates: MapUpdates) {
-    // Do not process index for now
-    if (object.getUuid() === "index") {
-      return;
-    }
     let mapped = await this.targetStore.get(object[this.parameters.attribute] || updates[this.parameters.attribute]);
     if (mapped === undefined) {
       return;
@@ -264,14 +320,14 @@ export default class MapperService<T extends MapperParameters = MapperParameters
     }
   }
   /**
-   * Recompute the whole
+   * Recompute the whole mappers
    */
   async recompute() {}
 
   /**
    * Override
    */
-  static getModda() {
+  static getModda(): ModdaDefinition {
     return {
       uuid: "Webda/Mapper",
       label: "Mapper",

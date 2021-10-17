@@ -64,14 +64,6 @@
           "type": "Test/Mailer"
         },
         "MemoryIdents": {
-          "map": {
-            "MemoryUsers": {
-              "key": "user",
-              "target": "idents",
-              "fields": "type",
-              "cascade": true
-            }
-          },
           "asyncDelete": true,
           "expose": {
             "restrict": {
@@ -90,14 +82,6 @@
           "type": "MemoryStore"
         },
         "Idents": {
-          "map": {
-            "Users": {
-              "key": "user",
-              "target": "idents",
-              "fields": "type",
-              "cascade": true
-            }
-          },
           "asyncDelete": true,
           "expose": {
             "restrict": {

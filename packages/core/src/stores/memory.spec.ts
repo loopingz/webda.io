@@ -1,5 +1,5 @@
 import { StoreTest } from "./store.spec";
-import { CoreModel, Store, MemoryStore } from "../index";
+import { CoreModel, Store, MemoryStore, AggregatorService } from "../index";
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { HttpContext } from "../utils/context";
@@ -20,6 +20,16 @@ class MemoryStoreTest extends StoreTest {
 
   getUserStore(): Store<any> {
     return <Store<any>>this.getService("MemoryUsers");
+  }
+
+  async getIndex(): Promise<CoreModel> {
+    return this.getService<Store>("memoryaggregators").get("index");
+  }
+
+  async recreateIndex() {
+    let store = this.getService<Store>("memoryaggregators");
+    await store.__clean();
+    await this.getService<AggregatorService>("memoryidentsindexer").createAggregate();
   }
 
   @test async deleteAsyncHttp() {

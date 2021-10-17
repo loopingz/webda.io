@@ -136,9 +136,6 @@ class MemoryStore<T extends CoreModel, K extends StoreParameters = StoreParamete
    */
   async __clean() {
     this.storage = {};
-    if (this.parameters.index) {
-      await this.createIndex();
-    }
   }
 
   /**

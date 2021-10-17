@@ -196,7 +196,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
     let res = await this.exists(uid);
     if (res) {
       let data = JSON.parse(fs.readFileSync(this.file(uid)).toString());
-      if (data.__type !== this._model.name) {
+      if (data.__type !== this._model.name && this.parameters.strict) {
         return undefined;
       }
       return this.initModel(data);
@@ -224,9 +224,6 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   async __clean(): Promise<void> {
     // This is only during test
     require("fs-extra").emptyDirSync(this.parameters.folder);
-    if (this.parameters.index) {
-      await this.createIndex();
-    }
   }
 
   /**

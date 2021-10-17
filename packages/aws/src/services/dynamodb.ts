@@ -543,7 +543,6 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
       promises.push(this._delete(result.Items[i].uuid));
     }
     await Promise.all(promises);
-    await this.createIndex();
   }
 
   /**

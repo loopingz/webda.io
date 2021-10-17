@@ -32,4 +32,10 @@ class UserTest {
     let user: User = new User();
     user.setPassword("bouzouf");
   }
+
+  @test
+  idents() {
+    let user: User = new User();
+    assert.deepStrictEqual(user.getIdents(), []);
+  }
 }

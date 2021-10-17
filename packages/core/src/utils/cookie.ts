@@ -194,11 +194,23 @@ class SessionCookie extends SecureCookie {
     delete this.userId;
   }
 
+  /**
+   * Login a user
+   *
+   * If using an Authentication Service use the `login` method of the service instead
+   * It will keep the right event to be emitted
+   *
+   * @param userId
+   * @param identUsed
+   */
   login(userId, identUsed) {
     this.userId = userId;
     this.identUsed = identUsed;
   }
 
+  /**
+   * @returns true if a user id is known
+   */
   isLogged() {
     return this.userId !== undefined;
   }

@@ -335,11 +335,6 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
   async __clean() {
     await this._connect();
     await this._collection.deleteMany(undefined);
-    if (this.parameters.index) {
-      let index = { uuid: "index" };
-      index[this._lastUpdateField] = new Date().toString();
-      await this.save(index);
-    }
   }
 
   /**

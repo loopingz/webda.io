@@ -7,6 +7,7 @@ import { removeSync } from "fs-extra";
 import { existsSync } from "fs";
 import { StoreNotFoundError, UpdateConditionFailError } from "./store";
 import * as sinon from "sinon";
+import AggregatorService from "./aggregator";
 
 @suite
 class FileStoreTest extends StoreTest {
@@ -25,6 +26,16 @@ class FileStoreTest extends StoreTest {
     return store;
   }
 
+  async getIndex(): Promise<CoreModel> {
+    return this.getService<Store>("memoryaggregators").get("idents-index");
+  }
+
+  async recreateIndex() {
+    let store = this.getService<Store>("memoryaggregators");
+    await store.__clean();
+    await this.getService<AggregatorService>("identsindexer").createAggregate();
+  }
+
   @test
   async cov() {
     let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
@@ -33,9 +44,11 @@ class FileStoreTest extends StoreTest {
     let ident = await identStore.save({
       _user: user.getUuid()
     });
+    let res = await identStore.get(user.getUuid());
+    assert.strictEqual(res, undefined);
     const stub = sinon.stub(identStore, "_get").callsFake(async () => user);
     try {
-      let res = await identStore.get(user.getUuid());
+      res = await identStore.get(user.getUuid());
       assert.strictEqual(res, undefined);
       await assert.rejects(
         () =>
@@ -52,6 +65,7 @@ class FileStoreTest extends StoreTest {
       stub.restore();
     }
 
+    await identStore._find(undefined, undefined, undefined);
     // Shoud return directly
     await identStore.incrementAttribute("test", "test", 0);
     removeSync(identStore.getParameters().folder);
@@ -66,8 +80,6 @@ class FileStoreTest extends StoreTest {
     assert.notStrictEqual(ident.getUuid(), undefined);
 
     // Test guard-rails (seems hardly reachable so might be useless)
-    assert.strictEqual(await identStore.handleIndex(undefined, { plop: true }), undefined);
-
     assert.throws(
       () => identStore.checkCollectionUpdateCondition(ident, "plops", undefined, 1, null),
       UpdateConditionFailError

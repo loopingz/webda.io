@@ -200,7 +200,7 @@ export default class WebdaConsole {
       args.push("--logLevel");
       args.push("TRACE");
       args.push("--logFormat");
-      args.push("%(l)s|%(m)s");
+      args.push("#W# %(l)s|%(m)s");
       args.push("--notty");
       args.push("--devMode");
       let webdaConsole = this;
@@ -214,18 +214,21 @@ export default class WebdaConsole {
               line = line.replace(/\x1B\[(;?\d{1,3})+[mGK]/g, "");
               if (line.indexOf("Server running at") >= 0) {
                 webdaConsole.setDebuggerStatus(DebuggerStatus.Serving);
-                webdaConsole.logger.logTitle("Webda Debug " + line);
+                webdaConsole.logger.logTitle("Webda Debug " + line.substr(10));
                 return;
               }
-              if (line.length < 4) return;
-              let lvl = line.substr(0, 5).trim();
+              let lvl: WorkerLogLevel = "INFO";
+              if (line.startsWith("#W# ")) {
+                lvl = line.substr(4, 9).trim();
+                line = line.substr(10);
+              }
               if (argv.logLevel) {
                 // Should compare the loglevel
                 if (!LogFilter(lvl, <any>argv.logLevel)) {
                   return;
                 }
               }
-              webdaConsole.output(line.substr(6));
+              webdaConsole.output(line);
             });
           callback();
         }

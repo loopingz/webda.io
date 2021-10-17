@@ -66,8 +66,8 @@ export default class AMQPPubSubService<
   /**
    * @override
    */
-  async sendMessage(event: T): Promise<void> {
-    await this.channel.publish(this.parameters.channel, "", Buffer.from(JSONUtils.stringify(event)));
+  async sendMessage(event: T, routingKey: string = ""): Promise<void> {
+    await this.channel.publish(this.parameters.channel, routingKey, Buffer.from(JSONUtils.stringify(event)));
   }
 
   /**

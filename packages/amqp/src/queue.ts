@@ -1,7 +1,7 @@
 import { MessageReceipt, Queue, QueueParameters, JSONUtils } from "@webda/core";
 import * as amqplib from "amqplib";
 
-class AMQPQueueParameters extends QueueParameters {
+export class AMQPQueueParameters extends QueueParameters {
   url: string;
   queue: string;
 }

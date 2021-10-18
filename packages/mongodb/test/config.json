@@ -1,43 +1,42 @@
 {
-    "version": 2,
-    "parameters": {
-        "url": "mongodb://root:webda.io@localhost:37017/"
+  "version": 2,
+  "parameters": {
+    "url": "mongodb://root:webda.io@localhost:37017/"
+  },
+  "services": {
+    "IdentsMapper": {
+      "type": "Webda/Mapper",
+      "source": "mongoidents",
+      "targetAttribute": "idents",
+      "target": "mongousers",
+      "attribute": "_user",
+      "fields": "type,_lastUpdate,counter",
+      "cascade": true
     },
-    "services": {
-      "IdentsMapper": {
-        "type": "Webda/Mapper",
-        "source": "mongoidents",
-        "targetAttribute": "idents",
-        "target": "mongousers",
-        "attribute": "_user",
-        "fields": "type,_lastUpdate,counter",
-        "cascade": true
+    "mongoidents": {
+      "asyncDelete": true,
+      "expose": {
+        "restrict": {
+          "create": true,
+          "update": true,
+          "get": true
+        }
       },
-      "mongoidents": {
-        "index": ["type", "_lastUpdate"],
-        "asyncDelete": true,
-        "expose": {
-          "restrict": {
-            "create": true,
-            "update": true,
-            "get": true
-          }
-        },
-        "model": "Webda/Ident",
-        "type": "MongoStore",
-        "collection": "idents"
+      "model": "Webda/Ident",
+      "type": "MongoStore",
+      "collection": "idents"
+    },
+    "mongousers": {
+      "expose": {
+        "url": "/users",
+        "restrict": {
+          "authentication": true,
+          "create": true
+        }
       },
-      "mongousers": {
-        "expose": {
-          "url": "/users",
-          "restrict": {
-            "authentication": true,
-            "create": true
-          }
-        },
-        "type": "MongoStore",
-        "model": "Webda/User",
-        "collection": "users"
-      }
+      "type": "MongoStore",
+      "model": "Webda/User",
+      "collection": "users"
     }
   }
+}

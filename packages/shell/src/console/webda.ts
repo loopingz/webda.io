@@ -244,7 +244,7 @@ export default class WebdaConsole {
     if (argv.deployment) {
       fs.watch(this.app.getAppPath(`deployments/${argv.deployment}.json`), launchServe);
     }
-    
+
     /* istanbul ignore else */
     if (this.app.isTypescript()) {
       this.typescriptWatch(WebdaConsole.getTransform(launchServe));

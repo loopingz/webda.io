@@ -22,7 +22,6 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
   T,
   K
 > {
-  static INDEX_UUID = "00000000-0000-0000-0000-000000000000";
   query(q: string): Promise<SQLResult<T>> {
     q = this.completeQuery(q);
     return this.executeQuery(q);
@@ -122,10 +121,6 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
       id = object;
     } else {
       id = object.getUuid();
-    }
-    // We fake index with 0000 uuid
-    if (id === "index") {
-      return SQLStore.INDEX_UUID;
     }
     return id;
   }

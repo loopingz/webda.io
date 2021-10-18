@@ -96,6 +96,9 @@
 						<a href="../modules.html" class="tsd-kind-icon">Modules</a>
 					</li>
 					<li class=" tsd-kind-module root">
+						<a href="../modules/_webda_amqp.html" class="tsd-kind-icon">@webda/amqp</a>
+					</li>
+					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_async.html" class="tsd-kind-icon">@webda/async</a>
 					</li>
 					<li class=" tsd-kind-module root">
@@ -162,9 +165,6 @@
 					<li class="current tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter root">
 						<a href="_webda_mongo.MongoStore.html" class="tsd-kind-icon">Mongo<wbr>Store</a>
 						<ul>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoStore.html#_cascadeDeletes" class="tsd-kind-icon">_cascade<wbr>Deletes</a>
-							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="_webda_mongo.MongoStore.html#_client" class="tsd-kind-icon">_client</a>
 							</li>
@@ -231,24 +231,6 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 								<a href="_webda_mongo.MongoStore.html#_get" class="tsd-kind-icon">_get</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoStore.html#_handleCreatedMap" class="tsd-kind-icon">_handle<wbr>Created<wbr>Map</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoStore.html#_handleDeletedMap" class="tsd-kind-icon">_handle<wbr>Deleted<wbr>Map</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoStore.html#_handleMapFromPartial" class="tsd-kind-icon">_handle<wbr>Map<wbr>From<wbr>Partial</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoStore.html#_handleMapProperty" class="tsd-kind-icon">_handle<wbr>Map<wbr>Property</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoStore.html#_handleUpdatedMap" class="tsd-kind-icon">_handle<wbr>Updated<wbr>Map</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoStore.html#_handleUpdatedMapMapper" class="tsd-kind-icon">_handle<wbr>Updated<wbr>Map<wbr>Mapper</a>
-							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 								<a href="_webda_mongo.MongoStore.html#_incrementAttribute" class="tsd-kind-icon">_increment<wbr>Attribute</a>
 							</li>
@@ -289,16 +271,16 @@
 								<a href="_webda_mongo.MongoStore.html#computeParameters" class="tsd-kind-icon">compute<wbr>Parameters</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoStore.html#createIndex" class="tsd-kind-icon">create<wbr>Index</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoStore.html#createMapper" class="tsd-kind-icon">create<wbr>Mapper</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_mongo.MongoStore.html#delete" class="tsd-kind-icon">delete</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_mongo.MongoStore.html#deleteItemFromCollection" class="tsd-kind-icon">delete<wbr>Item<wbr>From<wbr>Collection</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_mongo.MongoStore.html#elapse" class="tsd-kind-icon">elapse</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_mongo.MongoStore.html#emit" class="tsd-kind-icon">emit</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_mongo.MongoStore.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a>
@@ -325,13 +307,16 @@
 								<a href="_webda_mongo.MongoStore.html#getFilter" class="tsd-kind-icon">get<wbr>Filter</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoStore.html#getMapper" class="tsd-kind-icon">get<wbr>Mapper</a>
+								<a href="_webda_mongo.MongoStore.html#getLastUpdateField" class="tsd-kind-icon">get<wbr>Last<wbr>Update<wbr>Field</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_mongo.MongoStore.html#getModel" class="tsd-kind-icon">get<wbr>Model</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_mongo.MongoStore.html#getName" class="tsd-kind-icon">get<wbr>Name</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_mongo.MongoStore.html#getObject" class="tsd-kind-icon">get<wbr>Object</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_mongo.MongoStore.html#getParameters" class="tsd-kind-icon">get<wbr>Parameters</a>
@@ -347,12 +332,6 @@
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_mongo.MongoStore.html#getWebda" class="tsd-kind-icon">get<wbr>Webda</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoStore.html#handleIndex" class="tsd-kind-icon">handle<wbr>Index</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoStore.html#handleMap" class="tsd-kind-icon">handle<wbr>Map</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_mongo.MongoStore.html#httpAction" class="tsd-kind-icon">http<wbr>Action</a>
@@ -379,16 +358,10 @@
 								<a href="_webda_mongo.MongoStore.html#init" class="tsd-kind-icon">init</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoStore.html#initMap" class="tsd-kind-icon">init<wbr>Map</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_mongo.MongoStore.html#initModel" class="tsd-kind-icon">init<wbr>Model</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_mongo.MongoStore.html#initRoutes" class="tsd-kind-icon">init<wbr>Routes</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoStore.html#isMapped" class="tsd-kind-icon">is<wbr>Mapped</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 								<a href="_webda_mongo.MongoStore.html#loadParameters" class="tsd-kind-icon">load<wbr>Parameters</a>
@@ -485,7 +458,6 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#_cascadeDeletes" class="tsd-kind-icon">_cascade<wbr>Deletes</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_mongo.MongoStore.html#_client" class="tsd-kind-icon">_client</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_mongo.MongoStore.html#_collection" class="tsd-kind-icon">_collection</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_mongo.MongoStore.html#_connectPromise" class="tsd-kind-icon">_connect<wbr>Promise</a></li>
@@ -513,12 +485,6 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_mongo.MongoStore.html#_deleteItemFromCollection" class="tsd-kind-icon">_delete<wbr>Item<wbr>From<wbr>Collection</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_mongo.MongoStore.html#_find" class="tsd-kind-icon">_find</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_mongo.MongoStore.html#_get" class="tsd-kind-icon">_get</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#_handleCreatedMap" class="tsd-kind-icon">_handle<wbr>Created<wbr>Map</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#_handleDeletedMap" class="tsd-kind-icon">_handle<wbr>Deleted<wbr>Map</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#_handleMapFromPartial" class="tsd-kind-icon">_handle<wbr>Map<wbr>From<wbr>Partial</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#_handleMapProperty" class="tsd-kind-icon">_handle<wbr>Map<wbr>Property</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#_handleUpdatedMap" class="tsd-kind-icon">_handle<wbr>Updated<wbr>Map</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#_handleUpdatedMapMapper" class="tsd-kind-icon">_handle<wbr>Updated<wbr>Map<wbr>Mapper</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_mongo.MongoStore.html#_incrementAttribute" class="tsd-kind-icon">_increment<wbr>Attribute</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_mongo.MongoStore.html#_patch" class="tsd-kind-icon">_patch</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_mongo.MongoStore.html#_removeAttribute" class="tsd-kind-icon">_remove<wbr>Attribute</a></li>
@@ -532,10 +498,10 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#checkCollectionUpdateCondition" class="tsd-kind-icon">check<wbr>Collection<wbr>Update<wbr>Condition</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#checkUpdateCondition" class="tsd-kind-icon">check<wbr>Update<wbr>Condition</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#computeParameters" class="tsd-kind-icon">compute<wbr>Parameters</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#createIndex" class="tsd-kind-icon">create<wbr>Index</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#createMapper" class="tsd-kind-icon">create<wbr>Mapper</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#delete" class="tsd-kind-icon">delete</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#deleteItemFromCollection" class="tsd-kind-icon">delete<wbr>Item<wbr>From<wbr>Collection</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#elapse" class="tsd-kind-icon">elapse</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#emit" class="tsd-kind-icon">emit</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_mongo.MongoStore.html#exists" class="tsd-kind-icon">exists</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#find" class="tsd-kind-icon">find</a></li>
@@ -544,16 +510,15 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_mongo.MongoStore.html#getAll" class="tsd-kind-icon">get<wbr>All</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#getConfiguration" class="tsd-kind-icon">get<wbr>Configuration</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="_webda_mongo.MongoStore.html#getFilter" class="tsd-kind-icon">get<wbr>Filter</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#getMapper" class="tsd-kind-icon">get<wbr>Mapper</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#getLastUpdateField" class="tsd-kind-icon">get<wbr>Last<wbr>Update<wbr>Field</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#getModel" class="tsd-kind-icon">get<wbr>Model</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#getName" class="tsd-kind-icon">get<wbr>Name</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#getObject" class="tsd-kind-icon">get<wbr>Object</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#getParameters" class="tsd-kind-icon">get<wbr>Parameters</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#getService" class="tsd-kind-icon">get<wbr>Service</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#getUrl" class="tsd-kind-icon">get<wbr>Url</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#getUuidField" class="tsd-kind-icon">get<wbr>Uuid<wbr>Field</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#getWebda" class="tsd-kind-icon">get<wbr>Webda</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#handleIndex" class="tsd-kind-icon">handle<wbr>Index</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#handleMap" class="tsd-kind-icon">handle<wbr>Map</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#httpAction" class="tsd-kind-icon">http<wbr>Action</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#httpCreate" class="tsd-kind-icon">http<wbr>Create</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#httpGet" class="tsd-kind-icon">http<wbr>Get</a></li>
@@ -562,10 +527,8 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#httpUpdate" class="tsd-kind-icon">http<wbr>Update</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#incrementAttribute" class="tsd-kind-icon">increment<wbr>Attribute</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#init" class="tsd-kind-icon">init</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#initMap" class="tsd-kind-icon">init<wbr>Map</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#initModel" class="tsd-kind-icon">init<wbr>Model</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#initRoutes" class="tsd-kind-icon">init<wbr>Routes</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#isMapped" class="tsd-kind-icon">is<wbr>Mapped</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_mongo.MongoStore.html#loadParameters" class="tsd-kind-icon">load<wbr>Parameters</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#log" class="tsd-kind-icon">log</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoStore.html#onAsync" class="tsd-kind-icon">on<wbr>Async</a></li>
@@ -589,20 +552,7 @@
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="_cascadeDeletes" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">_cascade<wbr>Deletes<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">[]</span></div>
-					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-						<div class="lead">
-							<p>Contains cascade delete information</p>
-						</div>
-					</div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:408</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="_client" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">_client<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">MongoClient</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -654,7 +604,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:423</li>
+							<li>Defined in packages/core/lib/stores/store.d.ts:389</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -691,7 +641,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:419</li>
+							<li>Defined in packages/core/lib/stores/store.d.ts:385</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -704,7 +654,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:415</li>
+							<li>Defined in packages/core/lib/stores/store.d.ts:381</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -730,7 +680,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:401</li>
+							<li>Defined in packages/core/lib/stores/store.d.ts:374</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -743,7 +693,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:427</li>
+							<li>Defined in packages/core/lib/stores/store.d.ts:393</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -966,212 +916,6 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in packages/mongodb/src/mongodb.ts:318</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="_handleCreatedMap" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">_handle<wbr>Created<wbr>Map<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span>, map<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">MapStoreParameter</span>, mapped<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">CoreModel</span>, store<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Store</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">CoreModel</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">StoreParameters</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from Store._handleCreatedMap</p>
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>object: <span class="tsd-signature-type">T</span></h5>
-								</li>
-								<li>
-									<h5>map: <span class="tsd-signature-type">MapStoreParameter</span></h5>
-								</li>
-								<li>
-									<h5>mapped: <span class="tsd-signature-type">CoreModel</span></h5>
-								</li>
-								<li>
-									<h5>store: <span class="tsd-signature-type">Store</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">CoreModel</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">StoreParameters</span><span class="tsd-signature-symbol">&gt;</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:551</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="_handleDeletedMap" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">_handle<wbr>Deleted<wbr>Map<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span>, map<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">MapStoreParameter</span>, mapped<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">CoreModel</span>, store<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Store</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">CoreModel</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">StoreParameters</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from Store._handleDeletedMap</p>
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>object: <span class="tsd-signature-type">T</span></h5>
-								</li>
-								<li>
-									<h5>map: <span class="tsd-signature-type">MapStoreParameter</span></h5>
-								</li>
-								<li>
-									<h5>mapped: <span class="tsd-signature-type">CoreModel</span></h5>
-								</li>
-								<li>
-									<h5>store: <span class="tsd-signature-type">Store</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">CoreModel</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">StoreParameters</span><span class="tsd-signature-symbol">&gt;</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:550</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="_handleMapFromPartial" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">_handle<wbr>Map<wbr>From<wbr>Partial<span class="tsd-signature-symbol">(</span>uid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, updateDate<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Date</span>, prop<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from Store._handleMapFromPartial</p>
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>uid: <span class="tsd-signature-type">string</span></h5>
-								</li>
-								<li>
-									<h5>updateDate: <span class="tsd-signature-type">Date</span></h5>
-								</li>
-								<li>
-									<h5><span class="tsd-flag ts-flagOptional">Optional</span> prop: <span class="tsd-signature-type">string</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:477</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="_handleMapProperty" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">_handle<wbr>Map<wbr>Property<span class="tsd-signature-symbol">(</span>store<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Store</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">CoreModel</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">StoreParameters</span><span class="tsd-signature-symbol">&gt;</span>, object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span>, map<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">MapStoreParameter</span>, updates<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">MapUpdates</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from Store._handleMapProperty</p>
-							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Manage one mapping update</p>
-								</div>
-							</div>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>store: <span class="tsd-signature-type">Store</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">CoreModel</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">StoreParameters</span><span class="tsd-signature-symbol">&gt;</span></h5>
-								</li>
-								<li>
-									<h5>object: <span class="tsd-signature-type">T</span></h5>
-								</li>
-								<li>
-									<h5>map: <span class="tsd-signature-type">MapStoreParameter</span></h5>
-								</li>
-								<li>
-									<h5>updates: <span class="tsd-signature-type">MapUpdates</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:561</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="_handleUpdatedMap" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">_handle<wbr>Updated<wbr>Map<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span>, map<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">MapStoreParameter</span>, mapped<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, store<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, updates<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from Store._handleUpdatedMap</p>
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>object: <span class="tsd-signature-type">T</span></h5>
-								</li>
-								<li>
-									<h5>map: <span class="tsd-signature-type">MapStoreParameter</span></h5>
-								</li>
-								<li>
-									<h5>mapped: <span class="tsd-signature-type">any</span></h5>
-								</li>
-								<li>
-									<h5>store: <span class="tsd-signature-type">any</span></h5>
-								</li>
-								<li>
-									<h5>updates: <span class="tsd-signature-type">any</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:548</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="_handleUpdatedMapMapper" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">_handle<wbr>Updated<wbr>Map<wbr>Mapper<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">CoreModel</span>, map<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">MapStoreParameter</span>, mapped<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">CoreModel</span>, store<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Store</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">CoreModel</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">StoreParameters</span><span class="tsd-signature-symbol">&gt;</span>, mapper<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from Store._handleUpdatedMapMapper</p>
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>object: <span class="tsd-signature-type">CoreModel</span></h5>
-								</li>
-								<li>
-									<h5>map: <span class="tsd-signature-type">MapStoreParameter</span></h5>
-								</li>
-								<li>
-									<h5>mapped: <span class="tsd-signature-type">CoreModel</span></h5>
-								</li>
-								<li>
-									<h5>store: <span class="tsd-signature-type">Store</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">CoreModel</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">StoreParameters</span><span class="tsd-signature-symbol">&gt;</span></h5>
-								</li>
-								<li>
-									<h5>mapper: <span class="tsd-signature-type">any</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:549</li>
 								</ul>
 							</aside>
 						</li>
@@ -1401,7 +1145,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="addReverseMap" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">add<wbr>Reverse<wbr>Map<span class="tsd-signature-symbol">(</span>prop<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, store<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">MappingService</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span>, cascade<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">add<wbr>Reverse<wbr>Map<span class="tsd-signature-symbol">(</span>prop<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, store<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">MappingService</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1423,14 +1167,11 @@
 									<div class="tsd-comment tsd-typography tsd-comment-text">
 									</div>
 								</li>
-								<li>
-									<h5><span class="tsd-flag ts-flagOptional">Optional</span> cascade: <span class="tsd-signature-type">boolean</span></h5>
-								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:473</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:435</li>
 								</ul>
 							</aside>
 						</li>
@@ -1516,7 +1257,7 @@
 													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 													<aside class="tsd-sources">
 														<ul>
-															<li>Defined in packages/core/lib/stores/store.d.ts:607</li>
+															<li>Defined in packages/core/lib/stores/store.d.ts:528</li>
 														</ul>
 													</aside>
 												</li>
@@ -1528,7 +1269,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:607</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:528</li>
 								</ul>
 							</aside>
 						</li>
@@ -1536,7 +1277,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="cascadeDelete" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">cascade<wbr>Delete<span class="tsd-signature-symbol">(</span>obj<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, uuid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">cascade<wbr>Delete<span class="tsd-signature-symbol">(</span>obj<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">CoreModel</span>, uuid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1551,7 +1292,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>obj: <span class="tsd-signature-type">any</span></h5>
+									<h5>obj: <span class="tsd-signature-type">CoreModel</span></h5>
 								</li>
 								<li>
 									<h5>uuid: <span class="tsd-signature-type">string</span></h5>
@@ -1560,7 +1301,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:586</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:507</li>
 								</ul>
 							</aside>
 						</li>
@@ -1601,7 +1342,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:512</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:472</li>
 								</ul>
 							</aside>
 						</li>
@@ -1641,7 +1382,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:504</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:464</li>
 								</ul>
 							</aside>
 						</li>
@@ -1668,70 +1409,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:437</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="createIndex" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">create<wbr>Index<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from Store.createIndex</p>
-							</aside>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:479</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="createMapper" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">create<wbr>Mapper<span class="tsd-signature-symbol">(</span>map<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">MapStoreParameter</span>, object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span>, updates<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">mapper</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">found</span><span class="tsd-signature-symbol">]</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from Store.createMapper</p>
-							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Create an object mapper</p>
-								</div>
-							</div>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>map: <span class="tsd-signature-type">MapStoreParameter</span></h5>
-									<div class="tsd-comment tsd-typography tsd-comment-text">
-										<p>map to create mapper for</p>
-									</div>
-								</li>
-								<li>
-									<h5>object: <span class="tsd-signature-type">T</span></h5>
-									<div class="tsd-comment tsd-typography tsd-comment-text">
-										<p>for the mapper to represent</p>
-									</div>
-								</li>
-								<li>
-									<h5>updates: <span class="tsd-signature-type">any</span></h5>
-									<div class="tsd-comment tsd-typography tsd-comment-text">
-										<p>to the object being made</p>
-									</div>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">mapper</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">found</span><span class="tsd-signature-symbol">]</span></h4>
-							<p>mapper object and found = true if updates will impact the mapper</p>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:547</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:403</li>
 								</ul>
 							</aside>
 						</li>
@@ -1770,7 +1448,7 @@
 							<p>the deletion promise</p>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:600</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:521</li>
 								</ul>
 							</aside>
 						</li>
@@ -1806,7 +1484,73 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:478</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:438</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="elapse" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">elapse<span class="tsd-signature-symbol">(</span>start<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from Store.elapse</p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Display a message if the listener takes too long</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>start: <span class="tsd-signature-type">number</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/lib/services/service.d.ts:139</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="emit" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">emit<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span>, <span class="tsd-signature-symbol">...</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from Store.emit</p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Override to allow capturing long listeners</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>override</dt>
+								<dd></dd></dl>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>event: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>args: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/lib/services/service.d.ts:148</li>
 								</ul>
 							</aside>
 						</li>
@@ -1838,7 +1582,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/service.d.ts:138</li>
+									<li>Defined in packages/core/lib/services/service.d.ts:143</li>
 								</ul>
 							</aside>
 						</li>
@@ -1903,7 +1647,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:644</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:565</li>
 								</ul>
 							</aside>
 						</li>
@@ -1935,7 +1679,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:592</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:513</li>
 								</ul>
 							</aside>
 						</li>
@@ -1968,7 +1712,7 @@
 							<p>the object retrieved ( can be undefined if not found )</p>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:622</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:543</li>
 								</ul>
 							</aside>
 						</li>
@@ -2025,7 +1769,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:613</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:534</li>
 								</ul>
 							</aside>
 						</li>
@@ -2065,33 +1809,19 @@
 						</li>
 					</ul>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="getMapper" class="tsd-anchor"></a>
+					<a name="getLastUpdateField" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Mapper<span class="tsd-signature-symbol">(</span>map<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span>, uuid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></li>
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Last<wbr>Update<wbr>Field<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from Store.getMapper</p>
+								<p>Inherited from Store.getLastUpdateField</p>
 							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Get index of the mapper for an object</p>
-								</div>
-							</div>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>map: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></h5>
-								</li>
-								<li>
-									<h5>uuid: <span class="tsd-signature-type">string</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:538</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:409</li>
 								</ul>
 							</aside>
 						</li>
@@ -2114,7 +1844,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">CoreModelDefinition</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:442</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:408</li>
 								</ul>
 							</aside>
 						</li>
@@ -2137,7 +1867,31 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/service.d.ts:159</li>
+									<li>Defined in packages/core/lib/services/service.d.ts:169</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="getObject" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Object<span class="tsd-signature-symbol">(</span>uid<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">CoreModel</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from Store.getObject</p>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>uid: <span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">CoreModel</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/lib/stores/store.d.ts:410</li>
 								</ul>
 							</aside>
 						</li>
@@ -2198,7 +1952,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">K</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/service.d.ts:150</li>
+									<li>Defined in packages/core/lib/services/service.d.ts:160</li>
 								</ul>
 							</aside>
 						</li>
@@ -2221,7 +1975,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:456</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:418</li>
 								</ul>
 							</aside>
 						</li>
@@ -2244,7 +1998,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:682</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:603</li>
 								</ul>
 							</aside>
 						</li>
@@ -2268,68 +2022,6 @@
 							<aside class="tsd-sources">
 								<ul>
 									<li>Defined in packages/core/lib/services/service.d.ts:93</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="handleIndex" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">handle<wbr>Index<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">CoreModel</span>, updates<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">MapUpdates</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from Store.handleIndex</p>
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>object: <span class="tsd-signature-type">CoreModel</span></h5>
-								</li>
-								<li>
-									<h5>updates: <span class="tsd-signature-type">MapUpdates</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:570</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="handleMap" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">handle<wbr>Map<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">T</span>, updates<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">MapUpdates</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from Store.handleMap</p>
-							</aside>
-							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-								<div class="lead">
-									<p>Handle all maps of an object</p>
-								</div>
-							</div>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>object: <span class="tsd-signature-type">T</span></h5>
-								</li>
-								<li>
-									<h5>updates: <span class="tsd-signature-type">MapUpdates</span></h5>
-									<div class="tsd-comment tsd-typography tsd-comment-text">
-										<p>to the object to be made</p>
-									</div>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:578</li>
 								</ul>
 							</aside>
 						</li>
@@ -2360,7 +2052,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:654</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:575</li>
 								</ul>
 							</aside>
 						</li>
@@ -2391,7 +2083,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:649</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:570</li>
 								</ul>
 							</aside>
 						</li>
@@ -2423,7 +2115,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:671</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:592</li>
 								</ul>
 							</aside>
 						</li>
@@ -2454,7 +2146,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:659</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:580</li>
 								</ul>
 							</aside>
 						</li>
@@ -2486,7 +2178,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:678</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:599</li>
 								</ul>
 							</aside>
 						</li>
@@ -2518,7 +2210,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:665</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:586</li>
 								</ul>
 							</aside>
 						</li>
@@ -2548,7 +2240,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:475</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:436</li>
 								</ul>
 							</aside>
 						</li>
@@ -2565,34 +2257,16 @@
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
-									<p>Create index if not existing</p>
+									<p>Will be called after all the Services are created</p>
 								</div>
 								</div><div class="tsd-comment tsd-typography tsd-comment-tags">
-								<dl class="tsd-comment-tags"><dt>inheritdoc</dt>
+								<dl class="tsd-comment-tags"><dt>abstract</dt>
 								<dd></dd></dl>
 							</div>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:448</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="initMap" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">init<wbr>Map<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from Store.initMap</p>
-							</aside>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:480</li>
+									<li>Defined in packages/core/lib/services/service.d.ts:129</li>
 								</ul>
 							</aside>
 						</li>
@@ -2623,7 +2297,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">T</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:465</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:427</li>
 								</ul>
 							</aside>
 						</li>
@@ -2645,31 +2319,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:452</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="isMapped" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">is<wbr>Mapped<span class="tsd-signature-symbol">(</span>property<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from Store.isMapped</p>
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>property: <span class="tsd-signature-type">string</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:474</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:414</li>
 								</ul>
 							</aside>
 						</li>
@@ -2729,7 +2379,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/service.d.ts:175</li>
+									<li>Defined in packages/core/lib/services/service.d.ts:185</li>
 								</ul>
 							</aside>
 						</li>
@@ -2767,7 +2417,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/service.d.ts:145</li>
+									<li>Defined in packages/core/lib/services/service.d.ts:155</li>
 								</ul>
 							</aside>
 						</li>
@@ -2799,7 +2449,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:496</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:456</li>
 								</ul>
 							</aside>
 						</li>
@@ -2864,7 +2514,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:569</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:499</li>
 								</ul>
 							</aside>
 						</li>
@@ -2919,9 +2569,10 @@
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<p>with saved object</p>
+							<p>Might want to rename to create</p>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:488</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:448</li>
 								</ul>
 							</aside>
 						</li>
@@ -2967,7 +2618,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:633</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:554</li>
 								</ul>
 							</aside>
 						</li>
@@ -3011,7 +2662,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:523</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:483</li>
 								</ul>
 							</aside>
 						</li>
@@ -3106,7 +2757,7 @@
 							<p>with saved object</p>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:531</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:491</li>
 								</ul>
 							</aside>
 						</li>
@@ -3145,7 +2796,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:476</li>
+									<li>Defined in packages/core/lib/stores/store.d.ts:437</li>
 								</ul>
 							</aside>
 						</li>
@@ -3167,7 +2818,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">ModdaDefinition</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/mongodb/src/mongodb.ts:348</li>
+									<li>Defined in packages/mongodb/src/mongodb.ts:343</li>
 								</ul>
 							</aside>
 						</li>
@@ -3193,7 +2844,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">JSONSchema6</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/services/service.d.ts:183</li>
+									<li>Defined in packages/core/lib/services/service.d.ts:193</li>
 								</ul>
 							</aside>
 						</li>

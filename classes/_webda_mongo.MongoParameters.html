@@ -96,6 +96,9 @@
 						<a href="../modules.html" class="tsd-kind-icon">Modules</a>
 					</li>
 					<li class=" tsd-kind-module root">
+						<a href="../modules/_webda_amqp.html" class="tsd-kind-icon">@webda/amqp</a>
+					</li>
+					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_async.html" class="tsd-kind-icon">@webda/async</a>
 					</li>
 					<li class=" tsd-kind-module root">
@@ -168,9 +171,6 @@
 							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="_webda_mongo.MongoParameters.html#collection" class="tsd-kind-icon">collection</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoParameters.html#creationDateField" class="tsd-kind-icon">creation<wbr>Date<wbr>Field</a>
-							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="_webda_mongo.MongoParameters.html#database" class="tsd-kind-icon">database</a>
 							</li>
@@ -181,19 +181,13 @@
 								<a href="_webda_mongo.MongoParameters.html#expose" class="tsd-kind-icon">expose</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoParameters.html#index" class="tsd-kind-icon">index</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoParameters.html#lastUpdateField" class="tsd-kind-icon">last<wbr>Update<wbr>Field</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-								<a href="_webda_mongo.MongoParameters.html#map" class="tsd-kind-icon">map</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_mongo.MongoParameters.html#model" class="tsd-kind-icon">model</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="_webda_mongo.MongoParameters.html#options" class="tsd-kind-icon">options</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_mongo.MongoParameters.html#strict" class="tsd-kind-icon">strict</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_mongo.MongoParameters.html#type" class="tsd-kind-icon">type</a>
@@ -240,15 +234,12 @@
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoParameters.html#asyncDelete" class="tsd-kind-icon">async<wbr>Delete</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_mongo.MongoParameters.html#collection" class="tsd-kind-icon">collection</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoParameters.html#creationDateField" class="tsd-kind-icon">creation<wbr>Date<wbr>Field</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_mongo.MongoParameters.html#database" class="tsd-kind-icon">database</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_mongo.MongoParameters.html#databaseOptions" class="tsd-kind-icon">database<wbr>Options</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoParameters.html#expose" class="tsd-kind-icon">expose</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoParameters.html#index" class="tsd-kind-icon">index</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoParameters.html#lastUpdateField" class="tsd-kind-icon">last<wbr>Update<wbr>Field</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoParameters.html#map" class="tsd-kind-icon">map</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoParameters.html#model" class="tsd-kind-icon">model</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_mongo.MongoParameters.html#options" class="tsd-kind-icon">options</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoParameters.html#strict" class="tsd-kind-icon">strict</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_mongo.MongoParameters.html#type" class="tsd-kind-icon">type</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_mongo.MongoParameters.html#url" class="tsd-kind-icon">url</a></li>
 							</ul>
@@ -298,7 +289,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:347</li>
+							<li>Defined in packages/core/lib/stores/store.d.ts:314</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -312,23 +303,6 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in packages/mongodb/src/mongodb.ts:35</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="creationDateField" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">creation<wbr>Date<wbr>Field<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-						<div class="lead">
-							<p>Field to store the creationDate of the object</p>
-						</div>
-						</div><div class="tsd-comment tsd-typography tsd-comment-tags">
-						<dl class="tsd-comment-tags"><dt>default</dt>
-							<dd><p>&quot;_creationDate&quot;</p>
-						</dd></dl>
-					</div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:327</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -366,52 +340,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:351</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="index" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">index<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div>
-					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-						<div class="lead">
-							<p>Create an index object that link all other objects uuid</p>
-						</div>
-					</div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:337</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="lastUpdateField" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">last<wbr>Update<wbr>Field<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-						<div class="lead">
-							<p>Field to store the lastUpdate of the object</p>
-						</div>
-						</div><div class="tsd-comment tsd-typography tsd-comment-tags">
-						<dl class="tsd-comment-tags"><dt>default</dt>
-							<dd><p>&quot;_lastUpdate&quot;</p>
-						</dd></dl>
-					</div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:321</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="map" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">map<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">StoreMaps</span></div>
-					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-						<div class="lead">
-							<p>You can define a Map between different Stores</p>
-						</div>
-						</div><div class="tsd-comment tsd-typography tsd-comment-text">
-						<p>{@link Pages/pages/Store}</p>
-					</div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:343</li>
+							<li>Defined in packages/core/lib/stores/store.d.ts:318</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -428,7 +357,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/lib/stores/store.d.ts:333</li>
+							<li>Defined in packages/core/lib/stores/store.d.ts:310</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -442,6 +371,25 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in packages/mongodb/src/mongodb.ts:31</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="strict" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">strict<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Allow to load object that does not have the type data</p>
+						</div>
+						</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+						<dl class="tsd-comment-tags"><dt>deprecated</dt>
+							<dd><p>2.0</p>
+							</dd><dt>default</dt>
+							<dd><p>true</p>
+						</dd></dl>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/lib/stores/store.d.ts:325</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">

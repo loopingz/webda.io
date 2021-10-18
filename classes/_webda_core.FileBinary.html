@@ -96,6 +96,9 @@
 						<a href="../modules.html" class="tsd-kind-icon">Modules</a>
 					</li>
 					<li class=" tsd-kind-module root">
+						<a href="../modules/_webda_amqp.html" class="tsd-kind-icon">@webda/amqp</a>
+					</li>
+					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_async.html" class="tsd-kind-icon">@webda/async</a>
 					</li>
 					<li class=" tsd-kind-module root">
@@ -248,6 +251,12 @@
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.FileBinary.html#downloadTo" class="tsd-kind-icon">download<wbr>To</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_core.FileBinary.html#elapse" class="tsd-kind-icon">elapse</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_core.FileBinary.html#emit" class="tsd-kind-icon">emit</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.FileBinary.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a>
@@ -419,6 +428,8 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_core.FileBinary.html#delete" class="tsd-kind-icon">delete</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.FileBinary.html#deleteSuccess" class="tsd-kind-icon">delete<wbr>Success</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.FileBinary.html#downloadTo" class="tsd-kind-icon">download<wbr>To</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.FileBinary.html#elapse" class="tsd-kind-icon">elapse</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.FileBinary.html#emit" class="tsd-kind-icon">emit</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.FileBinary.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.FileBinary.html#get" class="tsd-kind-icon">get</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.FileBinary.html#getName" class="tsd-kind-icon">get<wbr>Name</a></li>
@@ -530,7 +541,7 @@
 					<div class="tsd-signature tsd-kind-icon">_lowercase<wbr>Maps<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/binary.ts:228</li>
+							<li>Defined in packages/core/src/services/binary.ts:229</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -634,7 +645,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:336</li>
+									<li>Defined in packages/core/src/services/service.ts:369</li>
 								</ul>
 							</aside>
 						</li>
@@ -668,7 +679,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:415</li>
+									<li>Defined in packages/core/src/services/binary.ts:420</li>
 								</ul>
 							</aside>
 						</li>
@@ -786,7 +797,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:476</li>
+									<li>Defined in packages/core/src/services/binary.ts:481</li>
 								</ul>
 							</aside>
 						</li>
@@ -823,7 +834,7 @@
 							</ul>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:367</li>
+									<li>Defined in packages/core/src/services/binary.ts:372</li>
 								</ul>
 							</aside>
 						</li>
@@ -903,7 +914,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:398</li>
+									<li>Defined in packages/core/src/services/binary.ts:403</li>
 								</ul>
 							</aside>
 						</li>
@@ -981,7 +992,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.Store.html" class="tsd-signature-type">Store</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a><span class="tsd-signature-symbol">, </span><a href="_webda_core.StoreParameters.html" class="tsd-signature-type">StoreParameters</a><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:599</li>
+									<li>Defined in packages/core/src/services/binary.ts:604</li>
 								</ul>
 							</aside>
 						</li>
@@ -1189,7 +1200,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:461</li>
+									<li>Defined in packages/core/src/services/binary.ts:466</li>
 								</ul>
 							</aside>
 						</li>
@@ -1224,7 +1235,73 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:296</li>
+									<li>Defined in packages/core/src/services/binary.ts:297</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="elapse" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">elapse<span class="tsd-signature-symbol">(</span>start<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="_webda_core.Binary.html">Binary</a>.<a href="_webda_core.Binary.html#elapse">elapse</a></p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Display a message if the listener takes too long</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>start: <span class="tsd-signature-type">number</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/services/service.ts:286</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="emit" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">emit<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span>, <span class="tsd-signature-symbol">...</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="_webda_core.Binary.html">Binary</a>.<a href="_webda_core.Binary.html#emit">emit</a></p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Override to allow capturing long listeners</p>
+								</div>
+								</div><div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>override</dt>
+								<dd></dd></dl>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>event: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>args: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/services/service.ts:322</li>
 								</ul>
 							</aside>
 						</li>
@@ -1256,7 +1333,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:285</li>
+									<li>Defined in packages/core/src/services/service.ts:296</li>
 								</ul>
 							</aside>
 						</li>
@@ -1292,7 +1369,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Readable</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:282</li>
+									<li>Defined in packages/core/src/services/binary.ts:283</li>
 								</ul>
 							</aside>
 						</li>
@@ -1315,7 +1392,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:327</li>
+									<li>Defined in packages/core/src/services/service.ts:360</li>
 								</ul>
 							</aside>
 						</li>
@@ -1338,7 +1415,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:502</li>
+									<li>Defined in packages/core/src/services/binary.ts:507</li>
 								</ul>
 							</aside>
 						</li>
@@ -1422,7 +1499,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">K</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:312</li>
+									<li>Defined in packages/core/src/services/service.ts:345</li>
 								</ul>
 							</aside>
 						</li>
@@ -1503,7 +1580,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:629</li>
+									<li>Defined in packages/core/src/services/binary.ts:634</li>
 								</ul>
 							</aside>
 						</li>
@@ -1534,7 +1611,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:655</li>
+									<li>Defined in packages/core/src/services/binary.ts:660</li>
 								</ul>
 							</aside>
 						</li>
@@ -1591,7 +1668,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:330</li>
+									<li>Defined in packages/core/src/services/binary.ts:331</li>
 								</ul>
 							</aside>
 						</li>
@@ -1620,7 +1697,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.BinaryMap.html" class="tsd-signature-type">BinaryMap</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:358</li>
+									<li>Defined in packages/core/src/services/binary.ts:363</li>
 								</ul>
 							</aside>
 						</li>
@@ -1643,7 +1720,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:493</li>
+									<li>Defined in packages/core/src/services/binary.ts:498</li>
 								</ul>
 							</aside>
 						</li>
@@ -1706,7 +1783,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:356</li>
+									<li>Defined in packages/core/src/services/service.ts:389</li>
 								</ul>
 							</aside>
 						</li>
@@ -1744,7 +1821,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:304</li>
+									<li>Defined in packages/core/src/services/service.ts:337</li>
 								</ul>
 							</aside>
 						</li>
@@ -1793,7 +1870,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:318</li>
+									<li>Defined in packages/core/src/services/binary.ts:319</li>
 								</ul>
 							</aside>
 						</li>
@@ -1944,7 +2021,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:425</li>
+									<li>Defined in packages/core/src/services/binary.ts:430</li>
 								</ul>
 							</aside>
 						</li>
@@ -1993,7 +2070,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">JSONSchema6</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:367</li>
+									<li>Defined in packages/core/src/services/service.ts:400</li>
 								</ul>
 							</aside>
 						</li>
@@ -2022,7 +2099,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/binary.ts:384</li>
+									<li>Defined in packages/core/src/services/binary.ts:389</li>
 								</ul>
 							</aside>
 						</li>

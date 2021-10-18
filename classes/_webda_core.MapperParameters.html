@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>MapStoreParameter |
+	<title>MapperParameters |
 	webda.io</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -64,7 +64,7 @@
 				<a href="../modules/_webda_core.html">@webda/core</a>
 			</li>
 			<li>
-				<a href="_webda_core.MapStoreParameter.html">MapStoreParameter</a>
+				<a href="_webda_core.MapperParameters.html">MapperParameters</a>
 			</li>
 		</ul>
 	</div>
@@ -94,6 +94,9 @@
 					</li>
 					<li class="  root">
 						<a href="../modules.html" class="tsd-kind-icon">Modules</a>
+					</li>
+					<li class=" tsd-kind-module root">
+						<a href="../modules/_webda_amqp.html" class="tsd-kind-icon">@webda/amqp</a>
 					</li>
 					<li class=" tsd-kind-module root">
 						<a href="../modules/_webda_async.html" class="tsd-kind-icon">@webda/async</a>
@@ -144,27 +147,52 @@
 				<div>
 					<ul class="tsd-hierarchy">
 						<li>
-							<span class="target">MapStoreParameter</span>
+							<span class="tsd-signature-type">ServiceParameters</span>
+							<ul class="tsd-hierarchy">
+								<li>
+									<span class="target">MapperParameters</span>
+									<ul class="tsd-hierarchy">
+										<li>
+											<span class="tsd-signature-type">AggregatorParameters</span>
+										</li>
+									</ul>
+								</li>
+							</ul>
 						</li>
 					</ul>
 				</div>
 				<ul class="before-current">
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-interface tsd-parent-kind-module root">
-						<a href="_webda_core.MapStoreParameter.html" class="tsd-kind-icon">Map<wbr>Store<wbr>Parameter</a>
+					<li class="current tsd-kind-class tsd-parent-kind-module root">
+						<a href="_webda_core.MapperParameters.html" class="tsd-kind-icon">Mapper<wbr>Parameters</a>
 						<ul>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_webda_core.MapStoreParameter.html#cascade" class="tsd-kind-icon">cascade</a>
+							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
+								<a href="_webda_core.MapperParameters.html#constructor" class="tsd-kind-icon">constructor</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_webda_core.MapStoreParameter.html#fields" class="tsd-kind-icon">fields</a>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="_webda_core.MapperParameters.html#async" class="tsd-kind-icon">async</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_webda_core.MapStoreParameter.html#key" class="tsd-kind-icon">key</a>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="_webda_core.MapperParameters.html#attribute" class="tsd-kind-icon">attribute</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_webda_core.MapStoreParameter.html#target" class="tsd-kind-icon">target</a>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="_webda_core.MapperParameters.html#cascade" class="tsd-kind-icon">cascade</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="_webda_core.MapperParameters.html#fields" class="tsd-kind-icon">fields</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="_webda_core.MapperParameters.html#source" class="tsd-kind-icon">source</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="_webda_core.MapperParameters.html#target" class="tsd-kind-icon">target</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="_webda_core.MapperParameters.html#targetAttribute" class="tsd-kind-icon">target<wbr>Attribute</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_core.MapperParameters.html#type" class="tsd-kind-icon">type</a>
 							</li>
 						</ul>
 					</li>
@@ -174,17 +202,27 @@
 			</nav>
 		</div>
 		<div class="col-content">
-			<h1>Interface MapStoreParameter</h1>
+			<h1>Class MapperParameters</h1>
 			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
 					<div class="lead">
-						<p>Mapper parameters</p>
+						<p>Mapper configuration</p>
 					</div>
 			</div></section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">MapStoreParameter</span>
+						<a href="_webda_core.ServiceParameters.html" class="tsd-signature-type">ServiceParameters</a>
+						<ul class="tsd-hierarchy">
+							<li>
+								<span class="target">MapperParameters</span>
+								<ul class="tsd-hierarchy">
+									<li>
+										<a href="_webda_core.AggregatorParameters.html" class="tsd-signature-type">AggregatorParameters</a>
+									</li>
+								</ul>
+							</li>
+						</ul>
 					</li>
 				</ul>
 			</section>
@@ -192,25 +230,67 @@
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
 						<section class="tsd-index-section ">
+							<h3>Constructors</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_core.MapperParameters.html#constructor" class="tsd-kind-icon">constructor</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.MapStoreParameter.html#cascade" class="tsd-kind-icon">cascade</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.MapStoreParameter.html#fields" class="tsd-kind-icon">fields</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.MapStoreParameter.html#key" class="tsd-kind-icon">key</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.MapStoreParameter.html#target" class="tsd-kind-icon">target</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.MapperParameters.html#async" class="tsd-kind-icon">async</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.MapperParameters.html#attribute" class="tsd-kind-icon">attribute</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.MapperParameters.html#cascade" class="tsd-kind-icon">cascade</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.MapperParameters.html#fields" class="tsd-kind-icon">fields</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.MapperParameters.html#source" class="tsd-kind-icon">source</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.MapperParameters.html#target" class="tsd-kind-icon">target</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.MapperParameters.html#targetAttribute" class="tsd-kind-icon">target<wbr>Attribute</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MapperParameters.html#type" class="tsd-kind-icon">type</a></li>
 							</ul>
 						</section>
 					</div>
 				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
+				<h2>Constructors</h2>
+				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
+					<a name="constructor" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Mapper<wbr>Parameters<span class="tsd-signature-symbol">(</span>params<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_core.MapperParameters.html" class="tsd-signature-type">MapperParameters</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Overrides <a href="_webda_core.ServiceParameters.html">ServiceParameters</a>.<a href="_webda_core.ServiceParameters.html#constructor">constructor</a></p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Copy all parameters into the object by default</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>params: <span class="tsd-signature-type">any</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="_webda_core.MapperParameters.html" class="tsd-signature-type">MapperParameters</a></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/stores/mapper.ts:53</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+			</section>    </section>
+			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="cascade" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">cascade<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="async" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">async<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
-							<p>Delete if target object is delete</p>
+							<p>Async</p>
 						</div>
 						</div><div class="tsd-comment tsd-typography tsd-comment-tags">
 						<dl class="tsd-comment-tags"><dt>default</dt>
@@ -219,46 +299,105 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/stores/store.ts:282</li>
+							<li>Defined in packages/core/src/stores/mapper.ts:34</li>
 						</ul>
 					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="attribute" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">attribute<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Attribute to use for link</p>
+						</div>
+						</div><div class="tsd-comment tsd-typography tsd-comment-text">
+						<p>Depending on the type</p>
+						<ul>
+							<li>string[]: will consider each string as id</li>
+							<li>string: will be consider as id</li>
+							<li>Object: each keys will be consider as id</li>
+						</ul>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/stores/mapper.ts:43</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="cascade" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">cascade<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Delete source if target object is deleted</p>
+						</div>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/stores/mapper.ts:51</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="fields" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">fields<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div>
+					<div class="tsd-signature tsd-kind-icon">fields<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
-							<p>Other fields to duplicate inside the model</p>
+							<p>Field to duplicate</p>
 						</div>
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/stores/store.ts:277</li>
+							<li>Defined in packages/core/src/stores/mapper.ts:20</li>
 						</ul>
 					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="key" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">key<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="source" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">source<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
-							<p>Key on the current model which holds the collection</p>
+							<p>Source service</p>
 						</div>
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/stores/store.ts:273</li>
+							<li>Defined in packages/core/src/stores/mapper.ts:24</li>
 						</ul>
 					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="target" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">target<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
-							<p>Field to target on the object</p>
+							<p>Target store</p>
 						</div>
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/stores/store.ts:286</li>
+							<li>Defined in packages/core/src/stores/mapper.ts:28</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="targetAttribute" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">target<wbr>Attribute<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>The object will contain a Mapper</p>
+						</div>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/stores/mapper.ts:47</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="type" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">type<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Type of the service</p>
+						</div>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/services/service.ts:105</li>
 						</ul>
 					</aside>
 			</section>    </section>

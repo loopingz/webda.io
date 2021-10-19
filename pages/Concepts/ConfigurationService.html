@@ -191,6 +191,9 @@
 <span style="color: #000000">    </span><span style="color: #A31515">&quot;mycustom&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;test&quot;</span><span style="color: #000000">,</span>
 <span style="color: #000000">    ...</span>
 <span style="color: #000000">    </span><span style="color: #A31515">&quot;webda&quot;</span><span style="color: #000000">: {</span>
+<span style="color: #000000">        </span><span style="color: #A31515">&quot;parameters&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> {</span>
+<span style="color: #000000">            </span><span style="color: #A31515">&quot;param2&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> </span><span style="color: #A31515">&quot;test&quot;</span>
+<span style="color: #000000">        },</span>
 <span style="color: #000000">        </span><span style="color: #A31515">&quot;services&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> {</span>
 <span style="color: #000000">            </span><span style="color: #A31515">&quot;MyService&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> {</span>
 <span style="color: #000000">                </span><span style="color: #A31515">&quot;param1&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> </span><span style="color: #A31515">&quot;dynamic&quot;</span>
@@ -199,6 +202,9 @@
 <span style="color: #000000">    }</span>
 <span style="color: #000000">}</span>
 </code></pre>
+				<p>The configuration shared parameters is also available.</p>
+				<p>A service cannot be changed into another type of service for security purpose.
+				Creating dynamic route through the ConfigurationService is not recommended, it will be probably be block in the near future.</p>
 				<p>This is the general process if the ConfigurationProvider cannot trigger</p>
 				<div class="mermaid">sequenceDiagram
 					participant C as ConfigurationService

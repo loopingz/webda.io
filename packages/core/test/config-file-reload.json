@@ -54,7 +54,13 @@
       "default": {
         "webda": {
           "services": {
-            "Authentication.providers.email.text": "Test"
+            "Authentication": {
+              "providers": {
+                "email": {
+                  "text": "Test"
+                }
+              }
+            }
           }
         }
       }

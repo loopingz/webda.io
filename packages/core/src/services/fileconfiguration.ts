@@ -34,8 +34,16 @@ export class FileConfigurationService<
    * Load the JSON from source defined file
    * @override
    */
-  async loadConfiguration(): Promise<{ [key: string]: any }> {
+  protected async loadConfiguration(): Promise<{ [key: string]: any }> {
     return JSONUtils.loadFile(this.parameters.source);
+  }
+
+  /**
+   * Read the file and store it
+   */
+  async initConfiguration(): Promise<{ [key: string]: any }> {
+    this.parameters.source = this._webda.getAppPath(this.parameters.source);
+    return this.loadAndStoreConfiguration();
   }
 
   /**

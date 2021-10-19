@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { WebdaTest } from "../test";
-import { writeFileSync, readFileSync } from "fs";
+import { writeFileSync, unlinkSync, existsSync } from "fs";
 import { FileConfigurationService } from "./fileconfiguration";
 
 @suite
@@ -17,7 +17,13 @@ class FileConfigurationServiceTest extends WebdaTest {
         {
           webda: {
             services: {
-              "Authentication.providers.email.text": "Test"
+              Authentication: {
+                providers: {
+                  email: {
+                    text: "Test"
+                  }
+                }
+              }
             }
           }
         },
@@ -61,7 +67,13 @@ class FileConfigurationServiceTest extends WebdaTest {
           {
             webda: {
               services: {
-                "Authentication.providers.email.text": "Plop"
+                Authentication: {
+                  providers: {
+                    email: {
+                      text: "Plop"
+                    }
+                  }
+                }
               }
             }
           },
@@ -72,6 +84,64 @@ class FileConfigurationServiceTest extends WebdaTest {
     });
 
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+  }
+}
+
+@suite
+class FileConfigurationNoReloadServiceTest extends WebdaTest {
+  getTestConfiguration() {
+    return __dirname + "/../../test/config-file-no-reload.json";
+  }
+
+  async before() {
+    writeFileSync(
+      __dirname + "/../../test/my-cnf.json",
+      JSON.stringify(
+        {
+          webda: {
+            services: {
+              Authentication: {
+                providers: {
+                  email: {
+                    text: "Test2"
+                  }
+                }
+              }
+            }
+          }
+        },
+        undefined,
+        2
+      )
+    );
+    await super.before();
+  }
+
+  @test
+  async initialLoad() {
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test2");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+  }
+}
+
+@suite
+class FileConfigurationNoReloadMissingServiceTest extends WebdaTest {
+  getTestConfiguration() {
+    return __dirname + "/../../test/config-file-no-reload.json";
+  }
+
+  async before() {
+    const filename = __dirname + "/../../test/my-cnf.json";
+    if (existsSync(filename)) {
+      unlinkSync(filename);
+    }
+    await super.before();
+  }
+
+  @test
+  async initialLoad() {
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
   }
 }

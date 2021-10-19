@@ -6,7 +6,7 @@ import * as jsonpath from "jsonpath";
 import { OpenAPIV3 } from "openapi-types";
 import * as vm from "vm";
 import { Application } from "./application";
-import { Context, HttpContext, Logger, Service, Store } from "./index";
+import { ConfigurationService, Context, HttpContext, Logger, Service, Store } from "./index";
 import { CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { RouteInfo, Router } from "./router";
 import { WorkerOutput, WorkerLogLevel } from "@webda/workout";
@@ -201,6 +201,10 @@ export interface Configuration {
       maxAge: number;
       path: string;
     };
+    /**
+     * Read from the configuration service before init
+     */
+    configurationService?: string;
     /**
      * Application salt
      */
@@ -416,8 +420,6 @@ export class Core extends events.EventEmitter {
     if (this.configuration.parameters.website) {
       this.registerRequestFilter(new WebsiteOriginFilter(this.configuration.parameters.website));
     }
-
-    this.initStatics();
   }
 
   /**
@@ -514,6 +516,37 @@ export class Core extends events.EventEmitter {
     if (this._init) {
       return this._init;
     }
+    if (this.configuration.parameters.configurationService) {
+      try {
+        this.log("INFO", "Create and init ConfigurationService", this.configuration.parameters.configurationService);
+        // Create the configuration service
+        this.createService(this.configuration.services, this.configuration.parameters.configurationService);
+        let cfg = await this.getService<ConfigurationService>(
+          this.configuration.parameters.configurationService
+        ).initConfiguration();
+        if (cfg.webda) {
+          cfg.webda.parameters ??= {};
+          cfg.webda.services ??= {};
+          this.configuration.parameters = { ...this.configuration.parameters, ...cfg.webda.parameters };
+          for (let i in this.configuration.services) {
+            this.configuration.services[i] = {
+              ...deepmerge.all([
+                this.configuration.services[i],
+                (cfg.webda.services[i] || {})
+              ]),
+              type: this.configuration.services[i].type
+            };
+          }
+        }
+        await this.getService<ConfigurationService>(
+          this.configuration.parameters.configurationService
+        ).init();
+      } catch (err) {
+        this.log("ERROR", "Cannot use ConfigurationService", this.configuration.parameters.configurationService, err);
+        this.services = {};
+      }
+    }
+    this.initStatics();
     this.reinitResolvedRoutes();
     this.log("TRACE", "Create Webda init promise");
     this._init = new Promise(async resolve => {
@@ -828,11 +861,53 @@ export class Core extends events.EventEmitter {
     await Promise.all(inits);
   }
 
-  protected getServiceParams(service: string): any {
-    var params = { ...this.configuration.parameters, ...this.configuration.services[service] };
+  /**
+   * Get a full resolved service parameter
+   *
+   * @param service
+   * @param configuration
+   * @returns
+   */
+  public getServiceParams(
+    service: string,
+    configuration: { parameters?: any; services: any } = { parameters: {}, services: {} }
+  ): any {
+    configuration.parameters ??= {};
+    configuration.services ??= {};
+    configuration.services[service] ??= {};
+    const params : any = deepmerge.all([this.configuration.parameters || {},
+      configuration.parameters || {},
+      this.configuration.services[service] || {},
+      configuration.services[service] || {}
+    ]);
     delete params.require;
     return params;
   }
+
+  protected createService(services: any, service: string) {
+    var type = services[service].type;
+    if (type === undefined) {
+      type = service;
+    }
+    var serviceConstructor = undefined;
+    try {
+      serviceConstructor = this.application.getService(type);
+    } catch (ex) {
+      this.log("ERROR", `Create service ${service}(${type}) failed ${ex.message}`);
+      this.log("TRACE", ex.stack);
+      return;
+    }
+
+    try {
+      this.log("TRACE", "Constructing service", service);
+      this.services[service.toLowerCase()] = new serviceConstructor(this, service, this.getServiceParams(service));
+    } catch (err) {
+      this.log("ERROR", "Cannot create service", service, err);
+      // @ts-ignore
+      this.failedServices[service.toLowerCase()] = { _createException: err };
+    }
+  }
+
   /**
    * @hidden
    *
@@ -858,27 +933,7 @@ export class Core extends events.EventEmitter {
       if (excludes.indexOf(service.toLowerCase()) >= 0) {
         continue;
       }
-      var type = services[service].type;
-      if (type === undefined) {
-        type = service;
-      }
-      var serviceConstructor = undefined;
-      try {
-        serviceConstructor = this.application.getService(type);
-      } catch (ex) {
-        this.log("ERROR", `Create service ${service}(${type}) failed ${ex.message}`);
-        this.log("TRACE", ex.stack);
-        continue;
-      }
-
-      try {
-        this.log("TRACE", "Constructing service", service);
-        this.services[service.toLowerCase()] = new serviceConstructor(this, service, this.getServiceParams(service));
-      } catch (err) {
-        this.log("ERROR", "Cannot create service", service, err);
-        // @ts-ignore
-        this.failedServices[service.toLowerCase()] = { _createException: err };
-      }
+      this.createService(services, service);
     }
 
     this.autoConnectServices();
@@ -922,9 +977,9 @@ export class Core extends events.EventEmitter {
     return value;
   }
 
-  protected initStatics() {
+  initStatics() {
     if (this.configuration.services !== undefined) {
-      this.createServices();
+      this.createServices(Object.keys(this.services));
     }
 
     this.router.remapRoutes();

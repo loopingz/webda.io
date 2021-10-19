@@ -45,6 +45,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     let app = new Application(this.getTestConfiguration());
     app.loadLocalModule();
     this.webda = this.handler = new LambdaServer(app);
+    this.webda.initStatics();
     this.evt = {
       httpMethod: "GET",
       headers: {

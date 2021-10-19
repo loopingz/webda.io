@@ -113,6 +113,7 @@ export default class WebdaConsole {
    */
   static async serviceConfig(argv): Promise<number> {
     WebdaConsole.webda = new WebdaServer(this.app);
+    WebdaConsole.webda.initStatics();
     let serviceName = argv.name;
     let service = this.webda.getService(serviceName);
     if (!service) {
@@ -1073,6 +1074,7 @@ export default class WebdaConsole {
    */
   static async generateOpenAPI(argv: yargs.Arguments): Promise<void> {
     this.webda = new WebdaServer(this.app);
+    this.webda.initStatics();
     let openapi = this.webda.exportOpenAPI(!argv.includeHidden);
     let name = <string>argv.exportFile || "./openapi.json";
     FileUtils.save(openapi, name);

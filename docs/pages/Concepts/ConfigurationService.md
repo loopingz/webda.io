@@ -11,6 +11,9 @@ If inside the object, at path `webda.services` it will update services configura
     "mycustom": "test",
     ...
     "webda": {
+		"parameters": {
+			"param2": "test"
+		},
         "services": {
             "MyService": {
                 "param1": "dynamic"
@@ -19,6 +22,11 @@ If inside the object, at path `webda.services` it will update services configura
     }
 }
 ```
+
+The configuration shared parameters is also available.
+
+A service cannot be changed into another type of service for security purpose.
+Creating dynamic route through the ConfigurationService is not recommended, it will be probably be block in the near future.
 
 This is the general process if the ConfigurationProvider cannot trigger
 

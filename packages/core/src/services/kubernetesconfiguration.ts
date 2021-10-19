@@ -29,14 +29,23 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
   }
 
   /**
+   * Read the file and store it
+   */
+  async initConfiguration(): Promise<{ [key: string]: any }> {
+    return this.loadAndStoreConfiguration();
+  }
+
+  /**
    * Load configuration from a ConfigMap or a Secret
    * @override
    */
   async loadConfiguration(): Promise<{ [key: string]: any }> {
     let result = {};
+    let found = 0;
     fs.readdirSync(this.parameters.source)
       .filter(f => !f.startsWith("."))
       .forEach(f => {
+        found++;
         let filePath = path.join(this.parameters.source, f);
         // Auto parse JSON and YAML
         if (f.match(/\.(json|ya?ml)$/i)) {
@@ -45,6 +54,9 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
           result[f] = fs.readFileSync(filePath, "utf-8");
         }
       });
+    if (found === 0) {
+      return undefined;
+    }
     this.log("TRACE", "loadConfiguration", result);
     return result;
   }

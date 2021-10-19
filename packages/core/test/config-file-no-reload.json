@@ -4,7 +4,8 @@
     "TEST": "Global",
     "region": "us-east-1",
     "website": ["test.webda.io", "test2.webda.io"],
-    "locales": ["es-ES", "en-GB", "fr-FR"]
+    "locales": ["es-ES", "en-GB", "fr-FR"],
+    "configurationService": "FileConfigurationService"
   },
   "moddas": {
     "Test/Mailer": {
@@ -49,23 +50,19 @@
     "Idents": {
       "type": "MemoryStore"
     },
-    "KubernetesConfigurationService": {
-      "source": "./kube",
+    "FileConfigurationService": {
+      "source": "./my-cnf.json",
       "default": {
         "webda": {
           "services": {
             "Authentication": {
               "providers": {
                 "email": {
-                  "text": "Plop0"
+                  "text": "Test"
                 }
               }
             }
           }
-        },
-        "other": "text",
-        "yaml": {
-          "field": "test"
         }
       }
     }

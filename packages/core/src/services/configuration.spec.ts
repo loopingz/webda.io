@@ -4,6 +4,7 @@ import { CoreModel } from "../models/coremodel";
 import { Store } from "../stores/store";
 import { WebdaTest } from "../test";
 import { ConfigurationService, ConfigurationServiceParameters } from "./configuration";
+import { stub } from "sinon";
 
 @suite
 class ConfigurationServiceTest extends WebdaTest {
@@ -37,6 +38,7 @@ class ConfigurationServiceTest extends WebdaTest {
       () => service.init(),
       /Service 'DefinedMailer' is not implementing ConfigurationProvider interface/
     );
+    await assert.rejects(() => service.initConfiguration(), /ConfigurationService with dependencies cannot be used/);
   }
 
   @test
@@ -47,7 +49,13 @@ class ConfigurationServiceTest extends WebdaTest {
       uuid: "test",
       webda: {
         services: {
-          "Authentication.providers.email.text": "Plop"
+          Authentication: {
+            providers: {
+              email: {
+                text: "Plop"
+              }
+            }
+          }
         }
       }
     };
@@ -58,7 +66,16 @@ class ConfigurationServiceTest extends WebdaTest {
     });
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    let service = this.webda.getService<ConfigurationService>("ConfigurationService");
     // @ts-ignore
-    await this.webda.getService<ConfigurationService>("ConfigurationService").checkUpdate();
+    await service.checkUpdate();
+    let mock = stub(service, "loadConfiguration").callsFake(() => {});
+    // @ts-ignore
+    service.nextCheck = Date.now() + 86400000;
+    // @ts-ignore
+    service.interval = 1;
+    // @ts-ignore
+    await service.checkUpdate();
+    assert.strictEqual(mock.callCount, 0);
   }
 }

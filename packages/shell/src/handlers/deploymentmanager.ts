@@ -51,6 +51,7 @@ export class DeploymentManager {
     DeploymentManager.addBuiltinDeployers(this.application);
     let deployment = this.application.getDeployment(deploymentName);
     this.webda = new Core(this.application);
+    this.webda.initStatics();
     this.deployersDefinition = <any>this.application.getDeployers();
     this.output = app.getWorkerOutput();
     this.logger = new Logger(this.output, `deploymentManager`);

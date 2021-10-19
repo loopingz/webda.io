@@ -171,6 +171,10 @@ export default class ConfigurationService<
     return this.sourceService.getConfiguration(this.sourceId);
   }
 
+  async initConfiguration(): Promise<{ [key: string]: any }> {
+    throw new Error("ConfigurationService with dependencies cannot be used");
+  }
+
   /**
    * Checking for configuration updates
    *
@@ -180,7 +184,9 @@ export default class ConfigurationService<
    */
   protected async checkUpdate(dynamic: boolean = false) {
     // If the ConfigurationProvider cannot trigger we check at interval
-    if (!dynamic && this.interval && this.nextCheck > new Date().getTime()) return;
+    if (!dynamic && this.interval && this.nextCheck > Date.now()) {
+      return;
+    }
 
     this.log("DEBUG", "Refreshing configuration");
     const newConfig = (await this.loadConfiguration()) || this.parameters.default;
@@ -190,6 +196,15 @@ export default class ConfigurationService<
       this.log("DEBUG", "Apply new configuration");
       this.serializedConfiguration = serializedConfig;
       this.configuration = newConfig;
+      // Add the webda parameters logical
+      if (this.configuration.webda && this.configuration.webda.services) {
+        // Merge parameters with each service
+        for (let i in this.configuration.webda.services) {
+          if (this.getWebda().getService(i)) {
+            this.configuration.webda.services[i] = this.getWebda().getServiceParams(i, this.configuration.webda);
+          }
+        }
+      }
       let promises = [];
       this.watchs.forEach(w => {
         this.log("TRACE", "Apply new configuration value", jsonpath.query(newConfig, w.path).pop() || w.defaultValue);
@@ -212,7 +227,16 @@ export default class ConfigurationService<
    * Update the next check time
    */
   protected updateNextCheck() {
-    this.nextCheck = new Date().getTime() + this.parameters.checkInterval * 1000;
+    this.nextCheck = Date.now() + this.parameters.checkInterval * 1000;
+  }
+
+  /**
+   * Read the file and store it
+   */
+  async loadAndStoreConfiguration(): Promise<{ [key: string]: any }> {
+    let res = await this.loadConfiguration();
+    this.serializedConfiguration = JSON.stringify(res);
+    return res;
   }
 }
 

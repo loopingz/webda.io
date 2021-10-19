@@ -6,6 +6,7 @@ import * as path from "path";
 import * as yaml from "yaml";
 import { mkdirSync, unlinkSync } from "fs";
 import { KubernetesConfigurationService } from "..";
+import { stub } from "sinon";
 
 class AbstractKubernetesConfigurationServiceTest extends WebdaTest {
   folder: string = __dirname + "/../../test/kube";
@@ -14,7 +15,14 @@ class AbstractKubernetesConfigurationServiceTest extends WebdaTest {
     "webda.json": JSON.stringify(
       {
         services: {
-          "Authentication.providers.email.text": "Plop0"
+          Authentication: {
+            providers: {
+              email: {
+                text: "Plop1"
+              }
+            }
+          },
+          "Authentication.providers.email.text2": "Plop6"
         }
       },
       undefined,
@@ -74,11 +82,15 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
     assert.rejects(() => serv.init(), /Need a source for KubernetesConfigurationService/);
     serv.getParameters().source = "/notexisting";
     assert.rejects(() => serv.init(), /Need a source for KubernetesConfigurationService/);
+    let mock = stub(serv, "loadAndStoreConfiguration").callsFake(() => {});
+    await serv.initConfiguration();
+    assert.strictEqual(mock.callCount, 1);
   }
 
   @test
   async updatedConfigMap() {
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop0");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop1");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text2, "Plop6");
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
     await new Promise(resolve => {
       this.webda.getService("KubernetesConfigurationService").on("Configuration.Applied", resolve);
@@ -86,25 +98,37 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
         ...this.content,
         "webda.json": JSON.stringify({
           services: {
-            "Authentication.providers.email.text": "Plop"
-          }
-        })
-      });
-    });
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop");
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
-    await new Promise(resolve => {
-      this.webda.getService("KubernetesConfigurationService").on("Configuration.Applied", resolve);
-      this.updateConfigMap({
-        ...this.content,
-        "webda.json": JSON.stringify({
-          services: {
-            "Authentication.providers.email.text": "Plop2"
+            Authentication: {
+              providers: {
+                email: {
+                  text: "Plop2"
+                }
+              }
+            }
           }
         })
       });
     });
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop2");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
+    await new Promise(resolve => {
+      this.webda.getService("KubernetesConfigurationService").on("Configuration.Applied", resolve);
+      this.updateConfigMap({
+        ...this.content,
+        "webda.json": JSON.stringify({
+          services: {
+            Authentication: {
+              providers: {
+                email: {
+                  text: "Plop3"
+                }
+              }
+            }
+          }
+        })
+      });
+    });
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop3");
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
   }
 }
@@ -113,7 +137,7 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
 class EmptyKubernetesConfigurationServiceTest extends AbstractKubernetesConfigurationServiceTest {
   @test
   async unmountedConfigMap() {
-    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Test");
+    assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.text, "Plop0");
     assert.strictEqual(this.webda.getConfiguration().services.Authentication.providers.email.mailer, "DefinedMailer");
   }
 }

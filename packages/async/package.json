@@ -21,7 +21,7 @@
   "dependencies": {
     "@types/node": "^16.4.14",
     "@webda/core": "^1.5.2",
-    "axios": "^0.23.0"
+    "axios": "^0.24.0"
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.1",

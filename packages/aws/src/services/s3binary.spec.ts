@@ -182,6 +182,15 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   }
 
   @test
+  getKey() {
+    let key = this.getBinary()._getKey("bouzouf", "two");
+    assert.strictEqual(key, "bouzouf/two");
+    this.getBinary().getParameters().prefix = "plop";
+    key = this.getBinary()._getKey("bouzouf", "two");
+    assert.strictEqual(key, "plop/bouzouf/two");
+  }
+
+  @test
   async cascadeDelete() {
     let stubDelete = sinon.stub(this.getBinary()._s3, "deleteObject").callsFake(() => {
       throw new Error();

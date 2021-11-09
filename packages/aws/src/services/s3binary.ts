@@ -16,11 +16,13 @@ import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
 import * as bluebird from "bluebird";
 import { Readable } from "stream";
+import { join } from "path";
 
 export class S3BinaryParameters extends BinaryParameters {
   endpoint?: string;
   s3ForcePathStyle?: boolean;
   bucket: string;
+  prefix?: string;
   CloudFormation: any;
   CloudFormationSkip: boolean;
 
@@ -30,6 +32,7 @@ export class S3BinaryParameters extends BinaryParameters {
       throw new WebdaError("S3BUCKET_PARAMETER_REQUIRED", "Need to define a bucket at least");
     }
     this.s3ForcePathStyle ??= false;
+    this.prefix = "";
   }
 }
 
@@ -371,9 +374,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   _getKey(hash: string, postfix: string = undefined): string {
     if (postfix === undefined) {
-      return hash + "/data";
+      return join(this.parameters.prefix, hash, "data");
     }
-    return hash + "/" + postfix;
+    return join(this.parameters.prefix, hash, postfix);
   }
 
   /**

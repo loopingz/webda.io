@@ -123,6 +123,10 @@ export type UnpackedConfiguration = {
    */
   parameters?: {
     /**
+     * Trust this reverse proxies
+     */
+    trustedProxies?: string | string[];
+    /**
      * Allowed origin for referer that match
      * any of this regexp
      *

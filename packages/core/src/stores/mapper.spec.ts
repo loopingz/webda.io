@@ -2,6 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
 import { Store } from "../index";
+import { User } from "../models/user";
 import { WebdaTest } from "../test";
 import MapperService from "./mapper";
 
@@ -57,7 +58,7 @@ class MapperTest extends WebdaTest {
       fields: ["email"]
     });
     let identStore = this.getService<Store>("MemoryIdents");
-    let userStore = this.getService<Store>("MemoryUsers");
+    let userStore = this.getService<Store<User & { otherIdents: any[] }>>("MemoryUsers");
     this.registerService(mapper);
     mapper.resolve();
     await mapper.init();

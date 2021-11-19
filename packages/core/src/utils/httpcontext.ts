@@ -1,7 +1,13 @@
 import { parse as cookieParse } from "cookie";
+import { IncomingHttpHeaders } from "http";
 import { Readable } from "stream";
 
 export type HttpMethodType = "GET" | "OPTIONS" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+type HeadersRequest = IncomingHttpHeaders & {
+  // Permit any property starting with 'data-'.
+  [headerName: `x-${string}`]: string;
+};
 
 /**
  * The HttpContext
@@ -27,11 +33,15 @@ export class HttpContext {
    * Pathname
    */
   uri: string;
+  /**
+   * Get the client ip if available
+   */
+  clientIp: string;
   path: string;
   search: string;
   protocol: "http:" | "https:";
   port: string;
-  headers: { [key: string]: string | string[] };
+  headers: HeadersRequest;
   origin: string;
   host: string;
   body: Buffer | Readable | undefined;
@@ -62,16 +72,14 @@ export class HttpContext {
     // @ts-ignore
     this.protocol = <unknown>protocol + ":";
     this.port = port.toString();
-    this.headers = headers;
-    for (let i in this.headers) {
+    this.headers = {};
+    for (let i in headers) {
       if (i.toLowerCase() === "cookie") {
-        this.cookies = Array.isArray(this.headers[i])
-          ? (<string[]>this.headers[i]).map(c => cookieParse(c))
-          : cookieParse(<string>this.headers[i]);
+        this.cookies = Array.isArray(headers[i])
+          ? (<string[]>headers[i]).map(c => cookieParse(c))
+          : cookieParse(<string>headers[i]);
       }
-      if (i.toLowerCase() !== i) {
-        this.headers[i.toLowerCase()] = this.headers[i];
-      }
+      this.headers[i.toLowerCase()] = headers[i];
     }
     let portUrl = "";
     if (
@@ -84,6 +92,13 @@ export class HttpContext {
     }
     this.origin = this.protocol + "//" + this.hostname + portUrl;
     this.host = this.hostname + portUrl;
+  }
+
+  /**
+   * Get the client ip
+   */
+  getClientIp(): string {
+    return this.clientIp;
   }
 
   /**
@@ -267,7 +282,7 @@ export class HttpContext {
    * Get HTTP Headers
    * @returns
    */
-  getHeaders() {
+  getHeaders(): Readonly<IncomingHttpHeaders> {
     return this.headers;
   }
 
@@ -307,7 +322,6 @@ export class HttpContext {
       this.body = Buffer.from(JSON.stringify(body));
     }
   }
-
   /**
    * Get request path name
    *

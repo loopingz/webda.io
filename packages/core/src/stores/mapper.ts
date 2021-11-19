@@ -144,6 +144,7 @@ export default class MapperService<T extends MapperParameters = MapperParameters
    */
   createMapper(object: CoreModel, updates: any): [mapper: Mapper, found: boolean] {
     var mapper: Mapper = {
+      // TODO Move to getFullUuid
       uuid: object.getUuid()
     };
     let found = false;

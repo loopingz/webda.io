@@ -56,7 +56,7 @@ class FileStoreTest extends StoreTest {
   async cov() {
     let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
     let userStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("users");
-    let user = await userStore.save({});
+    let user: any = await userStore.save({});
     let ident = await identStore.save({
       _user: user.getUuid()
     });
@@ -167,9 +167,9 @@ class FileStoreTest extends StoreTest {
   @test
   async cacheMishit() {
     let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
-    let ident = await identStore.save({ uuid: "test" });
+    let ident: CoreModel = await identStore.save({ uuid: "test" });
     await identStore._cacheStore.__clean();
-    await ident.update({ retest: true }, false, true);
+    await ident.update({ retest: true });
   }
 
   @test

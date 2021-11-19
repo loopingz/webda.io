@@ -1,19 +1,19 @@
+import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import Ajv, { ErrorObject } from "ajv";
 import addFormats from "ajv-formats";
+import ValidationError from "ajv/dist/runtime/validation_error";
+import * as crypto from "crypto";
+import { deepmerge } from "deepmerge-ts";
 import * as events from "events";
 import { JSONSchema7 } from "json-schema";
 import * as jsonpath from "jsonpath";
 import { OpenAPIV3 } from "openapi-types";
+import { v4 as uuidv4 } from "uuid";
 import * as vm from "vm";
 import { Application, Configuration } from "./application";
 import { ConfigurationService, Context, HttpContext, Logger, Service, Store } from "./index";
 import { CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { OpenAPIWebdaDefinition, RouteInfo, Router } from "./router";
-import { WorkerOutput, WorkerLogLevel } from "@webda/workout";
-import { v4 as uuidv4 } from "uuid";
-import ValidationError from "ajv/dist/runtime/validation_error";
-import { deepmerge } from "deepmerge-ts";
-import * as crypto from "crypto";
 
 /**
  * Error with a code
@@ -376,6 +376,16 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       this.log("TRACE", err.stack);
     }
   }
+
+  /**
+   * Get an object from the application based on its full uuid
+   * @param fullUuid
+   * @param partials
+   */
+  async getModelObject<T extends CoreModel = CoreModel>(fullUuid: string, partials?: any): Promise<T> {
+    return CoreModel.fromFullUuid(this, fullUuid, partials);
+  }
+
   /**
    * Init Webda
    *

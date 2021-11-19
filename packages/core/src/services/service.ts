@@ -112,6 +112,9 @@ export class ServiceParameters {
   }
 }
 
+/**
+ * Create a new type with only optional
+ */
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };

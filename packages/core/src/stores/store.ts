@@ -1086,7 +1086,7 @@ abstract class Store<
    *
    * Might want to rename to create
    */
-  async save(object, ctx: Context = undefined) {
+  async save(object, ctx: Context = undefined): Promise<T> {
     object = this.initModel(object);
 
     // Dates should be store by the Store
@@ -1124,7 +1124,7 @@ abstract class Store<
    * @param reverseMap
    * @returns
    */
-  async patch(object: any, reverseMap = true) {
+  async patch(object: any, reverseMap = true): Promise<T | undefined> {
     return this.update(object, reverseMap, true);
   }
 
@@ -1207,11 +1207,13 @@ abstract class Store<
   /**
    * Update an object
    *
+   * If no attribute can be updated then return undefined
+   *
    * @param {Object} Object to save
    * @param {Boolean} reverseMap internal use only, for disable map resolution
    * @return {Promise} with saved object
    */
-  async update(object: any, reverseMap = true, partial = false) {
+  async update(object: any, reverseMap = true, partial = false): Promise<T | undefined> {
     /** @ignore */
     var saved;
     var loaded;
@@ -1224,7 +1226,7 @@ abstract class Store<
       }
     }
     if (Object.keys(object).length < 2) {
-      return {};
+      return undefined;
     }
 
     object[this._lastUpdateField] = new Date();

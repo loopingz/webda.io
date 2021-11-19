@@ -29,8 +29,10 @@ class HttpContextTest {
     ctx.setBody(stream);
     ctx.getRawStream();
     assert.strictEqual(await ctx.getRawBodyAsString(), "Test");
+    // @ts-ignore
     ctx.getHeaders()["content-type"] = "application/json";
     assert.strictEqual(await ctx.getRawBodyAsString(), "Test");
+    // @ts-ignore
     ctx.getHeaders()["content-type"] = "application/json; charset=iso-8859-1";
     await assert.rejects(() => ctx.getRawBodyAsString(), /Only UTF-8 is currently managed/);
   }

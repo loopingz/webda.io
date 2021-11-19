@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as sinon from "sinon";
-import { CoreModel } from "..";
+import { CoreModel, Store } from "..";
 import { WebdaTest } from "../test";
 const Task = require("../../test/models/task");
 
@@ -104,6 +104,21 @@ class CoreModelTest extends WebdaTest {
       deleteSpy.restore();
     }
     assert.strictEqual(this.getService("ResourceService"), task.getService("ResourceService"));
+  }
+
+  @test async fullUuid() {
+    let task = new Task();
+    task.setUuid("task#1");
+    assert.throws(() => task.getFullUuid(), /Cannot return full uuid of unattached object/);
+    let memoryStore = this.getService<Store>("MemoryUsers");
+    task = await memoryStore.save({ ...task, test: false });
+    assert.strictEqual(task.getFullUuid(), "MemoryUsers$task#1");
+    let taskB = await this.webda.getModelObject("MemoryUsers$task#1");
+    // @ts-ignore
+    assert.strictEqual(taskB.test, false);
+    taskB = await this.webda.getModelObject(task.getFullUuid(), { test: true });
+    // @ts-ignore
+    assert.strictEqual(taskB.test, true);
   }
 
   @test async refresh() {

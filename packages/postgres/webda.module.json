@@ -40,15 +40,7 @@
           "type": "string"
         },
         "database": {
-          "type": "object",
-          "properties": {
-            "name": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "name"
-          ]
+          "$ref": "#/definitions/SQLDatabase"
         },
         "usePool": {
           "type": "boolean",
@@ -57,1891 +49,16 @@
         "postgresqlServer": {
           "anyOf": [
             {
-              "type": "object",
-              "properties": {
-                "user": {
-                  "type": "string"
-                },
-                "database": {
-                  "type": "string"
-                },
-                "password": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {}
-                  ]
-                },
-                "port": {
-                  "type": "number"
-                },
-                "host": {
-                  "type": "string"
-                },
-                "connectionString": {
-                  "type": "string"
-                },
-                "keepAlive": {
-                  "type": "boolean"
-                },
-                "stream": {
-                  "type": "object",
-                  "properties": {
-                    "writable": {
-                      "type": "boolean"
-                    },
-                    "writableEnded": {
-                      "type": "boolean"
-                    },
-                    "writableFinished": {
-                      "type": "boolean"
-                    },
-                    "writableHighWaterMark": {
-                      "type": "number"
-                    },
-                    "writableLength": {
-                      "type": "number"
-                    },
-                    "writableObjectMode": {
-                      "type": "boolean"
-                    },
-                    "writableCorked": {
-                      "type": "number"
-                    },
-                    "destroyed": {
-                      "type": "boolean"
-                    },
-                    "readable": {
-                      "type": "boolean"
-                    },
-                    "readableHighWaterMark": {
-                      "type": "number"
-                    },
-                    "readableLength": {
-                      "type": "number"
-                    },
-                    "readableObjectMode": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "destroyed",
-                    "readable",
-                    "readableHighWaterMark",
-                    "readableLength",
-                    "readableObjectMode",
-                    "writable",
-                    "writableCorked",
-                    "writableEnded",
-                    "writableFinished",
-                    "writableHighWaterMark",
-                    "writableLength",
-                    "writableObjectMode"
-                  ]
-                },
-                "statement_timeout": {
-                  "anyOf": [
-                    {
-                      "type": "boolean",
-                      "const": false
-                    },
-                    {
-                      "type": "number"
-                    }
-                  ]
-                },
-                "parseInputDatesAsUTC": {
-                  "type": "boolean"
-                },
-                "ssl": {
-                  "anyOf": [
-                    {
-                      "type": "boolean"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "secureContext": {
-                          "type": "object",
-                          "properties": {
-                            "context": {}
-                          },
-                          "required": [
-                            "context"
-                          ],
-                          "description": "An optional TLS context object from tls.createSecureContext()"
-                        },
-                        "enableTrace": {
-                          "type": "boolean",
-                          "description": "When enabled, TLS packet trace information is written to `stderr`. This can be used to debug TLS connection problems.",
-                          "default": false
-                        },
-                        "requestCert": {
-                          "type": "boolean",
-                          "description": "If true the server will request a certificate from clients that connect and attempt to verify that certificate. Defaults to false."
-                        },
-                        "ALPNProtocols": {
-                          "anyOf": [
-                            {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            },
-                            {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "BYTES_PER_ELEMENT": {
-                                    "type": "number"
-                                  },
-                                  "buffer": {
-                                    "$ref": "#/definitions/ArrayBufferLike"
-                                  },
-                                  "byteLength": {
-                                    "type": "number"
-                                  },
-                                  "byteOffset": {
-                                    "type": "number"
-                                  },
-                                  "length": {
-                                    "type": "number"
-                                  }
-                                },
-                                "required": [
-                                  "BYTES_PER_ELEMENT",
-                                  "buffer",
-                                  "byteLength",
-                                  "byteOffset",
-                                  "length"
-                                ],
-                                "additionalProperties": {
-                                  "type": "number"
-                                }
-                              }
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "BYTES_PER_ELEMENT": {
-                                  "type": "number"
-                                },
-                                "buffer": {
-                                  "$ref": "#/definitions/ArrayBufferLike"
-                                },
-                                "byteLength": {
-                                  "type": "number"
-                                },
-                                "byteOffset": {
-                                  "type": "number"
-                                },
-                                "length": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "BYTES_PER_ELEMENT",
-                                "buffer",
-                                "byteLength",
-                                "byteOffset",
-                                "length"
-                              ],
-                              "additionalProperties": {
-                                "type": "number"
-                              }
-                            }
-                          ],
-                          "description": "An array of strings or a Buffer naming possible ALPN protocols. (Protocols should be ordered by their priority.)"
-                        },
-                        "SNICallback": {
-                          "description": "SNICallback(servername, cb) <Function> A function that will be called if the client supports SNI TLS extension. Two arguments will be passed when called: servername and cb. SNICallback should invoke cb(null, ctx), where ctx is a SecureContext instance. (tls.createSecureContext(...) can be used to get a proper SecureContext.) If SNICallback wasn't provided the default callback with high-level API will be used (see below)."
-                        },
-                        "rejectUnauthorized": {
-                          "type": "boolean",
-                          "description": "If true the server will reject any connection which is not authorized with the list of supplied CAs. This option only has an effect if requestCert is true.",
-                          "default": true
-                        },
-                        "ca": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "BYTES_PER_ELEMENT": {
-                                  "type": "number"
-                                },
-                                "buffer": {
-                                  "$ref": "#/definitions/ArrayBufferLike"
-                                },
-                                "byteLength": {
-                                  "type": "number"
-                                },
-                                "byteOffset": {
-                                  "type": "number"
-                                },
-                                "length": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "BYTES_PER_ELEMENT",
-                                "buffer",
-                                "byteLength",
-                                "byteOffset",
-                                "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                            },
-                            {
-                              "type": "array",
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "BYTES_PER_ELEMENT": {
-                                        "type": "number"
-                                      },
-                                      "buffer": {
-                                        "$ref": "#/definitions/ArrayBufferLike"
-                                      },
-                                      "byteLength": {
-                                        "type": "number"
-                                      },
-                                      "byteOffset": {
-                                        "type": "number"
-                                      },
-                                      "length": {
-                                        "type": "number"
-                                      }
-                                    },
-                                    "required": [
-                                      "BYTES_PER_ELEMENT",
-                                      "buffer",
-                                      "byteLength",
-                                      "byteOffset",
-                                      "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                                  }
-                                ]
-                              }
-                            }
-                          ],
-                          "description": "Optionally override the trusted CA certificates. Default is to trust the well-known CAs curated by Mozilla. Mozilla's CAs are completely replaced when CAs are explicitly specified using this option."
-                        },
-                        "cert": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "BYTES_PER_ELEMENT": {
-                                  "type": "number"
-                                },
-                                "buffer": {
-                                  "$ref": "#/definitions/ArrayBufferLike"
-                                },
-                                "byteLength": {
-                                  "type": "number"
-                                },
-                                "byteOffset": {
-                                  "type": "number"
-                                },
-                                "length": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "BYTES_PER_ELEMENT",
-                                "buffer",
-                                "byteLength",
-                                "byteOffset",
-                                "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                            },
-                            {
-                              "type": "array",
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "BYTES_PER_ELEMENT": {
-                                        "type": "number"
-                                      },
-                                      "buffer": {
-                                        "$ref": "#/definitions/ArrayBufferLike"
-                                      },
-                                      "byteLength": {
-                                        "type": "number"
-                                      },
-                                      "byteOffset": {
-                                        "type": "number"
-                                      },
-                                      "length": {
-                                        "type": "number"
-                                      }
-                                    },
-                                    "required": [
-                                      "BYTES_PER_ELEMENT",
-                                      "buffer",
-                                      "byteLength",
-                                      "byteOffset",
-                                      "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                                  }
-                                ]
-                              }
-                            }
-                          ],
-                          "description": "Cert chains in PEM format. One cert chain should be provided per private key. Each cert chain should consist of the PEM formatted certificate for a provided private key, followed by the PEM formatted intermediate certificates (if any), in order, and not including the root CA (the root CA must be pre-known to the peer, see ca). When providing multiple cert chains, they do not have to be in the same order as their private keys in key. If the intermediate certificates are not provided, the peer will not be able to validate the certificate, and the handshake will fail."
-                        },
-                        "sigalgs": {
-                          "type": "string",
-                          "description": "Colon-separated list of supported signature algorithms. The list can contain digest algorithms (SHA256, MD5 etc.), public key algorithms (RSA-PSS, ECDSA etc.), combination of both (e.g 'RSA+SHA384') or TLS v1.3 scheme names (e.g. rsa_pss_pss_sha512)."
-                        },
-                        "ciphers": {
-                          "type": "string",
-                          "description": "Cipher suite specification, replacing the default. For more information, see modifying the default cipher suite. Permitted ciphers can be obtained via tls.getCiphers(). Cipher names must be uppercased in order for OpenSSL to accept them."
-                        },
-                        "clientCertEngine": {
-                          "type": "string",
-                          "description": "Name of an OpenSSL engine which can provide the client certificate."
-                        },
-                        "crl": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "BYTES_PER_ELEMENT": {
-                                  "type": "number"
-                                },
-                                "buffer": {
-                                  "$ref": "#/definitions/ArrayBufferLike"
-                                },
-                                "byteLength": {
-                                  "type": "number"
-                                },
-                                "byteOffset": {
-                                  "type": "number"
-                                },
-                                "length": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "BYTES_PER_ELEMENT",
-                                "buffer",
-                                "byteLength",
-                                "byteOffset",
-                                "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                            },
-                            {
-                              "type": "array",
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "BYTES_PER_ELEMENT": {
-                                        "type": "number"
-                                      },
-                                      "buffer": {
-                                        "$ref": "#/definitions/ArrayBufferLike"
-                                      },
-                                      "byteLength": {
-                                        "type": "number"
-                                      },
-                                      "byteOffset": {
-                                        "type": "number"
-                                      },
-                                      "length": {
-                                        "type": "number"
-                                      }
-                                    },
-                                    "required": [
-                                      "BYTES_PER_ELEMENT",
-                                      "buffer",
-                                      "byteLength",
-                                      "byteOffset",
-                                      "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                                  }
-                                ]
-                              }
-                            }
-                          ],
-                          "description": "PEM formatted CRLs (Certificate Revocation Lists)."
-                        },
-                        "dhparam": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "BYTES_PER_ELEMENT": {
-                                  "type": "number"
-                                },
-                                "buffer": {
-                                  "$ref": "#/definitions/ArrayBufferLike"
-                                },
-                                "byteLength": {
-                                  "type": "number"
-                                },
-                                "byteOffset": {
-                                  "type": "number"
-                                },
-                                "length": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "BYTES_PER_ELEMENT",
-                                "buffer",
-                                "byteLength",
-                                "byteOffset",
-                                "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                            }
-                          ],
-                          "description": "Diffie Hellman parameters, required for Perfect Forward Secrecy. Use openssl dhparam to create the parameters. The key length must be greater than or equal to 1024 bits or else an error will be thrown. Although 1024 bits is permissible, use 2048 bits or larger for stronger security. If omitted or invalid, the parameters are silently discarded and DHE ciphers will not be available."
-                        },
-                        "ecdhCurve": {
-                          "type": "string",
-                          "description": "A string describing a named curve or a colon separated list of curve NIDs or names, for example P-521:P-384:P-256, to use for ECDH key agreement. Set to auto to select the curve automatically. Use crypto.getCurves() to obtain a list of available curve names. On recent releases, openssl ecparam -list_curves will also display the name and description of each available elliptic curve. Default: tls.DEFAULT_ECDH_CURVE."
-                        },
-                        "honorCipherOrder": {
-                          "type": "boolean",
-                          "description": "Attempt to use the server's cipher suite preferences instead of the client's. When true, causes SSL_OP_CIPHER_SERVER_PREFERENCE to be set in secureOptions"
-                        },
-                        "key": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "BYTES_PER_ELEMENT": {
-                                  "type": "number"
-                                },
-                                "buffer": {
-                                  "$ref": "#/definitions/ArrayBufferLike"
-                                },
-                                "byteLength": {
-                                  "type": "number"
-                                },
-                                "byteOffset": {
-                                  "type": "number"
-                                },
-                                "length": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "BYTES_PER_ELEMENT",
-                                "buffer",
-                                "byteLength",
-                                "byteOffset",
-                                "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                            },
-                            {
-                              "type": "array",
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "BYTES_PER_ELEMENT": {
-                                        "type": "number"
-                                      },
-                                      "buffer": {
-                                        "$ref": "#/definitions/ArrayBufferLike"
-                                      },
-                                      "byteLength": {
-                                        "type": "number"
-                                      },
-                                      "byteOffset": {
-                                        "type": "number"
-                                      },
-                                      "length": {
-                                        "type": "number"
-                                      }
-                                    },
-                                    "required": [
-                                      "BYTES_PER_ELEMENT",
-                                      "buffer",
-                                      "byteLength",
-                                      "byteOffset",
-                                      "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "pem": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "object",
-                                            "properties": {
-                                              "BYTES_PER_ELEMENT": {
-                                                "type": "number"
-                                              },
-                                              "buffer": {
-                                                "$ref": "#/definitions/ArrayBufferLike"
-                                              },
-                                              "byteLength": {
-                                                "type": "number"
-                                              },
-                                              "byteOffset": {
-                                                "type": "number"
-                                              },
-                                              "length": {
-                                                "type": "number"
-                                              }
-                                            },
-                                            "required": [
-                                              "BYTES_PER_ELEMENT",
-                                              "buffer",
-                                              "byteLength",
-                                              "byteOffset",
-                                              "length"
-                                            ],
-                                            "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                                          }
-                                        ],
-                                        "description": "Private keys in PEM format."
-                                      },
-                                      "passphrase": {
-                                        "type": "string",
-                                        "description": "Optional passphrase."
-                                      }
-                                    },
-                                    "required": [
-                                      "pem"
-                                    ]
-                                  }
-                                ]
-                              }
-                            }
-                          ],
-                          "description": "Private keys in PEM format. PEM allows the option of private keys being encrypted. Encrypted keys will be decrypted with options.passphrase. Multiple keys using different algorithms can be provided either as an array of unencrypted key strings or buffers, or an array of objects in the form {pem: <string|buffer>[, passphrase: <string>]}. The object form can only occur in an array. object.passphrase is optional. Encrypted keys will be decrypted with object.passphrase if provided, or options.passphrase if it is not."
-                        },
-                        "privateKeyEngine": {
-                          "type": "string",
-                          "description": "Name of an OpenSSL engine to get private key from. Should be used together with privateKeyIdentifier."
-                        },
-                        "privateKeyIdentifier": {
-                          "type": "string",
-                          "description": "Identifier of a private key managed by an OpenSSL engine. Should be used together with privateKeyEngine. Should not be set together with key, because both options define a private key in different ways."
-                        },
-                        "maxVersion": {
-                          "$ref": "#/definitions/SecureVersion",
-                          "description": "Optionally set the maximum TLS version to allow. One of `'TLSv1.3'`, `'TLSv1.2'`, `'TLSv1.1'`, or `'TLSv1'`. Cannot be specified along with the `secureProtocol` option, use one or the other.\n**Default:** `'TLSv1.3'`, unless changed using CLI options. Using `--tls-max-v1.2` sets the default to `'TLSv1.2'`. Using `--tls-max-v1.3` sets the default to `'TLSv1.3'`. If multiple of the options are provided, the highest maximum is used."
-                        },
-                        "minVersion": {
-                          "$ref": "#/definitions/SecureVersion",
-                          "description": "Optionally set the minimum TLS version to allow. One of `'TLSv1.3'`, `'TLSv1.2'`, `'TLSv1.1'`, or `'TLSv1'`. Cannot be specified along with the `secureProtocol` option, use one or the other.  It is not recommended to use less than TLSv1.2, but it may be required for interoperability.\n**Default:** `'TLSv1.2'`, unless changed using CLI options. Using `--tls-v1.0` sets the default to `'TLSv1'`. Using `--tls-v1.1` sets the default to `'TLSv1.1'`. Using `--tls-min-v1.3` sets the default to 'TLSv1.3'. If multiple of the options are provided, the lowest minimum is used."
-                        },
-                        "passphrase": {
-                          "type": "string",
-                          "description": "Shared passphrase used for a single private key and/or a PFX."
-                        },
-                        "pfx": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "BYTES_PER_ELEMENT": {
-                                  "type": "number"
-                                },
-                                "buffer": {
-                                  "$ref": "#/definitions/ArrayBufferLike"
-                                },
-                                "byteLength": {
-                                  "type": "number"
-                                },
-                                "byteOffset": {
-                                  "type": "number"
-                                },
-                                "length": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "BYTES_PER_ELEMENT",
-                                "buffer",
-                                "byteLength",
-                                "byteOffset",
-                                "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                            },
-                            {
-                              "type": "array",
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "BYTES_PER_ELEMENT": {
-                                        "type": "number"
-                                      },
-                                      "buffer": {
-                                        "$ref": "#/definitions/ArrayBufferLike"
-                                      },
-                                      "byteLength": {
-                                        "type": "number"
-                                      },
-                                      "byteOffset": {
-                                        "type": "number"
-                                      },
-                                      "length": {
-                                        "type": "number"
-                                      }
-                                    },
-                                    "required": [
-                                      "BYTES_PER_ELEMENT",
-                                      "buffer",
-                                      "byteLength",
-                                      "byteOffset",
-                                      "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "buf": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "object",
-                                            "properties": {
-                                              "BYTES_PER_ELEMENT": {
-                                                "type": "number"
-                                              },
-                                              "buffer": {
-                                                "$ref": "#/definitions/ArrayBufferLike"
-                                              },
-                                              "byteLength": {
-                                                "type": "number"
-                                              },
-                                              "byteOffset": {
-                                                "type": "number"
-                                              },
-                                              "length": {
-                                                "type": "number"
-                                              }
-                                            },
-                                            "required": [
-                                              "BYTES_PER_ELEMENT",
-                                              "buffer",
-                                              "byteLength",
-                                              "byteOffset",
-                                              "length"
-                                            ],
-                                            "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                                          }
-                                        ],
-                                        "description": "PFX or PKCS12 encoded private key and certificate chain."
-                                      },
-                                      "passphrase": {
-                                        "type": "string",
-                                        "description": "Optional passphrase."
-                                      }
-                                    },
-                                    "required": [
-                                      "buf"
-                                    ]
-                                  }
-                                ]
-                              }
-                            }
-                          ],
-                          "description": "PFX or PKCS12 encoded private key and certificate chain. pfx is an alternative to providing key and cert individually. PFX is usually encrypted, if it is, passphrase will be used to decrypt it. Multiple PFX can be provided either as an array of unencrypted PFX buffers, or an array of objects in the form {buf: <string|buffer>[, passphrase: <string>]}. The object form can only occur in an array. object.passphrase is optional. Encrypted PFX will be decrypted with object.passphrase if provided, or options.passphrase if it is not."
-                        },
-                        "secureOptions": {
-                          "type": "number",
-                          "description": "Optionally affect the OpenSSL protocol behavior, which is not usually necessary. This should be used carefully if at all! Value is a numeric bitmask of the SSL_OP_* options from OpenSSL Options"
-                        },
-                        "secureProtocol": {
-                          "type": "string",
-                          "description": "Legacy mechanism to select the TLS protocol version to use, it does not support independent control of the minimum and maximum version, and does not support limiting the protocol to TLSv1.3. Use minVersion and maxVersion instead. The possible values are listed as SSL_METHODS, use the function names as strings. For example, use 'TLSv1_1_method' to force TLS version 1.1, or 'TLS_method' to allow any TLS protocol version up to TLSv1.3. It is not recommended to use TLS versions less than 1.2, but it may be required for interoperability. Default: none, see minVersion."
-                        },
-                        "sessionIdContext": {
-                          "type": "string",
-                          "description": "Opaque identifier used by servers to ensure session state is not shared between applications. Unused by clients."
-                        },
-                        "host": {
-                          "type": "string"
-                        },
-                        "port": {
-                          "type": "number"
-                        },
-                        "path": {
-                          "type": "string"
-                        },
-                        "socket": {
-                          "type": "object",
-                          "properties": {
-                            "writable": {
-                              "type": "boolean"
-                            },
-                            "writableEnded": {
-                              "type": "boolean"
-                            },
-                            "writableFinished": {
-                              "type": "boolean"
-                            },
-                            "writableHighWaterMark": {
-                              "type": "number"
-                            },
-                            "writableLength": {
-                              "type": "number"
-                            },
-                            "writableObjectMode": {
-                              "type": "boolean"
-                            },
-                            "writableCorked": {
-                              "type": "number"
-                            },
-                            "destroyed": {
-                              "type": "boolean"
-                            },
-                            "readable": {
-                              "type": "boolean"
-                            },
-                            "readableHighWaterMark": {
-                              "type": "number"
-                            },
-                            "readableLength": {
-                              "type": "number"
-                            },
-                            "readableObjectMode": {
-                              "type": "boolean"
-                            },
-                            "bufferSize": {
-                              "type": "number"
-                            },
-                            "bytesRead": {
-                              "type": "number"
-                            },
-                            "bytesWritten": {
-                              "type": "number"
-                            },
-                            "connecting": {
-                              "type": "boolean"
-                            },
-                            "localAddress": {
-                              "type": "string"
-                            },
-                            "localPort": {
-                              "type": "number"
-                            },
-                            "remoteAddress": {
-                              "type": "string"
-                            },
-                            "remoteFamily": {
-                              "type": "string"
-                            },
-                            "remotePort": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "bufferSize",
-                            "bytesRead",
-                            "bytesWritten",
-                            "connecting",
-                            "destroyed",
-                            "localAddress",
-                            "localPort",
-                            "readable",
-                            "readableHighWaterMark",
-                            "readableLength",
-                            "readableObjectMode",
-                            "writable",
-                            "writableCorked",
-                            "writableEnded",
-                            "writableFinished",
-                            "writableHighWaterMark",
-                            "writableLength",
-                            "writableObjectMode"
-                          ]
-                        },
-                        "servername": {
-                          "type": "string"
-                        },
-                        "session": {
-                          "type": "object",
-                          "properties": {
-                            "BYTES_PER_ELEMENT": {
-                              "type": "number"
-                            },
-                            "buffer": {
-                              "$ref": "#/definitions/ArrayBufferLike"
-                            },
-                            "byteLength": {
-                              "type": "number"
-                            },
-                            "byteOffset": {
-                              "type": "number"
-                            },
-                            "length": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "BYTES_PER_ELEMENT",
-                            "buffer",
-                            "byteLength",
-                            "byteOffset",
-                            "length"
-                          ],
-                          "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                        },
-                        "minDHSize": {
-                          "type": "number"
-                        },
-                        "lookup": {
-                          "$ref": "#/definitions/LookupFunction"
-                        },
-                        "timeout": {
-                          "type": "number"
-                        }
-                      }
-                    }
-                  ]
-                },
-                "query_timeout": {
-                  "type": "number"
-                },
-                "keepAliveInitialDelayMillis": {
-                  "type": "number"
-                },
-                "idle_in_transaction_session_timeout": {
-                  "type": "number"
-                },
-                "application_name": {
-                  "type": "string"
-                },
-                "connectionTimeoutMillis": {
-                  "type": "number"
-                },
-                "types": {
-                  "type": "object",
-                  "properties": {
-                    "getTypeParser": {}
-                  },
-                  "required": [
-                    "getTypeParser"
-                  ]
-                },
-                "options": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/definitions/ClientConfig"
             },
             {
-              "type": "object",
-              "properties": {
-                "user": {
-                  "type": "string"
-                },
-                "database": {
-                  "type": "string"
-                },
-                "password": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {}
-                  ]
-                },
-                "port": {
-                  "type": "number"
-                },
-                "host": {
-                  "type": "string"
-                },
-                "connectionString": {
-                  "type": "string"
-                },
-                "keepAlive": {
-                  "type": "boolean"
-                },
-                "stream": {
-                  "type": "object",
-                  "properties": {
-                    "writable": {
-                      "type": "boolean"
-                    },
-                    "writableEnded": {
-                      "type": "boolean"
-                    },
-                    "writableFinished": {
-                      "type": "boolean"
-                    },
-                    "writableHighWaterMark": {
-                      "type": "number"
-                    },
-                    "writableLength": {
-                      "type": "number"
-                    },
-                    "writableObjectMode": {
-                      "type": "boolean"
-                    },
-                    "writableCorked": {
-                      "type": "number"
-                    },
-                    "destroyed": {
-                      "type": "boolean"
-                    },
-                    "readable": {
-                      "type": "boolean"
-                    },
-                    "readableHighWaterMark": {
-                      "type": "number"
-                    },
-                    "readableLength": {
-                      "type": "number"
-                    },
-                    "readableObjectMode": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "destroyed",
-                    "readable",
-                    "readableHighWaterMark",
-                    "readableLength",
-                    "readableObjectMode",
-                    "writable",
-                    "writableCorked",
-                    "writableEnded",
-                    "writableFinished",
-                    "writableHighWaterMark",
-                    "writableLength",
-                    "writableObjectMode"
-                  ]
-                },
-                "statement_timeout": {
-                  "anyOf": [
-                    {
-                      "type": "boolean",
-                      "const": false
-                    },
-                    {
-                      "type": "number"
-                    }
-                  ]
-                },
-                "parseInputDatesAsUTC": {
-                  "type": "boolean"
-                },
-                "ssl": {
-                  "anyOf": [
-                    {
-                      "type": "boolean"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "secureContext": {
-                          "type": "object",
-                          "properties": {
-                            "context": {}
-                          },
-                          "required": [
-                            "context"
-                          ],
-                          "description": "An optional TLS context object from tls.createSecureContext()"
-                        },
-                        "enableTrace": {
-                          "type": "boolean",
-                          "description": "When enabled, TLS packet trace information is written to `stderr`. This can be used to debug TLS connection problems.",
-                          "default": false
-                        },
-                        "requestCert": {
-                          "type": "boolean",
-                          "description": "If true the server will request a certificate from clients that connect and attempt to verify that certificate. Defaults to false."
-                        },
-                        "ALPNProtocols": {
-                          "anyOf": [
-                            {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            },
-                            {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "BYTES_PER_ELEMENT": {
-                                    "type": "number"
-                                  },
-                                  "buffer": {
-                                    "$ref": "#/definitions/ArrayBufferLike"
-                                  },
-                                  "byteLength": {
-                                    "type": "number"
-                                  },
-                                  "byteOffset": {
-                                    "type": "number"
-                                  },
-                                  "length": {
-                                    "type": "number"
-                                  }
-                                },
-                                "required": [
-                                  "BYTES_PER_ELEMENT",
-                                  "buffer",
-                                  "byteLength",
-                                  "byteOffset",
-                                  "length"
-                                ],
-                                "additionalProperties": {
-                                  "type": "number"
-                                }
-                              }
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "BYTES_PER_ELEMENT": {
-                                  "type": "number"
-                                },
-                                "buffer": {
-                                  "$ref": "#/definitions/ArrayBufferLike"
-                                },
-                                "byteLength": {
-                                  "type": "number"
-                                },
-                                "byteOffset": {
-                                  "type": "number"
-                                },
-                                "length": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "BYTES_PER_ELEMENT",
-                                "buffer",
-                                "byteLength",
-                                "byteOffset",
-                                "length"
-                              ],
-                              "additionalProperties": {
-                                "type": "number"
-                              }
-                            }
-                          ],
-                          "description": "An array of strings or a Buffer naming possible ALPN protocols. (Protocols should be ordered by their priority.)"
-                        },
-                        "SNICallback": {
-                          "description": "SNICallback(servername, cb) <Function> A function that will be called if the client supports SNI TLS extension. Two arguments will be passed when called: servername and cb. SNICallback should invoke cb(null, ctx), where ctx is a SecureContext instance. (tls.createSecureContext(...) can be used to get a proper SecureContext.) If SNICallback wasn't provided the default callback with high-level API will be used (see below)."
-                        },
-                        "rejectUnauthorized": {
-                          "type": "boolean",
-                          "description": "If true the server will reject any connection which is not authorized with the list of supplied CAs. This option only has an effect if requestCert is true.",
-                          "default": true
-                        },
-                        "ca": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "BYTES_PER_ELEMENT": {
-                                  "type": "number"
-                                },
-                                "buffer": {
-                                  "$ref": "#/definitions/ArrayBufferLike"
-                                },
-                                "byteLength": {
-                                  "type": "number"
-                                },
-                                "byteOffset": {
-                                  "type": "number"
-                                },
-                                "length": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "BYTES_PER_ELEMENT",
-                                "buffer",
-                                "byteLength",
-                                "byteOffset",
-                                "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                            },
-                            {
-                              "type": "array",
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "BYTES_PER_ELEMENT": {
-                                        "type": "number"
-                                      },
-                                      "buffer": {
-                                        "$ref": "#/definitions/ArrayBufferLike"
-                                      },
-                                      "byteLength": {
-                                        "type": "number"
-                                      },
-                                      "byteOffset": {
-                                        "type": "number"
-                                      },
-                                      "length": {
-                                        "type": "number"
-                                      }
-                                    },
-                                    "required": [
-                                      "BYTES_PER_ELEMENT",
-                                      "buffer",
-                                      "byteLength",
-                                      "byteOffset",
-                                      "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                                  }
-                                ]
-                              }
-                            }
-                          ],
-                          "description": "Optionally override the trusted CA certificates. Default is to trust the well-known CAs curated by Mozilla. Mozilla's CAs are completely replaced when CAs are explicitly specified using this option."
-                        },
-                        "cert": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "BYTES_PER_ELEMENT": {
-                                  "type": "number"
-                                },
-                                "buffer": {
-                                  "$ref": "#/definitions/ArrayBufferLike"
-                                },
-                                "byteLength": {
-                                  "type": "number"
-                                },
-                                "byteOffset": {
-                                  "type": "number"
-                                },
-                                "length": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "BYTES_PER_ELEMENT",
-                                "buffer",
-                                "byteLength",
-                                "byteOffset",
-                                "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                            },
-                            {
-                              "type": "array",
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "BYTES_PER_ELEMENT": {
-                                        "type": "number"
-                                      },
-                                      "buffer": {
-                                        "$ref": "#/definitions/ArrayBufferLike"
-                                      },
-                                      "byteLength": {
-                                        "type": "number"
-                                      },
-                                      "byteOffset": {
-                                        "type": "number"
-                                      },
-                                      "length": {
-                                        "type": "number"
-                                      }
-                                    },
-                                    "required": [
-                                      "BYTES_PER_ELEMENT",
-                                      "buffer",
-                                      "byteLength",
-                                      "byteOffset",
-                                      "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                                  }
-                                ]
-                              }
-                            }
-                          ],
-                          "description": "Cert chains in PEM format. One cert chain should be provided per private key. Each cert chain should consist of the PEM formatted certificate for a provided private key, followed by the PEM formatted intermediate certificates (if any), in order, and not including the root CA (the root CA must be pre-known to the peer, see ca). When providing multiple cert chains, they do not have to be in the same order as their private keys in key. If the intermediate certificates are not provided, the peer will not be able to validate the certificate, and the handshake will fail."
-                        },
-                        "sigalgs": {
-                          "type": "string",
-                          "description": "Colon-separated list of supported signature algorithms. The list can contain digest algorithms (SHA256, MD5 etc.), public key algorithms (RSA-PSS, ECDSA etc.), combination of both (e.g 'RSA+SHA384') or TLS v1.3 scheme names (e.g. rsa_pss_pss_sha512)."
-                        },
-                        "ciphers": {
-                          "type": "string",
-                          "description": "Cipher suite specification, replacing the default. For more information, see modifying the default cipher suite. Permitted ciphers can be obtained via tls.getCiphers(). Cipher names must be uppercased in order for OpenSSL to accept them."
-                        },
-                        "clientCertEngine": {
-                          "type": "string",
-                          "description": "Name of an OpenSSL engine which can provide the client certificate."
-                        },
-                        "crl": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "BYTES_PER_ELEMENT": {
-                                  "type": "number"
-                                },
-                                "buffer": {
-                                  "$ref": "#/definitions/ArrayBufferLike"
-                                },
-                                "byteLength": {
-                                  "type": "number"
-                                },
-                                "byteOffset": {
-                                  "type": "number"
-                                },
-                                "length": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "BYTES_PER_ELEMENT",
-                                "buffer",
-                                "byteLength",
-                                "byteOffset",
-                                "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                            },
-                            {
-                              "type": "array",
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "BYTES_PER_ELEMENT": {
-                                        "type": "number"
-                                      },
-                                      "buffer": {
-                                        "$ref": "#/definitions/ArrayBufferLike"
-                                      },
-                                      "byteLength": {
-                                        "type": "number"
-                                      },
-                                      "byteOffset": {
-                                        "type": "number"
-                                      },
-                                      "length": {
-                                        "type": "number"
-                                      }
-                                    },
-                                    "required": [
-                                      "BYTES_PER_ELEMENT",
-                                      "buffer",
-                                      "byteLength",
-                                      "byteOffset",
-                                      "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                                  }
-                                ]
-                              }
-                            }
-                          ],
-                          "description": "PEM formatted CRLs (Certificate Revocation Lists)."
-                        },
-                        "dhparam": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "BYTES_PER_ELEMENT": {
-                                  "type": "number"
-                                },
-                                "buffer": {
-                                  "$ref": "#/definitions/ArrayBufferLike"
-                                },
-                                "byteLength": {
-                                  "type": "number"
-                                },
-                                "byteOffset": {
-                                  "type": "number"
-                                },
-                                "length": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "BYTES_PER_ELEMENT",
-                                "buffer",
-                                "byteLength",
-                                "byteOffset",
-                                "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                            }
-                          ],
-                          "description": "Diffie Hellman parameters, required for Perfect Forward Secrecy. Use openssl dhparam to create the parameters. The key length must be greater than or equal to 1024 bits or else an error will be thrown. Although 1024 bits is permissible, use 2048 bits or larger for stronger security. If omitted or invalid, the parameters are silently discarded and DHE ciphers will not be available."
-                        },
-                        "ecdhCurve": {
-                          "type": "string",
-                          "description": "A string describing a named curve or a colon separated list of curve NIDs or names, for example P-521:P-384:P-256, to use for ECDH key agreement. Set to auto to select the curve automatically. Use crypto.getCurves() to obtain a list of available curve names. On recent releases, openssl ecparam -list_curves will also display the name and description of each available elliptic curve. Default: tls.DEFAULT_ECDH_CURVE."
-                        },
-                        "honorCipherOrder": {
-                          "type": "boolean",
-                          "description": "Attempt to use the server's cipher suite preferences instead of the client's. When true, causes SSL_OP_CIPHER_SERVER_PREFERENCE to be set in secureOptions"
-                        },
-                        "key": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "BYTES_PER_ELEMENT": {
-                                  "type": "number"
-                                },
-                                "buffer": {
-                                  "$ref": "#/definitions/ArrayBufferLike"
-                                },
-                                "byteLength": {
-                                  "type": "number"
-                                },
-                                "byteOffset": {
-                                  "type": "number"
-                                },
-                                "length": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "BYTES_PER_ELEMENT",
-                                "buffer",
-                                "byteLength",
-                                "byteOffset",
-                                "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                            },
-                            {
-                              "type": "array",
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "BYTES_PER_ELEMENT": {
-                                        "type": "number"
-                                      },
-                                      "buffer": {
-                                        "$ref": "#/definitions/ArrayBufferLike"
-                                      },
-                                      "byteLength": {
-                                        "type": "number"
-                                      },
-                                      "byteOffset": {
-                                        "type": "number"
-                                      },
-                                      "length": {
-                                        "type": "number"
-                                      }
-                                    },
-                                    "required": [
-                                      "BYTES_PER_ELEMENT",
-                                      "buffer",
-                                      "byteLength",
-                                      "byteOffset",
-                                      "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "pem": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "object",
-                                            "properties": {
-                                              "BYTES_PER_ELEMENT": {
-                                                "type": "number"
-                                              },
-                                              "buffer": {
-                                                "$ref": "#/definitions/ArrayBufferLike"
-                                              },
-                                              "byteLength": {
-                                                "type": "number"
-                                              },
-                                              "byteOffset": {
-                                                "type": "number"
-                                              },
-                                              "length": {
-                                                "type": "number"
-                                              }
-                                            },
-                                            "required": [
-                                              "BYTES_PER_ELEMENT",
-                                              "buffer",
-                                              "byteLength",
-                                              "byteOffset",
-                                              "length"
-                                            ],
-                                            "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                                          }
-                                        ],
-                                        "description": "Private keys in PEM format."
-                                      },
-                                      "passphrase": {
-                                        "type": "string",
-                                        "description": "Optional passphrase."
-                                      }
-                                    },
-                                    "required": [
-                                      "pem"
-                                    ]
-                                  }
-                                ]
-                              }
-                            }
-                          ],
-                          "description": "Private keys in PEM format. PEM allows the option of private keys being encrypted. Encrypted keys will be decrypted with options.passphrase. Multiple keys using different algorithms can be provided either as an array of unencrypted key strings or buffers, or an array of objects in the form {pem: <string|buffer>[, passphrase: <string>]}. The object form can only occur in an array. object.passphrase is optional. Encrypted keys will be decrypted with object.passphrase if provided, or options.passphrase if it is not."
-                        },
-                        "privateKeyEngine": {
-                          "type": "string",
-                          "description": "Name of an OpenSSL engine to get private key from. Should be used together with privateKeyIdentifier."
-                        },
-                        "privateKeyIdentifier": {
-                          "type": "string",
-                          "description": "Identifier of a private key managed by an OpenSSL engine. Should be used together with privateKeyEngine. Should not be set together with key, because both options define a private key in different ways."
-                        },
-                        "maxVersion": {
-                          "$ref": "#/definitions/SecureVersion",
-                          "description": "Optionally set the maximum TLS version to allow. One of `'TLSv1.3'`, `'TLSv1.2'`, `'TLSv1.1'`, or `'TLSv1'`. Cannot be specified along with the `secureProtocol` option, use one or the other.\n**Default:** `'TLSv1.3'`, unless changed using CLI options. Using `--tls-max-v1.2` sets the default to `'TLSv1.2'`. Using `--tls-max-v1.3` sets the default to `'TLSv1.3'`. If multiple of the options are provided, the highest maximum is used."
-                        },
-                        "minVersion": {
-                          "$ref": "#/definitions/SecureVersion",
-                          "description": "Optionally set the minimum TLS version to allow. One of `'TLSv1.3'`, `'TLSv1.2'`, `'TLSv1.1'`, or `'TLSv1'`. Cannot be specified along with the `secureProtocol` option, use one or the other.  It is not recommended to use less than TLSv1.2, but it may be required for interoperability.\n**Default:** `'TLSv1.2'`, unless changed using CLI options. Using `--tls-v1.0` sets the default to `'TLSv1'`. Using `--tls-v1.1` sets the default to `'TLSv1.1'`. Using `--tls-min-v1.3` sets the default to 'TLSv1.3'. If multiple of the options are provided, the lowest minimum is used."
-                        },
-                        "passphrase": {
-                          "type": "string",
-                          "description": "Shared passphrase used for a single private key and/or a PFX."
-                        },
-                        "pfx": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "BYTES_PER_ELEMENT": {
-                                  "type": "number"
-                                },
-                                "buffer": {
-                                  "$ref": "#/definitions/ArrayBufferLike"
-                                },
-                                "byteLength": {
-                                  "type": "number"
-                                },
-                                "byteOffset": {
-                                  "type": "number"
-                                },
-                                "length": {
-                                  "type": "number"
-                                }
-                              },
-                              "required": [
-                                "BYTES_PER_ELEMENT",
-                                "buffer",
-                                "byteLength",
-                                "byteOffset",
-                                "length"
-                              ],
-                              "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                            },
-                            {
-                              "type": "array",
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "BYTES_PER_ELEMENT": {
-                                        "type": "number"
-                                      },
-                                      "buffer": {
-                                        "$ref": "#/definitions/ArrayBufferLike"
-                                      },
-                                      "byteLength": {
-                                        "type": "number"
-                                      },
-                                      "byteOffset": {
-                                        "type": "number"
-                                      },
-                                      "length": {
-                                        "type": "number"
-                                      }
-                                    },
-                                    "required": [
-                                      "BYTES_PER_ELEMENT",
-                                      "buffer",
-                                      "byteLength",
-                                      "byteOffset",
-                                      "length"
-                                    ],
-                                    "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "buf": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "object",
-                                            "properties": {
-                                              "BYTES_PER_ELEMENT": {
-                                                "type": "number"
-                                              },
-                                              "buffer": {
-                                                "$ref": "#/definitions/ArrayBufferLike"
-                                              },
-                                              "byteLength": {
-                                                "type": "number"
-                                              },
-                                              "byteOffset": {
-                                                "type": "number"
-                                              },
-                                              "length": {
-                                                "type": "number"
-                                              }
-                                            },
-                                            "required": [
-                                              "BYTES_PER_ELEMENT",
-                                              "buffer",
-                                              "byteLength",
-                                              "byteOffset",
-                                              "length"
-                                            ],
-                                            "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                                          }
-                                        ],
-                                        "description": "PFX or PKCS12 encoded private key and certificate chain."
-                                      },
-                                      "passphrase": {
-                                        "type": "string",
-                                        "description": "Optional passphrase."
-                                      }
-                                    },
-                                    "required": [
-                                      "buf"
-                                    ]
-                                  }
-                                ]
-                              }
-                            }
-                          ],
-                          "description": "PFX or PKCS12 encoded private key and certificate chain. pfx is an alternative to providing key and cert individually. PFX is usually encrypted, if it is, passphrase will be used to decrypt it. Multiple PFX can be provided either as an array of unencrypted PFX buffers, or an array of objects in the form {buf: <string|buffer>[, passphrase: <string>]}. The object form can only occur in an array. object.passphrase is optional. Encrypted PFX will be decrypted with object.passphrase if provided, or options.passphrase if it is not."
-                        },
-                        "secureOptions": {
-                          "type": "number",
-                          "description": "Optionally affect the OpenSSL protocol behavior, which is not usually necessary. This should be used carefully if at all! Value is a numeric bitmask of the SSL_OP_* options from OpenSSL Options"
-                        },
-                        "secureProtocol": {
-                          "type": "string",
-                          "description": "Legacy mechanism to select the TLS protocol version to use, it does not support independent control of the minimum and maximum version, and does not support limiting the protocol to TLSv1.3. Use minVersion and maxVersion instead. The possible values are listed as SSL_METHODS, use the function names as strings. For example, use 'TLSv1_1_method' to force TLS version 1.1, or 'TLS_method' to allow any TLS protocol version up to TLSv1.3. It is not recommended to use TLS versions less than 1.2, but it may be required for interoperability. Default: none, see minVersion."
-                        },
-                        "sessionIdContext": {
-                          "type": "string",
-                          "description": "Opaque identifier used by servers to ensure session state is not shared between applications. Unused by clients."
-                        },
-                        "host": {
-                          "type": "string"
-                        },
-                        "port": {
-                          "type": "number"
-                        },
-                        "path": {
-                          "type": "string"
-                        },
-                        "socket": {
-                          "type": "object",
-                          "properties": {
-                            "writable": {
-                              "type": "boolean"
-                            },
-                            "writableEnded": {
-                              "type": "boolean"
-                            },
-                            "writableFinished": {
-                              "type": "boolean"
-                            },
-                            "writableHighWaterMark": {
-                              "type": "number"
-                            },
-                            "writableLength": {
-                              "type": "number"
-                            },
-                            "writableObjectMode": {
-                              "type": "boolean"
-                            },
-                            "writableCorked": {
-                              "type": "number"
-                            },
-                            "destroyed": {
-                              "type": "boolean"
-                            },
-                            "readable": {
-                              "type": "boolean"
-                            },
-                            "readableHighWaterMark": {
-                              "type": "number"
-                            },
-                            "readableLength": {
-                              "type": "number"
-                            },
-                            "readableObjectMode": {
-                              "type": "boolean"
-                            },
-                            "bufferSize": {
-                              "type": "number"
-                            },
-                            "bytesRead": {
-                              "type": "number"
-                            },
-                            "bytesWritten": {
-                              "type": "number"
-                            },
-                            "connecting": {
-                              "type": "boolean"
-                            },
-                            "localAddress": {
-                              "type": "string"
-                            },
-                            "localPort": {
-                              "type": "number"
-                            },
-                            "remoteAddress": {
-                              "type": "string"
-                            },
-                            "remoteFamily": {
-                              "type": "string"
-                            },
-                            "remotePort": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "bufferSize",
-                            "bytesRead",
-                            "bytesWritten",
-                            "connecting",
-                            "destroyed",
-                            "localAddress",
-                            "localPort",
-                            "readable",
-                            "readableHighWaterMark",
-                            "readableLength",
-                            "readableObjectMode",
-                            "writable",
-                            "writableCorked",
-                            "writableEnded",
-                            "writableFinished",
-                            "writableHighWaterMark",
-                            "writableLength",
-                            "writableObjectMode"
-                          ]
-                        },
-                        "servername": {
-                          "type": "string"
-                        },
-                        "session": {
-                          "type": "object",
-                          "properties": {
-                            "BYTES_PER_ELEMENT": {
-                              "type": "number"
-                            },
-                            "buffer": {
-                              "$ref": "#/definitions/ArrayBufferLike"
-                            },
-                            "byteLength": {
-                              "type": "number"
-                            },
-                            "byteOffset": {
-                              "type": "number"
-                            },
-                            "length": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "BYTES_PER_ELEMENT",
-                            "buffer",
-                            "byteLength",
-                            "byteOffset",
-                            "length"
-                          ],
-                          "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
-                        },
-                        "minDHSize": {
-                          "type": "number"
-                        },
-                        "lookup": {
-                          "$ref": "#/definitions/LookupFunction"
-                        },
-                        "timeout": {
-                          "type": "number"
-                        }
-                      }
-                    }
-                  ]
-                },
-                "query_timeout": {
-                  "type": "number"
-                },
-                "keepAliveInitialDelayMillis": {
-                  "type": "number"
-                },
-                "idle_in_transaction_session_timeout": {
-                  "type": "number"
-                },
-                "application_name": {
-                  "type": "string"
-                },
-                "connectionTimeoutMillis": {
-                  "type": "number"
-                },
-                "types": {
-                  "type": "object",
-                  "properties": {
-                    "getTypeParser": {}
-                  },
-                  "required": [
-                    "getTypeParser"
-                  ]
-                },
-                "options": {
-                  "type": "string"
-                },
-                "max": {
-                  "type": "number"
-                },
-                "min": {
-                  "type": "number"
-                },
-                "idleTimeoutMillis": {
-                  "type": "number"
-                },
-                "log": {},
-                "Promise": {
-                  "not": {}
-                },
-                "allowExitOnIdle": {
-                  "type": "boolean"
-                },
-                "maxUses": {
-                  "type": "number"
-                }
-              }
+              "$ref": "#/definitions/PoolConfig"
             }
           ],
           "description": "By default use environment variables"
         }
       },
-      "required": [
-        "asyncDelete",
-        "database",
-        "slowQueryThreshold",
-        "table",
-        "type"
-      ],
+      "required": ["asyncDelete", "database", "slowQueryThreshold", "table", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
         "ExposeParameters": {
@@ -1981,41 +98,724 @@
             },
             "queryMethod": {
               "type": "string",
-              "enum": [
-                "PUT",
-                "GET"
-              ],
+              "enum": ["PUT", "GET"],
               "description": "For confidentiality sometimes you might prefer to expose query through PUT To avoid GET logging",
               "default": "GET"
             }
           }
         },
+        "SQLDatabase": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": ["name"]
+        },
+        "ClientConfig": {
+          "type": "object",
+          "properties": {
+            "user": {
+              "type": "string"
+            },
+            "database": {
+              "type": "string"
+            },
+            "password": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {}
+              ]
+            },
+            "port": {
+              "type": "number"
+            },
+            "host": {
+              "type": "string"
+            },
+            "connectionString": {
+              "type": "string"
+            },
+            "keepAlive": {
+              "type": "boolean"
+            },
+            "stream": {
+              "$ref": "#/definitions/internal.Duplex"
+            },
+            "statement_timeout": {
+              "anyOf": [
+                {
+                  "type": "boolean",
+                  "const": false
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "parseInputDatesAsUTC": {
+              "type": "boolean"
+            },
+            "ssl": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "$ref": "#/definitions/ConnectionOptions"
+                }
+              ]
+            },
+            "query_timeout": {
+              "type": "number"
+            },
+            "keepAliveInitialDelayMillis": {
+              "type": "number"
+            },
+            "idle_in_transaction_session_timeout": {
+              "type": "number"
+            },
+            "application_name": {
+              "type": "string"
+            },
+            "connectionTimeoutMillis": {
+              "type": "number"
+            },
+            "types": {
+              "$ref": "#/definitions/CustomTypesConfig"
+            },
+            "options": {
+              "type": "string"
+            }
+          }
+        },
+        "internal.Duplex": {
+          "type": "object",
+          "properties": {
+            "writable": {
+              "type": "boolean"
+            },
+            "writableEnded": {
+              "type": "boolean"
+            },
+            "writableFinished": {
+              "type": "boolean"
+            },
+            "writableHighWaterMark": {
+              "type": "number"
+            },
+            "writableLength": {
+              "type": "number"
+            },
+            "writableObjectMode": {
+              "type": "boolean"
+            },
+            "writableCorked": {
+              "type": "number"
+            },
+            "destroyed": {
+              "type": "boolean"
+            },
+            "readable": {
+              "type": "boolean"
+            },
+            "readableHighWaterMark": {
+              "type": "number"
+            },
+            "readableLength": {
+              "type": "number"
+            },
+            "readableObjectMode": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "destroyed",
+            "readable",
+            "readableHighWaterMark",
+            "readableLength",
+            "readableObjectMode",
+            "writable",
+            "writableCorked",
+            "writableEnded",
+            "writableFinished",
+            "writableHighWaterMark",
+            "writableLength",
+            "writableObjectMode"
+          ]
+        },
+        "ConnectionOptions": {
+          "type": "object",
+          "properties": {
+            "secureContext": {
+              "$ref": "#/definitions/SecureContext",
+              "description": "An optional TLS context object from tls.createSecureContext()"
+            },
+            "enableTrace": {
+              "type": "boolean",
+              "description": "When enabled, TLS packet trace information is written to `stderr`. This can be used to debug TLS connection problems.",
+              "default": false
+            },
+            "requestCert": {
+              "type": "boolean",
+              "description": "If true the server will request a certificate from clients that connect and attempt to verify that certificate. Defaults to false."
+            },
+            "ALPNProtocols": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Uint8Array"
+                  }
+                },
+                {
+                  "$ref": "#/definitions/Uint8Array"
+                }
+              ],
+              "description": "An array of strings or a Buffer naming possible ALPN protocols. (Protocols should be ordered by their priority.)"
+            },
+            "SNICallback": {
+              "description": "SNICallback(servername, cb) <Function> A function that will be called if the client supports SNI TLS extension. Two arguments will be passed when called: servername and cb. SNICallback should invoke cb(null, ctx), where ctx is a SecureContext instance. (tls.createSecureContext(...) can be used to get a proper SecureContext.) If SNICallback wasn't provided the default callback with high-level API will be used (see below)."
+            },
+            "rejectUnauthorized": {
+              "type": "boolean",
+              "description": "If true the server will reject any connection which is not authorized with the list of supplied CAs. This option only has an effect if requestCert is true.",
+              "default": true
+            },
+            "ca": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/definitions/Buffer"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "$ref": "#/definitions/Buffer"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "description": "Optionally override the trusted CA certificates. Default is to trust the well-known CAs curated by Mozilla. Mozilla's CAs are completely replaced when CAs are explicitly specified using this option."
+            },
+            "cert": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/definitions/Buffer"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "$ref": "#/definitions/Buffer"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "description": "Cert chains in PEM format. One cert chain should be provided per private key. Each cert chain should consist of the PEM formatted certificate for a provided private key, followed by the PEM formatted intermediate certificates (if any), in order, and not including the root CA (the root CA must be pre-known to the peer, see ca). When providing multiple cert chains, they do not have to be in the same order as their private keys in key. If the intermediate certificates are not provided, the peer will not be able to validate the certificate, and the handshake will fail."
+            },
+            "sigalgs": {
+              "type": "string",
+              "description": "Colon-separated list of supported signature algorithms. The list can contain digest algorithms (SHA256, MD5 etc.), public key algorithms (RSA-PSS, ECDSA etc.), combination of both (e.g 'RSA+SHA384') or TLS v1.3 scheme names (e.g. rsa_pss_pss_sha512)."
+            },
+            "ciphers": {
+              "type": "string",
+              "description": "Cipher suite specification, replacing the default. For more information, see modifying the default cipher suite. Permitted ciphers can be obtained via tls.getCiphers(). Cipher names must be uppercased in order for OpenSSL to accept them."
+            },
+            "clientCertEngine": {
+              "type": "string",
+              "description": "Name of an OpenSSL engine which can provide the client certificate."
+            },
+            "crl": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/definitions/Buffer"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "$ref": "#/definitions/Buffer"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "description": "PEM formatted CRLs (Certificate Revocation Lists)."
+            },
+            "dhparam": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/definitions/Buffer"
+                }
+              ],
+              "description": "Diffie Hellman parameters, required for Perfect Forward Secrecy. Use openssl dhparam to create the parameters. The key length must be greater than or equal to 1024 bits or else an error will be thrown. Although 1024 bits is permissible, use 2048 bits or larger for stronger security. If omitted or invalid, the parameters are silently discarded and DHE ciphers will not be available."
+            },
+            "ecdhCurve": {
+              "type": "string",
+              "description": "A string describing a named curve or a colon separated list of curve NIDs or names, for example P-521:P-384:P-256, to use for ECDH key agreement. Set to auto to select the curve automatically. Use crypto.getCurves() to obtain a list of available curve names. On recent releases, openssl ecparam -list_curves will also display the name and description of each available elliptic curve. Default: tls.DEFAULT_ECDH_CURVE."
+            },
+            "honorCipherOrder": {
+              "type": "boolean",
+              "description": "Attempt to use the server's cipher suite preferences instead of the client's. When true, causes SSL_OP_CIPHER_SERVER_PREFERENCE to be set in secureOptions"
+            },
+            "key": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/definitions/Buffer"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/Buffer"
+                      },
+                      {
+                        "$ref": "#/definitions/KeyObject"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "description": "Private keys in PEM format. PEM allows the option of private keys being encrypted. Encrypted keys will be decrypted with options.passphrase. Multiple keys using different algorithms can be provided either as an array of unencrypted key strings or buffers, or an array of objects in the form {pem: <string|buffer>[, passphrase: <string>]}. The object form can only occur in an array. object.passphrase is optional. Encrypted keys will be decrypted with object.passphrase if provided, or options.passphrase if it is not."
+            },
+            "privateKeyEngine": {
+              "type": "string",
+              "description": "Name of an OpenSSL engine to get private key from. Should be used together with privateKeyIdentifier."
+            },
+            "privateKeyIdentifier": {
+              "type": "string",
+              "description": "Identifier of a private key managed by an OpenSSL engine. Should be used together with privateKeyEngine. Should not be set together with key, because both options define a private key in different ways."
+            },
+            "maxVersion": {
+              "$ref": "#/definitions/SecureVersion",
+              "description": "Optionally set the maximum TLS version to allow. One of `'TLSv1.3'`, `'TLSv1.2'`, `'TLSv1.1'`, or `'TLSv1'`. Cannot be specified along with the `secureProtocol` option, use one or the other.\n**Default:** `'TLSv1.3'`, unless changed using CLI options. Using `--tls-max-v1.2` sets the default to `'TLSv1.2'`. Using `--tls-max-v1.3` sets the default to `'TLSv1.3'`. If multiple of the options are provided, the highest maximum is used."
+            },
+            "minVersion": {
+              "$ref": "#/definitions/SecureVersion",
+              "description": "Optionally set the minimum TLS version to allow. One of `'TLSv1.3'`, `'TLSv1.2'`, `'TLSv1.1'`, or `'TLSv1'`. Cannot be specified along with the `secureProtocol` option, use one or the other.  It is not recommended to use less than TLSv1.2, but it may be required for interoperability.\n**Default:** `'TLSv1.2'`, unless changed using CLI options. Using `--tls-v1.0` sets the default to `'TLSv1'`. Using `--tls-v1.1` sets the default to `'TLSv1.1'`. Using `--tls-min-v1.3` sets the default to 'TLSv1.3'. If multiple of the options are provided, the lowest minimum is used."
+            },
+            "passphrase": {
+              "type": "string",
+              "description": "Shared passphrase used for a single private key and/or a PFX."
+            },
+            "pfx": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/definitions/Buffer"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "$ref": "#/definitions/Buffer"
+                      },
+                      {
+                        "$ref": "#/definitions/PxfObject"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "description": "PFX or PKCS12 encoded private key and certificate chain. pfx is an alternative to providing key and cert individually. PFX is usually encrypted, if it is, passphrase will be used to decrypt it. Multiple PFX can be provided either as an array of unencrypted PFX buffers, or an array of objects in the form {buf: <string|buffer>[, passphrase: <string>]}. The object form can only occur in an array. object.passphrase is optional. Encrypted PFX will be decrypted with object.passphrase if provided, or options.passphrase if it is not."
+            },
+            "secureOptions": {
+              "type": "number",
+              "description": "Optionally affect the OpenSSL protocol behavior, which is not usually necessary. This should be used carefully if at all! Value is a numeric bitmask of the SSL_OP_* options from OpenSSL Options"
+            },
+            "secureProtocol": {
+              "type": "string",
+              "description": "Legacy mechanism to select the TLS protocol version to use, it does not support independent control of the minimum and maximum version, and does not support limiting the protocol to TLSv1.3. Use minVersion and maxVersion instead. The possible values are listed as SSL_METHODS, use the function names as strings. For example, use 'TLSv1_1_method' to force TLS version 1.1, or 'TLS_method' to allow any TLS protocol version up to TLSv1.3. It is not recommended to use TLS versions less than 1.2, but it may be required for interoperability. Default: none, see minVersion."
+            },
+            "sessionIdContext": {
+              "type": "string",
+              "description": "Opaque identifier used by servers to ensure session state is not shared between applications. Unused by clients."
+            },
+            "host": {
+              "type": "string"
+            },
+            "port": {
+              "type": "number"
+            },
+            "path": {
+              "type": "string"
+            },
+            "socket": {
+              "$ref": "#/definitions/Socket"
+            },
+            "servername": {
+              "type": "string"
+            },
+            "session": {
+              "$ref": "#/definitions/Buffer"
+            },
+            "minDHSize": {
+              "type": "number"
+            },
+            "lookup": {
+              "$ref": "#/definitions/LookupFunction"
+            },
+            "timeout": {
+              "type": "number"
+            }
+          }
+        },
+        "SecureContext": {
+          "type": "object",
+          "properties": {
+            "context": {}
+          },
+          "required": ["context"]
+        },
+        "Uint8Array": {
+          "type": "object",
+          "properties": {
+            "BYTES_PER_ELEMENT": {
+              "type": "number"
+            },
+            "buffer": {
+              "$ref": "#/definitions/ArrayBufferLike"
+            },
+            "byteLength": {
+              "type": "number"
+            },
+            "byteOffset": {
+              "type": "number"
+            },
+            "length": {
+              "type": "number"
+            }
+          },
+          "required": ["BYTES_PER_ELEMENT", "buffer", "byteLength", "byteOffset", "length"],
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
         "ArrayBufferLike": {
           "anyOf": [
             {
-              "type": "object",
-              "properties": {
-                "byteLength": {
-                  "type": "number"
-                }
-              },
-              "required": [
-                "byteLength"
-              ]
+              "$ref": "#/definitions/ArrayBuffer"
             },
             {}
           ]
         },
+        "ArrayBuffer": {
+          "type": "object",
+          "properties": {
+            "byteLength": {
+              "type": "number"
+            }
+          },
+          "required": ["byteLength"]
+        },
+        "Buffer": {
+          "type": "object",
+          "properties": {
+            "BYTES_PER_ELEMENT": {
+              "type": "number"
+            },
+            "buffer": {
+              "$ref": "#/definitions/ArrayBufferLike"
+            },
+            "byteLength": {
+              "type": "number"
+            },
+            "byteOffset": {
+              "type": "number"
+            },
+            "length": {
+              "type": "number"
+            }
+          },
+          "required": ["BYTES_PER_ELEMENT", "buffer", "byteLength", "byteOffset", "length"],
+          "description": "Raw data is stored in instances of the Buffer class. A Buffer is similar to an array of integers but corresponds to a raw memory allocation outside the V8 heap.  A Buffer cannot be resized. Valid string encodings: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'"
+        },
+        "KeyObject": {
+          "type": "object",
+          "properties": {
+            "pem": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/definitions/Buffer"
+                }
+              ],
+              "description": "Private keys in PEM format."
+            },
+            "passphrase": {
+              "type": "string",
+              "description": "Optional passphrase."
+            }
+          },
+          "required": ["pem"]
+        },
         "SecureVersion": {
           "type": "string",
-          "enum": [
-            "TLSv1.3",
-            "TLSv1.2",
-            "TLSv1.1",
-            "TLSv1"
+          "enum": ["TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1"]
+        },
+        "PxfObject": {
+          "type": "object",
+          "properties": {
+            "buf": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/definitions/Buffer"
+                }
+              ],
+              "description": "PFX or PKCS12 encoded private key and certificate chain."
+            },
+            "passphrase": {
+              "type": "string",
+              "description": "Optional passphrase."
+            }
+          },
+          "required": ["buf"]
+        },
+        "Socket": {
+          "type": "object",
+          "properties": {
+            "writable": {
+              "type": "boolean"
+            },
+            "writableEnded": {
+              "type": "boolean"
+            },
+            "writableFinished": {
+              "type": "boolean"
+            },
+            "writableHighWaterMark": {
+              "type": "number"
+            },
+            "writableLength": {
+              "type": "number"
+            },
+            "writableObjectMode": {
+              "type": "boolean"
+            },
+            "writableCorked": {
+              "type": "number"
+            },
+            "destroyed": {
+              "type": "boolean"
+            },
+            "readable": {
+              "type": "boolean"
+            },
+            "readableHighWaterMark": {
+              "type": "number"
+            },
+            "readableLength": {
+              "type": "number"
+            },
+            "readableObjectMode": {
+              "type": "boolean"
+            },
+            "bufferSize": {
+              "type": "number"
+            },
+            "bytesRead": {
+              "type": "number"
+            },
+            "bytesWritten": {
+              "type": "number"
+            },
+            "connecting": {
+              "type": "boolean"
+            },
+            "localAddress": {
+              "type": "string"
+            },
+            "localPort": {
+              "type": "number"
+            },
+            "remoteAddress": {
+              "type": "string"
+            },
+            "remoteFamily": {
+              "type": "string"
+            },
+            "remotePort": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "bufferSize",
+            "bytesRead",
+            "bytesWritten",
+            "connecting",
+            "destroyed",
+            "localAddress",
+            "localPort",
+            "readable",
+            "readableHighWaterMark",
+            "readableLength",
+            "readableObjectMode",
+            "writable",
+            "writableCorked",
+            "writableEnded",
+            "writableFinished",
+            "writableHighWaterMark",
+            "writableLength",
+            "writableObjectMode"
           ]
         },
-        "LookupFunction": {}
+        "LookupFunction": {},
+        "CustomTypesConfig": {
+          "type": "object",
+          "properties": {
+            "getTypeParser": {}
+          },
+          "required": ["getTypeParser"]
+        },
+        "PoolConfig": {
+          "type": "object",
+          "properties": {
+            "user": {
+              "type": "string"
+            },
+            "database": {
+              "type": "string"
+            },
+            "password": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {}
+              ]
+            },
+            "port": {
+              "type": "number"
+            },
+            "host": {
+              "type": "string"
+            },
+            "connectionString": {
+              "type": "string"
+            },
+            "keepAlive": {
+              "type": "boolean"
+            },
+            "stream": {
+              "$ref": "#/definitions/internal.Duplex"
+            },
+            "statement_timeout": {
+              "anyOf": [
+                {
+                  "type": "boolean",
+                  "const": false
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "parseInputDatesAsUTC": {
+              "type": "boolean"
+            },
+            "ssl": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "$ref": "#/definitions/ConnectionOptions"
+                }
+              ]
+            },
+            "query_timeout": {
+              "type": "number"
+            },
+            "keepAliveInitialDelayMillis": {
+              "type": "number"
+            },
+            "idle_in_transaction_session_timeout": {
+              "type": "number"
+            },
+            "application_name": {
+              "type": "string"
+            },
+            "connectionTimeoutMillis": {
+              "type": "number"
+            },
+            "types": {
+              "$ref": "#/definitions/CustomTypesConfig"
+            },
+            "options": {
+              "type": "string"
+            },
+            "max": {
+              "type": "number"
+            },
+            "min": {
+              "type": "number"
+            },
+            "idleTimeoutMillis": {
+              "type": "number"
+            },
+            "log": {},
+            "Promise": {
+              "not": {}
+            },
+            "allowExitOnIdle": {
+              "type": "boolean"
+            },
+            "maxUses": {
+              "type": "number"
+            }
+          }
+        }
       },
       "title": "PostgresStore"
     }

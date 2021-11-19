@@ -2,6 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import { HttpContext, ResourceService } from "@webda/core";
 import * as assert from "assert";
 import * as http from "http";
+import { createChecker } from "is-in-subnet";
 import * as fetch from "node-fetch";
 import * as sinon from "sinon";
 import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
@@ -126,6 +127,12 @@ class WebdaServerTest {
       headers: { origin: "bouzouf", "x-forwarded-port": "443" }
     });
     assert.strictEqual(res.status, 403);
+    // @ts-ignore
+    this.server.subnetChecker = createChecker(["127.0.0.2/32"]);
+    res = await fetch(`http://localhost:${this.port}/test`, {
+      headers: { origin: "bouzouf", "x-forwarded-port": "443" }
+    });
+    assert.strictEqual(res.status, 400);
   }
 
   async checkRequest(): Promise<boolean> {
@@ -133,6 +140,15 @@ class WebdaServerTest {
       throw new Error("Unknown");
     }
     throw 410;
+  }
+
+  @test
+  isInSubnet() {
+    let checker = createChecker(["127.0.0.1/32"]);
+    assert.strictEqual(checker("127.0.0.1"), true);
+    assert.strictEqual(checker("::ffff:127.0.0.1"), true);
+    assert.strictEqual(checker("127.0.0.2"), false);
+    assert.strictEqual(checker("192.168.0.2"), false);
   }
 
   @test

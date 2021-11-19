@@ -234,18 +234,21 @@ class ContextTest extends WebdaTest {
 
   @test
   approxLocale() {
+    // @ts-ignore
     this.ctx.getHttpContext().getHeaders()["accept-language"] = "en-US;q=0.6,en;q=0.4,es;q=0.2";
     assert.strictEqual(this.ctx.getLocale(), "en");
   }
 
   @test
   exactLocale() {
+    // @ts-ignore
     this.ctx.getHttpContext().getHeaders()["accept-language"] = "fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4,es;q=0.2";
     assert.strictEqual(this.ctx.getLocale(), "fr-FR");
   }
 
   @test
   fallbackLocale() {
+    // @ts-ignore
     this.ctx.getHttpContext().getHeaders()["accept-language"] = "zn-CH,zn;q=0.8,en-US;q=0.6,en;q=0.4,es;q=0.2";
     assert.strictEqual(this.ctx.getLocale(), "en");
   }

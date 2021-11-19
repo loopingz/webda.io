@@ -132,6 +132,7 @@ class OAuthServiceTest extends WebdaTest {
       scope: ["email", "image"],
       url: "/bouzouf"
     });
+    // @ts-ignore readonly
     ctx.getHttpContext().getHeaders().referer = "http://myownwebsite.com";
     this.service._redirect(ctx);
     assert.strictEqual(ctx.getSession().redirect, "http://myownwebsite.com");

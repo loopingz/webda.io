@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import { Core } from "..";
 import { Service } from "../services/service";
 import { Store } from "../stores/store";
 import { Context } from "../utils/context";
@@ -127,8 +128,9 @@ class CoreModel {
    * @param uuid
    * @param target
    */
-  setUuid(uuid: string, target: any = this): void {
+  setUuid(uuid: string, target = this): this {
     target[this.__class.getUuidField()] = uuid;
+    return target;
   }
 
   /**
@@ -184,17 +186,46 @@ class CoreModel {
   /**
    * Return if an object is attached to its store
    */
-  isAttached() {
+  isAttached(): boolean {
     return this.__store !== undefined;
   }
 
   /**
    * Attach an object to a store instance
    */
-  attach(store: Store<CoreModel>) {
+  attach(store: Store<CoreModel>): this {
     this.__store = store;
+    return this;
   }
 
+  /**
+   * Return a unique reference within the application to the object
+   *
+   * It contains the Store containing it
+   * @returns
+   */
+  getFullUuid() {
+    if (!this.isAttached()) {
+      throw new Error("Cannot return full uuid of unattached object");
+    }
+    return `${this.__store.getName()}$${this.getUuid()}`;
+  }
+
+  /**
+   * Get an object from the full uuid
+   * @param core
+   * @param fullUuid
+   * @param partials
+   * @returns
+   */
+  static async fromFullUuid<T extends CoreModel = CoreModel>(core: Core, fullUuid: string, partials?: any): Promise<T> {
+    const [store, uuid] = fullUuid.split("$");
+    let service = core.getService<Store<T>>(store);
+    if (partials) {
+      return service.initModel(partials).setUuid(uuid);
+    }
+    return service.get(uuid);
+  }
   /**
    * Load an object from RAW
    *
@@ -297,7 +328,7 @@ class CoreModel {
    *
    * @throws Error if the object is not coming from a store
    */
-  async update(changes): Promise<void> {
+  async update(changes): Promise<this> {
     if (!this.__store) {
       throw new CoreModelUnattachedError();
     }
@@ -306,6 +337,7 @@ class CoreModel {
     for (var i in obj) {
       this[i] = obj[i];
     }
+    return this;
   }
 
   /**

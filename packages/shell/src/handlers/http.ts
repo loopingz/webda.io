@@ -10,6 +10,7 @@ import {
 } from "@webda/core";
 import { serialize as cookieSerialize } from "cookie";
 import * as http from "http";
+import { createChecker } from "is-in-subnet";
 import { AddressInfo } from "net";
 
 export enum ServerStatus {
@@ -24,6 +25,7 @@ export class WebdaServer extends Webda {
   private io: any;
   protected devMode: boolean;
   protected serverStatus: ServerStatus = ServerStatus.Stopped;
+  protected subnetChecker: (address: string) => boolean;
   /**
    * Resource services used to serve static content
    */
@@ -57,6 +59,16 @@ export class WebdaServer extends Webda {
   }
 
   /**
+   * Check if a proxy is a trusted proxy
+   * @param ip
+   * @returns
+   */
+  isProxyTrusted(ip: string): boolean {
+    // ipv4 mapped to v6
+    return this.subnetChecker(ip);
+  }
+
+  /**
    * Manage the request
    *
    * @param req
@@ -73,6 +85,15 @@ export class WebdaServer extends Webda {
       let vhost: string = req.headers.host.match(/:/g)
         ? req.headers.host.slice(0, req.headers.host.indexOf(":"))
         : req.headers.host;
+      if (
+        (req.headers["x-forwarded-host"] || req.headers["x-forwarded-proto"] || req.headers["x-forwarded-port"]) &&
+        !this.isProxyTrusted(req.socket.remoteAddress)
+      ) {
+        // Do not even let the query go through
+        res.writeHead(400);
+        res.end();
+        return;
+      }
       // Might want to add some whitelisting
       if (req.headers["x-forwarded-host"] !== undefined) {
         vhost = <string>req.headers["x-forwarded-host"];
@@ -222,7 +243,18 @@ export class WebdaServer extends Webda {
   }
 
   async init() {
+    // Avoid reinit everytime
+    if (this._init) {
+      return this._init;
+    }
     await super.init();
+    this.getGlobalParams().trustedProxies ??= "127.0.0.1";
+    if (typeof this.getGlobalParams().trustedProxies === "string") {
+      this.getGlobalParams().trustedProxies = this.getGlobalParams().trustedProxies.split(",");
+    }
+    this.subnetChecker = createChecker(
+      this.getGlobalParams().trustedProxies.map(n => (n.indexOf("/") < 0 ? `${n}/32` : n))
+    );
     if (this.getGlobalParams().website && this.getGlobalParams().website.path && !this.resourceService) {
       this.resourceService = new ResourceService(this, "websiteResource", {
         folder: this.getAppPath(this.getGlobalParams().website.path)

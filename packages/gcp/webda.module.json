@@ -1,0 +1,8 @@
+{
+  "services": {
+    "Webda/GoogleCloudStore": "./lib/services/storage.js"
+  },
+  "models": {},
+  "deployers": {},
+  "commands": {}
+}

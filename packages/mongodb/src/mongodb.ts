@@ -318,7 +318,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
   async _get(uid: string, raiseIfNotFound: boolean = false): Promise<T> {
     await this._connect();
     let res = await this._collection.findOne({
-      _id: uid
+      _id: <unknown>uid
     });
     if (res === null) {
       if (raiseIfNotFound) {

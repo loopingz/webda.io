@@ -12,7 +12,7 @@ class FileStoreParameters extends StoreParameters {
    */
   folder: string;
   /**
-   * Parameter sent to JSON.stringiy when storing the json
+   * Parameter sent to JSON.stringify when storing the json
    */
   beautify?: string | number;
 }

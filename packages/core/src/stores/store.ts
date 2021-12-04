@@ -1215,6 +1215,13 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
         throw 400;
       }
       let updateObject: any = new this._model();
+      // Clean any default attributes from the model
+      for (let i in updateObject) {
+        if (i.startsWith("__")) {
+          continue;
+        }
+        delete updateObject[i];
+      }
       updateObject.setContext(ctx);
       updateObject.load(body);
       await this.patch(updateObject);

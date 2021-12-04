@@ -8,7 +8,17 @@ import { existsSync } from "fs";
 import { StoreNotFoundError, UpdateConditionFailError } from "./store";
 import * as sinon from "sinon";
 import AggregatorService from "./aggregator";
+import { User } from "../models/user";
 
+/**
+ * Cast for test user
+ */
+interface TestUser extends User {
+  _testor: any;
+  type: string;
+  additional: string;
+  user: string;
+}
 @suite
 class FileStoreTest extends StoreTest {
   getUserStore(): Store<any> {
@@ -177,7 +187,7 @@ class FileStoreTest extends StoreTest {
   @test
   async httpCRUD() {
     let eventFired;
-    let userStore = this.getUserStore();
+    let userStore: Store<TestUser> = this.getUserStore();
     let ctx, executor;
     await userStore.__clean();
     ctx = await this.newContext({});
@@ -211,6 +221,14 @@ class FileStoreTest extends StoreTest {
     assert.strictEqual(user.type, "CRUD2");
     assert.strictEqual(user.additional, "field");
     assert.strictEqual(user.user, "fake_user");
+
+    // Add a role to the user
+    user.addRole("plop");
+    await user.save();
+
+    user = await userStore.get("PLOP");
+    assert.deepStrictEqual(user.getRoles(), ["plop"]);
+
     ctx.resetResponse();
     // Check PATH
     executor = this.getExecutor(ctx, "test.webda.io", "PATCH", "/users/PLOP", {
@@ -224,6 +242,7 @@ class FileStoreTest extends StoreTest {
     assert.strictEqual(user.type, "CRUD3");
     assert.strictEqual(user.additional, "field");
     assert.strictEqual(user._testor, undefined);
+    assert.deepStrictEqual(user.getRoles(), ["plop"]);
 
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/users/PLOP", {
       type: "CRUD3",
@@ -236,6 +255,7 @@ class FileStoreTest extends StoreTest {
     assert.strictEqual(user.type, "CRUD3");
     assert.strictEqual(user.additional, undefined);
     assert.strictEqual(user._testor, undefined);
+    assert.deepStrictEqual(user.getRoles(), ["plop"]);
 
     await this.getExecutor(ctx, "test.webda.io", "DELETE", "/users/PLOP").execute(ctx);
     eventFired = 0;

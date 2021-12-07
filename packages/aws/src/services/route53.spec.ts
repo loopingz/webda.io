@@ -13,23 +13,21 @@ class Route53Test {
     // Mock
     try {
       AWSMock.setSDKInstance(AWS);
-      var callSpy2 = sinon.stub().callsFake((p, c) => {
+      var callSpy2 = sinon.stub().callsFake(async (p, c) => {
         if (callSpy2.callCount == 1) {
-          return c(null, {
+          return {
             ResourceRecordSets: JSONUtils.loadFile("./test/zone-export.json").entries,
             IsTruncated: true,
             NextRecordIdentifier: "plop"
-          });
+          };
         } else {
-          return c(null, {
+          return {
             ResourceRecordSets: [],
             IsTruncated: false
-          });
+          };
         }
       });
-      var spyChanges = sinon.stub().callsFake((p, c) => {
-        return c(null, {});
-      });
+      var spyChanges = sinon.stub().callsFake(async () => {});
       AWSMock.mock("Route53", "listResourceRecordSets", callSpy2);
       AWSMock.mock("Route53", "changeResourceRecordSets", spyChanges);
       let stub = sinon.stub(Route53Service, "getZoneForDomainName").callsFake(() => {

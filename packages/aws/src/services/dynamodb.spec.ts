@@ -176,7 +176,7 @@ export class DynamoDBTest extends StoreTest {
       });
       stubs.push(
         sinon.stub(userStore._client, "scan").callsFake((p, c) => {
-          c(new Error("Unknown"), null);
+          throw new Error("Unknown");
         })
       );
       await assert.rejects(() => userStore._removeAttribute("plop", "test"), /Unknown/);
@@ -230,14 +230,14 @@ export class DynamoDBTest extends StoreTest {
       for (let i = 0; i < 50; i++) {
         results.push({ Item: { S: `Title ${i}` } });
       }
-      AWSMock.mock("DynamoDB", "describeTable", (p, c) => {
-        c(null, {
+      AWSMock.mock("DynamoDB", "describeTable", async (p, c) => {
+        return {
           Table: {
             ItemCount: 50
           }
-        });
+        };
       });
-      AWSMock.mock("DynamoDB", "scan", (p, c) => {
+      AWSMock.mock("DynamoDB", "scan", async (p, c) => {
         let offset = 0;
         let LastEvaluatedKey;
         if (p.ExclusiveStartKey) {
@@ -247,13 +247,13 @@ export class DynamoDBTest extends StoreTest {
           LastEvaluatedKey = { year: { N: (offset + 35).toString() } };
         }
 
-        c(null, {
+        return {
           Items: results.slice(offset, 35),
           LastEvaluatedKey
-        });
+        };
       });
-      stub = sinon.stub().callsFake((_, c) => {
-        c(null, {});
+      stub = sinon.stub().callsFake(async (_, c) => {
+        return {};
       });
       AWSMock.mock("DynamoDB", "batchWriteItem", stub);
       let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");

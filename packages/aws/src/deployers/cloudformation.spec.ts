@@ -163,7 +163,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     });
     await this.deployer.defaultResources();
     try {
-      AWSMock.mock("APIGateway", "putRestApi", (p, c) => c(null, {}));
+      AWSMock.mock("APIGateway", "putRestApi", async (p, c) => ({}));
 
       console.log("Launch deploy", this.deployer.uploadStatics);
       this.deployer.resources.Docker = {
@@ -184,14 +184,14 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
 
   @test
   async testDeleteCloudFormation() {
-    this.mocks["deleteStack"] = sinon.stub().callsFake((params, c) => {
-      c(null, {});
+    this.mocks["deleteStack"] = sinon.stub().callsFake(async (params, c) => {
+      return {};
     });
-    this.mocks["describeStacks"] = sinon.stub().callsFake((params, c) => {
+    this.mocks["describeStacks"] = sinon.stub().callsFake(async (params, c) => {
       if (this.mocks["describeStacks"].callCount > 1) {
         throw new Error();
       }
-      c(null, {});
+      return {};
     });
     this.mocks["waitFor"] = sinon.stub(this.deployer, "waitFor").callsFake(async c => {
       await c(() => {});
@@ -223,17 +223,15 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       }
     };
     try {
-      let caller = sinon.stub().callsFake(c => {
+      let caller = sinon.stub().callsFake(async c => {
         if (caller.callCount === 1) {
-          c(new Error("Bad"), null);
+          throw new Error("Bad");
         }
-        c(null, { Account: "myAccount" });
+        return { Account: "myAccount" };
       });
       let saver = sinon.stub(JSONUtils, "saveFile").callsFake(() => {});
       AWSMock.mock("STS", "getCallerIdentity", caller);
-      let stub = sinon.stub().callsFake((_, c) => {
-        c(null, {});
-      });
+      let stub = sinon.stub().callsFake(async () => {});
       AWSMock.mock("CloudFormation", "createStack", stub);
       assert.ok((await CloudFormationDeployer.init(console)) === -1);
       assert.deepStrictEqual(logs[0], ["ERROR", "package.json not found"]);
@@ -272,30 +270,24 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
         });
       });
       sinon.stub(this.deployer, "createCloudFormationChangeSet").callsFake(async () => "mychange");
-      AWSMock.mock("CloudFormation", "describeChangeSet", (_, c) => {
-        c(null, describeChangeSetResult);
-      });
-      AWSMock.mock("CloudFormation", "executeChangeSet", (_, c) => {
-        c(null, { Status: "" });
-      });
-      AWSMock.mock("CloudFormation", "describeStackEvents", (_, c) => {
-        c(null, describeStackEventsResult);
+      AWSMock.mock("CloudFormation", "describeChangeSet", async => describeChangeSetResult);
+      AWSMock.mock("CloudFormation", "executeChangeSet", async () => ({ Status: "" }));
+      AWSMock.mock("CloudFormation", "describeStackEvents", async (_, c) => {
         describeStackEventsResult.StackEvents.unshift({
           EventId: "123",
           ResourceType: "any",
           LogicalResourceId: this.deployer.resources.StackName,
           ResourceStatus: "UPDATE_ROLLBACK_COMPLETE"
         });
+        return describeStackEventsResult;
       });
-      AWSMock.mock("CloudFormation", "listStackResources", (_, c) => {
-        c(null, {
-          StackResourceSummaries: [
-            { ResourceType: "AWS::ApiGateway::Stage", PhysicalResourceId: "stage" },
-            { ResourceType: "AWS::ApiGateway::RestApi", PhysicalResourceId: "restApi" }
-          ]
-        });
-      });
-      let createDeployment = sinon.stub().callsFake((_, c) => c(null, {}));
+      AWSMock.mock("CloudFormation", "listStackResources", async () => ({
+        StackResourceSummaries: [
+          { ResourceType: "AWS::ApiGateway::Stage", PhysicalResourceId: "stage" },
+          { ResourceType: "AWS::ApiGateway::RestApi", PhysicalResourceId: "restApi" }
+        ]
+      }));
+      let createDeployment = sinon.stub().callsFake(async () => {});
       AWSMock.mock("APIGateway", "createDeployment", createDeployment);
       // First scenario we have a 'ROLLBACK_COMPLETE', an error occured
       await assert.rejects(() => this.deployer.createCloudFormation());
@@ -323,9 +315,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       // 'TIMEOUT'
       this.deployer.sleep = async () => {};
       describeStackEventsResult.StackEvents = [];
-      AWSMock.remock("CloudFormation", "describeStackEvents", (_, c) => {
-        c(null, describeStackEventsResult);
-      });
+      AWSMock.remock("CloudFormation", "describeStackEvents", async () => describeStackEventsResult);
       await this.deployer.createCloudFormation();
       assert.ok(createDeployment.callCount === 1);
     } finally {
@@ -366,20 +356,20 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
         Bucket: "Bucket",
         Key: "mykey"
       };
-      AWSMock.mock("CloudFormation", "createChangeSet", (p, c) => c(null, {}));
-      AWSMock.mock("CloudFormation", "describeStacks", (p, c) => c(null, describeStacksResult));
-      sinon.stub(this.deployer, "deleteCloudFormation").callsFake(async () => {});
-      AWSMock.mock("CloudFormation", "deleteChangeSet", (p, c) => c(null, {}));
+      AWSMock.mock("CloudFormation", "createChangeSet", async () => ({}));
+      AWSMock.mock("CloudFormation", "describeStacks", async () => describeStacksResult);
+      sinon.stub(this.deployer, "deleteCloudFormation").callsFake(async () => ({}));
+      AWSMock.mock("CloudFormation", "deleteChangeSet", async () => ({}));
       let cloudformation = new AWS.CloudFormation();
       // Nominal case
       await this.deployer.createCloudFormationChangeSet(cloudformation);
       // With error
       let testError;
-      let errorFirst = sinon.stub().callsFake((p, c) => {
+      let errorFirst = sinon.stub().callsFake(async () => {
         if (errorFirst.callCount === 1) {
-          c(testError, null);
+          throw testError;
         } else {
-          c(null, {});
+          return {};
         }
       });
       AWSMock.remock("CloudFormation", "createChangeSet", errorFirst);

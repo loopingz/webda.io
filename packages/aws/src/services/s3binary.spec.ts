@@ -96,9 +96,9 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     let keys = [];
     try {
       AWSMock.setSDKInstance(AWS);
-      var spyChanges = sinon.stub().callsFake((p, c) => {
+      var spyChanges = sinon.stub().callsFake(async p => {
         if (spyChanges.callCount === 1) {
-          return c(null, {
+          return {
             Contents: [
               { Key: "test/test.txt" },
               { Key: "test/test.json" },
@@ -108,9 +108,9 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
               return i.Key.startsWith(p.Prefix);
             }),
             NextContinuationToken: "2"
-          });
+          };
         }
-        return c(null, { Contents: [] });
+        return { Contents: [] };
       });
       AWSMock.mock("S3", "listObjectsV2", spyChanges);
       await this.getBinary().forEachFile(

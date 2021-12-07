@@ -148,7 +148,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     let ec2 = new this.AWS.EC2({
       endpoint: this.resources.endpoints.EC2
     });
-    let res = await ec2.describeVpcs().promise();
+    let res = await ec2.describeVpcs({}).promise();
     for (let i in res.Vpcs) {
       if (res.Vpcs[i].IsDefault) {
         defaultVpc.Id = res.Vpcs[i].VpcId;

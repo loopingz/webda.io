@@ -1118,7 +1118,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     let sts = new AWS.STS();
     let identity;
     try {
-      identity = await sts.getCallerIdentity().promise();
+      identity = await sts.getCallerIdentity({}).promise();
     } catch (ex) {
       console.log("ERROR", "Cannot retrieve your AWS credentials, make sure to have a correct AWS setup");
       return -1;

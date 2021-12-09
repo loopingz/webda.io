@@ -937,7 +937,16 @@ export class Application {
     // exec typescript
     if (this.isTypescript()) {
       this.log("DEBUG", "Compiling application");
-      execSync(`tsc -p ${this.appPath}`);
+      try {
+        execSync(`tsc -p ${this.appPath}`);
+      } catch (err) {
+        (err.stdout.toString() + err.stderr.toString())
+          .split("\n")
+          .filter(l => l !== "")
+          .forEach(l => {
+            this.log("ERROR", "tsc:", l);
+          });
+      }
     }
     this.compiled = true;
   }

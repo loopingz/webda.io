@@ -7,6 +7,7 @@ import { WebdaTest } from "./test";
 import { Module } from "./core";
 import { removeSync, emptyDirSync } from "fs-extra";
 import { execSync } from "child_process";
+import * as sinon from "sinon";
 
 @suite
 class ApplicationTest extends WebdaTest {
@@ -84,6 +85,27 @@ class ApplicationTest extends WebdaTest {
     this.sampleApp.compile();
     // Should not recompile as it should be cached
     assert.strictEqual(fs.existsSync(this.sampleApp.getAppPath("lib")), false);
+  }
+
+  @test
+  compileError() {
+    assert.strictEqual(this.sampleApp.isTypescript(), true);
+    this.sampleApp.preventCompilation(false);
+    const lines = [];
+    sinon.stub(this.sampleApp, "log").callsFake((...args) => lines.push(args));
+    const testFile = this.sampleApp.getAppPath("src/bouzouf.ts");
+    fs.writeFileSync(testFile, "bad TS");
+    try {
+      this.sampleApp.compile();
+
+      // assert files are there
+      assert.deepStrictEqual(lines, [
+        ["DEBUG", "Compiling application"],
+        ["ERROR", "tsc:", "../../sample-app/src/bouzouf.ts(1,1): error TS1434: Unexpected keyword or identifier."]
+      ]);
+    } finally {
+      fs.removeSync(testFile);
+    }
   }
 
   @test

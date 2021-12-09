@@ -14,6 +14,45 @@ interface TemplatesMap {
   [key: string]: IEmailTemplate;
 }
 
+interface MailerSendOptions {
+  /**
+   * Sender of the email
+   *
+   * @default parameters.sender
+   */
+  from?: string;
+  /**
+   * Destination of the email
+   */
+  to: string;
+  /**
+   * Template to user
+   */
+  template?: string;
+  /**
+   * Replacements for the template
+   */
+  replacements?: any;
+  /**
+   * Subject of the email
+   *
+   * Can be overriden by the template
+   */
+  subject?: string;
+  /**
+   * HTML of the email
+   *
+   * Can be overriden by the template
+   */
+  html?: string;
+  /**
+   * Text of the email
+   *
+   * Can be overriden by the template
+   */
+  text?: string;
+}
+
 export class MailerParameters extends ServiceParameters {
   /**
    * Specify which foldeer contains templates
@@ -94,7 +133,7 @@ class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
    * @param name
    * @returns
    */
-  _getTemplate(name) {
+  _getTemplate(name: string) {
     if (!this._templates[name]) {
       // Load template
       let templateDir = this.parameters.templates + "/";
@@ -120,7 +159,7 @@ class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
    * @params options Options to pass to the sendMail option of the nodemailer module
    * @params callback to pass to the sendMail
    */
-  async send(options, callback = undefined): Promise<any> {
+  async send(options: MailerSendOptions, callback = undefined): Promise<any> {
     if (this._transporter === undefined) {
       this._webda.log("ERROR", "Cannot send email as no transporter is defined");
       return Promise.reject("Cannot send email as no transporter is defined");

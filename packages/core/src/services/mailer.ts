@@ -78,6 +78,9 @@ export class MailerParameters extends ServiceParameters {
   constructor(params: any) {
     super(params);
     this.templates ??= "./templates";
+    if (!this.templates.endsWith("/")) {
+      this.templates += "/";
+    }
     this.templatesEngine ??= "mustache";
     this.emailTemplateOptions ??= {};
     this.emailTemplateOptions.juiceResources ??= {};
@@ -98,6 +101,7 @@ export class MailerParameters extends ServiceParameters {
  * @category CoreServices
  */
 class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
+
   _transporter: any;
   _templates: TemplatesMap = {};
 
@@ -135,16 +139,14 @@ class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
    */
   _getTemplate(name: string) {
     if (!this._templates[name]) {
-      // Load template
-      let templateDir = this.parameters.templates + "/";
-      if (!fs.existsSync(templateDir + name)) {
+      if (!this.hasTemplate(name)) {
         this._webda.log("WARN", "No template found for", name);
         return;
       }
       this._templates[name] = new Email({
         ...this.parameters.emailTemplateOptions,
         views: {
-          root: templateDir,
+          root: this.parameters.templates,
           options: {
             extension: this.parameters.templatesEngine
           }
@@ -152,6 +154,17 @@ class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
       });
     }
     return this._templates[name];
+  }
+
+  /**
+   * Check if the email template exists
+   * 
+   * @param name 
+   * @returns 
+   */
+  hasTemplate(name: string) : boolean {
+    // Load template
+    return fs.existsSync(this.parameters.templates + name);
   }
 
   /**

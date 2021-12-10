@@ -37,7 +37,7 @@ class MailerTest extends WebdaTest {
   @test
   params() {
     let params = new MailerParameters({ templates: "ts", templatesEngine: "b" });
-    assert.strictEqual(params.templates, "ts");
+    assert.strictEqual(params.templates, "ts/");
     assert.strictEqual(params.templatesEngine, "b");
   }
 

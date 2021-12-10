@@ -4,7 +4,7 @@ import * as fetch from "node-fetch";
 import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import { ServerStatus, WebdaServer } from "./http";
 import * as sinon from "sinon";
-import { createImportSpecifier, textChangeRangeIsUnchanged } from "typescript";
+import * as http from "http";
 @suite
 class WebdaServerTest {
   server: WebdaServer;
@@ -38,6 +38,33 @@ class WebdaServerTest {
       }
     }
     this.server = undefined;
+  }
+
+  @test
+  async testAlreadyBind() {
+    let server = http.createServer(() => {}).listen(this.port);
+    const logs = [];
+    WebdaSampleApplication.loadModules();
+    WebdaSampleApplication.setCurrentDeployment("Dev");
+    this.server = new WebdaServer(WebdaSampleApplication);
+    await this.server.init();
+    let stub = sinon.stub(this.server, "log").callsFake((...args) => {
+      logs.push(args);
+    });
+    // @ts-ignore
+    this.server.serverStatus = ServerStatus.Starting;
+    try {
+      this.server.serve(this.port, false);
+      await this.server.waitForStatus(ServerStatus.Stopped);
+    } catch (err) {
+      // ignore if failed
+    }
+    stub.restore();
+    server.close();
+    assert.deepStrictEqual(logs, [
+      ["INFO", "Server running at http://0.0.0.0:28080"],
+      ["ERROR", "listen EADDRINUSE: address already in use :::28080"]
+    ]);
   }
 
   @test

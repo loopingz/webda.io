@@ -220,37 +220,52 @@ export default class WebdaConsole {
               }
               let lvl: WorkerLogLevel = "INFO";
               if (line.startsWith("#W# ")) {
-                lvl = line.substr(4, 9).trim();
+                lvl = line.substr(4, 5).trim();
                 line = line.substr(10);
               }
+              if (line === "") return;
               if (argv.logLevel) {
                 // Should compare the loglevel
                 if (!LogFilter(lvl, <any>argv.logLevel)) {
                   return;
                 }
               }
-              webdaConsole.output(line);
+              webdaConsole.log(lvl, line);
             });
           callback();
         }
       });
       this.serverProcess = spawn("webda", args);
       this.serverProcess.stdout.pipe(addTime);
-      this.serverProcess.on("exit", () => {
+      this.serverProcess.on("exit", err => {
         // Might want to auto restart
+        this.output("Server process exit", err);
       });
     };
-    // Typescript mode -> launch compiler and update after compile is finished
-    fs.watch(this.app.getAppPath("webda.config.json"), launchServe);
-    if (argv.deployment) {
-      fs.watch(this.app.getAppPath(`deployments/${argv.deployment}.json`), launchServe);
-    }
-
+    this.configurationWatch(launchServe, <string>argv.deployment);
     this.typescriptWatch(WebdaConsole.getTransform(launchServe));
 
     return new CancelablePromise(() => {
       // Never return
     });
+  }
+
+  /**
+   * Watch for configuration changes
+   *
+   * @param callback
+   * @param deployment
+   */
+  static configurationWatch(callback, deployment?: string) {
+    try {
+      // Typescript mode -> launch compiler and update after compile is finished
+      fs.watch(this.app.getAppPath("webda.config.json"), callback);
+      if (deployment) {
+        fs.watch(this.app.getAppPath(`deployments/${deployment}.json`), callback);
+      }
+    } catch (err) {
+      this.log("WARN", "Auto-reload for configuration cannot be setup", err);
+    }
   }
 
   /**

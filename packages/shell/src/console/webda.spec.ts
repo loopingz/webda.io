@@ -10,7 +10,6 @@ import { DebuggerStatus, WebdaConsole } from "./webda";
 import { MemoryLogger, WorkerOutput } from "@webda/workout";
 import { Application, FileUtils, JSONUtils, Logger, Module, WebdaError } from "@webda/core";
 import * as sinon from "sinon";
-import { TypescriptSchemaResolver } from "../compiler";
 
 class DebugLogger extends MemoryLogger {
   getLogs(start: number = 0) {
@@ -166,6 +165,18 @@ class ConsoleTest {
         throw new WebdaError("WAIT_FOR_TIMEOUT", "Timeout");
       }
     } while (true);
+  }
+
+  @test
+  async configurationWatch() {
+    let stub = sinon.stub(WebdaConsole.app, "getAppPath").callsFake(() => {
+      throw new Error("Cannot watch");
+    });
+    try {
+      WebdaConsole.configurationWatch(() => {});
+    } finally {
+      stub.restore();
+    }
   }
 
   @test

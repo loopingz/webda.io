@@ -8,22 +8,6 @@ import { writeFileSync } from "fs";
 @suite
 class CompilerTest {
   @test
-  noTypescript() {
-    let logs = [];
-    let logger = {
-      log: (...args) => logs.push(args)
-    };
-
-    let resolver = new TypescriptSchemaResolver( // @ts-ignore
-      {
-        isTypescript: () => false
-      },
-      logger
-    );
-    assert.deepStrictEqual(logs, [["TRACE", "Application is not typescript can not guess schemas"]]);
-  }
-
-  @test
   fromPrototype() {
     let logs = [];
     let logger = {

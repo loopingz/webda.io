@@ -917,16 +917,6 @@ export class Application {
   }
 
   /**
-   * Return if the application is a typescript application
-   *
-   * Webda will soon drop support for non javascript application
-   * @deprecated
-   */
-  isTypescript() {
-    return fs.existsSync(`${this.appPath}/tsconfig.json`);
-  }
-
-  /**
    * Compile the application if it is a Typescript application
    * Do nothing otherwise
    */
@@ -935,18 +925,16 @@ export class Application {
       return;
     }
     // exec typescript
-    if (this.isTypescript()) {
-      this.log("DEBUG", "Compiling application");
-      try {
-        execSync(`tsc -p ${this.appPath}`);
-      } catch (err) {
-        (err.stdout.toString() + err.stderr.toString())
-          .split("\n")
-          .filter(l => l !== "")
-          .forEach(l => {
-            this.log("ERROR", "tsc:", l);
-          });
-      }
+    this.log("DEBUG", "Compiling application");
+    try {
+      execSync(`tsc -p ${this.appPath}`);
+    } catch (err) {
+      (err.stdout.toString() + err.stderr.toString())
+        .split("\n")
+        .filter(l => l !== "")
+        .forEach(l => {
+          this.log("ERROR", "tsc:", l);
+        });
     }
     this.compiled = true;
   }

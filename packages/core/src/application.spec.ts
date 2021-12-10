@@ -68,7 +68,6 @@ class ApplicationTest extends WebdaTest {
 
   @test
   compile() {
-    assert.strictEqual(this.sampleApp.isTypescript(), true);
     this.cleanSampleApp();
     this.sampleApp.preventCompilation(true);
     this.sampleApp.compile();
@@ -89,7 +88,6 @@ class ApplicationTest extends WebdaTest {
 
   @test
   compileError() {
-    assert.strictEqual(this.sampleApp.isTypescript(), true);
     this.sampleApp.preventCompilation(false);
     const lines = [];
     sinon.stub(this.sampleApp, "log").callsFake((...args) => lines.push(args));

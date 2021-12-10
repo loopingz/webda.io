@@ -246,34 +246,8 @@ export default class WebdaConsole {
       fs.watch(this.app.getAppPath(`deployments/${argv.deployment}.json`), launchServe);
     }
 
-    /* istanbul ignore else */
-    if (this.app.isTypescript()) {
-      this.typescriptWatch(WebdaConsole.getTransform(launchServe));
-    } else {
-      /** deprecated */
-      // Traditional js
-      var listener = (event, filename) => {
-        // Dont reload unless it is a true code changes
-        // Limitation: It wont reload if resources are changed
-        if (filename.endsWith(".js")) {
-          launchServe();
-        }
-      };
-      // glob files
-      this.app.getPackagesLocations().forEach(packPath => {
-        if (fs.existsSync(packPath) && fs.lstatSync(packPath).isDirectory()) {
-          // Linux limitation, the recursive does not work
-          fs.watch(
-            packPath,
-            <Object>{
-              resursive: true
-            },
-            listener
-          );
-        }
-      });
-      launchServe();
-    }
+    this.typescriptWatch(WebdaConsole.getTransform(launchServe));
+
     return new CancelablePromise(() => {
       // Never return
     });
@@ -475,11 +449,8 @@ export default class WebdaConsole {
     argv._.shift();
     let symbol = <string>argv.type;
     let filename = <string>argv.exportFile;
-    let resolver: TypescriptSchemaResolver = undefined;
-    if (this.app.isTypescript()) {
-      resolver = new TypescriptSchemaResolver(this.app, this.logger);
-      this.app.setSchemaResolver(resolver);
-    }
+    let resolver: TypescriptSchemaResolver = new TypescriptSchemaResolver(this.app, this.logger);
+    this.app.setSchemaResolver(resolver);
     let schema = this.app.getSchemaResolver().fromServiceType(symbol);
     if (!schema && resolver) {
       schema = resolver.fromSymbol(symbol);
@@ -529,9 +500,7 @@ export default class WebdaConsole {
    * Generate the webda.module.json
    */
   static generateModule() {
-    if (this.app.isTypescript()) {
-      this.app.setSchemaResolver(new TypescriptSchemaResolver(this.app, this.logger));
-    }
+    this.app.setSchemaResolver(new TypescriptSchemaResolver(this.app, this.logger));
     if (fs.existsSync(this.app.getAppPath("webda.config.json"))) {
       // Generate config schema as well
       this.generateConfigurationSchema();
@@ -677,106 +646,104 @@ export default class WebdaConsole {
     deploymentFilename: string = ".webda-deployment-schema.json",
     full: boolean = false
   ) {
-    if (this.app.isTypescript()) {
-      let resolver = new TypescriptSchemaResolver(this.app, this.logger);
-      this.app.setSchemaResolver(resolver);
-      let res: Definition = resolver.generator.getSchemaForSymbol("Configuration");
-      // Clean cached modules
-      delete res.definitions.CachedModule;
-      delete res.properties.cachedModules;
-      // Add the definition for types
-      res.definitions.ServicesType = {
-        type: "string",
-        enum: Object.keys(this.app.getServices())
-      };
-      res.properties.services = {
-        type: "object",
-        additionalProperties: {
-          oneOf: []
-        }
-      };
-      Object.keys(this.app.getServices()).forEach(serviceType => {
-        const key = `ServiceType$${serviceType.replace(/\//g, "$")}`;
-        const definition: Definition = (res.definitions[key] = <Definition>resolver.fromServiceType(serviceType));
-        if (!definition) {
-          return;
-        }
-        (<Definition>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
-        (<Definition>(<Definition>res.properties.services).additionalProperties).oneOf.push({
-          $ref: `#/definitions/${key}`
-        });
-        delete res.definitions[key]["$schema"];
-        // Remove mandatory depending on option
-        if (!full) {
-          res.definitions[key]["required"] = ["type"];
-        }
+    let resolver = new TypescriptSchemaResolver(this.app, this.logger);
+    this.app.setSchemaResolver(resolver);
+    let res: Definition = resolver.generator.getSchemaForSymbol("Configuration");
+    // Clean cached modules
+    delete res.definitions.CachedModule;
+    delete res.properties.cachedModules;
+    // Add the definition for types
+    res.definitions.ServicesType = {
+      type: "string",
+      enum: Object.keys(this.app.getServices())
+    };
+    res.properties.services = {
+      type: "object",
+      additionalProperties: {
+        oneOf: []
+      }
+    };
+    Object.keys(this.app.getServices()).forEach(serviceType => {
+      const key = `ServiceType$${serviceType.replace(/\//g, "$")}`;
+      const definition: Definition = (res.definitions[key] = <Definition>resolver.fromServiceType(serviceType));
+      if (!definition) {
+        return;
+      }
+      (<Definition>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
+      (<Definition>(<Definition>res.properties.services).additionalProperties).oneOf.push({
+        $ref: `#/definitions/${key}`
       });
-      FileUtils.save(res, filename);
-      // Build the deployment schema
-      // Ensure builtin deployers are there
-      DeploymentManager.addBuiltinDeployers(this.app);
-      const definitions = JSONUtils.duplicate(res.definitions);
-      res = {
-        properties: {
-          parameters: {
-            type: "object",
-            additionalProperties: true
-          },
-          resources: {
-            type: "object",
-            additionalProperties: true
-          },
-          services: {
-            type: "object",
-            additionalProperties: false,
-            properties: {}
-          },
-          units: {
-            type: "array",
-            items: { oneOf: [] }
-          }
-        },
-        definitions: res.definitions
-      };
-      const appServices = this.app.getConfiguration().services;
-      Object.keys(appServices).forEach(k => {
-        if (!appServices[k]) {
-          return;
-        }
-        const key = `Service$${k}`;
-        (<Definition>res.properties.services).properties[k] = {
+      delete res.definitions[key]["$schema"];
+      // Remove mandatory depending on option
+      if (!full) {
+        res.definitions[key]["required"] = ["type"];
+      }
+    });
+    FileUtils.save(res, filename);
+    // Build the deployment schema
+    // Ensure builtin deployers are there
+    DeploymentManager.addBuiltinDeployers(this.app);
+    const definitions = JSONUtils.duplicate(res.definitions);
+    res = {
+      properties: {
+        parameters: {
           type: "object",
-          oneOf: [
-            { $ref: `#/definitions/${key}` },
-            ...Object.keys(definitions)
-              .filter(name => name.startsWith("ServiceType"))
-              .map(dkey => ({ $ref: `#/definitions/${dkey}` }))
-          ]
+          additionalProperties: true
+        },
+        resources: {
+          type: "object",
+          additionalProperties: true
+        },
+        services: {
+          type: "object",
+          additionalProperties: false,
+          properties: {}
+        },
+        units: {
+          type: "array",
+          items: { oneOf: [] }
+        }
+      },
+      definitions: res.definitions
+    };
+    const appServices = this.app.getConfiguration().services;
+    Object.keys(appServices).forEach(k => {
+      if (!appServices[k]) {
+        return;
+      }
+      const key = `Service$${k}`;
+      (<Definition>res.properties.services).properties[k] = {
+        type: "object",
+        oneOf: [
+          { $ref: `#/definitions/${key}` },
+          ...Object.keys(definitions)
+            .filter(name => name.startsWith("ServiceType"))
+            .map(dkey => ({ $ref: `#/definitions/${dkey}` }))
+        ]
+      };
+    });
+    Object.keys(this.app.getDeployers()).forEach(serviceType => {
+      const key = `DeployerType$${serviceType.replace(/\//g, "$")}`;
+      const definition: Definition = (res.definitions[key] = <Definition>resolver.fromServiceType(serviceType));
+      if (!definition) {
+        return;
+      }
+      if (!definition.properties) {
+        definition.properties = {
+          type: {
+            type: "string"
+          }
         };
-      });
-      Object.keys(this.app.getDeployers()).forEach(serviceType => {
-        const key = `DeployerType$${serviceType.replace(/\//g, "$")}`;
-        const definition: Definition = (res.definitions[key] = <Definition>resolver.fromServiceType(serviceType));
-        if (!definition) {
-          return;
-        }
-        if (!definition.properties) {
-          definition.properties = {
-            type: {
-              type: "string"
-            }
-          };
-        }
-        (<Definition>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
-        (<Definition>(<Definition>res.properties.units).items).oneOf.push({ $ref: `#/definitions/${key}` });
-        delete definition["$schema"];
-        // Remove mandatory depending on option
-        if (!full) {
-          definition["required"] = ["type"];
-        }
-      });
-      FileUtils.save(res, deploymentFilename);
-    }
+      }
+      (<Definition>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
+      (<Definition>(<Definition>res.properties.units).items).oneOf.push({ $ref: `#/definitions/${key}` });
+      delete definition["$schema"];
+      // Remove mandatory depending on option
+      if (!full) {
+        definition["required"] = ["type"];
+      }
+    });
+    FileUtils.save(res, deploymentFilename);
   }
 
   /**

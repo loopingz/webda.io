@@ -70,15 +70,11 @@ export class TypescriptSchemaResolver extends DefaultSchemaResolver {
   constructor(app: Application, logger: Logger) {
     super(app);
     this.logger = logger;
-    if (this.app.isTypescript()) {
-      let program = programFromConfig(this.app);
-      // Inject all modules
-      this.generator = TJS.buildGenerator(program, { required: true });
-      // @ts-ignore
-      this.symbols = this.generator.allSymbols;
-    } else {
-      this.logger.log("TRACE", "Application is not typescript can not guess schemas");
-    }
+    let program = programFromConfig(this.app);
+    // Inject all modules
+    this.generator = TJS.buildGenerator(program, { required: true });
+    // @ts-ignore
+    this.symbols = this.generator.allSymbols;
   }
 
   /**
@@ -99,7 +95,7 @@ export class TypescriptSchemaResolver extends DefaultSchemaResolver {
    */
   fromPrototype(type: any): JSONSchema6 {
     let res = super.fromPrototype(type);
-    if (res === undefined && this.app.isTypescript()) {
+    if (res === undefined) {
       this.logger.log("TRACE", "Generate schema dynamically for", type.name);
       if (this.app.extends(type, Service)) {
         res = this.findParameters(type.name, "ServiceParameters");

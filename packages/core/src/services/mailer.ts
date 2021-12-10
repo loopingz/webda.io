@@ -101,7 +101,6 @@ export class MailerParameters extends ServiceParameters {
  * @category CoreServices
  */
 class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
-
   _transporter: any;
   _templates: TemplatesMap = {};
 
@@ -158,11 +157,11 @@ class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
 
   /**
    * Check if the email template exists
-   * 
-   * @param name 
-   * @returns 
+   *
+   * @param name
+   * @returns
    */
-  hasTemplate(name: string) : boolean {
+  hasTemplate(name: string): boolean {
     // Load template
     return fs.existsSync(this.parameters.templates + name);
   }

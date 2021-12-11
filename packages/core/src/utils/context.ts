@@ -444,7 +444,6 @@ class Context extends EventEmitter {
         this.statusCode = 200;
       }
       if (!this._flushHeaders) {
-        this._flushHeaders = true;
         this._webda.flushHeaders(this);
       }
       this._webda.flush(this);
@@ -626,6 +625,22 @@ class Context extends EventEmitter {
   }
 
   /**
+   * Return true if Headers got flushed already
+   * @returns
+   */
+  hasFlushedHeaders() {
+    return this._flushHeaders;
+  }
+
+  /**
+   * Set flushed header status
+   * @param status
+   */
+  setFlushedHeaders(status: boolean = true) {
+    this._flushHeaders = status;
+  }
+
+  /**
    * @ignore
    * Used by Webda framework to set the body, session and output stream if known
    */
@@ -663,7 +678,6 @@ class Context extends EventEmitter {
 
   async init() {
     this._stream.on("pipe", () => {
-      this._flushHeaders = true;
       this._buffered = true;
       this._webda.flushHeaders(this);
     });

@@ -81,6 +81,12 @@ class ContextTest extends WebdaTest {
     // @ts-ignore
     this.ctx._body = undefined;
     this.ctx._write("ppop", "", () => {});
+
+    assert.strictEqual(this.ctx.hasFlushedHeaders(), false);
+    this.ctx.setFlushedHeaders();
+    assert.strictEqual(this.ctx.hasFlushedHeaders(), true);
+    this.ctx.setFlushedHeaders(false);
+    assert.strictEqual(this.ctx.hasFlushedHeaders(), false);
   }
 
   @test

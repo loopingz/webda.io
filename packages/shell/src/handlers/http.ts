@@ -5,7 +5,8 @@ import {
   EventWebdaRequest,
   EventWebdaResult,
   WaitFor,
-  WaitLinearDelay
+  WaitLinearDelay,
+  Context
 } from "@webda/core";
 import * as http from "http";
 import { serialize as cookieSerialize } from "cookie";
@@ -55,6 +56,7 @@ export class WebdaServer extends Webda {
    */
   async handleRequest(req, res, next) {
     try {
+      res.on("error", this.log.bind(this, "ERROR"));
       // Wait for Webda to be ready
       await this.init();
 
@@ -172,7 +174,11 @@ export class WebdaServer extends Webda {
     }
   }
 
-  flushHeaders(ctx) {
+  flushHeaders(ctx: Context) {
+    if (ctx.hasFlushedHeaders()) {
+      return;
+    }
+    ctx.setFlushedHeaders(true);
     var res = ctx._stream;
     var headers = ctx.getResponseHeaders();
     let cookies = ctx.getResponseCookies();
@@ -182,10 +188,10 @@ export class WebdaServer extends Webda {
     res.writeHead(ctx.statusCode, headers);
   }
 
-  flush(ctx) {
+  flush(ctx: Context) {
     var res = ctx._stream;
-    if (ctx._body !== undefined) {
-      res.write(ctx._body);
+    if (ctx.getResponseBody() !== undefined) {
+      res.write(ctx.getResponseBody());
     }
     res.end();
   }

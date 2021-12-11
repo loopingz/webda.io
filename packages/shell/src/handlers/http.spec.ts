@@ -5,6 +5,7 @@ import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import { ServerStatus, WebdaServer } from "./http";
 import * as sinon from "sinon";
 import * as http from "http";
+import { HttpContext } from "@webda/core";
 @suite
 class WebdaServerTest {
   server: WebdaServer;
@@ -139,6 +140,15 @@ class WebdaServerTest {
     stub.restore();
     // Test SIGINT
     this.server.onSIGINT();
+  }
+
+  @test
+  async flushHeaders() {
+    await this.init("Dev", false);
+    let ctx = await this.server.newContext(new HttpContext("test.webda.io", "GET", "/"));
+    ctx.setFlushedHeaders();
+    // Test we do not double flush headers
+    this.server.flushHeaders(ctx);
   }
 
   @test

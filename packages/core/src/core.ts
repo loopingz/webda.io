@@ -530,17 +530,12 @@ export class Core extends events.EventEmitter {
           this.configuration.parameters = { ...this.configuration.parameters, ...cfg.webda.parameters };
           for (let i in this.configuration.services) {
             this.configuration.services[i] = {
-              ...deepmerge.all([
-                this.configuration.services[i],
-                (cfg.webda.services[i] || {})
-              ]),
+              ...deepmerge.all([this.configuration.services[i], cfg.webda.services[i] || {}]),
               type: this.configuration.services[i].type
             };
           }
         }
-        await this.getService<ConfigurationService>(
-          this.configuration.parameters.configurationService
-        ).init();
+        await this.getService<ConfigurationService>(this.configuration.parameters.configurationService).init();
       } catch (err) {
         this.log("ERROR", "Cannot use ConfigurationService", this.configuration.parameters.configurationService, err);
         this.services = {};
@@ -797,6 +792,9 @@ export class Core extends events.EventEmitter {
 
   /**
    * Flush the headers to the response, no more header modification is possible after that
+   *
+   * This method should set the `context.setFlushedHeaders()` and use of `context.hasFlushedHeaders()`
+   *
    * @abstract
    */
   public flushHeaders(context: Context): void {
@@ -875,7 +873,8 @@ export class Core extends events.EventEmitter {
     configuration.parameters ??= {};
     configuration.services ??= {};
     configuration.services[service] ??= {};
-    const params : any = deepmerge.all([this.configuration.parameters || {},
+    const params: any = deepmerge.all([
+      this.configuration.parameters || {},
       configuration.parameters || {},
       this.configuration.services[service] || {},
       configuration.services[service] || {}

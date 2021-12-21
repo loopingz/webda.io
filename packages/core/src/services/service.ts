@@ -114,6 +114,10 @@ export class ServiceParameters {
   }
 }
 
+export type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
 /**
  * Use this object for representing a service in the application
  * A Service is a singleton in the application, that is init after all others services are created
@@ -154,7 +158,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
    * @param {String} name - The name of the service
    * @param {Object} params - The parameters block define in the configuration file
    */
-  constructor(webda: Core, name: string, params: any = {}) {
+  constructor(webda: Core, name: string, params: DeepPartial<T> = {}) {
     super();
     this.logger = webda ? webda.getLogger(this) : undefined;
     this._webda = webda;
@@ -165,7 +169,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
   /**
    * Load the parameters for a service
    */
-  loadParameters(params: any): ServiceParameters {
+  loadParameters(params: DeepPartial<T>): ServiceParameters {
     return new ServiceParameters(params);
   }
 
@@ -366,7 +370,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
    *
    * @abstract
    */
-  __clean(): Promise<any> {
+  __clean(): Promise<void> {
     // @ts-ignore
     if (typeof global.it !== "function") {
       throw Error("Only for test purpose");
@@ -377,7 +381,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
   /**
    * @private
    */
-  ___cleanData(): Promise<any> {
+  ___cleanData(): Promise<void> {
     return Promise.resolve();
   }
 

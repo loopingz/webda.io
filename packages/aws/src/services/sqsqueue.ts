@@ -140,11 +140,11 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
   /**
    * @inheritdoc
    */
-  async __clean() {
+  async __clean(): Promise<void> {
     return this.__cleanWithRetry(false);
   }
 
-  private async __cleanWithRetry(fail) {
+  private async __cleanWithRetry(fail): Promise<void> {
     try {
       await this.sqs
         .purgeQueue({

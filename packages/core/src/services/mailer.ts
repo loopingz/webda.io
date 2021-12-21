@@ -74,6 +74,14 @@ export class MailerParameters extends ServiceParameters {
    * @see https://www.npmjs.com/package/email-templates
    */
   emailTemplateOptions?: any;
+  /**
+   * Define the type of transport to use
+   */
+  transport?: string;
+  /**
+   * SES AWS Bean if transport === "ses"
+   */
+  SES: any;
 
   constructor(params: any) {
     super(params);

@@ -3,8 +3,13 @@ import { WebdaTest } from "../test";
 import * as assert from "assert";
 import { Inject, Service } from "..";
 import * as sinon from "sinon";
+import { ServiceParameters } from "./service";
 
-class FakeService extends Service {
+class FakeServiceParameters extends ServiceParameters {
+  bean: string;
+}
+
+class FakeService<T extends FakeServiceParameters = FakeServiceParameters> extends Service<T> {
   @Inject("Authentication2", true)
   serv: Service;
   @Inject("bean", "Authentication", true)

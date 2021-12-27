@@ -37,7 +37,8 @@ import {
   VersionService,
   FileQueue,
   MapperService,
-  AggregatorService
+  AggregatorService,
+  AclModel
 } from "./index";
 import { Deployment } from "./models/deployment";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
@@ -247,6 +248,7 @@ export class Application {
    */
   protected models: { [key: string]: any } = {
     // Models
+    "webda/aclmodel": AclModel,
     "webda/coremodel": CoreModel,
     "webda/ident": Ident,
     "webda/user": User,

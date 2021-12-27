@@ -1,10 +1,12 @@
 "use strict";
 import { Context, CoreModel, ModelAction, User } from "../index";
 
+export type Acl = { [key: string]: string };
+
 /**
  * Object that contains ACL to define its own permissions
  */
-class AclModel extends CoreModel {
+export default class AclModel extends CoreModel {
   /**
    * Object creator
    */
@@ -12,7 +14,7 @@ class AclModel extends CoreModel {
   /**
    * Permissions on the object
    */
-  __acls: Map<string, string> = new Map<string, string>();
+  __acls: Acl = {};
 
   /**
    * Add acls actions
@@ -33,8 +35,8 @@ class AclModel extends CoreModel {
   async _onSave() {
     await super._onSave();
     this._creator = this.getContext().getCurrentUserId();
-    if (this.__acls.size === 0) {
-      this.__acls.set(this._creator, "all");
+    if (Object.keys(this.__acls).length === 0) {
+      this.__acls[this._creator] = "all";
     }
   }
 
@@ -50,7 +52,7 @@ class AclModel extends CoreModel {
    * Set object ACLs
    * @param acls
    */
-  setAcls(acls: Map<string, string>) {
+  setAcls(acls: Acl) {
     this.__acls = acls;
   }
 

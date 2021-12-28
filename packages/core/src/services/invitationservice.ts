@@ -10,6 +10,7 @@ import {
 } from "../index";
 import { AclModel } from "../models/aclmodel";
 import { CoreModel } from "../models/coremodel";
+import { User } from "../models/user";
 import { Authentication } from "./authentication";
 import { DeepPartial, Inject, ServiceParameters } from "./service";
 
@@ -284,20 +285,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
         promises.push(
           (async () => {
             const user = await this.authenticationService.getUserStore().get(invitation.ident.getUser());
-            if ((user[this.parameters.mapAttribute] || []).filter(p => p.model === model.getUuid()).length) {
-              return;
-            }
-            await this.authenticationService
-              .getUserStore()
-              .upsertItemToCollection(user.getUuid(), this.parameters.mapAttribute, {
-                model: model.getUuid(),
-                metadata,
-                inviter: {
-                  uuid: inviter.getUuid(),
-                  name: inviter.getDisplayName()
-                },
-                pending: !this.parameters.autoAccept
-              });
+            await this.addInvitationToUser(model, user, inviter, metadata);
           })()
         );
         continue;
@@ -338,20 +326,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
         } else if (!model[this.parameters.attribute][u]) {
           model[this.parameters.pendingAttribute][`user_${u}`] = body.metadata;
         }
-        if ((user[this.parameters.mapAttribute] || []).filter(p => p.model === model.getUuid()).length) {
-          return;
-        }
-        await this.authenticationService
-          .getUserStore()
-          .upsertItemToCollection(user.getUuid(), this.parameters.mapAttribute, {
-            model: model.getUuid(),
-            metadata,
-            inviter: {
-              uuid: inviter.getUuid(),
-              name: inviter.getDisplayName()
-            },
-            pending: !this.parameters.autoAccept
-          });
+        await this.addInvitationToUser(model, user, inviter, metadata);
       })
     );
 
@@ -360,6 +335,22 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     await this.updateModel(model);
   }
 
+  async addInvitationToUser(model: CoreModel, user: User, inviter: User, metadata: any) {
+    if ((user[this.parameters.mapAttribute] || []).filter(p => p.model === model.getUuid()).length) {
+      return;
+    }
+    await this.authenticationService
+      .getUserStore()
+      .upsertItemToCollection(user.getUuid(), this.parameters.mapAttribute, {
+        model: model.getUuid(),
+        metadata,
+        inviter: {
+          uuid: inviter.getUuid(),
+          name: inviter.getDisplayName()
+        },
+        pending: !this.parameters.autoAccept
+      });
+  }
   /**
    * Return which attribute would be used to store the invitation on ident invitation object
    * @param uuid

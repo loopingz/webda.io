@@ -1,4 +1,5 @@
 "use strict";
+import { PartialModel } from "../services/service";
 import { Ident } from "./ident";
 import { OwnerModel } from "./ownermodel";
 
@@ -36,7 +37,7 @@ class User extends OwnerModel {
     return this._roles;
   }
 
-  getIdents(): Ident[] {
+  getIdents(): PartialModel<Ident>[] {
     return this._idents;
   }
 

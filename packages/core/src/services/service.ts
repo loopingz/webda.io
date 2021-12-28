@@ -118,6 +118,10 @@ export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
+export type PartialModel<T> = {
+  [P in keyof T]: T[P] extends Function ? T[P] : T[P] extends object ? null | PartialModel<T[P]> : T[P] | null;
+};
+
 /**
  * Use this object for representing a service in the application
  * A Service is a singleton in the application, that is init after all others services are created

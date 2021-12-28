@@ -6,7 +6,7 @@ import { Ident } from "../models/ident";
 import { User } from "../models/user";
 import { Inject, Service, ServiceParameters } from "../services/service";
 import { Store } from "../stores/store";
-import { Context } from "../utils/context";
+import { Context, HttpContext } from "../utils/context";
 import { Mailer } from "./mailer";
 
 /**
@@ -21,6 +21,7 @@ export interface EventAuthenticationGetMe extends EventWithContext {
  */
 export interface EventAuthenticationRegister extends EventAuthenticationGetMe {
   datas: any;
+  identId: string;
 }
 
 /**
@@ -206,6 +207,22 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
    */
   loadParameters(params: any): AuthenticationParameters {
     return new AuthenticationParameters(params);
+  }
+
+  /**
+   * Get the user store
+   * @returns
+   */
+  getUserStore<K extends User = User>(): Store<K> {
+    return <Store<K>>this._usersStore;
+  }
+
+  /**
+   * Get the user store
+   * @returns
+   */
+  getIdentStore<K extends Ident = Ident>(): Store<K> {
+    return <Store<K>>this._identsStore;
   }
 
   initRoutes() {
@@ -434,7 +451,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
 
       if (!user) {
         // If no user, register a new user automatically
-        user = await this.registerUser(ctx, profile);
+        user = await this.registerUser(ctx, profile, identId);
         await this._usersStore.save(user);
       }
     }
@@ -462,13 +479,27 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     await this.login(ctx, user, ident);
   }
 
-  async registerUser(ctx: Context, datas, user: any = this._usersStore.initModel()): Promise<any> {
+  /**
+   * Create a new User with the link ident
+   * @param ident
+   */
+  async createUserWithIdent(provider: string, identId: string, profile: any = {}) {
+    if (await this._identsStore.exists(`${identId}_${provider}`)) {
+      throw new Error("Ident is already known");
+    }
+    let ctx = await this._webda.newContext(new HttpContext("fake", "GET", "/"));
+    // Pretend we logged in with the ident
+    await this.onIdentLogin(ctx, provider, identId, profile);
+  }
+
+  async registerUser(ctx: Context, datas, identId: string, user: any = this._usersStore.initModel()): Promise<any> {
     user.email = datas.email;
     user.locale = ctx.getLocale();
     await this.emitSync("Authentication.Register", <EventAuthenticationRegister>{
       user: user,
       datas: datas,
-      context: ctx
+      context: ctx,
+      identId
     });
     return user;
   }
@@ -829,7 +860,7 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       delete body.password;
       delete body.register;
       delete body.token;
-      let user = await this.registerUser(ctx, {}, body);
+      let user = await this.registerUser(ctx, {}, uuid, body);
       await this.emitSync("Authentication.PasswordCreate", <EventAuthenticationPasswordUpdate>{
         user,
         password: body.__password,

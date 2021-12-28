@@ -14,6 +14,19 @@ interface TemplatesMap {
   [key: string]: IEmailTemplate;
 }
 
+/**
+ * Represent a mailer service
+ */
+export interface MailerService {
+  hasTemplate(name: string): boolean;
+  /**
+   *
+   * @params options Options to pass to the sendMail option of the nodemailer module
+   * @params callback to pass to the sendMail
+   */
+  send(options: MailerSendOptions, callback: () => void): Promise<any>;
+}
+
 interface MailerSendOptions {
   /**
    * Sender of the email
@@ -108,7 +121,7 @@ export class MailerParameters extends ServiceParameters {
  * config: { ... }
  * @category CoreServices
  */
-class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> {
+class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> implements MailerService {
   _transporter: any;
   _templates: TemplatesMap = {};
 

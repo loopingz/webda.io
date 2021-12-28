@@ -99,12 +99,31 @@ class WebdaTest {
     }
     if (this.webda.updateContextWithRoute(ctx)) {
       return {
-        execute: async (argCtx: Context) => {
+        execute: async (argCtx: Context = ctx) => {
           if (typeof argCtx._route._method === "function") {
             return Promise.resolve(argCtx.getExecutor()[argCtx._route._method.name](argCtx));
           }
         }
       };
+    }
+  }
+
+  async execute(
+    ctx: Context = undefined,
+    host: string = "test.webda.io",
+    method: HttpMethodType = "GET",
+    url: string = "/",
+    body: any = {},
+    headers: object = {}
+  ) {
+    const exec = this.getExecutor(ctx, host, method, url, body, headers);
+    if (!exec) {
+      throw new Error(`${method} ${url} route not found`);
+    }
+    await exec.execute(ctx);
+    let res = ctx.getResponseBody();
+    if (res) {
+      return JSON.parse(res);
     }
   }
 

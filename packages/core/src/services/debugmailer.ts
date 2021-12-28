@@ -1,10 +1,11 @@
 import { ModdaDefinition } from "../core";
+import { MailerService } from "./mailer";
 import { Service } from "./service";
 
 /**
  * Fake Service to help debug mail expedition
  */
-export default class DebugMailer extends Service {
+export default class DebugMailer extends Service implements MailerService {
   sent: any[] = [];
 
   constructor(webda, name, params) {
@@ -18,7 +19,7 @@ export default class DebugMailer extends Service {
    * @param options
    * @param callback
    */
-  send(options, callback = undefined) {
+  async send(options, callback = undefined): Promise<void> {
     this.log("DEBUG", "Send a fake email", options);
     this.sent.push(options);
   }
@@ -28,6 +29,17 @@ export default class DebugMailer extends Service {
    */
   error() {
     throw new Error("FakeError");
+  }
+
+  /**
+   * Check if the email template exists
+   *
+   * @param name
+   * @returns
+   */
+  hasTemplate(name: string): boolean {
+    // Load template
+    return true;
   }
 
   /**

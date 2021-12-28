@@ -166,6 +166,9 @@
 								<a href="_webda_core.MailerParameters.html#constructor" class="tsd-kind-icon">constructor</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="_webda_core.MailerParameters.html#SES" class="tsd-kind-icon">SES</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="_webda_core.MailerParameters.html#emailTemplateOptions" class="tsd-kind-icon">email<wbr>Template<wbr>Options</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
@@ -176,6 +179,9 @@
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="_webda_core.MailerParameters.html#templatesEngine" class="tsd-kind-icon">templates<wbr>Engine</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="_webda_core.MailerParameters.html#transport" class="tsd-kind-icon">transport</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.MailerParameters.html#type" class="tsd-kind-icon">type</a>
@@ -214,10 +220,12 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.MailerParameters.html#SES" class="tsd-kind-icon">SES</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.MailerParameters.html#emailTemplateOptions" class="tsd-kind-icon">email<wbr>Template<wbr>Options</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.MailerParameters.html#sender" class="tsd-kind-icon">sender</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.MailerParameters.html#templates" class="tsd-kind-icon">templates</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.MailerParameters.html#templatesEngine" class="tsd-kind-icon">templates<wbr>Engine</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_core.MailerParameters.html#transport" class="tsd-kind-icon">transport</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.MailerParameters.html#type" class="tsd-kind-icon">type</a></li>
 							</ul>
 						</section>
@@ -250,7 +258,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.MailerParameters.html" class="tsd-signature-type">MailerParameters</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/mailer.ts:39</li>
+									<li>Defined in packages/core/src/services/mailer.ts:99</li>
 								</ul>
 							</aside>
 						</li>
@@ -259,6 +267,19 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="SES" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">SES<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>SES AWS Bean if transport === &quot;ses&quot;</p>
+						</div>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/services/mailer.ts:97</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="emailTemplateOptions" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">email<wbr>Template<wbr>Options<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-tags">
@@ -268,7 +289,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/mailer.ts:37</li>
+							<li>Defined in packages/core/src/services/mailer.ts:89</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -281,7 +302,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/mailer.ts:33</li>
+							<li>Defined in packages/core/src/services/mailer.ts:85</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -298,7 +319,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/mailer.ts:23</li>
+							<li>Defined in packages/core/src/services/mailer.ts:75</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -315,7 +336,20 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/mailer.ts:29</li>
+							<li>Defined in packages/core/src/services/mailer.ts:81</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="transport" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">transport<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Define the type of transport to use</p>
+						</div>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/services/mailer.ts:93</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">

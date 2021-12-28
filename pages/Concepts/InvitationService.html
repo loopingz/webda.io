@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>Configuration Service |
+	<title>Invitation Service |
 	webda.io</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -64,7 +64,7 @@
 				<a href="../Concepts.html">Concepts</a>
 			</li>
 			<li>
-				<a href="ConfigurationService.html">Configuration Service</a>
+				<a href="InvitationService.html">Invitation Service</a>
 			</li>
 		</ul>
 	</div>
@@ -86,22 +86,22 @@
 					<li class=" pp-nav pp-page pp-depth-1 root">
 						<a href="Binary.html" class="tsd-kind-icon">Binary</a>
 					</li>
-				</ul>
-				<ul class="current">
-					<li class="current pp-nav pp-page pp-depth-1 root">
+					<li class=" pp-nav pp-page pp-depth-1 root">
 						<a href="ConfigurationService.html" class="tsd-kind-icon">Configuration <wbr>Service</a>
 					</li>
-				</ul>
-				<ul class="after-current">
 					<li class=" pp-nav pp-page pp-depth-1 root">
 						<a href="Events.html" class="tsd-kind-icon">Events</a>
 					</li>
 					<li class=" pp-nav pp-page pp-depth-1 root">
 						<a href="ExtendingShell.html" class="tsd-kind-icon">Extending webda executable</a>
 					</li>
-					<li class=" pp-nav pp-page pp-depth-1 root">
+				</ul>
+				<ul class="current">
+					<li class="current pp-nav pp-page pp-depth-1 root">
 						<a href="InvitationService.html" class="tsd-kind-icon">Invitation <wbr>Service</a>
 					</li>
+				</ul>
+				<ul class="after-current">
 					<li class=" pp-nav pp-page pp-depth-1 root">
 						<a href="Modda.html" class="tsd-kind-icon">Modda</a>
 					</li>
@@ -185,54 +185,21 @@
 			</nav>
 		</div>
 		<div class="col-content">
-			<h1>Configuration Service</h1>
+			<h1>Invitation Service</h1>
 			<div class="tsd-panel tsd-typography">
-				<p>The Configuration Service allows you to get new configuration dynamically either by watching the configuration store or by checking at regular interval.</p>
-				<p>It will trigger only when the object changes.</p>
-				<p>If inside the object, at path <code>webda.services</code> it will update services configuration dynamically.</p>
-				<pre><code><span style="color: #000000">{</span>
-<span style="color: #000000">    </span><span style="color: #A31515">&quot;mycustom&quot;</span><span style="color: #000000">: </span><span style="color: #A31515">&quot;test&quot;</span><span style="color: #000000">,</span>
-<span style="color: #000000">    ...</span>
-<span style="color: #000000">    </span><span style="color: #A31515">&quot;webda&quot;</span><span style="color: #000000">: {</span>
-<span style="color: #000000">        </span><span style="color: #A31515">&quot;parameters&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> {</span>
-<span style="color: #000000">            </span><span style="color: #A31515">&quot;param2&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> </span><span style="color: #A31515">&quot;test&quot;</span>
-<span style="color: #000000">        },</span>
-<span style="color: #000000">        </span><span style="color: #A31515">&quot;services&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> {</span>
-<span style="color: #000000">            </span><span style="color: #A31515">&quot;MyService&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> {</span>
-<span style="color: #000000">                </span><span style="color: #A31515">&quot;param1&quot;</span><span style="color: #001080">:</span><span style="color: #000000"> </span><span style="color: #A31515">&quot;dynamic&quot;</span>
-<span style="color: #000000">            }</span>
-<span style="color: #000000">        }</span>
-<span style="color: #000000">    }</span>
-<span style="color: #000000">}</span>
-</code></pre>
-				<p>The configuration shared parameters is also available.</p>
-				<p>A service cannot be changed into another type of service for security purpose.
-				Creating dynamic route through the ConfigurationService is not recommended, it will be probably be block in the near future.</p>
-				<p>This is the general process if the ConfigurationProvider cannot trigger</p>
-				<div class="mermaid">sequenceDiagram
-					participant C as ConfigurationService
-					participant Cp as ConfigurationProvider
-					participant W as Webda Core
-					loop
-					C-&gt;&gt;Cp: Get &#39;sourceId&#39; configuration
-					C-&gt;&gt;C: Compare current with previous
-					opt if changes
-					C-&gt;&gt;C: Process all watchers
-					opt if webda.services within configuration
-					C-&gt;&gt;W: Reinit services with new values
-					end
-					end
-					C-&gt;&gt;C: Wait for next interval
-				end</div>
-				<p>This is the general process if the ConfigurationProvider can trigger, it will be on demand</p>
-				<a href="#existing-configuration-provider" id="existing-configuration-provider" style="color: inherit; text-decoration: none;">
-					<h2>Existing Configuration Provider</h2>
-				</a>
-				<ul>
-					<li>Every <a href="../../classes/_webda_core.Store.html">Store</a> as it is designed in the parent class</li>
-					<li>{@link FileConfiguration} to simply use a file as configuration</li>
-					<li>{@link KubernetesConfiguration} to simply use Kubernetes Secrets or ConfigMap</li>
-				</ul>
+				<p>The invitation service implement a workflow to invite users by their idents on an object.</p>
+				<p>The invitation can be pending if the user is not registered or if <code>autoAccept</code> is false.</p>
+				<p>Example:</p>
+				<p>With a Company CoreModel</p>
+				<p>You can invite a user by ident into the company.
+					You will find in <code>attribute</code> the accepted invitations on both Company and User model
+				You will find in <code>pendingAttribute</code> the pending invitations on both Company and User model.</p>
+				<p>If <code>multiple</code> is false, then on the User the <code>attribute</code> is a single instance of <code>Partial&lt;Company&gt;</code> otherwise it will be a map <code>{[key: string}: Partial&lt;Company&gt;}</code>
+					The <code>pendingAttribute</code> is always a <code>{[key: string}: Partial&lt;Company&gt;}</code> as you can be invited to several Company and pick and choose regardless if you can have several company or not.
+					When <code>multiple</code> is false any new accept will lead to replacement of the attribute.
+				You cannot define <code>autoAccept</code> if multiple is false</p>
+				<p>An invitation can be done with either ident or user.</p>
+				<p>Pending invitations contains unaccepted invitation or invitation to a non-registered idents</p>
 			</div>
 			<!--{&quot;options&quot;:&quot;/home/runner/work/webda.io/webda.io&quot;,&quot;tsconfig&quot;:&quot;/home/runner/work/webda.io/webda.io&quot;,&quot;packages&quot;:[&quot;/home/runner/work/webda.io/webda.io&quot;],&quot;entryPoints&quot;:[],&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;/home/runner/work/webda.io/webda.io/packages/*/node_modules&quot;,&quot;/home/runner/work/webda.io/webda.io/packages/*/src/**/*.spec.ts&quot;,&quot;/home/runner/work/webda.io/webda.io/sample-app&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;/home/runner/work/webda.io/webda.io/docs/media&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;/home/runner/work/webda.io/webda.io/.built-docs&quot;,&quot;json&quot;:&quot;&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;/home/runner/work/webda.io/webda.io/readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;sort&quot;:[&quot;kind&quot;,&quot;instance-first&quot;,&quot;alphabetical&quot;],&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;treatWarningsAsErrors&quot;:false,&quot;listInvalidSymbolLinks&quot;:false,&quot;outline&quot;:[],&quot;excludeReferences&quot;:false,&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true,&quot;noJekyll&quot;:true,&quot;githubPagesDomain&quot;:&quot;docs.webda.io&quot;,&quot;enablePageLinks&quot;:true,&quot;enableSearch&quot;:true,&quot;failBuildOnInvalidPageLink&quot;:false,&quot;listInvalidPageLinks&quot;:false,&quot;output&quot;:&quot;pages&quot;,&quot;sources&quot;:[&quot;./docs/pages/&quot;]}}-->
 			<footer class="with-border-bottom">

@@ -524,6 +524,9 @@
 						<a href="../interfaces/_webda_core.IEmailTemplate.html" class="tsd-kind-icon">IEmail<wbr>Template</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="../interfaces/_webda_core.MailerService.html" class="tsd-kind-icon">Mailer<wbr>Service</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
 						<a href="../interfaces/_webda_core.Mapper.html" class="tsd-kind-icon">Mapper</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter root">
@@ -569,6 +572,12 @@
 						<a href="../interfaces/_webda_core.WaitDelayerDefinition.html" class="tsd-kind-icon">Wait<wbr>Delayer<wbr>Definition</a>
 					</li>
 					<li class=" tsd-kind-type-alias tsd-parent-kind-module root">
+						<a href="_webda_core.html#Acl" class="tsd-kind-icon">Acl</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-parent-kind-module tsd-has-type-parameter root">
+						<a href="_webda_core.html#DeepPartial" class="tsd-kind-icon">Deep<wbr>Partial</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-parent-kind-module root">
 						<a href="_webda_core.html#ExposeParameters" class="tsd-kind-icon">Expose<wbr>Parameters</a>
 					</li>
 					<li class=" tsd-kind-type-alias tsd-parent-kind-module root">
@@ -579,6 +588,9 @@
 					</li>
 					<li class=" tsd-kind-type-alias tsd-parent-kind-module root">
 						<a href="_webda_core.html#ModelActions" class="tsd-kind-icon">Model<wbr>Actions</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-parent-kind-module tsd-has-type-parameter root">
+						<a href="_webda_core.html#PartialModel" class="tsd-kind-icon">Partial<wbr>Model</a>
 					</li>
 					<li class=" tsd-kind-type-alias tsd-parent-kind-module root">
 						<a href="_webda_core.html#WaitDelayer" class="tsd-kind-icon">Wait<wbr>Delayer</a>
@@ -768,6 +780,7 @@
 								<li class="tsd-kind-interface tsd-parent-kind-module"><a href="../interfaces/_webda_core.EventWithContext.html" class="tsd-kind-icon">Event<wbr>With<wbr>Context</a></li>
 								<li class="tsd-kind-interface tsd-parent-kind-module"><a href="../interfaces/_webda_core.GitInformation.html" class="tsd-kind-icon">Git<wbr>Information</a></li>
 								<li class="tsd-kind-interface tsd-parent-kind-module"><a href="../interfaces/_webda_core.IEmailTemplate.html" class="tsd-kind-icon">IEmail<wbr>Template</a></li>
+								<li class="tsd-kind-interface tsd-parent-kind-module"><a href="../interfaces/_webda_core.MailerService.html" class="tsd-kind-icon">Mailer<wbr>Service</a></li>
 								<li class="tsd-kind-interface tsd-parent-kind-module"><a href="../interfaces/_webda_core.Mapper.html" class="tsd-kind-icon">Mapper</a></li>
 								<li class="tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter"><a href="../interfaces/_webda_core.MappingService.html" class="tsd-kind-icon">Mapping<wbr>Service</a></li>
 								<li class="tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter"><a href="../interfaces/_webda_core.MessageReceipt.html" class="tsd-kind-icon">Message<wbr>Receipt</a></li>
@@ -788,10 +801,13 @@
 						<section class="tsd-index-section ">
 							<h3>Type aliases</h3>
 							<ul class="tsd-index-list">
+								<li class="tsd-kind-type-alias tsd-parent-kind-module"><a href="_webda_core.html#Acl" class="tsd-kind-icon">Acl</a></li>
+								<li class="tsd-kind-type-alias tsd-parent-kind-module tsd-has-type-parameter"><a href="_webda_core.html#DeepPartial" class="tsd-kind-icon">Deep<wbr>Partial</a></li>
 								<li class="tsd-kind-type-alias tsd-parent-kind-module"><a href="_webda_core.html#ExposeParameters" class="tsd-kind-icon">Expose<wbr>Parameters</a></li>
 								<li class="tsd-kind-type-alias tsd-parent-kind-module"><a href="_webda_core.html#HttpMethodType" class="tsd-kind-icon">Http<wbr>Method<wbr>Type</a></li>
 								<li class="tsd-kind-type-alias tsd-parent-kind-module"><a href="_webda_core.html#MapUpdates" class="tsd-kind-icon">Map<wbr>Updates</a></li>
 								<li class="tsd-kind-type-alias tsd-parent-kind-module"><a href="_webda_core.html#ModelActions" class="tsd-kind-icon">Model<wbr>Actions</a></li>
+								<li class="tsd-kind-type-alias tsd-parent-kind-module tsd-has-type-parameter"><a href="_webda_core.html#PartialModel" class="tsd-kind-icon">Partial<wbr>Model</a></li>
 								<li class="tsd-kind-type-alias tsd-parent-kind-module"><a href="_webda_core.html#WaitDelayer" class="tsd-kind-icon">Wait<wbr>Delayer</a></li>
 								<li class="tsd-kind-type-alias tsd-parent-kind-module"><a href="_webda_core.html#WaitDelayerFactory" class="tsd-kind-icon">Wait<wbr>Delayer<wbr>Factory</a></li>
 							</ul>
@@ -823,6 +839,36 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Type aliases</h2>
 				<section class="tsd-panel tsd-member tsd-kind-type-alias tsd-parent-kind-module">
+					<a name="Acl" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">Acl<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
+					<div class="tsd-type-declaration">
+						<h4>Type declaration</h4>
+						<ul class="tsd-parameters">
+							<li class="tsd-parameter-index-signature">
+								<h5><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">string</span></h5>
+							</li>
+						</ul>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/models/aclmodel.ts:4</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-type-alias tsd-parent-kind-module tsd-has-type-parameter">
+					<a name="DeepPartial" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">Deep<wbr>Partial&lt;T&gt;<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">{ [P in keyof T]?: T[P] extends object ? DeepPartial&lt;T[P]&gt; : T[P]}</span></div>
+					<h4 class="tsd-type-parameters-title">Type parameters</h4>
+					<ul class="tsd-type-parameters">
+						<li>
+							<h4>T</h4>
+						</li>
+					</ul>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/services/service.ts:117</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-type-alias tsd-parent-kind-module">
 					<a name="ExposeParameters" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">Expose<wbr>Parameters<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<div class="tsd-type-declaration">
@@ -928,6 +974,20 @@
 					<aside class="tsd-sources">
 						<ul>
 							<li>Defined in packages/core/src/models/coremodel.ts:11</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-type-alias tsd-parent-kind-module tsd-has-type-parameter">
+					<a name="PartialModel" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">Partial<wbr>Model&lt;T&gt;<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">{ [P in keyof T]: T[P] extends Function ? T[P] : T[P] extends object ? null | PartialModel&lt;T[P]&gt; : T[P] | null}</span></div>
+					<h4 class="tsd-type-parameters-title">Type parameters</h4>
+					<ul class="tsd-type-parameters">
+						<li>
+							<h4>T</h4>
+						</li>
+					</ul>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/services/service.ts:121</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-type-alias tsd-parent-kind-module">

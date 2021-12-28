@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>SchemaResolver |
+	<title>MailerService |
 	webda.io</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -64,7 +64,7 @@
 				<a href="../modules/_webda_core.html">@webda/core</a>
 			</li>
 			<li>
-				<a href="_webda_core.SchemaResolver.html">SchemaResolver</a>
+				<a href="_webda_core.MailerService.html">MailerService</a>
 			</li>
 		</ul>
 	</div>
@@ -147,7 +147,7 @@
 				<div>
 					<ul class="tsd-hierarchy">
 						<li>
-							<span class="target">SchemaResolver</span>
+							<span class="target">MailerService</span>
 						</li>
 					</ul>
 				</div>
@@ -155,13 +155,13 @@
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-interface tsd-parent-kind-module root">
-						<a href="_webda_core.SchemaResolver.html" class="tsd-kind-icon">Schema<wbr>Resolver</a>
+						<a href="_webda_core.MailerService.html" class="tsd-kind-icon">Mailer<wbr>Service</a>
 						<ul>
 							<li class=" tsd-kind-method tsd-parent-kind-interface">
-								<a href="_webda_core.SchemaResolver.html#fromPrototype" class="tsd-kind-icon">from<wbr>Prototype</a>
+								<a href="_webda_core.MailerService.html#hasTemplate" class="tsd-kind-icon">has<wbr>Template</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-interface">
-								<a href="_webda_core.SchemaResolver.html#fromServiceType" class="tsd-kind-icon">from<wbr>Service<wbr>Type</a>
+								<a href="_webda_core.MailerService.html#send" class="tsd-kind-icon">send</a>
 							</li>
 						</ul>
 					</li>
@@ -171,24 +171,25 @@
 			</nav>
 		</div>
 		<div class="col-content">
-			<h1>Interface SchemaResolver</h1>
+			<h1>Interface MailerService</h1>
 			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
 					<div class="lead">
-						<p>Retrieve a JSONSchema from a webda object</p>
+						<p>Represent a mailer service</p>
 					</div>
 			</div></section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">SchemaResolver</span>
+						<span class="target">MailerService</span>
 					</li>
 				</ul>
 			</section>
 			<section class="tsd-panel">
 				<h3>Implemented by</h3>
 				<ul class="tsd-hierarchy">
-					<li><a href="../classes/_webda_core.DefaultSchemaResolver.html" class="tsd-signature-type">DefaultSchemaResolver</a></li>
+					<li><a href="../classes/_webda_core.DebugMailer.html" class="tsd-signature-type">DebugMailer</a></li>
+					<li><a href="../classes/_webda_core.Mailer.html" class="tsd-signature-type">Mailer</a></li>
 				</ul>
 			</section>
 			<section class="tsd-panel-group tsd-index-group">
@@ -197,8 +198,8 @@
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="_webda_core.SchemaResolver.html#fromPrototype" class="tsd-kind-icon">from<wbr>Prototype</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="_webda_core.SchemaResolver.html#fromServiceType" class="tsd-kind-icon">from<wbr>Service<wbr>Type</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="_webda_core.MailerService.html#hasTemplate" class="tsd-kind-icon">has<wbr>Template</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="_webda_core.MailerService.html#send" class="tsd-kind-icon">send</a></li>
 							</ul>
 						</section>
 					</div>
@@ -207,9 +208,9 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface">
-					<a name="fromPrototype" class="tsd-anchor"></a>
+					<a name="hasTemplate" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
-						<li class="tsd-signature tsd-kind-icon">from<wbr>Prototype<span class="tsd-signature-symbol">(</span>type<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">JSONSchema6</span></li>
+						<li class="tsd-signature tsd-kind-icon">has<wbr>Template<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -218,36 +219,63 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>type: <span class="tsd-signature-type">any</span></h5>
+									<h5>name: <span class="tsd-signature-type">string</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">JSONSchema6</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/application.ts:118</li>
+									<li>Defined in packages/core/src/services/mailer.ts:21</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface">
-					<a name="fromServiceType" class="tsd-anchor"></a>
+					<a name="send" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
-						<li class="tsd-signature tsd-kind-icon">from<wbr>Service<wbr>Type<span class="tsd-signature-symbol">(</span>type<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">JSONSchema6</span></li>
+						<li class="tsd-signature tsd-kind-icon">send<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">MailerSendOptions</span>, callback<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>params</dt>
+									<dd><p>options Options to pass to the sendMail option of the nodemailer module</p>
+									</dd><dt>params</dt>
+									<dd><p>callback to pass to the sendMail</p>
+								</dd></dl>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>type: <span class="tsd-signature-type">string</span></h5>
+									<h5>options: <span class="tsd-signature-type">MailerSendOptions</span></h5>
+								</li>
+								<li>
+									<h5>callback: <span class="tsd-signature-type">function</span></h5>
+									<ul class="tsd-parameters">
+										<li class="tsd-parameter-siganture">
+											<ul class="tsd-signatures tsd-kind-type-literal">
+												<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+											</ul>
+											<ul class="tsd-descriptions">
+												<li class="tsd-description">
+													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+													<aside class="tsd-sources">
+														<ul>
+															<li>Defined in packages/core/src/services/mailer.ts:27</li>
+														</ul>
+													</aside>
+												</li>
+											</ul>
+										</li>
+									</ul>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">JSONSchema6</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/application.ts:119</li>
+									<li>Defined in packages/core/src/services/mailer.ts:27</li>
 								</ul>
 							</aside>
 						</li>

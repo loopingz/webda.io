@@ -225,6 +225,9 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.Mailer.html#getWebda" class="tsd-kind-icon">get<wbr>Webda</a>
 							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_webda_core.Mailer.html#hasTemplate" class="tsd-kind-icon">has<wbr>Template</a>
+							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.Mailer.html#init" class="tsd-kind-icon">init</a>
 							</li>
@@ -298,6 +301,12 @@
 					</li>
 				</ul>
 			</section>
+			<section class="tsd-panel">
+				<h3>Implements</h3>
+				<ul class="tsd-hierarchy">
+					<li><a href="../interfaces/_webda_core.MailerService.html" class="tsd-signature-type">MailerService</a></li>
+				</ul>
+			</section>
 			<section class="tsd-panel-group tsd-index-group">
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
@@ -335,6 +344,7 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Mailer.html#getParameters" class="tsd-kind-icon">get<wbr>Parameters</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="_webda_core.Mailer.html#getService" class="tsd-kind-icon">get<wbr>Service</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Mailer.html#getWebda" class="tsd-kind-icon">get<wbr>Webda</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.Mailer.html#hasTemplate" class="tsd-kind-icon">has<wbr>Template</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Mailer.html#init" class="tsd-kind-icon">init</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Mailer.html#initRoutes" class="tsd-kind-icon">init<wbr>Routes</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.Mailer.html#log" class="tsd-kind-icon">log</a></li>
@@ -356,7 +366,7 @@
 				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
 					<a name="constructor" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Mailer&lt;T&gt;<span class="tsd-signature-symbol">(</span>webda<span class="tsd-signature-symbol">: </span><a href="_webda_core.Core.html" class="tsd-signature-type">Core</a>, name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, params<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_core.Mailer.html" class="tsd-signature-type">Mailer</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Mailer&lt;T&gt;<span class="tsd-signature-symbol">(</span>webda<span class="tsd-signature-symbol">: </span><a href="_webda_core.Core.html" class="tsd-signature-type">Core</a>, name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, params<span class="tsd-signature-symbol">?: </span><a href="../modules/_webda_core.html#DeepPartial" class="tsd-signature-type">DeepPartial</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_core.Mailer.html" class="tsd-signature-type">Mailer</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -384,7 +394,7 @@
 									</div>
 								</li>
 								<li>
-									<h5>params: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol"> = {}</span></h5>
+									<h5>params: <a href="../modules/_webda_core.html#DeepPartial" class="tsd-signature-type">DeepPartial</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> = {}</span></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
 										<p>The parameters block define in the configuration file</p>
 									</div>
@@ -393,7 +403,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.Mailer.html" class="tsd-signature-type">Mailer</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:157</li>
+									<li>Defined in packages/core/src/services/service.ts:165</li>
 								</ul>
 							</aside>
 						</li>
@@ -406,7 +416,7 @@
 					<div class="tsd-signature tsd-kind-icon">_create<wbr>Exception<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/service.ts:142</li>
+							<li>Defined in packages/core/src/services/service.ts:150</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -414,7 +424,7 @@
 					<div class="tsd-signature tsd-kind-icon">_init<wbr>Exception<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol"> = ...</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/service.ts:144</li>
+							<li>Defined in packages/core/src/services/service.ts:152</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -422,7 +432,7 @@
 					<div class="tsd-signature tsd-kind-icon">_init<wbr>Time<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/service.ts:143</li>
+							<li>Defined in packages/core/src/services/service.ts:151</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -435,7 +445,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/service.ts:135</li>
+							<li>Defined in packages/core/src/services/service.ts:143</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -443,7 +453,7 @@
 					<div class="tsd-signature tsd-kind-icon">_templates<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_webda_core.TemplatesMap.html" class="tsd-signature-type">TemplatesMap</a><span class="tsd-signature-symbol"> = {}</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/mailer.ts:63</li>
+							<li>Defined in packages/core/src/services/mailer.ts:126</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -451,7 +461,7 @@
 					<div class="tsd-signature tsd-kind-icon">_transporter<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/mailer.ts:62</li>
+							<li>Defined in packages/core/src/services/mailer.ts:125</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -464,7 +474,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/service.ts:131</li>
+							<li>Defined in packages/core/src/services/service.ts:139</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -477,7 +487,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/service.ts:148</li>
+							<li>Defined in packages/core/src/services/service.ts:156</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -492,7 +502,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/service.ts:141</li>
+							<li>Defined in packages/core/src/services/service.ts:149</li>
 						</ul>
 					</aside>
 			</section>    </section>
@@ -501,7 +511,7 @@
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="__clean" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">__clean<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">__clean<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -516,10 +526,10 @@
 								<dl class="tsd-comment-tags"><dt>abstract</dt>
 								<dd></dd></dl>
 							</div>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:369</li>
+									<li>Defined in packages/core/src/services/service.ts:377</li>
 								</ul>
 							</aside>
 						</li>
@@ -527,7 +537,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="_getTemplate" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">_get<wbr>Template<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.IEmailTemplate.html" class="tsd-signature-type">IEmailTemplate</a></li>
+						<li class="tsd-signature tsd-kind-icon">_get<wbr>Template<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/_webda_core.IEmailTemplate.html" class="tsd-signature-type">IEmailTemplate</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -541,13 +551,13 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>name: <span class="tsd-signature-type">any</span></h5>
+									<h5>name: <span class="tsd-signature-type">string</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <a href="../interfaces/_webda_core.IEmailTemplate.html" class="tsd-signature-type">IEmailTemplate</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/mailer.ts:97</li>
+									<li>Defined in packages/core/src/services/mailer.ts:160</li>
 								</ul>
 							</aside>
 						</li>
@@ -594,7 +604,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:222</li>
+									<li>Defined in packages/core/src/services/service.ts:230</li>
 								</ul>
 							</aside>
 						</li>
@@ -617,7 +627,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/mailer.ts:78</li>
+									<li>Defined in packages/core/src/services/mailer.ts:141</li>
 								</ul>
 							</aside>
 						</li>
@@ -648,7 +658,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:286</li>
+									<li>Defined in packages/core/src/services/service.ts:294</li>
 								</ul>
 							</aside>
 						</li>
@@ -683,7 +693,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:322</li>
+									<li>Defined in packages/core/src/services/service.ts:330</li>
 								</ul>
 							</aside>
 						</li>
@@ -715,7 +725,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:296</li>
+									<li>Defined in packages/core/src/services/service.ts:304</li>
 								</ul>
 							</aside>
 						</li>
@@ -738,7 +748,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:360</li>
+									<li>Defined in packages/core/src/services/service.ts:368</li>
 								</ul>
 							</aside>
 						</li>
@@ -761,7 +771,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">T</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:182</li>
+									<li>Defined in packages/core/src/services/service.ts:190</li>
 								</ul>
 							</aside>
 						</li>
@@ -799,7 +809,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">K</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:345</li>
+									<li>Defined in packages/core/src/services/service.ts:353</li>
 								</ul>
 							</aside>
 						</li>
@@ -822,7 +832,36 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.Core.html" class="tsd-signature-type">Core</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:189</li>
+									<li>Defined in packages/core/src/services/service.ts:197</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="hasTemplate" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">has<wbr>Template<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/_webda_core.MailerService.html">MailerService</a>.<a href="../interfaces/_webda_core.MailerService.html#hasTemplate">hasTemplate</a></p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Check if the email template exists</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>name: <span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/services/mailer.ts:185</li>
 								</ul>
 							</aside>
 						</li>
@@ -848,7 +887,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:268</li>
+									<li>Defined in packages/core/src/services/service.ts:276</li>
 								</ul>
 							</aside>
 						</li>
@@ -871,7 +910,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:247</li>
+									<li>Defined in packages/core/src/services/service.ts:255</li>
 								</ul>
 							</aside>
 						</li>
@@ -903,7 +942,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:389</li>
+									<li>Defined in packages/core/src/services/service.ts:397</li>
 								</ul>
 							</aside>
 						</li>
@@ -941,7 +980,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:337</li>
+									<li>Defined in packages/core/src/services/service.ts:345</li>
 								</ul>
 							</aside>
 						</li>
@@ -968,7 +1007,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:276</li>
+									<li>Defined in packages/core/src/services/service.ts:284</li>
 								</ul>
 							</aside>
 						</li>
@@ -992,7 +1031,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:204</li>
+									<li>Defined in packages/core/src/services/service.ts:212</li>
 								</ul>
 							</aside>
 						</li>
@@ -1000,11 +1039,12 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="send" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">send<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, callback<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">send<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">MailerSendOptions</span>, callback<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
+								<p>Implementation of <a href="../interfaces/_webda_core.MailerService.html">MailerService</a>.<a href="../interfaces/_webda_core.MailerService.html#send">send</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-tags">
 								<dl class="tsd-comment-tags"><dt>params</dt>
@@ -1016,7 +1056,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>options: <span class="tsd-signature-type">any</span></h5>
+									<h5>options: <span class="tsd-signature-type">MailerSendOptions</span></h5>
 								</li>
 								<li>
 									<h5>callback: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol"> = ...</span></h5>
@@ -1025,7 +1065,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/mailer.ts:123</li>
+									<li>Defined in packages/core/src/services/mailer.ts:195</li>
 								</ul>
 							</aside>
 						</li>
@@ -1058,7 +1098,7 @@
 							<p>The export of the strip object ( removed all attribute with _ )</p>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:258</li>
+									<li>Defined in packages/core/src/services/service.ts:266</li>
 								</ul>
 							</aside>
 						</li>
@@ -1081,7 +1121,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:196</li>
+									<li>Defined in packages/core/src/services/service.ts:204</li>
 								</ul>
 							</aside>
 						</li>
@@ -1104,7 +1144,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="../interfaces/_webda_core.ModdaDefinition.html" class="tsd-signature-type">ModdaDefinition</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/mailer.ts:158</li>
+									<li>Defined in packages/core/src/services/mailer.ts:230</li>
 								</ul>
 							</aside>
 						</li>
@@ -1130,7 +1170,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">JSONSchema6</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:400</li>
+									<li>Defined in packages/core/src/services/service.ts:408</li>
 								</ul>
 							</aside>
 						</li>

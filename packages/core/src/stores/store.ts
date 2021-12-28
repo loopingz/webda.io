@@ -4,7 +4,6 @@ import { ConfigurationProvider } from "../index";
 import { CoreModel, CoreModelDefinition, ModelAction } from "../models/coremodel";
 import { Service, ServiceParameters } from "../services/service";
 import { Context } from "../utils/context";
-import { MapUpdates } from "./mapper";
 
 export class StoreNotFoundError extends WebdaError {
   constructor(uuid: string, storeName: string) {

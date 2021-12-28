@@ -142,7 +142,7 @@ class HttpContext {
    * @param uri to return absolute url from
    */
   getAbsoluteUrl(uri: string = this.uri): string {
-    if (uri.match(/^[\d\w]{1,10}:\/\//)) {
+    if (uri.match(/^\w{1,10}:\/\//)) {
       return uri;
     }
     if (!uri.startsWith("/")) {

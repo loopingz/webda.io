@@ -1,13 +1,4 @@
-import {
-  Mailer,
-  Service,
-  Store,
-  Context,
-  EventStoreActioned,
-  EventAuthenticationRegister,
-  ExposeParameters,
-  Ident
-} from "../index";
+import { Mailer, Service, Store, Context, EventAuthenticationRegister, ExposeParameters, Ident } from "../index";
 import { AclModel } from "../models/aclmodel";
 import { CoreModel } from "../models/coremodel";
 import { User } from "../models/user";
@@ -251,7 +242,6 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     }
     model[this.parameters.attribute] ??= {};
     model[this.parameters.pendingAttribute] ??= {};
-    //const invitations: Invitation[] = model[this.getParameters().pendingAttribute];
     if (ctx.getHttpContext().getMethod() === "DELETE") {
       await model.canAct(ctx, "uninvite");
       return this.uninvite(ctx, model);

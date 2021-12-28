@@ -167,7 +167,7 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
   }
 
   _getQueueInfosFromUrl() {
-    let found = this.parameters.queue.match(/.*sqs\.(.*)\.amazonaws.com\/([0-9]+)\/(.*)/i);
+    let found = this.parameters.queue.match(/.*sqs\.(.*)\.amazonaws.com\/(\d+)\/(.*)/i);
     if (!found) {
       // Check for LocalStack
       found = this.parameters.queue.match(/http:\/\/(localhost):\d+\/(.*)\/(.*)/i);

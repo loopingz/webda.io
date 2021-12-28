@@ -6,7 +6,7 @@ import * as path from "path";
 import { Readable } from "stream";
 import { WebdaError } from "..";
 import { CoreModel } from "../models/coremodel";
-import { EventStoreDelete, EventStoreDeleted, MappingService, Store } from "../stores/store";
+import { EventStoreDeleted, MappingService, Store } from "../stores/store";
 import { Context } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
@@ -333,13 +333,13 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
       return;
     }
     this._lowercaseMaps = {};
-    for (var prop in map) {
+    Object.keys(map).forEach(prop => {
       this._lowercaseMaps[prop.toLowerCase()] = prop;
-      var reverseStore = this._webda.getService(prop);
+      let reverseStore = this._webda.getService(prop);
       if (reverseStore === undefined || !(reverseStore instanceof Store)) {
         this._webda.log("WARN", "Can't setup mapping as store ", prop, " doesn't exist");
         map[prop]["-onerror"] = "NoStore";
-        continue;
+        return;
       }
       for (let i in map[prop]) {
         reverseStore.addReverseMap(map[prop][i], this);
@@ -352,7 +352,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
         }
         await Promise.all(infos.map(info => this.cascadeDelete(info, evt.object.getUuid())));
       });
-    }
+    });
   }
 
   /**

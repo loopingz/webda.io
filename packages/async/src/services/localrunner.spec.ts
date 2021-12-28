@@ -31,7 +31,7 @@ class LocalRunnerTest extends WebdaTest {
   @test
   cov() {
     new LocalRunner(this.webda, "runner", {});
-    let runner = new LocalRunner(this.webda, "runner", { actions: ["plop"], options: { plop: "test" } });
+    let runner = new LocalRunner(this.webda, "runner", { actions: ["plop"], options: { env: { OK: "test" } } });
     assert.strictEqual(runner.handleType("plop"), true);
     assert.strictEqual(runner.handleType("plop2"), false);
     new LocalRunner(this.webda, "runner", { options: { env: { OK: "test" } } });

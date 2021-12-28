@@ -7,7 +7,7 @@ import * as assert from "assert";
 @suite
 export class ProfilerServiceTest extends WebdaTest {
   @test
-  testMethodProfiler() {
+  async testMethodProfiler() {
     let service = this.getService<MemoryLoggerService>("MemoryLogger");
     let mail = this.getService<DebugMailer>("DebugMailer");
     let profiler = this.getService<Profiler>("Profiler");
@@ -19,10 +19,10 @@ export class ProfilerServiceTest extends WebdaTest {
     assert.notStrictEqual(service, undefined);
     // @ts-ignore
     service.workoutLogger.messages = [];
-    mail.send({});
+    await mail.send({});
     // @ts-ignore
     let messages = service.workoutLogger.messages.map(m => m.log);
-
+    console.log(messages);
     assert.strictEqual(messages.length, 3);
     assert.deepStrictEqual(
       messages.map(m => m.level),

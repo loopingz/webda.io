@@ -101,6 +101,11 @@ class FileStoreTest extends StoreTest {
       UpdateConditionFailError
     );
     identStore.checkCollectionUpdateCondition(ident, "plops", undefined, 0, null);
+
+    assert.rejects(
+      () => identStore.simulateUpsertItemToCollection(undefined, "__proto__", undefined, new Date()),
+      /Cannot update __proto__: js\/prototype-polluting-assignment/
+    );
   }
 
   @test

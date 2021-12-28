@@ -824,6 +824,9 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     itemWriteCondition?: any,
     itemWriteConditionField?: string
   ) {
+    if (prop === "__proto__") {
+      throw new Error("Cannot update __proto__: js/prototype-polluting-assignment");
+    }
     this.checkCollectionUpdateCondition(model, prop, itemWriteConditionField, itemWriteCondition, index);
     if (index === undefined) {
       if (model[prop] === undefined) {

@@ -1,0 +1,63 @@
+{
+  "version": 2,
+  "parameters": {
+    "sessionSecret": "Lp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5EN"
+  },
+  "module": {},
+  "services": {
+    "Authentication": {
+      "successRedirect": "https://webda.io/user.html",
+      "registerRedirect": "https://webda.io/register.html",
+      "failureRedirect": "/login-error",
+      "email": {
+        "from": "",
+        "subject": "",
+        "html": "",
+        "text": "",
+        "mailer": "DebugMailer",
+        "postValidation": false
+      }
+    },
+    "DebugMailer": {
+      "type": "Webda/DebugMailer"
+    },
+    "IdentsMapper": {
+      "type": "Webda/Mapper",
+      "source": "Idents",
+      "targetAttribute": "_idents",
+      "target": "Users",
+      "attribute": "_user",
+      "fields": "type,_lastUpdate,counter",
+      "cascade": true
+    },
+    "Idents": {
+      "asyncDelete": true,
+      "expose": {
+        "restrict": {
+          "create": true,
+          "update": true,
+          "get": true
+        }
+      },
+      "model": "Webda/Ident",
+      "type": "MemoryStore",
+      "validator": "IdentValidator"
+    },
+    "Users": {
+      "expose": {
+        "url": "/users"
+      },
+      "type": "MemoryStore",
+      "model": "Webda/User"
+    },
+    "Companies": {
+      "type": "MemoryStore",
+      "model": "Webda/AclModel",
+      "expose": true
+    },
+    "Invitations": {
+      "type": "MemoryStore",
+      "model": "Webda/CoreModel"
+    }
+  }
+}

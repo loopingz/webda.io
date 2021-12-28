@@ -94,6 +94,7 @@ export class InvitationParameters extends ServiceParameters {
     if (typeof this.mapFields === "string") {
       this.mapFields = (<string>this.mapFields).split(",");
     }
+    this.mapFields ??= [];
     this.multiple ??= true;
     if (!this.attribute.startsWith("_")) {
       throw new Error(`Attribute '${this.attribute}' needs to start with a _ to be only modified by server`);
@@ -150,6 +151,11 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     this.addRoute(`${url}/{uuid}/invitations`, ["GET", "POST", "PUT", "DELETE"], this.invite);
   }
 
+  /**
+   * Accept or refuse for an invitation
+   * @param ctx
+   * @param model
+   */
   async acceptInvitation(ctx: Context, model: CoreModel) {
     // Need to specify if you accept or not
     if (typeof ctx.getRequestBody().accept !== "boolean") {
@@ -173,6 +179,11 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     await this.updateModel(model);
   }
 
+  /**
+   * Update Model with pending and attribute
+   *
+   * @param model
+   */
   protected async updateModel(model) {
     await model.update({
       [this.parameters.attribute]: model[this.parameters.attribute],
@@ -180,6 +191,11 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     });
   }
 
+  /**
+   * Uninvite from previous invitations
+   * @param ctx
+   * @param model
+   */
   async uninvite(ctx: Context, model: CoreModel) {
     const body: Invitation = ctx.getRequestBody();
     body.users ??= [];
@@ -220,7 +236,14 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     await this.updateModel(model);
   }
 
+  /**
+   * Handle invitations all methods
+   *
+   * @param ctx
+   * @returns
+   */
   async invite(ctx: Context) {
+    let inviter = await ctx.getCurrentUser();
     let model = await this.modelStore.get(ctx.getParameters().uuid);
     if (!model) {
       throw 404;
@@ -247,6 +270,8 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     );
 
     let promises = [];
+    const metadata = {};
+    this.parameters.mapFields.forEach(f => (metadata[f] = model[f]));
 
     for (const invitation of invitations) {
       if (invitation.ident) {
@@ -256,23 +281,46 @@ export default class InvitationService<T extends InvitationParameters = Invitati
           // Add to the user
           model[this.parameters.pendingAttribute][`user_${invitation.ident.getUser()}`] = body.metadata;
         }
+        promises.push(
+          (async () => {
+            const user = await this.authenticationService.getUserStore().get(invitation.ident.getUser());
+            if ((user[this.parameters.mapAttribute] || []).filter(p => p.model === model.getUuid()).length) {
+              return;
+            }
+            await this.authenticationService
+              .getUserStore()
+              .upsertItemToCollection(user.getUuid(), this.parameters.mapAttribute, {
+                model: model.getUuid(),
+                metadata,
+                inviter: {
+                  uuid: inviter.getUuid(),
+                  name: inviter.getDisplayName()
+                },
+                pending: !this.parameters.autoAccept
+              });
+          })()
+        );
         continue;
       }
       let invitUuid = `${invitation.invitation}_${this.getName()}`;
       model[this.parameters.pendingAttribute] ??= {};
       model[this.parameters.pendingAttribute][`ident_${invitation.invitation}`] = body.metadata;
+      const invitInfo = {
+        inviter: {
+          uuid: inviter.getUuid(),
+          name: inviter.getDisplayName()
+        },
+        metadata: body.metadata
+      };
       if (await this.invitationStore.exists(invitUuid)) {
         promises.push(
-          this.invitationStore.patch({
-            uuid: invitUuid,
-            [this.getInvitationAttribute(model.getUuid())]: body.metadata
-          })
+          this.invitationStore.setAttribute(invitUuid, this.getInvitationAttribute(model.getUuid()), invitInfo)
         );
       } else {
         promises.push(
           this.invitationStore.save({
             uuid: invitUuid,
-            [this.getInvitationAttribute(model.getUuid())]: body.metadata
+            [this.getInvitationAttribute(model.getUuid())]: invitInfo
           })
         );
       }
@@ -290,6 +338,20 @@ export default class InvitationService<T extends InvitationParameters = Invitati
         } else if (!model[this.parameters.attribute][u]) {
           model[this.parameters.pendingAttribute][`user_${u}`] = body.metadata;
         }
+        if ((user[this.parameters.mapAttribute] || []).filter(p => p.model === model.getUuid()).length) {
+          return;
+        }
+        await this.authenticationService
+          .getUserStore()
+          .upsertItemToCollection(user.getUuid(), this.parameters.mapAttribute, {
+            model: model.getUuid(),
+            metadata,
+            inviter: {
+              uuid: inviter.getUuid(),
+              name: inviter.getDisplayName()
+            },
+            pending: !this.parameters.autoAccept
+          });
       })
     );
 
@@ -321,34 +383,44 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     }
     this.log("DEBUG", `Resolving invitation for ident ${evt.identId}`);
     // Load all models invited too
-    const models = await Promise.all(
+    const infos = await Promise.all(
       Object.keys(invitations)
         .filter(k => k.startsWith("invit_"))
-        .map(k => this.modelStore.get(k.substr(6)))
+        .map(async k => ({
+          ...invitations[k],
+          model: await this.modelStore.get(k.substr(6))
+        }))
     );
 
     // autoAccept is on so move to __acls
     const promises = [];
 
-    if (!this.parameters.autoAccept) {
-      // If autoAccept is false, just copy the pending invitation in the user
-      evt.user[this.parameters.pendingAttribute] ??= {};
-      evt.user[this.parameters.pendingAttribute] = models
-        .filter(m => m !== undefined)
-        .map(m => ({
-          uuid: m.getUuid()
-        }));
-    } else {
-      for (const model of models) {
-        if (!model) {
+    // If autoAccept is false, just copy the pending invitation in the user
+    evt.user[this.parameters.mapAttribute] ??= [];
+    evt.user[this.parameters.mapAttribute].push(
+      ...infos
+        .filter(m => m.model !== undefined)
+        .map(m => {
+          const metadata = {};
+          this.parameters.mapFields.forEach(f => (metadata[f] = m.model[f]));
+          return {
+            model: m.model.getUuid(),
+            metadata,
+            inviter: m.inviter,
+            pending: !this.parameters.autoAccept
+          };
+        })
+    );
+    if (this.parameters.autoAccept) {
+      for (const info of infos) {
+        if (!info.model) {
           continue;
         }
         // Set the metadata
-        model[this.parameters.attribute][evt.user.getUuid()] =
-          invitations[this.getInvitationAttribute(model.getUuid())];
+        info.model[this.parameters.attribute][evt.user.getUuid()] = info.metadata;
         // Remove pending
-        delete model[this.parameters.pendingAttribute][`ident_${evt.identId}`];
-        promises.push(this.updateModel(model));
+        delete info.model[this.parameters.pendingAttribute][`ident_${evt.identId}`];
+        promises.push(this.updateModel(info.model));
       }
     }
 

@@ -529,6 +529,15 @@ class AuthenticationTest extends WebdaTest {
   }
 
   @test
+  async multipleCreate() {
+    await this.authentication.createUserWithIdent("email", "test@test.com");
+    await assert.rejects(
+      () => this.authentication.createUserWithIdent("email", "test@test.com"),
+      /Ident is already known/
+    );
+  }
+
+  @test
   async redirectEmailRegister() {
     let token = this.authentication.generateEmailValidationToken(undefined, "test@webda.io");
     let ctx = await this.newContext();

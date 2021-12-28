@@ -13,6 +13,10 @@ class User extends OwnerModel {
    */
   private __password?: string;
   /**
+   * Display name for this user
+   */
+  protected displayName: string;
+  /**
    * Last time the password was recovered
    */
   private _lastPasswordRecovery?: number = 0;
@@ -35,6 +39,10 @@ class User extends OwnerModel {
 
   getRoles(): string[] {
     return this._roles;
+  }
+
+  getDisplayName(): string {
+    return this.displayName;
   }
 
   getIdents(): PartialModel<Ident>[] {

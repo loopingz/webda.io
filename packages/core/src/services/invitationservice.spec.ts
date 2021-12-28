@@ -9,6 +9,7 @@ import { Mailer } from "./mailer";
 import * as sinon from "sinon";
 import { Context } from "../utils/context";
 import { CoreModel } from "../models/coremodel";
+import { MemoryStore } from "../stores/memory";
 
 class MyCompany extends AclModel {
   async canAct(ctx: Context, action: string) {
@@ -43,7 +44,8 @@ class InvitationTest extends WebdaTest {
       attribute: "__acls",
       mapAttribute: "_companies",
       pendingAttribute: "__invitations",
-      mailerService: "DebugMailer"
+      mailerService: "DebugMailer",
+      mapFields: ["name"]
     });
     this.webda.getServices()["invit"] = this.service;
     this.store = this.webda.getService<Store<AclModel>>("Companies");
@@ -112,7 +114,7 @@ class InvitationTest extends WebdaTest {
     this.service.getParameters().autoAccept = true;
     // New model as owner
     let ctx = await this.newContext();
-    let user = await this.authentication.getUserStore().save({});
+    let user = await this.authentication.getUserStore().save({ displayName: "Webda.io Test" });
     ctx.getSession().userId = user.getUuid();
     let res = await this.execute(ctx, "test.webda.io", "POST", "/companies", { name: "MyTestCompany" });
     const company = await this.store.get(res.uuid);
@@ -144,17 +146,32 @@ class InvitationTest extends WebdaTest {
     assert.deepStrictEqual(
       (await this.invitations.getAll()).map(i => ({
         uuid: i.getUuid(),
-        metadata: i[this.service.getInvitationAttribute(company.getUuid())]
+        ...i[this.service.getInvitationAttribute(company.getUuid())]
       })),
       [
-        { uuid: "test3@webda.io_email_invit", metadata: "read" },
-        { uuid: "test4@webda.io_email_invit", metadata: "read" }
+        {
+          uuid: "test3@webda.io_email_invit",
+          metadata: "read",
+          inviter: {
+            uuid: user.getUuid(),
+            name: "Webda.io Test"
+          }
+        },
+        {
+          uuid: "test4@webda.io_email_invit",
+          metadata: "read",
+          inviter: {
+            uuid: user.getUuid(),
+            name: "Webda.io Test"
+          }
+        }
       ]
     );
 
     // Reinviting should be handled and metadata overwritten
     await this.execute(ctx, "test.webda.io", "POST", `/companies/${company.getUuid()}/invitations`, {
-      idents: ["test1@webda.io_email", "test2@webda.io_email", "test3@webda.io_email", "test4@webda.io_email"],
+      idents: ["test2@webda.io_email", "test3@webda.io_email", "test4@webda.io_email"],
+      users: [ident1.getUser()],
       metadata: "read,write"
     });
 
@@ -164,6 +181,20 @@ class InvitationTest extends WebdaTest {
       [ident2.getUser()]: "read,write",
       [user.getUuid()]: "all"
     });
+    let userCheck = await this.authentication.getUserStore().get(ident1.getUser());
+    assert.deepStrictEqual(userCheck["_companies"], [
+      {
+        inviter: {
+          name: "Webda.io Test",
+          uuid: user.getUuid()
+        },
+        metadata: {
+          name: "MyTestCompany"
+        },
+        model: company.getUuid(),
+        pending: false
+      }
+    ]);
     // @ts-ignore
     assert.deepStrictEqual(company.__invitations, {
       "ident_test3@webda.io_email": "read,write",
@@ -172,11 +203,25 @@ class InvitationTest extends WebdaTest {
     assert.deepStrictEqual(
       (await this.invitations.getAll()).map(i => ({
         uuid: i.getUuid(),
-        metadata: i[this.service.getInvitationAttribute(company.getUuid())]
+        ...i[this.service.getInvitationAttribute(company.getUuid())]
       })),
       [
-        { uuid: "test3@webda.io_email_invit", metadata: "read,write" },
-        { uuid: "test4@webda.io_email_invit", metadata: "read,write" }
+        {
+          uuid: "test3@webda.io_email_invit",
+          metadata: "read,write",
+          inviter: {
+            uuid: user.getUuid(),
+            name: "Webda.io Test"
+          }
+        },
+        {
+          uuid: "test4@webda.io_email_invit",
+          metadata: "read,write",
+          inviter: {
+            uuid: user.getUuid(),
+            name: "Webda.io Test"
+          }
+        }
       ]
     );
     // Remove 1 unregistered and one registered from the ACL
@@ -196,11 +241,18 @@ class InvitationTest extends WebdaTest {
     assert.deepStrictEqual(
       (await this.invitations.getAll()).map(i => ({
         uuid: i.getUuid(),
-        metadata: i[this.service.getInvitationAttribute(company.getUuid())]
+        ...i[this.service.getInvitationAttribute(company.getUuid())]
       })),
       [
-        { uuid: "test3@webda.io_email_invit", metadata: undefined },
-        { uuid: "test4@webda.io_email_invit", metadata: "read,write" }
+        { uuid: "test3@webda.io_email_invit" },
+        {
+          uuid: "test4@webda.io_email_invit",
+          metadata: "read,write",
+          inviter: {
+            uuid: user.getUuid(),
+            name: "Webda.io Test"
+          }
+        }
       ]
     );
 
@@ -210,7 +262,7 @@ class InvitationTest extends WebdaTest {
     // Register user 3 and 4
     await this.authentication.createUserWithIdent("email", "test3@webda.io");
     await this.authentication.createUserWithIdent("email", "test4@webda.io");
-    await this.authentication.getIdentStore().get(`test3@webda.io_email`);
+    const ident3 = await this.authentication.getIdentStore().get(`test3@webda.io_email`);
     const ident4 = await this.authentication.getIdentStore().get(`test4@webda.io_email`);
 
     await company.refresh();
@@ -228,6 +280,22 @@ class InvitationTest extends WebdaTest {
       })),
       []
     );
+    userCheck = await this.authentication.getUserStore().get(ident3.getUser());
+    assert.deepStrictEqual(userCheck["_companies"] || [], []);
+    userCheck = await this.authentication.getUserStore().get(ident4.getUser());
+    assert.deepStrictEqual(userCheck["_companies"], [
+      {
+        inviter: {
+          name: "Webda.io Test",
+          uuid: user.getUuid()
+        },
+        metadata: {
+          name: "MyTestCompany"
+        },
+        model: company.getUuid(),
+        pending: false
+      }
+    ]);
   }
 
   @test
@@ -235,7 +303,9 @@ class InvitationTest extends WebdaTest {
     this.service.getParameters().autoAccept = false;
     // New model as owner
     let ctx = await this.newContext();
-    let user = await this.authentication.getUserStore().save({});
+    let user = await this.authentication.getUserStore().save({
+      displayName: "Webda.io Test"
+    });
     ctx.getSession().userId = user.getUuid();
     let res = await this.execute(ctx, "test.webda.io", "POST", "/companies", { name: "MyTestCompany" });
     const company = await this.store.get(res.uuid);
@@ -267,13 +337,41 @@ class InvitationTest extends WebdaTest {
     assert.deepStrictEqual(
       (await this.invitations.getAll()).map(i => ({
         uuid: i.getUuid(),
-        metadata: i[this.service.getInvitationAttribute(company.getUuid())]
+        ...i[this.service.getInvitationAttribute(company.getUuid())]
       })),
       [
-        { uuid: "test3@webda.io_email_invit", metadata: "read" },
-        { uuid: "test4@webda.io_email_invit", metadata: "read" }
+        {
+          uuid: "test3@webda.io_email_invit",
+          metadata: "read",
+          inviter: {
+            uuid: user.getUuid(),
+            name: "Webda.io Test"
+          }
+        },
+        {
+          uuid: "test4@webda.io_email_invit",
+          metadata: "read",
+          inviter: {
+            uuid: user.getUuid(),
+            name: "Webda.io Test"
+          }
+        }
       ]
     );
+    let userCheck = await this.authentication.getUserStore().get(ident1.getUser());
+    assert.deepStrictEqual(userCheck["_companies"], [
+      {
+        inviter: {
+          name: "Webda.io Test",
+          uuid: user.getUuid()
+        },
+        metadata: {
+          name: "MyTestCompany"
+        },
+        model: company.getUuid(),
+        pending: true
+      }
+    ]);
 
     // Accepting the invite for user1
     let ctx2 = await this.newContext();
@@ -311,11 +409,25 @@ class InvitationTest extends WebdaTest {
     assert.deepStrictEqual(
       (await this.invitations.getAll()).map(i => ({
         uuid: i.getUuid(),
-        metadata: i[this.service.getInvitationAttribute(company.getUuid())]
+        ...i[this.service.getInvitationAttribute(company.getUuid())]
       })),
       [
-        { uuid: "test3@webda.io_email_invit", metadata: "read,write" },
-        { uuid: "test4@webda.io_email_invit", metadata: "read,write" }
+        {
+          uuid: "test3@webda.io_email_invit",
+          metadata: "read,write",
+          inviter: {
+            uuid: user.getUuid(),
+            name: "Webda.io Test"
+          }
+        },
+        {
+          uuid: "test4@webda.io_email_invit",
+          metadata: "read,write",
+          inviter: {
+            uuid: user.getUuid(),
+            name: "Webda.io Test"
+          }
+        }
       ]
     );
     // Remove 1 unregistered and one registered from the ACL
@@ -335,11 +447,18 @@ class InvitationTest extends WebdaTest {
     assert.deepStrictEqual(
       (await this.invitations.getAll()).map(i => ({
         uuid: i.getUuid(),
-        metadata: i[this.service.getInvitationAttribute(company.getUuid())]
+        ...i[this.service.getInvitationAttribute(company.getUuid())]
       })),
       [
-        { uuid: "test3@webda.io_email_invit", metadata: undefined },
-        { uuid: "test4@webda.io_email_invit", metadata: "read,write" }
+        { uuid: "test3@webda.io_email_invit" },
+        {
+          uuid: "test4@webda.io_email_invit",
+          metadata: "read,write",
+          inviter: {
+            uuid: user.getUuid(),
+            name: "Webda.io Test"
+          }
+        }
       ]
     );
 
@@ -363,7 +482,7 @@ class InvitationTest extends WebdaTest {
     assert.deepStrictEqual(
       (await this.invitations.getAll()).map(i => ({
         uuid: i.getUuid(),
-        metadata: i[this.service.getInvitationAttribute(company.getUuid())]
+        ...i[this.service.getInvitationAttribute(company.getUuid())]
       })),
       []
     );

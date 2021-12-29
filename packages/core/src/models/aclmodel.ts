@@ -1,5 +1,6 @@
 "use strict";
-import { Context, CoreModel, ModelAction, User } from "../index";
+import { Context, ModelAction, User } from "../index";
+import { CoreModel } from "./coremodel";
 
 export type Acl = { [key: string]: string };
 

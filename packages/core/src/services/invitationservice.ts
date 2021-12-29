@@ -1,9 +1,17 @@
-import { Mailer, Service, Store, Context, EventAuthenticationRegister, ExposeParameters, Ident } from "../index";
+import {
+  Mailer,
+  Store,
+  Context,
+  EventAuthenticationRegister,
+  ExposeParameters,
+  Ident,
+  EventWithContext
+} from "../index";
 import { AclModel } from "../models/aclmodel";
 import { CoreModel } from "../models/coremodel";
 import { User } from "../models/user";
 import { Authentication } from "./authentication";
-import { DeepPartial, Inject, ServiceParameters } from "./service";
+import { DeepPartial, Inject, ServiceParameters, Service } from "./service";
 
 interface Invitation {
   /**
@@ -18,6 +26,28 @@ interface Invitation {
    * Any additional data to include with the invite
    */
   metadata: any;
+}
+
+/**
+ * Emitted when the /me route is called
+ */
+export interface EventInvitationSent extends EventWithContext {
+  /**
+   * Invited users
+   */
+  users: User[];
+  /**
+   * Invited idents if user is not registered yet
+   */
+  idents: string[];
+  /**
+   * Metadata of the invite
+   */
+  metadata: any;
+  /**
+   * Object targetted by the invite
+   */
+  model: CoreModel;
 }
 
 /**
@@ -260,11 +290,14 @@ export default class InvitationService<T extends InvitationParameters = Invitati
       }))
     );
 
+    let invitedIdents: string[] = [];
+    let invitedUsers: User[] = [];
     let promises = [];
     const metadata = {};
     this.parameters.mapFields.forEach(f => (metadata[f] = model[f]));
 
     for (const invitation of invitations) {
+      // User is known
       if (invitation.ident) {
         if (this.parameters.autoAccept) {
           model[this.parameters.attribute][invitation.ident.getUser()] = body.metadata;
@@ -275,11 +308,14 @@ export default class InvitationService<T extends InvitationParameters = Invitati
         promises.push(
           (async () => {
             const user = await this.authenticationService.getUserStore().get(invitation.ident.getUser());
+            invitedUsers.push(user);
             await this.addInvitationToUser(model, user, inviter, metadata);
           })()
         );
         continue;
       }
+      // User is unknown to the platform
+      invitedIdents.push(invitation.invitation);
       let invitUuid = `${invitation.invitation}_${this.getName()}`;
       model[this.parameters.pendingAttribute] ??= {};
       model[this.parameters.pendingAttribute][`ident_${invitation.invitation}`] = body.metadata;
@@ -316,6 +352,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
         } else if (!model[this.parameters.attribute][u]) {
           model[this.parameters.pendingAttribute][`user_${u}`] = body.metadata;
         }
+        invitedUsers.push(user);
         await this.addInvitationToUser(model, user, inviter, metadata);
       })
     );
@@ -323,6 +360,13 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     await Promise.all(promises);
     // Update model now
     await this.updateModel(model);
+    this.emit("Invitation.Sent", <EventInvitationSent>{
+      metadata: body.metadata,
+      users: invitedUsers,
+      idents: invitedIdents,
+      model,
+      context: ctx
+    });
   }
 
   async addInvitationToUser(model: CoreModel, user: User, inviter: User, metadata: any) {

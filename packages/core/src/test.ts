@@ -170,7 +170,7 @@ class WebdaTest {
   registerService(name: string, service: Service) {
     // Have to override protected
     // @ts-ignore
-    this.webda.services[name] = service;
+    this.webda.services[name.toLowerCase()] = service;
   }
 }
 

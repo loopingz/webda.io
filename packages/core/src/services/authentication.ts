@@ -225,6 +225,9 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     return <Store<K>>this._identsStore;
   }
 
+  /**
+   * @override
+   */
   initRoutes() {
     // ROUTES
     let url = this.parameters.url;
@@ -354,6 +357,10 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     }
   }
 
+  /**
+   * Add a provider to the oauth scheme
+   * @param name
+   */
   addProvider(name: string) {
     this.providers.add(name);
   }
@@ -396,6 +403,10 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     await this.sendValidationEmail(ctx, ctx.parameters.email);
   }
 
+  /**
+   * Return current user
+   * @param ctx
+   */
   async _getMe(ctx: Context) {
     let user = await ctx.getCurrentUser();
     if (user === undefined) {
@@ -408,6 +419,13 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     ctx.write(user);
   }
 
+  /**
+   * Handle both list of available authentication
+   * and logout with method 'DELETE'
+   *
+   * @param ctx
+   * @returns
+   */
   async _listAuthentications(ctx: Context) {
     if (ctx.getHttpContext().getMethod() === "DELETE") {
       await this.logout(ctx);
@@ -492,7 +510,12 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
     await this.onIdentLogin(ctx, provider, identId, profile);
   }
 
-  async registerUser(ctx: Context, datas, identId: string, user: any = this._usersStore.initModel()): Promise<any> {
+  async registerUser(
+    ctx: Context,
+    datas: any,
+    identId: string,
+    user: any = this._usersStore.initModel()
+  ): Promise<any> {
     user.email = datas.email;
     user.locale = ctx.getLocale();
     await this.emitSync("Authentication.Register", <EventAuthenticationRegister>{

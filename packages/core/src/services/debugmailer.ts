@@ -1,11 +1,10 @@
 import { ModdaDefinition } from "../core";
-import { MailerService } from "./mailer";
-import { Service } from "./service";
+import { AbstractMailer } from "./mailer";
 
 /**
  * Fake Service to help debug mail expedition
  */
-export default class DebugMailer extends Service implements MailerService {
+export default class DebugMailer extends AbstractMailer {
   sent: any[] = [];
 
   constructor(webda, name, params) {

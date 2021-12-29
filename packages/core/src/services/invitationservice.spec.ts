@@ -9,7 +9,6 @@ import { Mailer } from "./mailer";
 import * as sinon from "sinon";
 import { Context } from "../utils/context";
 import { CoreModel } from "../models/coremodel";
-import { MemoryStore } from "../stores/memory";
 
 class MyCompany extends AclModel {
   async canAct(ctx: Context, action: string) {

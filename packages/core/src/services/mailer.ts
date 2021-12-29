@@ -3,7 +3,9 @@ import * as Email from "email-templates";
 import * as fs from "fs";
 import * as nodemailer from "nodemailer";
 import path = require("path");
+import { User } from "..";
 import { ModdaDefinition } from "../core";
+import { NotificationService } from "./notificationservice";
 import { Service, ServiceParameters } from "./service";
 
 interface IEmailTemplate {
@@ -17,8 +19,7 @@ interface TemplatesMap {
 /**
  * Represent a mailer service
  */
-export interface MailerService {
-  hasTemplate(name: string): boolean;
+export interface MailerService extends NotificationService {
   /**
    *
    * @params options Options to pass to the sendMail option of the nodemailer module
@@ -110,6 +111,46 @@ export class MailerParameters extends ServiceParameters {
   }
 }
 
+export abstract class AbstractMailer<T extends ServiceParameters = ServiceParameters>
+  extends Service<T>
+  implements MailerService
+{
+  /**
+   * @inheritdoc
+   */
+  abstract send(options: MailerSendOptions, callback?: () => void): Promise<any>;
+  /**
+   * @inheritdoc
+   */
+  abstract hasTemplate(notification: string);
+
+  /**
+   * If user has an email
+   * @param user
+   * @returns
+   */
+  async handleUser(user: User): Promise<boolean> {
+    return user.getEmail() !== null;
+  }
+
+  /**
+   * @override
+   */
+  async sendNotification(user: User, notification: string, replacements: any): Promise<void> {
+    let email = user.getEmail();
+    if (!email) {
+      throw new Error(`Cannot find a valid email for user '${user.getUuid()}'`);
+    }
+    return this.send({
+      template: notification,
+      replacements: {
+        ...replacements
+      },
+      to: email
+    });
+  }
+}
+
 /**
  * A basic Mailer based on the nodemailer module
  *
@@ -121,7 +162,7 @@ export class MailerParameters extends ServiceParameters {
  * config: { ... }
  * @category CoreServices
  */
-class Mailer<T extends MailerParameters = MailerParameters> extends Service<T> implements MailerService {
+class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMailer<T> {
   _transporter: any;
   _templates: TemplatesMap = {};
 

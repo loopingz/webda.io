@@ -32,6 +32,29 @@ class User extends OwnerModel {
    * Idents used by the user
    */
   private _idents: Ident[] = [];
+  /**
+   * Contains the locale of the user if known
+   */
+  locale?: string;
+  /**
+   * Contain main user email if exists
+   */
+  email?: string;
+  /**
+   * Return user email if known or guessable
+   * @returns
+   */
+  getEmail(): string | null {
+    if (this.email === undefined) {
+      (this._idents || []).some(i => {
+        if (i.email) {
+          this.email = i.email;
+        }
+      });
+      this.email ??= null;
+    }
+    return this.email;
+  }
 
   getGroups(): string[] {
     return this._groups;

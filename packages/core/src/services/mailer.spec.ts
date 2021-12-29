@@ -4,8 +4,9 @@ import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { WebdaTest } from "../test";
 import { Context } from "../utils/context";
-import { MailerParameters } from "..";
+import { MailerParameters, User } from "..";
 import { Mailer } from "./mailer";
+import * as sinon from "sinon";
 
 @suite
 class MailerTest extends WebdaTest {
@@ -117,5 +118,29 @@ class MailerTest extends WebdaTest {
         }),
       /Cannot send email as no transporter is defined/
     );
+  }
+
+  @test
+  async handleUser() {
+    const user = new User();
+    assert.strictEqual(await this.mailer.handleUser(user), false);
+    user.load({ email: "test@test.com" });
+    assert.strictEqual(await this.mailer.handleUser(user), true);
+  }
+
+  @test
+  async sendNotification() {
+    let stub = sinon.stub(this.mailer, "send").callsFake(async () => {});
+    try {
+      const user = new User();
+      assert.rejects(
+        () => this.mailer.sendNotification(user, "", undefined, undefined),
+        /Cannot find a valid email for user/
+      );
+      user.load({ email: "test@test.com" });
+      await this.mailer.sendNotification(user, "", undefined, undefined);
+    } finally {
+      stub.restore();
+    }
   }
 }

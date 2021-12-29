@@ -26,6 +26,10 @@ class Ident extends OwnerModel {
    * When the ident was validated
    */
   _validation?: Date;
+  /**
+   * Email for this ident if it exist
+   */
+  email?: string;
 
   static init(
     type: string,

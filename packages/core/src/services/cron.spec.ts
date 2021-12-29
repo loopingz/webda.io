@@ -19,7 +19,7 @@ class CronServiceTest extends WebdaTest {
   @test
   annotations() {
     this.registerService("myService", new MyService(this.webda, "myService", {}));
-    let def = new CronDefinition("0/15 * * * *", [], "myService", "test", "plop");
+    let def = new CronDefinition("0/15 * * * *", [], "myservice", "test", "plop");
     let service = new CronService(this.webda, "cron", {});
     service.schedule("* * * * *", () => {}, "mine");
     assert.deepStrictEqual(service.getCrontab()[1], def);

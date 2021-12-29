@@ -38,4 +38,13 @@ class UserTest {
     let user: User = new User();
     assert.deepStrictEqual(user.getIdents(), []);
   }
+
+  @test
+  emailGetter() {
+    let user: User = new User();
+    user.load({ _idents: [{}, { email: "testIdent@test.com" }] }, true);
+    assert.strictEqual(user.getEmail(), "testIdent@test.com");
+    user.load({ email: "test@test.com" });
+    assert.strictEqual(user.getEmail(), "test@test.com");
+  }
 }

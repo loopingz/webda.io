@@ -39,9 +39,9 @@ class NotificationServiceTest extends WebdaTest {
     });
     this.fakeA = new FakeNotification(this.webda, "notifA", {});
     this.fakeB = new FakeNotification(this.webda, "notifB", {});
-    this.registerService("notifA", this.fakeA);
-    this.registerService("notifB", this.fakeB);
-    this.registerService("notif", this.service);
+    this.registerService(this.fakeA);
+    this.registerService(this.fakeB);
+    this.registerService(this.service);
     this.service.resolve();
   }
 

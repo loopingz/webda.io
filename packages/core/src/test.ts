@@ -123,7 +123,11 @@ class WebdaTest {
     await exec.execute(ctx);
     let res = ctx.getResponseBody();
     if (res) {
-      return JSON.parse(res);
+      try {
+        return JSON.parse(res);
+      } catch (err) {
+        return res;
+      }
     }
   }
 
@@ -167,7 +171,7 @@ class WebdaTest {
    * @param name of the service to add
    * @param service to add
    */
-  registerService(name: string, service: Service) {
+  registerService(service: Service, name: string = service.getName()) {
     // Have to override protected
     // @ts-ignore
     this.webda.services[name.toLowerCase()] = service;

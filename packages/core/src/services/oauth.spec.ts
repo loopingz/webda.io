@@ -40,10 +40,10 @@ class OAuthServiceTest extends WebdaTest {
 
   async before() {
     await super.before();
-    this.service = new FakeOAuthService(this.webda, "oauth", {
+    this.service = new FakeOAuthService(this.webda, "fake", {
       authorized_uris: ["https://redirect.me/plop"]
     });
-    this.registerService("oauth", this.service);
+    this.registerService(this.service);
   }
 
   @test
@@ -95,8 +95,8 @@ class OAuthServiceTest extends WebdaTest {
     assert.strictEqual(ctx.getCurrentUserId(), userId);
     await this.service.handleReturn(ctx, "plop3", { email: "rcattiau@gmail.com" }, undefined);
     // Default to false for token
-    assert.rejects(() => this.getExecutor(ctx, "webda.io", "GET", "/fake/scope").execute(ctx), /404/);
-    assert.rejects(() => this.getExecutor(ctx, "webda.io", "POST", "/fake/token").execute(ctx), /404/);
+    assert.rejects(() => this.execute(ctx, "webda.io", "GET", "/fake/scope"), /404/);
+    assert.rejects(() => this.execute(ctx, "webda.io", "POST", "/fake/token"), /404/);
     // @ts-ignore
     this.service.parameters = this.service.loadParameters({
       authenticationService: "Authentication2",
@@ -107,14 +107,15 @@ class OAuthServiceTest extends WebdaTest {
     });
     this.service.hasToken = () => true;
     this.service.resolve();
+    this.registerService(this.service);
     assert.strictEqual(this.service._authenticationService, undefined, "Should not get any Authentication service");
-    await this.getExecutor(ctx, "webda.io", "GET", "/bouzouf/scope").execute(ctx);
+    await this.execute(ctx, "webda.io", "GET", "/bouzouf/scope");
     assert.deepStrictEqual(JSON.parse(ctx.getResponseBody()), ["email", "image"]);
     let event = 0;
     this.service.addListener("OAuth.Token", () => {
       event++;
     });
-    await this.getExecutor(ctx, "webda.io", "POST", "/bouzouf/token").execute(ctx);
+    await this.execute(ctx, "webda.io", "POST", "/bouzouf/token");
     assert.strictEqual(event, 1);
     this.service.removeAllListeners();
     this.service.addListener("OAuth.Callback", () => {
@@ -139,10 +140,6 @@ class OAuthServiceTest extends WebdaTest {
 
   @test
   async redirect() {
-    this.service = new FakeOAuthService(this.webda, "oauth", {
-      authorized_uris: ["https://redirect.me/plop"]
-    });
-    this.registerService("oauth", this.service);
     let ctx = await this.newContext();
     ctx.setHttpContext(
       new HttpContext("test.webda.io", "GET", "/fake", "https", 443, undefined, {

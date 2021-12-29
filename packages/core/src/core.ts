@@ -783,10 +783,8 @@ export class Core extends events.EventEmitter {
     if (route === undefined) {
       return false;
     }
-
-    var executor = this.getService(route.executor);
     ctx.setRoute({ ...this.configuration, ...route });
-    ctx.setExecutor(executor);
+    ctx.setExecutor(this.getService(route.executor));
     return true;
   }
 

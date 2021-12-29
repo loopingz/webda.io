@@ -146,7 +146,7 @@ export default class MapperService<T extends MapperParameters = MapperParameters
     var mapper: Mapper = {
       uuid: object.getUuid()
     };
-    let found = Object.keys(updates).includes(this.parameters.targetAttribute);
+    let found = false;
     for (let mapperfield of this.parameters.fields) {
       // Create the mapper object
       if (updates[mapperfield] !== undefined) {
@@ -169,36 +169,51 @@ export default class MapperService<T extends MapperParameters = MapperParameters
    */
   async _handleUpdatedMap(source: CoreModel, target: CoreModel, updates: any) {
     let [mapper, found] = this.createMapper(source, updates);
+
+    if (Object.keys(updates).includes(this.parameters.attribute)) {
+      let deleteTarget = false;
+      // Linked object might have changed
+      if (typeof updates[this.parameters.attribute] === "string") {
+        deleteTarget = updates[this.parameters.attribute] !== target.getUuid();
+        // Add the new one
+        if (deleteTarget) {
+          await this.targetStore.upsertItemToCollection(
+            updates[this.parameters.attribute],
+            this.parameters.targetAttribute,
+            mapper
+          );
+        }
+      } else {
+        let ids;
+        if (Array.isArray(updates[this.parameters.attribute])) {
+          ids = updates[this.parameters.attribute];
+        } else {
+          ids = Object.keys(updates[this.parameters.attribute]);
+        }
+        deleteTarget = !ids.includes(target.getUuid());
+      }
+      if (deleteTarget) {
+        let i = this.getMapper(target[this.parameters.targetAttribute], source.getUuid());
+        if (i >= 0) {
+          // Remove the data from old object
+          await this.targetStore.deleteItemFromCollection(
+            target.getUuid(),
+            this.parameters.targetAttribute,
+            i,
+            source.getUuid(),
+            "uuid"
+          );
+        }
+        return;
+      }
+    }
+
+    // Linked object has not changed, check if map has changed and require updates
     if (!found) {
       // None of the mapped keys has been modified -> return
       return;
     }
-
-    // check if reference object has changed
-    if (
-      updates[this.parameters.attribute] !== undefined &&
-      target.getUuid() !== updates[this.targetStore.getUuidField()]
-    ) {
-      let i = this.getMapper(target[this.parameters.targetAttribute], source.getUuid());
-      if (i >= 0) {
-        // Remove the data from old object
-        await this.targetStore.deleteItemFromCollection(
-          target.getUuid(),
-          this.parameters.targetAttribute,
-          i,
-          source.getUuid(),
-          "uuid"
-        );
-      }
-      // Add the data to new object
-      await this.targetStore.upsertItemToCollection(
-        updates[this.parameters.attribute],
-        this.parameters.targetAttribute,
-        mapper
-      );
-    } else {
-      return this._handleUpdatedMapMapper(source, target, mapper);
-    }
+    return this._handleUpdatedMapMapper(source, target, mapper);
   }
 
   /**
@@ -306,19 +321,50 @@ export default class MapperService<T extends MapperParameters = MapperParameters
    * @returns
    */
   async handleMap(object: CoreModel, updates: MapUpdates) {
-    let mapped = await this.targetStore.get(object[this.parameters.attribute] || updates[this.parameters.attribute]);
-    if (mapped === undefined) {
-      return;
+    let attribute = object[this.parameters.attribute] || updates[this.parameters.attribute];
+    let mappeds = [];
+    let toDelete = [];
+    let toAdd = [];
+    if (typeof attribute === "string") {
+      mappeds.push(await this.targetStore.get(attribute));
+    } else {
+      let ids = [];
+      if (Array.isArray(attribute)) {
+        ids = attribute;
+        if (typeof updates == "object" && updates[this.parameters.attribute]) {
+          let refs = updates[this.parameters.attribute];
+          toAdd = refs.filter(id => !attribute.includes(id));
+          toDelete = attribute.filter(id => !refs.includes(id));
+        }
+      } else if (typeof attribute === "object") {
+        ids = Object.keys(attribute);
+        if (typeof updates == "object" && updates[this.parameters.attribute]) {
+          let refs = Object.keys(updates[this.parameters.attribute]);
+          toAdd = refs.filter(id => !ids.includes(id));
+          toDelete = ids.filter(id => !refs.includes(id));
+        }
+      }
+      mappeds = await Promise.all([
+        ...ids.map(i => this.targetStore.get(i)),
+        ...toDelete.map(i => this.targetStore.get(i)),
+        ...toAdd.map(i => this.targetStore.get(i))
+      ]);
     }
-
-    if (updates === "created") {
-      return this._handleCreatedMap(object, mapped);
-    } else if (updates == "deleted") {
-      return this._handleDeletedMap(object, mapped);
-    } else if (typeof updates == "object") {
-      return this._handleUpdatedMap(object, mapped, updates);
-    }
+    await Promise.all(
+      mappeds
+        .filter(a => a !== undefined)
+        .map(mapped => {
+          if (updates === "created" || toAdd.includes(mapped.getUuid())) {
+            return this._handleCreatedMap(object, mapped);
+          } else if (updates == "deleted" || toDelete.includes(mapped.getUuid())) {
+            return this._handleDeletedMap(object, mapped);
+          } else if (typeof updates == "object") {
+            return this._handleUpdatedMap(object, mapped, updates);
+          }
+        })
+    );
   }
+
   /**
    * Recompute the whole mappers
    */

@@ -18,7 +18,7 @@ class MyService extends Service {
 class CronServiceTest extends WebdaTest {
   @test
   annotations() {
-    this.registerService("myService", new MyService(this.webda, "myService", {}));
+    this.registerService(new MyService(this.webda, "myService", {}));
     let def = new CronDefinition("0/15 * * * *", [], "myservice", "test", "plop");
     let service = new CronService(this.webda, "cron", {});
     service.schedule("* * * * *", () => {}, "mine");

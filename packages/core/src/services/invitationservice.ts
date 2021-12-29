@@ -29,7 +29,7 @@ interface Invitation {
 }
 
 /**
- * Emitted when the /me route is called
+ * Emitted when an invitation is sent
  */
 export interface EventInvitationSent extends EventWithContext {
   /**
@@ -48,6 +48,46 @@ export interface EventInvitationSent extends EventWithContext {
    * Object targetted by the invite
    */
   model: CoreModel;
+}
+
+/**
+ * Emitted when an invitation is removed
+ */
+export interface EventInvitationRemoved extends EventWithContext {
+  /**
+   * Invited users id
+   */
+  users: string[];
+  /**
+   * Invited idents if user is not registered yet
+   */
+  idents: string[];
+  /**
+   * Metadata of the invite
+   */
+  metadata: any;
+  /**
+   * Object targetted by the invite
+   */
+  model: CoreModel;
+}
+
+/**
+ * Emitted when an invitation is accepted
+ */
+export interface EventInvitationAnswered extends EventWithContext {
+  /**
+   * Object targetted by the invite
+   */
+  model: CoreModel;
+  /**
+   * Metadata of the invite
+   */
+  metadata: any;
+  /**
+   * If the invitation got accepted or not
+   */
+  accept: boolean;
 }
 
 /**
@@ -178,10 +218,15 @@ export default class InvitationService<T extends InvitationParameters = Invitati
    * @param ctx
    * @param model
    */
-  async acceptInvitation(ctx: Context, model: CoreModel) {
+  async answerInvitation(ctx: Context, model: CoreModel) {
     // Need to specify if you accept or not
     if (typeof ctx.getRequestBody().accept !== "boolean") {
       throw 400;
+    }
+    // Invitation on the model is gone
+    if (model === undefined) {
+      await this.removeInvitationFromUser(ctx.getCurrentUserId(), ctx.getParameters().uuid);
+      throw 410;
     }
     const user = await ctx.getCurrentUser();
     let metadata = undefined;
@@ -199,6 +244,12 @@ export default class InvitationService<T extends InvitationParameters = Invitati
       model[this.parameters.attribute][user.getUuid()] = metadata;
     }
     await this.updateModel(model);
+    this.emit("Invitation.Accepted", <EventInvitationAnswered>{
+      metadata,
+      model,
+      context: ctx,
+      accept: ctx.getRequestBody().accept
+    });
   }
 
   /**
@@ -223,6 +274,8 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     body.users ??= [];
     body.idents ??= [];
     const promises = [];
+    let invitedIdents: string[] = [];
+    let invitedUsers: string[] = [];
     for (const ident of body.idents) {
       if (model[this.parameters.pendingAttribute][`ident_${ident}`]) {
         // Remove from pending on the object
@@ -234,6 +287,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
             this.getInvitationAttribute(model.getUuid())
           )
         );
+        invitedIdents.push(ident);
       } else {
         // Remove user
         promises.push(
@@ -241,6 +295,8 @@ export default class InvitationService<T extends InvitationParameters = Invitati
             const id = await this.authenticationService.getIdentStore().get(ident);
             if (id && id.getUser()) {
               delete model[this.parameters.attribute][id.getUser()];
+              await this.removeInvitationFromUser(id.getUser(), model.getUuid());
+              invitedUsers.push(id.getUser());
             }
           })()
         );
@@ -252,10 +308,37 @@ export default class InvitationService<T extends InvitationParameters = Invitati
       } else if (model[this.parameters.attribute][user]) {
         delete model[this.parameters.attribute][user];
       }
+      promises.push(this.removeInvitationFromUser(user, model.getUuid()));
+      invitedUsers.push(user);
     }
     await Promise.all(promises);
     //
     await this.updateModel(model);
+    this.emit("Invitation.Removed", <EventInvitationRemoved>{
+      metadata: body.metadata,
+      users: invitedUsers,
+      idents: invitedIdents,
+      model,
+      context: ctx
+    });
+  }
+
+  /**
+   * Remove a model invitation from user
+   * @param user
+   */
+  protected async removeInvitationFromUser(user: string, model: string): Promise<void> {
+    let userModel = await this.authenticationService.getUserStore().get(user);
+    let index = 0;
+    for (let invit of userModel[this.parameters.mapAttribute] || []) {
+      if (invit.model === model) {
+        await this.authenticationService
+          .getUserStore()
+          .deleteItemFromCollection(user, this.parameters.mapAttribute, index, model, "model");
+        return;
+      }
+      index++;
+    }
   }
 
   /**
@@ -265,8 +348,11 @@ export default class InvitationService<T extends InvitationParameters = Invitati
    * @returns
    */
   async invite(ctx: Context) {
-    let inviter = await ctx.getCurrentUser();
     let model = await this.modelStore.get(ctx.getParameters().uuid);
+    if (ctx.getHttpContext().getMethod() === "PUT") {
+      return this.answerInvitation(ctx, model);
+    }
+    let inviter = await ctx.getCurrentUser();
     if (!model) {
       throw 404;
     }
@@ -275,8 +361,6 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     if (ctx.getHttpContext().getMethod() === "DELETE") {
       await model.canAct(ctx, "uninvite");
       return this.uninvite(ctx, model);
-    } else if (ctx.getHttpContext().getMethod() === "PUT") {
-      return this.acceptInvitation(ctx, model);
     }
     await model.canAct(ctx, "invite");
     const body: Invitation = ctx.getRequestBody();

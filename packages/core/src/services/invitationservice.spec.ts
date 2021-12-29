@@ -371,6 +371,14 @@ class InvitationTest extends WebdaTest {
         pending: true
       }
     ]);
+    await userCheck.update({
+      _companies: [
+        {
+          model: "Test"
+        },
+        ...userCheck["_companies"]
+      ]
+    });
 
     // Accepting the invite for user1
     let ctx2 = await this.newContext();
@@ -460,6 +468,14 @@ class InvitationTest extends WebdaTest {
         }
       ]
     );
+    userCheck = await this.authentication.getUserStore().get(ident1.getUser());
+    assert.deepStrictEqual(userCheck["_companies"], [
+      {
+        model: "Test"
+      }
+    ]);
+    userCheck = await this.authentication.getUserStore().get(ident2.getUser());
+    assert.deepStrictEqual(userCheck["_companies"], []);
 
     // Missing model
     await this.invitations.setAttribute("test4@webda.io_email_invit", "invit_test", "all");
@@ -496,5 +512,52 @@ class InvitationTest extends WebdaTest {
     });
     // @ts-ignore
     assert.deepStrictEqual(company.__invitations, {});
+  }
+
+  @test
+  async invitationDeletedModel() {
+    this.service.getParameters().autoAccept = false;
+    // New model as owner
+    let ctx = await this.newContext();
+    let user = await this.authentication.getUserStore().save({
+      displayName: "Webda.io Test"
+    });
+    ctx.getSession().userId = user.getUuid();
+    let res = await this.execute(ctx, "test.webda.io", "POST", "/companies", { name: "MyTestCompany" });
+    const company = await this.store.get(res.uuid);
+
+    // Auto register 2 users
+    await this.authentication.createUserWithIdent("email", "test1@webda.io");
+    const ident1 = await this.authentication.getIdentStore().get(`test1@webda.io_email`);
+
+    // Add two users to the ACL
+    // 1 unregistered , 1 registered
+    await this.execute(ctx, "test.webda.io", "POST", `/companies/${company.getUuid()}/invitations`, {
+      idents: ["test2@webda.io_email"],
+      users: [ident1.getUser()],
+      metadata: "read"
+    });
+
+    await company.delete();
+    let checkUser = await this.authentication.getUserStore().get(ident1.getUser());
+    assert.strictEqual(checkUser["_companies"].length, 1);
+    // Accepting the invite for user1
+    let ctx2 = await this.newContext();
+    ctx2.getSession().userId = ident1.getUser();
+    // It should be removed and get a 410 error code
+    await assert.rejects(
+      () =>
+        this.execute(ctx2, "test.webda.io", "PUT", `/companies/${company.getUuid()}/invitations`, {
+          accept: true
+        }),
+      /410/
+    );
+    await checkUser.refresh();
+    assert.strictEqual(checkUser["_companies"].length, 0);
+    // Register pending one
+    await this.authentication.createUserWithIdent("email", "test2@webda.io");
+    const ident2 = await this.authentication.getIdentStore().get(`test2@webda.io_email`);
+    checkUser = await this.authentication.getUserStore().get(ident2.getUser());
+    assert.strictEqual(checkUser["_companies"].length, 0);
   }
 }

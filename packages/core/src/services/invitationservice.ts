@@ -11,6 +11,7 @@ import { AclModel } from "../models/aclmodel";
 import { CoreModel } from "../models/coremodel";
 import { User } from "../models/user";
 import { Authentication } from "./authentication";
+import { NotificationService } from "./notificationservice";
 import { DeepPartial, Inject, ServiceParameters, Service } from "./service";
 
 interface Invitation {
@@ -101,11 +102,11 @@ export class InvitationParameters extends ServiceParameters {
    */
   authenticationService: string;
   /**
-   * Mailer
+   * Notification service
    *
    * @default Mailer
    */
-  mailerService: string;
+  notificationService?: string;
   /**
    * Store to use
    */
@@ -148,7 +149,7 @@ export class InvitationParameters extends ServiceParameters {
   /**
    * Email template to send to the user
    */
-  emailTemplate: string;
+  notification?: string;
 
   constructor(params: any) {
     super(params);
@@ -181,8 +182,9 @@ export default class InvitationService<T extends InvitationParameters = Invitati
   @Inject("params:authenticationService")
   authenticationService: Authentication;
 
-  @Inject("params:mailerService")
-  mailerService: Mailer;
+  // Optional service
+  @Inject("params:notificationService", true)
+  notificationService: NotificationService;
 
   @Inject("params:invitationStore")
   invitationStore: Store<CoreModel>;
@@ -202,15 +204,25 @@ export default class InvitationService<T extends InvitationParameters = Invitati
    */
   resolve() {
     super.resolve();
-    if (!this.mailerService.hasTemplate(this.parameters.emailTemplate)) {
-      throw new Error(`Email template should exist`);
-    }
     // Register
     this.authenticationService.on("Authentication.Register", (evt: EventAuthenticationRegister) =>
       this.registrationListener(evt)
     );
     const url = (<ExposeParameters>this.modelStore.getParameters().expose).url;
     this.addRoute(`${url}/{uuid}/invitations`, ["GET", "POST", "PUT", "DELETE"], this.invite);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async init() {
+    await super.init();
+    if (
+      this.parameters.notification &&
+      !(await this.notificationService.hasNotification(this.parameters.notification))
+    ) {
+      throw new Error(`Email template should exist`);
+    }
   }
 
   /**
@@ -422,6 +434,18 @@ export default class InvitationService<T extends InvitationParameters = Invitati
           })
         );
       }
+      // Notify ident
+      let ident = invitation.invitation.split("_");
+      await this.sendNotification(Ident.init(ident.pop(), ident.join("_")), {
+        model,
+        metadata,
+        inviter: {
+          uuid: inviter.getUuid(),
+          name: inviter.getDisplayName()
+        },
+        pending: !this.parameters.autoAccept,
+        registered: true
+      });
     }
     // Check user direct invite
     body.users ??= [];
@@ -468,7 +492,26 @@ export default class InvitationService<T extends InvitationParameters = Invitati
         },
         pending: !this.parameters.autoAccept
       });
+    // Notify user
+    await this.sendNotification(user, {
+      model,
+      metadata,
+      inviter: {
+        uuid: inviter.getUuid(),
+        name: inviter.getDisplayName()
+      },
+      pending: !this.parameters.autoAccept,
+      registered: true
+    });
   }
+
+  async sendNotification(user: User | Ident, replacements: any) {
+    if (!this.parameters.notification) {
+      return;
+    }
+    await this.notificationService.sendNotification(user, this.parameters.notification, replacements);
+  }
+
   /**
    * Return which attribute would be used to store the invitation on ident invitation object
    * @param uuid

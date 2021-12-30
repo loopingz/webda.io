@@ -23,5 +23,8 @@ class IdentTest {
     assert.deepStrictEqual(ident.__profile, {});
     assert.strictEqual(ident.__tokens.access, "");
     assert.strictEqual(ident.__tokens.refresh, "");
+    assert.strictEqual(ident.getEmail(), undefined);
+    ident.email = "test@test.com";
+    assert.strictEqual(ident.getEmail(), "test@test.com");
   }
 }

@@ -121,11 +121,11 @@ class MailerTest extends WebdaTest {
   }
 
   @test
-  async handleUser() {
+  async handleNotificationFor() {
     const user = new User();
-    assert.strictEqual(await this.mailer.handleUser(user), false);
+    assert.strictEqual(await this.mailer.handleNotificationFor(user), false);
     user.load({ email: "test@test.com" });
-    assert.strictEqual(await this.mailer.handleUser(user), true);
+    assert.strictEqual(await this.mailer.handleNotificationFor(user), true);
   }
 
   @test

@@ -10,10 +10,10 @@ class FakeNotification extends Service implements NotificationService {
   user: boolean = false;
   sent: number = 0;
 
-  async hasTemplate(notification: string) {
+  async hasNotification(notification: string) {
     return this.template;
   }
-  async handleUser(user: User) {
+  async handleNotificationFor(user: User) {
     return this.user;
   }
 
@@ -47,13 +47,13 @@ class NotificationServiceTest extends WebdaTest {
 
   @test
   async cov() {
-    assert.strictEqual(await this.service.handleUser(undefined), false);
-    assert.strictEqual(await this.service.hasTemplate(undefined), false);
+    assert.strictEqual(await this.service.handleNotificationFor(undefined), false);
+    assert.strictEqual(await this.service.hasNotification(undefined), false);
 
     this.fakeB.user = true;
-    assert.strictEqual(await this.service.handleUser(undefined), true);
+    assert.strictEqual(await this.service.handleNotificationFor(undefined), true);
     this.fakeA.template = true;
-    assert.strictEqual(await this.service.hasTemplate(undefined), true);
+    assert.strictEqual(await this.service.hasNotification(undefined), true);
 
     await this.service.sendNotification(undefined, undefined, undefined);
     assert.strictEqual(this.fakeA.sent + this.fakeB.sent, 0);

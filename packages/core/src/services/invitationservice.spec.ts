@@ -43,7 +43,7 @@ class InvitationTest extends WebdaTest {
       attribute: "__acls",
       mapAttribute: "_companies",
       pendingAttribute: "__invitations",
-      mailerService: "DebugMailer",
+      notificationService: "DebugMailer",
       mapFields: ["name"]
     });
     this.webda.getServices()["invit"] = this.service;
@@ -93,10 +93,11 @@ class InvitationTest extends WebdaTest {
   }
 
   @test
-  resolve() {
-    let stub = sinon.stub(this.mailer, "hasTemplate").callsFake(() => false);
+  async initNoTemplate() {
+    let stub = sinon.stub(this.mailer, "hasNotification").callsFake(async () => false);
     try {
-      assert.throws(() => this.service.resolve(), /Email template should exist/);
+      this.service.getParameters().notification = "plop";
+      await assert.rejects(() => this.service.init(), /Email template should exist/);
     } finally {
       stub.restore();
     }
@@ -111,6 +112,8 @@ class InvitationTest extends WebdaTest {
   @test
   async inviteOnAclWithAutoAccept() {
     this.service.getParameters().autoAccept = true;
+    this.service.getParameters().notification = "COMPANY_INVITE";
+    sinon.stub(this.service.notificationService, "sendNotification").callsFake(async () => {});
     // New model as owner
     let ctx = await this.newContext();
     let user = await this.authentication.getUserStore().save({ displayName: "Webda.io Test" });

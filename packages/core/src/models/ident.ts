@@ -41,6 +41,9 @@ class Ident extends OwnerModel {
     var obj = new Ident();
     obj._type = type.toLowerCase();
     obj.uid = uid.toLowerCase();
+    if (obj._type === "email") {
+      obj.email = obj.uid;
+    }
     obj.uuid = obj.uid + "_" + obj._type;
     obj.__profile = profile;
     obj.__tokens = new IdentTokens();
@@ -51,6 +54,10 @@ class Ident extends OwnerModel {
 
   getUser() {
     return this._user;
+  }
+
+  getEmail(): string {
+    return this.email;
   }
 
   setUser(user) {

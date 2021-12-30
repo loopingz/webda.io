@@ -14,5 +14,6 @@ class DebugMailerTest extends WebdaTest {
     await mailer.async();
     assert.throws(() => mailer.error(), /FakeError/);
     await assert.rejects(() => mailer.errorAsync(), /FakeError/);
+    assert.strictEqual(await mailer.hasNotification(""), true);
   }
 }

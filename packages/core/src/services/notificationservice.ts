@@ -1,3 +1,4 @@
+import { Ident } from "../models/ident";
 import { User } from "../models/user";
 import { Service, ServiceParameters } from "./service";
 
@@ -9,19 +10,19 @@ export interface NotificationService {
   /**
    * Check if this type of notification is available
    */
-  hasTemplate(notification: string): Promise<boolean>;
+  hasNotification(notification: string): Promise<boolean>;
   /**
    * Check if the service can deliver notification to this user
    * @param user
    */
-  handleUser(user: User): Promise<boolean>;
+  handleNotificationFor(userOrIdent: User | Ident): Promise<boolean>;
   /**
    * Send the notification to the user
    * @param user
    * @param notification
    * @param replacements
    */
-  sendNotification(user: User, notification: string, replacements: any): Promise<void>;
+  sendNotification(user: User | Ident, notification: string, replacements: any): Promise<void>;
 }
 
 /**
@@ -54,9 +55,10 @@ export class MultiNotificationParameters extends ServiceParameters {
  * Allow an aggregation of Notification to send via multiple media
  * like SMS and Email
  */
-export default class MultiNotificationService<
-  T extends MultiNotificationParameters = MultiNotificationParameters
-> extends Service<T> {
+export default class MultiNotificationService<T extends MultiNotificationParameters = MultiNotificationParameters>
+  extends Service<T>
+  implements NotificationService
+{
   senders: NotificationService[];
 
   /**
@@ -82,11 +84,11 @@ export default class MultiNotificationService<
   /**
    * @override
    */
-  async sendNotification(user: User, notification: string, replacements: any): Promise<void> {
+  async sendNotification(user: User | Ident, notification: string, replacements: any): Promise<void> {
     const selectedSenders = (
       await Promise.all(
         this.senders.map(async s => {
-          if ((await s.hasTemplate(notification)) && (await s.handleUser(user))) {
+          if ((await s.hasNotification(notification)) && (await s.handleNotificationFor(user))) {
             return s;
           }
         })
@@ -104,15 +106,15 @@ export default class MultiNotificationService<
   /**
    * @override
    */
-  async handleUser(user: User): Promise<boolean> {
-    return (await Promise.all(this.senders.map(s => s.handleUser(user)))).some(s => s);
+  async handleNotificationFor(user: User | Ident): Promise<boolean> {
+    return (await Promise.all(this.senders.map(s => s.handleNotificationFor(user)))).some(s => s);
   }
 
   /**
    * @override
    */
-  async hasTemplate(notification: string): Promise<boolean> {
-    return (await Promise.all(this.senders.map(s => s.hasTemplate(notification)))).some(s => s);
+  async hasNotification(notification: string): Promise<boolean> {
+    return (await Promise.all(this.senders.map(s => s.hasNotification(notification)))).some(s => s);
   }
 }
 

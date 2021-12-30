@@ -3,7 +3,7 @@ import * as Email from "email-templates";
 import * as fs from "fs";
 import * as nodemailer from "nodemailer";
 import path = require("path");
-import { User } from "..";
+import { Ident, User } from "..";
 import { ModdaDefinition } from "../core";
 import { NotificationService } from "./notificationservice";
 import { Service, ServiceParameters } from "./service";
@@ -122,24 +122,24 @@ export abstract class AbstractMailer<T extends ServiceParameters = ServiceParame
   /**
    * @inheritdoc
    */
-  abstract hasTemplate(notification: string);
+  abstract hasNotification(notification: string);
 
   /**
    * If user has an email
    * @param user
    * @returns
    */
-  async handleUser(user: User): Promise<boolean> {
+  async handleNotificationFor(user: User | Ident): Promise<boolean> {
     return user.getEmail() !== null;
   }
 
   /**
    * @override
    */
-  async sendNotification(user: User, notification: string, replacements: any): Promise<void> {
+  async sendNotification(user: User | Ident, notification: string, replacements: any): Promise<void> {
     let email = user.getEmail();
     if (!email) {
-      throw new Error(`Cannot find a valid email for user '${user.getUuid()}'`);
+      throw new Error(`Cannot find a valid email for ${user.__type} '${user.getUuid()}'`);
     }
     return this.send({
       template: notification,
@@ -200,7 +200,7 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
    */
   _getTemplate(name: string) {
     if (!this._templates[name]) {
-      if (!this.hasTemplate(name)) {
+      if (!this.hasNotification(name)) {
         this._webda.log("WARN", "No template found for", name);
         return;
       }
@@ -223,7 +223,7 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
    * @param name
    * @returns
    */
-  hasTemplate(name: string): boolean {
+  hasNotification(name: string): boolean {
     // Load template
     return fs.existsSync(this.parameters.templates + name);
   }

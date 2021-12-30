@@ -114,26 +114,25 @@ class SecureCookie {
   }
 
   save(ctx: Context) {
-    if (this.needSave()) {
-      var params = {
-        path: "/",
-        domain: ctx.getHttpContext().getHost(),
-        httpOnly: true,
-        secure: ctx.getHttpContext().getProtocol() == "https",
-        maxAge: 86400 * 7,
-        sameSite: "Lax"
-      };
-      // Get default cookie value from config
-      let cookie = ctx.parameter("cookie");
-      if (cookie !== undefined) {
-        params = { ...params, ...cookie };
-      }
-      let value = jwt.sign(JSON.parse(JSON.stringify(this)), this._secret);
-      this.sendCookie(ctx, this._name, value, params);
-      // Transform the cookie to a plain object
-    } else {
-      console.log("Do not need update", this._name);
+    if (!this.needSave()) {
+      return;
     }
+    var params = {
+      path: "/",
+      domain: ctx.getHttpContext().getHost(),
+      httpOnly: true,
+      secure: ctx.getHttpContext().getProtocol() == "https",
+      maxAge: 86400 * 7,
+      sameSite: "Lax"
+    };
+    // Get default cookie value from config
+    let cookie = ctx.parameter("cookie");
+    if (cookie !== undefined) {
+      params = { ...params, ...cookie };
+    }
+    let value = jwt.sign(JSON.parse(JSON.stringify(this)), this._secret);
+    this.sendCookie(ctx, this._name, value, params);
+    // Transform the cookie to a plain object
   }
 
   /**

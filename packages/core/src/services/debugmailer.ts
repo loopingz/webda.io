@@ -36,7 +36,7 @@ export default class DebugMailer extends AbstractMailer {
    * @param name
    * @returns
    */
-  hasTemplate(name: string): boolean {
+  async hasNotification(name: string): Promise<boolean> {
     // Load template
     return true;
   }

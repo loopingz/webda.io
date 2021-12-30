@@ -53,7 +53,6 @@ class FileBinaryTest extends BinaryTest {
     let binary = this.getBinary();
     let ctx = await this.newContext();
     ctx.setPathParameters({ store: "Store", property: "images" });
-    console.log(binary.getParameters().map);
     assert.throws(() => binary._verifyMapAndStore(ctx), /404/);
     ctx.setPathParameters({ store: "users", property: "images" });
     assert.strictEqual(binary._verifyMapAndStore(ctx), this.getService("users"));

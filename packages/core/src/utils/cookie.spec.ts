@@ -161,7 +161,6 @@ class CookieTest extends WebdaTest {
         },
         this._ctx
       );
-      console.log(stub.getCall(0));
       assert.strictEqual(stub.getCall(0).args[0], "WARN");
       assert.ok(stub.getCall(0).args[1].match(/Ignoring bad cookie/));
     } finally {

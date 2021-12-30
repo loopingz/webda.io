@@ -17,7 +17,7 @@ class ContextTest extends WebdaTest {
   async cov() {
     // Get the last lines
     this.ctx.logIn();
-    console.log(this.ctx.getRoute());
+    this.ctx.getRoute();
     assert.notStrictEqual(this.ctx.getService("Users"), undefined);
     assert.notStrictEqual(this.ctx.getService<Service>("Users"), undefined);
     this.ctx = new Context(this.webda, new HttpContext("test.webda.io", "GET", "/uritemplate/plop"));

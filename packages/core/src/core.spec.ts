@@ -329,7 +329,7 @@ class CoreTest extends WebdaTest {
 
   @test
   covGetModules() {
-    console.log(this.webda.getModules());
+    this.webda.getModules();
   }
 
   @test
@@ -429,7 +429,7 @@ class CoreTest extends WebdaTest {
 
   @test
   createServices() {
-    console.log(this.webda.getApplication());
+    this.webda.getApplication();
     // @ts-ignore
     let method = this.webda.createServices.bind(this.webda);
     method(["definedmailer"]);

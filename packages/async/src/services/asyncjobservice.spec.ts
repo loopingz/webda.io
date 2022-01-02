@@ -304,19 +304,22 @@ class AsyncJobServiceTest extends WebdaTest {
     );
     let calledInfo;
     let subcall;
-    this.registerService("mine", {
-      // @ts-ignore
-      runWebdaAsyncAction: async info => {
-        calledInfo = info;
+    this.registerService(
+      {
+        // @ts-ignore
+        runWebdaAsyncAction: async info => {
+          calledInfo = info;
+        },
+        myMethod: async (...args) => {
+          return {
+            myMethod: "async",
+            success: true,
+            args
+          };
+        }
       },
-      myMethod: async (...args) => {
-        return {
-          myMethod: "async",
-          success: true,
-          args
-        };
-      }
-    });
+      "mine"
+    );
     process.env = {
       ...process.env,
       JOB_ORCHESTRATOR: "mine",
@@ -335,7 +338,7 @@ class AsyncJobServiceTest extends WebdaTest {
 
     // Now test hook
     try {
-      this.registerService("async", service);
+      this.registerService(service);
 
       // Set a true action
       const action = new WebdaAsyncAction();

@@ -44,7 +44,8 @@ class UserTest {
     let user: User = new User();
     user.load({ _idents: [{}, { email: "testIdent@test.com" }] }, true);
     assert.strictEqual(user.getEmail(), "testIdent@test.com");
-    user.load({ email: "test@test.com" });
+    user.load({ email: "test@test.com", displayName: "Top" });
     assert.strictEqual(user.getEmail(), "test@test.com");
+    assert.strictEqual(user.getDisplayName(), "Top");
   }
 }

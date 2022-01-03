@@ -1,5 +1,5 @@
 "use strict";
-import { Context, ModelAction, User } from "../index";
+import { Context, ModelAction, Store, User } from "../index";
 import { CoreModel } from "./coremodel";
 
 export type Acl = { [key: string]: string };
@@ -16,6 +16,10 @@ export default class AclModel extends CoreModel {
    * Permissions on the object
    */
   __acl: Acl = {};
+  /**
+   * Contains permissions
+   */
+  private _permissions?: string[];
 
   /**
    * Add acls actions
@@ -46,7 +50,6 @@ export default class AclModel extends CoreModel {
    */
   async _onGet() {
     if (this.getContext()) {
-      // @ts-ignore
       this._permissions = await this.getPermissions(this.getContext());
     }
   }
@@ -85,13 +88,28 @@ export default class AclModel extends CoreModel {
    * @param ctx
    */
   async _httpGetAcls(ctx: Context) {
-    ctx.write(this.__acl);
+    ctx.write({
+      raw: this.__acl,
+      resolved: await Promise.all(
+        Object.keys(this.__acl).map(async ace => {
+          let user = await this.getService<Store<User>>("Users").get(ace);
+          return {
+            permission: this.__acl[ace],
+            actor: user?.toPublicEntry()
+          };
+        })
+      )
+    });
   }
 
   /**
    *
    */
   async _httpPutAcls(ctx: Context) {
+    // This looks like a bad request
+    if (ctx.getRequestBody().raw) {
+      throw 400;
+    }
     this.__acl = ctx.getRequestBody();
     await this.save();
   }

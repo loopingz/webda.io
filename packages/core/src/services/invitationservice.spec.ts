@@ -159,7 +159,7 @@ class InvitationTest extends WebdaTest {
           metadata: "read",
           inviter: {
             uuid: user.getUuid(),
-            name: "Webda.io Test"
+            displayName: "Webda.io Test"
           }
         },
         {
@@ -167,7 +167,7 @@ class InvitationTest extends WebdaTest {
           metadata: "read",
           inviter: {
             uuid: user.getUuid(),
-            name: "Webda.io Test"
+            displayName: "Webda.io Test"
           }
         }
       ]
@@ -190,7 +190,7 @@ class InvitationTest extends WebdaTest {
     assert.deepStrictEqual(userCheck["_companies"], [
       {
         inviter: {
-          name: "Webda.io Test",
+          displayName: "Webda.io Test",
           uuid: user.getUuid()
         },
         metadata: {
@@ -216,7 +216,7 @@ class InvitationTest extends WebdaTest {
           metadata: "read,write",
           inviter: {
             uuid: user.getUuid(),
-            name: "Webda.io Test"
+            displayName: "Webda.io Test"
           }
         },
         {
@@ -224,7 +224,7 @@ class InvitationTest extends WebdaTest {
           metadata: "read,write",
           inviter: {
             uuid: user.getUuid(),
-            name: "Webda.io Test"
+            displayName: "Webda.io Test"
           }
         }
       ]
@@ -255,7 +255,7 @@ class InvitationTest extends WebdaTest {
           metadata: "read,write",
           inviter: {
             uuid: user.getUuid(),
-            name: "Webda.io Test"
+            displayName: "Webda.io Test"
           }
         }
       ]
@@ -291,7 +291,7 @@ class InvitationTest extends WebdaTest {
     assert.deepStrictEqual(userCheck["_companies"], [
       {
         inviter: {
-          name: "Webda.io Test",
+          displayName: "Webda.io Test",
           uuid: user.getUuid()
         },
         metadata: {
@@ -350,7 +350,7 @@ class InvitationTest extends WebdaTest {
           metadata: "read",
           inviter: {
             uuid: user.getUuid(),
-            name: "Webda.io Test"
+            displayName: "Webda.io Test"
           }
         },
         {
@@ -358,7 +358,7 @@ class InvitationTest extends WebdaTest {
           metadata: "read",
           inviter: {
             uuid: user.getUuid(),
-            name: "Webda.io Test"
+            displayName: "Webda.io Test"
           }
         }
       ]
@@ -367,7 +367,7 @@ class InvitationTest extends WebdaTest {
     assert.deepStrictEqual(userCheck["_companies"], [
       {
         inviter: {
-          name: "Webda.io Test",
+          displayName: "Webda.io Test",
           uuid: user.getUuid()
         },
         metadata: {
@@ -430,7 +430,7 @@ class InvitationTest extends WebdaTest {
           metadata: "read,write",
           inviter: {
             uuid: user.getUuid(),
-            name: "Webda.io Test"
+            displayName: "Webda.io Test"
           }
         },
         {
@@ -438,7 +438,7 @@ class InvitationTest extends WebdaTest {
           metadata: "read,write",
           inviter: {
             uuid: user.getUuid(),
-            name: "Webda.io Test"
+            displayName: "Webda.io Test"
           }
         }
       ]
@@ -469,7 +469,7 @@ class InvitationTest extends WebdaTest {
           metadata: "read,write",
           inviter: {
             uuid: user.getUuid(),
-            name: "Webda.io Test"
+            displayName: "Webda.io Test"
           }
         }
       ]

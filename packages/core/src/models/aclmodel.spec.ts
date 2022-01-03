@@ -88,7 +88,21 @@ class AclPolicyTest {
   @test async httpAcls() {
     // @ts-ignore
     this.model.__store = {
-      save: async () => this.model
+      save: async () => this.model,
+      // @ts-ignore
+      getService: () => {
+        return {
+          get: async () => {
+            return {
+              toPublicEntry: () => {
+                return {
+                  displayName: "Plopi"
+                };
+              }
+            };
+          }
+        };
+      }
     };
     let actions = AclModel.getActions();
     assert.notStrictEqual(actions.acl, undefined);
@@ -96,10 +110,24 @@ class AclPolicyTest {
     await this.model._acl(this._ctx);
     // @ts-ignore
     assert.strictEqual(this.model.getAcl().acl, "mine");
+    this._ctx.setHttpContext(
+      new HttpContext("test.webda.io", "PUT", "/", undefined, undefined, { raw: { acl: "mine" } })
+    );
+    await assert.rejects(() => this.model._acl(this._ctx));
     this._ctx.setHttpContext(new HttpContext("test.webda.io", "GET", "/", undefined, undefined, { acl: "mine" }));
     await this.model._acl(this._ctx);
     assert.deepStrictEqual(JSON.parse(this._ctx.getResponseBody()), {
-      acl: "mine"
+      raw: {
+        acl: "mine"
+      },
+      resolved: [
+        {
+          actor: {
+            displayName: "Plopi"
+          },
+          permission: "mine"
+        }
+      ]
     });
   }
 

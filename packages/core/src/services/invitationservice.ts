@@ -27,6 +27,10 @@ interface Invitation {
    * Any additional data to include with the invite
    */
   metadata: any;
+  /**
+   * Notification info to pass to the notification service
+   */
+  notification?: any;
 }
 
 /**
@@ -377,7 +381,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     await model.canAct(ctx, "invite");
     // Retrieve invitation useful when invitation are hidden with a __
     if (ctx.getHttpContext().getMethod() === "GET") {
-      ctx.write(model[this.parameters.pendingAttribute] || []);
+      ctx.write(model[this.parameters.pendingAttribute] || {});
       return;
     }
     const body: Invitation = ctx.getRequestBody();
@@ -410,7 +414,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
           (async () => {
             const user = await this.authenticationService.getUserStore().get(invitation.ident.getUser());
             invitedUsers.push(user);
-            await this.addInvitationToUser(model, user, inviter, metadata);
+            await this.addInvitationToUser(model, user, inviter, metadata, body.notification);
           })()
         );
         continue;
@@ -421,10 +425,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
       model[this.parameters.pendingAttribute] ??= {};
       model[this.parameters.pendingAttribute][`ident_${invitation.invitation}`] = body.metadata;
       const invitInfo = {
-        inviter: {
-          uuid: inviter.getUuid(),
-          name: inviter.getDisplayName()
-        },
+        inviter: inviter.toPublicEntry(),
         metadata: body.metadata
       };
       if (await this.invitationStore.exists(invitUuid)) {
@@ -444,10 +445,8 @@ export default class InvitationService<T extends InvitationParameters = Invitati
       await this.sendNotification(Ident.init(ident.pop(), ident.join("_")), {
         model,
         metadata,
-        inviter: {
-          uuid: inviter.getUuid(),
-          name: inviter.getDisplayName()
-        },
+        notification: body.notification,
+        inviter: inviter.toPublicEntry(),
         pending: !this.parameters.autoAccept,
         registered: true
       });
@@ -466,7 +465,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
           model[this.parameters.pendingAttribute][`user_${u}`] = body.metadata;
         }
         invitedUsers.push(user);
-        await this.addInvitationToUser(model, user, inviter, metadata);
+        await this.addInvitationToUser(model, user, inviter, metadata, body.notification);
       })
     );
 
@@ -475,6 +474,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     await this.updateModel(model);
     this.emit("Invitation.Sent", <EventInvitationSent>{
       metadata: body.metadata,
+      notification: body.notification,
       users: invitedUsers,
       idents: invitedIdents,
       model,
@@ -482,7 +482,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     });
   }
 
-  async addInvitationToUser(model: CoreModel, user: User, inviter: User, metadata: any) {
+  async addInvitationToUser(model: CoreModel, user: User, inviter: User, metadata: any, notification: any = {}) {
     if ((user[this.parameters.mapAttribute] || []).filter(p => p.model === model.getUuid()).length) {
       return;
     }
@@ -491,20 +491,15 @@ export default class InvitationService<T extends InvitationParameters = Invitati
       .upsertItemToCollection(user.getUuid(), this.parameters.mapAttribute, {
         model: model.getUuid(),
         metadata,
-        inviter: {
-          uuid: inviter.getUuid(),
-          name: inviter.getDisplayName()
-        },
+        inviter: inviter.toPublicEntry(),
         pending: !this.parameters.autoAccept
       });
     // Notify user
     await this.sendNotification(user, {
       model,
       metadata,
-      inviter: {
-        uuid: inviter.getUuid(),
-        name: inviter.getDisplayName()
-      },
+      notification,
+      inviter: inviter.toPublicEntry(),
       pending: !this.parameters.autoAccept,
       registered: true
     });

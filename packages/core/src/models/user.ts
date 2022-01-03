@@ -33,6 +33,10 @@ class User extends OwnerModel {
    */
   private _idents: Ident[] = [];
   /**
+   * Define the user avatar if exists
+   */
+  private avatar?: string;
+  /**
    * Contains the locale of the user if known
    */
   locale?: string;
@@ -54,6 +58,18 @@ class User extends OwnerModel {
       this.email ??= null;
     }
     return this.email;
+  }
+
+  /**
+   * Return displayable public entry
+   * @returns
+   */
+  toPublicEntry(): any {
+    return {
+      displayName: this.displayName,
+      uuid: this.getUuid(),
+      avatar: this.avatar
+    };
   }
 
   getGroups(): string[] {

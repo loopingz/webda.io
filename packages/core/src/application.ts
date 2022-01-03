@@ -50,6 +50,8 @@ import { JSONSchema6 } from "json-schema";
 import { FileUtils, JSONUtils } from "./utils/serializers";
 import { EchoService } from "./services/echo";
 import { CronService } from "./services/cron";
+import InvitationService from "./services/invitationservice";
+import MultiNotificationService from "./services/notificationservice";
 
 /**
  * Return the gather information from the repository
@@ -221,26 +223,28 @@ export class Application {
    */
   protected services: { [key: string]: ServiceConstructor<Service> } = {
     // real service - modda
-    "webda/authentication": Authentication,
-    "webda/filestore": FileStore,
-    "webda/memorystore": MemoryStore,
-    "webda/filebinary": FileBinary,
-    "webda/debugmailer": DebugMailer,
-    "webda/mailer": Mailer,
+    "webda/aggregator": AggregatorService,
     "webda/asyncevents": EventService,
-    "webda/resourceservice": ResourceService,
-    "webda/cronservice": CronService,
-    "webda/echoservice": EchoService,
-    "webda/versionservice": VersionService,
-    "webda/memoryqueue": MemoryQueue,
-    "webda/filequeue": FileQueue,
-    "webda/configurationservice": ConfigurationService,
-    "webda/fileconfigurationservice": FileConfigurationService,
-    "webda/kubernetesconfigurationservice": KubernetesConfigurationService,
+    "webda/authentication": Authentication,
     "webda/consolelogger": ConsoleLoggerService,
-    "webda/memorylogger": MemoryLoggerService,
+    "webda/configurationservice": ConfigurationService,
+    "webda/cronservice": CronService,
+    "webda/debugmailer": DebugMailer,
+    "webda/echoservice": EchoService,
+    "webda/filebinary": FileBinary,
+    "webda/fileconfigurationservice": FileConfigurationService,
+    "webda/filequeue": FileQueue,
+    "webda/filestore": FileStore,
+    "webda/invitationservice": InvitationService,
+    "webda/kubernetesconfigurationservice": KubernetesConfigurationService,
+    "webda/mailer": Mailer,
     "webda/mapper": MapperService,
-    "webda/aggregator": AggregatorService
+    "webda/memorylogger": MemoryLoggerService,
+    "webda/memoryqueue": MemoryQueue,
+    "webda/memorystore": MemoryStore,
+    "webda/multinotification": MultiNotificationService,
+    "webda/resourceservice": ResourceService,
+    "webda/versionservice": VersionService
   };
 
   /**
@@ -253,8 +257,8 @@ export class Application {
     "webda/ident": Ident,
     "webda/user": User,
     "webdacore/context": Context,
-    "webdacore/sessioncookie": SessionCookie,
-    "webdacore/securecookie": SecureCookie
+    "webdacore/securecookie": SecureCookie,
+    "webdacore/sessioncookie": SessionCookie
   };
 
   /**

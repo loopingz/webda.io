@@ -219,7 +219,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       service: this,
       context: context
     });
-    params.ResponseContentDisposition = "attachment; filename=" + info.name;
+    params.ResponseContentDisposition = `attachment; filename=${info.name || info.originalname}`;
     params.ResponseContentType = info.mimetype;
     // Access-Control-Allow-Origin
     return this.getSignedUrl(this._getKey(info.hash), "getObject", params);

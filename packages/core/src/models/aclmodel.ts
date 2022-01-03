@@ -15,7 +15,7 @@ export default class AclModel extends CoreModel {
   /**
    * Permissions on the object
    */
-  __acls: Acl = {};
+  __acl: Acl = {};
 
   /**
    * Add acls actions
@@ -24,7 +24,7 @@ export default class AclModel extends CoreModel {
   static getActions(): { [key: string]: ModelAction } {
     return {
       ...super.getActions(),
-      acls: {
+      acl: {
         methods: ["PUT", "GET"]
       }
     };
@@ -36,8 +36,8 @@ export default class AclModel extends CoreModel {
   async _onSave() {
     await super._onSave();
     this._creator = this.getContext().getCurrentUserId();
-    if (Object.keys(this.__acls).length === 0) {
-      this.__acls[this._creator] = "all";
+    if (Object.keys(this.__acl).length === 0) {
+      this.__acl[this._creator] = "all";
     }
   }
 
@@ -45,16 +45,16 @@ export default class AclModel extends CoreModel {
    * Return object ACLs
    * @returns
    */
-  getAcls() {
-    return this.__acls;
+  getAcl() {
+    return this.__acl;
   }
 
   /**
    * Set object ACLs
-   * @param acls
+   * @param acl
    */
-  setAcls(acls: Acl) {
-    this.__acls = acls;
+  setAcl(acl: Acl) {
+    this.__acl = acl;
   }
 
   /**
@@ -62,7 +62,7 @@ export default class AclModel extends CoreModel {
    * @param ctx
    * @returns
    */
-  _acls(ctx: Context) {
+  _acl(ctx: Context) {
     if (ctx.getHttpContext().getMethod() === "PUT") {
       return this._httpPutAcls(ctx);
     } else if (ctx.getHttpContext().getMethod() === "GET") {
@@ -75,14 +75,14 @@ export default class AclModel extends CoreModel {
    * @param ctx
    */
   async _httpGetAcls(ctx: Context) {
-    ctx.write(this.__acls);
+    ctx.write(this.__acl);
   }
 
   /**
    *
    */
   async _httpPutAcls(ctx: Context) {
-    this.__acls = ctx.getRequestBody();
+    this.__acl = ctx.getRequestBody();
     await this.save();
   }
 
@@ -99,9 +99,9 @@ export default class AclModel extends CoreModel {
 
   async hasPermission(ctx: Context, user: User, action: string) {
     let groups = this.getGroups(ctx, user);
-    for (let i in this.__acls) {
+    for (let i in this.__acl) {
       if (groups.indexOf(i) >= 0) {
-        if (this.__acls[i] === "all" || this.__acls[i].split(",").indexOf(action) >= 0) {
+        if (this.__acl[i] === "all" || this.__acl[i].split(",").indexOf(action) >= 0) {
           return true;
         }
       }
@@ -110,7 +110,7 @@ export default class AclModel extends CoreModel {
   }
 
   async canAct(ctx: Context, action: string) {
-    if (!this.getAcls() || !ctx.getCurrentUserId()) {
+    if (!this.getAcl() || !ctx.getCurrentUserId()) {
       throw 403;
     }
     let user = await ctx.getCurrentUser();

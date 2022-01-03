@@ -40,7 +40,7 @@ class InvitationTest extends WebdaTest {
     this.service = new InvitationService(this.webda, "invit", {
       modelStore: "Companies",
       invitationStore: "Invitations",
-      attribute: "__acls",
+      attribute: "__acl",
       mapAttribute: "_companies",
       pendingAttribute: "__invitations",
       notificationService: "DebugMailer",
@@ -135,7 +135,7 @@ class InvitationTest extends WebdaTest {
       metadata: "read"
     });
     await company.refresh();
-    assert.deepStrictEqual(company.__acls, {
+    assert.deepStrictEqual(company.__acl, {
       [ident1.getUser()]: "read",
       [ident2.getUser()]: "read",
       [user.getUuid()]: "all"
@@ -181,7 +181,7 @@ class InvitationTest extends WebdaTest {
     });
 
     await company.refresh();
-    assert.deepStrictEqual(company.__acls, {
+    assert.deepStrictEqual(company.__acl, {
       [ident1.getUser()]: "read,write",
       [ident2.getUser()]: "read,write",
       [user.getUuid()]: "all"
@@ -235,7 +235,7 @@ class InvitationTest extends WebdaTest {
     });
 
     await company.refresh();
-    assert.deepStrictEqual(company.__acls, {
+    assert.deepStrictEqual(company.__acl, {
       [ident2.getUser()]: "read,write",
       [user.getUuid()]: "all"
     });
@@ -271,7 +271,7 @@ class InvitationTest extends WebdaTest {
     const ident4 = await this.authentication.getIdentStore().get(`test4@webda.io_email`);
 
     await company.refresh();
-    assert.deepStrictEqual(company.__acls, {
+    assert.deepStrictEqual(company.__acl, {
       [ident2.getUser()]: "read,write",
       [ident4.getUser()]: "read,write",
       [user.getUuid()]: "all"
@@ -329,7 +329,7 @@ class InvitationTest extends WebdaTest {
       metadata: "read"
     });
     await company.refresh();
-    assert.deepStrictEqual(company.__acls, {
+    assert.deepStrictEqual(company.__acl, {
       [user.getUuid()]: "all"
     });
     // @ts-ignore
@@ -397,7 +397,7 @@ class InvitationTest extends WebdaTest {
       accept: true
     });
     await company.refresh();
-    assert.deepStrictEqual(company.__acls, {
+    assert.deepStrictEqual(company.__acl, {
       [ident1.getUser()]: "read",
       [user.getUuid()]: "all"
     });
@@ -409,7 +409,7 @@ class InvitationTest extends WebdaTest {
     });
 
     await company.refresh();
-    assert.deepStrictEqual(company.__acls, {
+    assert.deepStrictEqual(company.__acl, {
       [ident1.getUser()]: "read",
       [user.getUuid()]: "all"
     });
@@ -450,7 +450,7 @@ class InvitationTest extends WebdaTest {
     });
 
     await company.refresh();
-    assert.deepStrictEqual(company.__acls, {
+    assert.deepStrictEqual(company.__acl, {
       [user.getUuid()]: "all"
     });
     // @ts-ignore
@@ -493,7 +493,7 @@ class InvitationTest extends WebdaTest {
     const ident4 = await this.authentication.getIdentStore().get(`test4@webda.io_email`);
 
     await company.refresh();
-    assert.deepStrictEqual(company.__acls, {
+    assert.deepStrictEqual(company.__acl, {
       [user.getUuid()]: "all"
     });
     // @ts-ignore
@@ -514,7 +514,7 @@ class InvitationTest extends WebdaTest {
       accept: true
     });
     await company.refresh();
-    assert.deepStrictEqual(company.__acls, {
+    assert.deepStrictEqual(company.__acl, {
       [user.getUuid()]: "all",
       [ident4.getUser()]: "read,write"
     });

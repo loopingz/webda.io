@@ -508,6 +508,8 @@ class InvitationTest extends WebdaTest {
       []
     );
     ctx2.getSession().userId = ident4.getUser();
+    // Force refresh of user as we changed user manually
+    await ctx2.getCurrentUser(true);
     await this.execute(ctx2, "test.webda.io", "PUT", `/companies/${company.getUuid()}/invitations`, {
       accept: true
     });

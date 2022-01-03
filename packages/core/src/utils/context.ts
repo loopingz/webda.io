@@ -195,6 +195,7 @@ class Context extends EventEmitter {
    * Allow extensions
    */
   protected extensions: { [key: string]: any };
+  private user: User;
 
   /**
    * Get Global Context
@@ -534,11 +535,15 @@ class Context extends EventEmitter {
   /**
    * Get the current user from session
    */
-  async getCurrentUser<T extends User>(): Promise<T> {
+  async getCurrentUser<T extends User>(refresh: boolean = false): Promise<T> {
     if (!this.getCurrentUserId()) {
       return undefined;
     }
-    return this._webda.getService<Store<T, any>>("Users").get(this.getCurrentUserId());
+    // Caching the answer
+    if (!this.user || refresh) {
+      this.user = await this._webda.getService<Store<T, any>>("Users").get(this.getCurrentUserId());
+    }
+    return <T>this.user;
   }
 
   /**

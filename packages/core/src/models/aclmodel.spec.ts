@@ -35,6 +35,14 @@ class AclPolicyTest {
     this.model.__acl["gip-123"] = "get,action";
     assert.strictEqual(await this.model.canAct(this._ctx, "get"), this.model);
     assert.strictEqual(await this.model.canAct(this._ctx, "action"), this.model);
+    assert.deepStrictEqual(await this.model.getPermissions(this._ctx), ["get", "action"]);
+    await this.model._onGet();
+    // @ts-ignore
+    assert.deepStrictEqual(this.model._permissions, []);
+    this.model.setContext(this._ctx);
+    await this.model._onGet();
+    // @ts-ignore
+    assert.deepStrictEqual(this.model._permissions, ["get", "action"]);
   }
 
   @test async multigroups() {

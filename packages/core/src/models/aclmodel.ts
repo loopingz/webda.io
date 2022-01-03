@@ -42,6 +42,16 @@ export default class AclModel extends CoreModel {
   }
 
   /**
+   * Add the permissions for current user
+   */
+  async _onGet() {
+    if (this.getContext()) {
+      // @ts-ignore
+      this._permissions = await this.getPermissions(this.getContext());
+    }
+  }
+
+  /**
    * Return object ACLs
    * @returns
    */
@@ -88,6 +98,9 @@ export default class AclModel extends CoreModel {
 
   // Should cache the user role in the session
   getGroups(ctx: Context, user: User) {
+    if (!user) {
+      return [];
+    }
     let groups = user.getGroups();
     if (!groups) {
       groups = [];
@@ -95,6 +108,26 @@ export default class AclModel extends CoreModel {
     groups = groups.slice(0);
     groups.push(user.uuid);
     return groups;
+  }
+
+  /**
+   * Get Permissions for one object
+   * @param ctx
+   * @param user
+   * @returns
+   */
+  async getPermissions(ctx: Context, user?: User): Promise<string[]> {
+    if (!user) {
+      user = await ctx.getCurrentUser();
+    }
+    let permissions = new Set<string>();
+    let groups = this.getGroups(ctx, user);
+    for (let i in this.__acl) {
+      if (groups.indexOf(i) >= 0) {
+        this.__acl[i].split(",").forEach(p => permissions.add(p));
+      }
+    }
+    return [...permissions.values()];
   }
 
   async hasPermission(ctx: Context, user: User, action: string) {

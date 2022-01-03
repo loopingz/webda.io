@@ -1218,12 +1218,11 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       }
       let updateObject: any = new this._model();
       // Clean any default attributes from the model
-      for (let i in updateObject) {
-        if (i.startsWith("__")) {
-          continue;
-        }
-        delete updateObject[i];
-      }
+      Object.keys(updateObject)
+        .filter(i => i !== "__class")
+        .forEach(i => {
+          delete updateObject[i];
+        });
       updateObject.setContext(ctx);
       updateObject.load(body);
       await this.patch(updateObject);
@@ -1232,11 +1231,11 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       let updateObject: any = new this._model();
       updateObject.load(body);
       // Copy back the _ attributes
-      for (let i in object) {
-        if (i.startsWith("_")) {
+      Object.keys(object)
+        .filter(i => i.startsWith("_"))
+        .forEach(i => {
           updateObject[i] = object[i];
-        }
-      }
+        });
       try {
         await updateObject.validate(ctx);
       } catch (err) {

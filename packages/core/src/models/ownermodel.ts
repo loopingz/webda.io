@@ -67,10 +67,7 @@ export default class OwnerModel extends CoreModel {
    */
   async canUpdate(ctx: Context): Promise<this> {
     // Allow to modify itself by default
-    if (
-      (!this.getOwner() || ctx.getSession().getUserId() !== this.getOwner()) &&
-      ctx.getSession().getUserId() !== this.uuid
-    ) {
+    if ((!this.getOwner() || ctx.getCurrentUserId() !== this.getOwner()) && ctx.getCurrentUserId() !== this.uuid) {
       throw 403;
     }
     return this;

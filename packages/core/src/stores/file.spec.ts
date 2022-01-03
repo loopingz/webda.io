@@ -214,18 +214,18 @@ class FileStoreTest extends StoreTest {
     });
     await assert.rejects(executor.execute(ctx), err => err == 409);
     // Verify the none overide of UUID
-    executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/users/PLOP", {
+    await this.execute(ctx, "test.webda.io", "PUT", "/users/PLOP", {
       type: "CRUD2",
       additional: "field",
       uuid: "PLOP2",
       user: "fake_user"
     });
-    await executor.execute(ctx);
     let user = await userStore.get("PLOP");
     assert.strictEqual(user.uuid, "PLOP");
     assert.strictEqual(user.type, "CRUD2");
     assert.strictEqual(user.additional, "field");
     assert.strictEqual(user.user, "fake_user");
+    assert.strictEqual(user._user, "fake_user");
 
     // Add a role to the user
     user.addRole("plop");
@@ -236,17 +236,17 @@ class FileStoreTest extends StoreTest {
 
     ctx.resetResponse();
     // Check PATH
-    executor = this.getExecutor(ctx, "test.webda.io", "PATCH", "/users/PLOP", {
+    await this.execute(ctx, "test.webda.io", "PATCH", "/users/PLOP", {
       type: "CRUD3",
       uuid: "PLOP2",
       _testor: "_ should not be update by client"
     });
-    await executor.execute(ctx);
     user = await userStore.get("PLOP");
     assert.strictEqual(user.uuid, "PLOP");
     assert.strictEqual(user.type, "CRUD3");
     assert.strictEqual(user.additional, "field");
     assert.strictEqual(user._testor, undefined);
+    assert.strictEqual(user._user, "fake_user");
     assert.deepStrictEqual(user.getRoles(), ["plop"]);
 
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", "/users/PLOP", {

@@ -147,7 +147,12 @@
 				<div>
 					<ul class="tsd-hierarchy">
 						<li>
-							<span class="target">MailerService</span>
+							<span class="tsd-signature-type">NotificationService</span>
+							<ul class="tsd-hierarchy">
+								<li>
+									<span class="target">MailerService</span>
+								</li>
+							</ul>
 						</li>
 					</ul>
 				</div>
@@ -157,11 +162,17 @@
 					<li class="current tsd-kind-interface tsd-parent-kind-module root">
 						<a href="_webda_core.MailerService.html" class="tsd-kind-icon">Mailer<wbr>Service</a>
 						<ul>
-							<li class=" tsd-kind-method tsd-parent-kind-interface">
-								<a href="_webda_core.MailerService.html#hasTemplate" class="tsd-kind-icon">has<wbr>Template</a>
+							<li class=" tsd-kind-method tsd-parent-kind-interface tsd-is-inherited">
+								<a href="_webda_core.MailerService.html#handleNotificationFor" class="tsd-kind-icon">handle<wbr>Notification<wbr>For</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-interface tsd-is-inherited">
+								<a href="_webda_core.MailerService.html#hasNotification" class="tsd-kind-icon">has<wbr>Notification</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-interface">
 								<a href="_webda_core.MailerService.html#send" class="tsd-kind-icon">send</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-interface tsd-is-inherited">
+								<a href="_webda_core.MailerService.html#sendNotification" class="tsd-kind-icon">send<wbr>Notification</a>
 							</li>
 						</ul>
 					</li>
@@ -181,15 +192,19 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">MailerService</span>
+						<a href="_webda_core.NotificationService.html" class="tsd-signature-type">NotificationService</a>
+						<ul class="tsd-hierarchy">
+							<li>
+								<span class="target">MailerService</span>
+							</li>
+						</ul>
 					</li>
 				</ul>
 			</section>
 			<section class="tsd-panel">
 				<h3>Implemented by</h3>
 				<ul class="tsd-hierarchy">
-					<li><a href="../classes/_webda_core.DebugMailer.html" class="tsd-signature-type">DebugMailer</a></li>
-					<li><a href="../classes/_webda_core.Mailer.html" class="tsd-signature-type">Mailer</a></li>
+					<li><a href="../classes/_webda_core.AbstractMailer.html" class="tsd-signature-type">AbstractMailer</a></li>
 				</ul>
 			</section>
 			<section class="tsd-panel-group tsd-index-group">
@@ -198,8 +213,10 @@
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="_webda_core.MailerService.html#hasTemplate" class="tsd-kind-icon">has<wbr>Template</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-interface tsd-is-inherited"><a href="_webda_core.MailerService.html#handleNotificationFor" class="tsd-kind-icon">handle<wbr>Notification<wbr>For</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-interface tsd-is-inherited"><a href="_webda_core.MailerService.html#hasNotification" class="tsd-kind-icon">has<wbr>Notification</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="_webda_core.MailerService.html#send" class="tsd-kind-icon">send</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-interface tsd-is-inherited"><a href="_webda_core.MailerService.html#sendNotification" class="tsd-kind-icon">send<wbr>Notification</a></li>
 							</ul>
 						</section>
 					</div>
@@ -207,25 +224,60 @@
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface">
-					<a name="hasTemplate" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
-						<li class="tsd-signature tsd-kind-icon">has<wbr>Template<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface tsd-is-inherited">
+					<a name="handleNotificationFor" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">handle<wbr>Notification<wbr>For<span class="tsd-signature-symbol">(</span>userOrIdent<span class="tsd-signature-symbol">: </span><a href="../classes/_webda_core.User.html" class="tsd-signature-type">User</a><span class="tsd-signature-symbol"> | </span><a href="../classes/_webda_core.Ident.html" class="tsd-signature-type">Ident</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
+								<p>Inherited from <a href="_webda_core.NotificationService.html">NotificationService</a>.<a href="_webda_core.NotificationService.html#handleNotificationFor">handleNotificationFor</a></p>
 							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Check if the service can deliver notification to this user</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>name: <span class="tsd-signature-type">string</span></h5>
+									<h5>userOrIdent: <a href="../classes/_webda_core.User.html" class="tsd-signature-type">User</a><span class="tsd-signature-symbol"> | </span><a href="../classes/_webda_core.Ident.html" class="tsd-signature-type">Ident</a></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/mailer.ts:21</li>
+									<li>Defined in packages/core/src/services/notificationservice.ts:18</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface tsd-is-inherited">
+					<a name="hasNotification" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">has<wbr>Notification<span class="tsd-signature-symbol">(</span>notification<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="_webda_core.NotificationService.html">NotificationService</a>.<a href="_webda_core.NotificationService.html#hasNotification">hasNotification</a></p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Check if this type of notification is available</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>notification: <span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/services/notificationservice.ts:13</li>
 								</ul>
 							</aside>
 						</li>
@@ -263,7 +315,7 @@
 													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 													<aside class="tsd-sources">
 														<ul>
-															<li>Defined in packages/core/src/services/mailer.ts:27</li>
+															<li>Defined in packages/core/src/services/mailer.ts:28</li>
 														</ul>
 													</aside>
 												</li>
@@ -275,7 +327,44 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/mailer.ts:27</li>
+									<li>Defined in packages/core/src/services/mailer.ts:28</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface tsd-is-inherited">
+					<a name="sendNotification" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">send<wbr>Notification<span class="tsd-signature-symbol">(</span>user<span class="tsd-signature-symbol">: </span><a href="../classes/_webda_core.User.html" class="tsd-signature-type">User</a><span class="tsd-signature-symbol"> | </span><a href="../classes/_webda_core.Ident.html" class="tsd-signature-type">Ident</a>, notification<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, replacements<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="_webda_core.NotificationService.html">NotificationService</a>.<a href="_webda_core.NotificationService.html#sendNotification">sendNotification</a></p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Send the notification to the user</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>user: <a href="../classes/_webda_core.User.html" class="tsd-signature-type">User</a><span class="tsd-signature-symbol"> | </span><a href="../classes/_webda_core.Ident.html" class="tsd-signature-type">Ident</a></h5>
+								</li>
+								<li>
+									<h5>notification: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>replacements: <span class="tsd-signature-type">any</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/services/notificationservice.ts:25</li>
 								</ul>
 							</aside>
 						</li>

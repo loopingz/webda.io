@@ -147,7 +147,7 @@
 				<div>
 					<ul class="tsd-hierarchy">
 						<li>
-							<span class="tsd-signature-type">Service</span>
+							<span class="tsd-signature-type">AbstractMailer</span>
 							<ul class="tsd-hierarchy">
 								<li>
 									<span class="target">DebugMailer</span>
@@ -228,8 +228,11 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.DebugMailer.html#getWebda" class="tsd-kind-icon">get<wbr>Webda</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="_webda_core.DebugMailer.html#hasTemplate" class="tsd-kind-icon">has<wbr>Template</a>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_core.DebugMailer.html#handleNotificationFor" class="tsd-kind-icon">handle<wbr>Notification<wbr>For</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+								<a href="_webda_core.DebugMailer.html#hasNotification" class="tsd-kind-icon">has<wbr>Notification</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.DebugMailer.html#init" class="tsd-kind-icon">init</a>
@@ -252,8 +255,11 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.DebugMailer.html#resolve" class="tsd-kind-icon">resolve</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 								<a href="_webda_core.DebugMailer.html#send" class="tsd-kind-icon">send</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_core.DebugMailer.html#sendNotification" class="tsd-kind-icon">send<wbr>Notification</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.DebugMailer.html#toPublicJSON" class="tsd-kind-icon">to<wbr>PublicJSON</a>
@@ -285,19 +291,13 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<a href="_webda_core.Service.html" class="tsd-signature-type">Service</a>
+						<a href="_webda_core.AbstractMailer.html" class="tsd-signature-type">AbstractMailer</a>
 						<ul class="tsd-hierarchy">
 							<li>
 								<span class="target">DebugMailer</span>
 							</li>
 						</ul>
 					</li>
-				</ul>
-			</section>
-			<section class="tsd-panel">
-				<h3>Implements</h3>
-				<ul class="tsd-hierarchy">
-					<li><a href="../interfaces/_webda_core.MailerService.html" class="tsd-signature-type">MailerService</a></li>
 				</ul>
 			</section>
 			<section class="tsd-panel-group tsd-index-group">
@@ -338,7 +338,8 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.DebugMailer.html#getParameters" class="tsd-kind-icon">get<wbr>Parameters</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="_webda_core.DebugMailer.html#getService" class="tsd-kind-icon">get<wbr>Service</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.DebugMailer.html#getWebda" class="tsd-kind-icon">get<wbr>Webda</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.DebugMailer.html#hasTemplate" class="tsd-kind-icon">has<wbr>Template</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.DebugMailer.html#handleNotificationFor" class="tsd-kind-icon">handle<wbr>Notification<wbr>For</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_core.DebugMailer.html#hasNotification" class="tsd-kind-icon">has<wbr>Notification</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.DebugMailer.html#init" class="tsd-kind-icon">init</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.DebugMailer.html#initRoutes" class="tsd-kind-icon">init<wbr>Routes</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.DebugMailer.html#loadParameters" class="tsd-kind-icon">load<wbr>Parameters</a></li>
@@ -346,7 +347,8 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.DebugMailer.html#onAsync" class="tsd-kind-icon">on<wbr>Async</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.DebugMailer.html#reinit" class="tsd-kind-icon">reinit</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.DebugMailer.html#resolve" class="tsd-kind-icon">resolve</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.DebugMailer.html#send" class="tsd-kind-icon">send</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_core.DebugMailer.html#send" class="tsd-kind-icon">send</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.DebugMailer.html#sendNotification" class="tsd-kind-icon">send<wbr>Notification</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.DebugMailer.html#toPublicJSON" class="tsd-kind-icon">to<wbr>PublicJSON</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.DebugMailer.html#toString" class="tsd-kind-icon">to<wbr>String</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite tsd-is-static"><a href="_webda_core.DebugMailer.html#getModda" class="tsd-kind-icon">get<wbr>Modda</a></li>
@@ -366,7 +368,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Overrides <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#constructor">constructor</a></p>
+								<p>Overrides <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#constructor">constructor</a></p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -383,7 +385,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.DebugMailer.html" class="tsd-signature-type">DebugMailer</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/debugmailer.ts:11</li>
+									<li>Defined in packages/core/src/services/debugmailer.ts:10</li>
 								</ul>
 							</aside>
 						</li>
@@ -474,7 +476,7 @@
 					<div class="tsd-signature tsd-kind-icon">sent<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/debugmailer.ts:9</li>
+							<li>Defined in packages/core/src/services/debugmailer.ts:8</li>
 						</ul>
 					</aside>
 			</section>    </section>
@@ -488,7 +490,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#__clean">__clean</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#__clean">__clean</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -514,7 +516,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#addRoute">addRoute</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#addRoute">addRoute</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -570,7 +572,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/debugmailer.ts:55</li>
+									<li>Defined in packages/core/src/services/debugmailer.ts:54</li>
 								</ul>
 							</aside>
 						</li>
@@ -583,7 +585,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#computeParameters">computeParameters</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#computeParameters">computeParameters</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -606,7 +608,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#elapse">elapse</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#elapse">elapse</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -637,7 +639,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#emit">emit</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#emit">emit</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -672,7 +674,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#emitSync">emitSync</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#emitSync">emitSync</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -713,7 +715,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/debugmailer.ts:30</li>
+									<li>Defined in packages/core/src/services/debugmailer.ts:29</li>
 								</ul>
 							</aside>
 						</li>
@@ -735,7 +737,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/debugmailer.ts:48</li>
+									<li>Defined in packages/core/src/services/debugmailer.ts:47</li>
 								</ul>
 							</aside>
 						</li>
@@ -748,7 +750,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#getName">getName</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#getName">getName</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -771,7 +773,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#getParameters">getParameters</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#getParameters">getParameters</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -794,7 +796,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#getService">getService</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#getService">getService</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -832,7 +834,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#getWebda">getWebda</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#getWebda">getWebda</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -847,15 +849,44 @@
 							</aside>
 						</li>
 					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="hasTemplate" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">has<wbr>Template<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="handleNotificationFor" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">handle<wbr>Notification<wbr>For<span class="tsd-signature-symbol">(</span>user<span class="tsd-signature-symbol">: </span><a href="_webda_core.User.html" class="tsd-signature-type">User</a><span class="tsd-signature-symbol"> | </span><a href="_webda_core.Ident.html" class="tsd-signature-type">Ident</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Implementation of <a href="../interfaces/_webda_core.MailerService.html">MailerService</a>.<a href="../interfaces/_webda_core.MailerService.html#hasTemplate">hasTemplate</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#handleNotificationFor">handleNotificationFor</a></p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>If user has an email</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>user: <a href="_webda_core.User.html" class="tsd-signature-type">User</a><span class="tsd-signature-symbol"> | </span><a href="_webda_core.Ident.html" class="tsd-signature-type">Ident</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/services/mailer.ts:132</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+					<a name="hasNotification" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
+						<li class="tsd-signature tsd-kind-icon">has<wbr>Notification<span class="tsd-signature-symbol">(</span>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Overrides <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#hasNotification">hasNotification</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -868,10 +899,10 @@
 									<h5>name: <span class="tsd-signature-type">string</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/debugmailer.ts:40</li>
+									<li>Defined in packages/core/src/services/debugmailer.ts:39</li>
 								</ul>
 							</aside>
 						</li>
@@ -884,7 +915,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#init">init</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#init">init</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -910,7 +941,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#initRoutes">initRoutes</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#initRoutes">initRoutes</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -933,7 +964,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#loadParameters">loadParameters</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#loadParameters">loadParameters</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -962,7 +993,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#log">log</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#log">log</a></p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -994,7 +1025,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#onAsync">onAsync</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#onAsync">onAsync</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -1032,7 +1063,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#reinit">reinit</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#reinit">reinit</a></p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -1059,7 +1090,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#resolve">resolve</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#resolve">resolve</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -1075,15 +1106,15 @@
 							</aside>
 						</li>
 					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 					<a name="send" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-overwrite">
 						<li class="tsd-signature tsd-kind-icon">send<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, callback<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Implementation of <a href="../interfaces/_webda_core.MailerService.html">MailerService</a>.<a href="../interfaces/_webda_core.MailerService.html#send">send</a></p>
+								<p>Overrides <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#send">send</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -1104,7 +1135,41 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/debugmailer.ts:22</li>
+									<li>Defined in packages/core/src/services/debugmailer.ts:21</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="sendNotification" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">send<wbr>Notification<span class="tsd-signature-symbol">(</span>user<span class="tsd-signature-symbol">: </span><a href="_webda_core.User.html" class="tsd-signature-type">User</a><span class="tsd-signature-symbol"> | </span><a href="_webda_core.Ident.html" class="tsd-signature-type">Ident</a>, notification<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, replacements<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#sendNotification">sendNotification</a></p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-tags">
+								<dl class="tsd-comment-tags"><dt>override</dt>
+								<dd></dd></dl>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>user: <a href="_webda_core.User.html" class="tsd-signature-type">User</a><span class="tsd-signature-symbol"> | </span><a href="_webda_core.Ident.html" class="tsd-signature-type">Ident</a></h5>
+								</li>
+								<li>
+									<h5>notification: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>replacements: <span class="tsd-signature-type">any</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/services/mailer.ts:139</li>
 								</ul>
 							</aside>
 						</li>
@@ -1117,7 +1182,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#toPublicJSON">toPublicJSON</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#toPublicJSON">toPublicJSON</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -1150,7 +1215,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#toString">toString</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#toString">toString</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -1173,7 +1238,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Overrides <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#getModda">getModda</a></p>
+								<p>Overrides <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#getModda">getModda</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">
@@ -1183,7 +1248,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="../interfaces/_webda_core.ModdaDefinition.html" class="tsd-signature-type">ModdaDefinition</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/debugmailer.ts:60</li>
+									<li>Defined in packages/core/src/services/debugmailer.ts:59</li>
 								</ul>
 							</aside>
 						</li>
@@ -1196,7 +1261,7 @@
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#getSchema">getSchema</a></p>
+								<p>Inherited from <a href="_webda_core.AbstractMailer.html">AbstractMailer</a>.<a href="_webda_core.AbstractMailer.html#getSchema">getSchema</a></p>
 							</aside>
 							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 								<div class="lead">

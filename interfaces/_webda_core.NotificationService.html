@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>EventWithContext |
+	<title>NotificationService |
 	webda.io</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -64,7 +64,7 @@
 				<a href="../modules/_webda_core.html">@webda/core</a>
 			</li>
 			<li>
-				<a href="_webda_core.EventWithContext.html">EventWithContext</a>
+				<a href="_webda_core.NotificationService.html">NotificationService</a>
 			</li>
 		</ul>
 	</div>
@@ -147,55 +147,10 @@
 				<div>
 					<ul class="tsd-hierarchy">
 						<li>
-							<span class="target">EventWithContext</span>
+							<span class="target">NotificationService</span>
 							<ul class="tsd-hierarchy">
 								<li>
-									<span class="tsd-signature-type">EventWebdaRequest</span>
-								</li>
-								<li>
-									<span class="tsd-signature-type">EventWebdaResult</span>
-								</li>
-								<li>
-									<span class="tsd-signature-type">EventWebda404</span>
-								</li>
-								<li>
-									<span class="tsd-signature-type">EventAuthenticationGetMe</span>
-								</li>
-								<li>
-									<span class="tsd-signature-type">EventAuthenticationLogout</span>
-								</li>
-								<li>
-									<span class="tsd-signature-type">EventAuthenticationLogin</span>
-								</li>
-								<li>
-									<span class="tsd-signature-type">EventInvitationSent</span>
-								</li>
-								<li>
-									<span class="tsd-signature-type">EventInvitationRemoved</span>
-								</li>
-								<li>
-									<span class="tsd-signature-type">EventInvitationAnswered</span>
-								</li>
-								<li>
-									<span class="tsd-signature-type">EventOAuthToken</span>
-								</li>
-								<li>
-									<span class="tsd-signature-type">EventStoreAction</span>
-								</li>
-								<li>
-									<span class="tsd-signature-type">EventStoreWebCreate</span>
-								</li>
-								<li>
-									<span class="tsd-signature-type">EventStoreWebGet</span>
-								</li>
-								<li>
-									<span class="tsd-signature-type">EventStoreWebGetNotFound</span>
-								</li>
-								<li>
-									<span class="tsd-signature-type">EventStoreWebUpdate</span>
-								</li>
-								<li>
-									<span class="tsd-signature-type">EventStoreWebDelete</span>
+									<span class="tsd-signature-type">MailerService</span>
 								</li>
 							</ul>
 						</li>
@@ -205,10 +160,16 @@
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-interface tsd-parent-kind-module root">
-						<a href="_webda_core.EventWithContext.html" class="tsd-kind-icon">Event<wbr>With<wbr>Context</a>
+						<a href="_webda_core.NotificationService.html" class="tsd-kind-icon">Notification<wbr>Service</a>
 						<ul>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_webda_core.EventWithContext.html#context" class="tsd-kind-icon">context</a>
+							<li class=" tsd-kind-method tsd-parent-kind-interface">
+								<a href="_webda_core.NotificationService.html#handleNotificationFor" class="tsd-kind-icon">handle<wbr>Notification<wbr>For</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-interface">
+								<a href="_webda_core.NotificationService.html#hasNotification" class="tsd-kind-icon">has<wbr>Notification</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-interface">
+								<a href="_webda_core.NotificationService.html#sendNotification" class="tsd-kind-icon">send<wbr>Notification</a>
 							</li>
 						</ul>
 					</li>
@@ -218,92 +179,140 @@
 			</nav>
 		</div>
 		<div class="col-content">
-			<h1>Interface EventWithContext</h1>
+			<h1>Interface NotificationService</h1>
 			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
 					<div class="lead">
-						<p>Ensure all events store the context in the same place</p>
+						<p>Define a service that can notify a user based on his info
+						It can use email or SMS or any other media</p>
 					</div>
 			</div></section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">EventWithContext</span>
+						<span class="target">NotificationService</span>
 						<ul class="tsd-hierarchy">
 							<li>
-								<a href="_webda_core.EventWebdaRequest.html" class="tsd-signature-type">EventWebdaRequest</a>
-							</li>
-							<li>
-								<a href="_webda_core.EventWebdaResult.html" class="tsd-signature-type">EventWebdaResult</a>
-							</li>
-							<li>
-								<a href="_webda_core.EventWebda404.html" class="tsd-signature-type">EventWebda404</a>
-							</li>
-							<li>
-								<a href="_webda_core.EventAuthenticationGetMe.html" class="tsd-signature-type">EventAuthenticationGetMe</a>
-							</li>
-							<li>
-								<a href="_webda_core.EventAuthenticationLogout.html" class="tsd-signature-type">EventAuthenticationLogout</a>
-							</li>
-							<li>
-								<a href="_webda_core.EventAuthenticationLogin.html" class="tsd-signature-type">EventAuthenticationLogin</a>
-							</li>
-							<li>
-								<a href="_webda_core.EventInvitationSent.html" class="tsd-signature-type">EventInvitationSent</a>
-							</li>
-							<li>
-								<a href="_webda_core.EventInvitationRemoved.html" class="tsd-signature-type">EventInvitationRemoved</a>
-							</li>
-							<li>
-								<a href="_webda_core.EventInvitationAnswered.html" class="tsd-signature-type">EventInvitationAnswered</a>
-							</li>
-							<li>
-								<a href="_webda_core.EventOAuthToken.html" class="tsd-signature-type">EventOAuthToken</a>
-							</li>
-							<li>
-								<a href="_webda_core.EventStoreAction.html" class="tsd-signature-type">EventStoreAction</a>
-							</li>
-							<li>
-								<a href="_webda_core.EventStoreWebCreate.html" class="tsd-signature-type">EventStoreWebCreate</a>
-							</li>
-							<li>
-								<a href="_webda_core.EventStoreWebGet.html" class="tsd-signature-type">EventStoreWebGet</a>
-							</li>
-							<li>
-								<a href="_webda_core.EventStoreWebGetNotFound.html" class="tsd-signature-type">EventStoreWebGetNotFound</a>
-							</li>
-							<li>
-								<a href="_webda_core.EventStoreWebUpdate.html" class="tsd-signature-type">EventStoreWebUpdate</a>
-							</li>
-							<li>
-								<a href="_webda_core.EventStoreWebDelete.html" class="tsd-signature-type">EventStoreWebDelete</a>
+								<a href="_webda_core.MailerService.html" class="tsd-signature-type">MailerService</a>
 							</li>
 						</ul>
 					</li>
+				</ul>
+			</section>
+			<section class="tsd-panel">
+				<h3>Implemented by</h3>
+				<ul class="tsd-hierarchy">
+					<li><a href="../classes/_webda_core.MultiNotificationService.html" class="tsd-signature-type">MultiNotificationService</a></li>
 				</ul>
 			</section>
 			<section class="tsd-panel-group tsd-index-group">
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
 						<section class="tsd-index-section ">
-							<h3>Properties</h3>
+							<h3>Methods</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.EventWithContext.html#context" class="tsd-kind-icon">context</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="_webda_core.NotificationService.html#handleNotificationFor" class="tsd-kind-icon">handle<wbr>Notification<wbr>For</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="_webda_core.NotificationService.html#hasNotification" class="tsd-kind-icon">has<wbr>Notification</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-interface"><a href="_webda_core.NotificationService.html#sendNotification" class="tsd-kind-icon">send<wbr>Notification</a></li>
 							</ul>
 						</section>
 					</div>
 				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
-				<h2>Properties</h2>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="context" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">context<span class="tsd-signature-symbol">:</span> <a href="../classes/_webda_core.Context.html" class="tsd-signature-type">Context</a></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/src/core.ts:43</li>
-						</ul>
-					</aside>
+				<h2>Methods</h2>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface">
+					<a name="handleNotificationFor" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
+						<li class="tsd-signature tsd-kind-icon">handle<wbr>Notification<wbr>For<span class="tsd-signature-symbol">(</span>userOrIdent<span class="tsd-signature-symbol">: </span><a href="../classes/_webda_core.User.html" class="tsd-signature-type">User</a><span class="tsd-signature-symbol"> | </span><a href="../classes/_webda_core.Ident.html" class="tsd-signature-type">Ident</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Check if the service can deliver notification to this user</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>userOrIdent: <a href="../classes/_webda_core.User.html" class="tsd-signature-type">User</a><span class="tsd-signature-symbol"> | </span><a href="../classes/_webda_core.Ident.html" class="tsd-signature-type">Ident</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/services/notificationservice.ts:18</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface">
+					<a name="hasNotification" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
+						<li class="tsd-signature tsd-kind-icon">has<wbr>Notification<span class="tsd-signature-symbol">(</span>notification<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Check if this type of notification is available</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>notification: <span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/services/notificationservice.ts:13</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface">
+					<a name="sendNotification" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
+						<li class="tsd-signature tsd-kind-icon">send<wbr>Notification<span class="tsd-signature-symbol">(</span>user<span class="tsd-signature-symbol">: </span><a href="../classes/_webda_core.User.html" class="tsd-signature-type">User</a><span class="tsd-signature-symbol"> | </span><a href="../classes/_webda_core.Ident.html" class="tsd-signature-type">Ident</a>, notification<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, replacements<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Send the notification to the user</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>user: <a href="../classes/_webda_core.User.html" class="tsd-signature-type">User</a><span class="tsd-signature-symbol"> | </span><a href="../classes/_webda_core.Ident.html" class="tsd-signature-type">Ident</a></h5>
+								</li>
+								<li>
+									<h5>notification: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>replacements: <span class="tsd-signature-type">any</span></h5>
+									<div class="tsd-comment tsd-typography tsd-comment-text">
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/services/notificationservice.ts:25</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
 			</section>    </section>
 			<!--{&quot;options&quot;:&quot;/home/runner/work/webda.io/webda.io&quot;,&quot;tsconfig&quot;:&quot;/home/runner/work/webda.io/webda.io&quot;,&quot;packages&quot;:[&quot;/home/runner/work/webda.io/webda.io&quot;],&quot;entryPoints&quot;:[],&quot;exclude&quot;:[&quot;**/node_modules&quot;,&quot;/home/runner/work/webda.io/webda.io/packages/*/node_modules&quot;,&quot;/home/runner/work/webda.io/webda.io/packages/*/src/**/*.spec.ts&quot;,&quot;/home/runner/work/webda.io/webda.io/sample-app&quot;],&quot;externalPattern&quot;:[&quot;**/node_modules/**&quot;],&quot;excludeExternals&quot;:true,&quot;excludeNotDocumented&quot;:false,&quot;excludeInternal&quot;:false,&quot;excludePrivate&quot;:true,&quot;excludeProtected&quot;:false,&quot;disableSources&quot;:false,&quot;includes&quot;:&quot;&quot;,&quot;media&quot;:&quot;/home/runner/work/webda.io/webda.io/docs/media&quot;,&quot;watch&quot;:false,&quot;preserveWatchOutput&quot;:false,&quot;emit&quot;:false,&quot;out&quot;:&quot;/home/runner/work/webda.io/webda.io/.built-docs&quot;,&quot;json&quot;:&quot;&quot;,&quot;pretty&quot;:true,&quot;theme&quot;:&quot;./node_modules/typedoc-loopingz-theme/bin/default&quot;,&quot;highlightTheme&quot;:&quot;light-plus&quot;,&quot;name&quot;:&quot;webda.io&quot;,&quot;includeVersion&quot;:false,&quot;excludeTags&quot;:[],&quot;readme&quot;:&quot;/home/runner/work/webda.io/webda.io/readme.md&quot;,&quot;defaultCategory&quot;:&quot;Other&quot;,&quot;categoryOrder&quot;:[],&quot;categorizeByGroup&quot;:true,&quot;sort&quot;:[&quot;kind&quot;,&quot;instance-first&quot;,&quot;alphabetical&quot;],&quot;gitRevision&quot;:&quot;&quot;,&quot;gitRemote&quot;:&quot;origin&quot;,&quot;gaID&quot;:&quot;&quot;,&quot;gaSite&quot;:&quot;auto&quot;,&quot;hideGenerator&quot;:false,&quot;toc&quot;:[],&quot;disableOutputCheck&quot;:false,&quot;help&quot;:false,&quot;version&quot;:false,&quot;showConfig&quot;:false,&quot;plugin&quot;:[],&quot;logger&quot;:&quot;console&quot;,&quot;logLevel&quot;:1,&quot;treatWarningsAsErrors&quot;:false,&quot;listInvalidSymbolLinks&quot;:false,&quot;outline&quot;:[],&quot;excludeReferences&quot;:false,&quot;pages&quot;:{&quot;source&quot;:&quot;./docs/pages/&quot;,&quot;replaceGlobalsPage&quot;:true,&quot;reflectionNavigationTitle&quot;:&quot;Modules&quot;,&quot;autoDetectPageTitle&quot;:true,&quot;autoPopulateChildren&quot;:true,&quot;noJekyll&quot;:true,&quot;githubPagesDomain&quot;:&quot;docs.webda.io&quot;,&quot;enablePageLinks&quot;:true,&quot;enableSearch&quot;:true,&quot;failBuildOnInvalidPageLink&quot;:false,&quot;listInvalidPageLinks&quot;:false,&quot;output&quot;:&quot;pages&quot;,&quot;sources&quot;:[&quot;./docs/pages/&quot;]}}-->
 			<footer class="with-border-bottom">

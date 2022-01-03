@@ -375,6 +375,11 @@ export default class InvitationService<T extends InvitationParameters = Invitati
       return this.uninvite(ctx, model);
     }
     await model.canAct(ctx, "invite");
+    // Retrieve invitation useful when invitation are hidden with a __
+    if (ctx.getHttpContext().getMethod() === "GET") {
+      ctx.write(model[this.parameters.pendingAttribute] || []);
+      return;
+    }
     const body: Invitation = ctx.getRequestBody();
     // For each ident
     const identsStore = this.authenticationService.getIdentStore();

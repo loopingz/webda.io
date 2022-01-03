@@ -140,11 +140,14 @@ class InvitationTest extends WebdaTest {
       [ident2.getUser()]: "read",
       [user.getUuid()]: "all"
     });
+    let getter = await this.execute(ctx, "test.webda.io", "GET", `/companies/${company.getUuid()}/invitations`);
     // @ts-ignore
     assert.deepStrictEqual(company.__invitations, {
       "ident_test3@webda.io_email": "read",
       "ident_test4@webda.io_email": "read"
     });
+    // @ts-ignore
+    assert.deepStrictEqual(company.__invitations, getter);
     assert.deepStrictEqual(
       (await this.invitations.getAll()).map(i => ({
         uuid: i.getUuid(),

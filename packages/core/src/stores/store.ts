@@ -432,6 +432,20 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
    * Contain the model uuid field
    */
   protected _uuidField: string = "uuid";
+  /**
+   * Add metrics counter
+   */
+  metrics = {
+    save: 0,
+    update: 0,
+    partialUpdate: 0,
+    get: 0,
+    increment: 0,
+    delete: 0,
+    collectionUpsert: 0,
+    collectionDelete: 0,
+    attributeDelete: 0
+  };
 
   /**
    * Load the parameters for a service
@@ -467,6 +481,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
   }
 
   getObject(uid: string): Promise<CoreModel> {
+    this.metrics.get++;
     return this._get(uid);
   }
 
@@ -654,6 +669,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       return Promise.resolve();
     }
     let updateDate = new Date();
+    this.metrics.increment++;
     await this._incrementAttribute(uid, prop, value, updateDate);
     return this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
       object_id: uid,
@@ -680,6 +696,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       itemWriteConditionField = this._uuidField;
     }
     let updateDate = new Date();
+    this.metrics.collectionUpsert++;
     await this._upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate);
 
     await this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
@@ -704,6 +721,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     itemWriteConditionField: string = this._uuidField
   ) {
     let updateDate = new Date();
+    this.metrics.collectionDelete++;
     await this._deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate);
     await this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
       object_id: uid,
@@ -743,6 +761,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     });
     // Handle object auto listener
     await object._onSave();
+    this.metrics.save++;
     let res = await this._save(object);
     object = this.initModel(res);
     await this.emitSync("Store.Saved", <EventStoreSaved>{
@@ -866,6 +885,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     }
 
     object[this._lastUpdateField] = new Date();
+    this.metrics.get++;
     let load = await this._get(object[this._uuidField], true);
     if (load.__type !== this._model.name && this.parameters.strict) {
       this.log("WARN", `Object '${object[this._uuidField]}' was not created by this store`);
@@ -883,6 +903,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     await loaded._onUpdate(object);
     let res: any;
     if (partial) {
+      this.metrics.partialUpdate++;
       await this._patch(object, object[this._uuidField], load[this._lastUpdateField], this._lastUpdateField);
       res = object;
     } else {
@@ -890,6 +911,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       for (let i in this._reverseMap) {
         object[this._reverseMap[i].property] = loaded[this._reverseMap[i].property];
       }
+      this.metrics.update++;
       res = await this._update(object, object[this._uuidField], load[this._lastUpdateField], this._lastUpdateField);
     }
     // Return updated
@@ -916,6 +938,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
    * @returns
    */
   async removeAttribute(uuid: string, attribute: string, itemWriteCondition?: any, itemWriteConditionField?: string) {
+    this.metrics.attributeDelete++;
     await this._removeAttribute(uuid, attribute, itemWriteCondition, itemWriteConditionField);
     await this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
       object_id: uuid,
@@ -965,6 +988,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     if (typeof uid === "object") {
       to_delete = uid;
     } else {
+      this.metrics.get++;
       to_delete = await this._get(uid);
       if (to_delete === undefined) {
         return;
@@ -991,6 +1015,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
 
     // If async we just tag the object as deleted
     if (this.parameters.asyncDelete && !sync) {
+      this.metrics.partialUpdate++;
       await this._patch(
         {
           __deleted: true
@@ -998,6 +1023,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
         to_delete.getUuid()
       );
     } else {
+      this.metrics.delete++;
       // Delete from the DB for real
       await this._delete(to_delete.getUuid(), writeCondition, writeConditionField);
     }
@@ -1026,6 +1052,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
    * @returns {Promise<Map<string, any>>}
    */
   async getConfiguration(id: string): Promise<{ [key: string]: any }> {
+    this.metrics.get++;
     let object = await this._get(id);
     if (!object) {
       return undefined;
@@ -1051,6 +1078,7 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     if (!uid) {
       return undefined;
     }
+    this.metrics.get++;
     let object = await this._get(uid);
     if (!object) {
       return undefined;

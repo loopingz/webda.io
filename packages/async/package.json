@@ -1,6 +1,6 @@
 {
   "name": "@webda/async",
-  "version": "1.6.0-beta.2",
+  "version": "1.6.0-beta.3",
   "description": "Async System",
   "main": "lib/index.js",
   "scripts": {
@@ -20,7 +20,7 @@
   ],
   "dependencies": {
     "@types/node": "^16.4.14",
-    "@webda/core": "^1.6.0-beta.2",
+    "@webda/core": "^1.6.0-beta.3",
     "axios": "^0.24.0"
   },
   "devDependencies": {

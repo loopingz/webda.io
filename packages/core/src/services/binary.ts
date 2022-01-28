@@ -188,6 +188,10 @@ export class BinaryParameters extends ServiceParameters {
        * Restrict DELETE
        */
       delete?: boolean;
+      /**
+       * Restrict update of metadata
+       */
+      metadata?: boolean;
     };
   };
 
@@ -593,6 +597,24 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
         }
       });
     }
+
+    if (!this.parameters.expose.restrict.metadata) {
+      // Need hash to avoid concurrent delete
+      url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/{hash}";
+      this.addRoute(url, ["PUT"], this.httpRoute, {
+        delete: {
+          operationId: `update${name}BinaryMetadata`,
+          description: "Update a binary metadata linked to an object",
+          summary: "Update a binary metadata",
+          responses: {
+            "204": "",
+            "403": "You don't have permissions",
+            "404": "Object does not exist or attachment does not exist",
+            "412": "Provided hash does not match"
+          }
+        }
+      });
+    }
     return true;
   }
 
@@ -706,13 +728,25 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
         throw 500;
       }
     } else {
-      if (ctx.getHttpContext().getMethod() === "DELETE") {
+      if (ctx.getHttpContext().getMethod() === "POST") {
+        await this.store(object, property, this._getFile(ctx), ctx.getRequestBody());
+      } else {
         if (object[property][index].hash !== ctx.parameter("hash")) {
           throw 412;
         }
-        await this.delete(object, property, index);
-      } else if (ctx.getHttpContext().getMethod() === "POST") {
-        await this.store(object, property, this._getFile(ctx), ctx.getRequestBody());
+        if (ctx.getHttpContext().getMethod() === "DELETE") {
+          await this.delete(object, property, index);
+        } else if (ctx.getHttpContext().getMethod() === "PUT") {
+          let metadata = ctx.getRequestBody();
+          // Limit metadata to 4kb
+          if (JSON.stringify(metadata).length >= 4096) {
+            throw 400;
+          }
+          object[property][index].metadatas = metadata;
+          await object.update({
+            [property]: object[property]
+          });
+        }
       }
     }
   }

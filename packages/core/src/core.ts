@@ -956,16 +956,20 @@ export class Core extends events.EventEmitter {
   protected autoConnectServices(): void {
     for (let service in this.services) {
       this.log("TRACE", "Auto-connect", service);
-      let serviceBean = this.services[service];
-      serviceBean.resolve();
-      let setters = this._getSetters(serviceBean);
-      setters.forEach(setter => {
-        let targetService = this.services[setter.substr(3).toLowerCase()];
-        if (targetService) {
-          this.log("TRACE", "Auto-connecting", serviceBean.getName(), targetService.getName());
-          serviceBean[setter](targetService);
-        }
-      });
+      try {
+        let serviceBean = this.services[service];
+        serviceBean.resolve();
+        let setters = this._getSetters(serviceBean);
+        setters.forEach(setter => {
+          let targetService = this.services[setter.substr(3).toLowerCase()];
+          if (targetService) {
+            this.log("TRACE", "Auto-connecting", serviceBean.getName(), targetService.getName());
+            serviceBean[setter](targetService);
+          }
+        });
+      } catch (err) {
+        this.log("ERROR", err);
+      }
     }
   }
 

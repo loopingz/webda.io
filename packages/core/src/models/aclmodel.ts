@@ -148,7 +148,7 @@ export default class AclModel extends CoreModel {
     return [...permissions.values()];
   }
 
-  async hasPermission(ctx: Context, user: User, action: string) {
+  async hasPermission(ctx: Context, user: User, action: string): Promise<boolean> {
     let groups = this.getGroups(ctx, user);
     for (let i in this.__acl) {
       if (groups.indexOf(i) >= 0) {

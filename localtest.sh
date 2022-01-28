@@ -9,3 +9,6 @@ echo "Launching ElasticSearch"
 
 echo "Launching MongoDB"
 docker run -it -e MONGO_INITDB_ROOT_USERNAME=root -e MONGO_INITDB_ROOT_PASSWORD=webda.io --name webda-mongo -p 27017:37017
+
+echo "Launching Postgres"
+docker run --name webda-postgres -it -e POSTGRES_PASSWORD=testor 

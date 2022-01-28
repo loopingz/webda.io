@@ -36,4 +36,16 @@ export class PostgresTest extends StoreTest {
     assert.rejects(() => store._find({}, 12, 10), /Query should be a string/);
     assert.strictEqual(store.getClient(), store.client);
   }
+
+  @test
+  async stoppedPostgres() {
+    let obj = await this.getIdentStore().save({
+      test: 0
+    });
+    await obj.update({ test: 1 });
+    console.log("SHUTDOWN POSTGRES");
+    await new Promise(resolve => setTimeout(resolve, 20000));
+    console.log("UPDATING");
+    await obj.update({ test: 2 });
+  }
 }

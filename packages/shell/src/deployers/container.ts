@@ -371,7 +371,7 @@ ADD package.json /webda/\n\n`;
       // Export deployment
       return `# Add deployment
 COPY ${localPath} ${path.join(appPath, "deployments")}
-RUN webda -d ${deployment} config webda.config.json
+RUN webda -d ${deployment} config --noCompile webda.config.json
 RUN rm -rf deployments\n\n`;
     }
     return "";

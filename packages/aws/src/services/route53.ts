@@ -118,32 +118,36 @@ export class Route53Service extends Service {
    * Import all records to Route53
    * @param file
    */
-  static async import(file: string, importEntriesOnly: boolean) {
+  static async import(file: string, importEntriesOnly: boolean, Console) {
     let data = JSONUtils.loadFile(file);
     const targetZone = await this.getZoneForDomainName(data.domain);
     const r53 = new AWS.Route53();
     if (!targetZone) {
       throw Error(`Domain '${data.domain}' is not handled on AWS`);
     }
-    await r53
-      .changeResourceRecordSets({
-        HostedZoneId: targetZone.Id,
-        ChangeBatch: {
-          Changes: data.entries
-            .filter(r => !(r.Type === "NS" && r.Name === targetZone.Name))
-            .map(r => {
-              if (!r.ResourceRecords.length) {
-                delete r.ResourceRecords;
-              }
-              return r;
-            })
-            .map(r => ({
-              Action: "UPSERT",
-              ResourceRecordSet: r
-            }))
-        }
-      })
-      .promise();
+    try {
+      await r53
+        .changeResourceRecordSets({
+          HostedZoneId: targetZone.Id,
+          ChangeBatch: {
+            Changes: data.entries
+              .filter(r => !(r.Type === "NS" && r.Name === targetZone.Name))
+              .map(r => {
+                if (!r.ResourceRecords.length) {
+                  delete r.ResourceRecords;
+                }
+                return r;
+              })
+              .map(r => ({
+                Action: "UPSERT",
+                ResourceRecordSet: r
+              }))
+          }
+        })
+        .promise();
+    } catch (err) {
+      Console.log("ERROR", err);
+    }
   }
 
   /**
@@ -172,7 +176,7 @@ export class Route53Service extends Service {
     const command = args._.shift();
     switch (command) {
       case "import":
-        await this.import(args.file, false);
+        await this.import(args.file, false, Console);
         break;
       case "export":
         await this.export(args.domain, args.file);

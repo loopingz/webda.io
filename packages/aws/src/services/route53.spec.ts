@@ -41,7 +41,7 @@ class Route53Test {
       );
       await assert.rejects(() => Route53Service.getEntries("test.com"), /Domain 'test.com.?' is not handled on AWS/);
       await assert.rejects(
-        () => Route53Service.import("./test/zone-export.json", false),
+        () => Route53Service.import("./test/zone-export.json", false, undefined),
         /Domain 'webda.io.?' is not handled on AWS/
       );
 

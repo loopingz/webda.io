@@ -3,6 +3,30 @@ import * as uriTemplates from "uri-templates";
 import { Core } from "./core";
 import { Context, HttpMethodType } from "./utils/context";
 
+/**
+ * Define overridable OpenAPI description
+ */
+export interface OpenAPIWebdaDefinition extends Partial<OpenAPIV3.PathItemObject> {
+  /**
+   * Do not output for this specific Route
+   *
+   * It can still be output with --include-hidden, as it is needed to declare
+   * the route in API Gateway or any other internal documentation
+   */
+  hidden?: boolean;
+  /**
+   * If defined will link to the model schema instead of a generic Object
+   */
+  model?: string;
+  /**
+   * Tags defined for all methods
+   */
+  tags?: string[];
+}
+
+/**
+ * Route Information default information
+ */
 export interface RouteInfo {
   /**
    * HTTP Method to expose
@@ -23,7 +47,7 @@ export interface RouteInfo {
   /**
    * OpenAPI definition
    */
-  openapi?: any;
+  openapi?: OpenAPIWebdaDefinition;
   /**
    * URI Template parser
    */
@@ -259,12 +283,14 @@ export class Router {
           let description;
           let summary;
           let operationId;
+          let tags = route.openapi.tags ?? [];
           if (route.openapi[method.toLowerCase()]) {
             responses = route.openapi[method.toLowerCase()].responses;
             schema = route.openapi[method.toLowerCase()].schema;
             description = route.openapi[method.toLowerCase()].description;
             summary = route.openapi[method.toLowerCase()].summary;
             operationId = route.openapi[method.toLowerCase()].operationId;
+            tags.push(...(route.openapi[method.toLowerCase()].tags || []));
           }
           schema = schema || {
             $ref: "#/definitions/" + (route.openapi.model || "Object")
@@ -291,8 +317,11 @@ export class Router {
               responses[j].description = "Operation success";
             }
           }
+          if (tags.length === 0) {
+            tags.push(route.executor);
+          }
           let desc: any = {
-            tags: route.openapi.tags || [route.executor],
+            tags,
             responses: responses,
             description,
             summary,
@@ -310,23 +339,14 @@ export class Router {
             ];
           }
           openapi.paths[path][method.toLowerCase()] = desc;
-        });
-        if (route.openapi.tags) {
-          route.openapi.tags.forEach(tag => {
+          tags.forEach(tag => {
             if (!hasTag(tag)) {
               openapi.tags.push({
                 name: tag
               });
             }
           });
-        }
-        if (!route.openapi.tags) {
-          if (!hasTag(route.executor)) {
-            openapi.tags.push({
-              name: route.executor
-            });
-          }
-        }
+        });
       });
     }
   }

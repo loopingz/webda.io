@@ -8,7 +8,7 @@ import * as vm from "vm";
 import { Application } from "./application";
 import { ConfigurationService, Context, HttpContext, Logger, Service, Store } from "./index";
 import { CoreModel, CoreModelDefinition } from "./models/coremodel";
-import { RouteInfo, Router } from "./router";
+import { OpenAPIWebdaDefinition, RouteInfo, Router } from "./router";
 import { WorkerOutput, WorkerLogLevel } from "@webda/workout";
 import { AbstractDeployer } from "./utils/abstractdeployer";
 
@@ -315,7 +315,7 @@ export function Route(
   route: string,
   methods: string | string[] = ["GET"],
   allowPath: boolean = false,
-  openapi: any = {}
+  openapi: OpenAPIWebdaDefinition = {}
 ) {
   return function (target: any, executor: string, descriptor: PropertyDescriptor) {
     let targetName = target.constructor.name.toLowerCase();
@@ -955,7 +955,7 @@ export class Core extends events.EventEmitter {
    */
   protected autoConnectServices(): void {
     for (let service in this.services) {
-      this.log("TRACE", "Auto-connect", service);
+      this.log("TRACE", "Auto-connect", service, Object.keys(this.configuration.services));
       try {
         let serviceBean = this.services[service];
         serviceBean.resolve();

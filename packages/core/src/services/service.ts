@@ -6,6 +6,7 @@ import { EventService } from "./asyncevents";
 import { WorkerLogLevel } from "@webda/workout";
 import { ModdaDefinition } from "../core";
 import { JSONSchema6 } from "json-schema";
+import { OpenAPIWebdaDefinition } from "../router";
 
 /**
  * Represent a Inject annotation
@@ -231,7 +232,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
     url: string,
     methods: HttpMethodType[],
     executer: Function,
-    openapi: object = {},
+    openapi: OpenAPIWebdaDefinition = {},
     allowPath: boolean = false
   ) {
     let info: any = {};

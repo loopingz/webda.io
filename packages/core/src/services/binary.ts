@@ -531,10 +531,18 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
           description: "Download a binary linked to an object",
           summary: "Download a binary",
           responses: {
-            "200": "Binary stream",
-            "403": "You don't have permissions",
-            "404": "Object does not exist or attachment does not exist",
-            "412": "Provided hash does not match"
+            "200": {
+              description: "Binary stream"
+            },
+            "403": {
+              description: "You don't have permissions"
+            },
+            "404": {
+              description: "Object does not exist or attachment does not exist"
+            },
+            "412": {
+              description: "Provided hash does not match"
+            }
           }
         }
       });
@@ -550,13 +558,17 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
           summary: "Add a binary",
           responses: {
             "200": {
-              schema: {
-                type: "object"
-              }
+              description: ""
             },
-            "403": "You don't have permissions",
-            "404": "Object does not exist or attachment does not exist",
-            "412": "Provided hash does not match"
+            "403": {
+              description: "You don't have permissions"
+            },
+            "404": {
+              description: "Object does not exist or attachment does not exist"
+            },
+            "412": {
+              description: "Provided hash does not match"
+            }
           }
         }
       });
@@ -571,10 +583,18 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
           description: "Add a binary to an object after challenge",
           summary: "Add a binary",
           responses: {
-            "204": "",
-            "403": "You don't have permissions",
-            "404": "Object does not exist or attachment does not exist",
-            "412": "Provided hash does not match"
+            "204": {
+              description: ""
+            },
+            "403": {
+              description: "You don't have permissions"
+            },
+            "404": {
+              description: "Object does not exist or attachment does not exist"
+            },
+            "412": {
+              description: "Provided hash does not match"
+            }
           }
         }
       });
@@ -589,10 +609,18 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
           description: "Delete a binary linked to an object",
           summary: "Delete a binary",
           responses: {
-            "204": "",
-            "403": "You don't have permissions",
-            "404": "Object does not exist or attachment does not exist",
-            "412": "Provided hash does not match"
+            "204": {
+              description: ""
+            },
+            "403": {
+              description: "You don't have permissions"
+            },
+            "404": {
+              description: "Object does not exist or attachment does not exist"
+            },
+            "412": {
+              description: "Provided hash does not match"
+            }
           }
         }
       });
@@ -607,10 +635,18 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
           description: "Update a binary metadata linked to an object",
           summary: "Update a binary metadata",
           responses: {
-            "204": "",
-            "403": "You don't have permissions",
-            "404": "Object does not exist or attachment does not exist",
-            "412": "Provided hash does not match"
+            "204": {
+              description: ""
+            },
+            "403": {
+              description: "You don't have permissions"
+            },
+            "404": {
+              description: "Object does not exist or attachment does not exist"
+            },
+            "412": {
+              description: "Provided hash does not match"
+            }
           }
         }
       });

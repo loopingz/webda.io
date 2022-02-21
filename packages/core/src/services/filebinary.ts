@@ -69,10 +69,18 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
           description: "Upload a binary to an object after challenge",
           summary: "Upload a binary",
           responses: {
-            "204": "",
-            "400": "Wrong hash",
-            "404": "Object does not exist or attachment does not exist",
-            "412": "Provided hash does not match"
+            "204": {
+              description: ""
+            },
+            "400": {
+              description: "Wrong hash"
+            },
+            "404": {
+              description: "Object does not exist or attachment does not exist"
+            },
+            "412": {
+              description: "Provided hash does not match"
+            }
           }
         }
       });

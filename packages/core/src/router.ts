@@ -1,12 +1,33 @@
+import { JSONSchema6 } from "json-schema";
 import { OpenAPIV3 } from "openapi-types";
 import * as uriTemplates from "uri-templates";
 import { Core } from "./core";
 import { Context, HttpMethodType } from "./utils/context";
 
+type RecursivePartial<T> = {
+  [P in keyof T]?: RecursivePartial<T[P]>;
+};
+enum HttpMethods {
+  GET = "get",
+  PUT = "put",
+  POST = "post",
+  DELETE = "delete",
+  OPTIONS = "options",
+  HEAD = "head",
+  PATCH = "patch",
+  TRACE = "trace"
+}
+
+export interface OpenApiWebdaOperation extends RecursivePartial<OpenAPIV3.OperationObject> {
+  schemas?: {
+    input?: JSONSchema6 | string;
+    output?: JSONSchema6 | string;
+  };
+}
 /**
  * Define overridable OpenAPI description
  */
-export interface OpenAPIWebdaDefinition extends Partial<OpenAPIV3.PathItemObject> {
+export interface OpenAPIWebdaDefinition extends RecursivePartial<OpenAPIV3.PathItemObject> {
   /**
    * Do not output for this specific Route
    *
@@ -22,6 +43,9 @@ export interface OpenAPIWebdaDefinition extends Partial<OpenAPIV3.PathItemObject
    * Tags defined for all methods
    */
   tags?: string[];
+  post?: OpenApiWebdaOperation;
+  put?: OpenApiWebdaOperation;
+  patch?: OpenApiWebdaOperation;
 }
 
 /**
@@ -226,6 +250,18 @@ export class Router {
     }
   }
 
+  protected getOpenAPISchema(schema) {
+    if (!schema) {
+      return {
+        $ref: "#/definitions/Object"
+      };
+    } else if (typeof schema === "string") {
+      return {
+        $ref: "#/definitions/" + schema
+      };
+    }
+    return schema;
+  }
   /**
    * Add all known routes to paths
    *
@@ -278,40 +314,31 @@ export class Router {
           });
         }
         route.methods.forEach(method => {
-          let responses;
-          let schema;
+          let responses: { [key: string]: OpenAPIV3.ResponseObject };
+          let schema: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject;
           let description;
           let summary;
           let operationId;
           let tags = route.openapi.tags ?? [];
           if (route.openapi[method.toLowerCase()]) {
             responses = route.openapi[method.toLowerCase()].responses;
-            schema = route.openapi[method.toLowerCase()].schema;
+            schema = this.getOpenAPISchema(route.openapi[method.toLowerCase()].schemas?.output);
             description = route.openapi[method.toLowerCase()].description;
             summary = route.openapi[method.toLowerCase()].summary;
             operationId = route.openapi[method.toLowerCase()].operationId;
             tags.push(...(route.openapi[method.toLowerCase()].tags || []));
           }
-          schema = schema || {
-            $ref: "#/definitions/" + (route.openapi.model || "Object")
-          };
           responses = responses || {
             200: {
               description: "Operation success"
             }
           };
           for (let j in responses) {
-            if (typeof responses[j] === "string") {
-              responses[j] = {
-                description: responses[j]
-              };
-            }
-            if (!responses[j].schema && responses[j].model) {
-              responses[j].schema = {
-                $ref: "#/definitions/" + responses[j].model
-              };
-              delete responses[j].model;
-            }
+            responses[j].content ??= {};
+            responses[j].content["application/json"] = {
+              schema
+            };
+            // Add default answer
             let code = parseInt(j);
             if (code < 300 && code >= 200 && !responses[j].description) {
               responses[j].description = "Operation success";
@@ -320,23 +347,22 @@ export class Router {
           if (tags.length === 0) {
             tags.push(route.executor);
           }
-          let desc: any = {
+          let desc: OpenAPIV3.OperationObject = {
             tags,
             responses: responses,
             description,
             summary,
             operationId
           };
-          if (method.toLowerCase().startsWith("p")) {
-            desc.parameters = [
-              {
-                in: "body",
-                name: "body",
-                description: "",
-                required: true,
-                schema: schema
+          if (method.toLowerCase().startsWith("p") && route.openapi[method.toLowerCase()]?.schemas?.input) {
+            // Add request schema if exist
+            desc.requestBody = {
+              content: {
+                "application/json": {
+                  schema: this.getOpenAPISchema(route.openapi[method.toLowerCase()]?.schemas?.input)
+                }
               }
-            ];
+            };
           }
           openapi.paths[path][method.toLowerCase()] = desc;
           tags.forEach(tag => {

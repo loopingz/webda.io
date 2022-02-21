@@ -85,9 +85,15 @@ export default class ResourceService<
         summary: "Get file",
         operationId: "getResource",
         responses: {
-          "200": "",
-          "401": "Illegal resource",
-          "404": "File not found"
+          "200": {
+            description: ""
+          },
+          "401": {
+            description: "Illegal resource"
+          },
+          "404": {
+            description: "File not found"
+          }
         }
       }
     });
@@ -101,9 +107,15 @@ export default class ResourceService<
           summary: "Get file",
           operationId: "getResources",
           responses: {
-            "200": "",
-            "401": "Illegal resource",
-            "404": "File not found"
+            "200": {
+              description: ""
+            },
+            "401": {
+              description: "Illegal resource"
+            },
+            "404": {
+              description: "File not found"
+            }
           }
         }
       },
@@ -116,7 +128,9 @@ export default class ResourceService<
           summary: "Serve resource",
           operationId: "redirectRoottoResources",
           responses: {
-            "302": ""
+            "302": {
+              description: ""
+            }
           }
         }
       });

@@ -160,8 +160,12 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
         summary: `Redirect to ${name}`,
         operationId: `logInWith${name}`,
         responses: {
-          "302": "",
-          "400": "Missing token"
+          "302": {
+            description: ""
+          },
+          "400": {
+            description: "Missing token"
+          }
         }
       }
     });
@@ -176,8 +180,12 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
           summary: `Use the token provide to validate with ${name} the user`,
           operationId: `callbackFrom${name}`,
           responses: {
-            "204": "",
-            "400": "Missing token"
+            "204": {
+              description: ""
+            },
+            "400": {
+              description: "Missing token"
+            }
           }
         }
       }
@@ -190,8 +198,12 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
           summary: `Use the token provide to validate with ${name} the user`,
           operationId: `verify${name}Token`,
           responses: {
-            "204": "",
-            "400": "Missing token"
+            "204": {
+              description: ""
+            },
+            "400": {
+              description: "Missing token"
+            }
           }
         }
       });
@@ -204,8 +216,12 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
           summary: "Retrieve the scope intended to be used with this auth",
           operationId: `get${name}Scope`,
           responses: {
-            "204": "",
-            "400": "Missing token"
+            "204": {
+              description: ""
+            },
+            "400": {
+              description: "Missing token"
+            }
           }
         }
       });

@@ -98,10 +98,18 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
           summary: "Download a binary",
           operationId: `get${name}Binary`,
           responses: {
-            "302": "Redirect to download url",
-            "403": "You don't have permissions",
-            "404": "Object does not exist or attachment does not exist",
-            "412": "Provided hash does not match"
+            "302": {
+              description: "Redirect to download url"
+            },
+            "403": {
+              description: "You don't have permissions"
+            },
+            "404": {
+              description: "Object does not exist or attachment does not exist"
+            },
+            "412": {
+              description: "Provided hash does not match"
+            }
           }
         }
       });
@@ -113,10 +121,18 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
           summary: "Get redirect url of a binary",
           operationId: `get${name}BinaryURL`,
           responses: {
-            "200": "Containing the URL",
-            "403": "You don't have permissions",
-            "404": "Object does not exist or attachment does not exist",
-            "412": "Provided hash does not match"
+            "200": {
+              description: "Containing the URL"
+            },
+            "403": {
+              description: "You don't have permissions"
+            },
+            "404": {
+              description: "Object does not exist or attachment does not exist"
+            },
+            "412": {
+              description: "Provided hash does not match"
+            }
           }
         }
       });

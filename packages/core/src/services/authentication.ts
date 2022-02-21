@@ -275,29 +275,35 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
       });
       this.addRoute(url + "/email/passwordRecovery", ["POST"], this._passwordRecovery, {
         post: {
-          description: "Reinit the password if we have the right token, expire",
-          summary: "Reinit password",
-          operationId: "reinitPassword",
-          schema: {
-            type: "object",
-            properties: {
-              token: {
-                type: "string"
-              },
-              expire: {
-                type: "number"
-              },
-              password: {
-                type: "string"
-              },
-              login: {
-                type: "string"
+          schemas: {
+            input: {
+              type: "object",
+              properties: {
+                token: {
+                  type: "string"
+                },
+                expire: {
+                  type: "number"
+                },
+                password: {
+                  type: "string"
+                },
+                login: {
+                  type: "string"
+                }
               }
             }
           },
+          description: "Reinit the password if we have the right token, expire",
+          summary: "Reinit password",
+          operationId: "reinitPassword",
           responses: {
-            "204": "",
-            "403": "Wrong Token"
+            "204": {
+              description: ""
+            },
+            "403": {
+              description: "Wrong Token"
+            }
           }
         }
       });
@@ -307,9 +313,15 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
           summary: "Start password recovery",
           operationId: "startEmailRecovery",
           responses: {
-            "204": "",
-            "404": "Email does not exist",
-            "429": "Recovery has been initiated in the last 4 hours"
+            "204": {
+              description: ""
+            },
+            "404": {
+              description: "Email does not exist"
+            },
+            "429": {
+              description: "Recovery has been initiated in the last 4 hours"
+            }
           }
         }
       });
@@ -319,10 +331,18 @@ class Authentication<T extends AuthenticationParameters = AuthenticationParamete
           summary: "Restart email validation",
           operationId: "startEmailRecovery",
           responses: {
-            "204": "",
-            "409": "Email already verified for another user",
-            "412": "Email already verified for current user",
-            "429": "Validation has been initiated in the last 4 hours"
+            "204": {
+              description: ""
+            },
+            "409": {
+              description: "Email already verified for another user"
+            },
+            "412": {
+              description: "Email already verified for current user"
+            },
+            "429": {
+              description: "Validation has been initiated in the last 4 hours"
+            }
           }
         }
       });

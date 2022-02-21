@@ -501,15 +501,25 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
         post: {
           description: `The way to create a new ${this._model.name} model`,
           summary: "Create a new " + this._model.name,
-          model: this._model.name,
           operationId: `create${this._model.name}`,
           responses: {
             "200": {
-              model: this._model.name
+              description: "Retrieve model",
+              content: {
+                "application/json": {
+                  // schema: this._model.name
+                }
+              }
             },
-            "400": "Object is invalid",
-            "403": "You don't have permissions",
-            "409": "Object already exists"
+            "400": {
+              description: "Object is invalid"
+            },
+            "403": {
+              description: "You don't have permissions"
+            },
+            "409": {
+              description: "Object already exists"
+            }
           }
         }
       });
@@ -535,48 +545,71 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
           operationId: `get${this._model.name}`,
           responses: {
             "200": {
-              model: this._model.name
+              //model: this._model.name
             },
-            "400": "Object is invalid",
-            "403": "You don't have permissions",
-            "404": "Unknown object"
+            "400": {
+              description: "Object is invalid"
+            },
+            "403": {
+              description: "You don't have permissions"
+            },
+            "404": {
+              description: "Unknown object"
+            }
           }
         },
         put: {
           description: `Update a ${this._model.name} if the permissions allow`,
           summary: "Update a " + this._model.name,
-          model: this._model.name,
           operationId: `updatet${this._model.name}`,
           responses: {
             "200": {
-              model: this._model.name
+              // model: this._model.name
             },
-            "400": "Object is invalid",
-            "403": "You don't have permissions",
-            "404": "Unknown object"
+            "400": {
+              description: "Object is invalid"
+            },
+            "403": {
+              description: "You don't have permissions"
+            },
+            "404": {
+              description: "Unknown object"
+            }
           }
         },
         patch: {
           description: `Patch a ${this._model.name} if the permissions allow`,
           summary: "Patch a " + this._model.name,
-          model: this._model.name,
           operationId: `updatet${this._model.name}`,
           responses: {
-            "204": "",
-            "400": "Object is invalid",
-            "403": "You don't have permissions",
-            "404": "Unknown object"
+            "204": {
+              description: ""
+            },
+            "400": {
+              description: "Object is invalid"
+            },
+            "403": {
+              description: "You don't have permissions"
+            },
+            "404": {
+              description: "Unknown object"
+            }
           }
         },
         delete: {
           operationId: `delete${this._model.name}`,
           description: `Delete ${this._model.name} if the permissions allow`,
           summary: "Delete a " + this._model.name,
-          model: this._model.name,
           responses: {
-            "204": "",
-            "403": "You don't have permissions",
-            "404": "Unknown object"
+            "204": {
+              description: ""
+            },
+            "403": {
+              description: "You don't have permissions"
+            },
+            "404": {
+              description: "Unknown object"
+            }
           }
         }
       });

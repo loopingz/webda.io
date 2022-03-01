@@ -30,7 +30,7 @@ export class PostgresTest extends StoreTest {
   @test
   async cov() {
     let store: PostgresStore = this.getService<PostgresStore>("idents");
-    store.getParameters().usePool = true;
+    store.getParameters().usePool = false;
     await store.init();
 
     assert.rejects(() => store._find({}, 12, 10), /Query should be a string/);
@@ -43,9 +43,7 @@ export class PostgresTest extends StoreTest {
       test: 0
     });
     await obj.update({ test: 1 });
-    console.log("SHUTDOWN POSTGRES");
     await new Promise(resolve => setTimeout(resolve, 20000));
-    console.log("UPDATING");
     await obj.update({ test: 2 });
   }
 }

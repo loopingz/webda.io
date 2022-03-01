@@ -48,10 +48,22 @@ class Route53Test {
       stub.callsFake(() => {
         return { Id: "myZone", Name: "webda.io." };
       });
+
       await Route53Service.createDNSEntry("test.com", "A", "1.1.1.1");
 
       await Route53Service.shell(undefined, { _: ["export"], domain: "webda.io", file: "./myzone.json" });
       await Route53Service.shell(undefined, { _: ["import"], file: "./test/zone-export.json" });
+
+      spyChanges.callsFake(() => {
+        throw new Error("Cannot do this");
+      });
+      let logs;
+      await Route53Service.import("./test/zone-export.json", false, {
+        log: (...args) => {
+          logs = args;
+        }
+      });
+      assert.deepStrictEqual([logs[0], logs[1].toString()], ["ERROR", "Error: Cannot do this"]);
     } finally {
       AWSMock.restore();
     }

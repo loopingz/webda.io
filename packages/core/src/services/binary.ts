@@ -14,7 +14,7 @@ import { Service, ServiceParameters } from "./service";
  * Represent basic EventBinary
  */
 export interface EventBinary {
-  object: BinaryMap;
+  object: BinaryFileInfo;
   service: Binary;
 }
 
@@ -37,22 +37,43 @@ export class BinaryNotFoundError extends WebdaError {
   }
 }
 
+export interface BinaryFileInfo {
+  /**
+   * Hash of the binary
+   */
+  hash?: string;
+  /**
+   * Will be computed by the service
+   *
+   * hash of the content prefixed by 'WEBDA'
+   */
+  challenge?: string;
+  /**
+   * Size of the file
+   */
+  size: number;
+  /**
+   * Name of the file
+   */
+  name: string;
+  /**
+   * Mimetype
+   */
+  mimetype: string;
+  /**
+   * Metadatas stored along with the binary
+   */
+  metadata?: BinaryMetadata;
+}
+
 /**
  * Represent a file to store
  */
-export interface BinaryFile {
-  /**
-   * Path on the hard drive
-   */
-  path?: string;
-  /**
-   * Content
-   */
-  buffer?: Buffer;
+export abstract class BinaryFile implements BinaryFileInfo {
   /**
    * Current name
    */
-  name?: string;
+  name: string;
   /**
    * Original name
    */
@@ -60,11 +81,11 @@ export interface BinaryFile {
   /**
    * Size of the binary
    */
-  size?: number;
+  size: number;
   /**
    * Mimetype of the binary
    */
-  mimetype?: string;
+  mimetype: string;
   /**
    * Will be computed by the service
    *
@@ -77,14 +98,122 @@ export interface BinaryFile {
    * hash of the content
    */
   hash?: string;
+  /**
+   * Metadatas stored along with the binary
+   */
+  metadata?: BinaryMetadata;
+
+  constructor(info: BinaryFileInfo) {
+    this.name = info.name;
+    this.challenge = info.challenge;
+    this.hash = info.hash;
+    this.mimetype = info.mimetype || "application/octet-stream";
+    this.metadata = info.metadata || {};
+  }
+
+  /**
+   * Retrieve a plain BinaryFileInfo object
+   * @returns
+   */
+  toBinaryFileInfo(): BinaryFileInfo {
+    return {
+      hash: this.hash,
+      size: this.size,
+      mimetype: this.mimetype,
+      metadata: this.metadata,
+      challenge: this.challenge,
+      name: this.name
+    };
+  }
+
+  abstract get(): Promise<Readable>;
+
+  /**
+   * Create hashes
+   * @param buffer
+   * @returns
+   */
+  public async getHashes(): Promise<{ hash: string; challenge: string }> {
+    if (!this.hash) {
+      // Using MD5 as S3 content verification use md5
+      const hash = crypto.createHash("md5");
+      const challenge = crypto.createHash("md5");
+      const stream = await this.get();
+      challenge.update("WEBDA");
+      await new Promise<void>((resolve, reject) => {
+        stream.on("error", err => reject(err));
+        stream.on("end", () => {
+          this.hash = hash.digest("hex");
+          this.challenge = challenge.digest("hex");
+          resolve();
+        });
+        stream.on("data", chunk => {
+          let buffer = Buffer.from(chunk);
+          hash.update(buffer);
+          challenge.update(buffer);
+        });
+      });
+    }
+    return {
+      hash: this.hash,
+      challenge: this.challenge
+    };
+  }
 }
+
+export class LocalBinaryFile extends BinaryFile {
+  /**
+   * Path on the hard drive
+   */
+  path: string;
+
+  constructor(filePath: string) {
+    super({
+      name: path.basename(filePath),
+      size: fs.statSync(filePath).size,
+      mimetype: mime.lookup(filePath) || "application/octet-stream"
+    });
+    this.path = filePath;
+  }
+
+  /**
+   * @override
+   */
+  async get(): Promise<Readable> {
+    return fs.createReadStream(this.path);
+  }
+}
+
+export class MemoryBinaryFile extends BinaryFile {
+  /**
+   * Content
+   */
+  buffer: Buffer;
+
+  constructor(buffer: Buffer, info: BinaryFileInfo) {
+    super(info);
+    this.buffer = buffer;
+  }
+
+  /**
+   * @override
+   */
+  async get(): Promise<Readable> {
+    return Readable.from(this.buffer);
+  }
+}
+
+/**
+ * Define the metadata for a Binary
+ */
+export type BinaryMetadata = { [key: string]: any };
 
 /**
  * This is a map used to retrieve binary
  *
  * @class BinaryMap
  */
-export class BinaryMap {
+export class BinaryMap extends BinaryFile {
   /**
    * Current context
    */
@@ -93,20 +222,9 @@ export class BinaryMap {
    * Link to the binary store
    */
   __store: Binary;
-  /**
-   * Hash of the binary
-   */
-  hash: string;
-  /**
-   * Size of the file
-   */
-  size: number;
-  /**
-   * Mimetype
-   */
-  mime: string;
 
-  constructor(service, obj) {
+  constructor(service: Binary, obj: BinaryFileInfo) {
+    super(obj);
     for (var i in obj) {
       this[i] = obj[i];
     }
@@ -252,21 +370,16 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
    * @param {CoreModel} object The object uuid to get from the store
    * @param {String} property The object property to add the file to
    * @param {Object} file The file by itself
-   * @param {Object} metadatas to add to the binary object
+   * @param {Object} metadata to add to the binary object
    * @emits 'binaryCreate'
    */
 
-  abstract store(
-    object: CoreModel,
-    property: string,
-    file: BinaryFile,
-    metadatas?: { [key: string]: any }
-  ): Promise<void>;
+  abstract store(object: CoreModel, property: string, file: BinaryFile, metadata?: BinaryMetadata): Promise<void>;
 
   /**
    * The store can retrieve how many time a binary has been used
    */
-  abstract getUsageCount(hash): Promise<number>;
+  abstract getUsageCount(hash: string): Promise<number>;
 
   /**
    * Delete a binary
@@ -369,22 +482,6 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
   }
 
   /**
-   * Create hashes
-   * @param buffer
-   * @returns
-   */
-  _getHashes(buffer: Buffer): { hash: string; challenge: string } {
-    var result: any = {};
-    // Using MD5 as S3 content verification use md5
-    var hash = crypto.createHash("md5");
-    var challenge = crypto.createHash("md5");
-    challenge.update("WEBDA");
-    result.hash = hash.update(buffer).digest("hex");
-    result.challenge = challenge.update(buffer).digest("hex");
-    return result;
-  }
-
-  /**
    * Read a stream to a buffer
    *
    * @param stream
@@ -401,27 +498,12 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
   }
 
   /**
-   * Update the BinaryFile
-   * @param file
-   */
-  _prepareInput(file: BinaryFile) {
-    if (file.path !== undefined) {
-      file.buffer = fs.readFileSync(file.path);
-      file.originalname = path.basename(file.path);
-      file.name = file.name || file.originalname;
-      file.size = fs.statSync(file.path).size;
-      file.mimetype = mime.lookup(file.path) || "application/octet-stream";
-    }
-    Object.assign(file, this._getHashes(file.buffer));
-  }
-
-  /**
    * Check if a map is defined
    *
    * @param name
    * @param property
    */
-  _checkMap(name: string, property: string) {
+  protected checkMap(name: string, property: string) {
     var map = this.parameters.map[this._lowercaseMaps[name.toLowerCase()]];
     if (map === undefined) {
       throw Error("Unknown mapping");
@@ -431,21 +513,16 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
     }
   }
 
-  async uploadSuccess(object: CoreModel, property: string, file: any, metadatas?: any): Promise<void> {
-    var fileObj: BinaryMap = {
-      ...file,
-      metadatas
-    };
+  async uploadSuccess(object: CoreModel, property: string, file: BinaryFileInfo): Promise<void> {
     var object_uid = object.getUuid();
-    var info;
     await this.emitSync("Binary.UploadSuccess", <EventBinaryUploadSuccess>{
-      object: fileObj,
+      object: file,
       service: this,
       target: object
     });
-    await object.getStore().upsertItemToCollection(object_uid, property, fileObj);
+    await object.getStore().upsertItemToCollection(object_uid, property, file);
     await this.emitSync("Binary.Create", <EventBinaryCreate>{
-      object: fileObj,
+      object: file,
       service: this,
       target: object
     });
@@ -482,18 +559,22 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
    * @param req
    * @returns
    */
-  _getFile(req: Context) {
-    var file;
+  _getFile(req: Context): BinaryFile {
     if (req.files !== undefined) {
-      file = req.files[0];
+      // TODO Map express files to BinaryFile
+      return req.files[0];
     } else {
-      file = {};
-      file.buffer = req.getRequestBody();
-      file.mimetype = req.getHttpContext().getHeader("Content-Type", "application/octet-stream");
-      file.size = file.buffer.length;
-      file.originalname = "";
+      let buffer = req.getRequestBody();
+      if (typeof buffer === "string") {
+        buffer = Buffer.from(buffer);
+      }
+      // TODO Check if we have other type
+      return new MemoryBinaryFile(buffer, {
+        mimetype: req.getHttpContext().getHeader("Content-Type", "application/octet-stream"),
+        size: parseInt(req.getHttpContext().getHeader("Content-Length")) || req.getRequestBody().length,
+        name: ""
+      });
     }
-    return file;
   }
 
   /**
@@ -737,6 +818,8 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
       action = "detach_binary";
     } else if (ctx.getHttpContext().getMethod() === "POST") {
       action = "attach_binary";
+    } else if (ctx.getHttpContext().getMethod() === "PUT") {
+      action = "update_binary_metadata";
     }
     await object.canAct(ctx, action);
 
@@ -778,10 +861,15 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
           if (JSON.stringify(metadata).length >= 4096) {
             throw 400;
           }
-          object[property][index].metadatas = metadata;
-          await object.update({
-            [property]: object[property]
-          });
+          object[property][index].metadata = metadata;
+          // Update mapper on purpose
+          await object.getStore().patch(
+            {
+              [object.__class.getUuidField()]: object.getUuid(),
+              [property]: (<BinaryMap[]>object[property]).map(b => b.toJSON())
+            },
+            false
+          );
         }
       }
     }

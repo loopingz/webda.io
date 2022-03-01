@@ -5,7 +5,18 @@ import { suite, test } from "@testdeck/mocha";
 import { removeSync } from "fs-extra";
 import * as fs from "fs";
 import * as jwt from "jsonwebtoken";
+import { BinaryFile, BinaryFileInfo, MemoryBinaryFile } from "./binary";
+import { Readable } from "stream";
 
+class FaultyBinaryFile extends BinaryFile {
+  async get() {
+    const stream = new Readable();
+    stream._read = () => {
+      stream.emit("error", new Error("Faulty stream"));
+    };
+    return stream;
+  }
+}
 @suite
 class FileBinaryTest extends BinaryTest {
   @test
@@ -30,12 +41,17 @@ class FileBinaryTest extends BinaryTest {
     let ctx = await this.newContext();
     ctx.getHttpContext().setBody("plop");
     ctx.getHttpContext().headers = { "content-type": "text/plain" };
-    assert.deepStrictEqual(binary._getFile(ctx), {
-      buffer: "plop",
-      mimetype: "text/plain",
-      originalname: "",
-      size: 4
-    });
+    assert.deepStrictEqual(
+      binary._getFile(ctx),
+      new MemoryBinaryFile(Buffer.from("plop"), {
+        challenge: undefined,
+        hash: undefined,
+        metadata: {},
+        mimetype: "text/plain",
+        name: "",
+        size: 4
+      })
+    );
   }
 
   @test
@@ -79,7 +95,7 @@ class FileBinaryTest extends BinaryTest {
   async badTokens() {
     let binary = <FileBinary>this.getBinary();
     let ctx = await this.newContext();
-    let { hash } = binary._getHashes(Buffer.from("PLOP"));
+    let { hash } = await new MemoryBinaryFile(Buffer.from("PLOP"), <BinaryFileInfo>(<unknown>{})).getHashes();
     let token = "badt";
     ctx.setPathParameters({
       hash,
@@ -113,6 +129,16 @@ class FileBinaryTest extends BinaryTest {
     let binary = <FileBinary>this.getBinary();
     binary._cleanHash("plop");
     binary._cleanUsage("plop", "l");
+  }
+
+  @test
+  faultyBinary() {
+    const file = new FaultyBinaryFile({
+      mimetype: "text/plain",
+      name: "test.txt",
+      size: 10
+    });
+    assert.rejects(() => file.getHashes(), /Faulty stream/);
   }
 }
 

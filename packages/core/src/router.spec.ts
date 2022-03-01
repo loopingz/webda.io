@@ -68,7 +68,12 @@ class RouterTest extends WebdaTest {
       executor: "DefinedMailer",
       openapi: {
         tags: ["plop", "test"],
-        hidden: true
+        hidden: true,
+        get: {
+          schemas: {
+            output: "test"
+          }
+        }
       }
     };
     this.webda.addRoute("/plop{?*path}", info);

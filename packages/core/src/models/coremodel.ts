@@ -131,7 +131,16 @@ class CoreModel {
    */
   async canAct(
     ctx: Context,
-    action: "create" | "update" | "get" | "delete" | "get_binary" | "detach_binary" | "attach_binary" | string
+    action:
+      | "create"
+      | "update"
+      | "get"
+      | "delete"
+      | "get_binary"
+      | "detach_binary"
+      | "attach_binary"
+      | "update_binary_metadata"
+      | string
   ): Promise<this> {
     throw 403;
   }

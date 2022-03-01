@@ -1,7 +1,15 @@
 import * as fs from "fs";
 import { ModdaDefinition } from "../core";
 import { Context } from "../utils/context";
-import { Binary, BinaryMap, BinaryNotFoundError, BinaryParameters } from "./binary";
+import {
+  Binary,
+  BinaryFile,
+  BinaryMap,
+  BinaryMetadata,
+  BinaryNotFoundError,
+  BinaryParameters,
+  MemoryBinaryFile
+} from "./binary";
 import { Service, ServiceParameters } from "./service";
 import { join } from "path";
 import { CoreModel } from "..";
@@ -143,7 +151,7 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     // Get the target object to add the mapping
     let targetStore = this._verifyMapAndStore(ctx);
     let object = await targetStore.get(uid, ctx);
-    await this.uploadSuccess(object, property, body, body.metadatas);
+    await this.uploadSuccess(object, property, body);
     // Need to store the usage of the file
     if (!fs.existsSync(this._getPath(body.hash))) {
       fs.mkdirSync(this._getPath(body.hash));
@@ -167,7 +175,11 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
    */
   async storeBinary(ctx: Context) {
     let body = ctx.getRequestBody();
-    var result = this._getHashes(body);
+    var result = await new MemoryBinaryFile(Buffer.from(body), {
+      mimetype: ctx.getHttpContext().getHeader("content-type"),
+      name: "",
+      size: parseInt(ctx.getHttpContext().getHeader("content-length"))
+    }).getHashes();
     if (ctx.parameter("hash") !== result.hash) {
       throw 400;
     }
@@ -256,30 +268,35 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     return this._cleanUsage(info.hash, "_" + uuid);
   }
 
-  _store(file, object) {
+  async _store(file: BinaryFile, object: CoreModel) {
     fs.mkdirSync(this._getPath(file.hash));
-    if (file.buffer) {
-      fs.writeFileSync(this._getPath(file.hash, "data"), file.buffer);
-    }
+    await new Promise(async (resolve, reject) => {
+      (await file.get())
+        .pipe(fs.createWriteStream(this._getPath(file.hash, "data")))
+        .on("error", reject)
+        .on("finish", resolve);
+    });
+
     // Store the challenge
     this._touch(this._getPath(file.hash, "_" + file.challenge));
-    this._touch(this._getPath(file.hash, object.getStore().getName() + "_" + object.uuid));
+    this._touch(this._getPath(file.hash, object.getStore().getName() + "_" + object.getUuid()));
   }
 
   /**
    * @inheritdoc
    */
-  async store(object: CoreModel, property: string, file, metadatas?: any): Promise<any> {
-    let storeName = object.getStore().getName();
-    this._checkMap(storeName, property);
-    this._prepareInput(file);
+  async store(object: CoreModel, property: string, file: BinaryFile): Promise<any> {
+    await file.getHashes();
+    const storeName = object.getStore().getName();
+    const fileInfo = file.toBinaryFileInfo();
+    this.checkMap(storeName, property);
     if (fs.existsSync(this._getPath(file.hash))) {
       this._touch(this._getPath(file.hash, `${storeName}_${object.getUuid()}`));
-      await this.uploadSuccess(object, property, file, metadatas);
+      await this.uploadSuccess(object, property, fileInfo);
       return;
     }
-    this._store(file, object);
-    await this.uploadSuccess(object, property, file, metadatas);
+    await this._store(file, object);
+    await this.uploadSuccess(object, property, fileInfo);
   }
 
   /**

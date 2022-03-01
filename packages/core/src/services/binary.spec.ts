@@ -5,7 +5,7 @@ import { Binary, Context, Store, User } from "..";
 import { suite, test } from "@testdeck/mocha";
 import * as sinon from "sinon";
 import { CoreModel } from "../models/coremodel";
-import { BinaryMap, BinaryNotFoundError } from "./binary";
+import { BinaryFileInfo, BinaryMap, BinaryNotFoundError, LocalBinaryFile, MemoryBinaryFile } from "./binary";
 import axios from "axios";
 import { EventEmitter } from "events";
 export class ImageUser extends User {
@@ -91,28 +91,14 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     user2 = await userStore.save({
       test: "plop"
     });
-    await binary.store(
-      user1,
-      map,
-      {
-        path: this.getTestFile()
-      },
-      {}
-    );
+    await binary.store(user1, map, new LocalBinaryFile(this.getTestFile()), {});
     user1 = await userStore.get(user1.uuid);
     assert.notStrictEqual(user1[map], undefined);
     assert.strictEqual(user1[map].length, 1);
     hash = user1[map][0].hash;
     let value = await binary.getUsageCount(hash);
     assert.strictEqual(value, 1);
-    await binary.store(
-      user2,
-      map,
-      {
-        path: this.getTestFile()
-      },
-      {}
-    );
+    await binary.store(user2, map, new LocalBinaryFile(this.getTestFile()), {});
     user = await userStore.get(user2.uuid);
     assert.notStrictEqual(user[map], undefined);
     assert.strictEqual(user[map].length, 1);
@@ -194,15 +180,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       test: "plop"
     });
     await assert.rejects(
-      () =>
-        binary.store(
-          user1,
-          "images2",
-          {
-            path: this.getTestFile()
-          },
-          {}
-        ),
+      () => binary.store(user1, "images2", new LocalBinaryFile(this.getTestFile()), {}),
       err => true
     );
   }
@@ -218,14 +196,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     user1 = await userStore.save({
       test: "plop"
     });
-    await binary.store(
-      user1,
-      map,
-      {
-        path: this.getTestFile()
-      },
-      {}
-    );
+    await binary.store(user1, map, new LocalBinaryFile(this.getTestFile()), {});
     user = await userStore.get(user1.uuid);
     assert.notStrictEqual(user[map], undefined);
     assert.strictEqual(user[map].length, 1);
@@ -236,7 +207,8 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
   @test
   checkMap() {
     let binary = this.getBinary();
-    assert.throws(() => binary._checkMap("plop", "pouf"), /Unknown mapping/);
+    // @ts-ignore
+    assert.throws(() => binary.checkMap("plop", "pouf"), /Unknown mapping/);
   }
 
   @test
@@ -338,13 +310,64 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
   }
 
   @test
+  async httpMetadata() {
+    let { binary, user1, ctx } = await this.setupDefault(false);
+    let executor = this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "PUT",
+      `/binary/users/${user1.getUuid()}/images/0/${user1.images[0].hash}`,
+      {}
+    ); // If not logged in
+    await assert.rejects(() => executor.execute(ctx), /403/, "PUT metadata w/o permission");
+    executor = this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "PUT",
+      `/binary/users/unknown/images/0/${user1.images[0].hash}`,
+      {}
+    );
+    await assert.rejects(() => executor.execute(ctx), /404/, "GET binary on unknown object");
+
+    // Login
+    ctx.getSession().login(user1.getUuid(), "fake");
+
+    executor = this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "PUT",
+      `/binary/users/${user1.getUuid()}/images/0/${user1.images[0].hash}`,
+      {
+        "my-metadata": "updated",
+        "my-other-metadata": true
+      }
+    );
+    await executor.execute(ctx);
+    let user = await ctx.getCurrentUser<ImageUser>(true);
+    user.images[0].metadata ??= {};
+    assert.strictEqual(user.images[0].metadata["my-metadata"], "updated");
+    assert.strictEqual(user.images[0].metadata["my-other-metadata"], true);
+    executor = this.getExecutor(
+      ctx,
+      "test.webda.io",
+      "PUT",
+      `/binary/users/${user1.getUuid()}/images/0/${user1.images[0].hash}`,
+      {
+        "my-metadata": "updated".repeat(4096),
+        "my-other-metadata": true
+      }
+    );
+    await assert.rejects(() => executor.execute(ctx), /400/, "PUT metadata with big content should fail");
+  }
+
+  @test
   async getNotFound() {
     await assert.rejects(
       () =>
         // @ts-ignore
         this.getBinary().get({
           hash: "none",
-          mime: "",
+          mimetype: "",
           size: 10
         }),
       BinaryNotFoundError
@@ -359,7 +382,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     let user1: ImageUser = await userStore.save({
       test: "plop"
     });
-    await binary.store(user1, "images", { path: this.getTestFile() });
+    await binary.store(user1, "images", new LocalBinaryFile(this.getTestFile()));
     await user1.refresh();
     let ctx = await this.newContext();
     if (withLogin) {
@@ -371,14 +394,17 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
 
   async testChallenge(remoteCheckHash: boolean = true) {
     let { userStore, binary, user1, ctx } = await this.setupDefault(false);
-    let { hash, challenge } = binary._getHashes(Buffer.from("PLOP"));
-    let metadatas = {
+    let { hash, challenge } = await new MemoryBinaryFile(
+      Buffer.from("PLOP"),
+      <BinaryFileInfo>(<unknown>{})
+    ).getHashes();
+    let metadata = {
       plop: "test"
     };
     let executor = this.getExecutor(ctx, "test.webda.io", "PUT", `/binary/upload/users/${user1.getUuid()}/images`, {
       hash,
       challenge,
-      metadatas
+      metadata
     });
     await assert.rejects(() => executor.execute(ctx), /403/);
     ctx.getSession().login(user1.getUuid(), "fake");
@@ -414,7 +440,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", `/binary/upload/users/${user1.getUuid()}/images`, {
       hash,
       challenge,
-      metadatas
+      metadata
     });
     await executor.execute(ctx);
     info = JSON.parse(ctx.getResponseBody());
@@ -427,7 +453,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     executor = this.getExecutor(ctx, "test.webda.io", "PUT", `/binary/upload/users/${user2.getUuid()}/images`, {
       hash,
       challenge,
-      metadatas
+      metadata
     });
     await executor.execute(ctx);
     info = JSON.parse(ctx.getResponseBody());

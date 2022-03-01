@@ -910,7 +910,7 @@ export class Core extends events.EventEmitter {
    *
    */
   protected createServices(excludes: string[] = []): void {
-    var services = this.configuration.services;
+    const services = this.configuration.services;
     for (let i in beans) {
       if (!beans[i].bean) {
         this.log("DEBUG", "Implicit @Bean due to a @Route", beans[i].constructor.name);

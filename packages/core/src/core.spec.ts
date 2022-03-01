@@ -410,6 +410,17 @@ class CoreTest extends WebdaTest {
   }
 
   @test
+  async autoConnectFailure() {
+    let core = new Core(new Application(__dirname + "/../test/config.broken.json"));
+    await core.init();
+    core.getServices()["implicitbean"].resolve = () => {
+      throw new Error();
+    };
+    // @ts-ignore
+    core.autoConnectServices();
+  }
+
+  @test
   cov() {
     assert.deepStrictEqual(this.webda.getDeployers(), {});
     this.webda.registerModel("mine", {});

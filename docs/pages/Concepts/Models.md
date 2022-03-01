@@ -3,7 +3,8 @@
 The models define your business objects.
 They are stored and exposed through API by Stores.
 
-They are close to a `POJO` but when attached to a Store, they are not truely POJO.
+They are close to a `POJO` but when attached to a Store, they are not truely POJO, similar to Hibernate.
+
 The `toJSON` method filters the attached store and context.
 
 ## Attributes

@@ -46,6 +46,7 @@ export interface OpenAPIWebdaDefinition extends RecursivePartial<OpenAPIV3.PathI
   post?: OpenApiWebdaOperation;
   put?: OpenApiWebdaOperation;
   patch?: OpenApiWebdaOperation;
+  get?: OpenApiWebdaOperation;
 }
 
 /**

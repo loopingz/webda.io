@@ -181,7 +181,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       if (challenge) {
         // challenge and data prove it exists
         if (challenge === body.challenge) {
-          await this.uploadSuccess(object, property, body, body.metadatas);
+          await this.uploadSuccess(object, property, body);
           return;
         }
       }
@@ -189,7 +189,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     } else {
       await this.putMarker(body.hash, `challenge_${body.challenge}`, "challenge");
     }
-    await this.uploadSuccess(object, property, body, body.metadatas);
+    await this.uploadSuccess(object, property, body);
     await this.putMarker(body.hash, uid, store);
     return { url: this.getSignedUrl(params.Key, "putObject", params), method: "PUT" };
   }
@@ -506,14 +506,9 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   /**
    * @inheritdoc
    */
-  async store(
-    object: CoreModel,
-    property: string,
-    file: BinaryFile,
-    metadatas?: { [key: string]: any }
-  ): Promise<void> {
-    this._checkMap(object.getStore().getName(), property);
-    this._prepareInput(file);
+  async store(object: CoreModel, property: string, file: BinaryFile): Promise<void> {
+    this.checkMap(object.getStore().getName(), property);
+    await file.getHashes();
     let data = await this._getS3(file.hash);
     if (data === undefined) {
       let s3metas: any = {};
@@ -529,7 +524,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       });
       await s3obj
         .upload({
-          Body: file.buffer
+          Body: await file.get()
         })
         .promise();
     }
@@ -537,7 +532,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     await this.putMarker(file.hash, `challenge_${file.challenge}`, "challenge");
 
     await this.putMarker(file.hash, object.getUuid(), object.getStore().getName());
-    await this.uploadSuccess(object, property, file, metadatas);
+    await this.uploadSuccess(object, property, file);
   }
 
   /**

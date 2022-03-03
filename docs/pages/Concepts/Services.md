@@ -19,6 +19,17 @@ graph TD
     async init
 ```
 
+## Generic Parameters
+
+A Service is a generic class that has at least 2 Parameters:
+
+```
+Service<T extends ServiceParameters,E extends Events>
+
+T: Define the class that define and load the parameters from the configuration
+E: Define the events and their types that the service emits
+```
+
 ## Dependencies
 
 ### @Inject

@@ -41,6 +41,12 @@ export class ConfigurationServiceParameters extends ServiceParameters {
     this.checkInterval ??= 3600;
   }
 }
+
+export type ConfigurationEvents = {
+  "Configuration.Applied": undefined;
+  "Configuration.Applying": undefined;
+};
+
 /**
  * Handle sessionSecret ( rolling between two secrets ) expire every hour
  * Handle longTermSecret ( rolling between two longer secret ) expire every month
@@ -53,8 +59,9 @@ export class ConfigurationServiceParameters extends ServiceParameters {
  * @category CoreServices
  */
 export default class ConfigurationService<
-  T extends ConfigurationServiceParameters = ConfigurationServiceParameters
-> extends Service<T> {
+  T extends ConfigurationServiceParameters = ConfigurationServiceParameters,
+  E extends ConfigurationEvents = ConfigurationEvents
+> extends Service<T, E> {
   protected serializedConfiguration: any;
   /**
    *
@@ -192,7 +199,7 @@ export default class ConfigurationService<
     const newConfig = (await this.loadConfiguration()) || this.parameters.default;
     const serializedConfig = JSON.stringify(newConfig);
     if (serializedConfig !== this.serializedConfiguration) {
-      this.emit("Configuration.Applying");
+      this.emit("Configuration.Applying", undefined);
       this.log("DEBUG", "Apply new configuration");
       this.serializedConfiguration = serializedConfig;
       this.configuration = newConfig;
@@ -214,7 +221,7 @@ export default class ConfigurationService<
         }
       });
       await Promise.all(promises);
-      this.emit("Configuration.Applied");
+      this.emit("Configuration.Applied", undefined);
     }
     // If the ConfigurationProvider cannot trigger we check at interval
     if (this.interval) {

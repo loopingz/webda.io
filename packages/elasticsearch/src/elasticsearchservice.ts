@@ -73,7 +73,7 @@ export default class ElasticSearchService<
       }
       this.log("INFO", "Setup the Store listeners");
       // Plug on every modification on the store to update the index accordingly
-      store.on("Store.PartialUpdated", (evt: EventStorePartialUpdated) => {
+      store.on("Store.PartialUpdated", evt => {
         if (evt.partial_update.increment) {
           return this._increment(
             index.name,
@@ -99,16 +99,16 @@ export default class ElasticSearchService<
           return this._deleteAttribute(index.name, evt.object_id, evt.partial_update.deleteAttribute);
         }
       });
-      store.on("Store.Updated", (evt: EventStoreUpdated) => {
+      store.on("Store.Updated", evt => {
         return this._update(index.name, evt.object);
       });
-      store.on("Store.PatchUpdated", (evt: EventStorePatchUpdated) => {
+      store.on("Store.PatchUpdated", evt => {
         return this._update(index.name, evt.object);
       });
-      store.on("Store.Saved", async (evt: EventStoreSaved) => {
+      store.on("Store.Saved", async evt => {
         return this._create(index.name, evt.object);
       });
-      store.on("Store.Deleted", (evt: EventStoreDeleted) => {
+      store.on("Store.Deleted", evt => {
         return this._delete(index.name, evt.object.getUuid());
       });
     }

@@ -365,6 +365,28 @@ export class StoreParameters extends ServiceParameters {
   }
 }
 
+export type StoreEvents = {
+  "Store.PartialUpdated": EventStorePartialUpdated;
+  "Store.Save": EventStoreSave;
+  "Store.Saved": EventStoreSaved;
+  "Store.PatchUpdate": EventStorePatchUpdate;
+  "Store.PatchUpdated": EventStorePatchUpdated;
+  "Store.Update": EventStoreUpdate;
+  "Store.Updated": EventStoreUpdated;
+  "Store.Delete": EventStoreDelete;
+  "Store.Deleted": EventStoreDeleted;
+  "Store.Get": EventStoreGet;
+  "Store.Find": EventStoreFind;
+  "Store.Found": EventStoreFound;
+  "Store.WebCreate": EventStoreWebCreate;
+  "Store.Action": EventStoreAction;
+  "Store.Actioned": EventStoreActioned;
+  "Store.WebUpdate": EventStoreWebUpdate;
+  "Store.WebGetNotFound": EventStoreWebGetNotFound;
+  "Store.WebGet": EventStoreWebGet;
+  "Store.WebDelete": EventStoreWebDelete;
+};
+
 /**
  * A mapping service allow to link two object together
  *
@@ -408,8 +430,12 @@ export interface MappingService<T = any> {
  *   }
  * @category CoreServices
  */
-abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters = StoreParameters>
-  extends Service<K>
+abstract class Store<
+    T extends CoreModel = CoreModel,
+    K extends StoreParameters = StoreParameters,
+    E extends StoreEvents = StoreEvents
+  >
+  extends Service<K, E>
   implements ConfigurationProvider, MappingService<T>
 {
   /**
@@ -928,11 +954,20 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
     if (object instanceof CoreModel) {
       loaded.setContext(object.getContext());
     }
-    await this.emitSync(`Store.${partialEvent}Update`, <EventStoreUpdate | EventStorePatchUpdate>{
-      object: loaded,
-      store: this,
-      update: object
-    });
+    if (partial) {
+      await this.emitSync(`Store.PatchUpdate`, {
+        object: loaded,
+        store: this,
+        update: object
+      });
+    } else {
+      await this.emitSync(`Store.Update`, {
+        object: loaded,
+        store: this,
+        update: object
+      });
+    }
+
     await loaded._onUpdate(object);
     let res: any;
     if (partial) {
@@ -955,10 +990,18 @@ abstract class Store<T extends CoreModel = CoreModel, K extends StoreParameters 
       loaded[i] = object[i];
     }
     saved = this.initModel(loaded);
-    await this.emitSync(`Store.${partialEvent}Updated`, <EventStoreUpdated | EventStorePatchUpdated>{
-      object: saved,
-      store: this
-    });
+    if (partial) {
+      await this.emitSync(`Store.PatchUpdated`, {
+        object: saved,
+        store: this
+      });
+    } else {
+      await this.emitSync(`Store.Updated`, {
+        object: saved,
+        store: this
+      });
+    }
+
     await saved._onUpdated();
     return saved;
   }

@@ -1,13 +1,5 @@
 "use strict";
-import {
-  ClientInfo,
-  Context,
-  Core as Webda,
-  HttpContext,
-  EventWebdaRequest,
-  EventWebdaResult,
-  EventWebda404
-} from "@webda/core";
+import { ClientInfo, Context, Core as Webda, HttpContext } from "@webda/core";
 import { serialize as cookieSerialize } from "cookie";
 
 /**
@@ -224,7 +216,7 @@ export default class LambdaServer extends Webda {
     ctx.clientInfo.referer = headers["Referer"] || headers.referer;
 
     // Debug mode
-    await this.emitSync("Webda.Request", <EventWebdaRequest>{ context: ctx });
+    await this.emitSync("Webda.Request", { context: ctx });
     if (this.getConfiguration().parameters.lambdaRequestHeader) {
       ctx.setHeader(this.getConfiguration().parameters.lambdaRequestHeader, context.awsRequestId);
     }
@@ -270,7 +262,7 @@ export default class LambdaServer extends Webda {
     }
 
     if (!this.updateContextWithRoute(ctx)) {
-      this.emitSync("Webda.404", <EventWebda404>{ context: ctx });
+      this.emitSync("Webda.404", { context: ctx });
       ctx.statusCode = 404;
       return this.handleLambdaReturn(ctx);
     }
@@ -291,12 +283,12 @@ export default class LambdaServer extends Webda {
 
   /**
    * Collect result from Context to this._result and return it
-   * @param ctx
+   * @param context
    * @returns
    */
-  async handleLambdaReturn(ctx: Context) {
-    await this.emitSync("Webda.Result", <EventWebdaResult>{ context: ctx });
-    await ctx.end();
+  async handleLambdaReturn(context: Context) {
+    await this.emitSync("Webda.Result", { context });
+    await context.end();
     // TODO Clean to use ...this._result
     return this._result;
   }

@@ -16,8 +16,6 @@ export interface EventOAuthToken extends EventWithContext {
   [key: string]: any;
 }
 
-export interface EventOAuthCallback extends EventOAuthToken {}
-
 /**
  * OAuth return definition
  */
@@ -83,12 +81,20 @@ export class OAuthServiceParameters extends ServiceParameters {
   }
 }
 
+export type OAuthEvents = {
+  "OAuth.Callback": EventOAuthToken;
+  "OAuth.Token": EventOAuthToken;
+};
+
 /**
  * OAuth service implementing the default OAuth workflow
  * It is abstract as it does not manage any provider as is
  */
-export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServiceParameters>
-  extends Service<T>
+export abstract class OAuthService<
+    T extends OAuthServiceParameters = OAuthServiceParameters,
+    E extends OAuthEvents = OAuthEvents
+  >
+  extends Service<T, E>
   implements RequestFilter<Context>
 {
   _authenticationService: Authentication;
@@ -295,7 +301,7 @@ export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServi
   private async _callback(ctx: Context) {
     const res = await this.handleCallback(ctx);
     await this.handleReturn(ctx, res.identId, res.profile);
-    await this.emitSync("OAuth.Callback", <EventOAuthCallback>{
+    await this.emitSync("OAuth.Callback", {
       ...res,
       provider: this.getName(),
       context: ctx

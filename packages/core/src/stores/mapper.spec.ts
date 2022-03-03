@@ -30,6 +30,7 @@ class MapperTest extends WebdaTest {
     assert.strictEqual(stb.getCall(0).args.length, 3);
 
     await this.getService<Store>("MemoryUsers").emitSync("Store.Deleted", {
+      // @ts-ignore
       object: {}
     });
   }

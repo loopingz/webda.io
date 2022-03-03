@@ -4,7 +4,7 @@ import { Store, StoreParameters } from "../index";
 import { WebdaTest } from "../test";
 import { suite, test } from "@testdeck/mocha";
 import * as Idents from "../../test/models/ident";
-import { StoreNotFoundError, UpdateConditionFailError } from "./store";
+import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./store";
 import { v4 as uuidv4 } from "uuid";
 import { CoreModel } from "../models/coremodel";
 
@@ -52,7 +52,7 @@ abstract class StoreTest extends WebdaTest {
     let userStore = this.getUserStore();
     let user1, ident1, ident2, user2;
     var eventFired = 0;
-    var events = [
+    var events: (keyof StoreEvents)[] = [
       "Store.Save",
       "Store.Saved",
       "Store.Get",
@@ -344,7 +344,7 @@ abstract class StoreTest extends WebdaTest {
   async crud() {
     let identStore = this.getIdentStore();
     var eventFired = 0;
-    var events = [
+    var events: (keyof StoreEvents)[] = [
       "Store.Save",
       "Store.Saved",
       "Store.Get",
@@ -354,7 +354,6 @@ abstract class StoreTest extends WebdaTest {
       "Store.Updated",
       "Store.PatchUpdate",
       "Store.PatchUpdated",
-      "Store.PartialUpdate",
       "Store.PartialUpdated",
       "Store.Find",
       "Store.Found"

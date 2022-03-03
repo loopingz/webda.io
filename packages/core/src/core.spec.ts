@@ -433,6 +433,7 @@ class CoreTest extends WebdaTest {
     let stub2 = sinon.stub().callsFake(async () => {});
     this.webda.on("Test", stub);
     this.webda.on("Test", stub2);
+    // @ts-ignore
     await this.webda.emitSync("Test");
     assert.strictEqual(stub.callCount, 1);
     assert.strictEqual(stub2.callCount, 1);

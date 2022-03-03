@@ -1,13 +1,4 @@
-import {
-  ClientInfo,
-  Core as Webda,
-  HttpContext,
-  EventWebdaRequest,
-  EventWebdaResult,
-  WaitFor,
-  WaitLinearDelay,
-  Context
-} from "@webda/core";
+import { ClientInfo, Core as Webda, HttpContext, WaitFor, WaitLinearDelay, Context } from "@webda/core";
 import * as http from "http";
 import { serialize as cookieSerialize } from "cookie";
 const path = require("path");
@@ -147,15 +138,15 @@ export class WebdaServer extends Webda {
         res.end();
         return;
       }
-      await this.emitSync("Webda.Request", <EventWebdaRequest>{ context: ctx });
+      await this.emitSync("Webda.Request", { context: ctx });
 
       res.setHeader("Access-Control-Allow-Credentials", "true");
       try {
         await ctx.execute();
-        await this.emitSync("Webda.Result", <EventWebdaResult>{ context: ctx });
+        await this.emitSync("Webda.Result", { context: ctx });
         await ctx.end();
       } catch (err) {
-        await this.emitSync("Webda.Result", <EventWebdaResult>{ context: ctx });
+        await this.emitSync("Webda.Result", { context: ctx });
         if (typeof err === "number") {
           ctx.statusCode = err;
           this.flushHeaders(ctx);

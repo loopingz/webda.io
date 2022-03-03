@@ -178,14 +178,14 @@ export default class Profiler<T extends ProfilerParameters = ProfilerParameters>
    * Add listeners on `Webda.Init.Services` and `Webda.Request`
    */
   resolve() {
-    this._webda.addListener("Webda.Init.Services", async services => {
+    this._webda.on("Webda.Init.Services", async services => {
       this.patchServices(services);
     });
-    this._webda.addListener("Webda.Request", async (ctx, ...args) => {
+    this._webda.on("Webda.Request", evt => {
       if (!this.isEnabled()) {
         return;
       }
-      this.instrumentRequest(ctx, ...args);
+      this.instrumentRequest(evt.context);
     });
   }
 

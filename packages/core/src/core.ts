@@ -1058,7 +1058,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @override
    */
   public emit<K extends keyof E>(eventType: K | symbol | string, event?: E[K], ...data: any[]): boolean {
-    return super.emit(<string>eventType, ...data);
+    return super.emit(<string>eventType, event, ...data);
   }
 
   /**

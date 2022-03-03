@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>EventWebdaResult |
+	<title>EventBinaryMetadataUpdate |
 	webda.io</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -64,7 +64,7 @@
 				<a href="../modules/_webda_core.html">@webda/core</a>
 			</li>
 			<li>
-				<a href="_webda_core.EventWebdaResult.html">EventWebdaResult</a>
+				<a href="_webda_core.EventBinaryMetadataUpdate.html">EventBinaryMetadataUpdate</a>
 			</li>
 		</ul>
 	</div>
@@ -150,10 +150,10 @@
 				<div>
 					<ul class="tsd-hierarchy">
 						<li>
-							<span class="tsd-signature-type">EventWithContext</span>
+							<span class="tsd-signature-type">EventBinaryUploadSuccess</span>
 							<ul class="tsd-hierarchy">
 								<li>
-									<span class="target">EventWebdaResult</span>
+									<span class="target">EventBinaryMetadataUpdate</span>
 								</li>
 							</ul>
 						</li>
@@ -163,10 +163,22 @@
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-interface tsd-parent-kind-module root">
-						<a href="_webda_core.EventWebdaResult.html" class="tsd-kind-icon">Event<wbr>Webda<wbr>Result</a>
+						<a href="_webda_core.EventBinaryMetadataUpdate.html" class="tsd-kind-icon">Event<wbr>Binary<wbr>Metadata<wbr>Update</a>
 						<ul>
 							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
-								<a href="_webda_core.EventWebdaResult.html#context" class="tsd-kind-icon">context</a>
+								<a href="_webda_core.EventBinaryMetadataUpdate.html#context" class="tsd-kind-icon">context</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="_webda_core.EventBinaryMetadataUpdate.html#metadata" class="tsd-kind-icon">metadata</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+								<a href="_webda_core.EventBinaryMetadataUpdate.html#object" class="tsd-kind-icon">object</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+								<a href="_webda_core.EventBinaryMetadataUpdate.html#service" class="tsd-kind-icon">service</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-overwrite">
+								<a href="_webda_core.EventBinaryMetadataUpdate.html#target" class="tsd-kind-icon">target</a>
 							</li>
 						</ul>
 					</li>
@@ -176,20 +188,20 @@
 			</nav>
 		</div>
 		<div class="col-content">
-			<h1>Interface EventWebdaResult</h1>
+			<h1>Interface EventBinaryMetadataUpdate</h1>
 			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
 					<div class="lead">
-						<p>Emitted when new result is sent</p>
+						<p>Sent before metadata are updated to allow alteration of the modification</p>
 					</div>
 			</div></section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<a href="_webda_core.EventWithContext.html" class="tsd-signature-type">EventWithContext</a>
+						<a href="_webda_core.EventBinaryUploadSuccess.html" class="tsd-signature-type">EventBinaryUploadSuccess</a>
 						<ul class="tsd-hierarchy">
 							<li>
-								<span class="target">EventWebdaResult</span>
+								<span class="target">EventBinaryMetadataUpdate</span>
 							</li>
 						</ul>
 					</li>
@@ -198,23 +210,64 @@
 			<section class="tsd-panel-group tsd-index-group">
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
-						<section class="tsd-index-section tsd-is-inherited">
+						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="_webda_core.EventWebdaResult.html#context" class="tsd-kind-icon">context</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="_webda_core.EventBinaryMetadataUpdate.html#context" class="tsd-kind-icon">context</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.EventBinaryMetadataUpdate.html#metadata" class="tsd-kind-icon">metadata</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="_webda_core.EventBinaryMetadataUpdate.html#object" class="tsd-kind-icon">object</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="_webda_core.EventBinaryMetadataUpdate.html#service" class="tsd-kind-icon">service</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-overwrite"><a href="_webda_core.EventBinaryMetadataUpdate.html#target" class="tsd-kind-icon">target</a></li>
 							</ul>
 						</section>
 					</div>
 				</section>
 			</section>
-			<section class="tsd-panel-group tsd-member-group tsd-is-inherited">
+			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="context" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">context<span class="tsd-signature-symbol">:</span> <a href="../classes/_webda_core.Context.html" class="tsd-signature-type">Context</a></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>In case the Context is known</p>
+						</div>
+					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/core.ts:43</li>
+							<li>Defined in packages/core/src/services/binary.ts:22</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="metadata" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">metadata<span class="tsd-signature-symbol">:</span> <a href="../modules/_webda_core.html#BinaryMetadata" class="tsd-signature-type">BinaryMetadata</a></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/services/binary.ts:34</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+					<a name="object" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">object<span class="tsd-signature-symbol">:</span> <a href="_webda_core.BinaryFileInfo.html" class="tsd-signature-type">BinaryFileInfo</a></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/services/binary.ts:17</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+					<a name="service" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">service<span class="tsd-signature-symbol">:</span> <a href="../classes/_webda_core.Binary.html" class="tsd-signature-type">Binary</a><span class="tsd-signature-symbol">&lt;</span><a href="../classes/_webda_core.BinaryParameters.html" class="tsd-signature-type">BinaryParameters</a><span class="tsd-signature-symbol">, </span><a href="../modules/_webda_core.html#BinaryEvents" class="tsd-signature-type">BinaryEvents</a><span class="tsd-signature-symbol">&gt;</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/services/binary.ts:18</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-overwrite">
+					<a name="target" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">target<span class="tsd-signature-symbol">:</span> <a href="../classes/_webda_core.CoreModel.html" class="tsd-signature-type">CoreModel</a></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/services/binary.ts:33</li>
 						</ul>
 					</aside>
 			</section>    </section>

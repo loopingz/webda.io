@@ -150,7 +150,7 @@
 				<div>
 					<ul class="tsd-hierarchy">
 						<li>
-							<span class="tsd-signature-type">Service</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span>
+							<span class="tsd-signature-type">Service</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">E</span><span class="tsd-signature-symbol">&gt;</span>
 							<ul class="tsd-hierarchy">
 								<li>
 									<span class="target">OAuthService</span>
@@ -213,10 +213,10 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.OAuthService.html#elapse" class="tsd-kind-icon">elapse</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
 								<a href="_webda_core.OAuthService.html#emit" class="tsd-kind-icon">emit</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
 								<a href="_webda_core.OAuthService.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
@@ -264,7 +264,10 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_core.OAuthService.html#log" class="tsd-kind-icon">log</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
+								<a href="_webda_core.OAuthService.html#on" class="tsd-kind-icon">on</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
 								<a href="_webda_core.OAuthService.html#onAsync" class="tsd-kind-icon">on<wbr>Async</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -293,7 +296,7 @@
 			</nav>
 		</div>
 		<div class="col-content">
-			<h1>Class OAuthService&lt;T&gt;</h1>
+			<h1>Class OAuthService&lt;T, E&gt;</h1>
 			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
 					<div class="lead">
 						<p>OAuth service implementing the default OAuth workflow
@@ -306,13 +309,16 @@
 					<li>
 						<h4>T<span class="tsd-signature-symbol">: </span><a href="_webda_core.OAuthServiceParameters.html" class="tsd-signature-type">OAuthServiceParameters</a></h4>
 					</li>
+					<li>
+						<h4>E<span class="tsd-signature-symbol">: </span><a href="../modules/_webda_core.html#OAuthEvents" class="tsd-signature-type">OAuthEvents</a></h4>
+					</li>
 				</ul>
 			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<a href="_webda_core.Service.html" class="tsd-signature-type">Service</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span>
+						<a href="_webda_core.Service.html" class="tsd-signature-type">Service</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">E</span><span class="tsd-signature-symbol">&gt;</span>
 						<ul class="tsd-hierarchy">
 							<li>
 								<span class="target">OAuthService</span>
@@ -359,8 +365,8 @@
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.OAuthService.html#checkRequest" class="tsd-kind-icon">check<wbr>Request</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.OAuthService.html#computeParameters" class="tsd-kind-icon">compute<wbr>Parameters</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.OAuthService.html#elapse" class="tsd-kind-icon">elapse</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.OAuthService.html#emit" class="tsd-kind-icon">emit</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.OAuthService.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="_webda_core.OAuthService.html#emit" class="tsd-kind-icon">emit</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="_webda_core.OAuthService.html#emitSync" class="tsd-kind-icon">emit<wbr>Sync</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.OAuthService.html#generateAuthUrl" class="tsd-kind-icon">generate<wbr>Auth<wbr>Url</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.OAuthService.html#getCallbackReferer" class="tsd-kind-icon">get<wbr>Callback<wbr>Referer</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_core.OAuthService.html#getDefaultUrl" class="tsd-kind-icon">get<wbr>Default<wbr>Url</a></li>
@@ -376,7 +382,8 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_core.OAuthService.html#initRoutes" class="tsd-kind-icon">init<wbr>Routes</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_core.OAuthService.html#loadParameters" class="tsd-kind-icon">load<wbr>Parameters</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.OAuthService.html#log" class="tsd-kind-icon">log</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.OAuthService.html#onAsync" class="tsd-kind-icon">on<wbr>Async</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="_webda_core.OAuthService.html#on" class="tsd-kind-icon">on</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited"><a href="_webda_core.OAuthService.html#onAsync" class="tsd-kind-icon">on<wbr>Async</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.OAuthService.html#reinit" class="tsd-kind-icon">reinit</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_core.OAuthService.html#resolve" class="tsd-kind-icon">resolve</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_webda_core.OAuthService.html#toPublicJSON" class="tsd-kind-icon">to<wbr>PublicJSON</a></li>
@@ -393,7 +400,7 @@
 				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter tsd-is-overwrite">
 					<a name="constructor" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-has-type-parameter tsd-is-overwrite">
-						<li class="tsd-signature tsd-kind-icon">new OAuth<wbr>Service&lt;T&gt;<span class="tsd-signature-symbol">(</span>webda<span class="tsd-signature-symbol">: </span><a href="_webda_core.Core.html" class="tsd-signature-type">Core</a>, name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, params<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_core.OAuthService.html" class="tsd-signature-type">OAuthService</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">new OAuth<wbr>Service&lt;T, E&gt;<span class="tsd-signature-symbol">(</span>webda<span class="tsd-signature-symbol">: </span><a href="_webda_core.Core.html" class="tsd-signature-type">Core</a><span class="tsd-signature-symbol">&lt;</span><a href="../modules/_webda_core.html#CoreEvents" class="tsd-signature-type">CoreEvents</a><span class="tsd-signature-symbol">&gt;</span>, name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, params<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_core.OAuthService.html" class="tsd-signature-type">OAuthService</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">E</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -410,11 +417,14 @@
 								<li>
 									<h4>T<span class="tsd-signature-symbol">: </span><a href="_webda_core.OAuthServiceParameters.html" class="tsd-signature-type">OAuthServiceParameters</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></h4>
 								</li>
+								<li>
+									<h4>E<span class="tsd-signature-symbol">: </span><a href="../modules/_webda_core.html#OAuthEvents" class="tsd-signature-type">OAuthEvents</a></h4>
+								</li>
 							</ul>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>webda: <a href="_webda_core.Core.html" class="tsd-signature-type">Core</a></h5>
+									<h5>webda: <a href="_webda_core.Core.html" class="tsd-signature-type">Core</a><span class="tsd-signature-symbol">&lt;</span><a href="../modules/_webda_core.html#CoreEvents" class="tsd-signature-type">CoreEvents</a><span class="tsd-signature-symbol">&gt;</span></h5>
 								</li>
 								<li>
 									<h5>name: <span class="tsd-signature-type">string</span></h5>
@@ -423,10 +433,10 @@
 									<h5><span class="tsd-flag ts-flagOptional">Optional</span> params: <span class="tsd-signature-type">any</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <a href="_webda_core.OAuthService.html" class="tsd-signature-type">OAuthService</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <a href="_webda_core.OAuthService.html" class="tsd-signature-type">OAuthService</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">E</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/oauth.ts:99</li>
+									<li>Defined in packages/core/src/services/oauth.ts:105</li>
 								</ul>
 							</aside>
 						</li>
@@ -436,10 +446,10 @@
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="_authenticationService" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">_authentication<wbr>Service<span class="tsd-signature-symbol">:</span> <a href="_webda_core.Authentication.html" class="tsd-signature-type">Authentication</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.AuthenticationParameters.html" class="tsd-signature-type">AuthenticationParameters</a><span class="tsd-signature-symbol">&gt;</span></div>
+					<div class="tsd-signature tsd-kind-icon">_authentication<wbr>Service<span class="tsd-signature-symbol">:</span> <a href="_webda_core.Authentication.html" class="tsd-signature-type">Authentication</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.AuthenticationParameters.html" class="tsd-signature-type">AuthenticationParameters</a><span class="tsd-signature-symbol">, </span><a href="../modules/_webda_core.html#AuthenticationEvents" class="tsd-signature-type">AuthenticationEvents</a><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/oauth.ts:94</li>
+							<li>Defined in packages/core/src/services/oauth.ts:100</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -447,7 +457,7 @@
 					<div class="tsd-signature tsd-kind-icon">_create<wbr>Exception<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/service.ts:151</li>
+							<li>Defined in packages/core/src/services/service.ts:158</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -455,7 +465,7 @@
 					<div class="tsd-signature tsd-kind-icon">_init<wbr>Exception<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol"> = ...</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/service.ts:153</li>
+							<li>Defined in packages/core/src/services/service.ts:160</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -463,7 +473,7 @@
 					<div class="tsd-signature tsd-kind-icon">_init<wbr>Time<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/service.ts:152</li>
+							<li>Defined in packages/core/src/services/service.ts:159</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -476,12 +486,12 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/service.ts:144</li>
+							<li>Defined in packages/core/src/services/service.ts:151</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
 					<a name="_webda" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">_webda<span class="tsd-signature-symbol">:</span> <a href="_webda_core.Core.html" class="tsd-signature-type">Core</a></div>
+					<div class="tsd-signature tsd-kind-icon">_webda<span class="tsd-signature-symbol">:</span> <a href="_webda_core.Core.html" class="tsd-signature-type">Core</a><span class="tsd-signature-symbol">&lt;</span><a href="../modules/_webda_core.html#CoreEvents" class="tsd-signature-type">CoreEvents</a><span class="tsd-signature-symbol">&gt;</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
 							<p>Webda Core object</p>
@@ -489,7 +499,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/service.ts:140</li>
+							<li>Defined in packages/core/src/services/service.ts:147</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -502,7 +512,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/service.ts:157</li>
+							<li>Defined in packages/core/src/services/service.ts:164</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
@@ -517,7 +527,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/services/service.ts:150</li>
+							<li>Defined in packages/core/src/services/service.ts:157</li>
 						</ul>
 					</aside>
 			</section>    </section>
@@ -544,7 +554,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:378</li>
+									<li>Defined in packages/core/src/services/service.ts:397</li>
 								</ul>
 							</aside>
 						</li>
@@ -576,7 +586,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/oauth.ts:253</li>
+									<li>Defined in packages/core/src/services/oauth.ts:259</li>
 								</ul>
 							</aside>
 						</li>
@@ -606,7 +616,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/oauth.ts:235</li>
+									<li>Defined in packages/core/src/services/oauth.ts:241</li>
 								</ul>
 							</aside>
 						</li>
@@ -653,7 +663,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:231</li>
+									<li>Defined in packages/core/src/services/service.ts:238</li>
 								</ul>
 							</aside>
 						</li>
@@ -682,7 +692,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/oauth.ts:122</li>
+									<li>Defined in packages/core/src/services/oauth.ts:128</li>
 								</ul>
 							</aside>
 						</li>
@@ -705,7 +715,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:184</li>
+									<li>Defined in packages/core/src/services/service.ts:191</li>
 								</ul>
 							</aside>
 						</li>
@@ -736,15 +746,15 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:295</li>
+									<li>Defined in packages/core/src/services/service.ts:302</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
 					<a name="emit" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">emit<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span>, <span class="tsd-signature-symbol">...</span>args<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">emit&lt;Key&gt;<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">symbol</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Key</span>, data<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">E[Key]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -759,27 +769,33 @@
 								<dl class="tsd-comment-tags"><dt>override</dt>
 								<dd></dd></dl>
 							</div>
+							<h4 class="tsd-type-parameters-title">Type parameters</h4>
+							<ul class="tsd-type-parameters">
+								<li>
+									<h4>Key<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span></h4>
+								</li>
+							</ul>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>event: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span></h5>
+									<h5>event: <span class="tsd-signature-type">symbol</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Key</span></h5>
 								</li>
 								<li>
-									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>args: <span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span></h5>
+									<h5>data: <span class="tsd-signature-type">E[Key]</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:331</li>
+									<li>Defined in packages/core/src/services/service.ts:338</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
 					<a name="emitSync" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">emit<wbr>Sync<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, data<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></li>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">emit<wbr>Sync&lt;Key&gt;<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Key</span>, data<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">E[Key]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -791,19 +807,25 @@
 									<p>Emit the event with data and wait for Promise to finish if listener returned a Promise</p>
 								</div>
 							</div>
+							<h4 class="tsd-type-parameters-title">Type parameters</h4>
+							<ul class="tsd-type-parameters">
+								<li>
+									<h4>Key<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span></h4>
+								</li>
+							</ul>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>event: <span class="tsd-signature-type">any</span></h5>
+									<h5>event: <span class="tsd-signature-type">Key</span></h5>
 								</li>
 								<li>
-									<h5>data: <span class="tsd-signature-type">any</span></h5>
+									<h5>data: <span class="tsd-signature-type">E[Key]</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:305</li>
+									<li>Defined in packages/core/src/services/service.ts:312</li>
 								</ul>
 							</aside>
 						</li>
@@ -846,7 +868,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/oauth.ts:358</li>
+									<li>Defined in packages/core/src/services/oauth.ts:364</li>
 								</ul>
 							</aside>
 						</li>
@@ -868,7 +890,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">RegExp</span><span class="tsd-signature-symbol">[]</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/oauth.ts:344</li>
+									<li>Defined in packages/core/src/services/oauth.ts:350</li>
 								</ul>
 							</aside>
 						</li>
@@ -890,7 +912,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/oauth.ts:339</li>
+									<li>Defined in packages/core/src/services/oauth.ts:345</li>
 								</ul>
 							</aside>
 						</li>
@@ -913,7 +935,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/oauth.ts:349</li>
+									<li>Defined in packages/core/src/services/oauth.ts:355</li>
 								</ul>
 							</aside>
 						</li>
@@ -936,7 +958,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">T</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:191</li>
+									<li>Defined in packages/core/src/services/service.ts:198</li>
 								</ul>
 							</aside>
 						</li>
@@ -959,7 +981,7 @@
 							<h4 class="tsd-type-parameters-title">Type parameters</h4>
 							<ul class="tsd-type-parameters">
 								<li>
-									<h4>K<span class="tsd-signature-symbol">: </span><a href="_webda_core.Service.html" class="tsd-signature-type">Service</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.ServiceParameters.html" class="tsd-signature-type">ServiceParameters</a><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">K</span><span class="tsd-signature-symbol">&gt;</span></h4>
+									<h4>K<span class="tsd-signature-symbol">: </span><a href="_webda_core.Service.html" class="tsd-signature-type">Service</a><span class="tsd-signature-symbol">&lt;</span><a href="_webda_core.ServiceParameters.html" class="tsd-signature-type">ServiceParameters</a><span class="tsd-signature-symbol">, </span><a href="../modules/_webda_core.html#Events" class="tsd-signature-type">Events</a><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">K</span><span class="tsd-signature-symbol">&gt;</span></h4>
 								</li>
 							</ul>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -974,7 +996,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">K</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:354</li>
+									<li>Defined in packages/core/src/services/service.ts:373</li>
 								</ul>
 							</aside>
 						</li>
@@ -982,7 +1004,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="getWebda" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Webda<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_core.Core.html" class="tsd-signature-type">Core</a></li>
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Webda<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_core.Core.html" class="tsd-signature-type">Core</a><span class="tsd-signature-symbol">&lt;</span><a href="../modules/_webda_core.html#CoreEvents" class="tsd-signature-type">CoreEvents</a><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -994,10 +1016,10 @@
 									<p>Return WebdaCore</p>
 								</div>
 							</div>
-							<h4 class="tsd-returns-title">Returns <a href="_webda_core.Core.html" class="tsd-signature-type">Core</a></h4>
+							<h4 class="tsd-returns-title">Returns <a href="_webda_core.Core.html" class="tsd-signature-type">Core</a><span class="tsd-signature-symbol">&lt;</span><a href="../modules/_webda_core.html#CoreEvents" class="tsd-signature-type">CoreEvents</a><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:198</li>
+									<li>Defined in packages/core/src/services/service.ts:205</li>
 								</ul>
 							</aside>
 						</li>
@@ -1027,7 +1049,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_webda_core.OAuthReturn.html" class="tsd-signature-type">OAuthReturn</a><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/oauth.ts:371</li>
+									<li>Defined in packages/core/src/services/oauth.ts:377</li>
 								</ul>
 							</aside>
 						</li>
@@ -1066,7 +1088,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/oauth.ts:311</li>
+									<li>Defined in packages/core/src/services/oauth.ts:317</li>
 								</ul>
 							</aside>
 						</li>
@@ -1096,7 +1118,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_webda_core.OAuthReturn.html" class="tsd-signature-type">OAuthReturn</a><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/oauth.ts:365</li>
+									<li>Defined in packages/core/src/services/oauth.ts:371</li>
 								</ul>
 							</aside>
 						</li>
@@ -1118,7 +1140,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/oauth.ts:243</li>
+									<li>Defined in packages/core/src/services/oauth.ts:249</li>
 								</ul>
 							</aside>
 						</li>
@@ -1144,7 +1166,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:277</li>
+									<li>Defined in packages/core/src/services/service.ts:284</li>
 								</ul>
 							</aside>
 						</li>
@@ -1167,7 +1189,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/oauth.ts:153</li>
+									<li>Defined in packages/core/src/services/oauth.ts:159</li>
 								</ul>
 							</aside>
 						</li>
@@ -1198,7 +1220,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_core.ServiceParameters.html" class="tsd-signature-type">ServiceParameters</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/oauth.ts:109</li>
+									<li>Defined in packages/core/src/services/oauth.ts:115</li>
 								</ul>
 							</aside>
 						</li>
@@ -1230,15 +1252,76 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:398</li>
+									<li>Defined in packages/core/src/services/service.ts:417</li>
 								</ul>
 							</aside>
 						</li>
 					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
+					<a name="on" class="tsd-anchor"></a>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">on&lt;Key&gt;<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">symbol</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Key</span>, listener<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_core.OAuthService.html" class="tsd-signature-type">OAuthService</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">E</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="_webda_core.Service.html">Service</a>.<a href="_webda_core.Service.html#on">on</a></p>
+							</aside>
+							<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+								<div class="lead">
+									<p>Type the listener part</p>
+								</div>
+							</div>
+							<h4 class="tsd-type-parameters-title">Type parameters</h4>
+							<ul class="tsd-type-parameters">
+								<li>
+									<h4>Key<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span></h4>
+								</li>
+							</ul>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>event: <span class="tsd-signature-type">symbol</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">Key</span></h5>
+								</li>
+								<li>
+									<h5>listener: <span class="tsd-signature-type">function</span></h5>
+									<ul class="tsd-parameters">
+										<li class="tsd-parameter-siganture">
+											<ul class="tsd-signatures tsd-kind-type-literal">
+												<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>evt<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">E[Key]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+											</ul>
+											<ul class="tsd-descriptions">
+												<li class="tsd-description">
+													<h4 class="tsd-parameters-title">Parameters</h4>
+													<ul class="tsd-parameters">
+														<li>
+															<h5>evt: <span class="tsd-signature-type">E[Key]</span></h5>
+														</li>
+													</ul>
+													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+													<aside class="tsd-sources">
+														<ul>
+															<li>Defined in packages/core/src/services/service.ts:354</li>
+														</ul>
+													</aside>
+												</li>
+											</ul>
+										</li>
+									</ul>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="_webda_core.OAuthService.html" class="tsd-signature-type">OAuthService</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">E</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/core/src/services/service.ts:354</li>
+								</ul>
+							</aside>
+						</li>
+					</ul>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
 					<a name="onAsync" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">on<wbr>Async<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, callback<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, queue<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">on<wbr>Async&lt;Key&gt;<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Key</span>, listener<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span>, queue<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1250,13 +1333,42 @@
 									<p>Listen to an event as on(...) would do except that it will be asynchronous</p>
 								</div>
 							</div>
+							<h4 class="tsd-type-parameters-title">Type parameters</h4>
+							<ul class="tsd-type-parameters">
+								<li>
+									<h4>Key<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">symbol</span></h4>
+								</li>
+							</ul>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>event: <span class="tsd-signature-type">any</span></h5>
+									<h5>event: <span class="tsd-signature-type">Key</span></h5>
 								</li>
 								<li>
-									<h5>callback: <span class="tsd-signature-type">any</span></h5>
+									<h5>listener: <span class="tsd-signature-type">function</span></h5>
+									<ul class="tsd-parameters">
+										<li class="tsd-parameter-siganture">
+											<ul class="tsd-signatures tsd-kind-type-literal">
+												<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>evt<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">E[Key]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+											</ul>
+											<ul class="tsd-descriptions">
+												<li class="tsd-description">
+													<h4 class="tsd-parameters-title">Parameters</h4>
+													<ul class="tsd-parameters">
+														<li>
+															<h5>evt: <span class="tsd-signature-type">E[Key]</span></h5>
+														</li>
+													</ul>
+													<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+													<aside class="tsd-sources">
+														<ul>
+															<li>Defined in packages/core/src/services/service.ts:365</li>
+														</ul>
+													</aside>
+												</li>
+											</ul>
+										</li>
+									</ul>
 								</li>
 								<li>
 									<h5>queue: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = ...</span></h5>
@@ -1268,7 +1380,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:346</li>
+									<li>Defined in packages/core/src/services/service.ts:365</li>
 								</ul>
 							</aside>
 						</li>
@@ -1276,7 +1388,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="reinit" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">reinit<span class="tsd-signature-symbol">(</span>config<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">reinit<span class="tsd-signature-symbol">(</span>config<span class="tsd-signature-symbol">: </span><a href="../modules/_webda_core.html#DeepPartial" class="tsd-signature-type">DeepPartial</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1286,7 +1398,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>config: <span class="tsd-signature-type">any</span></h5>
+									<h5>config: <a href="../modules/_webda_core.html#DeepPartial" class="tsd-signature-type">DeepPartial</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
 										<p>new parameters for the service</p>
 									</div>
@@ -1295,7 +1407,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:285</li>
+									<li>Defined in packages/core/src/services/service.ts:292</li>
 								</ul>
 							</aside>
 						</li>
@@ -1318,7 +1430,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/oauth.ts:145</li>
+									<li>Defined in packages/core/src/services/oauth.ts:151</li>
 								</ul>
 							</aside>
 						</li>
@@ -1326,7 +1438,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="toPublicJSON" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">to<wbr>PublicJSON<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
+						<li class="tsd-signature tsd-kind-icon">to<wbr>PublicJSON<span class="tsd-signature-symbol">(</span>object<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -1341,7 +1453,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>object: <span class="tsd-signature-type">any</span></h5>
+									<h5>object: <span class="tsd-signature-type">unknown</span></h5>
 									<div class="tsd-comment tsd-typography tsd-comment-text">
 										<p>The object to export</p>
 									</div>
@@ -1351,7 +1463,7 @@
 							<p>The export of the strip object ( removed all attribute with _ )</p>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:267</li>
+									<li>Defined in packages/core/src/services/service.ts:274</li>
 								</ul>
 							</aside>
 						</li>
@@ -1374,7 +1486,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:205</li>
+									<li>Defined in packages/core/src/services/service.ts:212</li>
 								</ul>
 							</aside>
 						</li>
@@ -1400,7 +1512,7 @@
 							</h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:362</li>
+									<li>Defined in packages/core/src/services/service.ts:381</li>
 								</ul>
 							</aside>
 						</li>
@@ -1426,7 +1538,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">JSONSchema6</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/src/services/service.ts:409</li>
+									<li>Defined in packages/core/src/services/service.ts:428</li>
 								</ul>
 							</aside>
 						</li>

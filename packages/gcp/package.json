@@ -1,6 +1,6 @@
 {
   "name": "@webda/gcp",
-  "version": "1.5.2",
+  "version": "1.6.0-beta.3",
   "description": "Webda GCP Services implementation",
   "main": "lib/index.js",
   "scripts": {
@@ -32,8 +32,9 @@
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
+    "@google-cloud/pubsub": "^2.19.0",
     "@google-cloud/storage": "^5.16.0",
-    "@webda/core": "^1.5.2"
+    "@webda/core": "^1.6.0-beta.3"
   },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",
@@ -55,8 +56,8 @@
   "devDependencies": {
     "@testdeck/mocha": "^0.1.2",
     "@types/node": "14.0.0",
-    "@webda/async": "^1.5.2",
-    "@webda/shell": "^1.5.2",
+    "@webda/async": "^1.6.0-beta.3",
+    "@webda/shell": "^1.6.0-beta.3",
     "sinon": "^12.0.1"
   }
 }

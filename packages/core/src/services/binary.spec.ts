@@ -92,30 +92,37 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     var user2;
     var user;
     var ctx;
+    this.log("DEBUG", "Initializing users");
     user1 = await userStore.save({
       test: "plop"
     });
     user2 = await userStore.save({
       test: "plop"
     });
+    this.log("DEBUG", "Store a local file");
     await binary.store(user1, map, new LocalBinaryFile(this.getTestFile()), {});
     user1 = await userStore.get(user1.uuid);
     assert.notStrictEqual(user1[map], undefined);
     assert.strictEqual(user1[map].length, 1);
     hash = user1[map][0].hash;
+    this.log("DEBUG", "Get usage count");
     let value = await binary.getUsageCount(hash);
     assert.strictEqual(value, 1);
+    this.log("DEBUG", "Store same local file on separate object");
     await binary.store(user2, map, new LocalBinaryFile(this.getTestFile()), {});
     user = await userStore.get(user2.uuid);
     assert.notStrictEqual(user[map], undefined);
     assert.strictEqual(user[map].length, 1);
     assert.strictEqual(user[map][0].constructor.name, "BinaryMap");
     hash = user[map][0].hash;
+    this.log("DEBUG", "Verify usage count");
     value = await binary.getUsageCount(hash);
     assert.strictEqual(value, 2);
+    this.log("DEBUG", "Delete one attached object");
     await binary.delete(user, map, 0);
     user = await userStore.get(user2.uuid);
     assert.strictEqual(user[map].length, 0);
+    this.log("DEBUG", "Verify usage count decreased");
     value = await binary.getUsageCount(hash);
     assert.strictEqual(value, 1);
     // Try to get images on user1 as user2
@@ -130,18 +137,22 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       "GET",
       exposePath + "/users/" + user1.uuid + "/" + map + "/0"
     );
+    this.log("DEBUG", "Verify permission check on HTTP GET");
     await assert.rejects(executor.execute(ctx), res => res == 403);
     ctx.session.userId = user1.uuid;
+    this.log("DEBUG", "Verify valid permission check on HTTP GET");
     executor = this.getExecutor(ctx, "test.webda.io", "GET", exposePath + "/users/" + user1.uuid + "/" + map + "/0");
     await executor.execute(ctx);
     // We dont check for result as FileBinary will return datas and S3 a redirect
     if (fs.existsSync("./downloadTo.tmp")) {
       fs.unlinkSync("./downloadTo.tmp");
     }
+    this.log("DEBUG", "BinaryMap downloadTo");
     await binary.downloadTo(user1[map][0], "./downloadTo.tmp");
     // Check the result is the same
     assert.strictEqual(fs.readFileSync("./downloadTo.tmp").toString(), fs.readFileSync(this.getTestFile()).toString());
     fs.unlinkSync("./downloadTo.tmp");
+    this.log("DEBUG", "BinaryMap downloadTo from CoreModel");
     await user1[map][0].downloadTo("./downloadTo.tmp");
     assert.strictEqual(fs.readFileSync("./downloadTo.tmp").toString(), fs.readFileSync(this.getTestFile()).toString());
     fs.unlinkSync("./downloadTo.tmp");
@@ -156,6 +167,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     });
     let stub2;
     try {
+      this.log("DEBUG", "BinaryMap downloadTo with I/O issues");
       await assert.rejects(() => binary.downloadTo(user1[map][0], "./downloadTo.tmp"));
       assert.ok(!fs.existsSync("./downloadTo.tmp"));
       stub2 = sinon.stub(fs, "unlinkSync").callsFake(() => {
@@ -168,12 +180,14 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
         stub2.restore();
       }
     }
+    this.log("DEBUG", "Check get stream");
     let buf1 = await Binary.streamToBuffer(await user1[map][0].get());
 
     // cov
     let buf2 = await Binary.streamToBuffer(await binary._get(user1[map][0]));
 
     assert.strictEqual(buf1.toString(), buf2.toString());
+    this.log("DEBUG", "Delete CoreModel and ensure usage count");
     await userStore.delete(user1.uuid);
     value = await binary.getUsageCount(hash);
     assert.strictEqual(value, 0);

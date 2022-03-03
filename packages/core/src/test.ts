@@ -1,3 +1,4 @@
+import { WorkerLogLevel } from "@webda/workout";
 import * as assert from "assert";
 import { Application, Context, Core, HttpContext, HttpMethodType, Service } from "./index";
 import { ConsoleLoggerService } from "./utils/logger";
@@ -56,6 +57,19 @@ class WebdaTest {
     this.buildWebda();
     if (init) {
       await this.webda.init();
+    }
+  }
+
+  /**
+   *
+   * @param level
+   * @param args
+   */
+  log(level: WorkerLogLevel, ...args: any[]) {
+    if (this.webda) {
+      this.webda.log(level, "TEST", ...args);
+    } else {
+      console.log(level, "WEBDA NOT INITATED TEST", ...args);
     }
   }
 

@@ -428,6 +428,15 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   /**
+   * Return Core instance id
+   *
+   * It is a random generated string
+   */
+  getInstanceId(): string {
+    return "";
+  }
+
+  /**
    * Get absolute url with subpath
    * @param subpath
    */

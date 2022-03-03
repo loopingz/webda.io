@@ -51,6 +51,9 @@ jobs:
         ports:
           - 5672:5672
 
+    permissions:
+      id-token: "write"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -98,8 +101,18 @@ jobs:
       - name: Run AWS tests
         run: yarn run test --scope @webda/aws
 
+      - id: auth
+        uses: google-github-actions/auth@v0.4.0
+        with:
+          create_credentials_file: true
+          workload_identity_provider: ${{ secrets.GCP_OIDC_ID_PROVIDER }}
+          service_account: ${{ secrets.GCP_OIDC_SA}}
+
+      - name: Run GCP tests
+        run: yarn run test --scope @webda/gcp
+
       - name: Run other modules tests
-        run: yarn run test --ignore @webda/shell  --ignore @webda/aws  --ignore @webda/core --ignore @webda/postgres
+        run: yarn run test --ignore @webda/shell  --ignore @webda/aws  --ignore @webda/gcp --ignore @webda/core --ignore @webda/postgres
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@master

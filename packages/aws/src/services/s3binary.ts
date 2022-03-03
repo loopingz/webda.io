@@ -7,7 +7,6 @@ import {
   Context,
   CoreModel,
   ModdaDefinition,
-  EventBinaryGet,
   WebdaError,
   BinaryFile
 } from "@webda/core";
@@ -230,7 +229,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     let info = obj[property][index];
     var params: any = {};
     params.Expires = expire; // A get should not take more than 30s
-    await this.emitSync("Binary.Get", <EventBinaryGet>{
+    await this.emitSync("Binary.Get", {
       object: info,
       service: this,
       context: context

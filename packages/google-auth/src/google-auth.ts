@@ -1,6 +1,20 @@
 import * as http from "http";
-import { OAuthService, RequestFilter, OAuthServiceParameters, Context, ModdaDefinition } from "@webda/core";
+import {
+  OAuthService,
+  RequestFilter,
+  OAuthServiceParameters,
+  Context,
+  ModdaDefinition,
+  OAuthEvents
+} from "@webda/core";
 import { OAuth2Client, Credentials } from "google-auth-library";
+
+export interface EventGoogleOAuthToken {
+  /**
+   * Tokens retrieved from Google
+   */
+  tokens: Credentials;
+}
 
 /**
  * Credentials to manage Google Auth
@@ -43,8 +57,15 @@ export class GoogleParameters extends OAuthServiceParameters {
   }
 }
 
+type GoogleAuthEvents = OAuthEvents & {
+  "GoogleAuth.Tokens": EventGoogleOAuthToken;
+};
+/**
+ * Manage Google Authentication
+ *
+ */
 export default class GoogleAuthentication<T extends GoogleParameters = GoogleParameters>
-  extends OAuthService<T>
+  extends OAuthService<T, GoogleAuthEvents>
   implements RequestFilter<Context>
 {
   protected _client: OAuth2Client;
@@ -125,6 +146,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
     // Now that we have the code, use that to acquire tokens.
     try {
       const r = await oauthClient.getToken(code);
+      this.emitSync("GoogleAuth.Tokens", { tokens: r.tokens });
       profile = await this.getUserInfo(r.tokens.id_token);
       identId = profile.sub;
     } catch (err) {

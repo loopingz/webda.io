@@ -1,4 +1,4 @@
-import { Service, ServiceParameters, Store, Cache, RequestFilter, Context, EventWebdaResult } from "@webda/core";
+import { Service, ServiceParameters, Store, Cache, RequestFilter, Context } from "@webda/core";
 import { ApiKey } from "./apikey";
 import * as Hawk from "hawk";
 
@@ -92,7 +92,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
     await this.getOrigins();
     this.getWebda().registerRequestFilter(this);
     // Manage hawk server signature
-    this.getWebda().addListener("Webda.Result", async ({ context }: EventWebdaResult) => {
+    this.getWebda().on("Webda.Result", async ({ context }) => {
       try {
         const headers = context.getResponseHeaders();
         const contentType = headers["Content-Type"] || headers["content-type"] || "application/json";

@@ -44,20 +44,6 @@ export interface EventWithContext {
 }
 
 /**
- * Emitted when new request comes in
- */
-export interface EventWebdaRequest extends EventWithContext {}
-
-/**
- * Emitted when new result is sent
- */
-export interface EventWebdaResult extends EventWithContext {}
-
-/**
- * Emitted when a request does not match any route
- */
-export interface EventWebda404 extends EventWithContext {}
-/**
  * Define a reusable service
  *
  * A Modda is a class that can be reused
@@ -333,13 +319,32 @@ export function Route(
   };
 }
 
+export type CoreEvents = {
+  /**
+   * Emitted when new result is sent
+   */
+  "Webda.Result": EventWithContext;
+  /**
+   * Emitted when new request comes in
+   */
+  "Webda.Request": EventWithContext;
+  /**
+   * Emitted when a request does not match any route
+   */
+  "Webda.404": EventWithContext;
+  "Webda.Init.Services": { [key: string]: Service };
+  "Webda.Create.Services": { [key: string]: Service };
+  "Webda.Init": Configuration;
+  "Webda.NewContext": Context;
+};
+
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
  *
  * @class Core
  * @category CoreFeatures
  */
-export class Core extends events.EventEmitter {
+export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter {
   /**
    * Webda Services
    * @hidden
@@ -558,7 +563,7 @@ export class Core extends events.EventEmitter {
         }
       }
       await Promise.all(inits);
-      this.emitSync("Webda.Init.Services", this.services);
+      await this.emitSync("Webda.Init.Services", this.services);
       resolve();
     });
     return this._init;
@@ -1034,7 +1039,7 @@ export class Core extends events.EventEmitter {
     if (!noInit) {
       await res.init();
     }
-    this.emitSync("Webda.NewContext", res);
+    await this.emitSync("Webda.NewContext", res);
     return <T>res;
   }
 
@@ -1050,12 +1055,19 @@ export class Core extends events.EventEmitter {
   }
 
   /**
+   * @override
+   */
+  public emit<K extends keyof E>(eventType: K | symbol | string, event?: E[K], ...data: any[]): boolean {
+    return super.emit(<string>eventType, ...data);
+  }
+
+  /**
    * Emit the event with data and wait for Promise to finish if listener returned a Promise
    */
-  public emitSync<T = any>(eventType: string, event?: T, ...data): Promise<any[]> {
+  public emitSync<K extends keyof E>(eventType: K | symbol, event?: E[K], ...data: any[]): Promise<any[]> {
     var result;
     var promises = [];
-    var listeners = this.listeners(eventType);
+    var listeners = this.listeners(<string>eventType);
     for (let listener of listeners) {
       result = listener(event, ...data);
       if (result instanceof Promise) {
@@ -1063,6 +1075,18 @@ export class Core extends events.EventEmitter {
       }
     }
     return Promise.all(promises);
+  }
+
+  /**
+   * Type the listener part
+   * @param event
+   * @param listener
+   * @param queue
+   * @returns
+   */
+  on<Key extends keyof E>(event: Key | symbol | string, listener: (evt: E[Key]) => void): this {
+    super.on(<string>event, listener);
+    return this;
   }
 
   /**

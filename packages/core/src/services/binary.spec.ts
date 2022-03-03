@@ -5,7 +5,14 @@ import { Binary, Context, Store, User } from "..";
 import { suite, test } from "@testdeck/mocha";
 import * as sinon from "sinon";
 import { CoreModel } from "../models/coremodel";
-import { BinaryFileInfo, BinaryMap, BinaryNotFoundError, LocalBinaryFile, MemoryBinaryFile } from "./binary";
+import {
+  BinaryEvents,
+  BinaryFileInfo,
+  BinaryMap,
+  BinaryNotFoundError,
+  LocalBinaryFile,
+  MemoryBinaryFile
+} from "./binary";
 import axios from "axios";
 import { EventEmitter } from "events";
 export class ImageUser extends User {
@@ -73,7 +80,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
     let map = this.getMap();
     let exposePath = this.getExposePath();
     var eventFired = 0;
-    var events = ["Binary.Get", "Binary.Update", "Binary.Create", "Binary.Delete"];
+    var events: (keyof BinaryEvents)[] = ["Binary.Get", "Binary.Create", "Binary.Delete"];
     for (let evt in events) {
       binary.on(events[evt], function () {
         eventFired++;

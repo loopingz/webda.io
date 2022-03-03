@@ -37,6 +37,7 @@ class AuthenticationTest extends WebdaTest {
     });
     this.authentication.on("Authentication.Register", evt => {
       this.events++;
+      // @ts-ignore
       evt.user.test = "TESTOR";
     });
     this.mailer.sent = [];

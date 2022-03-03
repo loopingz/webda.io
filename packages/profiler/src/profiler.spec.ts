@@ -83,7 +83,7 @@ export class ProfilerServiceTest extends WebdaTest {
       called = true;
     };
 
-    this.webda.emit("Webda.Request", ctx);
+    this.webda.emit("Webda.Request", { context: ctx });
     // @ts-ignore
     service.workoutLogger.messages = [];
     await ctx.execute();
@@ -99,7 +99,7 @@ export class ProfilerServiceTest extends WebdaTest {
     ctx.execute = async () => {
       throw new Error("TestError");
     };
-    this.webda.emit("Webda.Request", ctx);
+    this.webda.emit("Webda.Request", { context: ctx });
     // @ts-ignore
     service.workoutLogger.messages = [];
     try {

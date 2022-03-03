@@ -123,6 +123,10 @@ export type PartialModel<T> = {
   [P in keyof T]: T[P] extends Function ? T[P] : T[P] extends object ? null | PartialModel<T[P]> : T[P] | null;
 };
 
+export type Events = {
+  [key: string]: unknown;
+};
+
 /**
  * Use this object for representing a service in the application
  * A Service is a singleton in the application, that is init after all others services are created
@@ -133,7 +137,10 @@ export type PartialModel<T> = {
  * @abstract
  * @class Service
  */
-abstract class Service<T extends ServiceParameters = ServiceParameters> extends events.EventEmitter {
+abstract class Service<
+  T extends ServiceParameters = ServiceParameters,
+  E extends Events = Events
+> extends events.EventEmitter {
   /**
    * Webda Core object
    */
@@ -264,7 +271,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
    * @param {Object} object - The object to export
    * @return {String} The export of the strip object ( removed all attribute with _ )
    */
-  toPublicJSON(object) {
+  toPublicJSON(object: unknown) {
     return this._webda.toPublicJSON(object);
   }
 
@@ -282,7 +289,7 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
    *
    * @param config new parameters for the service
    */
-  async reinit(config): Promise<void> {
+  async reinit(config: DeepPartial<T>): Promise<void> {
     this.parameters = <T>this.loadParameters(config);
     this.computeParameters();
     return this.init();
@@ -302,9 +309,9 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
   /**
    * Emit the event with data and wait for Promise to finish if listener returned a Promise
    */
-  emitSync(event, data): Promise<any[]> {
+  emitSync<Key extends keyof E>(event: Key, data: E[Key]): Promise<any[]> {
     var promises = [];
-    for (let listener of this.listeners(event)) {
+    for (let listener of this.listeners(<string>event)) {
       let start = Date.now();
       let result = listener(data);
       if (result instanceof Promise) {
@@ -328,13 +335,25 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
    * Override to allow capturing long listeners
    * @override
    */
-  emit(event: symbol | string, ...args: any[]): boolean {
-    for (let listener of this.listeners(event)) {
+  emit<Key extends keyof E>(event: Key | symbol, data: E[Key]): boolean {
+    for (let listener of this.listeners(<string>event)) {
       let start = Date.now();
-      listener(...args);
+      listener(data);
       this.elapse(start);
     }
     return true;
+  }
+
+  /**
+   * Type the listener part
+   * @param event
+   * @param listener
+   * @param queue
+   * @returns
+   */
+  on<Key extends keyof E>(event: Key | symbol, listener: (evt: E[Key]) => void): this {
+    super.on(<string>event, listener);
+    return this;
   }
 
   /**
@@ -343,8 +362,8 @@ abstract class Service<T extends ServiceParameters = ServiceParameters> extends 
    * @param callback
    * @param queue Name of queue to use, can be undefined, queue name are used to define differents priorities
    */
-  onAsync(event, callback, queue: string = undefined) {
-    this._webda.getService<EventService>("AsyncEvents").bindAsyncListener(this, event, callback, queue);
+  onAsync<Key extends keyof E>(event: Key, listener: (evt: E[Key]) => void, queue: string = undefined) {
+    this._webda.getService<EventService>("AsyncEvents").bindAsyncListener(this, <string>event, listener, queue);
   }
 
   /**

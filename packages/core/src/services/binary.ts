@@ -16,17 +16,23 @@ import { Service, ServiceParameters } from "./service";
 export interface EventBinary {
   object: BinaryFileInfo;
   service: Binary;
+  /**
+   * In case the Context is known
+   */
+  context?: Context;
 }
 
-/**
- * Emitted when someone download a binary
- */
-export interface EventBinaryGet extends EventBinary {}
 export interface EventBinaryUploadSuccess extends EventBinary {
   target: CoreModel;
 }
-export interface EventBinaryDelete extends EventBinary {}
-export interface EventBinaryCreate extends EventBinaryUploadSuccess {}
+
+/**
+ * Sent before metadata are updated to allow alteration of the modification
+ */
+export interface EventBinaryMetadataUpdate extends EventBinaryUploadSuccess {
+  target: CoreModel;
+  metadata: BinaryMetadata;
+}
 
 /**
  * Emitted if binary does not exist
@@ -321,6 +327,19 @@ export class BinaryParameters extends ServiceParameters {
     this.map ??= {};
   }
 }
+
+export type BinaryEvents = {
+  /**
+   * Emitted when someone download a binary
+   */
+  "Binary.Get": EventBinary;
+  "Binary.UploadSuccess": EventBinaryUploadSuccess;
+  "Binary.MetadataUpdate": EventBinaryMetadataUpdate;
+  "Binary.MetadataUpdated": EventBinaryUploadSuccess;
+  "Binary.Create": EventBinaryUploadSuccess;
+  "Binary.Delete": EventBinary;
+};
+
 /**
  * This is an abstract service to represent a storage of files
  * The binary allow you to expose this service as HTTP
@@ -344,8 +363,8 @@ export class BinaryParameters extends ServiceParameters {
  * @abstract
  * @class Binary
  */
-abstract class Binary<T extends BinaryParameters = BinaryParameters>
-  extends Service<T>
+abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends BinaryEvents = BinaryEvents>
+  extends Service<T, E>
   implements MappingService<BinaryMap>
 {
   _lowercaseMaps: any;
@@ -398,7 +417,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
    * @emits 'binaryGet'
    */
   async get(info: BinaryMap): Promise<Readable> {
-    await this.emitSync("Binary.Get", <EventBinaryGet>{
+    await this.emitSync("Binary.Get", {
       object: info,
       service: this
     });
@@ -412,6 +431,10 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
    * @param {String} filepath to save the binary to
    */
   async downloadTo(info: BinaryMap, filename): Promise<void> {
+    await this.emitSync("Binary.Get", {
+      object: info,
+      service: this
+    });
     var readStream: any = await this._get(info);
     var writeStream = fs.createWriteStream(filename);
     return new Promise<void>((resolve, reject) => {
@@ -513,15 +536,18 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
     }
   }
 
+  /**
+   * Ensure events are sent correctly after an upload and update the BinaryFileInfo in targetted object
+   */
   async uploadSuccess(object: CoreModel, property: string, file: BinaryFileInfo): Promise<void> {
     var object_uid = object.getUuid();
-    await this.emitSync("Binary.UploadSuccess", <EventBinaryUploadSuccess>{
+    await this.emitSync("Binary.UploadSuccess", {
       object: file,
       service: this,
       target: object
     });
     await object.getStore().upsertItemToCollection(object_uid, property, file);
-    await this.emitSync("Binary.Create", <EventBinaryCreate>{
+    await this.emitSync("Binary.Create", {
       object: file,
       service: this,
       target: object
@@ -547,7 +573,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
   async deleteSuccess(object: CoreModel, property: string, index: number) {
     var info: BinaryMap = object[property][index];
     let update = object.getStore().deleteItemFromCollection(object.getUuid(), property, index, info.hash, "hash");
-    await this.emitSync("Binary.Delete", <EventBinaryDelete>{
+    await this.emitSync("Binary.Delete", {
       object: info,
       service: this
     });
@@ -856,11 +882,20 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
         if (ctx.getHttpContext().getMethod() === "DELETE") {
           await this.delete(object, property, index);
         } else if (ctx.getHttpContext().getMethod() === "PUT") {
-          let metadata = ctx.getRequestBody();
+          let metadata: BinaryMetadata = ctx.getRequestBody();
           // Limit metadata to 4kb
           if (JSON.stringify(metadata).length >= 4096) {
             throw 400;
           }
+          let evt = {
+            service: this,
+            object: object[property][index],
+            target: object
+          };
+          await this.emitSync("Binary.MetadataUpdate", {
+            ...evt,
+            metadata
+          });
           object[property][index].metadata = metadata;
           // Update mapper on purpose
           await object.getStore().patch(
@@ -870,6 +905,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters>
             },
             false
           );
+          await this.emitSync("Binary.MetadataUpdated", evt);
         }
       }
     }

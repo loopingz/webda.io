@@ -172,6 +172,17 @@ export class AuthenticationParameters extends ServiceParameters {
     }
   }
 }
+
+export type AuthenticationEvents = {
+  "Authentication.GetMe": EventAuthenticationGetMe;
+  "Authentication.Register": EventAuthenticationRegister;
+  "Authentication.PasswordUpdate": EventAuthenticationPasswordUpdate;
+  "Authentication.Logout": EventAuthenticationLogout;
+  "Authentication.Login": EventAuthenticationLogin;
+  "Authentication.LoginFailed": EventAuthenticationLoginFailed;
+  "Authentication.PasswordCreate": EventAuthenticationPasswordUpdate;
+};
+
 /**
  * This class is known as the Authentication module
  * It handles OAuth for several providers for now (Facebook, Google, Amazon, GitHub and Twitter)
@@ -194,7 +205,10 @@ export class AuthenticationParameters extends ServiceParameters {
  *
  * @category CoreServices
  */
-class Authentication<T extends AuthenticationParameters = AuthenticationParameters> extends Service<T> {
+class Authentication<
+  T extends AuthenticationParameters = AuthenticationParameters,
+  E extends AuthenticationEvents = AuthenticationEvents
+> extends Service<T, E> {
   @Inject("identStore", "idents")
   _identsStore: Store<Ident>;
   @Inject("userStore", "users")

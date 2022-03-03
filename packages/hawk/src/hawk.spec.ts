@@ -3,7 +3,7 @@ var assert = require("assert");
 import * as Hawk from "hawk";
 import { suite, test } from "@testdeck/mocha";
 import { WebdaTest } from "@webda/core/lib/test";
-import { EventWebdaResult, HttpMethodType } from "@webda/core";
+import { HttpMethodType } from "@webda/core";
 import { ApiKey } from "./apikey";
 import { CacheService, HttpContext, Store, Context } from "@webda/core";
 import { HawkService } from "./hawk";
@@ -123,7 +123,7 @@ class HawkServiceTest extends WebdaTest {
     assert.equal(await this.checkRequest(this.context), true, "Should accept as signature valid");
     let body = JSON.stringify({ fake: "answer" });
     this.context.write(body);
-    await this.webda.emitSync<EventWebdaResult>("Webda.Result", { context: this.context });
+    await this.webda.emitSync("Webda.Result", { context: this.context });
     assert.equal(
       this.context.getResponseHeaders()["Server-Authorization"] !== null,
       true,
@@ -168,9 +168,9 @@ class HawkServiceTest extends WebdaTest {
     );
     // Test for 100% code coverage - empty hawk context to generate failure in the server-authorization
     this.context.setExtension("hawk", { artifacts: {}, credentials: {} });
-    await this.webda.emitSync<EventWebdaResult>("Webda.Result", { context: this.context });
+    await this.webda.emitSync("Webda.Result", { context: this.context });
     this.context.setExtension("hawk", undefined);
-    await this.webda.emitSync<EventWebdaResult>("Webda.Result", { context: this.context });
+    await this.webda.emitSync("Webda.Result", { context: this.context });
   }
 
   async doValidRequest(url = "/", method: HttpMethodType = "GET", headers = {}) {

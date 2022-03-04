@@ -96,6 +96,7 @@ class StorageTest extends BinaryTest<Storage> {
     let { user1, ctx } = await this.setupDefault();
     // COV for double
     const binary = this.getBinary();
+    Storage.getModda();
     await binary.putObject("rawAccess", path.join(__dirname, "..", "..", "test", "Dockerfile.txt"));
     await binary.moveObject({ key: "rawAccess" }, { key: "movedAccess" });
     assert.deepStrictEqual(binary.getSignedUrlHeaders(), {});

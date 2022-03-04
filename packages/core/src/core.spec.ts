@@ -424,6 +424,8 @@ class CoreTest extends WebdaTest {
   cov() {
     assert.deepStrictEqual(this.webda.getDeployers(), {});
     this.webda.registerModel("mine", {});
+    this.webda.getUuid();
+    this.webda.getInstanceId();
     assert.strictEqual(this.webda.getSalt(), this.webda.getConfiguration().parameters.salt);
   }
 

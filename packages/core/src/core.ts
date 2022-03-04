@@ -394,6 +394,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   protected _requestFilters: RequestFilter<Context>[] = [];
   private workerOutput: WorkerOutput;
+  /**
+   * Store the instance id
+   */
+  private instanceId: string;
 
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
@@ -434,7 +438,8 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * It is a random generated string
    */
   getInstanceId(): string {
-    return "";
+    this.instanceId ??= this.getUuid();
+    return this.instanceId;
   }
 
   /**

@@ -1,29 +1,19 @@
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { AMQPPubSubService, AMQPPubSubParameters } from "./pubsub";
+import { GCPPubSubService, GCPPubSubParameters } from "./pubsub";
 import { CancelablePromise, WaitFor, WaitLinearDelay } from "@webda/core";
 import * as sinon from "sinon";
 
 @suite
-class AMQPPubSubTest extends WebdaTest {
-  @test
-  async params() {
-    // just for cov
-    let p = new AMQPPubSubParameters({
-      exchange: {
-        type: "fanout2"
-      }
-    });
-    assert.strictEqual(p.exchange.type, "fanout2");
-  }
-
+class GCPPubSubTest extends WebdaTest {
   @test
   async basic() {
-    let pubsub: AMQPPubSubService = this.webda.getService<AMQPPubSubService>("pubsub");
+    let pubsub: GCPPubSubService = this.webda.getService<GCPPubSubService>("pubsub");
     let counter = 0;
     let consumers: CancelablePromise[] = [];
-    await new Promise<void>(resolve => {
+    let subscription;
+    await new Promise<void>((resolve, reject) => {
       consumers.push(
         pubsub.consume(async evt => {
           counter++;
@@ -33,14 +23,18 @@ class AMQPPubSubTest extends WebdaTest {
         pubsub.consume(
           async evt => {
             counter++;
+            throw new Error("Should not fail");
           },
           undefined,
-          resolve
+          sub => {
+            subscription = sub;
+            resolve();
+          }
         )
       );
     });
     await pubsub.sendMessage("plop");
-    AMQPPubSubService.getModda();
+    GCPPubSubService.getModda();
     await WaitFor(
       async resolve => {
         if (counter === 2) {
@@ -52,13 +46,15 @@ class AMQPPubSubTest extends WebdaTest {
       10,
       "Events",
       undefined,
-      WaitLinearDelay(10)
+      WaitLinearDelay(1000)
     );
     assert.strictEqual(counter, 2);
-    await Promise.all(consumers.map(p => p.cancel()));
-    // Hack our way to test close by server
-    let stub = sinon.stub(pubsub.channel, "consume").callsFake((ex, call) => {
-      call(null);
+    subscription.emit("error", "Fake server error");
+    await assert.rejects(() => consumers[1], /Fake server error/);
+    await consumers[0].cancel();
+    // Hack our way to test exception within the main loop
+    let stub = sinon.stub(pubsub.pubsub, "subscription").callsFake(() => {
+      throw new Error("Bad code?");
     });
     // Should reject
     await assert.rejects(
@@ -66,7 +62,8 @@ class AMQPPubSubTest extends WebdaTest {
         pubsub.consume(async evt => {
           counter++;
         }),
-      /Cancelled by server/
+      /Bad code\?/
     );
+    stub.restore();
   }
 }

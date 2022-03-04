@@ -400,7 +400,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    */
   static getModda() {
     return {
-      uuid: "Webda/GCPStorage",
+      uuid: "Webda/GoogleCloudStorage",
       label: "GCP Storage",
       description: "Implements Storage stored in GCP",
     };

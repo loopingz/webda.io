@@ -1,6 +1,7 @@
 {
   "services": {
-    "Webda/GoogleCloudStore": "./lib/services/storage.js"
+    "Webda/GoogleCloudStore": "./lib/services/storage.js",
+    "Webda/GoogleCloudPubSub": "./lib/services/pubsub.js"
   },
   "models": {},
   "deployers": {},

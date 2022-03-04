@@ -11,6 +11,7 @@ import { CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { OpenAPIWebdaDefinition, RouteInfo, Router } from "./router";
 import { WorkerOutput, WorkerLogLevel } from "@webda/workout";
 import { AbstractDeployer } from "./utils/abstractdeployer";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * Error with a code
@@ -1061,6 +1062,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   public toPublicJSON(object): string {
     return JSON.stringify(object, this.jsonFilter);
+  }
+
+  public getUuid(): string {
+    return uuidv4().toString();
   }
 
   /**

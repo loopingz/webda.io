@@ -37,6 +37,11 @@
       "map": {
         "users": ["images"]
       }
+    },
+    "pubsub": {
+      "type": "Webda/GoogleCloudPubSub",
+      "topic": "unit-tests",
+      "mode": "pubsub"
     }
   }
 }

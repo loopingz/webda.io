@@ -216,7 +216,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
     bucket: string = this.parameters.bucket
     //{ bucket, localPath, content, key }: PutObjectParams
   ): Promise<void> {
-    const file = this.storage.bucket(bucket).file(key);
+    const file = this.getStorageBucket(bucket).file(key);
     let contentType = "application/octet-stream";
     let stream: Readable;
     if (body instanceof Readable) {

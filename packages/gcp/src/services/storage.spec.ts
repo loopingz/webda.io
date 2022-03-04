@@ -7,14 +7,46 @@ import { Binary } from "@webda/core";
 import { Storage as GCS, GetSignedUrlConfig } from "@google-cloud/storage";
 import path from "path";
 
+class MockFile {
+  constructor(path) {}
+  async delete() {}
+  async getFiles() {}
+  async exists() {}
+  async save() {}
+  async setMetadata() {}
+  async createWriteStream() {}
+  async getSignedUrl() {}
+  async publicUrl() {}
+  async getMetadata() {}
+  async createReadStream() {}
+  async move() {}
+}
+
+class MockBucket {
+  file(path: string) {
+    return new MockFile(path);
+  }
+}
 const BUCKET = "webda-dev";
 @suite
 class StorageTest extends BinaryTest<Storage> {
+  prefix: string;
   async before() {
     this.buildWebda();
     await this.install();
-    await this.cleanData();
     await super.before();
+    this.prefix = this.getBinary().getWebda().getUuid();
+    this.getBinary().getParameters().prefix = this.prefix;
+    // Prepare for Mocked Version
+    if (!process.env.NO_MOCK && false) {
+      sinon.stub(this.getBinary(), "getStorageBucket").callsFake(() => {
+        return new MockBucket();
+      });
+    }
+  }
+
+  async after() {
+    await this.cleanData();
   }
 
   async install() {
@@ -33,7 +65,12 @@ class StorageTest extends BinaryTest<Storage> {
 
   async cleanData() {
     var storage = new GCS();
-    await storage.bucket(BUCKET).deleteFiles();
+    const [files] = await storage.bucket(BUCKET).getFiles({
+      prefix: this.prefix,
+    });
+    for (let file of files) {
+      await file.delete();
+    }
   }
 
   // Override getNotFound as exception is raised after
@@ -43,8 +80,9 @@ class StorageTest extends BinaryTest<Storage> {
   @test
   async putObject() {
     const body = `RAW Body: ${new Date()}`;
-    await this.getBinary().putObject("plop/test", Buffer.from(body), { meta1: "meta1" }, BUCKET);
-    let getFile = this.getBinary().getStorageBucket().file("plop/test");
+    const name = `${this.prefix}/plop/test`;
+    await this.getBinary().putObject(name, Buffer.from(body), { meta1: "meta1" }, BUCKET);
+    let getFile = this.getBinary().getStorageBucket().file(name);
 
     assert.deepStrictEqual((await getFile.getMetadata())[0].metadata, { meta1: "meta1" });
   }
@@ -96,15 +134,17 @@ class StorageTest extends BinaryTest<Storage> {
     let { user1, ctx } = await this.setupDefault();
     // COV for double
     const binary = this.getBinary();
+    const from = `${this.prefix}/rawAccess`;
+    const to = `${this.prefix}/movedAccess`;
     Storage.getModda();
-    await binary.putObject("rawAccess", path.join(__dirname, "..", "..", "test", "Dockerfile.txt"));
-    await binary.moveObject({ key: "rawAccess" }, { key: "movedAccess" });
+    await binary.putObject(from, path.join(__dirname, "..", "..", "test", "Dockerfile.txt"));
+    await binary.moveObject({ key: from }, { key: to });
     assert.deepStrictEqual(binary.getSignedUrlHeaders(), {});
-    const meta = await binary.getMeta({ bucket: "webda-dev", key: "movedAccess" });
+    const meta = await binary.getMeta({ bucket: "webda-dev", key: to });
     assert.deepStrictEqual(meta, { size: 311, contentType: "text/plain" });
     assert.ok(
       /https:\/\/storage\.googleapis\.com\/webda-dev\/webda-dev/.exec(await binary.getPublicUrl({ key: "webda-dev" }))
     );
-    await binary.deleteObject({ key: "movedAccess" });
+    await binary.deleteObject({ key: to });
   }
 }

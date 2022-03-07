@@ -40,8 +40,13 @@
     },
     "pubsub": {
       "type": "Webda/GoogleCloudPubSub",
+      "topic": "unit-tests"
+    },
+    "queue": {
+      "type": "Webda/GoogleCloudQueue",
       "topic": "unit-tests",
-      "mode": "pubsub"
+      "subscription": "queue",
+      "timeout": 3000
     }
   }
 }

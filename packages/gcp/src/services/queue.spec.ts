@@ -20,11 +20,13 @@ class GCPQueueTest extends QueueTest {
     queue.getParameters().subscription = `${queue.getParameters().subscription}_${this.webda.getUuid()}`;
     await queue.pubsub.createSubscription(queue.getParameters().topic, queue.getParameters().subscription, {
       ackDeadlineSeconds: 10,
+      enableMessageOrdering: true,
     });
     try {
       await this.simple(queue, true);
       await this.sleep(500);
       this.log("DEBUG", "Verify receiveMessage is now empty");
+      queue.getParameters().timeout = 3000;
       assert.deepStrictEqual(await queue.receiveMessage(), []);
       GCPQueue.getModda();
 
@@ -41,6 +43,8 @@ class GCPQueueTest extends QueueTest {
       await queue.sendMessage({ plop: 1 });
       this.log("DEBUG", "Consume cancel");
       await queue.sendMessage({ plop: 2 });
+      // Need to wait before cancel to ensure message are received
+      await this.sleep(500);
       await consumer.cancel();
       this.log("DEBUG", "Consume assert");
       assert.strictEqual(msg.plop, 1);

@@ -171,6 +171,10 @@ export class DynamoDBTest extends StoreTest {
         throw new Error("Unknown");
       };
       let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
+      await assert.rejects(
+        () => userStore._upsertItemToCollection("plop2", "test", "plop", 1, 2, "", new Date()),
+        /Item not found plop2 Store/
+      );
       stubs = ["update", "delete", "put"].map(method => {
         return sinon.stub(userStore._client, method).callsFake(faultyMethod);
       });

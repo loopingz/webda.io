@@ -274,50 +274,7 @@ export default class FireStore<
   /**
    * @override
    */
-  async __clean() {
-    await this.deleteCollection(this.parameters.collection, 10000);
-  }
-
-  /**
-   * Delete a full collection
-   */
-  private async deleteCollection(collectionPath, batchSize) {
-    const collectionRef = this.firestore.collection(collectionPath);
-    const query = collectionRef.orderBy("__name__").limit(batchSize);
-
-    return new Promise((resolve, reject) => {
-      this.deleteQueryBatch(this.firestore, query, resolve).catch(reject);
-    });
-  }
-
-  /**
-   * Query batch
-   *
-   * Code from Google Documentation
-   */
-  private async deleteQueryBatch(db, query, resolve) {
-    const snapshot = await query.get();
-
-    const batchSize = snapshot.size;
-    if (batchSize === 0) {
-      // When there are no documents left, we are done
-      resolve();
-      return;
-    }
-
-    // Delete documents in a batch
-    const batch = db.batch();
-    snapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
-    });
-    await batch.commit();
-
-    // Recurse on the next process tick, to avoid
-    // exploding the stack.
-    process.nextTick(() => {
-      this.deleteQueryBatch(db, query, resolve);
-    });
-  }
+  async __clean() {}
 
   /**
    * @override

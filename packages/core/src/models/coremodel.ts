@@ -57,7 +57,7 @@ export class CoreModelUnattachedError extends Error {
  * @class
  */
 class CoreModel {
-  static jsonExcludes = ["__store", "__ctx"];
+  static jsonExcludes = ["__store", "__ctx", "__class"];
   /**
    * Class reference to the object
    */
@@ -357,16 +357,12 @@ class CoreModel {
    */
   toStoredJSON(stringify = false): any | string {
     let obj = this._toJSON(true);
-    delete obj.__store;
-    delete obj.__class;
+    CoreModel.jsonExcludes.forEach(attr => {
+      delete obj[attr];
+    });
     obj.__type = this.__class.name;
     if (stringify) {
-      return JSON.stringify(obj, (key, value) => {
-        if (CoreModel.jsonExcludes.indexOf(key) >= 0) {
-          return undefined;
-        }
-        return value;
-      });
+      return JSON.stringify(obj);
     }
     return obj;
   }

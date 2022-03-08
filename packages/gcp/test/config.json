@@ -46,7 +46,7 @@
       "type": "Webda/GoogleCloudQueue",
       "topic": "unit-tests",
       "subscription": "queue",
-      "timeout": 3000
+      "timeout": 30000
     },
     "IdentsMapper": {
       "type": "Webda/Mapper",

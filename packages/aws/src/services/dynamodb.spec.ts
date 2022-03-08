@@ -185,7 +185,7 @@ export class DynamoDBTest extends StoreTest {
         /Unknown/
       );
       await assert.rejects(
-        () => userStore._upsertItemToCollection("plop", "test", 1, "plop", 2, 3, new Date()),
+        () => userStore._upsertItemToCollection("plop", "test", "plop", 1, 2, "", new Date()),
         /Unknown/
       );
       await assert.rejects(() => userStore._delete("plop"), /Unknown/);

@@ -249,19 +249,33 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
   /**
    * @inheritdoc
    */
-  async _upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate: Date) {
+  async _upsertItemToCollection(
+    uuid: string,
+    prop: string,
+    item: any,
+    index: number | undefined,
+    itemWriteCondition: any | undefined,
+    itemWriteConditionField: string | undefined,
+    updateDate: Date
+  ) {
     var params: any = {
       TableName: this.parameters.table,
       Key: {
-        uuid: uid
+        uuid
       }
     };
     var attrValues = {};
     var attrs = {};
     attrs["#" + prop] = prop;
     attrs["#lastUpdate"] = this._lastUpdateField;
+
     attrValues[":" + prop] = this._cleanObject(item);
     attrValues[":lastUpdate"] = this._serializeDate(updateDate);
+
+    attrValues[":uuid"] = uuid;
+    attrs["#uuid"] = this._uuidField;
+    params.ConditionExpression = "#uuid = :uuid";
+
     params.ExpressionAttributeValues = attrValues;
     params.ExpressionAttributeNames = attrs;
     if (index === undefined) {
@@ -281,14 +295,16 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
         attrValues[":condValue"] = itemWriteCondition;
         attrs["#condName"] = prop;
         attrs["#field"] = itemWriteConditionField;
-        params.ConditionExpression = "#condName[" + index + "].#field = :condValue";
+        params.ConditionExpression = "#condName[" + index + "].#field = :condValue and #uuid = :uuid";
       }
     }
     try {
       await this._client.update(params).promise();
     } catch (err) {
       if (err.code === "ConditionalCheckFailedException") {
-        throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
+        throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);
+      } else if (err.code === "ValidationException") {
+        throw new StoreNotFoundError(uuid, this.getName());
       }
       throw err;
     }

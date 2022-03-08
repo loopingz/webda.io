@@ -261,6 +261,7 @@ abstract class StoreTest extends WebdaTest {
       0
     );
     await ident.refresh();
+    this.log("DEBUG", "Action", ident.actions);
     assert.notStrictEqual(ident.actions, undefined);
     assert.strictEqual(ident.actions.length, 2);
     assert.strictEqual(ident.actions[0].type, "plop2");
@@ -363,6 +364,7 @@ abstract class StoreTest extends WebdaTest {
         eventFired++;
       });
     }
+    this.log("DEBUG", "Save ident");
     // Check CREATE - READ
     let ident1 = await identStore.save({
       test: "plop",
@@ -378,6 +380,7 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(eventFired, 2);
     assert.notStrictEqual(ident1, undefined);
     eventFired = 0;
+    this.log("DEBUG", "Get ident");
     let getter = await identStore.get(ident1.uuid);
     assert.strictEqual(eventFired, 1);
     eventFired = 0;
@@ -394,22 +397,27 @@ abstract class StoreTest extends WebdaTest {
     getter.details.bouzouf = undefined;
     getter.empty = [];
     let object;
+    this.log("DEBUG", "Update ident");
     await identStore.update(getter);
     assert.strictEqual(eventFired, 2);
     eventFired = 0;
     getter = {};
     getter.uuid = ident1.uuid;
     getter.bouzouf = "test";
+    this.log("DEBUG", "Patch ident");
     await identStore.patch(getter);
     assert.strictEqual(eventFired, 2);
     eventFired = 0;
+    this.log("DEBUG", "Get ident to check update");
     object = await identStore.get(ident1.uuid);
+    this.log("DEBUG", "Retrieved object", object);
     assert.strictEqual(object.test, "plop2");
     assert.strictEqual(object.details.plop, "plop2");
     getter = await identStore.get(object.uuid);
     assert.strictEqual(eventFired, 2);
     assert.strictEqual(getter.test, "plop2");
     await this.sleep(10);
+    this.log("DEBUG", "Increment attribute");
     await identStore.incrementAttribute(ident1.uuid, "counter", 1);
     let ident = await identStore.get(ident1.uuid);
 
@@ -580,8 +588,10 @@ abstract class StoreTest extends WebdaTest {
   @test
   async upsertItem() {
     let store = this.getIdentStore();
+    this.log("DEBUG", "Save empty logs array");
     let model = await store.save({ logs: [] });
     let ps = [];
+    this.log("DEBUG", "Upsert 10 lines");
     for (let i = 0; i < 10; i++) {
       ps.push(store.upsertItemToCollection(model.getUuid(), "logs", `line${i}`));
     }
@@ -589,16 +599,17 @@ abstract class StoreTest extends WebdaTest {
     await model.refresh();
     assert.strictEqual(model.logs.length, 10);
     // Depending on the implementation it can be swallowed by the backend
-    try {
-      await store.upsertItemToCollection(uuidv4(), "logs", `line`);
-    } catch (err) {
-      assert.ok(err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError);
-    }
-    try {
-      await store.deleteItemFromCollection(uuidv4(), "logs", 0, undefined, undefined);
-    } catch (err) {
-      assert.ok(err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError);
-    }
+    this.log("DEBUG", "Upsert on unknown doc");
+    await assert.rejects(
+      () => store.upsertItemToCollection(uuidv4(), "logs", `line`),
+      err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
+    );
+
+    this.log("DEBUG", "Delete on unknown doc");
+    await assert.rejects(
+      () => store.deleteItemFromCollection(uuidv4(), "logs", 0, undefined, undefined),
+      err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
+    );
   }
 
   @test

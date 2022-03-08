@@ -357,7 +357,8 @@ class CoreModel {
    */
   toStoredJSON(stringify = false): any | string {
     let obj = this._toJSON(true);
-    obj.__store = undefined;
+    delete obj.__store;
+    delete obj.__class;
     obj.__type = this.__class.name;
     if (stringify) {
       return JSON.stringify(obj, (key, value) => {

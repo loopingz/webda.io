@@ -29,7 +29,7 @@
       "model": "Webda/User"
     },
     "binary": {
-      "type": "Webda/GoogleCloudStore",
+      "type": "Webda/GoogleCloudStorage",
       "bucket": "webda-dev",
       "expose": {
         "url": "/binary"
@@ -47,6 +47,40 @@
       "topic": "unit-tests",
       "subscription": "queue",
       "timeout": 3000
+    },
+    "IdentsMapper": {
+      "type": "Webda/Mapper",
+      "source": "fireidents",
+      "targetAttribute": "idents",
+      "target": "fireusers",
+      "attribute": "_user",
+      "fields": "type,_lastUpdate,counter",
+      "cascade": true
+    },
+    "fireidents": {
+      "asyncDelete": true,
+      "expose": {
+        "restrict": {
+          "create": true,
+          "update": true,
+          "get": true
+        }
+      },
+      "model": "Webda/Ident",
+      "type": "GoogleCloudFireStore",
+      "collection": "idents"
+    },
+    "fireusers": {
+      "expose": {
+        "url": "/fireusers",
+        "restrict": {
+          "authentication": true,
+          "create": true
+        }
+      },
+      "type": "GoogleCloudFireStore",
+      "model": "Webda/User",
+      "collection": "users"
     }
   }
 }

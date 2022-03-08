@@ -36,6 +36,7 @@ class GCPQueueTest extends QueueTest {
         }
         msg = dt;
       });
+      await this.sleep(1000);
       this.log("DEBUG", "Consume sendMessage");
       await queue.sendMessage({ plop: 1 });
       this.log("DEBUG", "Consume cancel");

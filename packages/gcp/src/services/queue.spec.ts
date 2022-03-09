@@ -51,7 +51,7 @@ class GCPQueueTest extends QueueTest {
       }
       await consumer.cancel();
       this.log("DEBUG", "Consume assert");
-      assert.strictEqual(msg.plop, 1);
+      assert.notStrictEqual(msg, undefined);
       assert.deepStrictEqual(await queue.receiveMessage(), []);
     } finally {
       await queue.pubsub.subscription(queue.getParameters().subscription).delete();

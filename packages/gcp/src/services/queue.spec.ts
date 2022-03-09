@@ -32,7 +32,9 @@ class GCPQueueTest extends QueueTest {
 
       // Test consumer
       let msg;
+      let consumed = 0;
       let consumer = queue.consume(async dt => {
+        consumed++;
         if (msg) {
           throw new Error();
         }
@@ -44,7 +46,9 @@ class GCPQueueTest extends QueueTest {
       this.log("DEBUG", "Consume cancel");
       await queue.sendMessage({ plop: 2 });
       // Need to wait before cancel to ensure message are received
-      await this.sleep(500);
+      while (consumed < 2) {
+        await this.sleep(500);
+      }
       await consumer.cancel();
       this.log("DEBUG", "Consume assert");
       assert.strictEqual(msg.plop, 1);

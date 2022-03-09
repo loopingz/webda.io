@@ -14,6 +14,10 @@ export interface EventGoogleOAuthToken {
    * Tokens retrieved from Google
    */
   tokens: Credentials;
+  /**
+   * Request context
+   */
+  context: Context;
 }
 
 /**
@@ -146,7 +150,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
     // Now that we have the code, use that to acquire tokens.
     try {
       const r = await oauthClient.getToken(code);
-      this.emitSync("GoogleAuth.Tokens", { tokens: r.tokens });
+      this.emitSync("GoogleAuth.Tokens", { tokens: r.tokens, context: ctx });
       profile = await this.getUserInfo(r.tokens.id_token);
       identId = profile.sub;
     } catch (err) {

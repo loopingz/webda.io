@@ -23,8 +23,7 @@ class GCPQueueTest extends QueueTest {
       enableMessageOrdering: true,
     });
     try {
-      await this.simple(queue, true);
-      await this.sleep(500);
+      await this.simple(queue, true, 12000);
       this.log("DEBUG", "Verify receiveMessage is now empty");
       queue.getParameters().timeout = 3000;
       assert.deepStrictEqual(await queue.receiveMessage(), []);

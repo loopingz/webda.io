@@ -316,10 +316,7 @@ class DynamicService extend Service {
     await this.commandLine("generate-session-secret");
     let file = FileUtils.load(path.join(WebdaSampleApplication.getAppPath(), "webda.config.jsonc"));
     assert.notStrictEqual(info.parameters.sessionSecret, file.parameters.sessionSecret);
-    fs.writeFileSync(
-      path.join(WebdaSampleApplication.getAppPath(), "webda.config.jsonc"),
-      oldContent
-    );
+    fs.writeFileSync(path.join(WebdaSampleApplication.getAppPath(), "webda.config.jsonc"), oldContent);
   }
 
   @test

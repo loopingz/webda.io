@@ -1,7 +1,7 @@
 "use strict";
 // Load the AWS SDK for Node.js
 import {
-  Binary,
+  CloudBinary,
   BinaryMap,
   BinaryParameters,
   Context,
@@ -25,7 +25,7 @@ export class S3BinaryParameters extends BinaryParameters {
   CloudFormation: any;
   CloudFormationSkip: boolean;
 
-  constructor(params: any, service: Binary) {
+  constructor(params: any, service: S3Binary) {
     super(params, service);
     if (!this.bucket) {
       throw new WebdaError("S3BUCKET_PARAMETER_REQUIRED", "Need to define a bucket at least");
@@ -54,7 +54,7 @@ export class S3BinaryParameters extends BinaryParameters {
  * We can register on S3 Event to get info when /data is pushed
  */
 export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
-  extends Binary<T>
+  extends CloudBinary<T>
   implements CloudFormationContributor
 {
   AWS: any;
@@ -78,64 +78,6 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       endpoint: this.parameters.endpoint,
       s3ForcePathStyle: this.parameters.s3ForcePathStyle
     });
-  }
-
-  /**
-   * @inheritdoc
-   */
-  _initRoutes(): boolean {
-    if (!super._initRoutes()) {
-      return false;
-    }
-    // Will use getRedirectUrl so override the default route
-    var url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}";
-    let name = this.getOperationName();
-    if (!this.parameters.expose.restrict.get) {
-      this.addRoute(url, ["GET"], this.getRedirectUrl, {
-        get: {
-          description: "Download a binary linked to an object",
-          summary: "Download a binary",
-          operationId: `get${name}Binary`,
-          responses: {
-            "302": {
-              description: "Redirect to download url"
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Object does not exist or attachment does not exist"
-            },
-            "412": {
-              description: "Provided hash does not match"
-            }
-          }
-        }
-      });
-      url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/url";
-      name = this._name === "Binary" ? "" : this._name;
-      this.addRoute(url, ["GET"], this.getRedirectUrlInfo, {
-        get: {
-          description: "Get a redirect url to binary linked to an object",
-          summary: "Get redirect url of a binary",
-          operationId: `get${name}BinaryURL`,
-          responses: {
-            "200": {
-              description: "Containing the URL"
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Object does not exist or attachment does not exist"
-            },
-            "412": {
-              description: "Provided hash does not match"
-            }
-          }
-        }
-      });
-    }
   }
 
   /**
@@ -225,58 +167,22 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     return this._s3.getSignedUrl(action, params);
   }
 
-  async getRedirectUrlFromObject(obj, property, index, context, expire = 30) {
-    let info = obj[property][index];
+  /**
+   * @override
+   */
+  async getSignedUrlFromMap(binaryMap: BinaryMap, expire: number) {
     var params: any = {};
     params.Expires = expire; // A get should not take more than 30s
-    await this.emitSync("Binary.Get", {
-      object: info,
-      service: this,
-      context: context
-    });
-    params.ResponseContentDisposition = `attachment; filename=${info.name || info.originalname}`;
-    params.ResponseContentType = info.mimetype;
+    params.ResponseContentDisposition = `attachment; filename=${binaryMap.name || binaryMap.originalname}`;
+    params.ResponseContentType = binaryMap.mimetype;
 
     // Access-Control-Allow-Origin
-    return this.getSignedUrl(this._getKey(info.hash), "getObject", params);
+    return this.getSignedUrl(this._getKey(binaryMap.hash), "getObject", params);
   }
 
   /**
-   * Redirect to the temporary link to S3 object
-   * or return it if returnInfo=true
-   *
-   * @param ctx of the request
-   * @param returnInfo
+   * @override
    */
-  async getRedirectUrl(ctx, returnInfo: boolean = false) {
-    let uid = ctx.parameter("uid");
-    let index = ctx.parameter("index");
-    let property = ctx.parameter("property");
-    let targetStore = this._verifyMapAndStore(ctx);
-    let object = await targetStore.get(uid);
-    if (!object || !Array.isArray(object[property]) || object[property].length <= index) {
-      throw 404;
-    }
-    await object.canAct(ctx, "get_binary");
-    let url = await this.getRedirectUrlFromObject(object, property, index, ctx);
-    if (returnInfo) {
-      ctx.write({ Location: url });
-    } else {
-      ctx.writeHead(302, {
-        Location: url
-      });
-    }
-  }
-
-  /**
-   * Return the temporary link to S3 object
-   * @param ctx
-   * @returns
-   */
-  async getRedirectUrlInfo(ctx) {
-    return this.getRedirectUrl(ctx, true);
-  }
-
   async _get(info: BinaryMap): Promise<Readable> {
     return this._s3
       .getObject({
@@ -344,27 +250,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       Bucket: this.parameters.bucket,
       Key: this._getKey(hash, uuid)
     };
-    return this._s3.deleteObject(params).promise();
-  }
-
-  /**
-   * @inheritdoc
-   */
-  async delete(object: CoreModel, property: string, index: number) {
-    let hash = object[property][index].hash;
-    await this.deleteSuccess(object, property, index);
-    await this._cleanUsage(hash, object.getUuid());
-  }
-
-  /**
-   * @inheritdoc
-   */
-  async cascadeDelete(info: BinaryMap, uuid: string): Promise<void> {
-    try {
-      await this._cleanUsage(info.hash, uuid);
-    } catch (err) {
-      this._webda.log("WARN", "Cascade delete failed", err);
-    }
+    await this._s3.deleteObject(params).promise();
   }
 
   /**
@@ -380,19 +266,6 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       }
     }
     return false;
-  }
-
-  /**
-   * Return the S3 key
-   * @param hash
-   * @param postfix
-   * @returns
-   */
-  _getKey(hash: string, postfix: string = undefined): string {
-    if (postfix === undefined) {
-      return join(this.parameters.prefix, hash, "data");
-    }
-    return join(this.parameters.prefix, hash, postfix);
   }
 
   /**

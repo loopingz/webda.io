@@ -604,30 +604,22 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
   }
 
   /**
-   * Init the Binary system routes
+   * @override
    */
   initRoutes() {
-    // Use a private method with boolean
+    if (!this.parameters.expose) {
+      return;
+    }
     this._initRoutes();
   }
 
   /**
-   * Return the name of the service for OpenAPI
-   * @returns
+   * Init the Binary system routes
+   *
+   * Making sure parameters.expose exists prior
    */
-  protected getOperationName(): string {
-    return this._name.toLowerCase() === "binary" ? "" : this._name;
-  }
-
-  /**
-   * This is used to allow subclasses to add more route
-   */
-  _initRoutes(): boolean {
+  _initRoutes() {
     let url;
-    if (!this.parameters.expose) {
-      return false;
-    }
-
     let name = this.getOperationName();
 
     if (!this.parameters.expose.restrict.get) {
@@ -758,7 +750,14 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
         }
       });
     }
-    return true;
+  }
+
+  /**
+   * Return the name of the service for OpenAPI
+   * @returns
+   */
+  protected getOperationName(): string {
+    return this._name.toLowerCase() === "binary" ? "" : this._name;
   }
 
   /**

@@ -63,10 +63,8 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     }
   }
 
-  _initRoutes(): boolean {
-    if (!super._initRoutes()) {
-      return false;
-    }
+  _initRoutes(): void {
+    super._initRoutes();
     // Will redirect to this URL for direct upload
     let url = this.parameters.expose.url + "/upload/data/{hash}{?token}";
     let name = this.getOperationName();

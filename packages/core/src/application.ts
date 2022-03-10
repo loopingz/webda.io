@@ -308,13 +308,13 @@ export class Application {
     if (!fs.existsSync(file)) {
       throw new WebdaError(
         "NO_WEBDA_FOLDER",
-        `Not a webda application folder or webda.config.json file: unexisting ${file}`
+        `Not a webda application folder or webda.config.jsonc or webda.config.json file: unexisting ${file}`
       );
     }
     if (fs.lstatSync(file).isDirectory()) {
       file = path.join(file, "webda.config.jsonc");
       if (!fs.existsSync(file)) {
-        file = path.join(file, "webda.config.json");
+        file = file.substr(0, file.length - 1);
       }
     }
     // Check if file is a file or folder
@@ -692,7 +692,7 @@ export class Application {
       }
     }
 
-    if (!deploymentConfig) {
+    if (!fs.existsSync(deploymentConfig)) {
       throw new WebdaError("UNKNOWN_DEPLOYMENT", "Unknown deployment");
     }
 

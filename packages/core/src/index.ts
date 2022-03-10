@@ -26,6 +26,7 @@ export * from "./queues/queueservice";
 export * from "./services/asyncevents";
 export * from "./services/authentication";
 export * from "./services/binary";
+export * from "./services/cloudbinary";
 export * from "./services/configuration";
 export * from "./services/cron";
 export * from "./services/debugmailer";

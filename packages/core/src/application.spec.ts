@@ -205,11 +205,11 @@ class ApplicationTest extends WebdaTest {
   cov() {
     assert.throws(
       () => new Application("/notexisting"),
-      /Not a webda application folder or webda.config.json file: unexisting.*/
+      /Not a webda application folder or webda.config.jsonc or webda.config.json file: unexisting.*/
     );
     assert.throws(
       () => new Application(__dirname + "/../test/moddas"),
-      /Not a webda application folder or webda.config.json file: .*/
+      /Not a webda application folder or webda.config.jsonc or webda.config.json file: .*/
     );
     assert.throws(() => new Application(__dirname + "/../test/badapp"), /Cannot parse JSON of: .*/);
     // If allow module is enable the Application should let run anywhere

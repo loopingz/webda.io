@@ -1,6 +1,6 @@
 "use strict";
 import { Storage as GCS, GetSignedUrlConfig, Bucket } from "@google-cloud/storage";
-import { Binary, BinaryMap, BinaryParameters, CoreModel, BinaryFile, DeepPartial } from "@webda/core";
+import { CloudBinary, BinaryMap, BinaryParameters, CoreModel, BinaryFile, DeepPartial } from "@webda/core";
 import { Readable, Stream } from "stream";
 import { join } from "path";
 import { createReadStream } from "fs";
@@ -39,7 +39,7 @@ export class StorageParameters extends BinaryParameters {
   prefix?: string;
   bucket: string;
 
-  constructor(params: any, service: Binary) {
+  constructor(params: any, service: Storage) {
     super(params, service);
     this.prefix = "";
   }
@@ -50,7 +50,7 @@ export class StorageParameters extends BinaryParameters {
  *
  * See Binary the general interface
  */
-export default class Storage<T extends StorageParameters = StorageParameters> extends Binary<T> {
+export default class Storage<T extends StorageParameters = StorageParameters> extends CloudBinary<T> {
   private _storage?: GCS;
   private get storage(): GCS {
     if (!this._storage) {
@@ -69,128 +69,18 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   }
 
   /**
-   * @inheritdoc
-   */
-  _initRoutes(): boolean {
-    super._initRoutes();
-    // Will use getRedirectUrl so override the default route
-    var url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}";
-    let name = this.getOperationName();
-    if (!this.parameters.expose.restrict.get) {
-      this.addRoute(url, ["GET"], this.getRedirectUrl, {
-        get: {
-          description: "Download a binary linked to an object",
-          summary: "Download a binary",
-          operationId: `get${name}Binary`,
-          responses: {
-            "302": {
-              description: "Redirect to download url",
-            },
-            "403": {
-              description: "You don't have permissions",
-            },
-            "404": {
-              description: "Object does not exist or attachment does not exist",
-            },
-            "412": {
-              description: "Provided hash does not match",
-            },
-          },
-        },
-      });
-      url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/url";
-      name = this._name === "Binary" ? "" : this._name;
-      this.addRoute(url, ["GET"], this.getRedirectUrlInfo, {
-        get: {
-          description: "Get a redirect url to binary linked to an object",
-          summary: "Get redirect url of a binary",
-          operationId: `get${name}BinaryURL`,
-          responses: {
-            "200": {
-              description: "Containing the URL",
-            },
-            "403": {
-              description: "You don't have permissions",
-            },
-            "404": {
-              description: "Object does not exist or attachment does not exist",
-            },
-            "412": {
-              description: "Provided hash does not match",
-            },
-          },
-        },
-      });
-    }
-    return true;
-  }
-
-  /**
-   * Redirect to the temporary link to S3 object
-   * or return it if returnInfo=true
-   *
-   * @param ctx of the request
-   * @param returnInfo
-   */
-  async getRedirectUrl(ctx, returnInfo: boolean = false) {
-    let uid = ctx.parameter("uid");
-    let index = ctx.parameter("index");
-    let property = ctx.parameter("property");
-    let targetStore = this._verifyMapAndStore(ctx);
-    let object = await targetStore.get(uid);
-    if (!object || !Array.isArray(object[property]) || object[property].length <= index) {
-      throw 404;
-    }
-    await object.canAct(ctx, "get_binary");
-    let url = await this.getRedirectUrlFromObject(object, property, index, ctx);
-    if (returnInfo) {
-      ctx.write({ Location: url });
-    } else {
-      ctx.writeHead(302, {
-        Location: url,
-      });
-    }
-  }
-
-  /**
-   * Return the temporary link to S3 object
-   * @param ctx
-   * @returns
-   */
-  async getRedirectUrlInfo(ctx) {
-    return this.getRedirectUrl(ctx, true);
-  }
-
-  /**
-   * Get a UrlFromObject
-   *
-   */
-  async getRedirectUrlFromObject(obj, property, index, context, expires = 30) {
-    const info = obj[property][index];
-    await this.emitSync("Binary.Get", {
-      object: info,
-      service: this,
-      context: context,
-    });
-    return this.getSignedUrl({ key: this._getKey(info.hash), expires, action: "read" });
-  }
-
-  /**
-   * Return the S3 key
-   * @param hash
-   * @param postfix
-   * @returns
-   */
-  _getKey(hash: string, postfix: string = "data"): string {
-    return join(`${this.parameters.prefix}`, hash, postfix);
-  }
-
-  /**
    * @override
    */
   async _get(info: BinaryMap): Promise<Readable> {
     const key = this._getKey(info.hash);
     return this.getContent({ key });
+  }
+
+  /**
+   * @override
+   */
+  getSignedUrlFromMap(map: BinaryMap, expires: number): Promise<string> {
+    return this.getSignedUrl({ key: this._getKey(map.hash), expires, action: "read" });
   }
 
   /**

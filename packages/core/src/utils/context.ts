@@ -454,12 +454,12 @@ class Context extends EventEmitter {
     return this._ended;
   }
 
-  getRequestBody(
+  getRequestBody<T = any>(
     sanitizedOptions: any = {
       allowedTags: [],
       allowedAttributes: {}
     }
-  ) {
+  ): T {
     if (this._sanitized) {
       return this._sanitized;
     }

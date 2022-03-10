@@ -67,72 +67,6 @@ class ApplicationTest extends WebdaTest {
   }
 
   @test
-  compile() {
-    this.cleanSampleApp();
-    this.sampleApp.preventCompilation(true);
-    this.sampleApp.compile();
-    assert.strictEqual(fs.existsSync(this.sampleApp.getAppPath("lib")), false);
-    this.sampleApp.preventCompilation(false);
-    this.sampleApp.compile();
-    // assert files are there
-    assert.strictEqual(fs.existsSync(this.sampleApp.getAppPath("lib")), true);
-    assert.strictEqual(fs.existsSync(this.sampleApp.getAppPath("lib/services/bean.js")), true);
-    assert.strictEqual(fs.existsSync(this.sampleApp.getAppPath("lib/models/contact.js")), true);
-
-    this.cleanSampleApp();
-    // should not recreate
-    this.sampleApp.compile();
-    // Should not recompile as it should be cached
-    assert.strictEqual(fs.existsSync(this.sampleApp.getAppPath("lib")), false);
-  }
-
-  @test
-  compileError() {
-    this.sampleApp.preventCompilation(false);
-    const lines = [];
-    sinon.stub(this.sampleApp, "log").callsFake((...args) => lines.push(args));
-    const testFile = this.sampleApp.getAppPath("src/bouzouf.ts");
-    fs.writeFileSync(testFile, "bad TS");
-    try {
-      this.sampleApp.compile();
-
-      // assert files are there
-      assert.deepStrictEqual(lines, [
-        ["DEBUG", "Compiling application"],
-        ["ERROR", "tsc:", "../../sample-app/src/bouzouf.ts(1,1): error TS1434: Unexpected keyword or identifier."]
-      ]);
-    } finally {
-      fs.removeSync(testFile);
-    }
-  }
-
-  @test
-  generateModule() {
-    this.cleanSampleApp();
-    this.sampleApp.generateModule();
-    assert.strictEqual(fs.existsSync(this.sampleApp.getAppPath("webda.module.json")), true);
-    let config: Module = fs.readJSONSync(this.sampleApp.getAppPath("webda.module.json"));
-    assert.strictEqual(config.services["WebdaDemo/CustomReusableService"], "lib/services/reusable.js");
-    // Won't be find as it is in a test context
-    assert.strictEqual(config.models["WebdaDemo/Contact"], "lib/models/contact.js");
-    assert.strictEqual(config.deployers["WebdaDemo/CustomDeployer"], "lib/services/deployer.js");
-    assert.deepStrictEqual(config.schemas["WebdaDemo/CustomDeployer"], { title: "CustomDeployer" });
-    // COV one
-    this.sampleApp.getPackagesLocations = () => {
-      // @ts-ignore
-      this.sampleApp._loaded = [this.sampleApp.getAppPath("plop")];
-      return ["plop"];
-    };
-    this.sampleApp.generateModule();
-  }
-
-  @test
-  loadModules() {
-    fs.mkdirSync(this.sampleApp.getAppPath("node_modules"), { recursive: true });
-    this.sampleApp.loadModules();
-  }
-
-  @test
   getDeployment() {
     let deployment = this.sampleApp.getDeployment("Dev");
     deployment = this.sampleApp.getDeployment("Production");
@@ -231,7 +165,7 @@ class ApplicationTest extends WebdaTest {
     // Alternative of files
     // @ts-ignore
     app.getPackageDescription.files = undefined;
-    assert.deepStrictEqual(app.getPackagesLocations(), ["lib/**/*.js"]);
+    //assert.deepStrictEqual(app.getPackagesLocations(), ["lib/**/*.js"]);
   }
 
   @test
@@ -263,8 +197,6 @@ class ApplicationTest extends WebdaTest {
       }
     };
     assert.strictEqual(app.getSchemaResolver().fromServiceType("fake"), 666);
-    // cov
-    app.loadModules();
   }
 
   @test

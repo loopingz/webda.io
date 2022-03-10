@@ -116,11 +116,11 @@ export interface CachedModule extends Module {
 /**
  * Configuration from Webda 1.0 > version > 0.5
  */
-export interface ConfigurationV1 {
+export type ConfigurationV1 = {
   /**
    * Configuration version
    */
-  version: number;
+  version: 1;
   /**
    * Cached modules to avoid scanning node_modules
    * This is used by packagers
@@ -135,16 +135,9 @@ export interface ConfigurationV1 {
    */
   services?: any;
   [key: string]: any;
-}
-
-/**
- * Configuration from Webda version >= 1.0
- */
-export interface Configuration {
-  /**
-   * @minimum 2
-   */
-  version: number;
+};
+export type Configuration = {
+  version: 2;
   /**
    * Cached modules to avoid scanning node_modules
    * This is used by packagers
@@ -206,8 +199,9 @@ export interface Configuration {
    * OpenAPI override
    */
   openapi?: any;
-}
+};
 
+export type StoredConfiguration = ConfigurationV1 | Configuration;
 /**
  * RequestFilter allow a service which implement it to control incoming request
  *
@@ -416,7 +410,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     // Load the configuration and migrate
     this.configuration = this.application.getCurrentConfiguration();
     // Set the global context
-    Context.setGlobalContext(<Context>new (this.getModel(this.parameter("contextModel") || "WebdaCore/Context"))(this));
+    Context.setGlobalContext(<Context>new (this.getModel(this.parameter("contextModel") || "Webda/Context"))(this));
     // Init default values for configuration
     this.configuration.parameters ??= {};
     this.configuration.parameters.apiUrl ??= "http://localhost:18080";
@@ -931,6 +925,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   protected createServices(excludes: string[] = []): void {
     const services = this.configuration.services;
+    this.log("DEBUG", beans);
     for (let i in beans) {
       if (!beans[i].bean) {
         this.log("DEBUG", "Implicit @Bean due to a @Route", beans[i].constructor.name);
@@ -998,6 +993,9 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     return value;
   }
 
+  /**
+   * Init services and Beans along with Routes
+   */
   initStatics() {
     if (this.configuration.services !== undefined) {
       this.createServices(Object.keys(this.services));
@@ -1049,7 +1047,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     noInit: boolean = false
   ): Promise<T> {
     let res: Context = <Context>(
-      new (this.getModel(this.parameter("contextModel") || "WebdaCore/Context"))(this, httpContext, stream)
+      new (this.getModel(this.parameter("contextModel") || "Webda/Context"))(this, httpContext, stream)
     );
     if (!noInit) {
       await res.init();
@@ -1069,7 +1067,13 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     return JSON.stringify(object, this.jsonFilter);
   }
 
-  public getUuid(): string {
+  /**
+   * Return a UUID
+   *
+   * @param format to return different type of format
+   * Plan to implement base64 and maybe base85
+   */
+  public getUuid(format: "hex" = "hex"): string {
     return uuidv4().toString();
   }
 

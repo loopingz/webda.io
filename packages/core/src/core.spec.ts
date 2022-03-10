@@ -173,7 +173,7 @@ class CoreTest extends WebdaTest {
   @test
   async exportOpenAPI() {
     let app = new Application(path.join(__dirname, "..", "..", "..", "sample-app"));
-    app.loadModules();
+    //app.loadModules();
     let webda = new Core(app);
     await webda.init();
     webda.reinitResolvedRoutes();

@@ -1,3 +1,4 @@
+import { ModdaDefinition } from "../core";
 import { Queue } from "../queues/queueservice";
 import { Service, ServiceParameters } from "./service";
 
@@ -246,6 +247,17 @@ class EventService<T extends EventServiceParameters = EventServiceParameters> ex
     // Avoid loops
     this._async = false;
     return this._queues[queue].consume(this.handleRawEvent.bind(this));
+  }
+
+  /**
+   * @override
+   */
+  static getModda(): ModdaDefinition {
+    return {
+      uuid: "Webda/ASyncEvents",
+      label: "Async Eventing system",
+      description: "Implements storage of files on the server filesystem"
+    };
   }
 }
 

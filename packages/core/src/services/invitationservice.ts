@@ -1,4 +1,13 @@
-import { Store, Context, EventAuthenticationRegister, ExposeParameters, Ident, EventWithContext } from "../index";
+import {
+  Store,
+  Context,
+  EventAuthenticationRegister,
+  ExposeParameters,
+  Ident,
+  EventWithContext,
+  ModdaDefinition,
+  Modda
+} from "../index";
 import { AclModel } from "../models/aclmodel";
 import { CoreModel } from "../models/coremodel";
 import { User } from "../models/user";
@@ -174,6 +183,7 @@ export class InvitationParameters extends ServiceParameters {
  * Once you add a new ACE with a user, it will invite
  * and act as Mapper
  */
+@Modda
 export default class InvitationService<T extends InvitationParameters = InvitationParameters> extends Service<T> {
   @Inject("params:authenticationService")
   authenticationService: Authentication;

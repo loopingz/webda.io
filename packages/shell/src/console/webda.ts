@@ -782,7 +782,7 @@ export default class WebdaConsole {
    */
   static getServiceTypePattern(type: string): string {
     let result = "";
-    type = this.app.completeNamespace(type).toLowerCase();
+    type = Application.completeNamespace(type).toLowerCase();
     for (let t of type) {
       if (t.match(/[a-z]/)) {
         result += `[${t}${t.toUpperCase()}]`;

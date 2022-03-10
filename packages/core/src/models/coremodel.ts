@@ -2,8 +2,9 @@
 import { v4 as uuidv4 } from "uuid";
 import { Store } from "../stores/store";
 import { Context, HttpMethodType } from "../utils/context";
-import { Service } from "..";
+import { Model, Service } from "..";
 import { JSONSchema6 } from "json-schema";
+import { Module } from "module";
 
 /**
  * Define an export of actions from Model
@@ -56,6 +57,7 @@ export class CoreModelUnattachedError extends Error {
  *
  * @class
  */
+@Model
 class CoreModel {
   static jsonExcludes = ["__store", "__ctx", "__class"];
   /**

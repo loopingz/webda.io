@@ -2,6 +2,7 @@ import * as jwt from "jsonwebtoken";
 import { WebdaError } from "../core";
 import { Context } from "./context";
 import { serialize as cookieSerialize } from "cookie";
+import { Model } from "../application";
 
 /**
  * Cookie cannot be more than 4096, so we split them by this constant
@@ -24,6 +25,7 @@ const SPLIT = 4096;
  *
  * @category CoreFeatures
  */
+@Model
 class SecureCookie {
   _name: string;
   _algo: string;
@@ -167,6 +169,7 @@ class SecureCookie {
   }
 }
 
+@Model
 class SessionCookie extends SecureCookie {
   constructor(ctx: Context) {
     super(

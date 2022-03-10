@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@kubernetes/client-node": "^0.15.0",
+    "@phenomnomnominal/tsquery": "^4.2.0",
     "@webda/core": "^1.6.0-beta.3",
     "@webda/kubernetes": "^1.6.0-beta.3",
     "@webda/workout": "^1.6.0-beta.3",

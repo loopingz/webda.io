@@ -6,6 +6,7 @@ import { EventEmitter } from "events";
 import * as http from "http";
 import * as sanitizeHtml from "sanitize-html";
 import { Writable } from "stream";
+import { Model } from "../application";
 import { Core } from "../core";
 import { User } from "../models/user";
 import { Service } from "../services/service";
@@ -167,7 +168,7 @@ class Cookie {
 /**
  * @category CoreFeatures
  */
-
+@Model
 class Context extends EventEmitter {
   clientInfo: ClientInfo;
   protected _body: any;
@@ -677,7 +678,7 @@ class Context extends EventEmitter {
   }
 
   newSession() {
-    this.session = new (this._webda.getModel(this._webda.parameter("sessionModel") || "WebdaCore/SessionCookie"))(this);
+    this.session = new (this._webda.getModel(this._webda.parameter("sessionModel") || "Webda/SessionCookie"))(this);
     return this.session;
   }
 

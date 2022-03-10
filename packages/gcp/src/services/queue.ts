@@ -1,12 +1,5 @@
-import { Message, PubSub, Subscription } from "@google-cloud/pubsub";
-import {
-  CancelableLoopPromise,
-  CancelablePromise,
-  DeepPartial,
-  MessageReceipt,
-  Queue,
-  QueueParameters,
-} from "@webda/core";
+import { Message, PubSub } from "@google-cloud/pubsub";
+import { CancelablePromise, DeepPartial, MessageReceipt, Queue, QueueParameters } from "@webda/core";
 
 /**
  * GCPQueue Parameters

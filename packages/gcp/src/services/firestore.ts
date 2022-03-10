@@ -76,7 +76,7 @@ export default class FireStore<
       if (writeCondition && doc[itemWriteConditionField] !== writeCondition) {
         throw new UpdateConditionFailError(uid, itemWriteConditionField, writeCondition);
       }
-      await t.delete(docRef);
+      t.delete(docRef);
     });
   }
 
@@ -100,7 +100,7 @@ export default class FireStore<
   async getAll(list?: string[]): Promise<T[]> {
     let res = [];
     if (list) {
-      res = (await (await this.firestore.collection(this.parameters.collection).where("uuid", "in", list)).get()).docs;
+      res = (await this.firestore.collection(this.parameters.collection).where("uuid", "in", list).get()).docs;
     } else {
       res = await this.firestore.collection(this.parameters.collection).listDocuments();
     }
@@ -117,7 +117,7 @@ export default class FireStore<
   protected checkCondition(uid: string, data: any, field: string, condition: any): void {
     if (condition) {
       let values = [data[field], condition].map(i => (i instanceof Timestamp ? i.toMillis() : i));
-      if (condition && values[0] !== values[1]) {
+      if (values[0] !== values[1]) {
         throw new UpdateConditionFailError(uid, field, condition);
       }
     }
@@ -143,7 +143,7 @@ export default class FireStore<
         throw new StoreNotFoundError(uid, this.getName());
       }
       this.checkCondition(uid, doc.data(), itemWriteConditionField, itemWriteCondition);
-      await t.set(docRef, update, {
+      t.set(docRef, update, {
         merge,
       });
     });
@@ -172,7 +172,7 @@ export default class FireStore<
         throw new StoreNotFoundError(uuid, this.getName());
       }
       this.checkCondition(uuid, doc.data(), itemWriteConditionField, itemWriteCondition);
-      await t.update(docRef, {
+      t.update(docRef, {
         [attribute]: FieldValue.delete(),
       });
     });
@@ -225,7 +225,7 @@ export default class FireStore<
         const data = doc.data();
         this.checkCondition(uid, data[prop][index], itemWriteConditionField, itemWriteCondition);
         data[prop][index] = item;
-        await t.update(docRef, {
+        t.update(docRef, {
           [prop]: data[prop],
           [this._lastUpdateField]: updateDate,
         });
@@ -264,7 +264,7 @@ export default class FireStore<
       const data = doc.data();
       this.checkCondition(uid, data[prop][index], itemWriteConditionField, itemWriteCondition);
       // Get item from doc?
-      await t.update(docRef, {
+      t.update(docRef, {
         [prop]: FieldValue.arrayRemove(data[prop][index]),
         [this._lastUpdateField]: updateDate,
       });
@@ -274,7 +274,9 @@ export default class FireStore<
   /**
    * @override
    */
-  async __clean() {}
+  async __clean() {
+    // Empty on purpose, unit test use custom collection each time
+  }
 
   /**
    * @override

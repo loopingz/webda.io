@@ -14,6 +14,7 @@ import * as path from "path";
 import * as semver from "semver";
 import { TypescriptSchemaResolver } from "../compiler";
 import { Definition } from "typescript-json-schema";
+import * as jsonc from "jsonc-parser";
 
 export type WebdaCommand = (argv: any[]) => void;
 export interface WebdaShellExtension {
@@ -259,11 +260,13 @@ export default class WebdaConsole {
   static configurationWatch(callback, deployment?: string) {
     try {
       // Typescript mode -> launch compiler and update after compile is finished
-      fs.watch(this.app.getAppPath("webda.config.json"), callback);
+      fs.watch(this.app.configurationFile, callback);
       if (deployment) {
-        fs.watch(this.app.getAppPath(`deployments/${deployment}.json`), callback);
+        fs.watch(this.app.deploymentFile, callback);
       }
     } catch (err) {
+      // Cannot fake fs.watch error unless modifying code to allow test
+      /* istanbul ignore next */
       this.log("WARN", "Auto-reload for configuration cannot be setup", err);
     }
   }
@@ -516,7 +519,7 @@ export default class WebdaConsole {
    */
   static generateModule() {
     this.app.setSchemaResolver(new TypescriptSchemaResolver(this.app, this.logger));
-    if (fs.existsSync(this.app.getAppPath("webda.config.json"))) {
+    if (fs.existsSync(this.app.configurationFile)) {
       // Generate config schema as well
       this.generateConfigurationSchema();
     }
@@ -1042,10 +1045,12 @@ export default class WebdaConsole {
    * Generate a new sessionSecret for the application
    */
   static async generateSessionSecret() {
-    let config = JSON.parse(fs.readFileSync(this.app.getAppPath("webda.config.json")).toString()) || {};
-    config.parameters = config.parameters || {};
-    config.parameters.sessionSecret = await this.generateRandomString(256);
-    fs.writeFileSync(this.app.getAppPath("webda.config.json"), JSON.stringify(config, null, 2));
+    let content = fs.readFileSync(this.app.configurationFile).toString();
+    let newContent = jsonc.applyEdits(
+      content,
+      jsonc.modify(content, "parameters.sessionSecret".split("."), await this.generateRandomString(256), {})
+    );
+    fs.writeFileSync(this.app.configurationFile, newContent);
   }
 
   /**

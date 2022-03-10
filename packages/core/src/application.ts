@@ -296,6 +296,14 @@ export class Application {
    * Current Schema resolver
    */
   protected schemaResolver: SchemaResolver;
+  /**
+   * Configuration file
+   */
+  readonly configurationFile: string;
+  /**
+   * Current deployment file
+   */
+  deploymentFile: string;
 
   /**
    *
@@ -326,6 +334,7 @@ export class Application {
     }
     this.appPath = path.dirname(file);
     try {
+      this.configurationFile = file;
       this.baseConfiguration = FileUtils.load(file);
     } catch (err) {
       this.log("WARN", err);
@@ -684,6 +693,7 @@ export class Application {
     if (!deploymentName) {
       deploymentName = this.currentDeployment;
     }
+    this.deploymentFile = undefined;
     let deploymentConfig;
     for (let ext of [".jsonc", ".json", ".yaml", ".yml"]) {
       deploymentConfig = path.join(this.appPath, "deployments", `${deploymentName}${ext}`);
@@ -706,6 +716,7 @@ export class Application {
         `Invalid deployment configuration ${deploymentConfig}: ${err.toString()}`
       );
     }
+    this.deploymentFile = deploymentConfig;
     return deploymentModel;
   }
 

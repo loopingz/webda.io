@@ -5,6 +5,7 @@ import * as fetch from "node-fetch";
 import { WebdaSampleApplication } from "../index.spec";
 import { WebdaConfiguration } from "./config";
 import { ServerStatus } from "./http";
+import { FileUtils } from "@webda/core";
 
 const DEFAULT_CONFIG_HOST = "http://localhost:18181";
 
@@ -54,7 +55,7 @@ class WebdaConfigurationServerTest {
   async testConfigurationApi() {
     let res = await this.fetch("/configuration");
     res.parameters.sessionSecret = "PLOP";
-    let cfg = JSON.parse(fs.readFileSync(WebdaSampleApplication.getAppPath("webda.config.json")).toString());
+    let cfg = FileUtils.load(WebdaSampleApplication.configurationFile);
     cfg.parameters.sessionSecret = "PLOP";
     assert.strictEqual(JSON.stringify(res), JSON.stringify(cfg));
     res = await this.fetch("/configuration", { method: "PUT" });

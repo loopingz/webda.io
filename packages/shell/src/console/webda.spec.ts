@@ -169,13 +169,13 @@ class ConsoleTest {
 
   @test
   async configurationWatch() {
-    let stub = sinon.stub(WebdaConsole.app, "getAppPath").callsFake(() => {
-      throw new Error("Cannot watch");
-    });
+    let file = WebdaConsole.app.deploymentFile;
     try {
-      WebdaConsole.configurationWatch(() => {});
+      let file = WebdaConsole.app.deploymentFile;
+      WebdaConsole.app.deploymentFile = null;
+      WebdaConsole.configurationWatch(() => {}, "plop");
     } finally {
-      stub.restore();
+      WebdaConsole.app.deploymentFile = file;
     }
   }
 
@@ -312,14 +312,13 @@ class DynamicService extend Service {
   @test
   async generateSecret() {
     let info = WebdaSampleApplication.getConfiguration();
+    let oldContent = fs.readFileSync(path.join(WebdaSampleApplication.getAppPath(), "webda.config.jsonc")).toString();
     await this.commandLine("generate-session-secret");
-    let file = JSON.parse(
-      fs.readFileSync(path.join(WebdaSampleApplication.getAppPath(), "webda.config.json")).toString()
-    );
+    let file = FileUtils.load(path.join(WebdaSampleApplication.getAppPath(), "webda.config.jsonc"));
     assert.notStrictEqual(info.parameters.sessionSecret, file.parameters.sessionSecret);
     fs.writeFileSync(
-      path.join(WebdaSampleApplication.getAppPath(), "webda.config.json"),
-      JSON.stringify(info, undefined, 2)
+      path.join(WebdaSampleApplication.getAppPath(), "webda.config.jsonc"),
+      oldContent
     );
   }
 

@@ -16,6 +16,7 @@
     "thumbnailsqueue": {
       "type": "MemoryQueue"
     },
+    // Contact store
     "contacts": {
       "model": "WebdaDemo/Contact",
       "type": "MemoryStore",

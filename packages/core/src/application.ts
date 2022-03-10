@@ -312,15 +312,21 @@ export class Application {
       );
     }
     if (fs.lstatSync(file).isDirectory()) {
-      file = path.join(file, "webda.config.json");
+      file = path.join(file, "webda.config.jsonc");
+      if (!fs.existsSync(file)) {
+        file = path.join(file, "webda.config.json");
+      }
     }
     // Check if file is a file or folder
     if (!fs.existsSync(file) && !allowModule) {
-      throw new WebdaError("NO_WEBDA_FOLDER", `Not a webda application folder or webda.config.json file: ${file}`);
+      throw new WebdaError(
+        "NO_WEBDA_FOLDER",
+        `Not a webda application folder or webda.config.jsonc or webda.config.json file: ${file}`
+      );
     }
     this.appPath = path.dirname(file);
     try {
-      this.baseConfiguration = JSON.parse(fs.readFileSync(file).toString());
+      this.baseConfiguration = FileUtils.load(file);
     } catch (err) {
       this.log("WARN", err);
       if (allowModule) {
@@ -678,15 +684,21 @@ export class Application {
     if (!deploymentName) {
       deploymentName = this.currentDeployment;
     }
-    let deploymentConfig = path.join(this.appPath, "deployments", deploymentName + ".json");
-    // Load deployment
-    if (!fs.existsSync(deploymentConfig)) {
+    let deploymentConfig;
+    for (let ext of [".jsonc", ".json", ".yaml", ".yml"]) {
+      deploymentConfig = path.join(this.appPath, "deployments", `${deploymentName}${ext}`);
+      if (fs.existsSync(deploymentConfig)) {
+        break;
+      }
+    }
+
+    if (!deploymentConfig) {
       throw new WebdaError("UNKNOWN_DEPLOYMENT", "Unknown deployment");
     }
 
     let deploymentModel: Deployment;
     try {
-      deploymentModel = JSON.parse(fs.readFileSync(deploymentConfig).toString());
+      deploymentModel = FileUtils.load(deploymentConfig);
       deploymentModel.name = deploymentName;
     } catch (err) {
       throw new WebdaError(
@@ -884,7 +896,7 @@ export class Application {
     if (!deploymentName) {
       return this.baseConfiguration;
     }
-    let config = JSON.parse(JSON.stringify(this.baseConfiguration));
+    let config = JSONUtils.duplicate(this.baseConfiguration);
     let deploymentModel = this.getDeployment(deploymentName);
     config.parameters = this.replaceVariables(merge.recursive(config.parameters, deploymentModel.parameters));
     config.services = this.replaceVariables(merge.recursive(config.services, deploymentModel.services));

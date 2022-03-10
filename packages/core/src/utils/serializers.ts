@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import * as yaml from "yaml";
+import * as jsonc from "jsonc-parser";
 
 /**
  * Allow save/load of yaml or json file
@@ -22,7 +23,10 @@ export const FileUtils = {
         return res.pop().toJSON();
       }
       return res.map(d => d.toJSON());
-    } else if (filename.match(/\.json$/i)) {
+    } else if (filename.match(/\.jsonc?$/i)) {
+      if (filename.endsWith("c")) {
+        return jsonc.parse(content);
+      }
       return JSON.parse(content);
     }
     throw new Error("Unknown format");

@@ -48,8 +48,8 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
         found++;
         let filePath = path.join(this.parameters.source, f);
         // Auto parse JSON and YAML
-        if (f.match(/\.(json|ya?ml)$/i)) {
-          result[f.replace(/\.(json|ya?ml)$/i, "")] = JSONUtils.loadFile(filePath);
+        if (f.match(/\.(jsonc?|ya?ml)$/i)) {
+          result[f.replace(/\.(jsonc?|ya?ml)$/i, "")] = JSONUtils.loadFile(filePath);
         } else {
           result[f] = fs.readFileSync(filePath, "utf-8");
         }

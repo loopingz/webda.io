@@ -1,15 +1,7 @@
 import * as fs from "fs";
 import { ModdaDefinition } from "../core";
 import { Context } from "../utils/context";
-import {
-  Binary,
-  BinaryFile,
-  BinaryMap,
-  BinaryMetadata,
-  BinaryNotFoundError,
-  BinaryParameters,
-  MemoryBinaryFile
-} from "./binary";
+import { Binary, BinaryFile, BinaryMap, BinaryNotFoundError, BinaryParameters, MemoryBinaryFile } from "./binary";
 import { Service, ServiceParameters } from "./service";
 import { join } from "path";
 import { CoreModel } from "..";

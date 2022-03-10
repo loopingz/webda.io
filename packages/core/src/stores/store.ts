@@ -938,7 +938,6 @@ abstract class Store<
         }
       }
     }
-    let partialEvent = partial ? "Patch" : "";
     if (Object.keys(object).length < 2) {
       return {};
     }

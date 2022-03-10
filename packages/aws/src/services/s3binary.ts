@@ -15,7 +15,6 @@ import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
 import * as bluebird from "bluebird";
 import { Readable } from "stream";
-import { join } from "path";
 
 export class S3BinaryParameters extends BinaryParameters {
   endpoint?: string;

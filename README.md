@@ -6,7 +6,7 @@
 
 [![Join the chat at https://gitter.im/loopingz/webda](https://badges.gitter.im/loopingz/webda.svg)](https://gitter.im/loopingz/webda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![codecov](https://codecov.io/gh/loopingz/webda.io/branch/main/graph/badge.svg?token=8N9DNM3K3O)](https://codecov.io/gh/loopingz/webda.io)
-[![SonarCloud.io](https://sonarcloud.io/api/project_badges/measure?project=webda.io&metric=alert_status)](https://sonarcloud.io/dashboard/index/webda.io)
+[![SonarCloud.io](https://sonarcloud.io/api/project_badges/measure?project=webda.io&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=webda.io)
 ![CodeQL](https://github.com/loopingz/webda.io/workflows/CodeQL/badge.svg)
 
 **Composable Serverless API**

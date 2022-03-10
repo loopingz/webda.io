@@ -1,14 +1,4 @@
-import {
-  CoreModel,
-  EventStoreDeleted,
-  EventStorePartialUpdated,
-  EventStorePatchUpdated,
-  EventStoreSaved,
-  EventStoreUpdated,
-  Service,
-  Store,
-  WebdaError
-} from "@webda/core";
+import { CoreModel, Service, Store, WebdaError } from "@webda/core";
 import { Client, ClientOptions } from "@elastic/elasticsearch";
 import { ServiceParameters } from "../../core/lib/services/service";
 import { Search } from "@elastic/elasticsearch/api/requestParams";

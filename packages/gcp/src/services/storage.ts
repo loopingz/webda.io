@@ -2,7 +2,6 @@
 import { Storage as GCS, GetSignedUrlConfig, Bucket } from "@google-cloud/storage";
 import { CloudBinary, BinaryMap, BinaryParameters, CoreModel, BinaryFile, DeepPartial } from "@webda/core";
 import { Readable, Stream } from "stream";
-import { join } from "path";
 import { createReadStream } from "fs";
 import * as mime from "mime-types";
 
@@ -151,26 +150,6 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
    */
   async _cleanUsage(hash: string, uuid: string) {
     await this.getStorageBucket().file(this._getKey(hash, uuid)).delete();
-  }
-
-  /**
-   * @inheritdoc
-   */
-  async delete(object: CoreModel, property: string, index: number) {
-    let hash = object[property][index].hash;
-    await this.deleteSuccess(object, property, index);
-    await this._cleanUsage(hash, object.getUuid());
-  }
-
-  /**
-   * @inheritdoc
-   */
-  async cascadeDelete(info: BinaryMap, uuid: string): Promise<void> {
-    try {
-      await this._cleanUsage(info.hash, uuid);
-    } catch (err) {
-      this._webda.log("WARN", "Cascade delete failed", err);
-    }
   }
 
   /**

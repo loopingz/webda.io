@@ -24,11 +24,26 @@ class GCPQueueTest extends QueueTest {
     });
     try {
       await this.simple(queue, true, 12000);
+      // Seems to be penalized by no promise on ACK
+      await this.sleep(5000);
       this.log("DEBUG", "Verify receiveMessage is now empty");
       queue.getParameters().timeout = 3000;
       assert.deepStrictEqual(await queue.receiveMessage(), []);
       GCPQueue.getModda();
+    } finally {
+      await queue.pubsub.subscription(queue.getParameters().subscription).delete();
+    }
+  }
 
+  @test
+  async consumers() {
+    let queue: GCPQueue = this.webda.getService<GCPQueue>("queue");
+    queue.getParameters().subscription = `${queue.getParameters().subscription}_${this.webda.getUuid()}`;
+    await queue.pubsub.createSubscription(queue.getParameters().topic, queue.getParameters().subscription, {
+      ackDeadlineSeconds: 10,
+      enableMessageOrdering: true,
+    });
+    try {
       // Test consumer
       let msg;
       let consumed = 0;
@@ -51,7 +66,9 @@ class GCPQueueTest extends QueueTest {
       await consumer.cancel();
       this.log("DEBUG", "Consume assert");
       assert.notStrictEqual(msg, undefined);
-      assert.deepStrictEqual(await queue.receiveMessage(), []);
+      // The second message throw an exception so it can come back
+      await queue.receiveMessage();
+      await queue.receiveMessage();
     } finally {
       await queue.pubsub.subscription(queue.getParameters().subscription).delete();
     }

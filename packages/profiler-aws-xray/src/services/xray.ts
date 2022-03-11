@@ -1,9 +1,11 @@
-import { Service, ModdaDefinition, ServiceParameters } from "@webda/core";
+import { Service, Modda, ServiceParameters } from "@webda/core";
 import * as AWSXRay from "aws-xray-sdk";
 
 export class AWSXRayServiceParameters extends ServiceParameters {
   name: string;
 }
+
+@Modda
 export default class AWSXRayService<T extends AWSXRayServiceParameters = AWSXRayServiceParameters> extends Service<T> {
   /**
    *
@@ -116,16 +118,6 @@ export default class AWSXRayService<T extends AWSXRayServiceParameters = AWSXRay
         });
       };
     });
-  }
-
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/XRay",
-      label: "AWS XRay",
-      description: "Implements XRay",
-      logo: "images/icons/dynamodb.png",
-      documentation: "https://raw.githubusercontent.com/loopingz/webda.io/master/readmes/XRay.md"
-    };
   }
 }
 

@@ -1,4 +1,5 @@
 "use strict";
+import { Model } from "..";
 import { OwnerModel } from "./ownermodel";
 
 class IdentTokens {
@@ -9,6 +10,7 @@ class IdentTokens {
  * First basic model for Ident
  * @class
  */
+@Model
 class Ident extends OwnerModel {
   _type: string;
   uid: string;

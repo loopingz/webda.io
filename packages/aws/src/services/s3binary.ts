@@ -6,7 +6,7 @@ import {
   BinaryParameters,
   Context,
   CoreModel,
-  ModdaDefinition,
+  Modda,
   WebdaError,
   BinaryFile
 } from "@webda/core";
@@ -52,6 +52,7 @@ export class S3BinaryParameters extends BinaryParameters {
  *
  * We can register on S3 Event to get info when /data is pushed
  */
+@Modda
 export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   extends CloudBinary<T>
   implements CloudFormationContributor
@@ -458,20 +459,6 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     };
     // Add any Other resources with prefix of the service
     return resources;
-  }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/S3Binary",
-      label: "S3 Binary",
-      description:
-        "Implements S3 storage, so you can upload binary from users, handles mapping with other objects. It only stores once a binary, and if you use the attached Polymer behavior it will not even uplaod file if they are on the server already",
-      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
-      logo: "images/icons/s3.png"
-    };
   }
 }
 

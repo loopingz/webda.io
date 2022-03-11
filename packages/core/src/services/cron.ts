@@ -1,6 +1,6 @@
 import * as crontab from "node-cron";
 import { Service } from "./service";
-import { ModdaDefinition, CancelablePromise } from "..";
+import { CancelablePromise } from "..";
 
 /**
  * Cron item
@@ -162,17 +162,6 @@ class CronService extends Service {
       }
       this.crons.push({ cron, cb, description, context });
     }
-  }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/CronService",
-      label: "Cron Service",
-      description: "Allow planified tasks"
-    };
   }
 }
 

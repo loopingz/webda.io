@@ -5,7 +5,6 @@ import {
   ExposeParameters,
   Ident,
   EventWithContext,
-  ModdaDefinition,
   Modda
 } from "../index";
 import { AclModel } from "../models/aclmodel";

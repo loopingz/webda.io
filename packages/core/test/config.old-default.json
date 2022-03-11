@@ -59,7 +59,7 @@
           }
         },
         "DefinedMailer": {
-          "type": "Test/Mailer"
+          "type": "WebdaTest/Mailer"
         },
         "MemoryIdents": {
           "asyncDelete": true,

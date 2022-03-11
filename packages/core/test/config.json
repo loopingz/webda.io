@@ -13,8 +13,8 @@
   },
   "module": {
     "services": {
-      "Test/Mailer": "./moddas/debugmailer",
-      "Test/VoidStore": "./moddas/voidstore"
+      "WebdaTest/Mailer": "./moddas/debugmailer",
+      "WebdaTest/VoidStore": "./moddas/voidstore"
     },
     "models": {
       "WebdaTest/Task": "./models/task",
@@ -72,7 +72,7 @@
       }
     },
     "DefinedMailer": {
-      "type": "Test/Mailer"
+      "type": "WebdaTest/Mailer"
     },
     "TrueMailer": {
       "type": "Webda/Mailer",
@@ -168,7 +168,7 @@
       }
     },
     "brokenService": {
-      "type": "Test/VoidStore",
+      "type": "WebdaTest/VoidStore",
       "accessKeyId": "LOCAL_ACCESS_KEY",
       "secretAccessKey": "LOCAL_SECRET_KEY"
     }

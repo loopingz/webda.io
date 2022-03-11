@@ -1,4 +1,4 @@
-import { Context, ModdaDefinition } from "../index";
+import { Context } from "../index";
 import { ServiceParameters, Service } from "./service";
 
 export class EchoServiceParameters extends ServiceParameters {
@@ -60,16 +60,5 @@ export class EchoService extends Service<EchoServiceParameters> {
     } else {
       ctx.write(this.parameters.result);
     }
-  }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/EchoService",
-      label: "Echo Service",
-      description: "Output a staticly defined result, useful to display verison"
-    };
   }
 }

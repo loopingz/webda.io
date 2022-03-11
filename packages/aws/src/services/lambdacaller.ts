@@ -1,5 +1,5 @@
 "use strict";
-import { ModdaDefinition, ServiceParameters } from "@webda/core";
+import { Modda, ServiceParameters } from "@webda/core";
 import { AsyncAction, Runner, RunnerParameters, JobInfo } from "@webda/async";
 import * as AWS from "aws-sdk";
 
@@ -21,6 +21,7 @@ class LambdaCallerParameters extends RunnerParameters {
 /**
  * A service that calls a Lambda function and retrieve its result
  */
+@Modda
 class LambdaCaller<T extends LambdaCallerParameters = LambdaCallerParameters> extends Runner<T> {
   /**
    * @inheritdoc
@@ -80,17 +81,6 @@ class LambdaCaller<T extends LambdaCallerParameters = LambdaCallerParameters> ex
         })
         .promise()
     ).$response.data;
-  }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/LambdaCaller",
-      label: "LambdaCaller",
-      description: "Call a Lambda function and give result"
-    };
   }
 }
 

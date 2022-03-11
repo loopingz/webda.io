@@ -1,4 +1,4 @@
-import { CancelablePromise, PubSubService, ServiceParameters } from "@webda/core";
+import { CancelablePromise, Modda, PubSubService, ServiceParameters } from "@webda/core";
 import { PubSub, CreateSubscriptionOptions, Subscription, Message } from "@google-cloud/pubsub";
 
 export class GCPPubSubParameters extends ServiceParameters {
@@ -17,6 +17,7 @@ export class GCPPubSubParameters extends ServiceParameters {
  *
  * Can also act as queue
  */
+@Modda
 export default class GCPPubSubService<
   T = any,
   K extends GCPPubSubParameters = GCPPubSubParameters
@@ -88,17 +89,6 @@ export default class GCPPubSubService<
         }
       }
     );
-  }
-
-  /**
-   * @override
-   */
-  static getModda() {
-    return {
-      uuid: "Webda/GoogleCloudPubSub",
-      label: "GCP PubSub",
-      description: "Implements a PubSub stored in GCP",
-    };
   }
 }
 

@@ -9,7 +9,6 @@ import MapperService from "./mapper";
 class MapperTest extends WebdaTest {
   @test
   async cov() {
-    MapperService.getModda();
     let service = this.getService<MapperService>("MemoryIdentsMapper");
     await service.recompute();
     let identStore = this.getService<Store>("MemoryIdents");

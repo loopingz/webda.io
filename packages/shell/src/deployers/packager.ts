@@ -1,4 +1,4 @@
-import { Configuration, JSONUtils, DeployerResources } from "@webda/core";
+import { Configuration, JSONUtils, DeployerResources, Deployer as DeployerDefinition } from "@webda/core";
 import * as fs from "fs";
 import * as path from "path";
 import { Deployer } from "./deployer";
@@ -28,6 +28,7 @@ export interface PackagerResources extends DeployerResources {
  * @param zipPath path to store the package
  * @param entrypoint file to integrate as entrypoint.js
  */
+@DeployerDefinition
 export default class Packager<T extends PackagerResources> extends Deployer<T> {
   packagesGenerated: { [key: string]: boolean } = {};
 

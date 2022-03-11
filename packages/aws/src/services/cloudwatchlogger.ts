@@ -1,4 +1,4 @@
-import { ModdaDefinition, Service, ServiceParameters } from "@webda/core";
+import { Modda, Service, ServiceParameters } from "@webda/core";
 import { LogFilter, WorkerLogLevel, WorkerMessage } from "@webda/workout";
 import * as uuid from "uuid";
 import { CloudFormationContributor } from ".";
@@ -23,6 +23,10 @@ export class CloudWatchLoggerParameters extends ServiceParameters {
   region: string;
 }
 
+/**
+ * Output log to a CloudWatch Stream
+ */
+@Modda
 export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = CloudWatchLoggerParameters>
   extends Service<T>
   implements CloudFormationContributor
@@ -164,18 +168,6 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
     };
     // Add any Other resources with prefix of the service
     return resources;
-  }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/CloudWatchLogger",
-      label: "CloudWatchLogger",
-      description: "Output to a logstream in CloudWatch",
-      logo: "images/icons/none.png"
-    };
   }
 }
 

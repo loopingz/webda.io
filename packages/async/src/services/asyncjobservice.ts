@@ -1,4 +1,4 @@
-import { Service, ServiceParameters, Queue, Store, RequestFilter, Context } from "@webda/core";
+import { Service, ServiceParameters, Queue, Store, RequestFilter, Context, Modda } from "@webda/core";
 import { v4 as uuidv4 } from "uuid";
 import { AsyncAction, AsyncActionQueueItem, WebdaAsyncAction } from "../models";
 import { Runner } from "./runner";
@@ -61,6 +61,7 @@ export class AsyncJobServiceParameters extends ServiceParameters {
 /**
  * AsyncService allows you to launch jobs and report status
  */
+@Modda
 export default class AsyncJobService<T extends AsyncJobServiceParameters = AsyncJobServiceParameters>
   extends Service<T>
   implements RequestFilter

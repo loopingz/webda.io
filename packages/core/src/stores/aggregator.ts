@@ -1,4 +1,3 @@
-import { ModdaDefinition } from "../core";
 import { CoreModel } from "../models/coremodel";
 import MapperService, { MapperParameters, MapUpdates } from "./mapper";
 
@@ -16,6 +15,7 @@ export class AggregatorParameters extends MapperParameters {
 
 /**
  * Service that aggregate several CoreModel into one
+ *
  * Similar to a Mapper except that the target is constant
  */
 export default class AggregatorService<T extends AggregatorParameters = AggregatorParameters> extends MapperService<T> {
@@ -79,17 +79,6 @@ export default class AggregatorService<T extends AggregatorParameters = Aggregat
     mapUpdates[object.getUuid()] = mapper;
     mapUpdates._lastUpdate = new Date();
     await this.targetStore._patch(mapUpdates, this.parameters.key);
-  }
-
-  /**
-   * @override
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/Aggregator",
-      label: "Aggregator",
-      description: "Deduplicate content to an aggregate"
-    };
   }
 }
 

@@ -4,7 +4,7 @@ import * as fs from "fs";
 import * as yaml from "yaml";
 import * as jsonpath from "jsonpath";
 import { Deployer } from "./deployer";
-import { CronService, JSONUtils, CronDefinition } from "@webda/core";
+import { CronService, JSONUtils, CronDefinition, Deployer as DeployerDefinition } from "@webda/core";
 import * as crypto from "crypto";
 import { getKubernetesApiClient, KubernetesParameters } from "@webda/kubernetes";
 
@@ -58,6 +58,7 @@ const DEFAULT_API = {
   Deployment: "apps/v1"
 };
 
+@DeployerDefinition
 export class Kubernetes extends Deployer<KubernetesResources> {
   client: k8s.KubernetesObjectApi;
   async loadDefaults() {

@@ -1,7 +1,10 @@
-import { WorkerLogLevel } from "@webda/workout";
+import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import * as assert from "assert";
 import { Application, Context, Core, HttpContext, HttpMethodType, Service } from "./index";
 import { ConsoleLoggerService } from "./utils/logger";
+import * as fs from "fs";
+import * as path from "path";
+import { execSync } from "child_process";
 
 export class Executor {
   /**
@@ -15,6 +18,91 @@ export class Executor {
   }
 }
 
+class TestApplication extends Application {
+  constructor(file: string, logger?: WorkerOutput, allowModule?: boolean) {
+    super(file, logger, allowModule);
+    Application.services["webdatest/voidstore"] = require("../test/moddas/voidstore");
+    Application.services["webdatest/fakeservice"] = require("../test/moddas/fakeservice");
+    Application.services["webdatest/mailer"] = require("../test/moddas/debugmailer");
+
+    Application.models["webdatest/task"] = require("../test/models/task");
+    Application.models["webdatest/ident"] = require("../test/models/ident");
+  }
+  /**
+   * Set the status of the compilation
+   *
+   * @param compile true will avoid trigger new compilation
+   */
+  preventCompilation(compile: boolean) {
+    this.compiled = compile;
+  }
+  /**
+   * Flag if application has been compiled already
+   */
+  protected compiled: boolean = false;
+  /**
+   * Compile the application if it is a Typescript application
+   * Do nothing otherwise
+   */
+  compile() {
+    if (this.compiled) {
+      return;
+    }
+    // exec typescript
+    this.log("DEBUG", "Compiling application");
+    try {
+      execSync(`tsc -p ${this.appPath}`);
+    } catch (err) {
+      (err.stdout.toString() + err.stderr.toString())
+        .split("\n")
+        .filter(l => l !== "")
+        .forEach(l => {
+          this.log("ERROR", "tsc:", l);
+        });
+    }
+    this.compiled = true;
+  }
+  /**
+   * Load all imported modules and current module
+   * It will compile module
+   * Generate the current module file
+   * Load any imported webda.module.json
+   */
+  loadModules() {
+    // Cached modules is defined on deploy
+    if (this.baseConfiguration.cachedModules) {
+      // We should not load any modules as we are in a deployed version
+      return;
+    }
+    // Compile
+    this.compile();
+    const Finder = require("fs-finder");
+    // Modules should be cached on deploy
+    var files = [];
+    let nodeModules = path.join(this.appPath, "node_modules");
+    if (fs.existsSync(nodeModules)) {
+      files = Finder.from(nodeModules).findFiles("webda.module.json");
+    }
+    // Search workspace for webda.module.json
+    if (this.workspacesPath !== "") {
+      nodeModules = path.join(this.workspacesPath, "node_modules");
+      if (fs.existsSync(nodeModules)) {
+        files.push(...Finder.from(nodeModules).findFiles("webda.module.json"));
+      }
+    }
+    let currentModule = path.join(this.appPath, "webda.module.json");
+    if (fs.existsSync(currentModule)) {
+      files.push(currentModule);
+    }
+    if (files.length) {
+      this.log("DEBUG", "Found modules", files);
+      files.forEach(file => {
+        let info = require(file);
+        this.loadModule(info, path.dirname(file));
+      });
+    }
+  }
+}
 /**
  * Utility class for UnitTest
  *
@@ -39,8 +127,8 @@ class WebdaTest {
    * Add a ConsoleLogger if addConsoleLogger is true
    */
   protected buildWebda() {
-    let app = new Application(this.getTestConfiguration());
-    app.loadLocalModule();
+    let app = new TestApplication(this.getTestConfiguration());
+    app.loadModules();
     this.webda = new Core(app);
     if (this.addConsoleLogger) {
       // @ts-ignore - Hack a ConsoleLogger in

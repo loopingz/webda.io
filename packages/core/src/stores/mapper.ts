@@ -1,4 +1,3 @@
-import { ModdaDefinition } from "../core";
 import { CoreModel } from "../models/coremodel";
 import { Inject, Service, ServiceParameters } from "../services/service";
 import { EventStoreDeleted, EventStorePartialUpdated, EventStoreSaved, EventStoreUpdate, Store } from "./store";
@@ -337,19 +336,6 @@ export default class MapperService<T extends MapperParameters = MapperParameters
    * Recompute the whole mappers
    */
   async recompute() {}
-
-  /**
-   * Override
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/Mapper",
-      label: "Mapper",
-      description: "Deduplicate content between models",
-      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
-      logo: "images/icons/filedb.png"
-    };
-  }
 }
 
 export { MapperService };

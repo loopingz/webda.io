@@ -1,4 +1,4 @@
-import { Service, ServiceParameters, Store, Cache, RequestFilter, Context } from "@webda/core";
+import { Service, ServiceParameters, Store, Cache, RequestFilter, Context, Modda } from "@webda/core";
 import { ApiKey } from "./apikey";
 import * as Hawk from "hawk";
 
@@ -47,6 +47,7 @@ export class HawkServiceParameters extends ServiceParameters {
  * Implementation of hawk protocol
  * https://github.com/mozilla/hawk#readme
  */
+@Modda
 export default class HawkService extends Service<HawkServiceParameters> implements RequestFilter {
   /**
    *
@@ -189,17 +190,6 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
       this.log("TRACE", err);
     }
     return false;
-  }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda() {
-    return {
-      uuid: "Webda/Hawk",
-      label: "Hawk",
-      description: "Implements Hawk API signature"
-    };
   }
 }
 

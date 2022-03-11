@@ -1,10 +1,11 @@
 import { Deployer } from "./deployer";
-import { DeployerResources } from "@webda/core";
+import { DeployerResources, Deployer as DeployerDefinition } from "@webda/core";
 
 export interface ShellDeployerResources extends DeployerResources {
   scripts: string[];
 }
 
+@DeployerDefinition
 export default class ShellDeployer extends Deployer<ShellDeployerResources> {
   async deploy() {
     this.resources.scripts = this.resources.scripts || [];

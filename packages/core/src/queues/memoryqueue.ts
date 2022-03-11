@@ -1,6 +1,5 @@
 "use strict";
 import * as uuid from "uuid";
-import { ModdaDefinition } from "../core";
 import { ServiceParameters } from "../services/service";
 import { JSONUtils } from "../utils/serializers";
 import { MessageReceipt, Queue, QueueParameters } from "./queueservice";
@@ -93,18 +92,6 @@ class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueParamete
    */
   async __clean() {
     this._queue = {};
-  }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/MemoryQueue",
-      label: "MemoryQueue",
-      description: "Implements a simple in memory queue",
-      logo: "images/icons/memoryqueue.png"
-    };
   }
 }
 export { MemoryQueue };

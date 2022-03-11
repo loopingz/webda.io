@@ -1,5 +1,4 @@
 import * as fs from "fs";
-import { ModdaDefinition } from "../core";
 import { Context } from "../utils/context";
 import { Binary, BinaryFile, BinaryMap, BinaryNotFoundError, BinaryParameters, MemoryBinaryFile } from "./binary";
 import { Service, ServiceParameters } from "./service";
@@ -294,16 +293,6 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
    */
   async ___cleanData(): Promise<void> {
     require("fs-extra").emptyDirSync(this.parameters.folder);
-  }
-
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/FileBinary",
-      label: "File Storage",
-      description: "Implements storage of files on the server filesystem",
-      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
-      logo: "images/icons/filestorage.png"
-    };
   }
 }
 

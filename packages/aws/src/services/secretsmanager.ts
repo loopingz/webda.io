@@ -1,10 +1,12 @@
-import { ConfigurationProvider, ModdaDefinition, Service, ServiceParameters } from "@webda/core";
+import { ConfigurationProvider, Modda, Service, ServiceParameters } from "@webda/core";
 import { GetAWS } from "./aws-mixin";
 
 export class AWSSecretsManagerParameters extends ServiceParameters {
   endpoint: string;
   region: string;
 }
+
+@Modda
 export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = AWSSecretsManagerParameters>
   extends Service<T>
   implements ConfigurationProvider
@@ -115,19 +117,6 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
       Effect: "Allow",
       Action: ["secretsmanager:*"],
       Resource: ["arn:aws:secretsmanager:" + region + ":" + accountId + ":secret:*"]
-    };
-  }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/AWSSecretsManager",
-      label: "AWSSecretsManager",
-      description: "Implements AWS SecretsManager",
-      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
-      logo: "images/icons/s3.png"
     };
   }
 }

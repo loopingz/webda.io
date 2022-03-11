@@ -1,4 +1,4 @@
-import { FileUtils, ServiceParameters, YAMLUtils } from "@webda/core";
+import { FileUtils, Modda, ServiceParameters, YAMLUtils } from "@webda/core";
 import { AsyncAction, JobInfo, Runner, RunnerParameters } from "@webda/async";
 import * as k8s from "@kubernetes/client-node";
 import { getKubernetesApiClient, KubernetesParameters } from "../utils/client";
@@ -58,6 +58,7 @@ export interface KubeJob {}
 /**
  * Run a Job locally on the server by spawning a child process
  */
+@Modda
 export default class KubeRunner<T extends KubeRunnerParameters = KubeRunnerParameters> extends Runner<T> {
   client: k8s.KubernetesObjectApi;
 

@@ -1,4 +1,4 @@
-import { CoreModel, Service, Store, WebdaError } from "@webda/core";
+import { CoreModel, Modda, Service, Store, WebdaError } from "@webda/core";
 import { Client, ClientOptions } from "@elastic/elasticsearch";
 import { ServiceParameters } from "../../core/lib/services/service";
 import { Search } from "@elastic/elasticsearch/api/requestParams";
@@ -29,6 +29,7 @@ export class ESUnknownIndexError extends WebdaError {
   }
 }
 
+@Modda
 export default class ElasticSearchService<
   T extends ElasticSearchServiceParameters = ElasticSearchServiceParameters
 > extends Service<T> {

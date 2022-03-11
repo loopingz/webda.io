@@ -45,7 +45,6 @@ class ResourceTest extends WebdaTest {
     assert.ok(this.webda.getRouter().getRouteFromUrl(this.ctx, "GET", "/") !== undefined);
     this.resource._redirect(this.ctx);
     assert.strictEqual(this.ctx.getResponseHeaders().Location, "http://test.webda.io/resources/");
-    ResourceService.getModda();
   }
 
   @test

@@ -1,12 +1,5 @@
 "use strict";
-import {
-  Store,
-  CoreModel,
-  StoreParameters,
-  ModdaDefinition,
-  UpdateConditionFailError,
-  StoreNotFoundError
-} from "@webda/core";
+import { Store, CoreModel, StoreParameters, Modda, UpdateConditionFailError, StoreNotFoundError } from "@webda/core";
 import { MongoClient, MongoClientOptions, DbOptions, Db, Collection, Document } from "mongodb";
 
 export class MongoParameters extends StoreParameters {
@@ -51,6 +44,7 @@ export class MongoParameters extends StoreParameters {
  *   mongo: 'mongodb://127.0.0.1:27017' // If not found try to read WEBDA_MONGO_URL env variable
  *
  */
+@Modda
 export default class MongoStore<T extends CoreModel, K extends MongoParameters> extends Store<T, K> {
   /**
    * Connect promise
@@ -335,19 +329,6 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
   async __clean() {
     await this._connect();
     await this._collection.deleteMany(undefined);
-  }
-
-  /**
-   * @override
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/MongoStore",
-      label: "MongoStore",
-      description: "Implements MongoDB NoSQL",
-      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
-      logo: "images/icons/mongodb.png"
-    };
   }
 }
 

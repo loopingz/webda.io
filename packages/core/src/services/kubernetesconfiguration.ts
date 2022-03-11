@@ -1,11 +1,13 @@
 import { ConfigurationService, ConfigurationServiceParameters } from "./configuration";
-import { ModdaDefinition, WebdaError } from "../core";
+import { WebdaError } from "../core";
 import * as fs from "fs";
 import * as path from "path";
 import { JSONUtils } from "../utils/serializers";
 
 /**
  * Allow for dynamic configuration from ConfigMap or Secrets
+ *
+ * Read a ConfigMap from Kubernetes and auto-update
  */
 export class KubernetesConfigurationService<T extends ConfigurationServiceParameters> extends ConfigurationService<T> {
   /**
@@ -59,16 +61,5 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
     }
     this.log("TRACE", "loadConfiguration", result);
     return result;
-  }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/KubernetesConfiguration",
-      label: "Kubernetes Configuration",
-      description: "Read a ConfigMap from Kubernetes and auto-update"
-    };
   }
 }

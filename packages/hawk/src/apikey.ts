@@ -1,9 +1,10 @@
-import { HttpContext, OwnerModel, Context } from "@webda/core";
+import { HttpContext, OwnerModel, Context, Model } from "@webda/core";
 import { HawkCredentials } from "./hawk";
 
 /**
  * Api Key to use with hawk
  */
+@Model
 export default class ApiKey extends OwnerModel {
   /**
    * Friendly user name of the key

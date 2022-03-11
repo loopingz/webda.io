@@ -4,7 +4,6 @@ import * as fs from "fs";
 import * as nodemailer from "nodemailer";
 import path = require("path");
 import { Ident, User } from "..";
-import { ModdaDefinition } from "../core";
 import { NotificationService } from "./notificationservice";
 import { Service, ServiceParameters } from "./service";
 
@@ -263,17 +262,6 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
       }
     }
     return this._transporter.sendMail(options, callback);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/Mailer",
-      label: "Mailer",
-      description: "Allow your application to send email including a templating system"
-    };
   }
 }
 

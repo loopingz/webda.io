@@ -2,7 +2,7 @@ import * as path from "path";
 import * as YAML from "yaml";
 import { AWSDeployer, AWSDeployerResources } from ".";
 import { CloudFormationContributor } from "../services";
-import { JSONUtils, WebdaError } from "@webda/core";
+import { Deployer, JSONUtils, WebdaError } from "@webda/core";
 import { ContainerResources } from "@webda/shell";
 import * as fs from "fs";
 import AWS = require("aws-sdk");
@@ -256,6 +256,7 @@ export { LAMBDA_LATEST_VERSION };
 /**
  * Deploy the application and its resources using AWS CloudFormation
  */
+@Deployer
 export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDeployerResources> {
   template: any = {};
   result: any = {};

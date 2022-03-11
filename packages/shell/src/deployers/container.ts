@@ -1,7 +1,7 @@
 import * as fs from "fs-extra";
 import * as glob from "glob";
 import * as path from "path";
-import { DeployerResources } from "@webda/core";
+import { DeployerResources, Deployer as DeployerDefinition } from "@webda/core";
 import { Deployer } from "./deployer";
 import { Packager } from "..";
 
@@ -74,6 +74,7 @@ export interface ContainerResources extends DeployerResources {
   containerClient?: ClientProfiles | ContainerClientDefinition;
 }
 
+@DeployerDefinition
 export class Container<T extends ContainerResources> extends Deployer<T> {
   _copied: boolean = false;
   workspaces: boolean = false;

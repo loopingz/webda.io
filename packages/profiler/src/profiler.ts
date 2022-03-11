@@ -1,4 +1,4 @@
-import { Service, ModdaDefinition, Context, LoggerService, ServiceParameters } from "@webda/core";
+import { Service, Modda, Context, LoggerService, ServiceParameters } from "@webda/core";
 
 /**
  * Profiler Parameters
@@ -22,6 +22,7 @@ export class ProfilerParameters extends ServiceParameters {
  *
  * Mesure timing of each method and display them in TRACE
  */
+@Modda
 export default class Profiler<T extends ProfilerParameters = ProfilerParameters> extends Service<T> {
   /**
    * @inheritdoc
@@ -187,16 +188,6 @@ export default class Profiler<T extends ProfilerParameters = ProfilerParameters>
       }
       this.instrumentRequest(evt.context);
     });
-  }
-
-  /** @inheritdoc */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/Profiler",
-      label: "Profiler",
-      description: "Implements basic profiler",
-      documentation: "https://raw.githubusercontent.com/loopingz/webda.io/master/readmes/Profiler.md"
-    };
   }
 }
 

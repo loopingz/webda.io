@@ -1,7 +1,7 @@
 import { AgentInfo, Runner, RunnerParameters } from "./runner";
 import { AsyncAction } from "../models";
 import { spawn, SpawnOptions } from "child_process";
-import { ServiceParameters } from "@webda/core";
+import { Modda, ServiceParameters } from "@webda/core";
 import { JobInfo } from "./asyncjobservice";
 
 export class LocalRunnerParameters extends RunnerParameters {
@@ -42,6 +42,7 @@ export interface ProcessAction {
 /**
  * Run a Job locally on the server by spawning a child process
  */
+@Modda
 export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerParameters> extends Runner<T> {
   /**
    * @inheritdoc

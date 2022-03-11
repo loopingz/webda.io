@@ -1,11 +1,11 @@
 import {
   CoreModel,
-  ModdaDefinition,
   Store,
   StoreParameters,
   WebdaError,
   UpdateConditionFailError,
-  StoreNotFoundError
+  StoreNotFoundError,
+  Modda
 } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import { CloudFormationDeployer } from "../deployers/cloudformation";
@@ -31,6 +31,7 @@ export class DynamoStoreParameters extends StoreParameters {
  *   region: ''
  *
  */
+@Modda
 export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParameters = DynamoStoreParameters>
   extends Store<T, K>
   implements CloudFormationContributor
@@ -588,17 +589,6 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     };
     // Add any Other resources with prefix of the service
     return resources;
-  }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/DynamoStore",
-      label: "DynamoStore",
-      description: "Implements DynamoDB NoSQL storage"
-    };
   }
 }
 

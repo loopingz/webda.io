@@ -1,5 +1,5 @@
 "use strict";
-import { ModdaDefinition, Queue, QueueParameters, WebdaError, MessageReceipt } from "@webda/core";
+import { Modda, Queue, QueueParameters, WebdaError, MessageReceipt } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
@@ -44,6 +44,7 @@ export class SQSQueueParameters extends QueueParameters {
 /**
  * Implement SQS as queue for Webda
  */
+@Modda
 export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueueParameters>
   extends Queue<T, K>
   implements CloudFormationContributor
@@ -218,19 +219,6 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
     };
     // Add any Other resources with prefix of the service
     return resources;
-  }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/SQSQueue",
-      label: "SQS Queue",
-      description: "Implements a Queue stored in SQS",
-      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Binary.md",
-      logo: "images/icons/sqs.png"
-    };
   }
 }
 

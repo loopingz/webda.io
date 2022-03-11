@@ -1,4 +1,5 @@
 "use strict";
+import { Model } from "..";
 import { PartialModel } from "../services/service";
 import { Ident } from "./ident";
 import { OwnerModel } from "./ownermodel";
@@ -7,6 +8,7 @@ import { OwnerModel } from "./ownermodel";
  * First basic model for User
  * @class
  */
+@Model
 class User extends OwnerModel {
   /**
    * Password of the user if defined

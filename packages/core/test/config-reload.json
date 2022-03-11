@@ -41,7 +41,7 @@
       }
     },
     "DefinedMailer": {
-      "type": "Test/Mailer"
+      "type": "WebdaTest/Mailer"
     },
     "Users": {
       "type": "MemoryStore"

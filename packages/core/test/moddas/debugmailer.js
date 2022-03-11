@@ -7,13 +7,9 @@ class DebugMailer extends Webda.Service {
     this.sent = [];
   }
 
-  getModda() {
-
-  }
-
   send(options, callback) {
     this.sent.push(options);
   }
 }
 
-module.exports = DebugMailer
+module.exports = DebugMailer;

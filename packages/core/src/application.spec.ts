@@ -4,7 +4,6 @@ import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
 import { Application, CacheService, Core } from "./index";
 import { WebdaTest } from "./test";
-import { Module } from "./core";
 import { removeSync, emptyDirSync } from "fs-extra";
 import { execSync } from "child_process";
 import * as sinon from "sinon";

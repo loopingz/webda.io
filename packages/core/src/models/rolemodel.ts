@@ -1,4 +1,3 @@
-"use strict";
 import { Context, CoreModel } from "../index";
 abstract class RoleModel extends CoreModel {
   abstract getRolesMap(): { [key: string]: string };

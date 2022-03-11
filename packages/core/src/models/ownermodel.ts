@@ -1,5 +1,6 @@
-import { CoreModel, Context } from "../";
+import { CoreModel, Context, Model } from "../";
 
+@Model
 export default class OwnerModel extends CoreModel {
   /**
    * Default owner of the object

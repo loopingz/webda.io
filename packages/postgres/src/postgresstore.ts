@@ -1,4 +1,4 @@
-import { CoreModel, ModdaDefinition, StoreNotFoundError, UpdateConditionFailError } from "@webda/core";
+import { CoreModel, Modda, StoreNotFoundError, UpdateConditionFailError } from "@webda/core";
 import { SQLResult, SQLStore, SQLStoreParameters } from "./sqlstore";
 import { Pool, Client, ClientConfig, PoolConfig } from "pg";
 
@@ -28,6 +28,7 @@ class PostgresParameters extends SQLStoreParameters {
  * ```
  *
  */
+@Modda
 export default class PostgresStore<
   T extends CoreModel = CoreModel,
   K extends PostgresParameters = PostgresParameters
@@ -199,16 +200,5 @@ export default class PostgresStore<
         throw new StoreNotFoundError(uuid, this.getName());
       }
     }
-  }
-
-  /**
-   * @override
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/PostgresStore",
-      label: "PostgresStore",
-      description: "Implements PostgreSQL storage"
-    };
   }
 }

@@ -7,7 +7,7 @@ import {
   ConsoleLogger,
   FileLogger
 } from "@webda/workout";
-import { Core, ModdaDefinition } from "../core";
+import { Core } from "../core";
 
 export class LoggerServiceParameters extends ServiceParameters {
   /**
@@ -34,7 +34,9 @@ export class MemoryLoggerServiceParameters extends LoggerServiceParameters {
   limit?: number;
 }
 /**
- * MemoryLoggerService expose MemoryLogger from @webda/workout
+ * Store logs within memory
+ *
+ * Useful for test and other last logs
  */
 export class MemoryLoggerService<
   T extends MemoryLoggerServiceParameters = MemoryLoggerServiceParameters
@@ -51,24 +53,17 @@ export class MemoryLoggerService<
   loadParameters(params: any) {
     return new MemoryLoggerServiceParameters(params);
   }
-
-  /**
-   * @override
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/MemoryLogger",
-      label: "Store logs within memory",
-      description: "Useful for test and other last logs"
-    };
-  }
 }
 
 export class ConsoleLoggerServiceParameters extends LoggerServiceParameters {
   format?: string;
 }
 /**
- * ConsoleLoggerService expose ConsoleLogger from @webda/workout
+ * Log to the console
+ *
+ * Send logs to stdout
+ *
+ * @see @webda/workout.ConsoleLogger
  */
 export class ConsoleLoggerService<
   T extends ConsoleLoggerServiceParameters = ConsoleLoggerServiceParameters
@@ -85,17 +80,6 @@ export class ConsoleLoggerService<
   loadParameters(params: any) {
     return new ConsoleLoggerServiceParameters(params);
   }
-
-  /**
-   * @override
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/ConsoleLogger",
-      label: "Log to the console",
-      description: "Send logs to stdout"
-    };
-  }
 }
 
 export class FileLoggerServiceParameters extends LoggerServiceParameters {
@@ -104,7 +88,11 @@ export class FileLoggerServiceParameters extends LoggerServiceParameters {
   sizeLimit?: number;
 }
 /**
- * FileLoggerService expose FileLogger from `@webda/workout`
+ * Save logs into a file
+ *
+ * Can define rotation etc
+ *
+ * @see `@webda/workout FileLogger`
  */
 export class FileLoggerService<
   T extends FileLoggerServiceParameters = FileLoggerServiceParameters
@@ -126,17 +114,6 @@ export class FileLoggerService<
    */
   loadParameters(params: any) {
     return new FileLoggerServiceParameters(params);
-  }
-
-  /**
-   * @override
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/FileLogger",
-      label: "Save logs into a file",
-      description: "Can define rotation etc"
-    };
   }
 }
 

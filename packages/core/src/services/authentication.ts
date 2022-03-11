@@ -1,7 +1,7 @@
 "use strict";
 import * as crypto from "crypto";
 import * as bcrypt from "bcryptjs";
-import { EventWithContext, ModdaDefinition } from "../core";
+import { EventWithContext } from "../core";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
 import { Inject, Service, ServiceParameters } from "../services/service";
@@ -948,18 +948,6 @@ class Authentication<
 
   generateEmailValidationToken(user: string, email: string) {
     return this.hashInfo(email + "_" + this._webda.getSecret() + user);
-  }
-
-  /** @inheritdoc */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/Authentication",
-      label: "Authentication",
-      description:
-        "Implements user registration and login using either email or OAuth, it handles for now Facebook, Google, Amazon, GitHub, Twitter\nIt needs a Idents and a Users Store to work",
-      logo: "images/icons/passport.png",
-      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Authentication.md"
-    };
   }
 }
 

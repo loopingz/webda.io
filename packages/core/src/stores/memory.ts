@@ -1,4 +1,3 @@
-import { ModdaDefinition } from "../core";
 import { CoreModel } from "../models/coremodel";
 import { Store, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";
 
@@ -185,20 +184,6 @@ class MemoryStore<T extends CoreModel, K extends StoreParameters = StoreParamete
     res[prop].splice(index, 1);
     res[this._lastUpdateField] = updateDate;
     return this._save(res);
-  }
-
-  /**
-   *
-   * @inheritdoc
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/MemoryStore",
-      label: "MemoryStore",
-      description: "Implements a simple in memory store",
-      documentation: "",
-      logo: "images/icons/memorystore.png"
-    };
   }
 }
 

@@ -1,7 +1,6 @@
 "use strict";
 import * as fs from "fs";
 import * as path from "path";
-import { ModdaDefinition } from "../core";
 import { CoreModel } from "../models/coremodel";
 import { JSONUtils } from "../utils/serializers";
 import { Store, StoreNotFoundError, StoreParameters } from "./store";
@@ -224,21 +223,6 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   async __clean(): Promise<void> {
     // This is only during test
     require("fs-extra").emptyDirSync(this.parameters.folder);
-  }
-
-  /**
-   *
-   * @inheritdoc
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/FileStore",
-      label: "File Store",
-      description:
-        "Implements user registration and login using either email or OAuth, it handles for now Facebook, Google, Amazon, GitHub, Twitter\nIt needs a Idents and a Users Store to work",
-      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md",
-      logo: "images/icons/filedb.png"
-    };
   }
 }
 

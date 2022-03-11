@@ -6,6 +6,7 @@ import {
   DeepPartial,
   StoreNotFoundError,
   UpdateConditionFailError,
+  Modda,
 } from "@webda/core";
 
 /**
@@ -18,6 +19,7 @@ export class FireStoreParameters extends StoreParameters {
 /**
  * Implement Firebase abstraction within Webda
  */
+@Modda
 export default class FireStore<
   T extends CoreModel = CoreModel,
   K extends FireStoreParameters = FireStoreParameters
@@ -276,17 +278,6 @@ export default class FireStore<
    */
   async __clean() {
     // Empty on purpose, unit test use custom collection each time
-  }
-
-  /**
-   * @override
-   */
-  static getModda() {
-    return {
-      uuid: "Webda/FireStore",
-      label: "GCP Fire Store",
-      description: "Implements FireStore in GCP",
-    };
   }
 }
 

@@ -1,5 +1,5 @@
 import ConfigurationService, { ConfigurationServiceParameters } from "./configuration";
-import { ModdaDefinition, WebdaError } from "../core";
+import { WebdaError } from "../core";
 import * as fs from "fs";
 import { JSONUtils } from "..";
 
@@ -44,16 +44,5 @@ export class FileConfigurationService<
   async initConfiguration(): Promise<{ [key: string]: any }> {
     this.parameters.source = this._webda.getAppPath(this.parameters.source);
     return this.loadAndStoreConfiguration();
-  }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/FileConfiguration",
-      label: "File Configuration",
-      description: "Read a file as configurator and reload if it is updated"
-    };
   }
 }

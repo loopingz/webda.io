@@ -1,10 +1,8 @@
-"use strict";
 import events = require("events");
 import { Core, Logger } from "../index";
 import { HttpMethodType } from "../utils/context";
 import { EventService } from "./asyncevents";
 import { WorkerLogLevel } from "@webda/workout";
-import { ModdaDefinition } from "../core";
 import { JSONSchema6 } from "json-schema";
 import { OpenAPIWebdaDefinition } from "../router";
 
@@ -372,14 +370,6 @@ abstract class Service<
    */
   getService<K extends Service<ServiceParameters>>(service: string): K {
     return this._webda.getService<K>(service);
-  }
-
-  /**
-   * Return the Modda definition if any
-   *
-   */
-  static getModda(): ModdaDefinition | void {
-    // Can be overriden by subclasses if needed
   }
 
   /**

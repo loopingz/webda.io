@@ -1,5 +1,6 @@
-import { CoreModel } from "@webda/core";
+import { CoreModel, Model } from "@webda/core";
 
+@Model
 export default class Deployment extends CoreModel {
   parameters: any = {};
   resources: any = {};

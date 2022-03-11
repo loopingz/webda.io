@@ -1,5 +1,5 @@
 "use strict";
-import { Context, ModelAction, Store, User } from "../index";
+import { Context, Model, ModelAction, Store, User } from "../index";
 import { CoreModel } from "./coremodel";
 
 export type Acl = { [key: string]: string };
@@ -7,6 +7,7 @@ export type Acl = { [key: string]: string };
 /**
  * Object that contains ACL to define its own permissions
  */
+@Model
 export default class AclModel extends CoreModel {
   /**
    * Object creator

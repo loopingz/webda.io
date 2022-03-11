@@ -1,6 +1,4 @@
-"use strict";
 import * as uuid from "uuid";
-import { ModdaDefinition } from "../core";
 import { ServiceParameters } from "../services/service";
 import { JSONUtils } from "../utils/serializers";
 import { MessageReceipt, Queue, QueueParameters } from "./queueservice";
@@ -148,17 +146,6 @@ class FileQueue<T = any, K extends FileQueueParameters = FileQueueParameters> ex
     // Use require on purpose to avoid adding fs-extra as runtime dep
     // The __clean method is only used by unit test
     require("fs-extra").emptyDirSync(this.parameters.folder);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/FileQueue",
-      label: "FileQueue",
-      description: "Implements a simple queue on filesystem"
-    };
   }
 }
 export { FileQueue };

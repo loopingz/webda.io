@@ -1,4 +1,3 @@
-import { ModdaDefinition } from "../core";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
 import { Service, ServiceParameters } from "./service";
@@ -116,17 +115,6 @@ export default class MultiNotificationService<T extends MultiNotificationParamet
    */
   async hasNotification(notification: string): Promise<boolean> {
     return (await Promise.all(this.senders.map(s => s.hasNotification(notification)))).some(s => s);
-  }
-
-  /**
-   * @override
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/MultiNotification",
-      label: "Async Eventing system",
-      description: "Implements storage of files on the server filesystem"
-    };
   }
 }
 

@@ -1,7 +1,6 @@
 import * as fs from "fs";
 import * as mime from "mime-types";
 import * as path from "path";
-import { ModdaDefinition } from "..";
 import { Context } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
@@ -166,17 +165,6 @@ export default class ResourceService<
     });
     ctx.write(fs.readFileSync(file));
     ctx.end();
-  }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/ResourceService",
-      label: "Resources Service",
-      description: "Serve a static directory"
-    };
   }
 }
 

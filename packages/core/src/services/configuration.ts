@@ -1,5 +1,5 @@
 import { Service, ServiceParameters } from "./service";
-import { ModdaDefinition, WebdaError } from "../core";
+import { WebdaError } from "../core";
 import * as jsonpath from "jsonpath";
 
 /**
@@ -244,17 +244,6 @@ export default class ConfigurationService<
     let res = await this.loadConfiguration();
     this.serializedConfiguration = JSON.stringify(res);
     return res;
-  }
-
-  /**
-   * @override
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/ConfigurationService",
-      label: "Load configuration from another service",
-      description: "Implements a basic configuration service that use another service to load"
-    };
   }
 }
 

@@ -56,6 +56,5 @@ class FileQueueTest extends QueueTest {
     queue.computeParameters();
     assert.ok(fs.existsSync(queue.getParameters().folder));
     queue.computeParameters();
-    FileQueue.getModda();
   }
 }

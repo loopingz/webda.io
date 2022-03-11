@@ -2,31 +2,140 @@ import { execSync } from "child_process";
 import * as fs from "fs";
 import * as merge from "merge";
 import * as path from "path";
-import {
-  CachedModule,
-  Configuration,
-  Cache,
-  Context,
-  Core,
-  CoreModel,
-  CoreModelDefinition,
-  ModdaDefinition,
-  Module,
-  SecureCookie,
-  Service,
-  SessionCookie,
-  WebdaError,
-  StoredConfiguration,
-  ConfigurationV1
-} from "./index";
+import { Cache, Context, Core, CoreModelDefinition, Service, WebdaError } from "./index";
 import { Deployment } from "./models/deployment";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import { AbstractDeployer } from "./utils/abstractdeployer";
 import * as deepmerge from "deepmerge";
 import * as semver from "semver";
 import * as dateFormat from "dateformat";
 import { JSONSchema6 } from "json-schema";
 import { FileUtils, JSONUtils } from "./utils/serializers";
+
+/**
+ * A Webda module is a NPM package
+ *
+ * It contains one or more Modda to provide features
+ */
+export interface Module {
+  /**
+   * Services provided by the module
+   */
+  services?: { [key: string]: string };
+  /**
+   * Models provided by the module
+   */
+  models?: { [key: string]: string };
+  /**
+   * Deployers provided by the module
+   *
+   * @link Deployer
+   */
+  deployers?: { [key: string]: string };
+  /**
+   * Schemas for services, deployers and coremodel
+   */
+  schemas?: { [key: string]: JSONSchema6 };
+}
+
+/**
+ * Cached module is all modules discover plus local package including the sources list
+ */
+export interface CachedModule extends Module {
+  /**
+   * Source files to import
+   */
+  sources?: string[];
+}
+
+/**
+ * Configuration from Webda 1.0 > version > 0.5
+ */
+export type ConfigurationV1 = {
+  /**
+   * Configuration version
+   */
+  version: 1;
+  /**
+   * Cached modules to avoid scanning node_modules
+   * This is used by packagers
+   */
+  cachedModules?: CachedModule;
+  /**
+   * Models
+   */
+  models?: any;
+  /**
+   * Services configuration
+   */
+  services?: any;
+  [key: string]: any;
+};
+export type Configuration = {
+  version: 2;
+  /**
+   * Cached modules to avoid scanning node_modules
+   * This is used by packagers
+   */
+  cachedModules?: CachedModule;
+  /**
+   * Module definition
+   */
+  module: Module;
+  /**
+   * Services configuration
+   */
+  services?: any;
+  /**
+   * Global parameters
+   */
+  parameters?: {
+    /**
+     * Allowed origin for referer that match
+     * any of this regexp
+     *
+     * {@link OriginFilter}
+     */
+    csrfOrigins?: string[];
+    /**
+     * Allow you to authorize one or several websites
+     * If you use "*" then the API is open to direct call and any origins
+     *
+     * {@link WebsiteOriginFilter}
+     */
+    website?: string | string[] | { url: string };
+    /**
+     * Cookie configuration for session
+     */
+    cookie?: {
+      sameSite: "None" | "Strict" | "Lax";
+      domain: string;
+      /**
+       * @minimum 1
+       */
+      maxAge: number;
+      path: string;
+    };
+    /**
+     * Read from the configuration service before init
+     */
+    configurationService?: string;
+    /**
+     * Application salt
+     */
+    salt?: string;
+    /**
+     * Define the api url
+     */
+    apiUrl?: string;
+    [key: string]: any;
+  };
+  /**
+   * OpenAPI override
+   */
+  openapi?: any;
+};
+
+export type StoredConfiguration = ConfigurationV1 | Configuration;
 
 /**
  * Return the gather information from the repository
@@ -205,8 +314,22 @@ export class Application {
   /**
    * @Modda to declare as a reusable service
    */
-  static DefinitionDecorator(definition: Section, constructor: Function) {
-    Application[definition][Application.completeNamespace(constructor.name)] = constructor;
+  static DefinitionDecorator(definition: Section, label?: string | Function) {
+    // Annotation without ()
+    if (label instanceof Function) {
+      Application[definition][Application.completeNamespace(label.name)] = label;
+      return;
+    }
+    if (typeof label === "string") {
+      return function (target: any, executor: string, descriptor: PropertyDescriptor) {
+        console.log(target, executor, descriptor);
+        Application[definition][Application.completeNamespace(<string>label || target.constructor.name)] = target;
+      };
+    }
+
+    return (constructor: Function) => {
+      Application[definition][Application.completeNamespace(label || constructor.name)] = constructor;
+    };
   }
 
   /**
@@ -550,7 +673,7 @@ export class Application {
    * @param name
    */
   getService(name) {
-    let serviceName = Application.completeNamespace(name);
+    let serviceName = Application.completeNamespace(name).toLowerCase();
     this.log("TRACE", "Search for service", serviceName);
     if (!Application.services[serviceName]) {
       serviceName = `Webda/${name}`.toLowerCase();
@@ -900,7 +1023,6 @@ export class Application {
     return this.currentDeployment;
   }
 
-
   /**
    * Return all application modules merged as one
    *
@@ -1013,10 +1135,36 @@ export class Application {
     }
     return false;
   }
-
 }
 
+/**
+ * Define a deployer
+ *
+ * A Modda is a class that can be reused
+ * For example:
+ *  - MongoDB Store implementation
+ *  - SQS Service implementation
+ *  - etc
+ */
 const Deployer = Application.DefinitionDecorator.bind(Application, "deployers");
+/**
+ * Define a reusable service
+ *
+ * A Modda is a class that can be reused
+ * For example:
+ *  - MongoDB Store implementation
+ *  - SQS Service implementation
+ *  - etc
+ */
 const Modda = Application.DefinitionDecorator.bind(Application, "services");
+/**
+ * Define a reusable model
+ *
+ * A Modda is a class that can be reused
+ * For example:
+ *  - MongoDB Store implementation
+ *  - SQS Service implementation
+ *  - etc
+ */
 const Model = Application.DefinitionDecorator.bind(Application, "models");
 export { Deployer, Modda, Model };

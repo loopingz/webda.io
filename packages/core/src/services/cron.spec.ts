@@ -25,7 +25,6 @@ class CronServiceTest extends WebdaTest {
     assert.deepStrictEqual(service.getCrontab()[1], def);
     // for cov
     assert.deepStrictEqual(service.getCrontab()[1], def);
-    CronService.getModda();
     const cron = sinon.stub(crontab, "schedule").callsFake((cron, cb) => {
       try {
         cb();

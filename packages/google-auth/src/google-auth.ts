@@ -1,12 +1,5 @@
 import * as http from "http";
-import {
-  OAuthService,
-  RequestFilter,
-  OAuthServiceParameters,
-  Context,
-  ModdaDefinition,
-  OAuthEvents
-} from "@webda/core";
+import { OAuthService, RequestFilter, OAuthServiceParameters, Context, Modda, OAuthEvents } from "@webda/core";
 import { OAuth2Client, Credentials } from "google-auth-library";
 
 export interface EventGoogleOAuthToken {
@@ -68,6 +61,7 @@ type GoogleAuthEvents = OAuthEvents & {
  * Manage Google Authentication
  *
  */
+@Modda
 export default class GoogleAuthentication<T extends GoogleParameters = GoogleParameters>
   extends OAuthService<T, GoogleAuthEvents>
   implements RequestFilter<Context>
@@ -259,16 +253,6 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
           open(authorizeUrl);
         });
     });
-  }
-
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/GoogleAuthentication",
-      label: "Google Authentication",
-      description: "Implements Google OAuth",
-      logo: "images/icons/google.png",
-      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Google.md"
-    };
   }
 }
 

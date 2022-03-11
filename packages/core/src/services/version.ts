@@ -1,4 +1,5 @@
-import { ServiceParameters, Service, Context, ModdaDefinition } from "..";
+import { ServiceParameters, Service, Context } from "..";
+import { Modda } from "../application";
 
 /**
  * Version parameters
@@ -17,6 +18,7 @@ export class VersionServiceParameters extends ServiceParameters {
 /**
  * Display the version of the app on a route
  */
+@Modda("VersionService")
 export class VersionService<T extends VersionServiceParameters = VersionServiceParameters> extends Service<T> {
   /**
    * @inheritdoc
@@ -43,16 +45,5 @@ export class VersionService<T extends VersionServiceParameters = VersionServiceP
   version(ctx: Context) {
     ctx.setHeader("Content-Type", "text/plain");
     ctx.write(this.parameters.version);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/Version",
-      label: "Version",
-      description: "Display your application version on a route"
-    };
   }
 }

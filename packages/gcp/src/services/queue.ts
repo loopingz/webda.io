@@ -1,5 +1,5 @@
 import { Message, PubSub } from "@google-cloud/pubsub";
-import { CancelablePromise, DeepPartial, MessageReceipt, Queue, QueueParameters } from "@webda/core";
+import { CancelablePromise, DeepPartial, MessageReceipt, Modda, Queue, QueueParameters } from "@webda/core";
 
 /**
  * GCPQueue Parameters
@@ -27,6 +27,7 @@ export class GCPQueueParameters extends QueueParameters {
  * GCP Queue implementation on top of Pub/Sub
  *
  */
+@Modda
 export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueueParameters> extends Queue<T, K> {
   /**
    * Main api object
@@ -157,17 +158,6 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
         subscription.close();
       }
     );
-  }
-
-  /**
-   * @override
-   */
-  static getModda() {
-    return {
-      uuid: "Webda/GoogleCloudQueue",
-      label: "GCP PubSub Queue",
-      description: "Implements a Queue on top of GCP PubSub",
-    };
   }
 }
 

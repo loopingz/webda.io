@@ -1,4 +1,3 @@
-import { ModdaDefinition } from "../core";
 import { AbstractMailer } from "./mailer";
 
 /**
@@ -53,16 +52,6 @@ export default class DebugMailer extends AbstractMailer {
    */
   async async(): Promise<void> {
     // Empty on purpose
-  }
-
-  /** @inheritdoc */
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "Webda/DebugMailer",
-      label: "DebugMailer",
-      description: "Implements a mail that store in memory and output in log but nothing else",
-      logo: "images/icons/email.png"
-    };
   }
 }
 

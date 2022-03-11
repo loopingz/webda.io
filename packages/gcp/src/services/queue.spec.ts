@@ -20,7 +20,6 @@ class GCPQueueTest extends QueueTest {
     queue.getParameters().subscription = `${queue.getParameters().subscription}_${this.webda.getUuid()}`;
     await queue.pubsub.createSubscription(queue.getParameters().topic, queue.getParameters().subscription, {
       ackDeadlineSeconds: 10,
-      enableMessageOrdering: true,
       enableExactlyOnceDelivery: true
     });
     try {

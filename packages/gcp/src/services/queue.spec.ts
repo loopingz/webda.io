@@ -21,6 +21,7 @@ class GCPQueueTest extends QueueTest {
     await queue.pubsub.createSubscription(queue.getParameters().topic, queue.getParameters().subscription, {
       ackDeadlineSeconds: 10,
       enableMessageOrdering: true,
+      enableExactlyOnceDelivery: true
     });
     try {
       await this.simple(queue, true, 12000);

@@ -6,6 +6,7 @@ import { join } from "path";
 import { CoreModel } from "..";
 import { Readable } from "stream";
 import * as jwt from "jsonwebtoken";
+import { Modda } from "../application";
 
 export class FileBinaryParameters extends BinaryParameters {
   /**
@@ -34,6 +35,7 @@ export class FileBinaryParameters extends BinaryParameters {
  * See Binary the general interface
  * @category CoreServices
  */
+@Modda
 class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends Binary<T> {
   /**
    * Load parameters

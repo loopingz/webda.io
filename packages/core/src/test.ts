@@ -1,11 +1,10 @@
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import * as assert from "assert";
 import { Application, Context, Core, HttpContext, HttpMethodType, Service } from "./index";
 import { ConsoleLoggerService } from "./utils/logger";
 import * as fs from "fs";
 import * as path from "path";
 import { execSync } from "child_process";
-import { SectionEnum } from "./application";
+import { Module, Section, SectionEnum } from "./application";
 
 export class Executor {
   /**
@@ -19,7 +18,7 @@ export class Executor {
   }
 }
 
-class TestApplication extends Application {
+export class TestApplication extends Application {
   constructor(file: string, logger?: WorkerOutput, allowModule?: boolean) {
     super(file, logger, allowModule);
   }
@@ -84,12 +83,6 @@ class TestApplication extends Application {
    * Load any imported webda.module.json
    */
   async loadModules() {
-    Application.services["webdatest/voidstore"] = await import("../test/moddas/voidstore");
-    Application.services["webdatest/fakeservice"] = await import("../test/moddas/fakeservice");
-    Application.services["webdatest/mailer"] = await import("../test/moddas/debugmailer");
-    Application.models["webdatest/task"] = await import("../test/models/task");
-    Application.models["webdatest/ident"] = await import("../test/models/ident");
-
     // Cached modules is defined on deploy
     if (this.baseConfiguration.cachedModules) {
       // We should not load any modules as we are in a deployed version
@@ -118,12 +111,10 @@ class TestApplication extends Application {
 
     if (files.length) {
       this.log("DEBUG", "Found modules", files);
-      await Promise.all(
-        files.map(async file => {
-          let info = require(file);
-          await this.loadModule(info, path.dirname(file));
-        })
-      );
+      for (let file of files) {
+        let info = require(file);
+        await this.loadModule(info, path.dirname(file));
+      }
     }
   }
 }
@@ -152,6 +143,12 @@ class WebdaTest {
    */
   protected async buildWebda() {
     let app = new TestApplication(this.getTestConfiguration());
+    app.setActive();
+    app.addService("webdatest/voidstore", await import("../test/moddas/voidstore"));
+    app.addService("webdatest/fakeservice", await import("../test/moddas/fakeservice"));
+    app.addService("webdatest/mailer", await import("../test/moddas/debugmailer"));
+    app.addModel("webdatest/task", await import("../test/models/task"));
+    app.addModel("webdatest/ident", await import("../test/models/ident"));
 
     await app.loadModules();
     await app.loadLocalModule();

@@ -407,17 +407,6 @@ abstract class Service<
   log(level: WorkerLogLevel, ...args: any[]) {
     this.logger.log(level, ...args);
   }
-
-  /**
-   * Allow to specify the JSONSchema to configure this service
-   *
-   * Return undefined by default to fallback on the guess from ServiceParamaters
-   *
-   * Using this method should only be exception
-   */
-  static getSchema(): JSONSchema6 {
-    return undefined;
-  }
 }
 
 export { Service };

@@ -295,17 +295,6 @@ class CoreModel {
   }
 
   /**
-   * Allow to specify the JSONSchema to configure this service
-   *
-   * Return undefined by default to fallback on typescript-json-schema guess
-   *
-   * Using this method should only be exception
-   */
-  static getSchema(): JSONSchema6 {
-    return undefined;
-  }
-
-  /**
    * Validate objet modification
    *
    * @param ctx

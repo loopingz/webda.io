@@ -2,9 +2,9 @@ import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
 import { Core, OriginFilter, WebdaError, WebsiteOriginFilter } from "./core";
-import { Application, Authentication, Bean, Route, Service } from "./index";
+import { Application, Authentication, Bean, ConsoleLoggerService, Route, Service } from "./index";
 import { Store } from "./stores/store";
-import { WebdaTest } from "./test";
+import { TestApplication, WebdaTest } from "./test";
 import { Context, HttpContext } from "./utils/context";
 import * as sinon from "sinon";
 
@@ -172,12 +172,18 @@ class CoreTest extends WebdaTest {
 
   @test
   async exportOpenAPI() {
-    let app = new Application(path.join(__dirname, "..", "..", "..", "sample-app"));
-    //app.loadModules();
+    console.log("new application normally", Object.keys(this.webda.getApplication().getServices()));
+    let app = new TestApplication(path.join(__dirname, "..", "..", "..", "sample-app"));
+    app.setActive();
+    await app.loadModules();
+
     let webda = new Core(app);
+    // @ts-ignore
+    webda.services["ConsoleLogger"] = new ConsoleLoggerService(webda, "ConsoleLogger", {});
     await webda.init();
     webda.reinitResolvedRoutes();
     let openapi = webda.exportOpenAPI();
+
     assert.notStrictEqual(openapi.paths["/contacts"], undefined);
     assert.notStrictEqual(openapi.paths["/contacts/{uuid}"], undefined);
     app.addModel("webda/anotherContext", Context);
@@ -187,14 +193,14 @@ class CoreTest extends WebdaTest {
     app.getPackageDescription = () => ({
       license: "GPL"
     });
-    app.getSchemaResolver().fromPrototype = type => {
+    app.getSchema = type => {
       let res = {
         definitions: {},
         properties: {},
-        title: type.name
+        title: type
       };
-      res.definitions[`other$${type.name}`] = {
-        description: `Fake ${type.name}`
+      res.definitions[`other$${type}`] = {
+        description: `Fake ${type}`
       };
       return res;
     };

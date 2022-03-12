@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as mime from "mime-types";
 import * as path from "path";
+import { Modda } from "../application";
 import { Context } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
@@ -51,6 +52,7 @@ export class ResourceServiceParameters extends ServiceParameters {
  *
  * @category CoreServices
  */
+@Modda
 export default class ResourceService<
   T extends ResourceServiceParameters = ResourceServiceParameters
 > extends Service<T> {

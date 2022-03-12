@@ -8,6 +8,7 @@ import { Inject, Service, ServiceParameters } from "../services/service";
 import { Store } from "../stores/store";
 import { Context, HttpContext } from "../utils/context";
 import { Mailer } from "./mailer";
+import { Modda } from "../application";
 
 /**
  * Emitted when the /me route is called
@@ -205,6 +206,7 @@ export type AuthenticationEvents = {
  *
  * @category CoreServices
  */
+@Modda
 class Authentication<
   T extends AuthenticationParameters = AuthenticationParameters,
   E extends AuthenticationEvents = AuthenticationEvents

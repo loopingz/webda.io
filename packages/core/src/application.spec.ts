@@ -66,72 +66,8 @@ class ApplicationTest extends WebdaTest {
   }
 
   @test
-  getDeployment() {
-    let deployment = this.sampleApp.getDeployment("Dev");
-    deployment = this.sampleApp.getDeployment("Production");
-    assert.strictEqual(this.sampleApp.hasDeployment("Dev1"), false);
-    assert.throws(() => this.sampleApp.getDeployment("Dev1"), /Unknown deployment/);
-    this.sampleApp.setCurrentDeployment("Production");
-    assert.strictEqual(this.sampleApp.hasDeployment("Production"), true);
-    assert.deepStrictEqual(this.sampleApp.getDeployment(), deployment);
-  }
-
-  @test
   getConfiguration() {
     let config = this.sampleApp.getConfiguration();
-    let deploymentConfig = this.sampleApp.getConfiguration("Production");
-    assert.strictEqual(deploymentConfig.parameters.accessKeyId, "PROD_KEY");
-    assert.strictEqual(deploymentConfig.services.contacts.table, "webda-sample-app-contacts");
-    assert.strictEqual(config.services.contacts.table, "local-table");
-  }
-
-  @test
-  async migrateV0toV2() {
-    let webda = new Core(new Application(__dirname + "/../test/config.old.json"));
-    await webda.init();
-    // All services - DefinedMailer
-    assert.strictEqual(Object.keys(webda.getServices()).length, 14);
-    // Check locales are moved correctly
-    assert.strictEqual(webda.getLocales().length, 3);
-    // Check models - 2 from configuration files - 2 from Webda
-    let count = 0;
-    for (let key in webda.getModels()) {
-      if (key.startsWith("webdatest")) {
-        count++;
-      }
-    }
-    assert.strictEqual(count, 2);
-    // Check params
-    assert.strictEqual(webda.getGlobalParams().TEST, "Global");
-    assert.strictEqual(webda.getGlobalParams().region, "us-east-1");
-    // Check custom route migration
-    let ctx = await this.newContext();
-    let executor = this.getExecutor(ctx, "test.webda.io", "GET", "/urltemplate/666");
-    assert.notStrictEqual(executor, undefined);
-  }
-
-  @test
-  async migrateV0toV2DefaultDomain() {
-    let webda = new Core(new Application(__dirname + "/../test/config.old-default.json"));
-    await webda.init();
-    // All services - DefinedMailer
-    assert.strictEqual(Object.keys(webda.getServices()).length, 14);
-    // Check locales are moved correctly
-    assert.strictEqual(webda.getLocales().length, 3);
-    // Check models - 2 from configuration files - 2 from Webda
-    let count = 0;
-    for (let key in webda.getModels()) {
-      if (key.startsWith("webdatest")) {
-        count++;
-      }
-    }
-    assert.strictEqual(count, 2);
-    webda.getConfiguration().parameters["sessionSecret"] =
-      "Lp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5EN";
-    // Check custom route migration
-    let ctx = await this.newContext();
-    let executor = this.getExecutor(ctx, "test.webda.io", "GET", "/urltemplate/666");
-    assert.notStrictEqual(executor, undefined);
   }
 
   @test
@@ -154,11 +90,11 @@ class ApplicationTest extends WebdaTest {
     app.loadPackageInfos();
     app = new Application(__dirname + "/../test/config.old-default.json");
     assert.ok(!app.extends(null, String));
-    app.setSchemaResolver(null);
+
     app.getPackageWebda();
     assert.throws(() => app.getService("Unknown"), /Undefined service Unknown/);
     app.getDeployers();
-    assert.throws(() => app.getDeployment("invalid"), /Invalid deployment configuration /);
+
     app.getModules();
 
     // Alternative of files
@@ -167,28 +103,20 @@ class ApplicationTest extends WebdaTest {
     // Nothing can be really checked here
     app.setActive();
     app.addModel("WebdaTest/NotExisting", null);
-    //assert.deepStrictEqual(app.getPackagesLocations(), ["lib/**/*.js"]);
-  }
+    delete app.getModels()["webdatest/notexisting"];
+    assert.deepStrictEqual(app.getGitInformation(), {
+      branch: "",
+      commit: "",
+      short: "",
+      tag: "",
+      tags: [],
+      version: ""
+    });
+    assert.strictEqual(app.isCached(), true);
+    assert.strictEqual(app.getCurrentDeployment(), "");
+    assert.strictEqual(app.replaceVariables("hello", {}), "hello");
 
-  @test
-  fromServiceType() {
-    let app = new Application(__dirname + "/../test/config.json");
-    // Add a fake deployer as no deployer are available within Core context
-    app.addDeployer("Webda/Container", {});
-    // For size reason, the SchemaResolver only work within shell context
-    assert.strictEqual(app.getSchemaResolver().fromServiceType("Webda/FileStore"), undefined);
-    assert.strictEqual(app.getSchemaResolver().fromServiceType("Webda/Container"), undefined);
-    assert.strictEqual(app.getSchemaResolver().fromServiceType("Webda/CoreModel"), undefined);
-    assert.strictEqual(app.getSchemaResolver().fromServiceType("unknown"), undefined);
-    // Check if cached just use cache
-    // @ts-ignore
-    app.baseConfiguration.cachedModules = {
-      schemas: {
-        // @ts-ignore
-        fake: 666
-      }
-    };
-    assert.strictEqual(app.getSchemaResolver().fromServiceType("fake"), 666);
+    //assert.deepStrictEqual(app.getPackagesLocations(), ["lib/**/*.js"]);
   }
 
   @test
@@ -207,9 +135,9 @@ class ApplicationTest extends WebdaTest {
   }
 
   @test
-  loadModule() {
+  async loadModule() {
     let app = new Application(__dirname + "/../test/config.json");
-    app.loadModule(
+    await app.loadModule(
       {
         services: {
           Test: "moddas/fakeservice.js",
@@ -224,13 +152,13 @@ class ApplicationTest extends WebdaTest {
       },
       ""
     );
-    app.loadModule({});
-    app.resolveRequire("./../test/moddas/fakeservice.js");
+    await app.loadModule({});
+    await app.importFile("./../test/moddas/fakeservice.js");
     let cwd = process.cwd();
     try {
       // Check loading of aws module
       process.chdir(path.join(__dirname, "..", "..", "aws"));
-      app.loadLocalModule();
+      await app.loadLocalModule();
     } finally {
       process.chdir(cwd);
     }

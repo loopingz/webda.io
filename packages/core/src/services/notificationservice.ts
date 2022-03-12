@@ -1,3 +1,4 @@
+import { Modda } from "../application";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
 import { Service, ServiceParameters } from "./service";
@@ -55,6 +56,7 @@ export class MultiNotificationParameters extends ServiceParameters {
  * Allow an aggregation of Notification to send via multiple media
  * like SMS and Email
  */
+@Modda
 export default class MultiNotificationService<T extends MultiNotificationParameters = MultiNotificationParameters>
   extends Service<T>
   implements NotificationService

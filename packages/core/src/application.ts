@@ -1,15 +1,23 @@
-import { execSync } from "child_process";
 import * as fs from "fs";
-import * as merge from "merge";
 import * as path from "path";
-import { Cache, Context, Core, CoreModelDefinition, Service, WebdaError } from "./index";
-import { Deployment } from "./models/deployment";
+import { Context, Core, CoreModelDefinition, Service, WebdaError } from "./index";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import * as deepmerge from "deepmerge";
-import * as semver from "semver";
-import * as dateFormat from "dateformat";
 import { JSONSchema6 } from "json-schema";
-import { FileUtils, JSONUtils } from "./utils/serializers";
+import { FileUtils } from "./utils/serializers";
+
+/**
+ * Not the cleanest, but we have to have a true singleton within the process
+ *
+ * Test import application.ts while the normal application load application.js
+ * Creating two singleton within the application, it would also have been true
+ * if several packages where using different version of @webda/core
+ */
+require.main.exports.webdaApplication ??= {};
+require.main.exports.webdaApplication.services ??= {};
+require.main.exports.webdaApplication.deployers ??= {};
+require.main.exports.webdaApplication.models ??= {};
+require.main.exports.webdaApplication.namespace ??= "webda";
 
 /**
  * A Webda module is a NPM package
@@ -45,6 +53,22 @@ export interface CachedModule extends Module {
    * Source files to import
    */
   sources?: string[];
+  /**
+   * Contained dynamic information on the project
+   * Statically capture on deployment
+   */
+  projectInformation: {
+    package: {
+      version: string;
+      name: string;
+      [key: string]: any;
+    };
+    git: GitInformation;
+    deployment: {
+      name: string;
+      [key: string]: any;
+    };
+  };
 }
 
 /**
@@ -194,56 +218,6 @@ export interface ServiceConstructor<T extends Service> {
   new (webda: Core, name: string, params: any): T;
 }
 
-/**
- * Retrieve a JSONSchema from a webda object
- *
- */
-export interface SchemaResolver {
-  fromPrototype(type: any): JSONSchema6;
-  fromServiceType(type: string): JSONSchema6;
-}
-
-/**
- * Implement the default way of retrieving schema
- */
-export class DefaultSchemaResolver implements SchemaResolver {
-  /**
-   * Application
-   */
-  protected app: Application;
-
-  constructor(app: Application) {
-    this.app = app;
-  }
-
-  fromServiceType(type: string = ""): JSONSchema6 {
-    if (this.app.isCached()) {
-      return this.app.getConfiguration().cachedModules.schemas[type];
-    }
-    type = type.toLowerCase();
-    let proto: any = this.app.getDeployers()[type];
-    if (proto) {
-      return this.fromPrototype(proto);
-    }
-    proto = this.app.getServices()[type];
-    if (proto) {
-      return this.fromPrototype(proto);
-    }
-    proto = this.app.getModels()[type];
-    if (proto) {
-      return this.fromPrototype(proto);
-    }
-    return undefined;
-  }
-
-  fromPrototype(type: any): JSONSchema6 {
-    if (type && typeof type.getSchema === "function") {
-      return type.getSchema();
-    }
-    return undefined;
-  }
-}
-
 export enum SectionEnum {
   Services = "services",
   Deployers = "deployers",
@@ -285,7 +259,25 @@ export class Application {
     services: {},
     models: {},
     deployers: {},
-    sources: []
+    sources: [],
+    schemas: {},
+    projectInformation: {
+      git: {
+        branch: "",
+        commit: "",
+        short: "",
+        tag: "",
+        tags: [],
+        version: ""
+      },
+      deployment: {
+        name: ""
+      },
+      package: {
+        name: "",
+        version: ""
+      }
+    }
   };
 
   /**
@@ -305,17 +297,18 @@ export class Application {
   /**
    * Deployers type registry
    */
-  protected static deployers: { [key: string]: any } = {};
+  protected static deployers: { [key: string]: any } = require.main.exports.webdaApplication.deployers;
 
   /**
    * Services type registry
    */
-  protected static services: { [key: string]: ServiceConstructor<Service> } = {};
+  protected static services: { [key: string]: ServiceConstructor<Service> } =
+    require.main.exports.webdaApplication.services;
 
   /**
    * Models type registry
    */
-  protected static models: { [key: string]: any } = {};
+  protected static models: { [key: string]: any } = require.main.exports.webdaApplication.models;
 
   /**
    * @Modda to declare as a reusable service
@@ -358,10 +351,7 @@ export class Application {
    * When the application got initiated
    */
   protected initTime: number;
-  /**
-   * Current Schema resolver
-   */
-  protected schemaResolver: SchemaResolver;
+
   /**
    * Configuration file
    */
@@ -374,7 +364,7 @@ export class Application {
   /**
    * Current application
    */
-  private static active: Application;
+  protected static active: Application;
 
   /**
    *
@@ -407,43 +397,20 @@ export class Application {
       );
     }
     this.appPath = path.dirname(file);
-    let storedConfiguration: StoredConfiguration;
     try {
       this.configurationFile = file;
-      storedConfiguration = FileUtils.load(file);
+      this.baseConfiguration = FileUtils.load(file);
     } catch (err) {
       this.log("WARN", err);
       if (allowModule) {
-        storedConfiguration = { version: 2, module: {} };
+        this.baseConfiguration = { version: 2, module: {} };
       } else {
         throw new WebdaError("INVALID_WEBDA_CONFIG", `Cannot parse JSON of: ${file}`);
       }
     }
-    // Load default schema resolver
-    this.schemaResolver = new DefaultSchemaResolver(this);
-    // Migrate if needed
-    if (!storedConfiguration.version) {
-      storedConfiguration = this.migrateV0Config(storedConfiguration);
-    }
-    if (storedConfiguration.version == 1) {
-      storedConfiguration = this.migrateV1Config(storedConfiguration);
-    }
-    if (storedConfiguration.version == 2) {
-      this.baseConfiguration = storedConfiguration;
-    }
     // Load if a module definition is included
     if (this.baseConfiguration.module) {
       //this.loadModule(this.baseConfiguration.module, this.appPath);
-    }
-    // Load cached modules if there
-    if (this.baseConfiguration.cachedModules) {
-      this.loadModule(this.baseConfiguration.cachedModules, this.appPath);
-      // Import all modules sources to include any annotation
-      if (this.baseConfiguration.cachedModules.sources) {
-        this.baseConfiguration.cachedModules.sources.forEach(src => {
-          require(path.join(process.cwd(), src));
-        });
-      }
     }
     this.loadPackageInfos();
     this.namespace = this.packageDescription.webda
@@ -473,19 +440,14 @@ export class Application {
   }
 
   /**
-   * Set the current schema resolver
+   * Get a schema from a type
    *
-   * @param resolver
+   * Schema should be precomputed in the default app
+   * @param type
+   * @returns
    */
-  setSchemaResolver(resolver: SchemaResolver) {
-    this.schemaResolver = resolver;
-  }
-
-  /**
-   * Get schema resolver
-   */
-  getSchemaResolver(): SchemaResolver {
-    return this.schemaResolver;
+  getSchema(type: string): JSONSchema6 {
+    return this.cachedModules.schemas[type];
   }
 
   /**
@@ -496,7 +458,7 @@ export class Application {
    * take the schema from the cached modules also
    */
   isCached() {
-    return this.baseConfiguration.cachedModules !== undefined;
+    return true;
   }
 
   /**
@@ -551,67 +513,6 @@ export class Application {
    */
   getPackageDescription() {
     return this.packageDescription;
-  }
-
-  /**
-   * Migrate from v0 to v1 configuration
-   *
-   * A V0 is a webda.config.json that does not contain any version tag
-   *
-   * @param config
-   */
-  migrateV0Config(config: any): ConfigurationV1 {
-    this.log("WARN", "Old V0 webda.config.json format, trying to migrate");
-    let newConfig: any = {
-      parameters: {},
-      services: {},
-      models: {},
-      routes: {},
-      version: 1
-    };
-    let domain;
-    if (config["*"]) {
-      domain = config[config["*"]];
-    } else {
-      domain = config[Object.keys(config)[0]] || { global: {} };
-    }
-    if (domain.global) {
-      newConfig.parameters = domain.global.params || {};
-      newConfig.services = domain.global.services || {};
-      newConfig.models = domain.global.models || {};
-      newConfig.parameters.locales = domain.global.locales;
-      newConfig.moddas = domain.global.moddas || {};
-    }
-    for (let i in domain) {
-      if (i === "global") continue;
-      newConfig.routes[i] = domain[i];
-    }
-    return newConfig;
-  }
-
-  /**
-   * Migrate from v1 to v2 configuration format
-   *
-   * @param config
-   */
-  migrateV1Config(config: ConfigurationV1): Configuration {
-    this.log("WARN", "Old V1 webda.config.json format, trying to migrate");
-    let newConfig: Configuration = {
-      parameters: config.parameters,
-      services: config.services,
-      module: {
-        services: {},
-        models: { ...config.models },
-        deployers: {}
-      },
-      version: 2
-    };
-    if (config.moddas) {
-      for (let i in config.moddas) {
-        newConfig.module.services[i] = config.moddas[i].require;
-      }
-    }
-    return newConfig;
   }
 
   /**
@@ -739,17 +640,6 @@ export class Application {
   }
 
   /**
-   * Check if a deployment exists for this application
-   * This method cannot be called for a packaged application
-   * as we do not keep deployments files when deployed
-   *
-   * @param deploymentName
-   */
-  hasDeployment(deploymentName: string): boolean {
-    return fs.existsSync(path.join(this.appPath, "deployments", deploymentName + ".json"));
-  }
-
-  /**
    * Return webda current version
    *
    * @returns package version
@@ -759,86 +649,14 @@ export class Application {
     return JSON.parse(fs.readFileSync(__dirname + "/../package.json").toString()).version;
   }
 
-  getDeployment(deploymentName: string = undefined): Deployment {
-    if (!deploymentName) {
-      deploymentName = this.currentDeployment;
-    }
-    this.deploymentFile = undefined;
-    let deploymentConfig;
-    for (let ext of [".jsonc", ".json", ".yaml", ".yml"]) {
-      deploymentConfig = path.join(this.appPath, "deployments", `${deploymentName}${ext}`);
-      if (fs.existsSync(deploymentConfig)) {
-        break;
-      }
-    }
-
-    if (!fs.existsSync(deploymentConfig)) {
-      throw new WebdaError("UNKNOWN_DEPLOYMENT", "Unknown deployment");
-    }
-
-    let deploymentModel: Deployment;
-    try {
-      deploymentModel = FileUtils.load(deploymentConfig);
-      deploymentModel.name = deploymentName;
-    } catch (err) {
-      throw new WebdaError(
-        "INVALID_DEPLOYMENT",
-        `Invalid deployment configuration ${deploymentConfig}: ${err.toString()}`
-      );
-    }
-    this.deploymentFile = deploymentConfig;
-    return deploymentModel;
-  }
-
   /**
    * Retrieve Git Repository information
    *
    * {@link GitInformation} for more details on how the information is gathered
    * @return the git information
    */
-  @Cache()
   getGitInformation(): GitInformation {
-    let options = {
-      cwd: this.getAppPath()
-    };
-    let info = this.getPackageDescription();
-    try {
-      let tags = execSync(`git tag --points-at HEAD`, options)
-        .toString()
-        .trim()
-        .split("\n")
-        .filter(t => t !== "");
-      let tag = "";
-      let version = info.version;
-      if (tags.includes(`${info.name}@${info.version}`)) {
-        tag = `${info.name}@${info.version}`;
-      } else if (tags.includes(`v${info.version}`)) {
-        tag = `v${info.version}`;
-      } else {
-        version = semver.inc(info.version, "patch") + "+" + dateFormat(new Date(), "yyyymmddHHMMssl");
-      }
-      // Search for what would be the tag
-      // packageName@version
-      // or version if single repo
-      // if not included create a nextVersion+SNAPSHOT.${commit}.${now}
-      return {
-        commit: execSync(`git rev-parse HEAD`, options).toString().trim(),
-        branch: execSync("git symbolic-ref --short HEAD", options).toString().trim(),
-        short: execSync(`git rev-parse --short HEAD`, options).toString().trim(),
-        tag,
-        tags,
-        version
-      };
-    } catch (err) {
-      return {
-        commit: "unknown",
-        branch: "unknown",
-        tag: "",
-        short: "00000000",
-        tags: [],
-        version: info.version
-      };
-    }
+    return this.cachedModules.projectInformation.git;
   }
 
   /**
@@ -853,9 +671,7 @@ export class Application {
       return templateString;
     }
     return new Function("return `" + templateString.replace(/\$\{/g, "${this.") + "`;").call({
-      package: this.getPackageDescription(),
-      git: this.getGitInformation(),
-      deployment: this.getCurrentDeployment(),
+      ...this.cachedModules.projectInformation,
       now: this.initTime,
       ...replacements
     });
@@ -913,106 +729,10 @@ export class Application {
   }
 
   /**
-   * Return the application Configuration for a deployment
-   *
-   * Given this inputs:
-   *
-   * webda.config.json
-   * ```json
-   * {
-   *  "parameters": {
-   *    "param3": "test"
-   *  },
-   *  "services": {
-   *    "MyService": {
-   *      "param1": {
-   *        "sub": "test"
-   *      },
-   *      "param2": "value"
-   *    }
-   *  }
-   * }
-   * ```
-   *
-   * deployment.json
-   * ```json
-   * {
-   *  "parameters": {
-   *    "param4": "deployment"
-   *  }
-   *  "services": {
-   *    "MyService": {
-   *      "param1": {
-   *        "sub2": "deploymentSub"
-   *      },
-   *      "param2": "${package.version}"
-   *    }
-   *  }
-   * }
-   * ```
-   *
-   * The result would be:
-   * ```json
-   * {
-   *  "parameters": {
-   *    "param3": "test",
-   *    "param4": "deployment"
-   *  },
-   *  "services": {
-   *    "MyService": {
-   *      "param1": {
-   *        "sub": "test",
-   *        "sub2": "deploymentSub"
-   *      },
-   *      "param2": "1.1.0"
-   *    }
-   *  }
-   * }
-   * ```
-   * This map can also use parameters {@link replaceVariables}
-   *
-   * @param deploymentName to use for the Configuration
-   */
-  getConfiguration(deploymentName: string = undefined): Configuration {
-    if (!deploymentName) {
-      return this.baseConfiguration;
-    }
-    let config = JSONUtils.duplicate(this.baseConfiguration);
-    let deploymentModel = this.getDeployment(deploymentName);
-    config.parameters = this.replaceVariables(merge.recursive(config.parameters, deploymentModel.parameters));
-    config.services = this.replaceVariables(merge.recursive(config.services, deploymentModel.services));
-    return config;
-  }
-
-  /**
-   * Return current Configuration of the Application
-   *
-   * Same as calling
-   *
-   * ```js
-   * getConfiguration(this.currentDeployment);
-   * ```
-   */
-  getCurrentConfiguration(): Configuration {
-    return this.getConfiguration(this.currentDeployment);
-  }
-
-  /**
-   * Set the current deployment for the application
-   * Call to getCurrentConfiguration will resolve to the computed configuration for the deployment
-   * If needed, you can call the method with undefined to reset to default configuration
-   *
-   * @param deployment to set
-   */
-  setCurrentDeployment(deployment: string) {
-    this.currentDeployment = deployment;
-  }
-
-  /**
    * Get current deployment name
    */
   getCurrentDeployment() {
-    return this.currentDeployment;
+    return this.cachedModules.projectInformation.deployment.name;
   }
 
   /**
@@ -1026,27 +746,44 @@ export class Application {
   }
 
   /**
+   * Get application configuration
+   * @returns
+   */
+  getConfiguration(deployment: string = undefined): Configuration {
+    return this.baseConfiguration;
+  }
+
+  /**
+   * Return current Configuration of the Application
+   *
+   * Same as calling
+   *
+   * ```js
+   * getConfiguration(this.currentDeployment);
+   * ```
+   */
+  getCurrentConfiguration(): Configuration {
+    return this.getConfiguration();
+  }
+
+  /**
    * Import a file
    *
    * If the `default` is set take this or use old format
    *
    * @param info
    */
-  async resolveRequire(info: string): Promise<[any, string]> {
+  async importFile(info: string): Promise<string> {
     if (info.startsWith(".")) {
       info = this.appPath + "/" + info;
     }
     try {
-      let [file, exportName = ""] = info.split(":");
-      const lib = await import(file);
-      const relativePath = "./" + path.relative(this.appPath, path.resolve(file));
-      if (exportName) {
-        return [lib[exportName], relativePath + `:${exportName}`];
-      }
-      return [lib, relativePath];
+      this.log("INFO", "Load file", info, fs.existsSync(info));
+      await import(info);
+      const relativePath = "./" + path.relative(this.appPath, path.resolve(info));
+      return relativePath;
     } catch (err) {
       this.log("WARN", "Cannot resolve require", info, err.message);
-      return [null, ""];
     }
   }
 
@@ -1070,23 +807,17 @@ export class Application {
     info.services = info.services || {};
     info.models = info.models || {};
     info.deployers = info.deployers || {};
-
-    try {
-      const sectionLoader = async (section: "services" | "deployment" | "model") => {
-        for (let key in info[section]) {
-          const [include, name] = info[section][key].split(":");
-          let [service, libPath] = await this.resolveRequire(path.join(parent, include));
-          if (!service) {
-            continue;
-          }
-          this[`add${section[0].toUpperCase()}${section.substr(1, section.length - 2)}`](key, service[name]);
-          this.cachedModules[section][key] = libPath;
+    const sectionLoader = async (section: Section) => {
+      for (let key in info[section]) {
+        try {
+          require.main.exports.webdaApplication.namespace = key.split("/").shift() || this.namespace;
+          this.cachedModules[section][key] = await this.importFile(path.join(parent, info[section][key]));
+        } finally {
+          require.main.exports.webdaApplication.namespace = this.namespace;
         }
-      };
-      await Promise.all([sectionLoader("services"), sectionLoader("deployment"), sectionLoader("model")]);
-    } catch (err) {
-      this.log("ERROR", err);
-    }
+      }
+    };
+    await Promise.all([sectionLoader("services"), sectionLoader("deployers"), sectionLoader("models")]);
   }
 
   /**
@@ -1101,9 +832,9 @@ export class Application {
   static completeNamespace(name: string = ""): string {
     // Do not add a namespace if already present
     if (name.indexOf("/") >= 0) {
-      return name;
+      return name.toLowerCase();
     }
-    return `${Application.active?.namespace || "webda"}/${name}`.toLowerCase();
+    return `${require.main.exports.webdaApplication.namespace || "webda"}/${name}`.toLowerCase();
   }
 
   /**

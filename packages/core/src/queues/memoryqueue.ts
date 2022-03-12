@@ -1,5 +1,6 @@
 "use strict";
 import * as uuid from "uuid";
+import { Modda } from "../application";
 import { ServiceParameters } from "../services/service";
 import { JSONUtils } from "../utils/serializers";
 import { MessageReceipt, Queue, QueueParameters } from "./queueservice";
@@ -27,6 +28,7 @@ export class MemoryQueueParameters extends QueueParameters {
  * FIFO Queue in Memory
  * @category CoreServices
  */
+@Modda
 class MemoryQueue<T = any, K extends MemoryQueueParameters = MemoryQueueParameters> extends Queue<T, K> {
   private _queue: QueueMap = {};
 

@@ -441,10 +441,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param schema path to use
    * @param object to validate
    */
-  validateSchema(webdaObject: CoreModel | Service | AbstractDeployer, object: any) {
+  validateSchema(webdaObject: CoreModel, object: any) {
     let name = this.application.getFullNameFromPrototype(Object.getPrototypeOf(webdaObject));
     if (!this._ajvSchemas[name]) {
-      let schema = this.application.getSchemaResolver().fromPrototype(Object.getPrototypeOf(webdaObject));
+      let schema = this.application.getSchema(name);
       if (!schema) {
         return true;
       }
@@ -1015,7 +1015,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       if (!this.application.extends(modelDescription, CoreModel)) {
         continue;
       }
-      let schema = this.application.getSchemaResolver().fromPrototype(modelDescription);
+      let schema = this.application.getSchema(i);
       if (schema) {
         for (let j in schema.definitions) {
           openapi.definitions[j] ??= schema.definitions[j];

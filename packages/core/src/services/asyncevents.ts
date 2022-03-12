@@ -1,3 +1,4 @@
+import { Modda } from "../application";
 import { Queue } from "../queues/queueservice";
 import { Service, ServiceParameters } from "./service";
 
@@ -114,6 +115,7 @@ export class EventServiceParameters extends ServiceParameters {
 /**
  * @category CoreServices
  */
+@Modda("Webda/AsyncEvents")
 class EventService<T extends EventServiceParameters = EventServiceParameters> extends Service<T> {
   _callbacks: any = {};
   _queues: QueueMap = {};

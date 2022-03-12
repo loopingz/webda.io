@@ -1,5 +1,5 @@
 import { StoreTest } from "./store.spec";
-import { FileStore, CoreModel, Store } from "../index";
+import { FileStore, CoreModel, Store, FileUtils } from "../index";
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { HttpContext } from "../utils/context";
@@ -296,9 +296,11 @@ class FileStoreTest extends StoreTest {
     let executor = this.getExecutor(ctx, "test.webda.io", "POST", "/tasks", {
       noname: "Task #1"
     });
+    this.webda.getModules().schemas["webdatest/task"] = FileUtils.load("./test/schemas/task.json");
+
     assert.notStrictEqual(executor, undefined);
     ctx.getSession().login("fake_user", "fake_ident");
-    await assert.rejects(executor.execute(ctx), err => err == 400);
+    await assert.rejects(executor.execute(ctx), err => err == 400, "Should reject for bad schema");
     executor = this.getExecutor(ctx, "test.webda.io", "POST", "/tasks", {
       name: "Task #1"
     });

@@ -1,3 +1,4 @@
+import { Modda } from "../application";
 import { CoreModel } from "../models/coremodel";
 import { Inject, Service, ServiceParameters } from "../services/service";
 import { EventStoreDeleted, EventStorePartialUpdated, EventStoreSaved, EventStoreUpdate, Store } from "./store";
@@ -62,6 +63,7 @@ export class MapperParameters extends ServiceParameters {
 /**
  * Map object to another object
  */
+@Modda("Mapper")
 export default class MapperService<T extends MapperParameters = MapperParameters> extends Service<T> {
   @Inject("params:target")
   targetStore: Store;

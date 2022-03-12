@@ -1,6 +1,7 @@
 import { Service, ServiceParameters } from "./service";
 import { WebdaError } from "../core";
 import * as jsonpath from "jsonpath";
+import { Modda } from "../application";
 
 /**
  * Service that can store configuration
@@ -58,6 +59,7 @@ export type ConfigurationEvents = {
  *
  * @category CoreServices
  */
+@Modda
 export default class ConfigurationService<
   T extends ConfigurationServiceParameters = ConfigurationServiceParameters,
   E extends ConfigurationEvents = ConfigurationEvents

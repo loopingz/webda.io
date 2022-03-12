@@ -27,10 +27,6 @@ class Task extends OwnerModel {
     return super.canAct(ctx, action);
   }
 
-  getSchema() {
-    return require("../schemas/task.json");
-  }
-
   _onSave() {
     this._autoListener = 1;
   }

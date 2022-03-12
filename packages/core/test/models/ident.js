@@ -1,6 +1,6 @@
 "use strict";
 
-const WebdaIdent = require("../../lib/index.js").Ident;
+const WebdaIdent = require("../../src/index").Ident;
 
 /**
  * @class

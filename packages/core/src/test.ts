@@ -5,6 +5,7 @@ import { ConsoleLoggerService } from "./utils/logger";
 import * as fs from "fs";
 import * as path from "path";
 import { execSync } from "child_process";
+import { SectionEnum } from "./application";
 
 export class Executor {
   /**
@@ -21,12 +22,6 @@ export class Executor {
 class TestApplication extends Application {
   constructor(file: string, logger?: WorkerOutput, allowModule?: boolean) {
     super(file, logger, allowModule);
-    Application.services["webdatest/voidstore"] = require("../test/moddas/voidstore");
-    Application.services["webdatest/fakeservice"] = require("../test/moddas/fakeservice");
-    Application.services["webdatest/mailer"] = require("../test/moddas/debugmailer");
-
-    Application.models["webdatest/task"] = require("../test/models/task");
-    Application.models["webdatest/ident"] = require("../test/models/ident");
   }
   /**
    * Set the status of the compilation
@@ -62,13 +57,39 @@ class TestApplication extends Application {
     }
     this.compiled = true;
   }
+
+  /**
+   * Load local module
+   */
+  async loadLocalModule() {
+    let moduleFile = path.join(process.cwd(), "webda.module.json");
+    if (fs.existsSync(moduleFile)) {
+      // Local Module need to be using the src/ while testing
+      let module = JSON.parse(fs.readFileSync(moduleFile).toString());
+      Object.keys(SectionEnum)
+        .filter(k => Number.isNaN(+k))
+        .forEach(p => {
+          for (let key in module[SectionEnum[p]]) {
+            module[SectionEnum[p]][key] = module[SectionEnum[p]][key].replace(/^lib\//, "src/");
+          }
+        });
+      await this.loadModule(module, process.cwd());
+    }
+  }
+
   /**
    * Load all imported modules and current module
    * It will compile module
    * Generate the current module file
    * Load any imported webda.module.json
    */
-  loadModules() {
+  async loadModules() {
+    Application.services["webdatest/voidstore"] = await import("../test/moddas/voidstore");
+    Application.services["webdatest/fakeservice"] = await import("../test/moddas/fakeservice");
+    Application.services["webdatest/mailer"] = await import("../test/moddas/debugmailer");
+    Application.models["webdatest/task"] = await import("../test/models/task");
+    Application.models["webdatest/ident"] = await import("../test/models/ident");
+
     // Cached modules is defined on deploy
     if (this.baseConfiguration.cachedModules) {
       // We should not load any modules as we are in a deployed version
@@ -79,7 +100,7 @@ class TestApplication extends Application {
     const Finder = require("fs-finder");
     // Modules should be cached on deploy
     var files = [];
-    let nodeModules = path.join(this.appPath, "node_modules");
+    let nodeModules = this.getAppPath("node_modules");
     if (fs.existsSync(nodeModules)) {
       files = Finder.from(nodeModules).findFiles("webda.module.json");
     }
@@ -90,16 +111,19 @@ class TestApplication extends Application {
         files.push(...Finder.from(nodeModules).findFiles("webda.module.json"));
       }
     }
-    let currentModule = path.join(this.appPath, "webda.module.json");
+    let currentModule = this.getAppPath("webda.module.json");
     if (fs.existsSync(currentModule)) {
       files.push(currentModule);
     }
+
     if (files.length) {
       this.log("DEBUG", "Found modules", files);
-      files.forEach(file => {
-        let info = require(file);
-        this.loadModule(info, path.dirname(file));
-      });
+      await Promise.all(
+        files.map(async file => {
+          let info = require(file);
+          await this.loadModule(info, path.dirname(file));
+        })
+      );
     }
   }
 }
@@ -126,9 +150,12 @@ class WebdaTest {
    *
    * Add a ConsoleLogger if addConsoleLogger is true
    */
-  protected buildWebda() {
+  protected async buildWebda() {
     let app = new TestApplication(this.getTestConfiguration());
-    app.loadModules();
+
+    await app.loadModules();
+    await app.loadLocalModule();
+
     this.webda = new Core(app);
     if (this.addConsoleLogger) {
       // @ts-ignore - Hack a ConsoleLogger in
@@ -142,7 +169,7 @@ class WebdaTest {
    * @param init wait for the full init
    */
   async before(init: boolean = true) {
-    this.buildWebda();
+    await this.buildWebda();
     if (init) {
       await this.webda.init();
     }

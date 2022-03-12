@@ -50,6 +50,7 @@
       "type": "MemoryStore"
     },
     "FileConfigurationService": {
+      "type": "Webda/FileConfiguration",
       "source": "./my-cnf.json",
       "default": {
         "webda": {

@@ -1,5 +1,5 @@
 "use strict";
-const Webda = require("../../lib/index.js");
+const Webda = require("../../src/index");
 const OwnerModel = Webda.OwnerModel;
 const Context = Webda.Context;
 

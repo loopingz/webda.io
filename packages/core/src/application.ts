@@ -244,7 +244,13 @@ export class DefaultSchemaResolver implements SchemaResolver {
   }
 }
 
-type Section = "services" | "deployers" | "models";
+export enum SectionEnum {
+  Services = "services",
+  Deployers = "deployers",
+  Models = "models"
+}
+
+export type Section = "services" | "deployers" | "models";
 /**
  * Map a Webda Application
  *
@@ -317,19 +323,13 @@ export class Application {
   static DefinitionDecorator(definition: Section, label?: string | Function) {
     // Annotation without ()
     if (label instanceof Function) {
-      Application[definition][Application.completeNamespace(label.name)] = label;
+      Application[definition][Application.completeNamespace(label.name)] ??= label;
       return;
-    }
-    if (typeof label === "string") {
-      return function (target: any, executor: string, descriptor: PropertyDescriptor) {
-        console.log(target, executor, descriptor);
-        Application[definition][Application.completeNamespace(<string>label || target.constructor.name)] = target;
+    } else if (typeof label === "string") {
+      return function (target: any) {
+        Application[definition][Application.completeNamespace(<string>label || target.constructor.name)] ??= target;
       };
     }
-
-    return (constructor: Function) => {
-      Application[definition][Application.completeNamespace(label || constructor.name)] = constructor;
-    };
   }
 
   /**
@@ -414,7 +414,7 @@ export class Application {
     } catch (err) {
       this.log("WARN", err);
       if (allowModule) {
-        this.baseConfiguration = { version: 2, module: {} };
+        storedConfiguration = { version: 2, module: {} };
       } else {
         throw new WebdaError("INVALID_WEBDA_CONFIG", `Cannot parse JSON of: ${file}`);
       }
@@ -433,7 +433,7 @@ export class Application {
     }
     // Load if a module definition is included
     if (this.baseConfiguration.module) {
-      this.loadModule(this.baseConfiguration.module, this.appPath);
+      //this.loadModule(this.baseConfiguration.module, this.appPath);
     }
     // Load cached modules if there
     if (this.baseConfiguration.cachedModules) {
@@ -463,19 +463,11 @@ export class Application {
    * @param proto Prototype to send
    */
   getFullNameFromPrototype(proto): string {
-    for (let i in Application.services) {
-      if (Application.services[i].prototype === proto) {
-        return i;
-      }
-    }
-    for (let i in Application.deployers) {
-      if (Application.deployers[i].prototype === proto) {
-        return i;
-      }
-    }
-    for (let i in Application.models) {
-      if (Application.models[i].prototype === proto) {
-        return i;
+    for (let section in SectionEnum) {
+      for (let i in Application[SectionEnum[section]]) {
+        if (Application[SectionEnum[section]][i] && Application[SectionEnum[section]][i].prototype === proto) {
+          return i;
+        }
       }
     }
   }
@@ -1040,13 +1032,13 @@ export class Application {
    *
    * @param info
    */
-  resolveRequire(info: string): [any, string] {
+  async resolveRequire(info: string): Promise<[any, string]> {
     if (info.startsWith(".")) {
       info = this.appPath + "/" + info;
     }
     try {
       let [file, exportName = ""] = info.split(":");
-      const lib = require(file);
+      const lib = await import(file);
       const relativePath = "./" + path.relative(this.appPath, path.resolve(file));
       if (exportName) {
         return [lib[exportName], relativePath + `:${exportName}`];
@@ -1061,28 +1053,29 @@ export class Application {
   /**
    * Load local module
    */
-  loadLocalModule() {
+  async loadLocalModule() {
     let moduleFile = path.join(process.cwd(), "webda.module.json");
     if (fs.existsSync(moduleFile)) {
-      this.loadModule(JSON.parse(fs.readFileSync(moduleFile).toString()), process.cwd());
+      await this.loadModule(JSON.parse(fs.readFileSync(moduleFile).toString()), process.cwd());
     }
   }
+
   /**
    * Load the module,
    *
    * @protected
    * @ignore Useless for documentation
    */
-  loadModule(info: Module, parent: string = this.appPath) {
+  async loadModule(info: Module, parent: string = this.appPath) {
     info.services = info.services || {};
     info.models = info.models || {};
     info.deployers = info.deployers || {};
 
     try {
-      const sectionLoader = (section: "services" | "deployment" | "model") => {
+      const sectionLoader = async (section: "services" | "deployment" | "model") => {
         for (let key in info[section]) {
           const [include, name] = info[section][key].split(":");
-          let [service, libPath] = this.resolveRequire(path.join(parent, include));
+          let [service, libPath] = await this.resolveRequire(path.join(parent, include));
           if (!service) {
             continue;
           }
@@ -1090,9 +1083,7 @@ export class Application {
           this.cachedModules[section][key] = libPath;
         }
       };
-      sectionLoader("services");
-      sectionLoader("deployment");
-      sectionLoader("model");
+      await Promise.all([sectionLoader("services"), sectionLoader("deployment"), sectionLoader("model")]);
     } catch (err) {
       this.log("ERROR", err);
     }

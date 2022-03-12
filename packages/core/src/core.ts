@@ -325,13 +325,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   /**
-   * Retrieve all deployers
-   */
-  getDeployers() {
-    return this.application.getDeployers();
-  }
-
-  /**
    * Return application definition
    */
   getApplication() {
@@ -587,13 +580,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   getModels(): { [key: string]: CoreModelDefinition } {
     return <{ [key: string]: CoreModelDefinition }>(<unknown>this.application.getModels());
-  }
-
-  /**
-   * Register model
-   */
-  registerModel(name: string, clazz) {
-    this.application.addModel(name, clazz);
   }
 
   /**

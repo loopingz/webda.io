@@ -1,9 +1,10 @@
-import { ModdaDefinition, Service, ServiceParameters } from "@webda/core";
+import { ModdaDefinition, Service, ServiceParameters, Modda } from "@webda/core";
 
 class CustomReusableServiceParameters extends ServiceParameters {
   mandatoryField: string;
 }
 
+@Modda
 export default class CustomReusableService<
   T extends CustomReusableServiceParameters = CustomReusableServiceParameters
 > extends Service<T> {

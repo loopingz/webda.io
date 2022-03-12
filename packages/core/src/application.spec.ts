@@ -164,17 +164,10 @@ class ApplicationTest extends WebdaTest {
     // Alternative of files
     // @ts-ignore
     app.getPackageDescription.files = undefined;
+    // Nothing can be really checked here
+    app.setActive();
+    app.addModel("WebdaTest/NotExisting", null);
     //assert.deepStrictEqual(app.getPackagesLocations(), ["lib/**/*.js"]);
-  }
-
-  @test
-  loadJavascriptFile() {
-    let app = new Application(__dirname + "/../test/config.old-default.json");
-    // @ts-ignore
-    let fct = app.loadJavascriptFile.bind(app);
-    fct(path.join(__dirname, "..", "test", "models", "task.js"));
-    fct(path.join(__dirname, "..", "test", "models", "task.js"));
-    fct(path.join(__dirname, "..", "test", "moddas", "fakeservice.js"));
   }
 
   @test
@@ -240,60 +233,6 @@ class ApplicationTest extends WebdaTest {
       app.loadLocalModule();
     } finally {
       process.chdir(cwd);
-    }
-  }
-
-  @test
-  gitInformations() {
-    let app = new Application(__dirname + "/../test/badapp", undefined, true);
-    try {
-      let options = {
-        cwd: app.getAppPath()
-      };
-      // Create a repo
-      execSync("git init", options);
-      execSync('git config user.email "you@example.com"', options);
-      execSync('git config user.name "Your Name"', options);
-      execSync("git add webda.config.json", options);
-      execSync("git commit -n -m 'plop'", options);
-      // Basic with no tags
-      CacheService.clearAllCache();
-      let infos = app.getGitInformation();
-      assert.ok(infos.branch.match(/(master)|(main)/) !== null);
-      assert.strictEqual(infos.tag, "");
-      assert.strictEqual(infos.tags.length, 0);
-      assert.ok(infos.version.match(/0\.1\.1\+\d+/) !== null);
-      execSync("git tag v0.1.0", options);
-      CacheService.clearAllCache();
-      // Basic with one tag v0.1.0
-      infos = app.getGitInformation();
-      assert.strictEqual(infos.tag, "v0.1.0");
-      assert.strictEqual(infos.tags.length, 1);
-      assert.strictEqual(infos.tags[0], "v0.1.0");
-      assert.strictEqual(infos.version, "0.1.0");
-      execSync("git tag badapp@0.1.0", options);
-      // Basic with two tags badapp@0.1.0 and v0.1.0
-      CacheService.clearAllCache();
-      infos = app.getGitInformation();
-      assert.strictEqual(infos.tag, "badapp@0.1.0");
-      assert.strictEqual(infos.tags.length, 2);
-      assert.deepStrictEqual(infos.tags, ["badapp@0.1.0", "v0.1.0"]);
-      assert.strictEqual(infos.version, "0.1.0");
-      emptyDirSync(app.getAppPath(".git"));
-      CacheService.clearAllCache();
-      // Running git on / should fail
-      // @ts-ignore
-      app.appPath = "/";
-      assert.deepStrictEqual(app.getGitInformation(), {
-        commit: "unknown",
-        branch: "unknown",
-        tag: "",
-        short: "00000000",
-        tags: [],
-        version: "0.1.0"
-      });
-    } finally {
-      removeSync(app.getAppPath(".git"));
     }
   }
 }

@@ -1,6 +1,4 @@
-"use strict";
-
-const Webda = require("../../lib/index.js");
+const Webda = require("../../src/index");
 
 @Webda.Bean
 class AnnotedService extends Webda.Store {

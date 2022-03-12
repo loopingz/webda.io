@@ -50,6 +50,7 @@
       "type": "MemoryStore"
     },
     "KubernetesConfigurationService": {
+      "type": "Webda/KubernetesConfigurationService",
       "source": "./kube",
       "default": {
         "webda": {

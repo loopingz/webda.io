@@ -1,8 +1,7 @@
-"use strict";
-import * as assert from "assert";
-import { Store, StoreParameters } from "../index";
 import { WebdaTest } from "../test";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
+import { Store, StoreParameters } from "../index";
 import * as Idents from "../../test/models/ident";
 import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./store";
 import { v4 as uuidv4 } from "uuid";

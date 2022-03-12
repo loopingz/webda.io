@@ -240,12 +240,12 @@ class CoreTest extends WebdaTest {
   @test
   getStores() {
     let moddas = this.webda.getStores();
-    assert.strictEqual(Object.keys(moddas).length, 6);
+    assert.strictEqual(Object.keys(moddas).length, 7);
   }
   @test
   getServicesImplementationsWithType() {
     let stores = this.webda.getServicesImplementations(Store);
-    assert.strictEqual(Object.keys(stores).length, 6);
+    assert.strictEqual(Object.keys(stores).length, 7);
   }
 
   @test
@@ -422,10 +422,11 @@ class CoreTest extends WebdaTest {
 
   @test
   cov() {
-    assert.deepStrictEqual(this.webda.getDeployers(), {});
-    this.webda.registerModel("mine", {});
+    //assert.deepStrictEqual(this.webda.getDeployers(), {});
     this.webda.getUuid();
     this.webda.getInstanceId();
+    // a8b7f4a4-62aa-4b2a-b6a8-0ffdc0d82c96
+    assert.ok(/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}/.exec(this.webda.getUuid()) !== null);
     assert.strictEqual(this.webda.getSalt(), this.webda.getConfiguration().parameters.salt);
   }
 

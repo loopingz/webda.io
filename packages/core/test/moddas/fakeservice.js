@@ -1,4 +1,4 @@
-const Webda = require("../../lib/index.js");
+const Webda = require("../../src/index");
 
 class FakeService extends Webda.Service {}
 

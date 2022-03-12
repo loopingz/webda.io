@@ -1,7 +1,8 @@
-import { Context, DeployerResources, ModdaDefinition } from "@webda/core";
+import { Context, DeployerResources, ModdaDefinition, Deployer as DeployerDefinition } from "@webda/core";
 import { Deployer } from "@webda/shell";
 import { JSONSchema6 } from "json-schema";
 
+@DeployerDefinition
 class CustomDeployer extends Deployer<DeployerResources> {
   test(ctx: Context) {
     ctx.write("Tested");

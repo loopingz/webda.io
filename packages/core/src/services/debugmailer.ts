@@ -1,10 +1,9 @@
-import { Modda } from "../application";
 import { AbstractMailer } from "./mailer";
 
 /**
  * Fake Service to help debug mail expedition
+ * @WebdaModda
  */
-@Modda
 export default class DebugMailer extends AbstractMailer {
   sent: any[] = [];
 

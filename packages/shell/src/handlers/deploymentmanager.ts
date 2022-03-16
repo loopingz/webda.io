@@ -10,13 +10,14 @@ import * as fs from "fs";
 import * as path from "path";
 import { Kubernetes } from "../deployers/kubernetes";
 import WebdaConsole from "../console/webda";
+import { SourceApplication } from "../code/sourceapplication";
 
 export interface DeployerConstructor {
   new (manager: DeploymentManager, resources: any): Deployer<any>;
 }
 
 export class DeploymentManager {
-  application: Application;
+  application: SourceApplication;
   deployersDefinition: { [key: string]: DeployerConstructor } = {};
   deployers: { [key: string]: any } = {};
   packageDescription: any;
@@ -42,7 +43,7 @@ export class DeploymentManager {
     app.addDeployer("WebdaDeployer/Kubernetes", Kubernetes);
   }
 
-  constructor(app: Application, deploymentName: string, streams = undefined) {
+  constructor(app: SourceApplication, deploymentName: string, streams = undefined) {
     this.application = app;
     this.application.compile();
     this.application.setCurrentDeployment(deploymentName);
@@ -79,7 +80,7 @@ export class DeploymentManager {
     let name = argv.name;
     let application = WebdaConsole.app;
     let output = application.getWorkerOutput();
-    application.loadModules();
+    await application.loadModules();
     DeploymentManager.addBuiltinDeployers(application);
     let deployment: Deployment = {
       $schema: "../.webda-deployment-schema.json",
@@ -150,7 +151,7 @@ export class DeploymentManager {
   /**
    * Return the Webda Application
    */
-  getApplication(): Application {
+  getApplication(): SourceApplication {
     return this.application;
   }
 

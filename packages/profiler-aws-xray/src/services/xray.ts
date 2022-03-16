@@ -1,11 +1,13 @@
-import { Service, Modda, ServiceParameters } from "@webda/core";
+import { Service, ServiceParameters } from "@webda/core";
 import * as AWSXRay from "aws-xray-sdk";
 
 export class AWSXRayServiceParameters extends ServiceParameters {
   name: string;
 }
 
-@Modda
+/**
+ * @WebdaModda
+ */
 export default class AWSXRayService<T extends AWSXRayServiceParameters = AWSXRayServiceParameters> extends Service<T> {
   /**
    *

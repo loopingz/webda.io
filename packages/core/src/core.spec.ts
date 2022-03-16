@@ -174,7 +174,6 @@ class CoreTest extends WebdaTest {
   async exportOpenAPI() {
     console.log("new application normally", Object.keys(this.webda.getApplication().getServices()));
     let app = new TestApplication(path.join(__dirname, "..", "..", "..", "sample-app"));
-    app.setActive();
     await app.loadModules();
 
     let webda = new Core(app);
@@ -417,7 +416,9 @@ class CoreTest extends WebdaTest {
 
   @test
   async autoConnectFailure() {
-    let core = new Core(new Application(__dirname + "/../test/config.broken.json"));
+    let app = new TestApplication(__dirname + "/../test/config.broken.json");
+    await app.loadModules();
+    let core = new Core(app);
     await core.init();
     core.getServices()["implicitbean"].resolve = () => {
       throw new Error();

@@ -1,7 +1,6 @@
 import * as crontab from "node-cron";
 import { Service } from "./service";
 import { CancelablePromise } from "..";
-import { Modda } from "../application";
 
 /**
  * Cron item
@@ -53,7 +52,9 @@ export class CronDefinition {
   }
 }
 
-@Modda
+/**
+ * @WebdaModda
+ */
 class CronService extends Service {
   enable: boolean;
   crons: {

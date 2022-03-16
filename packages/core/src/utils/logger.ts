@@ -8,7 +8,6 @@ import {
   FileLogger
 } from "@webda/workout";
 import { Core } from "../core";
-import { Modda } from "../application";
 
 export class LoggerServiceParameters extends ServiceParameters {
   /**
@@ -38,8 +37,8 @@ export class MemoryLoggerServiceParameters extends LoggerServiceParameters {
  * Store logs within memory
  *
  * Useful for test and other last logs
+ * @WebdaModda Webda/MemoryLogger
  */
-@Modda("Webda/MemoryLogger")
 export class MemoryLoggerService<
   T extends MemoryLoggerServiceParameters = MemoryLoggerServiceParameters
 > extends LoggerService<T> {
@@ -66,8 +65,9 @@ export class ConsoleLoggerServiceParameters extends LoggerServiceParameters {
  * Send logs to stdout
  *
  * @see @webda/workout.ConsoleLogger
+ * @WebdaModda ConsoleLogger
  */
-@Modda("Webda/ConsoleLogger")
+
 export class ConsoleLoggerService<
   T extends ConsoleLoggerServiceParameters = ConsoleLoggerServiceParameters
 > extends LoggerService<T> {
@@ -96,8 +96,8 @@ export class FileLoggerServiceParameters extends LoggerServiceParameters {
  * Can define rotation etc
  *
  * @see `@webda/workout FileLogger`
+ * @WebdaModda FileLogger
  */
-@Modda("Webda/FileLogger")
 export class FileLoggerService<
   T extends FileLoggerServiceParameters = FileLoggerServiceParameters
 > extends LoggerService<T> {

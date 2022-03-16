@@ -1,5 +1,5 @@
 import { Message, PubSub } from "@google-cloud/pubsub";
-import { CancelablePromise, DeepPartial, MessageReceipt, Modda, Queue, QueueParameters } from "@webda/core";
+import { CancelablePromise, DeepPartial, MessageReceipt, Queue, QueueParameters } from "@webda/core";
 
 /**
  * GCPQueue Parameters
@@ -26,8 +26,8 @@ export class GCPQueueParameters extends QueueParameters {
 /**
  * GCP Queue implementation on top of Pub/Sub
  *
+ * @WebdaModda
  */
-@Modda
 export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueueParameters> extends Queue<T, K> {
   /**
    * Main api object

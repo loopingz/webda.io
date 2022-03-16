@@ -4,8 +4,7 @@ import {
   StoreParameters,
   WebdaError,
   UpdateConditionFailError,
-  StoreNotFoundError,
-  Modda
+  StoreNotFoundError
 } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import { CloudFormationDeployer } from "../deployers/cloudformation";
@@ -30,8 +29,8 @@ export class DynamoStoreParameters extends StoreParameters {
  *   table: ''
  *   region: ''
  *
+ * @WebdaModda
  */
-@Modda
 export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParameters = DynamoStoreParameters>
   extends Store<T, K>
   implements CloudFormationContributor

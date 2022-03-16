@@ -5,7 +5,11 @@ export class AMQPQueueParameters extends QueueParameters {
   url: string;
   queue: string;
 }
-
+/**
+ * Implements a Queue stored in AMQP
+ *
+ * @WebdaModda
+ */
 export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueueParameters> extends Queue<T, K> {
   channel: any;
   conn: any;
@@ -65,16 +69,5 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
 
   async ___cleanData() {
     await this.channel.purgeQueue(this.parameters.queue);
-  }
-
-  /**
-   * @override
-   */
-  static getModda() {
-    return {
-      uuid: "Webda/AMQPQueue",
-      label: "AMQP Queue",
-      description: "Implements a Queue stored in AMQP"
-    };
   }
 }

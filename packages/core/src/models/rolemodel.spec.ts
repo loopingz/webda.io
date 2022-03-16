@@ -1,6 +1,7 @@
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { Application, Core, CoreModel, HttpContext, RoleModel, SecureCookie, User } from "../index";
+import { TestApplication } from "../test";
 
 class RolePolicyModel extends RoleModel {
   getRolesMap() {
@@ -35,7 +36,9 @@ class RolePolicyTest {
   _user: User;
 
   async before() {
-    this._webda = new Core(new Application(__dirname + "/../../test/config.json"));
+    let app = new TestApplication(__dirname + "/../../test/config.json");
+    await app.loadModules();
+    this._webda = new Core(app);
     this._ctx = await this._webda.newContext(new HttpContext("test.webda.io", "GET", "/"));
     this._session = this._ctx.newSession();
     this._session.login("none", "none");

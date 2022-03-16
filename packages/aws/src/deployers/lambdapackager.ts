@@ -1,4 +1,3 @@
-import { Deployer } from "@webda/core";
 import { Packager, PackagerResources } from "@webda/shell";
 import * as path from "path";
 
@@ -20,8 +19,8 @@ export interface LambdaPackagerResources extends PackagerResources {
  *
  * It uses the normmal Packager and just add the default entrypoint
  * And the exclusion of aws-sdk by default
+ * @WebdaDeployer
  */
-@Deployer
 export default class LambdaPackager extends Packager<LambdaPackagerResources> {
   /**
    * Define the default resources

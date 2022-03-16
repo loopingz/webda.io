@@ -4,7 +4,6 @@ import { JSONUtils } from "../utils/serializers";
 import { MessageReceipt, Queue, QueueParameters } from "./queueservice";
 import * as fs from "fs";
 import { join } from "path";
-import { Modda } from "../application";
 
 export class FileQueueParameters extends QueueParameters {
   /**
@@ -28,9 +27,9 @@ export class FileQueueParameters extends QueueParameters {
 /**
  * FIFO Queue on filesystem
  * @category CoreServices
+ * @WebdaModda
  */
-@Modda
-class FileQueue<T = any, K extends FileQueueParameters = FileQueueParameters> extends Queue<T, K> {
+export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParameters> extends Queue<T, K> {
   /**
    * @inheritdoc
    */
@@ -150,4 +149,3 @@ class FileQueue<T = any, K extends FileQueueParameters = FileQueueParameters> ex
     require("fs-extra").emptyDirSync(this.parameters.folder);
   }
 }
-export { FileQueue };

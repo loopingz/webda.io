@@ -1,5 +1,4 @@
 import { ServiceParameters, Service, Context } from "..";
-import { Modda } from "../application";
 
 /**
  * Version parameters
@@ -17,8 +16,8 @@ export class VersionServiceParameters extends ServiceParameters {
 
 /**
  * Display the version of the app on a route
+ * @WebdaModda VersionService
  */
-@Modda("VersionService")
 export class VersionService<T extends VersionServiceParameters = VersionServiceParameters> extends Service<T> {
   /**
    * @inheritdoc

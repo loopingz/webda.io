@@ -1,6 +1,6 @@
 {
   "services": {
-    "Webda/MongoStore": "lib/mongodb.js"
+    "Webda/MongoStore": "lib/mongodb:default"
   },
   "models": {},
   "deployers": {},

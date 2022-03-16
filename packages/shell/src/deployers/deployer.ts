@@ -2,6 +2,7 @@ import { Application, Logger, AbstractDeployer, DeployerResources } from "@webda
 import { spawn } from "child_process";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WorkerLogLevel } from "@webda/workout";
+import { SourceApplication } from "../code/sourceapplication";
 
 /**
  * **Deployer** represent one type of deploy like: *S3* or *Docker* or *Lambda+API Gateway* or *Fargate*
@@ -18,7 +19,7 @@ export abstract class Deployer<T extends DeployerResources> extends AbstractDepl
   /**
    * Current application being deployed
    */
-  app: Application;
+  app: SourceApplication;
   /**
    * Package description from package.json
    */

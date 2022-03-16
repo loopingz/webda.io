@@ -40,7 +40,6 @@ class AMQPPubSubTest extends WebdaTest {
       );
     });
     await pubsub.sendMessage("plop");
-    AMQPPubSubService.getModda();
     await WaitFor(
       async resolve => {
         if (counter === 2) {

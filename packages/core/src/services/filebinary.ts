@@ -6,7 +6,6 @@ import { join } from "path";
 import { CoreModel } from "..";
 import { Readable } from "stream";
 import * as jwt from "jsonwebtoken";
-import { Modda } from "../application";
 
 export class FileBinaryParameters extends BinaryParameters {
   /**
@@ -34,9 +33,9 @@ export class FileBinaryParameters extends BinaryParameters {
  *
  * See Binary the general interface
  * @category CoreServices
+ * @WebdaModda
  */
-@Modda
-class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends Binary<T> {
+export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends Binary<T> {
   /**
    * Load parameters
    *
@@ -297,5 +296,3 @@ class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends 
     require("fs-extra").emptyDirSync(this.parameters.folder);
   }
 }
-
-export { FileBinary };

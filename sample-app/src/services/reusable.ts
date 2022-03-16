@@ -1,19 +1,14 @@
-import { ModdaDefinition, Service, ServiceParameters, Modda } from "@webda/core";
+import { Service, ServiceParameters } from "@webda/core";
 
 class CustomReusableServiceParameters extends ServiceParameters {
   mandatoryField: string;
 }
 
-@Modda
+/**
+ * Reusable service with JSDocs Modda
+ *
+ * @WebdaModda
+ */
 export default class CustomReusableService<
   T extends CustomReusableServiceParameters = CustomReusableServiceParameters
-> extends Service<T> {
-  static getModda(): ModdaDefinition {
-    return {
-      uuid: "WebdaDemo/CustomReusableService",
-      label: "Fake service with modda for demo purpose",
-      description: "",
-      logo: ""
-    };
-  }
-}
+> extends Service<T> {}

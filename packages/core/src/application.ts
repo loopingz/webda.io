@@ -7,19 +7,6 @@ import { JSONSchema6 } from "json-schema";
 import { FileUtils } from "./utils/serializers";
 
 /**
- * Not the cleanest, but we have to have a true singleton within the process
- *
- * Test import application.ts while the normal application load application.js
- * Creating two singleton within the application, it would also have been true
- * if several packages where using different version of @webda/core
- */
-require.main.exports.webdaApplication ??= {};
-require.main.exports.webdaApplication.services ??= {};
-require.main.exports.webdaApplication.deployers ??= {};
-require.main.exports.webdaApplication.models ??= {};
-require.main.exports.webdaApplication.namespace ??= "webda";
-
-/**
  * A Webda module is a NPM package
  *
  * It contains one or more Modda to provide features
@@ -50,9 +37,9 @@ export interface Module {
  */
 export interface CachedModule extends Module {
   /**
-   * Source files to import
+   * Application beans
    */
-  sources?: string[];
+  beans?: { [key: string]: string };
   /**
    * Contained dynamic information on the project
    * Statically capture on deployment
@@ -221,10 +208,11 @@ export interface ServiceConstructor<T extends Service> {
 export enum SectionEnum {
   Services = "services",
   Deployers = "deployers",
-  Models = "models"
+  Models = "models",
+  Beans = "beans"
 }
 
-export type Section = "services" | "deployers" | "models";
+export type Section = "services" | "deployers" | "models" | "beans";
 /**
  * Map a Webda Application
  *
@@ -259,7 +247,7 @@ export class Application {
     services: {},
     models: {},
     deployers: {},
-    sources: [],
+    beans: {},
     schemas: {},
     projectInformation: {
       git: {
@@ -297,33 +285,17 @@ export class Application {
   /**
    * Deployers type registry
    */
-  protected static deployers: { [key: string]: any } = require.main.exports.webdaApplication.deployers;
+  protected deployers: { [key: string]: any } = {};
 
   /**
    * Services type registry
    */
-  protected static services: { [key: string]: ServiceConstructor<Service> } =
-    require.main.exports.webdaApplication.services;
+  protected services: { [key: string]: ServiceConstructor<Service> } = {};
 
   /**
    * Models type registry
    */
-  protected static models: { [key: string]: any } = require.main.exports.webdaApplication.models;
-
-  /**
-   * @Modda to declare as a reusable service
-   */
-  static DefinitionDecorator(definition: Section, label?: string | Function) {
-    // Annotation without ()
-    if (label instanceof Function) {
-      Application[definition][Application.completeNamespace(label.name)] ??= label;
-      return;
-    } else if (typeof label === "string") {
-      return function (target: any) {
-        Application[definition][Application.completeNamespace(<string>label || target.constructor.name)] ??= target;
-      };
-    }
-  }
+  protected models: { [key: string]: any } = {};
 
   /**
    * Class Logger
@@ -372,9 +344,6 @@ export class Application {
    * @param {Logger} logger
    */
   constructor(file: string, logger: WorkerOutput = undefined, allowModule: boolean = false) {
-    if (!Application.active) {
-      Application.active = this;
-    }
     this.logger = logger || new WorkerOutput();
     this.initTime = Date.now();
     if (!fs.existsSync(file)) {
@@ -399,7 +368,7 @@ export class Application {
     this.appPath = path.dirname(file);
     try {
       this.configurationFile = file;
-      this.baseConfiguration = FileUtils.load(file);
+      this.baseConfiguration = this.loadConfiguration(file);
     } catch (err) {
       this.log("WARN", err);
       if (allowModule) {
@@ -419,10 +388,19 @@ export class Application {
   }
 
   /**
-   * Set the application the current one
+   * Import all required modules
    */
-  setActive() {
-    Application.active = this;
+  async load() {
+    await this.loadModule(this.cachedModules);
+  }
+  /**
+   * Allow subclass to implement migration
+   *
+   * @param file
+   * @returns
+   */
+  loadConfiguration(file: string) {
+    return FileUtils.load(file);
   }
 
   /**
@@ -431,8 +409,8 @@ export class Application {
    */
   getFullNameFromPrototype(proto): string {
     for (let section in SectionEnum) {
-      for (let i in Application[SectionEnum[section]]) {
-        if (Application[SectionEnum[section]][i] && Application[SectionEnum[section]][i].prototype === proto) {
+      for (let i in this[SectionEnum[section]]) {
+        if (this[SectionEnum[section]][i] && this[SectionEnum[section]][i].prototype === proto) {
           return i;
         }
       }
@@ -470,7 +448,7 @@ export class Application {
       this.packageDescription = JSON.parse(fs.readFileSync(packageJson).toString());
     } else {
       this.log("WARN", "Application does not have a package.json");
-      return;
+      this.packageDescription = {};
     }
     this.packageWebda = this.packageDescription.webda || {};
     let parent = path.join(this.appPath, "..");
@@ -557,7 +535,7 @@ export class Application {
    */
   addService(name: string, service: ServiceConstructor<Service>) {
     this.log("TRACE", "Registering service", name);
-    Application.services[name.toLowerCase()] = service;
+    this.services[name.toLowerCase()] = service;
   }
 
   /**
@@ -566,23 +544,23 @@ export class Application {
    * @param name
    */
   getService(name) {
-    let serviceName = Application.completeNamespace(name).toLowerCase();
+    let serviceName = this.completeNamespace(name).toLowerCase();
     this.log("TRACE", "Search for service", serviceName);
-    if (!Application.services[serviceName]) {
+    if (!this.services[serviceName]) {
       serviceName = `Webda/${name}`.toLowerCase();
       // Try Webda namespace
-      if (!Application.services[serviceName]) {
-        throw Error("Undefined service " + name);
+      if (!this.services[serviceName]) {
+        throw Error("Undefined service " + name + " or " + serviceName);
       }
     }
-    return Application.services[serviceName];
+    return this.services[serviceName];
   }
 
   /**
    * Return all services of the application
    */
   getServices() {
-    return Application.services;
+    return this.services;
   }
 
   /**
@@ -595,26 +573,24 @@ export class Application {
     if (name.indexOf("/") < 0) {
       name = `webda/${name}`;
     }
-    if (!Application.models[name.toLowerCase()]) {
-      throw Error(
-        "Undefined model '" + name + "' known models are '" + Object.keys(Application.models).join(",") + "'"
-      );
+    if (!this.models[name.toLowerCase()]) {
+      throw Error("Undefined model '" + name + "' known models are '" + Object.keys(this.models).join(",") + "'");
     }
-    return Application.models[name.toLowerCase()];
+    return this.models[name.toLowerCase()];
   }
 
   /**
    * Get all models definitions
    */
   getModels(): { [key: string]: Context | CoreModelDefinition } {
-    return Application.models;
+    return this.models;
   }
 
   /**
    * Return all deployers
    */
   getDeployers(): { [key: string]: ServiceConstructor<Service> } {
-    return Application.deployers;
+    return this.deployers;
   }
 
   /**
@@ -625,7 +601,7 @@ export class Application {
    */
   addModel(name: string, model: any) {
     this.log("TRACE", "Registering model", name);
-    Application.models[name.toLowerCase()] = model;
+    this.models[name.toLowerCase()] = model;
   }
 
   /**
@@ -636,7 +612,7 @@ export class Application {
    */
   addDeployer(name: string, model: any) {
     this.log("TRACE", "Registering deployer", name);
-    Application.deployers[name.toLowerCase()] = model;
+    this.deployers[name.toLowerCase()] = model;
   }
 
   /**
@@ -773,15 +749,15 @@ export class Application {
    *
    * @param info
    */
-  async importFile(info: string): Promise<string> {
+  async importFile(info: string): Promise<any> {
     if (info.startsWith(".")) {
       info = this.appPath + "/" + info;
     }
     try {
       this.log("INFO", "Load file", info, fs.existsSync(info));
-      await import(info);
-      const relativePath = "./" + path.relative(this.appPath, path.resolve(info));
-      return relativePath;
+      const [importFilename, importName = "default"] = info.split(":");
+      // const relativePath = "./" + path.relative(this.appPath, path.resolve(info));
+      return (await import(importFilename))[importName];
     } catch (err) {
       this.log("WARN", "Cannot resolve require", info, err.message);
     }
@@ -809,15 +785,15 @@ export class Application {
     info.deployers = info.deployers || {};
     const sectionLoader = async (section: Section) => {
       for (let key in info[section]) {
-        try {
-          require.main.exports.webdaApplication.namespace = key.split("/").shift() || this.namespace;
-          this.cachedModules[section][key] = await this.importFile(path.join(parent, info[section][key]));
-        } finally {
-          require.main.exports.webdaApplication.namespace = this.namespace;
-        }
+        this[section][key.toLowerCase()] = await this.importFile(path.join(parent, info[section][key]));
       }
     };
-    await Promise.all([sectionLoader("services"), sectionLoader("deployers"), sectionLoader("models")]);
+    await Promise.all([
+      sectionLoader("services"),
+      sectionLoader("deployers"),
+      sectionLoader("models"),
+      sectionLoader("beans")
+    ]);
   }
 
   /**
@@ -829,12 +805,12 @@ export class Application {
    *
    * @param name
    */
-  static completeNamespace(name: string = ""): string {
+  completeNamespace(name: string = ""): string {
     // Do not add a namespace if already present
     if (name.indexOf("/") >= 0) {
       return name.toLowerCase();
     }
-    return `${require.main.exports.webdaApplication.namespace || "webda"}/${name}`.toLowerCase();
+    return `${this.namespace || "webda"}/${name}`.toLowerCase();
   }
 
   /**
@@ -858,35 +834,3 @@ export class Application {
     return false;
   }
 }
-
-/**
- * Define a deployer
- *
- * A Modda is a class that can be reused
- * For example:
- *  - MongoDB Store implementation
- *  - SQS Service implementation
- *  - etc
- */
-const Deployer = Application.DefinitionDecorator.bind(Application, "deployers");
-/**
- * Define a reusable service
- *
- * A Modda is a class that can be reused
- * For example:
- *  - MongoDB Store implementation
- *  - SQS Service implementation
- *  - etc
- */
-const Modda = Application.DefinitionDecorator.bind(Application, "services");
-/**
- * Define a reusable model
- *
- * A Modda is a class that can be reused
- * For example:
- *  - MongoDB Store implementation
- *  - SQS Service implementation
- *  - etc
- */
-const Model = Application.DefinitionDecorator.bind(Application, "models");
-export { Deployer, Modda, Model };

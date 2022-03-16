@@ -11,6 +11,5 @@ class AMQPQueueTest extends QueueTest {
     await queue.__clean();
     await this.simple(queue, true);
     assert.deepStrictEqual(await queue.receiveMessage(), []);
-    AMQPQueue.getModda();
   }
 }

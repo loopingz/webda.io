@@ -3,8 +3,9 @@ import * as assert from "assert";
 import * as fs from "fs-extra";
 import * as fetch from "node-fetch";
 import * as path from "path";
+import { SourceApplication } from "./code/sourceapplication";
 
-class TestApplication extends Application {
+class TestApplication extends SourceApplication {
   clean() {
     fs.removeSync(this.getAppPath("lib"));
     fs.removeSync(this.getAppPath("webda.module.json"));

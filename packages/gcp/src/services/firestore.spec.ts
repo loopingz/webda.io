@@ -84,11 +84,6 @@ class FireStoreTest extends StoreTest {
   */
 
   @test
-  getModda() {
-    FireStore.getModda();
-  }
-
-  @test
   async deleteCondition() {
     let idents = this.getIdentStore();
     let obj = await idents.save({

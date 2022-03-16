@@ -1,4 +1,3 @@
-import { Modda } from "../application";
 import { Context } from "../index";
 import { ServiceParameters, Service } from "./service";
 
@@ -31,9 +30,8 @@ export class EchoServiceParameters extends ServiceParameters {
  *  "mime": "text/plain"
  * }
  * ```
- *
+ * @WebdaModda
  */
-@Modda
 export class EchoService extends Service<EchoServiceParameters> {
   /**
    * Load parameters

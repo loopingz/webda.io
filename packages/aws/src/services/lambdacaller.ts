@@ -1,5 +1,4 @@
-"use strict";
-import { Modda, ServiceParameters } from "@webda/core";
+import { ServiceParameters } from "@webda/core";
 import { AsyncAction, Runner, RunnerParameters, JobInfo } from "@webda/async";
 import * as AWS from "aws-sdk";
 
@@ -20,8 +19,9 @@ class LambdaCallerParameters extends RunnerParameters {
 
 /**
  * A service that calls a Lambda function and retrieve its result
+ *
+ * @WebdaModda
  */
-@Modda
 class LambdaCaller<T extends LambdaCallerParameters = LambdaCallerParameters> extends Runner<T> {
   /**
    * @inheritdoc

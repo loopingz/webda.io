@@ -1,15 +1,5 @@
-"use strict";
 // Load the AWS SDK for Node.js
-import {
-  CloudBinary,
-  BinaryMap,
-  BinaryParameters,
-  Context,
-  CoreModel,
-  Modda,
-  WebdaError,
-  BinaryFile
-} from "@webda/core";
+import { CloudBinary, BinaryMap, BinaryParameters, Context, CoreModel, WebdaError, BinaryFile } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
@@ -51,8 +41,9 @@ export class S3BinaryParameters extends BinaryParameters {
  * See Binary the general interface
  *
  * We can register on S3 Event to get info when /data is pushed
+ *
+ * @WebdaModda
  */
-@Modda
 export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   extends CloudBinary<T>
   implements CloudFormationContributor

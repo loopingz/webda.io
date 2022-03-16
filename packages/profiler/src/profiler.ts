@@ -1,4 +1,4 @@
-import { Service, Modda, Context, LoggerService, ServiceParameters } from "@webda/core";
+import { Service, Context, LoggerService, ServiceParameters } from "@webda/core";
 
 /**
  * Profiler Parameters
@@ -21,8 +21,9 @@ export class ProfilerParameters extends ServiceParameters {
  * Profiling service
  *
  * Mesure timing of each method and display them in TRACE
+ *
+ * @WebdaModda
  */
-@Modda
 export default class Profiler<T extends ProfilerParameters = ProfilerParameters> extends Service<T> {
   /**
    * @inheritdoc

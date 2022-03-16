@@ -1,4 +1,4 @@
-import { CoreModel, Modda, Service, Store, WebdaError } from "@webda/core";
+import { CoreModel, Service, Store, WebdaError } from "@webda/core";
 import { Client, ClientOptions } from "@elastic/elasticsearch";
 import { ServiceParameters } from "../../core/lib/services/service";
 import { Search } from "@elastic/elasticsearch/api/requestParams";
@@ -29,7 +29,11 @@ export class ESUnknownIndexError extends WebdaError {
   }
 }
 
-@Modda
+/**
+ * Index a Store allowing you to query it through ES
+ *
+ * @WebdaModda
+ */
 export default class ElasticSearchService<
   T extends ElasticSearchServiceParameters = ElasticSearchServiceParameters
 > extends Service<T> {
@@ -417,18 +421,6 @@ export default class ElasticSearchService<
    */
   getClient(): Client {
     return this._client;
-  }
-
-  /**
-   * @override
-   */
-  static getModda() {
-    return {
-      uuid: "Webda/ElasticSearchService",
-      label: "ElasticSearchService",
-      description: "Index a Store allowing you to query it through ES",
-      documentation: "https://raw.githubusercontent.com/loopingz/webda/master/readmes/Store.md"
-    };
   }
 }
 

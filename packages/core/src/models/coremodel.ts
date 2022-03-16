@@ -2,9 +2,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { Store } from "../stores/store";
 import { Context, HttpMethodType } from "../utils/context";
-import { Model, Service } from "..";
-import { JSONSchema6 } from "json-schema";
-import { Module } from "module";
+import { Service } from "..";
 
 /**
  * Define an export of actions from Model
@@ -56,8 +54,8 @@ export class CoreModelUnattachedError extends Error {
  * Any variable starting with __ won't be exported outside of the server
  *
  * @class
+ * @WebdaModel
  */
-@Model
 class CoreModel {
   static jsonExcludes = ["__store", "__ctx", "__class"];
   /**

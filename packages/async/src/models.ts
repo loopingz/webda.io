@@ -1,4 +1,4 @@
-import { CoreModel, Model } from "@webda/core";
+import { CoreModel } from "@webda/core";
 
 /**
  * Represent an item for processing queue
@@ -25,8 +25,8 @@ export interface Job {}
 
 /**
  * Define here a model that can be used along with Store service
+ * @WebdaModel
  */
-@Model
 export default class AsyncAction extends CoreModel {
   /**
    * Current status

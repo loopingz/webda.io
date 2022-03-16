@@ -1,6 +1,5 @@
 import * as fs from "fs";
 import * as path from "path";
-import { Modda } from "../application";
 import { CoreModel } from "../models/coremodel";
 import { JSONUtils } from "../utils/serializers";
 import { Store, StoreNotFoundError, StoreParameters } from "./store";
@@ -27,8 +26,8 @@ class FileStoreParameters extends StoreParameters {
  *  folder: to store to
  *
  * @category CoreServices
+ * @WebdaModda
  */
-@Modda
 class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStoreParameters> extends Store<T, K> {
   static EXTENSION = ".json";
 

@@ -1,4 +1,4 @@
-import { CancelablePromise, Modda, PubSubService, ServiceParameters } from "@webda/core";
+import { CancelablePromise, PubSubService, ServiceParameters } from "@webda/core";
 import { PubSub, CreateSubscriptionOptions, Subscription, Message } from "@google-cloud/pubsub";
 
 export class GCPPubSubParameters extends ServiceParameters {
@@ -16,8 +16,9 @@ export class GCPPubSubParameters extends ServiceParameters {
  * Implement GCP Pub/Sub
  *
  * Can also act as queue
+ *
+ * @WebdaModda
  */
-@Modda
 export default class GCPPubSubService<
   T = any,
   K extends GCPPubSubParameters = GCPPubSubParameters

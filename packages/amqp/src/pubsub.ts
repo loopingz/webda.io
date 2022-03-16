@@ -47,6 +47,7 @@ export class AMQPPubSubParameters extends ServiceParameters {
 /**
  *
  * @see https://www.rabbitmq.com/tutorials/tutorial-three-python.html
+ * @WebdaModda AMQPPubSub
  */
 export default class AMQPPubSubService<
   T = any,
@@ -121,17 +122,6 @@ export default class AMQPPubSubService<
         }
       }
     );
-  }
-
-  /**
-   * @override
-   */
-  static getModda() {
-    return {
-      uuid: "Webda/AMQPPubSub",
-      label: "AMQP PubSub",
-      description: "Implements a PubSub stored in AMQP"
-    };
   }
 }
 

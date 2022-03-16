@@ -1,4 +1,4 @@
-import { CoreModel, Modda, StoreNotFoundError, UpdateConditionFailError } from "@webda/core";
+import { CoreModel, StoreNotFoundError, UpdateConditionFailError } from "@webda/core";
 import { SQLResult, SQLStore, SQLStoreParameters } from "./sqlstore";
 import { Pool, Client, ClientConfig, PoolConfig } from "pg";
 
@@ -27,8 +27,8 @@ class PostgresParameters extends SQLStoreParameters {
  * );
  * ```
  *
+ * @WebdaModda
  */
-@Modda
 export default class PostgresStore<
   T extends CoreModel = CoreModel,
   K extends PostgresParameters = PostgresParameters

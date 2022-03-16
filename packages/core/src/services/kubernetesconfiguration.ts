@@ -3,14 +3,13 @@ import { WebdaError } from "../core";
 import * as fs from "fs";
 import * as path from "path";
 import { JSONUtils } from "../utils/serializers";
-import { Modda } from "../application";
 
 /**
  * Allow for dynamic configuration from ConfigMap or Secrets
  *
  * Read a ConfigMap from Kubernetes and auto-update
+ * @WebdaModda
  */
-@Modda
 export class KubernetesConfigurationService<T extends ConfigurationServiceParameters> extends ConfigurationService<T> {
   /**
    * @ignore

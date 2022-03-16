@@ -1,4 +1,3 @@
-import { Modda } from "../application";
 import { CoreModel } from "../models/coremodel";
 import { Store, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";
 
@@ -10,8 +9,8 @@ interface StorageMap {
  * Store in Memory
  *
  * @category CoreServices
+ * @WebdaModda
  */
-@Modda
 class MemoryStore<T extends CoreModel, K extends StoreParameters = StoreParameters> extends Store<T, K> {
   storage: StorageMap = {};
 
@@ -189,4 +188,4 @@ class MemoryStore<T extends CoreModel, K extends StoreParameters = StoreParamete
   }
 }
 
-export { MemoryStore, StorageMap };
+export { MemoryStore, StorageMap, MemoryStore as Plop };

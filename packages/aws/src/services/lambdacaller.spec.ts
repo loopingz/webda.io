@@ -19,8 +19,6 @@ class LambdaCallerTest extends WebdaTest {
   async call() {
     // CodeCoverage test
     const lambdaCaller = new LambdaCaller(this.webda, "plop", { arn: "testor" });
-    // cov
-    LambdaCaller.getModda();
     try {
       AWSMock.setSDKInstance(AWS);
       AWSMock.mock("Lambda", "invoke", (params: any, callback: any) => {

@@ -2,12 +2,11 @@ import ConfigurationService, { ConfigurationServiceParameters } from "./configur
 import { WebdaError } from "../core";
 import * as fs from "fs";
 import { JSONUtils } from "..";
-import { Modda } from "../application";
 
 /**
  * Allow for dynamic configuration from a file
+ * @WebdaModda Webda/FileConfiguration
  */
-@Modda("Webda/FileConfiguration")
 export class FileConfigurationService<
   T extends ConfigurationServiceParameters = ConfigurationServiceParameters
 > extends ConfigurationService<T> {

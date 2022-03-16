@@ -1,5 +1,4 @@
-"use strict";
-import { Store, CoreModel, StoreParameters, Modda, UpdateConditionFailError, StoreNotFoundError } from "@webda/core";
+import { Store, CoreModel, StoreParameters, UpdateConditionFailError, StoreNotFoundError } from "@webda/core";
 import { MongoClient, MongoClientOptions, DbOptions, Db, Collection, Document } from "mongodb";
 
 export class MongoParameters extends StoreParameters {
@@ -43,8 +42,8 @@ export class MongoParameters extends StoreParameters {
  * Parameters:
  *   mongo: 'mongodb://127.0.0.1:27017' // If not found try to read WEBDA_MONGO_URL env variable
  *
+ * @WebdaModda
  */
-@Modda
 export default class MongoStore<T extends CoreModel, K extends MongoParameters> extends Store<T, K> {
   /**
    * Connect promise

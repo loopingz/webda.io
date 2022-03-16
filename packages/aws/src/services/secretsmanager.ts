@@ -1,4 +1,4 @@
-import { ConfigurationProvider, Modda, Service, ServiceParameters } from "@webda/core";
+import { ConfigurationProvider, Service, ServiceParameters } from "@webda/core";
 import { GetAWS } from "./aws-mixin";
 
 export class AWSSecretsManagerParameters extends ServiceParameters {
@@ -6,7 +6,9 @@ export class AWSSecretsManagerParameters extends ServiceParameters {
   region: string;
 }
 
-@Modda
+/**
+ * @WebdaModda
+ */
 export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = AWSSecretsManagerParameters>
   extends Service<T>
   implements ConfigurationProvider

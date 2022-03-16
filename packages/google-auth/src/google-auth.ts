@@ -1,5 +1,5 @@
 import * as http from "http";
-import { OAuthService, RequestFilter, OAuthServiceParameters, Context, Modda, OAuthEvents } from "@webda/core";
+import { OAuthService, RequestFilter, OAuthServiceParameters, Context, OAuthEvents } from "@webda/core";
 import { OAuth2Client, Credentials } from "google-auth-library";
 
 export interface EventGoogleOAuthToken {
@@ -60,8 +60,8 @@ type GoogleAuthEvents = OAuthEvents & {
 /**
  * Manage Google Authentication
  *
+ * @WebdaModda
  */
-@Modda
 export default class GoogleAuthentication<T extends GoogleParameters = GoogleParameters>
   extends OAuthService<T, GoogleAuthEvents>
   implements RequestFilter<Context>

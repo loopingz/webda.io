@@ -12,9 +12,10 @@ import { WorkerOutput, WorkerLogLevel, ConsoleLogger, WorkerLogLevelEnum, LogFil
 import { WebdaTerminal } from "./terminal";
 import * as path from "path";
 import * as semver from "semver";
-import { TypescriptSchemaResolver } from "../compiler";
 import { Definition } from "typescript-json-schema";
 import * as jsonc from "jsonc-parser";
+import { SourceApplication } from "../code/sourceapplication";
+import { JSONSchema6, JSONSchema6Definition } from "json-schema";
 
 export type WebdaCommand = (argv: any[]) => void;
 export interface WebdaShellExtension {
@@ -41,7 +42,7 @@ export default class WebdaConsole {
   static tscCompiler: ChildProcess;
   static logger: Logger;
   static terminal: WebdaTerminal;
-  static app: Application;
+  static app: SourceApplication;
   static debuggerStatus: DebuggerStatus = DebuggerStatus.Stopped;
   static onSIGINT: () => never = undefined;
   static extensions: { [key: string]: WebdaShellExtension } = {};
@@ -467,12 +468,7 @@ export default class WebdaConsole {
     argv._.shift();
     let symbol = <string>argv.type;
     let filename = <string>argv.exportFile;
-    let resolver: TypescriptSchemaResolver = new TypescriptSchemaResolver(this.app, this.logger);
-    this.app.setSchemaResolver(resolver);
-    let schema = this.app.getSchemaResolver().fromServiceType(symbol);
-    if (!schema && resolver) {
-      schema = resolver.fromSymbol(symbol);
-    }
+    let schema = this.app.getSchema(symbol);
     if (filename) {
       FileUtils.save(schema, filename);
     } else {
@@ -518,7 +514,6 @@ export default class WebdaConsole {
    * Generate the webda.module.json
    */
   static generateModule() {
-    this.app.setSchemaResolver(new TypescriptSchemaResolver(this.app, this.logger));
     if (fs.existsSync(this.app.configurationFile)) {
       // Generate config schema as well
       this.generateConfigurationSchema();
@@ -664,9 +659,7 @@ export default class WebdaConsole {
     deploymentFilename: string = ".webda-deployment-schema.json",
     full: boolean = false
   ) {
-    let resolver = new TypescriptSchemaResolver(this.app, this.logger);
-    this.app.setSchemaResolver(resolver);
-    let res: Definition = resolver.generator.getSchemaForSymbol("Configuration");
+    let res: JSONSchema6 = this.app.getSchema("Configuration");
     // Clean cached modules
     delete res.definitions.CachedModule;
     delete res.properties.cachedModules;
@@ -683,12 +676,12 @@ export default class WebdaConsole {
     };
     Object.keys(this.app.getServices()).forEach(serviceType => {
       const key = `ServiceType$${serviceType.replace(/\//g, "$")}`;
-      const definition: Definition = (res.definitions[key] = <Definition>resolver.fromServiceType(serviceType));
+      const definition: JSONSchema6 = (res.definitions[key] = <JSONSchema6>this.app.getSchema(serviceType));
       if (!definition) {
         return;
       }
-      (<Definition>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
-      (<Definition>(<Definition>res.properties.services).additionalProperties).oneOf.push({
+      (<JSONSchema6>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
+      (<JSONSchema6>(<JSONSchema6>res.properties.services).additionalProperties).oneOf.push({
         $ref: `#/definitions/${key}`
       });
       delete res.definitions[key]["$schema"];
@@ -742,7 +735,7 @@ export default class WebdaConsole {
     });
     Object.keys(this.app.getDeployers()).forEach(serviceType => {
       const key = `DeployerType$${serviceType.replace(/\//g, "$")}`;
-      const definition: Definition = (res.definitions[key] = <Definition>resolver.fromServiceType(serviceType));
+      const definition: JSONSchema6 = (res.definitions[key] = <JSONSchema6>this.app.getSchema(serviceType));
       if (!definition) {
         return;
       }
@@ -753,8 +746,8 @@ export default class WebdaConsole {
           }
         };
       }
-      (<Definition>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
-      (<Definition>(<Definition>res.properties.units).items).oneOf.push({ $ref: `#/definitions/${key}` });
+      (<JSONSchema6>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
+      (<JSONSchema6>(<JSONSchema6>res.properties.units).items).oneOf.push({ $ref: `#/definitions/${key}` });
       delete definition["$schema"];
       // Remove mandatory depending on option
       if (!full) {
@@ -782,7 +775,7 @@ export default class WebdaConsole {
    */
   static getServiceTypePattern(type: string): string {
     let result = "";
-    type = Application.completeNamespace(type).toLowerCase();
+    type = this.app.completeNamespace(type).toLowerCase();
     for (let t of type) {
       if (t.match(/[a-z]/)) {
         result += `[${t}${t.toUpperCase()}]`;
@@ -928,7 +921,7 @@ export default class WebdaConsole {
 
       // Load Application
       try {
-        this.app = new Application(<string>argv.appPath, output, true);
+        this.app = new SourceApplication(<string>argv.appPath, output, true);
       } catch (err) {
         output.log("WARN", err.message);
       }

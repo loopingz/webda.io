@@ -1,4 +1,3 @@
-import { Modda } from "../application";
 import { CoreModel } from "../models/coremodel";
 import MapperService, { MapperParameters, MapUpdates } from "./mapper";
 
@@ -18,8 +17,9 @@ export class AggregatorParameters extends MapperParameters {
  * Service that aggregate several CoreModel into one
  *
  * Similar to a Mapper except that the target is constant
+ *
+ * @WebdaModda Aggregator
  */
-@Modda("Aggregator")
 export default class AggregatorService<T extends AggregatorParameters = AggregatorParameters> extends MapperService<T> {
   /**
    * Create index if not existing

@@ -4,7 +4,6 @@ import * as fs from "fs";
 import * as nodemailer from "nodemailer";
 import path = require("path");
 import { Ident, User } from "..";
-import { Modda } from "../application";
 import { NotificationService } from "./notificationservice";
 import { Service, ServiceParameters } from "./service";
 
@@ -161,8 +160,8 @@ export abstract class AbstractMailer<T extends ServiceParameters = ServiceParame
  * Parameters
  * config: { ... }
  * @category CoreServices
+ * @WebdaModda
  */
-@Modda
 class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMailer<T> {
   _transporter: any;
   _templates: TemplatesMap = {};

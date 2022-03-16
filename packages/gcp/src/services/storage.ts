@@ -1,6 +1,6 @@
 "use strict";
 import { Storage as GCS, GetSignedUrlConfig, Bucket } from "@google-cloud/storage";
-import { CloudBinary, Modda, BinaryMap, BinaryParameters, CoreModel, BinaryFile, DeepPartial } from "@webda/core";
+import { CloudBinary, BinaryMap, BinaryParameters, CoreModel, BinaryFile, DeepPartial } from "@webda/core";
 import { Readable, Stream } from "stream";
 import { createReadStream } from "fs";
 import * as mime from "mime-types";
@@ -48,8 +48,8 @@ export class StorageParameters extends BinaryParameters {
  * Storage handles the storage of binary on a Google Cloud Storage bucket
  *
  * See Binary the general interface
+ * @WebdaModda
  */
-@Modda
 export default class Storage<T extends StorageParameters = StorageParameters> extends CloudBinary<T> {
   private _storage?: GCS;
   private get storage(): GCS {

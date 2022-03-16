@@ -1,7 +1,9 @@
-import { CoreModel, Context, Model } from "../";
+import { CoreModel, Context } from "../";
 
-@Model
-export default class OwnerModel extends CoreModel {
+/**
+ * @WebdaModel
+ */
+export class OwnerModel extends CoreModel {
   /**
    * Default owner of the object
    */
@@ -105,5 +107,3 @@ export default class OwnerModel extends CoreModel {
     return this.canUpdate(ctx);
   }
 }
-
-export { OwnerModel };

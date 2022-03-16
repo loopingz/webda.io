@@ -6,7 +6,6 @@ import { EventEmitter } from "events";
 import * as http from "http";
 import * as sanitizeHtml from "sanitize-html";
 import { Writable } from "stream";
-import { Model } from "../application";
 import { Core } from "../core";
 import { User } from "../models/user";
 import { Service } from "../services/service";
@@ -19,7 +18,7 @@ export type HttpMethodType = "GET" | "OPTIONS" | "POST" | "PUT" | "PATCH" | "DEL
 /**
  * @category CoreFeatures
  */
-class ClientInfo extends Map<string, any> {
+export class ClientInfo extends Map<string, any> {
   ip: string;
   userAgent: string;
   locale: string;
@@ -29,7 +28,7 @@ class ClientInfo extends Map<string, any> {
 /**
  * @category CoreFeatures
  */
-class HttpContext {
+export class HttpContext {
   host: string;
   method: HttpMethodType;
   uri: string;
@@ -167,9 +166,9 @@ class Cookie {
 
 /**
  * @category CoreFeatures
+ * @WebdaModel
  */
-@Model
-class Context extends EventEmitter {
+export class Context extends EventEmitter {
   clientInfo: ClientInfo;
   protected _body: any;
   protected _outputHeaders: Map<string, string>;
@@ -697,5 +696,3 @@ class Context extends EventEmitter {
 
 class StoreSessionContext extends Context {}
 class CookieSessionContext extends Context {}
-
-export { Context, ClientInfo, HttpContext };

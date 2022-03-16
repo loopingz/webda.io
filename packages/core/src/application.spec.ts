@@ -3,7 +3,7 @@ import * as fs from "fs-extra";
 import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
 import { Application, CacheService, Core } from "./index";
-import { WebdaTest } from "./test";
+import { TestApplication, WebdaTest } from "./test";
 import { removeSync, emptyDirSync } from "fs-extra";
 import { execSync } from "child_process";
 import * as sinon from "sinon";
@@ -101,8 +101,8 @@ class ApplicationTest extends WebdaTest {
     // @ts-ignore
     app.getPackageDescription.files = undefined;
     // Nothing can be really checked here
-    app.setActive();
     app.addModel("WebdaTest/NotExisting", null);
+    app.addDeployer("WebdaTest/NotExisting", null);
     delete app.getModels()["webdatest/notexisting"];
     assert.deepStrictEqual(app.getGitInformation(), {
       branch: "",
@@ -120,8 +120,10 @@ class ApplicationTest extends WebdaTest {
   }
 
   @test
-  getFullNameFromPrototype() {
-    let app = new Application(__dirname + "/../test/config.json");
+  async getFullNameFromPrototype() {
+    let app = new TestApplication(__dirname + "/../test/config.json");
+    await app.loadModules();
+    await app.load();
     let services: any = app.getServices();
     let name = Object.keys(services).pop();
     let service: any = services[name].prototype;

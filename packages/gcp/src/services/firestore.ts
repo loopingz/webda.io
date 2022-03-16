@@ -6,7 +6,6 @@ import {
   DeepPartial,
   StoreNotFoundError,
   UpdateConditionFailError,
-  Modda,
 } from "@webda/core";
 
 /**
@@ -18,8 +17,9 @@ export class FireStoreParameters extends StoreParameters {
 
 /**
  * Implement Firebase abstraction within Webda
+ *
+ * @WebdaModda
  */
-@Modda
 export default class FireStore<
   T extends CoreModel = CoreModel,
   K extends FireStoreParameters = FireStoreParameters

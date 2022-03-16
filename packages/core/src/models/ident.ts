@@ -1,17 +1,15 @@
-"use strict";
-import { Model } from "..";
 import { OwnerModel } from "./ownermodel";
 
-class IdentTokens {
+export class IdentTokens {
   refresh: string;
   access: string;
 }
 /**
  * First basic model for Ident
  * @class
+ * @WebdaModel
  */
-@Model
-class Ident extends OwnerModel {
+export class Ident extends OwnerModel {
   _type: string;
   uid: string;
   __profile: any;
@@ -74,5 +72,3 @@ class Ident extends OwnerModel {
     this._type = type;
   }
 }
-
-export { Ident, IdentTokens };

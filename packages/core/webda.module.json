@@ -1,0 +1,38 @@
+{
+  "services": {
+    "webda/aggregator": "lib/stores/aggregator:default",
+    "webda/asyncevents": "lib/services/asyncevents:EventService",
+    "webda/authentication": "lib/services/authentication:Authentication",
+    "webda/configurationservice": "lib/services/configuration:default",
+    "webda/consolelogger": "lib/utils/logger:ConsoleLoggerService",
+    "webda/cronservice": "lib/services/cron:CronService",
+    "webda/debugmailer": "lib/services/debugmailer:default",
+    "webda/echoservice": "lib/services/echo:EchoService",
+    "webda/filebinary": "lib/services/filebinary:FileBinary",
+    "webda/fileconfiguration": "lib/services/fileconfiguration:FileConfigurationService",
+    "webda/filelogger": "lib/utils/logger:FileLoggerService",
+    "webda/filequeue": "lib/queues/filequeue:FileQueue",
+    "webda/filestore": "lib/stores/file:FileStore",
+    "webda/invitationservice": "lib/services/invitationservice:default",
+    "webda/kubernetesconfigurationservice": "lib/services/kubernetesconfiguration:KubernetesConfigurationService",
+    "webda/mailer": "lib/services/mailer:Mailer",
+    "webda/mapper": "lib/stores/mapper:default",
+    "webda/memorylogger": "lib/utils/logger:MemoryLoggerService",
+    "webda/memoryqueue": "lib/queues/memoryqueue:MemoryQueue",
+    "webda/memorystore": "lib/stores/memory:MemoryStore",
+    "webda/multinotificationservice": "lib/services/notificationservice:default",
+    "webda/resourceservice": "lib/services/resource:default",
+    "webda/versionservice": "lib/services/version:VersionService"
+  },
+  "models": {
+    "webda/aclmodel": "lib/models/aclmodel:default",
+    "webda/context": "lib/utils/context:Context",
+    "webda/coremodel": "lib/models/coremodel:CoreModel",
+    "webda/ident": "lib/models/ident:Ident",
+    "webda/ownermodel": "lib/models/ownermodel:OwnerModel",
+    "webda/securecookie": "lib/utils/cookie:SecureCookie",
+    "webda/sessioncookie": "lib/utils/cookie:SessionCookie",
+    "webda/user": "lib/models/user:User"
+  },
+  "deployers": {}
+}

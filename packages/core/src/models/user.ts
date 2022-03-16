@@ -1,5 +1,3 @@
-"use strict";
-import { Model } from "..";
 import { PartialModel } from "../services/service";
 import { Ident } from "./ident";
 import { OwnerModel } from "./ownermodel";
@@ -7,9 +5,9 @@ import { OwnerModel } from "./ownermodel";
 /**
  * First basic model for User
  * @class
+ * @WebdaModel
  */
-@Model
-class User extends OwnerModel {
+export class User extends OwnerModel {
   /**
    * Password of the user if defined
    */
@@ -143,5 +141,3 @@ class User extends OwnerModel {
     this.__password = password;
   }
 }
-
-export { User };

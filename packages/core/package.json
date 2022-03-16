@@ -64,7 +64,8 @@
   },
   "files": [
     "lib",
-    "test"
+    "test",
+    "webda.module.json"
   ],
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",

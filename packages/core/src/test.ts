@@ -108,7 +108,6 @@ export class TestApplication extends Application {
     if (fs.existsSync(currentModule)) {
       files.push(currentModule);
     }
-
     if (files.length) {
       this.log("DEBUG", "Found modules", files);
       for (let file of files) {
@@ -143,7 +142,6 @@ class WebdaTest {
    */
   protected async buildWebda() {
     let app = new TestApplication(this.getTestConfiguration());
-    app.setActive();
     app.addService("webdatest/voidstore", await import("../test/moddas/voidstore"));
     app.addService("webdatest/fakeservice", await import("../test/moddas/fakeservice"));
     app.addService("webdatest/mailer", await import("../test/moddas/debugmailer"));

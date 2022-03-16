@@ -1,4 +1,4 @@
-import { Modda, Service, ServiceParameters } from "@webda/core";
+import { Service, ServiceParameters } from "@webda/core";
 import { LogFilter, WorkerLogLevel, WorkerMessage } from "@webda/workout";
 import * as uuid from "uuid";
 import { CloudFormationContributor } from ".";
@@ -25,8 +25,9 @@ export class CloudWatchLoggerParameters extends ServiceParameters {
 
 /**
  * Output log to a CloudWatch Stream
+ *
+ * @WebdaModda
  */
-@Modda
 export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = CloudWatchLoggerParameters>
   extends Service<T>
   implements CloudFormationContributor

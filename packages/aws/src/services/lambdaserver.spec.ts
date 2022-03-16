@@ -4,6 +4,7 @@ import * as fs from "fs";
 import { suite, test } from "@testdeck/mocha";
 import { checkLocalStack, WebdaAwsTest } from "../index.spec";
 import { LambdaServer } from "./lambdaserver";
+import { TestApplication } from "@webda/core/lib/test";
 
 @Bean
 class ExceptionExecutor extends Service {
@@ -42,8 +43,9 @@ class LambdaHandlerTest extends WebdaAwsTest {
 
   async before() {
     await checkLocalStack();
-    let app = new Application(this.getTestConfiguration());
-    app.loadLocalModule();
+    let app = new TestApplication(this.getTestConfiguration());
+    await app.loadModules();
+    await app.load();
     this.webda = this.handler = new LambdaServer(app);
     this.webda.initStatics();
     this.evt = {

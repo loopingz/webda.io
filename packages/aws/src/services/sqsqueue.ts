@@ -1,5 +1,4 @@
-"use strict";
-import { Modda, Queue, QueueParameters, WebdaError, MessageReceipt } from "@webda/core";
+import { Queue, QueueParameters, WebdaError, MessageReceipt } from "@webda/core";
 import { CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
 import { GetAWS } from "./aws-mixin";
@@ -43,8 +42,9 @@ export class SQSQueueParameters extends QueueParameters {
 
 /**
  * Implement SQS as queue for Webda
+ *
+ * @WebdaModda
  */
-@Modda
 export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueueParameters>
   extends Queue<T, K>
   implements CloudFormationContributor

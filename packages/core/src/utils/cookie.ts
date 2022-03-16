@@ -2,7 +2,6 @@ import * as jwt from "jsonwebtoken";
 import { WebdaError } from "../core";
 import { Context } from "./context";
 import { serialize as cookieSerialize } from "cookie";
-import { Model } from "../application";
 
 /**
  * Cookie cannot be more than 4096, so we split them by this constant
@@ -24,9 +23,9 @@ const SPLIT = 4096;
  * You cannot store variables starting with _ in the session if you do use them they won't be persist, so it can be used to add some context
  *
  * @category CoreFeatures
+ * @WebdaModel
  */
-@Model
-class SecureCookie {
+export class SecureCookie {
   _name: string;
   _algo: string;
   _secret: string;
@@ -169,8 +168,10 @@ class SecureCookie {
   }
 }
 
-@Model
-class SessionCookie extends SecureCookie {
+/**
+ * @WebdaModel
+ */
+export class SessionCookie extends SecureCookie {
   constructor(ctx: Context) {
     super(
       ctx.getWebda().parameter("sessionName") || "webda",
@@ -225,5 +226,3 @@ class SessionCookie extends SecureCookie {
     // For future use
   }
 }
-
-export { SecureCookie, SessionCookie };

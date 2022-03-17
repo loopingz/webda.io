@@ -20,7 +20,6 @@ export abstract class DeployerTest<T extends Deployer<any>> {
       new ConsoleLogger(workerOutput, logger);
     }
     await WebdaSampleApplication.load();
-    await WebdaSampleApplication.loadModules();
     this.manager = new DeploymentManager(WebdaSampleApplication, "Production");
     this.deployer = await this.getDeployer(this.manager);
   }

@@ -12,7 +12,7 @@ class TestApplication extends SourceApplication {
   }
 }
 
-export const WebdaSampleApplication = new TestApplication(path.resolve(`${__dirname}/../../../sample-app/`));
+export const WebdaSampleApplication = new SourceApplication(path.resolve(`${__dirname}/../../../sample-app/`));
 
 /**
  * Test the sample application

@@ -5,6 +5,7 @@ const CacheService = new MethodCacheService();
 export { CacheService };
 
 export * from "./application";
+export * from "./unpackedapplication";
 export * from "./core";
 
 // Models

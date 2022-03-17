@@ -1,5 +1,5 @@
 "use strict";
-import { Application, CancelablePromise, FileUtils, JSONUtils, Logger } from "@webda/core";
+import { CancelablePromise, FileUtils, JSONUtils, Logger } from "@webda/core";
 import { ChildProcess, spawn } from "child_process";
 import * as colors from "colors";
 import * as crypto from "crypto";
@@ -12,10 +12,9 @@ import { WorkerOutput, WorkerLogLevel, ConsoleLogger, WorkerLogLevelEnum, LogFil
 import { WebdaTerminal } from "./terminal";
 import * as path from "path";
 import * as semver from "semver";
-import { Definition } from "typescript-json-schema";
 import * as jsonc from "jsonc-parser";
 import { SourceApplication } from "../code/sourceapplication";
-import { JSONSchema6, JSONSchema6Definition } from "json-schema";
+import { JSONSchema7 } from "json-schema";
 
 export type WebdaCommand = (argv: any[]) => void;
 export interface WebdaShellExtension {
@@ -659,7 +658,7 @@ export default class WebdaConsole {
     deploymentFilename: string = ".webda-deployment-schema.json",
     full: boolean = false
   ) {
-    let res: JSONSchema6 = this.app.getSchema("Configuration");
+    let res: JSONSchema7 = this.app.getSchema("Configuration");
     // Clean cached modules
     delete res.definitions.CachedModule;
     delete res.properties.cachedModules;
@@ -676,12 +675,12 @@ export default class WebdaConsole {
     };
     Object.keys(this.app.getServices()).forEach(serviceType => {
       const key = `ServiceType$${serviceType.replace(/\//g, "$")}`;
-      const definition: JSONSchema6 = (res.definitions[key] = <JSONSchema6>this.app.getSchema(serviceType));
+      const definition: JSONSchema7 = (res.definitions[key] = <JSONSchema7>this.app.getSchema(serviceType));
       if (!definition) {
         return;
       }
-      (<JSONSchema6>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
-      (<JSONSchema6>(<JSONSchema6>res.properties.services).additionalProperties).oneOf.push({
+      (<JSONSchema7>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
+      (<JSONSchema7>(<JSONSchema7>res.properties.services).additionalProperties).oneOf.push({
         $ref: `#/definitions/${key}`
       });
       delete res.definitions[key]["$schema"];
@@ -723,7 +722,7 @@ export default class WebdaConsole {
         return;
       }
       const key = `Service$${k}`;
-      (<Definition>res.properties.services).properties[k] = {
+      (<JSONSchema7>res.properties.services).properties[k] = {
         type: "object",
         oneOf: [
           { $ref: `#/definitions/${key}` },
@@ -735,7 +734,7 @@ export default class WebdaConsole {
     });
     Object.keys(this.app.getDeployers()).forEach(serviceType => {
       const key = `DeployerType$${serviceType.replace(/\//g, "$")}`;
-      const definition: JSONSchema6 = (res.definitions[key] = <JSONSchema6>this.app.getSchema(serviceType));
+      const definition: JSONSchema7 = (res.definitions[key] = <JSONSchema7>this.app.getSchema(serviceType));
       if (!definition) {
         return;
       }
@@ -746,8 +745,8 @@ export default class WebdaConsole {
           }
         };
       }
-      (<JSONSchema6>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
-      (<JSONSchema6>(<JSONSchema6>res.properties.units).items).oneOf.push({ $ref: `#/definitions/${key}` });
+      (<JSONSchema7>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
+      (<JSONSchema7>(<JSONSchema7>res.properties.units).items).oneOf.push({ $ref: `#/definitions/${key}` });
       delete definition["$schema"];
       // Remove mandatory depending on option
       if (!full) {

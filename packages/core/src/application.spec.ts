@@ -2,11 +2,8 @@ import * as assert from "assert";
 import * as fs from "fs-extra";
 import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
-import { Application, CacheService, Core } from "./index";
+import { Application, UnpackedApplication } from "./index";
 import { TestApplication, WebdaTest } from "./test";
-import { removeSync, emptyDirSync } from "fs-extra";
-import { execSync } from "child_process";
-import * as sinon from "sinon";
 
 @suite
 class ApplicationTest extends WebdaTest {
@@ -14,7 +11,8 @@ class ApplicationTest extends WebdaTest {
 
   async before() {
     await super.before();
-    this.sampleApp = new Application(path.join(__dirname, "..", "..", "..", "sample-app"));
+    this.sampleApp = new TestApplication(path.join(__dirname, "..", "..", "..", "sample-app"));
+    await this.sampleApp.load();
   }
 
   cleanSampleApp() {
@@ -83,12 +81,13 @@ class ApplicationTest extends WebdaTest {
     assert.throws(() => new Application(__dirname + "/../test/badapp"), /Cannot parse JSON of: .*/);
     // If allow module is enable the Application should let run anywhere
     new Application(__dirname + "/../test/moddas", undefined, true);
-    new Application(__dirname + "/../test/badapp", undefined, true);
+    let unpackedApp = new UnpackedApplication(__dirname + "/../test/badapp", undefined, true);
+    unpackedApp.loadProjectInformation();
     // Read cached modules
     let app = new Application(__dirname + "/../test/cachedapp", undefined, true);
+    app.getGitInformation();
     // No package.json should not fail although more than abnormal
-    app.loadPackageInfos();
-    app = new Application(__dirname + "/../test/config.old-default.json");
+    app = new TestApplication(__dirname + "/../test/config.old-default.json");
     assert.ok(!app.extends(null, String));
 
     app.getPackageWebda();
@@ -122,7 +121,6 @@ class ApplicationTest extends WebdaTest {
   @test
   async getFullNameFromPrototype() {
     let app = new TestApplication(__dirname + "/../test/config.json");
-    await app.loadModules();
     await app.load();
     let services: any = app.getServices();
     let name = Object.keys(services).pop();

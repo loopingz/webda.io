@@ -1,0 +1,11 @@
+{
+  "services": {
+    "Beans/BeanService": "lib/services/bean",
+    "Beans/CustomService": "lib/services/custom",
+    "webdademo/customreusableservice": "lib/services/reusable:default"
+  },
+  "models": {
+    "webdademo/contact": "lib/models/contact:default"
+  },
+  "deployers": {}
+}

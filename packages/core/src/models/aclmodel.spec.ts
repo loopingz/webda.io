@@ -13,7 +13,7 @@ class AclPolicyTest {
 
   async before() {
     let app = new TestApplication(__dirname + "/../../test/config.json");
-    await app.loadModules();
+    await app.load();
     this._webda = new Core(app);
     this._ctx = await this._webda.newContext(new HttpContext("test.webda.io", "GET", "/"));
     this._session = this._ctx.getSession();

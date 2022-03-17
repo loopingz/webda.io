@@ -2,9 +2,63 @@ import * as fs from "fs";
 import * as path from "path";
 import { Context, Core, CoreModelDefinition, Service, WebdaError } from "./index";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import * as deepmerge from "deepmerge";
-import { JSONSchema6 } from "json-schema";
+import { JSONSchema7 } from "json-schema";
 import { FileUtils } from "./utils/serializers";
+
+export type PackageDescriptorAuthor =
+  | string
+  | {
+      name?: string;
+      email?: string;
+      url?: string;
+    };
+/**
+ * Some package exists but seems pretty big for this
+ * https://classic.yarnpkg.com/en/docs/package-json
+ */
+export interface PackageDescriptor {
+  name?: string;
+  version?: string;
+  description?: string;
+  keywords?: string[];
+  license?: string | { name: string };
+  homepage?: string;
+  bugs?: string;
+  repository?: string;
+  author?: PackageDescriptorAuthor;
+  contributors?: string[] | PackageDescriptorAuthor[];
+  files?: string[];
+  main?: string;
+  bin?:
+    | string
+    | {
+        [key: string]: string;
+      };
+  man?: string | string[];
+  directories?: { [key: string]: string };
+  scripts?: { [key: string]: string };
+  config?: any;
+  dependencies?: { [key: string]: string };
+  devDependencies?: { [key: string]: string };
+  peerDependencies?: { [key: string]: string };
+  peerDependenciesMeta?: {
+    [key: string]: {
+      optional: boolean;
+    };
+  };
+  optionalDependencies?: { [key: string]: string };
+  bundledDependencies?: string[];
+  flat?: boolean;
+  resolutions?: { [key: string]: string };
+  engines?: { [key: string]: string };
+  os?: string[];
+  cpu?: string[];
+  private?: boolean;
+  publishConfig?: any;
+  webda?: Partial<WebdaPackageDescriptor>;
+  termsOfService?: string;
+  title?: string;
+}
 
 /**
  * A Webda module is a NPM package
@@ -29,7 +83,7 @@ export interface Module {
   /**
    * Schemas for services, deployers and coremodel
    */
-  schemas?: { [key: string]: JSONSchema6 };
+  schemas?: { [key: string]: JSONSchema7 };
 }
 
 /**
@@ -44,18 +98,7 @@ export interface CachedModule extends Module {
    * Contained dynamic information on the project
    * Statically capture on deployment
    */
-  projectInformation: {
-    package: {
-      version: string;
-      name: string;
-      [key: string]: any;
-    };
-    git: GitInformation;
-    deployment: {
-      name: string;
-      [key: string]: any;
-    };
-  };
+  project: ProjectInformation;
 }
 
 /**
@@ -81,6 +124,7 @@ export type ConfigurationV1 = {
   services?: any;
   [key: string]: any;
 };
+
 export type Configuration = {
   version: 2;
   /**
@@ -212,6 +256,60 @@ export enum SectionEnum {
   Beans = "beans"
 }
 
+/**
+ * Webda specific metadata for the project
+ */
+export interface WebdaPackageDescriptor {
+  /**
+   * Webda namespace
+   */
+  namespace?: string;
+  /**
+   * Logo to display within the shell tty
+   */
+  logo?: string;
+  /**
+   * Information on the workspace
+   */
+  workspaces?: {
+    packages: string[];
+    parent: PackageDescriptor;
+    path: string;
+  };
+  [key: string]: any;
+}
+
+/**
+ * Information on the whole project
+ */
+export interface ProjectInformation {
+  /**
+   * package.json information
+   */
+  package: PackageDescriptor;
+  /**
+   * Webda project information
+   *
+   * It is the aggregation of webda information contained in package
+   * and its workspace meta
+   */
+  webda: WebdaPackageDescriptor;
+  /**
+   * Git information gathered
+   */
+  git: GitInformation;
+  /**
+   * Deployment information
+   */
+  deployment: {
+    name: string;
+    [key: string]: any;
+  };
+}
+
+/**
+ * Type of Section
+ */
 export type Section = "services" | "deployers" | "models" | "beans";
 /**
  * Map a Webda Application
@@ -249,7 +347,10 @@ export class Application {
     deployers: {},
     beans: {},
     schemas: {},
-    projectInformation: {
+    project: {
+      webda: {
+        namespace: ""
+      },
       git: {
         branch: "",
         commit: "",
@@ -301,18 +402,6 @@ export class Application {
    * Class Logger
    */
   protected logger: WorkerOutput;
-  /**
-   * Contains package.json of application
-   */
-  protected packageDescription: any = {};
-  /**
-   * Contains webda section of package.json and workspaces if exist
-   */
-  protected packageWebda: any = {};
-  /**
-   * Webda namespace
-   */
-  protected namespace: string;
 
   /**
    * Detect if running as workspace
@@ -377,14 +466,8 @@ export class Application {
         throw new WebdaError("INVALID_WEBDA_CONFIG", `Cannot parse JSON of: ${file}`);
       }
     }
-    // Load if a module definition is included
-    if (this.baseConfiguration.module) {
-      //this.loadModule(this.baseConfiguration.module, this.appPath);
-    }
-    this.loadPackageInfos();
-    this.namespace = this.packageDescription.webda
-      ? this.packageDescription.webda.namespace
-      : this.packageDescription.name | this.packageDescription.name;
+
+    this.cachedModules = this.baseConfiguration.cachedModules;
   }
 
   /**
@@ -393,6 +476,7 @@ export class Application {
   async load() {
     await this.loadModule(this.cachedModules);
   }
+
   /**
    * Allow subclass to implement migration
    *
@@ -424,7 +508,7 @@ export class Application {
    * @param type
    * @returns
    */
-  getSchema(type: string): JSONSchema6 {
+  getSchema(type: string): JSONSchema7 {
     return this.cachedModules.schemas[type];
   }
 
@@ -440,57 +524,22 @@ export class Application {
   }
 
   /**
-   * Check package.json
-   */
-  loadPackageInfos() {
-    let packageJson = path.join(this.appPath, "package.json");
-    if (fs.existsSync(packageJson)) {
-      this.packageDescription = JSON.parse(fs.readFileSync(packageJson).toString());
-    } else {
-      this.log("WARN", "Application does not have a package.json");
-      this.packageDescription = {};
-    }
-    this.packageWebda = this.packageDescription.webda || {};
-    let parent = path.join(this.appPath, "..");
-    do {
-      packageJson = path.join(parent, "package.json");
-      if (fs.existsSync(packageJson)) {
-        let info = JSON.parse(fs.readFileSync(packageJson).toString());
-        if (info.workspaces) {
-          this.log("DEBUG", "Application is running within a workspace");
-          this.workspacesPath = path.resolve(parent);
-          // Replace any relative path by absolute one
-          for (let i in info.webda) {
-            if (info.webda[i].startsWith("./")) {
-              info.webda[i] = path.resolve(parent) + "/" + info.webda[i].substr(2);
-            }
-          }
-          this.packageWebda = deepmerge(info.webda || {}, this.packageWebda);
-          this.packageWebda.workspaces = {
-            packages: info.workspaces,
-            parent: info,
-            path: path.resolve(parent)
-          };
-          return;
-        }
-      }
-      parent = path.join(parent, "..");
-    } while (path.resolve(parent) !== "/");
-  }
-
-  /**
    * Retrieve specific webda conf from package.json
    *
    * In case of workspaces the object is combined
    */
-  getPackageWebda() {
-    return this.packageWebda;
+  getPackageWebda(): WebdaPackageDescriptor {
+    return (
+      this.cachedModules.project?.webda || {
+        namespace: "Webda"
+      }
+    );
   }
   /**
    * Retrieve content of package.json
    */
   getPackageDescription() {
-    return this.packageDescription;
+    return this.cachedModules.project?.package || {};
   }
 
   /**
@@ -539,21 +588,34 @@ export class Application {
   }
 
   /**
+   *
+   * @param section
+   * @param name
+   * @returns
+   */
+  getWebdaObject(section: Section, name) {
+    let objectName = this.completeNamespace(name);
+    this.log("TRACE", `Search for ${section} ${objectName}`);
+    if (!this[section][objectName] && name.indexOf("/") === -1) {
+      objectName = `webda/${name}`.toLowerCase();
+    }
+    if (!this[section][objectName]) {
+      throw Error(
+        `Undefined ${section.substr(0, section.length - 1)} ${name} or ${objectName} (${Object.keys(this[section]).join(
+          ", "
+        )})`
+      );
+    }
+    return this[section][objectName];
+  }
+
+  /**
    * Get a service based on name
    *
    * @param name
    */
   getService(name) {
-    let serviceName = this.completeNamespace(name).toLowerCase();
-    this.log("TRACE", "Search for service", serviceName);
-    if (!this.services[serviceName]) {
-      serviceName = `Webda/${name}`.toLowerCase();
-      // Try Webda namespace
-      if (!this.services[serviceName]) {
-        throw Error("Undefined service " + name + " or " + serviceName);
-      }
-    }
-    return this.services[serviceName];
+    return this.getWebdaObject("services", name);
   }
 
   /**
@@ -569,14 +631,7 @@ export class Application {
    * @param name model to retrieve
    */
   getModel(name: string): any {
-    name = name.toLowerCase();
-    if (name.indexOf("/") < 0) {
-      name = `webda/${name}`;
-    }
-    if (!this.models[name.toLowerCase()]) {
-      throw Error("Undefined model '" + name + "' known models are '" + Object.keys(this.models).join(",") + "'");
-    }
-    return this.models[name.toLowerCase()];
+    return this.getWebdaObject("models", name);
   }
 
   /**
@@ -632,7 +687,7 @@ export class Application {
    * @return the git information
    */
   getGitInformation(): GitInformation {
-    return this.cachedModules.projectInformation.git;
+    return this.cachedModules.project?.git;
   }
 
   /**
@@ -647,7 +702,7 @@ export class Application {
       return templateString;
     }
     return new Function("return `" + templateString.replace(/\$\{/g, "${this.") + "`;").call({
-      ...this.cachedModules.projectInformation,
+      ...this.cachedModules.project,
       now: this.initTime,
       ...replacements
     });
@@ -708,7 +763,7 @@ export class Application {
    * Get current deployment name
    */
   getCurrentDeployment() {
-    return this.cachedModules.projectInformation.deployment.name;
+    return this.cachedModules.project.deployment.name;
   }
 
   /**
@@ -779,10 +834,8 @@ export class Application {
    * @protected
    * @ignore Useless for documentation
    */
-  async loadModule(info: Module, parent: string = this.appPath) {
-    info.services = info.services || {};
-    info.models = info.models || {};
-    info.deployers = info.deployers || {};
+  async loadModule(module: Module, parent: string = this.appPath) {
+    const info: Omit<CachedModule, "project"> = { beans: {}, ...module };
     const sectionLoader = async (section: Section) => {
       for (let key in info[section]) {
         this[section][key.toLowerCase()] = await this.importFile(path.join(parent, info[section][key]));
@@ -810,7 +863,7 @@ export class Application {
     if (name.indexOf("/") >= 0) {
       return name.toLowerCase();
     }
-    return `${this.namespace || "webda"}/${name}`.toLowerCase();
+    return `${this.cachedModules.project?.webda?.namespace || "webda"}/${name}`.toLowerCase();
   }
 
   /**

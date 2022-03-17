@@ -1,7 +1,7 @@
 import Ajv from "ajv";
 import * as deepmerge from "deepmerge";
 import * as events from "events";
-import { JSONSchema6 } from "json-schema";
+import { JSONSchema7 } from "json-schema";
 import * as jsonpath from "jsonpath";
 import { OpenAPIV3 } from "openapi-types";
 import * as vm from "vm";
@@ -10,7 +10,6 @@ import { ConfigurationService, Context, HttpContext, Logger, Service, Store } fr
 import { CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { OpenAPIWebdaDefinition, RouteInfo, Router } from "./router";
 import { WorkerOutput, WorkerLogLevel } from "@webda/workout";
-import { AbstractDeployer } from "./utils/abstractdeployer";
 import { v4 as uuidv4 } from "uuid";
 
 /**
@@ -969,19 +968,23 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
 
   exportOpenAPI(skipHidden: boolean = true): OpenAPIV3.Document {
     let packageInfo = this.application.getPackageDescription();
-    let contact = packageInfo.author;
+    let contact: OpenAPIV3.ContactObject;
     if (typeof packageInfo.author === "string") {
       contact = {
         name: packageInfo.author
       };
+    } else if (packageInfo.author) {
+      contact = packageInfo.author;
     }
-    let license = packageInfo.license;
+    let license : OpenAPIV3.LicenseObject;
     if (typeof packageInfo.license === "string") {
       license = {
         name: packageInfo.license
       };
+    } else if (packageInfo.license) {
+      license = packageInfo.license;
     }
-    let openapi = deepmerge(
+    let openapi: OpenAPIV3.Document = deepmerge(
       {
         openapi: "3.0",
         info: {
@@ -1007,7 +1010,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     let models = this.application.getModels();
     for (let i in models) {
       let model = models[i];
-      let desc: JSONSchema6 = {
+      let desc: JSONSchema7 = {
         type: "object"
       };
       let modelDescription = this.getModel(i);
@@ -1018,6 +1021,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       let schema = this.application.getSchema(i);
       if (schema) {
         for (let j in schema.definitions) {
+          // @ts-ignore
           openapi.definitions[j] ??= schema.definitions[j];
         }
         delete schema.definitions;

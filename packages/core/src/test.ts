@@ -1,10 +1,11 @@
-import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
-import { Application, Context, Core, HttpContext, HttpMethodType, Service } from "./index";
+import { WorkerLogLevel } from "@webda/workout";
+import { Context, Core, HttpContext, HttpMethodType, Service } from "./index";
 import { ConsoleLoggerService } from "./utils/logger";
-import * as fs from "fs";
 import * as path from "path";
 import { execSync } from "child_process";
-import { Module, Section, SectionEnum } from "./application";
+import { SectionEnum, CachedModule } from "./application";
+import { FileUtils } from "./utils/serializers";
+import { UnpackedApplication } from "./unpackedapplication";
 
 export class Executor {
   /**
@@ -18,10 +19,12 @@ export class Executor {
   }
 }
 
-export class TestApplication extends Application {
-  constructor(file: string, logger?: WorkerOutput, allowModule?: boolean) {
-    super(file, logger, allowModule);
-  }
+/**
+ * TestApplication ensure we load the typescript sources instead of compiled version
+ *
+ * Test use ts-node so to share same prototypes we need to load from the sources
+ */
+export class TestApplication extends UnpackedApplication {
   /**
    * Set the status of the compilation
    *
@@ -58,65 +61,32 @@ export class TestApplication extends Application {
   }
 
   /**
-   * Load local module
+   * Load a webda.module.json file
+   * Resolve the linked file to current application
+   *
+   * @param moduleFile to load
+   * @returns
    */
-  async loadLocalModule() {
-    let moduleFile = path.join(process.cwd(), "webda.module.json");
-    if (fs.existsSync(moduleFile)) {
-      // Local Module need to be using the src/ while testing
-      let module = JSON.parse(fs.readFileSync(moduleFile).toString());
+  loadWebdaModule(moduleFile: string): CachedModule {
+    // Test are using ts-node so local source should be loaded from .ts with ts-node aswell
+    if (process.cwd() === path.dirname(moduleFile)) {
+      let module = FileUtils.load(moduleFile);
       Object.keys(SectionEnum)
         .filter(k => Number.isNaN(+k))
         .forEach(p => {
           for (let key in module[SectionEnum[p]]) {
-            module[SectionEnum[p]][key] = module[SectionEnum[p]][key].replace(/^lib\//, "src/");
+            module[SectionEnum[p]][key] = path.join(
+              path.relative(this.getAppPath(), path.dirname(moduleFile)),
+              module[SectionEnum[p]][key].replace(/^lib\//, "src/")
+            );
           }
         });
-      await this.loadModule(module, process.cwd());
+      return module;
     }
-  }
-
-  /**
-   * Load all imported modules and current module
-   * It will compile module
-   * Generate the current module file
-   * Load any imported webda.module.json
-   */
-  async loadModules() {
-    // Cached modules is defined on deploy
-    if (this.baseConfiguration.cachedModules) {
-      // We should not load any modules as we are in a deployed version
-      return;
-    }
-    // Compile
-    this.compile();
-    const Finder = require("fs-finder");
-    // Modules should be cached on deploy
-    var files = [];
-    let nodeModules = this.getAppPath("node_modules");
-    if (fs.existsSync(nodeModules)) {
-      files = Finder.from(nodeModules).findFiles("webda.module.json");
-    }
-    // Search workspace for webda.module.json
-    if (this.workspacesPath !== "") {
-      nodeModules = path.join(this.workspacesPath, "node_modules");
-      if (fs.existsSync(nodeModules)) {
-        files.push(...Finder.from(nodeModules).findFiles("webda.module.json"));
-      }
-    }
-    let currentModule = this.getAppPath("webda.module.json");
-    if (fs.existsSync(currentModule)) {
-      files.push(currentModule);
-    }
-    if (files.length) {
-      this.log("DEBUG", "Found modules", files);
-      for (let file of files) {
-        let info = require(file);
-        await this.loadModule(info, path.dirname(file));
-      }
-    }
+    return super.loadWebdaModule(moduleFile);
   }
 }
+
 /**
  * Utility class for UnitTest
  *
@@ -142,14 +112,12 @@ class WebdaTest {
    */
   protected async buildWebda() {
     let app = new TestApplication(this.getTestConfiguration());
+    await app.load();
     app.addService("webdatest/voidstore", await import("../test/moddas/voidstore"));
     app.addService("webdatest/fakeservice", await import("../test/moddas/fakeservice"));
     app.addService("webdatest/mailer", await import("../test/moddas/debugmailer"));
     app.addModel("webdatest/task", await import("../test/models/task"));
     app.addModel("webdatest/ident", await import("../test/models/ident"));
-
-    await app.loadModules();
-    await app.loadLocalModule();
 
     this.webda = new Core(app);
     if (this.addConsoleLogger) {

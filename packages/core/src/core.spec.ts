@@ -172,9 +172,8 @@ class CoreTest extends WebdaTest {
 
   @test
   async exportOpenAPI() {
-    console.log("new application normally", Object.keys(this.webda.getApplication().getServices()));
     let app = new TestApplication(path.join(__dirname, "..", "..", "..", "sample-app"));
-    await app.loadModules();
+    await app.load();
 
     let webda = new Core(app);
     // @ts-ignore
@@ -190,7 +189,10 @@ class CoreTest extends WebdaTest {
       tags: [{ name: "Zzzz" }, { name: "Aaaaa" }]
     };
     app.getPackageDescription = () => ({
-      license: "GPL"
+      license: "GPL",
+      author: {
+        name: "Test"
+      }
     });
     app.getSchema = type => {
       let res = {
@@ -204,10 +206,19 @@ class CoreTest extends WebdaTest {
       return res;
     };
     openapi = webda.exportOpenAPI();
+    assert.strictEqual(openapi.info.contact.name, "Test");
     assert.strictEqual(openapi.info.license.name, "GPL");
     assert.deepStrictEqual(openapi.tags, [{ name: "Aaaaa" }, { name: "contacts" }, { name: "Zzzz" }]);
     // @ts-ignore
     assert.ok(Object.keys(openapi.definitions).length > 10);
+    app.getPackageDescription = () => ({
+      license: {
+        name: "GPL"
+      },
+      author: "Test"
+    });
+    openapi = webda.exportOpenAPI();
+    assert.strictEqual(openapi.info.contact.name, "Test");
   }
 
   @test
@@ -417,7 +428,7 @@ class CoreTest extends WebdaTest {
   @test
   async autoConnectFailure() {
     let app = new TestApplication(__dirname + "/../test/config.broken.json");
-    await app.loadModules();
+    await app.load();
     let core = new Core(app);
     await core.init();
     core.getServices()["implicitbean"].resolve = () => {

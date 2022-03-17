@@ -18,11 +18,6 @@ export class PostgresTest extends StoreTest {
   }
 
   @test
-  getModda() {
-    PostgresStore.getModda();
-  }
-
-  @test
   async deleteConcurrent() {
     return super.deleteConcurrent();
   }

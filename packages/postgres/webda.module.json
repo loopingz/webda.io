@@ -1,6 +1,6 @@
 {
   "services": {
-    "Webda/PostgresStore": "lib/postgresstore.js"
+    "Webda/PostgresStore": "lib/postgresstore:default"
   },
   "models": {},
   "deployers": {},

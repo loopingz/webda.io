@@ -2,7 +2,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { Store } from "../stores/store";
 import { Context, HttpMethodType } from "../utils/context";
-import { Service } from "..";
+import { Service } from "../services/service";
 
 /**
  * Define an export of actions from Model

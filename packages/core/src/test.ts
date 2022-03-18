@@ -38,8 +38,7 @@ export class TestApplication extends UnpackedApplication {
    */
   protected compiled: boolean = false;
   /**
-   * Compile the application if it is a Typescript application
-   * Do nothing otherwise
+   * Compile the application
    */
   compile() {
     if (this.compiled) {
@@ -58,6 +57,25 @@ export class TestApplication extends UnpackedApplication {
         });
     }
     this.compiled = true;
+  }
+
+  /**
+   * Only allow local and core module and sample-app
+   */
+  filterModule(filename: string): boolean {
+    const relativePath = path.relative(process.cwd(), filename);
+    return (
+      !relativePath.includes("..") || relativePath.startsWith("../core") || relativePath.startsWith("../../sample-app/")
+    );
+  }
+
+  /**
+   * Override to allow module filtering
+   * @param module
+   * @returns
+   */
+  findModules(module = this.cachedModules) {
+    return super.findModules(module).filter(f => this.filterModule(f));
   }
 
   /**
@@ -249,7 +267,7 @@ class WebdaTest {
    * @deprecated ?
    */
   consumeAllModdas() {
-    let services = this.webda.getApplication().getServices();
+    let services = this.webda.getApplication().getModdas();
     /*
     for (let i in services) {
       if (services[i].getModda) {

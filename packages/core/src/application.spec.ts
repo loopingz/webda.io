@@ -15,11 +15,6 @@ class ApplicationTest extends WebdaTest {
     await this.sampleApp.load();
   }
 
-  cleanSampleApp() {
-    fs.removeSync(this.sampleApp.getAppPath("lib"));
-    fs.removeSync(this.sampleApp.getAppPath("webda.module.json"));
-  }
-
   @test
   testObjectParameter() {
     assert.deepStrictEqual(
@@ -91,7 +86,7 @@ class ApplicationTest extends WebdaTest {
     assert.ok(!app.extends(null, String));
 
     app.getPackageWebda();
-    assert.throws(() => app.getService("Unknown"), /Undefined service Unknown/);
+    assert.throws(() => app.getModda("Unknown"), /Undefined modda Unknown/);
     app.getDeployers();
 
     app.getModules();
@@ -122,7 +117,7 @@ class ApplicationTest extends WebdaTest {
   async getFullNameFromPrototype() {
     let app = new TestApplication(__dirname + "/../test/config.json");
     await app.load();
-    let services: any = app.getServices();
+    let services: any = app.getModdas();
     let name = Object.keys(services).pop();
     let service: any = services[name].prototype;
     assert.strictEqual(app.getFullNameFromPrototype(service), name);
@@ -139,7 +134,7 @@ class ApplicationTest extends WebdaTest {
     let app = new Application(__dirname + "/../test/config.json");
     await app.loadModule(
       {
-        services: {
+        moddas: {
           Test: "moddas/fakeservice.js",
           ReTest: "./notFound.js"
         },

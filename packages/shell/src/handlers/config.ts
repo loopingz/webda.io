@@ -1,8 +1,12 @@
 import { Application, Configuration, Context, RequestFilter, Service, ServiceConstructor } from "@webda/core";
 import * as path from "path";
+import { SourceApplication } from "../code/sourceapplication";
 import { Deployment } from "../models/deployment";
 import { WebdaServer } from "./http";
 
+/**
+ * @WebdaModda webdashell/configuration
+ */
 export default class ConfigurationService extends Service implements RequestFilter<Context> {
   webdaApplication: Application;
 
@@ -59,7 +63,7 @@ export default class ConfigurationService extends Service implements RequestFilt
 }
 export { ConfigurationService };
 
-export class ConfigApplication extends Application {
+export class ConfigApplication extends SourceApplication {
   getModel(model: string): any {
     if (model.toLowerCase() === "webdaconfiguration/deployment") {
       return Deployment;
@@ -67,11 +71,11 @@ export class ConfigApplication extends Application {
     return super.getModel(model);
   }
 
-  getService(name: string): ServiceConstructor<Service> {
+  getModda(name: string): ServiceConstructor<Service> {
     if (name.toLowerCase() === "webdaconfiguration/api") {
       return ConfigurationService;
     }
-    return super.getService(name);
+    return super.getModda(name);
   }
 
   getConfiguration(deploymentName: string = undefined): Configuration {
@@ -82,7 +86,7 @@ export class ConfigApplication extends Application {
           "qwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqaz"
       },
       module: {
-        services: {},
+        moddas: {},
         models: {}
       },
       services: {

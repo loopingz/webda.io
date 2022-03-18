@@ -1,5 +1,5 @@
 {
-  "services": {
+  "moddas": {
     "Webda/CloudWatchLogger": "./lib/services/cloudwatchlogger.js",
     "Webda/DynamoStore": "./lib/services/dynamodb.js",
     "Webda/S3Binary": "./lib/services/s3binary.js",

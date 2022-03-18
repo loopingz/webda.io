@@ -1,5 +1,5 @@
 {
-  "services": {
+  "moddas": {
     "Webda/GoogleAuthentication": "lib/google-auth.js"
   },
   "models": {},
@@ -23,10 +23,7 @@
         },
         "access_type": {
           "description": "Type of access for Google token\n\nonline by default",
-          "enum": [
-            "offline",
-            "online"
-          ],
+          "enum": ["offline", "online"],
           "type": "string"
         },
         "auth_options": {},
@@ -49,11 +46,7 @@
               }
             }
           },
-          "required": [
-            "defaults",
-            "use_referer",
-            "whitelist"
-          ]
+          "required": ["defaults", "use_referer", "whitelist"]
         },
         "url": {
           "description": "URL to use for expose\n\nThe default value varying based on implementation\nIt should by default be the provider name in lowercase",
@@ -124,14 +117,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "authenticationService",
-        "client_id",
-        "client_secret",
-        "no_referer",
-        "redirects",
-        "type"
-      ],
+      "required": ["authenticationService", "client_id", "client_secret", "no_referer", "redirects", "type"],
       "$schema": "http://json-schema.org/draft-07/schema#"
     }
   }

@@ -7,13 +7,12 @@ import * as unzip from "unzipper";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaSampleApplication } from "../index.spec";
 import { Packager } from "./packager";
-import { WorkerOutput } from "@webda/workout";
 import * as fse from "fs-extra";
-import { Application } from "@webda/core";
 import * as sinon from "sinon";
 import { EventEmitter } from "events";
+import { SourceApplication } from "../code/sourceapplication";
 
-const WorkspaceApp = new Application(path.join(__dirname, "..", "..", "test", "fakeworkspace", "app1"));
+const WorkspaceApp = new SourceApplication(path.join(__dirname, "..", "..", "test", "fakeworkspace", "app1"));
 export { WorkspaceApp };
 
 fse.mkdirSync(path.join(__dirname, "..", "..", "test", "fakeworkspace", "node_modules", "@webda"), { recursive: true });

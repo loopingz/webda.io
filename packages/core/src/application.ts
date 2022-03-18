@@ -69,7 +69,7 @@ export interface Module {
   /**
    * Services provided by the module
    */
-  services?: { [key: string]: string };
+  moddas?: { [key: string]: string };
   /**
    * Models provided by the module
    */
@@ -84,16 +84,16 @@ export interface Module {
    * Schemas for services, deployers and coremodel
    */
   schemas?: { [key: string]: JSONSchema7 };
+  /**
+   * Application beans
+   */
+  beans?: { [key: string]: string };
 }
 
 /**
  * Cached module is all modules discover plus local package including the sources list
  */
 export interface CachedModule extends Module {
-  /**
-   * Application beans
-   */
-  beans?: { [key: string]: string };
   /**
    * Contained dynamic information on the project
    * Statically capture on deployment
@@ -250,7 +250,7 @@ export interface ServiceConstructor<T extends Service> {
 }
 
 export enum SectionEnum {
-  Services = "services",
+  Moddas = "moddas",
   Deployers = "deployers",
   Models = "models",
   Beans = "beans"
@@ -310,7 +310,7 @@ export interface ProjectInformation {
 /**
  * Type of Section
  */
-export type Section = "services" | "deployers" | "models" | "beans";
+export type Section = "moddas" | "deployers" | "models" | "beans";
 /**
  * Map a Webda Application
  *
@@ -342,7 +342,7 @@ export class Application {
    * Contains all definitions from imported modules and current code
    */
   protected cachedModules: CachedModule = {
-    services: {},
+    moddas: {},
     models: {},
     deployers: {},
     beans: {},
@@ -373,7 +373,7 @@ export class Application {
    * Contains definitions of current application
    */
   protected appModule: Module = {
-    services: {},
+    moddas: {},
     models: {},
     deployers: {}
   };
@@ -389,9 +389,9 @@ export class Application {
   protected deployers: { [key: string]: any } = {};
 
   /**
-   * Services type registry
+   * Moddas registry
    */
-  protected services: { [key: string]: ServiceConstructor<Service> } = {};
+  protected moddas: { [key: string]: ServiceConstructor<Service> } = {};
 
   /**
    * Models type registry
@@ -584,7 +584,7 @@ export class Application {
    */
   addService(name: string, service: ServiceConstructor<Service>) {
     this.log("TRACE", "Registering service", name);
-    this.services[name.toLowerCase()] = service;
+    this.moddas[name.toLowerCase()] = service;
   }
 
   /**
@@ -614,15 +614,15 @@ export class Application {
    *
    * @param name
    */
-  getService(name) {
-    return this.getWebdaObject("services", name);
+  getModda(name) {
+    return this.getWebdaObject("moddas", name);
   }
 
   /**
    * Return all services of the application
    */
-  getServices() {
-    return this.services;
+  getModdas() {
+    return this.moddas;
   }
 
   /**
@@ -812,8 +812,13 @@ export class Application {
       this.log("INFO", "Load file", info, fs.existsSync(info));
       const [importFilename, importName = "default"] = info.split(":");
       // const relativePath = "./" + path.relative(this.appPath, path.resolve(info));
-      return (await import(importFilename))[importName];
+      const importObject = (await import(importFilename))[importName];
+      if (!importObject) {
+        this.log("WARN", `Module ${importFilename} does not have export named ${importName}`);
+      }
+      return importObject;
     } catch (err) {
+      console.log(`LOAD MODULE ERROR ${info}`, err);
       this.log("WARN", "Cannot resolve require", info, err.message);
     }
   }
@@ -838,11 +843,11 @@ export class Application {
     const info: Omit<CachedModule, "project"> = { beans: {}, ...module };
     const sectionLoader = async (section: Section) => {
       for (let key in info[section]) {
-        this[section][key.toLowerCase()] = await this.importFile(path.join(parent, info[section][key]));
+        this[section][key.toLowerCase()] ??= await this.importFile(path.join(parent, info[section][key]));
       }
     };
     await Promise.all([
-      sectionLoader("services"),
+      sectionLoader("moddas"),
       sectionLoader("deployers"),
       sectionLoader("models"),
       sectionLoader("beans")

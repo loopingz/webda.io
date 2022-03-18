@@ -243,8 +243,7 @@ export default class WebdaConsole {
         this.output("Server process exit", err);
       });
     };
-    this.configurationWatch(launchServe, <string>argv.deployment);
-    this.typescriptWatch(WebdaConsole.getTransform(launchServe));
+    this.app.getCompiler().watch(launchServe);
 
     return new CancelablePromise(() => {
       // Never return
@@ -515,7 +514,7 @@ export default class WebdaConsole {
   static generateModule() {
     if (fs.existsSync(this.app.configurationFile)) {
       // Generate config schema as well
-      this.generateConfigurationSchema();
+      //this.generateConfigurationSchema();
     }
     return this.app.generateModule();
   }
@@ -648,148 +647,10 @@ export default class WebdaConsole {
   }
 
   /**
-   * Generate the configuration schema
-   *
-   * @param filename to save for
-   * @param full to keep all required
-   */
-  static generateConfigurationSchema(
-    filename: string = ".webda-config-schema.json",
-    deploymentFilename: string = ".webda-deployment-schema.json",
-    full: boolean = false
-  ) {
-    let res: JSONSchema7 = this.app.getSchema("Configuration");
-    // Clean cached modules
-    delete res.definitions.CachedModule;
-    delete res.properties.cachedModules;
-    // Add the definition for types
-    res.definitions.ServicesType = {
-      type: "string",
-      enum: Object.keys(this.app.getServices())
-    };
-    res.properties.services = {
-      type: "object",
-      additionalProperties: {
-        oneOf: []
-      }
-    };
-    Object.keys(this.app.getServices()).forEach(serviceType => {
-      const key = `ServiceType$${serviceType.replace(/\//g, "$")}`;
-      const definition: JSONSchema7 = (res.definitions[key] = <JSONSchema7>this.app.getSchema(serviceType));
-      if (!definition) {
-        return;
-      }
-      (<JSONSchema7>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
-      (<JSONSchema7>(<JSONSchema7>res.properties.services).additionalProperties).oneOf.push({
-        $ref: `#/definitions/${key}`
-      });
-      delete res.definitions[key]["$schema"];
-      // Remove mandatory depending on option
-      if (!full) {
-        res.definitions[key]["required"] = ["type"];
-      }
-    });
-    FileUtils.save(res, filename);
-    // Build the deployment schema
-    // Ensure builtin deployers are there
-    DeploymentManager.addBuiltinDeployers(this.app);
-    const definitions = JSONUtils.duplicate(res.definitions);
-    res = {
-      properties: {
-        parameters: {
-          type: "object",
-          additionalProperties: true
-        },
-        resources: {
-          type: "object",
-          additionalProperties: true
-        },
-        services: {
-          type: "object",
-          additionalProperties: false,
-          properties: {}
-        },
-        units: {
-          type: "array",
-          items: { oneOf: [] }
-        }
-      },
-      definitions: res.definitions
-    };
-    const appServices = this.app.getConfiguration().services;
-    Object.keys(appServices).forEach(k => {
-      if (!appServices[k]) {
-        return;
-      }
-      const key = `Service$${k}`;
-      (<JSONSchema7>res.properties.services).properties[k] = {
-        type: "object",
-        oneOf: [
-          { $ref: `#/definitions/${key}` },
-          ...Object.keys(definitions)
-            .filter(name => name.startsWith("ServiceType"))
-            .map(dkey => ({ $ref: `#/definitions/${dkey}` }))
-        ]
-      };
-    });
-    Object.keys(this.app.getDeployers()).forEach(serviceType => {
-      const key = `DeployerType$${serviceType.replace(/\//g, "$")}`;
-      const definition: JSONSchema7 = (res.definitions[key] = <JSONSchema7>this.app.getSchema(serviceType));
-      if (!definition) {
-        return;
-      }
-      if (!definition.properties) {
-        definition.properties = {
-          type: {
-            type: "string"
-          }
-        };
-      }
-      (<JSONSchema7>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
-      (<JSONSchema7>(<JSONSchema7>res.properties.units).items).oneOf.push({ $ref: `#/definitions/${key}` });
-      delete definition["$schema"];
-      // Remove mandatory depending on option
-      if (!full) {
-        definition["required"] = ["type"];
-      }
-    });
-    FileUtils.save(res, deploymentFilename);
-  }
-
-  /**
    * Generate a JSON Schema specific to the current configuration
    */
   static async configurationSchema(argv) {
-    this.generateConfigurationSchema(argv.configurationSchemaFile, argv.deploymentSchemaFile, argv.full);
-  }
-
-  /**
-   * Generate regex based on a service name
-   *
-   * The regex will ensure the pattern is not case sensitive and
-   * that the namespace is optional
-   *
-   * @param type
-   * @returns
-   */
-  static getServiceTypePattern(type: string): string {
-    let result = "";
-    type = this.app.completeNamespace(type).toLowerCase();
-    for (let t of type) {
-      if (t.match(/[a-z]/)) {
-        result += `[${t}${t.toUpperCase()}]`;
-      } else {
-        result += t;
-      }
-    }
-    // Namespace is optional
-    let split = result.split("/");
-    return `^(${split[0]}/)?${split[1]}$`;
-    /**
-     Should use this sample but it seems to not be handled by vscode
-     let split = type.split("/");
-     return `^(?i)(${split[0]}/)?${split[1]}$`;
-     */
+    // this.generateConfigurationSchema(argv.configurationSchemaFile, argv.deploymentSchemaFile, argv.full);
   }
 
   /**
@@ -797,7 +658,7 @@ export default class WebdaConsole {
    */
   static async types() {
     this.log("INFO", "Deployers:", Object.keys(this.app.getDeployers()).join(", "));
-    this.log("INFO", "Services:", Object.keys(this.app.getServices()).join(", "));
+    this.log("INFO", "Services:", Object.keys(this.app.getModdas()).join(", "));
     this.log("INFO", "Models:", Object.keys(this.app.getModels()).join(", "));
   }
 

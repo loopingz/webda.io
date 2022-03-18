@@ -1,14 +1,22 @@
 import * as assert from "assert";
-import * as fs from "fs";
+import { WebdaTest } from "@webda/core/lib/test";
+import { execSync } from "child_process";
+import { CacheService, Application, Core, Module } from "@webda/core";
+import { emptyDirSync } from "fs-extra/lib/empty";
+import { removeSync } from "fs-extra/lib/remove";
+import * as fs from "fs-extra";
+import { suite, test } from "@testdeck/mocha";
+import * as path from "path";
+import { SourceApplication } from "./sourceapplication";
+import * as sinon from "sinon";
 
+@suite
 class SourceApplicationTest extends WebdaTest {
-  @test
-  loadJavascriptFile() {
-    let app = new Application(__dirname + "/../test/config.old-default.json");
-    let fct = app.loadJavascriptFile.bind(app);
-    fct(path.join(__dirname, "..", "test", "models", "task.js"));
-    fct(path.join(__dirname, "..", "test", "models", "task.js"));
-    fct(path.join(__dirname, "..", "test", "moddas", "fakeservice.js"));
+  sampleApp: SourceApplication;
+
+  async before() {
+    await super.before();
+    this.sampleApp = new SourceApplication(path.join(__dirname, "..", "..", "..", "sample-app"));
   }
 
   @test
@@ -49,20 +57,19 @@ class SourceApplicationTest extends WebdaTest {
 
   @test
   cov() {
-    app.setSchemaResolver(null);
-    assert.throws(() => app.getDeployment("invalid"), /Invalid deployment configuration /);
+    assert.throws(() => this.sampleApp.getDeployment("invalid"), /Invalid deployment configuration /);
   }
 
   @test
   fromServiceType() {
-    let app = new Application(__dirname + "/../test/config.json");
+    let app = new SourceApplication(__dirname + "/../test/config.json");
     // Add a fake deployer as no deployer are available within Core context
     app.addDeployer("Webda/Container", {});
     // For size reason, the SchemaResolver only work within shell context
-    assert.strictEqual(app.getSchemaResolver().fromServiceType("Webda/FileStore"), undefined);
-    assert.strictEqual(app.getSchemaResolver().fromServiceType("Webda/Container"), undefined);
-    assert.strictEqual(app.getSchemaResolver().fromServiceType("Webda/CoreModel"), undefined);
-    assert.strictEqual(app.getSchemaResolver().fromServiceType("unknown"), undefined);
+    assert.strictEqual(app.getCompiler().schemaFromModda("Webda/FileStore"), undefined);
+    assert.strictEqual(app.getCompiler().schemaFromModda("Webda/Container"), undefined);
+    assert.strictEqual(app.getCompiler().schemaFromModda("Webda/CoreModel"), undefined);
+    assert.strictEqual(app.getCompiler().schemaFromModda("unknown"), undefined);
     // Check if cached just use cache
     // @ts-ignore
     app.baseConfiguration.cachedModules = {
@@ -71,7 +78,7 @@ class SourceApplicationTest extends WebdaTest {
         fake: 666
       }
     };
-    assert.strictEqual(app.getSchemaResolver().fromServiceType("fake"), 666);
+    assert.strictEqual(app.getCompiler().schemaFromModda("fake"), 666);
   }
 
   @test
@@ -181,6 +188,11 @@ class SourceApplicationTest extends WebdaTest {
     assert.strictEqual(fs.existsSync(this.sampleApp.getAppPath("lib")), false);
   }
 
+  cleanSampleApp() {
+    fs.removeSync(this.sampleApp.getAppPath("lib"));
+    execSync(`git checkout ${this.sampleApp.getAppPath("webda.module.json")}`);
+  }
+
   @test
   compileError() {
     this.sampleApp.preventCompilation(false);
@@ -207,7 +219,7 @@ class SourceApplicationTest extends WebdaTest {
     this.sampleApp.generateModule();
     assert.strictEqual(fs.existsSync(this.sampleApp.getAppPath("webda.module.json")), true);
     let config: Module = fs.readJSONSync(this.sampleApp.getAppPath("webda.module.json"));
-    assert.strictEqual(config.services["WebdaDemo/CustomReusableService"], "lib/services/reusable.js");
+    assert.strictEqual(config.moddas["WebdaDemo/CustomReusableService"], "lib/services/reusable.js");
     // Won't be find as it is in a test context
     assert.strictEqual(config.models["WebdaDemo/Contact"], "lib/models/contact.js");
     assert.strictEqual(config.deployers["WebdaDemo/CustomDeployer"], "lib/services/deployer.js");

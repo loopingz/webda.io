@@ -1,5 +1,5 @@
 {
-  "services": {
+  "moddas": {
     "webda/asyncjobservice": "lib/services/asyncjobservice:default",
     "webda/localrunner": "lib/services/localrunner:default"
   },

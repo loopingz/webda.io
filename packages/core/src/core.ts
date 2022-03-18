@@ -490,7 +490,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   getLogger(clazz: string | Service) {
     let className = clazz;
     if (typeof clazz !== "string") {
-      let definitions = this.application.getServices();
+      let definitions = this.application.getModdas();
       for (let i in definitions) {
         if (definitions[i] === clazz.constructor) {
           className = i.replace(/\//g, ".");
@@ -550,7 +550,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param type The type of implementation
    * @returns {{}}
    */
-  getServicesImplementations(type = undefined): { [key: string]: Service } {
+  getServicesOfType(type = undefined): { [key: string]: Service } {
     let result = {};
     for (let i in this.services) {
       let service = this.services[i];
@@ -570,7 +570,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @returns {{}}
    */
   getStores(): { [key: string]: Service } {
-    return this.getServicesImplementations(Store);
+    return this.getServicesOfType(Store);
   }
 
   /**
@@ -729,7 +729,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     }
     var serviceConstructor = undefined;
     try {
-      serviceConstructor = this.application.getService(type);
+      serviceConstructor = this.application.getModda(type);
     } catch (ex) {
       this.log("ERROR", `Create service ${service}(${type}) failed ${ex.message}`);
       this.log("TRACE", ex.stack);
@@ -976,7 +976,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     } else if (packageInfo.author) {
       contact = packageInfo.author;
     }
-    let license : OpenAPIV3.LicenseObject;
+    let license: OpenAPIV3.LicenseObject;
     if (typeof packageInfo.license === "string") {
       license = {
         name: packageInfo.license

@@ -10,6 +10,7 @@ import { DebuggerStatus, WebdaConsole } from "./webda";
 import { MemoryLogger, WorkerOutput } from "@webda/workout";
 import { Application, FileUtils, JSONUtils, Logger, Module, WebdaError } from "@webda/core";
 import * as sinon from "sinon";
+import { SourceApplication } from "../code/sourceapplication";
 
 class DebugLogger extends MemoryLogger {
   getLogs(start: number = 0) {
@@ -181,7 +182,7 @@ class ConsoleTest {
 
   @test
   async debugCommandLine() {
-    WebdaSampleApplication.clean();
+    //WebdaSampleApplication.clean();
     this.commandLine(
       `debug -d Dev --bind=127.0.0.1 --logLevels=ERROR,WARN,INFO,DEBUG,TRACE --port 28080`,
       true,
@@ -746,7 +747,7 @@ module.exports = {
 
   @test
   generateConfigurationSchemaTest() {
-    WebdaConsole.app = new Application(WebdaSampleApplication.getAppPath());
+    WebdaConsole.app = new SourceApplication(WebdaSampleApplication.getAppPath());
     const config = WebdaSampleApplication.getConfiguration();
     let stub = sinon.stub(WebdaConsole.app, "getConfiguration").callsFake(() => {
       return {
@@ -758,7 +759,7 @@ module.exports = {
       };
     });
     try {
-      WebdaConsole.generateConfigurationSchema();
+      WebdaConsole.app.getCompiler().generateConfigurationSchema();
     } finally {
       stub.restore();
     }

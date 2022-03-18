@@ -1,5 +1,5 @@
 {
-  "services": {
+  "moddas": {
     "Webda/KubeRunner": "lib/services/kuberunner.js"
   },
   "models": {},
@@ -44,10 +44,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "config",
-        "type"
-      ],
+      "required": ["config", "type"],
       "definitions": {
         "Object": {
           "type": "object",
@@ -56,9 +53,7 @@
               "$ref": "#/definitions/Function"
             }
           },
-          "required": [
-            "constructor"
-          ]
+          "required": ["constructor"]
         },
         "Function": {
           "type": "object",
@@ -75,13 +70,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "arguments",
-            "caller",
-            "length",
-            "name",
-            "prototype"
-          ]
+          "required": ["arguments", "caller", "length", "name", "prototype"]
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#"

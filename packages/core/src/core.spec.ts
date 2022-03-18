@@ -244,7 +244,7 @@ class CoreTest extends WebdaTest {
 
   @test
   getServicesImplementations() {
-    let moddas = this.webda.getServicesImplementations();
+    let moddas = this.webda.getServicesOfType();
     assert.strictEqual(Object.keys(moddas).length, 26);
   }
 
@@ -260,7 +260,7 @@ class CoreTest extends WebdaTest {
   }
   @test
   getServicesImplementationsWithType() {
-    let stores = this.webda.getServicesImplementations(Store);
+    let stores = this.webda.getServicesOfType(Store);
     assert.strictEqual(Object.keys(stores).length, 7);
   }
 
@@ -467,7 +467,7 @@ class CoreTest extends WebdaTest {
     let method = this.webda.createServices.bind(this.webda);
     method(["definedmailer"]);
     // @ts-ignore
-    this.webda.getApplication().getService = type => {
+    this.webda.getApplication().getModda = type => {
       if (type === "Test/VoidStore") {
         throw new Error();
       } else {

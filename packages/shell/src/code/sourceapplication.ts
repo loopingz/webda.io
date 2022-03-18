@@ -20,12 +20,20 @@ import * as semver from "semver";
 import { execSync } from "child_process";
 import * as dateFormat from "dateformat";
 import * as merge from "merge";
+import { Compiler } from "./compiler";
 
 export class SourceApplication extends UnpackedApplication {
   /**
    * Flag if application has been compiled already
    */
   protected compiled: boolean = false;
+
+  protected compiler: Compiler;
+
+  getCompiler(): Compiler {
+    this.compiler ??= new Compiler(this);
+    return this.compiler;
+  }
 
   /**
    * Migrate from v0 to v1 configuration
@@ -74,7 +82,7 @@ export class SourceApplication extends UnpackedApplication {
       parameters: config.parameters,
       services: config.services,
       module: {
-        services: {},
+        moddas: {},
         models: { ...config.models },
         deployers: {}
       },
@@ -82,7 +90,7 @@ export class SourceApplication extends UnpackedApplication {
     };
     if (config.moddas) {
       for (let i in config.moddas) {
-        newConfig.module.services[i] = config.moddas[i].require;
+        newConfig.module.moddas[i] = config.moddas[i].require;
       }
     }
     return newConfig;
@@ -105,11 +113,15 @@ export class SourceApplication extends UnpackedApplication {
     if (storedConfiguration.version == 2) {
       storedConfiguration = storedConfiguration;
     }
+
     return this.completeConfiguration(storedConfiguration);
   }
 
+  /**
+   * Get the Webda namespace
+   */
   getNamespace(): string {
-    return this.cachedModules?.project?.webda.namespace || "webda";
+    return this.getPackageWebda().namespace || "webda";
   }
 
   /**
@@ -171,6 +183,7 @@ export class SourceApplication extends UnpackedApplication {
   preventCompilation(compile: boolean) {
     this.compiled = compile;
   }
+
   /**
    * Generate the module for current application
    */
@@ -413,6 +426,12 @@ export class SourceApplication extends UnpackedApplication {
     this.currentDeployment = deployment;
   }
 
+  /**
+   * Load a deployment configuration
+   *
+   * @param deploymentName
+   * @returns
+   */
   getDeployment(deploymentName: string = undefined): Deployment {
     if (!deploymentName) {
       deploymentName = this.currentDeployment;

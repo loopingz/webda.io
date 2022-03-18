@@ -35,7 +35,7 @@ export class UnpackedApplication extends Application {
       deployers: {},
       models: {},
       schemas: {},
-      services: {}
+      moddas: {}
     };
     this.mergeModules(configuration.cachedModules);
     return configuration;
@@ -126,7 +126,8 @@ export class UnpackedApplication extends Application {
     if (fs.existsSync(currentModule)) {
       files.push(currentModule);
     }
-    return files;
+    // Ensure we are not adding many times the same modules
+    return Array.from(new Set(files.map(n => fs.realpathSync(n))));
   }
 
   /**

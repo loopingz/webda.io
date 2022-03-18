@@ -1,5 +1,5 @@
 {
-  "services": {
+  "moddas": {
     "Webda/GoogleCloudFireStore": "./lib/services/firestore.js",
     "Webda/GoogleCloudPubSub": "./lib/services/pubsub.js",
     "Webda/GoogleCloudQueue": "./lib/services/queue.js",

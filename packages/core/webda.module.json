@@ -1,5 +1,5 @@
 {
-  "services": {
+  "moddas": {
     "webda/aggregator": "lib/stores/aggregator:default",
     "webda/asyncevents": "lib/services/asyncevents:EventService",
     "webda/authentication": "lib/services/authentication:Authentication",

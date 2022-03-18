@@ -1,5 +1,5 @@
 {
-  "services": {
+  "moddas": {
     "Webda/Hawk": "lib/hawk.js"
   },
   "models": {
@@ -16,9 +16,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "definitions": {
         "JSONSchema6": {
           "type": "object",
@@ -227,30 +225,12 @@
                 {
                   "type": "array",
                   "items": {
-                    "enum": [
-                      "any",
-                      "array",
-                      "boolean",
-                      "integer",
-                      "null",
-                      "number",
-                      "object",
-                      "string"
-                    ],
+                    "enum": ["any", "array", "boolean", "integer", "null", "number", "object", "string"],
                     "type": "string"
                   }
                 },
                 {
-                  "enum": [
-                    "any",
-                    "array",
-                    "boolean",
-                    "integer",
-                    "null",
-                    "number",
-                    "object",
-                    "string"
-                  ],
+                  "enum": ["any", "array", "boolean", "integer", "null", "number", "object", "string"],
                   "type": "string"
                 }
               ]
@@ -367,11 +347,7 @@
               }
             },
             {
-              "type": [
-                "string",
-                "number",
-                "boolean"
-              ]
+              "type": ["string", "number", "boolean"]
             }
           ]
         },
@@ -481,11 +457,7 @@
                   "type": "number"
                 }
               },
-              "required": [
-                "delay",
-                "postValidation",
-                "skipEmailValidation"
-              ]
+              "required": ["delay", "postValidation", "skipEmailValidation"]
             },
             "password": {
               "type": "object",
@@ -519,9 +491,7 @@
               "pattern": "^([wW][eE][bB][dD][aA]/)?[aA][uU][tT][hH][eE][nN][tT][iI][cC][aA][tT][iI][oO][nN]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         "MapStoreParameter": {
           "description": "Mapper parameters",
@@ -545,11 +515,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "fields",
-            "key",
-            "target"
-          ]
+          "required": ["fields", "key", "target"]
         },
         "ServiceType$webda$filestore": {
           "type": "object",
@@ -560,10 +526,7 @@
             },
             "beautify": {
               "description": "Parameter sent to JSON.stringiy when storing the json",
-              "type": [
-                "string",
-                "number"
-              ]
+              "type": ["string", "number"]
             },
             "lastUpdateField": {
               "description": "Field to store the lastUpdate of the object",
@@ -638,9 +601,7 @@
               "pattern": "^([wW][eE][bB][dD][aA]/)?[fF][iI][lL][eE][sS][tT][oO][rR][eE]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         "ServiceType$webda$memorystore": {
           "description": "Store parameter",
@@ -719,9 +680,7 @@
               "pattern": "^([wW][eE][bB][dD][aA]/)?[mM][eE][mM][oO][rR][yY][sS][tT][oO][rR][eE]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         "ServiceType$webda$filebinary": {
           "type": "object",
@@ -767,9 +726,7 @@
                   }
                 }
               },
-              "required": [
-                "url"
-              ]
+              "required": ["url"]
             },
             "type": {
               "description": "Type of the service",
@@ -777,9 +734,7 @@
               "pattern": "^([wW][eE][bB][dD][aA]/)?[fF][iI][lL][eE][bB][iI][nN][aA][rR][yY]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         "ServiceType$webda$debugmailer": {
           "description": "Interface to specify the Service parameters",
@@ -791,9 +746,7 @@
               "pattern": "^([wW][eE][bB][dD][aA]/)?[dD][eE][bB][uU][gG][mM][aA][iI][lL][eE][rR]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         "ServiceType$webda$mailer": {
           "type": "object",
@@ -818,9 +771,7 @@
               "pattern": "^([wW][eE][bB][dD][aA]/)?[mM][aA][iI][lL][eE][rR]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         "ServiceType$webda$asyncevents": {
           "type": "object",
@@ -842,9 +793,7 @@
               "pattern": "^([wW][eE][bB][dD][aA]/)?[aA][sS][yY][nN][cC][eE][vV][eE][nN][tT][sS]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         "ServiceType$webda$resourceservice": {
           "description": "ResourceService parameters",
@@ -871,9 +820,7 @@
               "pattern": "^([wW][eE][bB][dD][aA]/)?[rR][eE][sS][oO][uU][rR][cC][eE][sS][eE][rR][vV][iI][cC][eE]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         "ServiceType$webda$echoservice": {
           "description": "Interface to specify the Service parameters",
@@ -885,9 +832,7 @@
               "pattern": "^([wW][eE][bB][dD][aA]/)?[eE][cC][hH][oO][sS][eE][rR][vV][iI][cC][eE]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         "ServiceType$webda$versionservice": {
           "description": "Version parameters",
@@ -907,9 +852,7 @@
               "pattern": "^([wW][eE][bB][dD][aA]/)?[vV][eE][rR][sS][iI][oO][nN][sS][eE][rR][vV][iI][cC][eE]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         "ServiceType$webda$memoryqueue": {
           "type": "object",
@@ -925,9 +868,7 @@
               "pattern": "^([wW][eE][bB][dD][aA]/)?[mM][eE][mM][oO][rR][yY][qQ][uU][eE][uU][eE]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         "ServiceType$webda$configurationservice": {
           "type": "object",
@@ -949,9 +890,7 @@
               "pattern": "^([wW][eE][bB][dD][aA]/)?[cC][oO][nN][fF][iI][gG][uU][rR][aA][tT][iI][oO][nN][sS][eE][rR][vV][iI][cC][eE]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         "ServiceType$webda$fileconfigurationservice": {
           "type": "object",
@@ -973,9 +912,7 @@
               "pattern": "^([wW][eE][bB][dD][aA]/)?[fF][iI][lL][eE][cC][oO][nN][fF][iI][gG][uU][rR][aA][tT][iI][oO][nN][sS][eE][rR][vV][iI][cC][eE]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         "ServiceType$webda$kubernetesconfigurationservice": {
           "type": "object",
@@ -997,19 +934,11 @@
               "pattern": "^([wW][eE][bB][dD][aA]/)?[kK][uU][bB][eE][rR][nN][eE][tT][eE][sS][cC][oO][nN][fF][iI][gG][uU][rR][aA][tT][iI][oO][nN][sS][eE][rR][vV][iI][cC][eE]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         "WorkerLogLevel": {
           "description": "LogLevel as intersection to compare with integer values",
-          "enum": [
-            "DEBUG",
-            "ERROR",
-            "INFO",
-            "TRACE",
-            "WARN"
-          ],
+          "enum": ["DEBUG", "ERROR", "INFO", "TRACE", "WARN"],
           "type": "string"
         },
         "ServiceType$webda$consolelogger": {
@@ -1027,9 +956,7 @@
               "pattern": "^([wW][eE][bB][dD][aA]/)?[cC][oO][nN][sS][oO][lL][eE][lL][oO][gG][gG][eE][rR]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         "ServiceType$webda$memorylogger": {
           "type": "object",
@@ -1046,9 +973,7 @@
               "pattern": "^([wW][eE][bB][dD][aA]/)?[mM][eE][mM][oO][rR][yY][lL][oO][gG][gG][eE][rR]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         "ServiceType$webda$hawk": {
           "description": "Interface to specify the Service parameters",
@@ -1060,9 +985,7 @@
               "pattern": "^([wW][eE][bB][dD][aA]/)?[hH][aA][wW][kK]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         },
         "DeployerType$webdademo$customdeployer": {
           "title": "CustomDeployer",
@@ -1072,9 +995,7 @@
               "pattern": "^([wW][eE][bB][dD][aA][dD][eE][mM][oO]/)?[cC][uU][sS][tT][oO][mM][dD][eE][pP][lL][oO][yY][eE][rR]$"
             }
           },
-          "required": [
-            "type"
-          ]
+          "required": ["type"]
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -1116,12 +1037,7 @@
               }
             }
           },
-          "required": [
-            "DELETE",
-            "GET",
-            "POST",
-            "PUT"
-          ]
+          "required": ["DELETE", "GET", "POST", "PUT"]
         },
         "algorithm": {
           "description": "Algorithm to use with hawk",
@@ -1159,15 +1075,7 @@
           "format": "date-time"
         }
       },
-      "required": [
-        "__secret",
-        "_creationDate",
-        "_lastUpdate",
-        "_user",
-        "algorithm",
-        "name",
-        "uuid"
-      ],
+      "required": ["__secret", "_creationDate", "_lastUpdate", "_user", "algorithm", "name", "uuid"],
       "$schema": "http://json-schema.org/draft-07/schema#"
     }
   }

@@ -1,12 +1,12 @@
-import { CloudBinary, CloudBinaryParameters } from "./cloudbinary";
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { CoreModel } from "../models/coremodel";
-import { Binary, BinaryMap, BinaryEvents, BinaryFile, BinaryMetadata, BinaryParameters } from "./binary";
 import * as sinon from "sinon";
-import { BinaryTest } from "./binary.spec";
+import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
 import { Context } from "../utils/context";
+import { Binary, BinaryEvents, BinaryFile, BinaryMap, BinaryMetadata, BinaryParameters } from "./binary";
+import { BinaryTest } from "./binary.spec";
+import { CloudBinary, CloudBinaryParameters } from "./cloudbinary";
 
 class CloudBinaryFakeService extends CloudBinary {
   store(object: CoreModel, property: string, file: BinaryFile, metadata?: BinaryMetadata): Promise<void> {

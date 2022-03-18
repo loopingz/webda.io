@@ -1,4 +1,5 @@
-import { CoreModel, Context } from "../";
+import { CoreModel } from "./coremodel";
+import { Context } from "../utils/context";
 
 /**
  * @WebdaModel

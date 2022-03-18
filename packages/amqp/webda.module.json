@@ -1,5 +1,5 @@
 {
-  "services": {
+  "moddas": {
     "webda/amqppubsub": "lib/pubsub",
     "webda/amqpqueue": "lib/queue"
   },

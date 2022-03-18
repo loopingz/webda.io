@@ -1,5 +1,5 @@
 {
-  "services": {
+  "moddas": {
     "Webda/MongoStore": "lib/mongodb:default"
   },
   "models": {},

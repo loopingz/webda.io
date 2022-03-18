@@ -1,5 +1,5 @@
 {
-  "services": {
+  "moddas": {
     "webda/elasticsearchservice": "lib/elasticsearchservice:default"
   },
   "models": {},

@@ -1,12 +1,13 @@
 {
-  "version": 2,
+  "$schema": "./.webda-config-schema.json",
+  "version": 3,
   "services": {
     "memorylogger": {
       "type": "MemoryLogger"
     },
     "images": {
       "type": "FileBinary",
-      "folder": "./test/store",
+      "folder": true,
       "map": {
         "contacts": [
           "picture"

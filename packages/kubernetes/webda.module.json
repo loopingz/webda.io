@@ -1,6 +1,6 @@
 {
   "moddas": {
-    "Webda/KubeRunner": "lib/services/kuberunner.js"
+    "Webda/KubeRunner": "lib/services/kuberunner"
   },
   "models": {},
   "deployers": {},

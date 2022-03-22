@@ -19,8 +19,11 @@ export class MongoParameters extends StoreParameters {
   url?: string;
   /**
    * Additional options for Mongo connetion
+   *
+   * Should be MongoClientOptions but not available due to bug in ts-json-schema-generator
+   * https://docs.mongodb.com/manual/reference/connection-string
    */
-  options?: MongoClientOptions;
+  options?: any;
   /**
    * Which collection to use
    */
@@ -76,7 +79,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
   async _connect() {
     if (this._connectPromise === undefined) {
       this._connectPromise = (async () => {
-        this._client = await MongoClient.connect(this.parameters.url, this.parameters.options);
+        this._client = await new MongoClient(this.parameters.url, this.parameters.options).connect();
         this._db = this._client.db(this.parameters.database, this.parameters.databaseOptions);
         this._collection = this._db.collection(this.parameters.collection);
       })();

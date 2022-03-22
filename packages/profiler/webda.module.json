@@ -1,6 +1,6 @@
 {
   "moddas": {
-    "Webda/Profiler": "./lib/profiler.js"
+    "Webda/Profiler": "./lib/profiler"
   },
   "models": {},
   "deployers": {},

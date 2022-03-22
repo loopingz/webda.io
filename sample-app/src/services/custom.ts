@@ -26,8 +26,8 @@ class CustomService extends Service {
    * @MMD {seq:MyGraph} My step 1
    */
   @Route("/docs", "POST")
-  autoDocs(plop: Context) {
-    plop.getRequestBody<CustomBody>();
+  autoDocs(plop: Context<CustomBody>) {
+    plop.getRequestBody();
     let res: DefinedOutput = {
       plop: true
     };

@@ -4,9 +4,8 @@
   "description": "Webda AWS XRay implementation",
   "main": "lib/index.js",
   "scripts": {
-    "webda-module": "webda module --noCompile",
-    "build": "tsc",
-    "pretest": "tsc",
+    "build": "webda build",
+    "pretest": "npm run build",
     "test": "exit 0",
     "lint": "prettier --check src/**/*",
     "lint:fix": "prettier --write src/**/*"

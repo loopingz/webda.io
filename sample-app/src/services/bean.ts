@@ -7,3 +7,6 @@ class BeanService extends Service {
   @Cron("* * * * *")
   cron() {}
 }
+
+@Bean
+class SampleAppBadBean {}

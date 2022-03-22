@@ -13,7 +13,7 @@ class WebdaServerTest {
   badCheck: boolean = false;
 
   async init(deployment: string = undefined, startHttp: boolean = false, websockets: boolean = false) {
-    WebdaSampleApplication.loadModules();
+    await WebdaSampleApplication.load();
     WebdaSampleApplication.setCurrentDeployment(deployment);
     this.server = new WebdaServer(WebdaSampleApplication);
     await this.server.init();
@@ -45,7 +45,7 @@ class WebdaServerTest {
   async testAlreadyBind() {
     let server = http.createServer(() => {}).listen(this.port);
     const logs = [];
-    WebdaSampleApplication.loadModules();
+    await WebdaSampleApplication.load();
     WebdaSampleApplication.setCurrentDeployment("Dev");
     this.server = new WebdaServer(WebdaSampleApplication);
     await this.server.init();
@@ -163,7 +163,7 @@ class WebdaServerTest {
 
   @test
   async initError() {
-    WebdaSampleApplication.loadModules();
+    await WebdaSampleApplication.load();
     WebdaSampleApplication.setCurrentDeployment("Dev");
     this.server = new WebdaServer(WebdaSampleApplication);
     await this.server.init();

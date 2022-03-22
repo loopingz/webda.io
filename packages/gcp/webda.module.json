@@ -1,9 +1,9 @@
 {
   "moddas": {
-    "Webda/GoogleCloudFireStore": "./lib/services/firestore.js",
-    "Webda/GoogleCloudPubSub": "./lib/services/pubsub.js",
-    "Webda/GoogleCloudQueue": "./lib/services/queue.js",
-    "Webda/GoogleCloudStorage": "./lib/services/storage.js"
+    "Webda/GoogleCloudFireStore": "./lib/services/firestore",
+    "Webda/GoogleCloudPubSub": "./lib/services/pubsub",
+    "Webda/GoogleCloudQueue": "./lib/services/queue",
+    "Webda/GoogleCloudStorage": "./lib/services/storage"
   },
   "models": {},
   "deployers": {},

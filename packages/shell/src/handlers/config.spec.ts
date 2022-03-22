@@ -14,7 +14,7 @@ class WebdaConfigurationServerTest {
   server: WebdaConfiguration;
 
   async init(deployment: string = undefined) {
-    WebdaSampleApplication.loadModules();
+    await WebdaSampleApplication.load();
     WebdaSampleApplication.setCurrentDeployment(deployment);
     this.server = new WebdaConfiguration(WebdaSampleApplication);
     await this.server.init();
@@ -56,6 +56,7 @@ class WebdaConfigurationServerTest {
     let res = await this.fetch("/configuration");
     res.parameters.sessionSecret = "PLOP";
     let cfg = FileUtils.load(WebdaSampleApplication.configurationFile);
+    delete res.cachedModules;
     cfg.parameters.sessionSecret = "PLOP";
     assert.strictEqual(JSON.stringify(res), JSON.stringify(cfg));
     res = await this.fetch("/configuration", { method: "PUT" });

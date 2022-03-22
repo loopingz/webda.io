@@ -1,6 +1,6 @@
 {
   "moddas": {
-    "Webda/GoogleAuthentication": "lib/google-auth.js"
+    "Webda/GoogleAuthentication": "lib/google-auth"
   },
   "models": {},
   "deployers": {},

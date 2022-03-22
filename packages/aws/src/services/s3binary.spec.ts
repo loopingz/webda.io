@@ -163,7 +163,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     assert.ok(!(await this.getBinary()._exists("bouzouf")));
     await this.getBinary().putObject(this.getBinary()._getKey("bouzouf"), "plop");
     assert.ok(await this.getBinary()._exists("bouzouf"));
-    assert.strict(
+    assert.strictEqual(
       (await Binary.streamToBuffer(this.getBinary().getObject(this.getBinary()._getKey("bouzouf")))).toString("utf8"),
       "plop"
     );

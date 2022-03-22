@@ -1,18 +1,413 @@
 {
   "moddas": {
-    "Webda/CloudWatchLogger": "./lib/services/cloudwatchlogger.js",
-    "Webda/DynamoStore": "./lib/services/dynamodb.js",
-    "Webda/S3Binary": "./lib/services/s3binary.js",
-    "Webda/LambdaCaller": "./lib/services/lambdacaller.js",
-    "Webda/AWSSecretsManager": "./lib/services/secretsmanager.js",
-    "Webda/SQSQueue": "./lib/services/sqsqueue.js"
+    "webda/awssecretsmanager": "lib/services/secretsmanager:default",
+    "webda/cloudwatchlogger": "lib/services/cloudwatchlogger:default",
+    "webda/dynamostore": "lib/services/dynamodb:default",
+    "webda/lambdacaller": "lib/services/lambdacaller:LambdaCaller",
+    "webda/s3binary": "lib/services/s3binary:default",
+    "webda/sqsqueue": "lib/services/sqsqueue:default"
   },
+  "beans": {},
   "models": {},
   "deployers": {
-    "WebdaAWSDeployer/CloudFormationDeployer": "./lib/deployers/cloudformation.js",
-    "WebdaAWSDeployer/LambdaPackager": "./lib/deployers/lambdapackager.js"
+    "webda/cloudformationdeployer": "lib/deployers/cloudformation:default",
+    "webda/lambdapackager": "lib/deployers/lambdapackager:default"
   },
-  "commands": {
-    "aws": "./lib/shell.js:ShellCommand"
+  "schemas": {
+    "webda/lambdapackager": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CloudFormationDeployer"
+    },
+    "webda/cloudformationdeployer": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CloudFormationDeployer"
+    },
+    "webda/cloudwatchlogger": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "logGroupName": {
+          "type": "string",
+          "description": "logGroupName to send logStream to"
+        },
+        "logStreamNamePrefix": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "kmsKeyId": {
+          "type": "string"
+        },
+        "tags": {},
+        "logLevel": {
+          "$ref": "#/definitions/WorkerLogLevel"
+        },
+        "singlePush": {
+          "type": "boolean"
+        },
+        "CloudFormation": {},
+        "CloudFormationSkip": {
+          "type": "boolean"
+        },
+        "region": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "CloudFormation",
+        "CloudFormationSkip",
+        "endpoint",
+        "kmsKeyId",
+        "logGroupName",
+        "logLevel",
+        "region",
+        "singlePush",
+        "tags",
+        "type"
+      ],
+      "description": "Send webda log to CloudWatch",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "WorkerLogLevel": {
+          "type": "string",
+          "enum": [
+            "ERROR",
+            "WARN",
+            "INFO",
+            "DEBUG",
+            "TRACE"
+          ],
+          "description": "LogLevel as intersection to compare with integer values"
+        }
+      },
+      "title": "CloudWatchLogger"
+    },
+    "webda/dynamostore": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "model": {
+          "type": "string",
+          "description": "Webda model to use within the Store",
+          "default": "Webda/CoreModel"
+        },
+        "asyncDelete": {
+          "type": "boolean",
+          "description": "async delete"
+        },
+        "expose": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ExposeParameters"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Expose the service to an urls"
+        },
+        "strict": {
+          "type": "boolean",
+          "description": "Allow to load object that does not have the type data",
+          "deprecated": 2,
+          "default": true
+        },
+        "table": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "CloudFormation": {},
+        "CloudFormationSkip": {
+          "type": "boolean"
+        },
+        "region": {
+          "type": "string"
+        },
+        "scanPage": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "CloudFormation",
+        "CloudFormationSkip",
+        "asyncDelete",
+        "endpoint",
+        "region",
+        "scanPage",
+        "table",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ExposeParameters": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL endpoint to use to expose REST Resources API",
+              "default": "service.getName().toLowerCase()"
+            },
+            "restrict": {
+              "type": "object",
+              "properties": {
+                "create": {
+                  "type": "boolean",
+                  "description": "Do not expose the POST"
+                },
+                "update": {
+                  "type": "boolean",
+                  "description": "Do not expose the PUT and PATCH"
+                },
+                "get": {
+                  "type": "boolean",
+                  "description": "Do not expose the GET"
+                },
+                "delete": {
+                  "type": "boolean",
+                  "description": "Do not expose the DELETE"
+                }
+              },
+              "description": "You can restrict any part of the CRUD",
+              "default": {}
+            }
+          }
+        }
+      },
+      "title": "DynamoStore"
+    },
+    "webda/s3binary": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "map": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": "Define the map to Object collection\n\nkey is a Store name the string[] represent all valids attributes to store files in"
+        },
+        "expose": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL to expose the service to"
+            },
+            "restrict": {
+              "type": "object",
+              "properties": {
+                "get": {
+                  "type": "boolean",
+                  "description": "Restrict GET"
+                },
+                "create": {
+                  "type": "boolean",
+                  "description": "Restrict POST"
+                },
+                "delete": {
+                  "type": "boolean",
+                  "description": "Restrict DELETE"
+                },
+                "metadata": {
+                  "type": "boolean",
+                  "description": "Restrict update of metadata"
+                }
+              },
+              "description": "Restrict some APIs"
+            }
+          },
+          "required": [
+            "url"
+          ],
+          "description": "Expose the service to http"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "s3ForcePathStyle": {
+          "type": "boolean"
+        },
+        "bucket": {
+          "type": "string"
+        },
+        "prefix": {
+          "type": "string"
+        },
+        "CloudFormation": {},
+        "CloudFormationSkip": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "CloudFormation",
+        "CloudFormationSkip",
+        "bucket",
+        "map",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "S3Binary"
+    },
+    "webda/awssecretsmanager": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "endpoint",
+        "region",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AWSSecretsManager"
+    },
+    "webda/sqsqueue": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "workerDelayer": {
+          "$ref": "#/definitions/WaitDelayerDefinition",
+          "description": "Delayer between two failed attempts to process messages"
+        },
+        "workerParallelism": {
+          "type": "boolean",
+          "description": "Define if worker should process multi message received in //",
+          "default": true
+        },
+        "maxConsumers": {
+          "type": "number",
+          "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
+          "default": 10
+        },
+        "WaitTimeSeconds": {
+          "type": "number",
+          "description": "Time to wait pending for an item",
+          "default": 20
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "Endpoint to pass to the AWS client Useful for localstack"
+        },
+        "queue": {
+          "type": "string",
+          "description": "Queue URL",
+          "default": ""
+        },
+        "MessageGroupId": {
+          "type": "string",
+          "description": "MessageGroupId to pass to send and receive"
+        },
+        "CloudFormationSkip": {
+          "type": "boolean",
+          "description": "Skip CloudFormation on deploy",
+          "default": false
+        },
+        "CloudFormation": {
+          "description": "Any additional CloudFormation parameters"
+        }
+      },
+      "required": [
+        "maxConsumers",
+        "queue",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "WaitDelayerDefinition": {
+          "type": "object",
+          "properties": {
+            "interval": {
+              "type": "number",
+              "description": "Interval"
+            },
+            "type": {
+              "type": "string",
+              "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
+            }
+          },
+          "required": [
+            "interval",
+            "type"
+          ],
+          "description": "WaitDelayer definition"
+        }
+      },
+      "title": "SQSQueue"
+    },
+    "webda/lambdacaller": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Actions managed by the runner",
+          "default": []
+        },
+        "arn": {
+          "type": "string",
+          "description": "Default ARN to use"
+        }
+      },
+      "required": [
+        "arn",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LambdaCaller"
+    }
   }
 }

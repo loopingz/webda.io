@@ -5,40 +5,57 @@ import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
 import * as unzip from "unzipper";
 import { DeploymentManager } from "../handlers/deploymentmanager";
-import { WebdaSampleApplication } from "../index.spec";
+import { SourceTestApplication, WebdaSampleApplication } from "../index.spec";
 import { Packager } from "./packager";
 import * as fse from "fs-extra";
 import * as sinon from "sinon";
 import { EventEmitter } from "events";
-import { SourceApplication } from "../code/sourceapplication";
-
-const WorkspaceApp = new SourceApplication(path.join(__dirname, "..", "..", "test", "fakeworkspace", "app1"));
-export { WorkspaceApp };
-
-fse.mkdirSync(path.join(__dirname, "..", "..", "test", "fakeworkspace", "node_modules", "@webda"), { recursive: true });
-fse.mkdirSync("/tmp/.webda-unit-test", { recursive: true });
-try {
-  fse.copySync(path.join(__dirname, "..", "..", "test", "fakeworkspace", "package2"), "/tmp/.webda-unit-test/package2");
-  [
-    [path.join(__dirname, "..", "..", "..", "aws"), "@webda/aws"],
-    [path.join(__dirname, "..", "..", "test", "fakeworkspace", "package1"), "package1"],
-    [path.join("/tmp/.webda-unit-test", "package2"), "package2"]
-  ].forEach(link => {
-    let dst = path.join(__dirname, "..", "..", "test", "fakeworkspace", "node_modules", ...link[1].split("/"));
-    // Remove symbolic link
+export class WorkspaceTestApplication extends SourceTestApplication {
+  loadConfiguration(file) {
+    fse.mkdirSync(path.join(__dirname, "..", "..", "test", "fakeworkspace", "node_modules", "@webda"), {
+      recursive: true
+    });
+    fse.mkdirSync("/tmp/.webda-unit-test", { recursive: true });
     try {
-      if (fse.lstatSync(dst)) {
-        fse.unlinkSync(dst);
-      }
+      fse.copySync(
+        path.join(__dirname, "..", "..", "test", "fakeworkspace", "package2"),
+        "/tmp/.webda-unit-test/package2"
+      );
+      [
+        [path.join(__dirname, "..", "..", "..", "aws"), "@webda/aws"],
+        [path.join(__dirname, "..", "..", "..", "core"), "@webda/core"],
+        [path.join(__dirname, "..", "..", "test", "fakeworkspace", "package1"), "package1"],
+        [path.join("/tmp/.webda-unit-test", "package2"), "package2"]
+      ].forEach(link => {
+        let dst = path.join(__dirname, "..", "..", "test", "fakeworkspace", "node_modules", ...link[1].split("/"));
+        // Remove symbolic link
+        try {
+          if (fse.lstatSync(dst)) {
+            fse.unlinkSync(dst);
+          }
+        } catch (err) {}
+        fse.symlinkSync(link[0], dst);
+      });
     } catch (err) {}
-    fse.symlinkSync(link[0], dst);
-  });
-} catch (err) {}
+    return super.loadConfiguration(file);
+  }
 
+  clean() {
+    fse.removeSync(path.join(__dirname, "..", "..", "test", "fakeworkspace", "link_modules"));
+    fse.removeSync(path.join(__dirname, "..", "..", "test", "fakeworkspace", "node_modules"));
+  }
+
+  static async init(): Promise<WorkspaceTestApplication> {
+    const app = new WorkspaceTestApplication(path.join(__dirname, "..", "..", "test", "fakeworkspace", "app1"));
+    await app.load();
+    return app;
+  }
+}
 @suite
 class PackagerTest {
   @test("simple")
   async package() {
+    await WebdaSampleApplication.load();
     // Check override is ok
     let zipPath = path.join(WebdaSampleApplication.getAppPath(), "dist", "package-2");
 
@@ -102,21 +119,12 @@ class PackagerTest {
     let config = JSON.parse(captureFiles["webda.config.json"]);
     // Ensure CachedModules are generated for packages
     assert.notStrictEqual(config.cachedModules, undefined);
-    assert.strictEqual(config.cachedModules.services["WebdaDemo/CustomReusableService"], "./lib/services/reusable.js");
+    assert.strictEqual(config.cachedModules.moddas["webdademo/customreusableservice"], "lib/services/reusable:default");
     assert.strictEqual(
-      config.cachedModules.services["Webda/AWSSecretsManager"].endsWith(
-        "node_modules/@webda/aws/lib/services/secretsmanager.js"
-      ),
+      config.cachedModules.moddas["webda/awssecretsmanager"].endsWith("aws/lib/services/secretsmanager:default"),
       true
     );
-    assert.strictEqual(config.cachedModules.models["WebdaDemo/Contact"], "./lib/models/contact.js");
-    assert.deepStrictEqual(config.cachedModules.sources, [
-      "./lib/models/contact.js",
-      "./lib/services/bean.js",
-      "./lib/services/custom.js",
-      "./lib/services/deployer.js",
-      "./lib/services/reusable.js"
-    ]);
+    assert.strictEqual(config.cachedModules.models["webdademo/contact"], "lib/models/contact:default");
     assert.strictEqual(config.parameters.accessKeyId, "PROD_KEY");
     deployer = new Packager(new DeploymentManager(WebdaSampleApplication, "Production"), {
       name: "deployer",
@@ -131,6 +139,7 @@ class PackagerTest {
 
   @test
   async excludePackages() {
+    await WebdaSampleApplication.load();
     let zipPath = path.join(WebdaSampleApplication.getAppPath(), "dist", "package-3");
     let deployer = new Packager(new DeploymentManager(WebdaSampleApplication, "Production"), {
       name: "deployer",
@@ -193,39 +202,44 @@ class PackagerTest {
 
   @test
   async workspacesPackager() {
-    fse.removeSync(path.join(WorkspaceApp.getAppPath(), "dist"));
-    let zipPath = path.join(WorkspaceApp.getAppPath(), "dist", "package-2");
-    let deployer = new Packager(new DeploymentManager(WorkspaceApp, "Production"), {
-      name: "deployer",
-      type: "Packager",
-      package: {
-        modules: {
-          includes: ["nonexisting"],
-          excludes: ["bluebird"]
-        }
-      },
-      zipPath,
-      includeLinkModules: true
-    });
-    await deployer.loadDefaults();
-    await deployer.deploy();
-
-    // Do archive error
-    let stub = sinon.stub(deployer, "getArchiver").callsFake(() => {
-      let evt = new EventEmitter();
-      // @ts-ignore
-      evt.pipe = () => {
-        evt.emit("error", new Error("I/O"));
-      };
-      return evt;
-    });
+    const workspaceApp = await WorkspaceTestApplication.init();
     try {
-      // Should not retry to create package
+      fse.removeSync(path.join(workspaceApp.getAppPath(), "dist"));
+      let zipPath = path.join(workspaceApp.getAppPath(), "dist", "package-2");
+      let deployer = new Packager(new DeploymentManager(workspaceApp, "Production"), {
+        name: "deployer",
+        type: "Packager",
+        package: {
+          modules: {
+            includes: ["nonexisting"],
+            excludes: ["bluebird"]
+          }
+        },
+        zipPath,
+        includeLinkModules: true
+      });
+      await deployer.loadDefaults();
       await deployer.deploy();
-      deployer.packagesGenerated = {};
-      await assert.rejects(() => deployer.deploy(), /I\/O/);
+
+      // Do archive error
+      let stub = sinon.stub(deployer, "getArchiver").callsFake(() => {
+        let evt = new EventEmitter();
+        // @ts-ignore
+        evt.pipe = () => {
+          evt.emit("error", new Error("I/O"));
+        };
+        return evt;
+      });
+      try {
+        // Should not retry to create package
+        await deployer.deploy();
+        deployer.packagesGenerated = {};
+        await assert.rejects(() => deployer.deploy(), /I\/O/);
+      } finally {
+        stub.restore();
+      }
     } finally {
-      stub.restore();
+      workspaceApp.clean();
     }
   }
 }

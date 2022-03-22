@@ -63,19 +63,15 @@ export class TestApplication extends UnpackedApplication {
    * Only allow local and core module and sample-app
    */
   filterModule(filename: string): boolean {
+    // Just for cov
+
     const relativePath = path.relative(process.cwd(), filename);
     return (
-      !relativePath.includes("..") || relativePath.startsWith("../core") || relativePath.startsWith("../../sample-app/")
+      super.filterModule(filename) &&
+      (!relativePath.includes("..") ||
+        relativePath.startsWith("../core") ||
+        relativePath.startsWith("../../sample-app/"))
     );
-  }
-
-  /**
-   * Override to allow module filtering
-   * @param module
-   * @returns
-   */
-  findModules(module = this.cachedModules) {
-    return super.findModules(module).filter(f => this.filterModule(f));
   }
 
   /**
@@ -124,6 +120,18 @@ class WebdaTest {
   }
 
   /**
+   * Allow test to add custom made service
+   * @param app
+   */
+  async tweakApp(app: TestApplication) {
+    app.addService("webdatest/voidstore", await import("../test/moddas/voidstore"));
+    app.addService("webdatest/fakeservice", await import("../test/moddas/fakeservice"));
+    app.addService("webdatest/mailer", await import("../test/moddas/debugmailer"));
+    app.addModel("webdatest/task", await import("../test/models/task"));
+    app.addModel("webdatest/ident", await import("../test/models/ident"));
+  }
+
+  /**
    * Build the webda application
    *
    * Add a ConsoleLogger if addConsoleLogger is true
@@ -131,11 +139,7 @@ class WebdaTest {
   protected async buildWebda() {
     let app = new TestApplication(this.getTestConfiguration());
     await app.load();
-    app.addService("webdatest/voidstore", await import("../test/moddas/voidstore"));
-    app.addService("webdatest/fakeservice", await import("../test/moddas/fakeservice"));
-    app.addService("webdatest/mailer", await import("../test/moddas/debugmailer"));
-    app.addModel("webdatest/task", await import("../test/models/task"));
-    app.addModel("webdatest/ident", await import("../test/models/ident"));
+    await this.tweakApp(app);
 
     this.webda = new Core(app);
     if (this.addConsoleLogger) {

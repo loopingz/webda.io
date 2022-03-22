@@ -299,19 +299,7 @@ class CoreModel {
    * @param updates
    */
   async validate(ctx: Context, updates: any = undefined): Promise<boolean> {
-    // Load updates before validating itself
-    if (updates) {
-      this.load(updates);
-    }
-    if (!ctx.getWebda().validateSchema(this, this)) {
-      throw new Error(
-        ctx
-          .getWebda()
-          .validationLastErrors()
-          .map(e => e.message)
-          .join(",")
-      );
-    }
+    ctx.getWebda().validateSchema(this, updates);
     return true;
   }
 

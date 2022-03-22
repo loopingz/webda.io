@@ -1,6 +1,6 @@
 {
   "services": {
-    "Webda/CloudWatchLogger": "./lib/services/xray.js"
+    "Webda/CloudWatchLogger": "./lib/services/xray"
   },
   "models": {},
   "deployers": {},

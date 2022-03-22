@@ -13,6 +13,18 @@ import * as path from "path";
 import { FileUtils } from "./utils/serializers";
 
 /**
+ * Empty git information
+ */
+export const EmptyGitInformation: GitInformation = {
+  branch: "",
+  commit: "",
+  short: "",
+  tag: "",
+  tags: [],
+  version: ""
+};
+
+/**
  * An unpacked application load dynamically all webda.module.json
  * And load also all the package description
  *
@@ -20,14 +32,33 @@ import { FileUtils } from "./utils/serializers";
  * the cachedModule to avoid any unecessary action within a production environment
  */
 export class UnpackedApplication extends Application {
-  constructor(file: string, logger?: WorkerOutput, allowModule?: boolean) {
-    super(file, logger, allowModule);
+  constructor(file: string, logger?: WorkerOutput) {
+    super(file, logger);
   }
 
-  loadConfiguration(file: string): Configuration {
-    return this.completeConfiguration(super.loadConfiguration(file));
+  /**
+   * Load full configuration
+   *
+   * webda.config.json and complete the cachedModule
+   *
+   * @param file
+   * @returns
+   */
+  loadConfiguration(file: string): void {
+    if (!fs.existsSync(file)) {
+      this.baseConfiguration = this.completeConfiguration({ version: 3 });
+    } else {
+      this.baseConfiguration = this.completeConfiguration(FileUtils.load(file));
+    }
   }
 
+  /**
+   * Add Moddas, Models and Deployers definitions
+   * It also add the project metadata
+   *
+   * @param configuration
+   * @returns
+   */
   completeConfiguration(configuration: Configuration): Configuration {
     configuration.cachedModules = {
       project: this.loadProjectInformation(),
@@ -37,11 +68,11 @@ export class UnpackedApplication extends Application {
       schemas: {},
       moddas: {}
     };
-    this.mergeModules(configuration.cachedModules);
+    this.mergeModules(configuration);
     return configuration;
   }
 
-  getGitInformation(): GitInformation {
+  getGitInformation(name?: string, version?: string): GitInformation {
     return {
       branch: "",
       commit: "",
@@ -57,7 +88,6 @@ export class UnpackedApplication extends Application {
    */
   loadProjectInformation(): ProjectInformation {
     const info: ProjectInformation = {
-      git: this.getGitInformation(),
       deployment: {
         name: ""
       },
@@ -65,12 +95,14 @@ export class UnpackedApplication extends Application {
         name: "",
         version: ""
       },
+      git: EmptyGitInformation,
       webda: {}
     };
     let packageJson = path.join(this.appPath, "package.json");
     if (fs.existsSync(packageJson)) {
       info.package = JSON.parse(fs.readFileSync(packageJson).toString());
     }
+    info.git = this.getGitInformation(info.package?.name, info.package?.version);
     info.webda = info.package.webda || {};
     let parent = path.join(this.appPath, "..");
     do {
@@ -127,7 +159,14 @@ export class UnpackedApplication extends Application {
       files.push(currentModule);
     }
     // Ensure we are not adding many times the same modules
-    return Array.from(new Set(files.map(n => fs.realpathSync(n))));
+    return Array.from(new Set(files.map(n => fs.realpathSync(n)))).filter(f => this.filterModule(f));
+  }
+
+  /**
+   * Only allow local and core module and sample-app
+   */
+  filterModule(filename: string): boolean {
+    return true;
   }
 
   /**
@@ -157,7 +196,8 @@ export class UnpackedApplication extends Application {
    *
    * @param module
    */
-  mergeModules(module: CachedModule) {
+  mergeModules(configuration: Configuration) {
+    const module: CachedModule = configuration.cachedModules;
     let files = new Set<string>(this.findModules(module).map(f => fs.realpathSync(f)));
     let value = Array.from(files)
       .map(f => this.loadWebdaModule(f))
@@ -169,5 +209,6 @@ export class UnpackedApplication extends Application {
       .forEach(p => {
         module[SectionEnum[p]] = value[SectionEnum[p]];
       });
+    module.schemas = value.schemas;
   }
 }

@@ -1,21 +1,16 @@
 import {
-  AbstractDeployer,
   Cache,
   UnpackedApplication,
-  CachedModule,
-  Context,
-  CoreModel,
   Deployment,
   FileUtils,
   GitInformation,
   JSONUtils,
   WebdaError,
-  ConfigurationV1,
-  Configuration
+  Configuration,
+  CachedModule
 } from "@webda/core";
 import * as path from "path";
 import * as fs from "fs";
-import * as glob from "glob";
 import * as semver from "semver";
 import { execSync } from "child_process";
 import * as dateFormat from "dateformat";
@@ -36,88 +31,6 @@ export class SourceApplication extends UnpackedApplication {
   }
 
   /**
-   * Migrate from v0 to v1 configuration
-   *
-   * A V0 is a webda.config.json that does not contain any version tag
-   *
-   * @param config
-   */
-  migrateV0Config(config: any): ConfigurationV1 {
-    this.log("WARN", "Old V0 webda.config.json format, trying to migrate");
-    let newConfig: any = {
-      parameters: {},
-      services: {},
-      models: {},
-      routes: {},
-      version: 1
-    };
-    let domain;
-    if (config["*"]) {
-      domain = config[config["*"]];
-    } else {
-      domain = config[Object.keys(config)[0]] || { global: {} };
-    }
-    if (domain.global) {
-      newConfig.parameters = domain.global.params || {};
-      newConfig.services = domain.global.services || {};
-      newConfig.models = domain.global.models || {};
-      newConfig.parameters.locales = domain.global.locales;
-      newConfig.moddas = domain.global.moddas || {};
-    }
-    for (let i in domain) {
-      if (i === "global") continue;
-      newConfig.routes[i] = domain[i];
-    }
-    return newConfig;
-  }
-
-  /**
-   * Migrate from v1 to v2 configuration format
-   *
-   * @param config
-   */
-  migrateV1Config(config: ConfigurationV1): Configuration {
-    this.log("WARN", "Old V1 webda.config.json format, trying to migrate");
-    let newConfig: Configuration = {
-      parameters: config.parameters,
-      services: config.services,
-      module: {
-        moddas: {},
-        models: { ...config.models },
-        deployers: {}
-      },
-      version: 2
-    };
-    if (config.moddas) {
-      for (let i in config.moddas) {
-        newConfig.module.moddas[i] = config.moddas[i].require;
-      }
-    }
-    return newConfig;
-  }
-
-  /**
-   * Load configuration with auto-migration of version
-   * @param file
-   * @returns
-   */
-  loadConfiguration(file) {
-    let storedConfiguration = FileUtils.load(file);
-    // Migrate if needed
-    if (!storedConfiguration.version) {
-      storedConfiguration = this.migrateV0Config(storedConfiguration);
-    }
-    if (storedConfiguration.version == 1) {
-      storedConfiguration = this.migrateV1Config(storedConfiguration);
-    }
-    if (storedConfiguration.version == 2) {
-      storedConfiguration = storedConfiguration;
-    }
-
-    return this.completeConfiguration(storedConfiguration);
-  }
-
-  /**
    * Get the Webda namespace
    */
   getNamespace(): string {
@@ -131,11 +44,10 @@ export class SourceApplication extends UnpackedApplication {
    * @return the git information
    */
   @Cache()
-  getGitInformation(): GitInformation {
+  getGitInformation(packageName: string = "", version: string = ""): GitInformation {
     let options = {
       cwd: this.getAppPath()
     };
-    let info = this.getPackageDescription();
     try {
       let tags = execSync(`git tag --points-at HEAD`, options)
         .toString()
@@ -143,13 +55,12 @@ export class SourceApplication extends UnpackedApplication {
         .split("\n")
         .filter(t => t !== "");
       let tag = "";
-      let version = info.version;
-      if (tags.includes(`${info.name}@${info.version}`)) {
-        tag = `${info.name}@${info.version}`;
-      } else if (tags.includes(`v${info.version}`)) {
-        tag = `v${info.version}`;
+      if (tags.includes(`${packageName}@${version}`)) {
+        tag = `${packageName}@${version}`;
+      } else if (tags.includes(`v${version}`)) {
+        tag = `v${version}`;
       } else {
-        version = semver.inc(info.version, "patch") + "+" + dateFormat(new Date(), "yyyymmddHHMMssl");
+        version = semver.inc(version, "patch") + "+" + dateFormat(new Date(), "yyyymmddHHMMssl");
       }
       // Search for what would be the tag
       // packageName@version
@@ -170,7 +81,7 @@ export class SourceApplication extends UnpackedApplication {
         tag: "",
         short: "00000000",
         tags: [],
-        version: info.version
+        version
       };
     }
   }
@@ -187,124 +98,18 @@ export class SourceApplication extends UnpackedApplication {
   /**
    * Generate the module for current application
    */
-  generateModule() {
+  async generateModule() {
     // Compile
     this.compile();
-    // Reinit the sources cache
-    this.cachedModules.beans = {};
-    this._loaded = [];
-    // Read all files
-    this.getPackagesLocations().forEach(p => {
-      let absPath = path.resolve(path.join(this.appPath, p));
-      if (this._loaded.indexOf(absPath) >= 0) {
-        return;
-      }
-      this._loaded.push(absPath);
-      if (fs.existsSync(absPath) && fs.lstatSync(absPath).isDirectory()) {
-        absPath += "/**/*.js";
-      }
-      glob.sync(absPath).forEach(f => this.loadJavascriptFile(f));
-    });
-    let moduleFile = path.join(this.appPath, "webda.module.json");
-    let current = "";
-    if (fs.existsSync(moduleFile)) {
-      current = fs.readFileSync(moduleFile).toString();
-    }
-    /*
-    let module: CachedModule = {
-      ...this.appModule,
-      schemas: {},
-      projectInformation: {
-        git: this.getGitInformation(),
-        deployment: {
-          name: this.currentDeployment
-        },
-        package: FileUtils.load(this.getAppPath("package.json"))
-      }
-    };
-    
-    for (let i in this.appModule.services) {
-      module.schemas[i] = this.getSchema(i.toLowerCase());
-    }
-    for (let i in this.appModule.deployers) {
-      module.schemas[i] = this.getSchema(i.toLowerCase());
-    }
-    for (let i in this.appModule.models) {
-      module.schemas[i] = this.getSchema(i.toLowerCase());
-    }
-    if (current !== JSONUtils.stringify(module, undefined, 2)) {
-      // Write module
-      FileUtils.save(module, moduleFile);
-    }
-    */
-  }
-
-  /**
-   * Load a javascript file and check for Modda
-   * @param path to load
-   */
-  protected loadJavascriptFile(absolutePath: string) {
-    let marker = path.resolve(absolutePath);
-    if (this._loaded.indexOf(marker) >= 0) {
-      return;
-    }
-    this._loaded.push(marker);
-    let source = "./" + path.relative(this.appPath, absolutePath);
-    /*
-    if (this.cachedModules.sources.indexOf(source) < 0) {
-      this.cachedModules.sources.push(source);
-    }
-    */
+    // Write module
+    FileUtils.save(this.getCompiler().generateModule(), this.getAppPath("webda.module.json"));
   }
 
   /**
    * Get the application files
    */
   getPackagesLocations(): string[] {
-    return this.cachedModules.project.package.files || ["lib/**/*.js"];
-  }
-
-  /**
-   * Load all imported modules and current module
-   * It will compile module
-   * Generate the current module file
-   * Load any imported webda.module.json
-   */
-  loadModules() {
-    // Cached modules is defined on deploy
-    if (this.baseConfiguration.cachedModules) {
-      // We should not load any modules as we are in a deployed version
-      return;
-    }
-    // Compile
-    this.compile();
-    const Finder = require("fs-finder");
-    // Modules should be cached on deploy
-    var files = [];
-    let nodeModules = path.join(this.appPath, "node_modules");
-    if (fs.existsSync(nodeModules)) {
-      files = Finder.from(nodeModules).findFiles("webda.module.json");
-    }
-    // Search workspace for webda.module.json
-    if (this.workspacesPath !== "") {
-      nodeModules = path.join(this.workspacesPath, "node_modules");
-      if (fs.existsSync(nodeModules)) {
-        files.push(...Finder.from(nodeModules).findFiles("webda.module.json"));
-      }
-    }
-    // Generate module
-    this.generateModule();
-    let currentModule = path.join(this.appPath, "webda.module.json");
-    if (fs.existsSync(currentModule)) {
-      files.push(currentModule);
-    }
-    if (files.length) {
-      this.log("DEBUG", "Found modules", files);
-      files.forEach(file => {
-        let info = require(file);
-        this.loadModule(info, path.dirname(file));
-      });
-    }
+    return this.baseConfiguration.cachedModules?.project?.package?.files || ["lib/**/*.js"];
   }
 
   /**
@@ -312,22 +117,9 @@ export class SourceApplication extends UnpackedApplication {
    * Do nothing otherwise
    */
   compile() {
-    if (this.compiled) {
-      return;
+    if (!this.compiled) {
+      this.compiled = this.getCompiler().compile();
     }
-    // exec typescript
-    this.log("DEBUG", "Compiling application");
-    try {
-      execSync(`tsc -p ${this.appPath}`);
-    } catch (err) {
-      (err.stdout.toString() + err.stderr.toString())
-        .split("\n")
-        .filter(l => l !== "")
-        .forEach(l => {
-          this.log("ERROR", "tsc:", l);
-        });
-    }
-    this.compiled = true;
   }
 
   /**
@@ -416,6 +208,13 @@ export class SourceApplication extends UnpackedApplication {
   }
 
   /**
+   * Get current deployment name
+   */
+  getCurrentDeployment(): string {
+    return this.currentDeployment;
+  }
+
+  /**
    * Set the current deployment for the application
    * Call to getCurrentConfiguration will resolve to the computed configuration for the deployment
    * If needed, you can call the method with undefined to reset to default configuration
@@ -472,5 +271,36 @@ export class SourceApplication extends UnpackedApplication {
    */
   hasDeployment(deploymentName: string): boolean {
     return fs.existsSync(path.join(this.appPath, "deployments", deploymentName + ".json"));
+  }
+}
+
+/**
+ * Used to generate module
+ * We do not want to load any module, we only compile the sources and then analyze
+ * to generate the webda.module.json
+ */
+export class BuildSourceApplication extends SourceApplication {
+  /**
+   * Module has been generated
+   */
+  moduleReady: boolean = false;
+
+  /**
+   * @returns
+   */
+  filterModule(file) {
+    return this.moduleReady && super.filterModule(file);
+  }
+
+  /**
+   * @override
+   */
+  async generateModule() {
+    await super.generateModule();
+    // Module is generated
+    this.moduleReady = true;
+    // Reload all modules now
+    this.mergeModules(this.baseConfiguration);
+    await this.loadModule(this.baseConfiguration.cachedModules);
   }
 }

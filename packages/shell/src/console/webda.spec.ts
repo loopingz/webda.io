@@ -8,9 +8,12 @@ import { ServerStatus } from "../handlers/http";
 import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import { DebuggerStatus, WebdaConsole } from "./webda";
 import { MemoryLogger, WorkerOutput } from "@webda/workout";
-import { Application, FileUtils, JSONUtils, Logger, Module, WebdaError } from "@webda/core";
+import { FileUtils, JSONUtils, Logger, Module, WebdaError } from "@webda/core";
 import * as sinon from "sinon";
 import { SourceApplication } from "../code/sourceapplication";
+import { execSync } from "child_process";
+import { Compiler } from "../code/compiler";
+import * as ts from "typescript";
 
 class DebugLogger extends MemoryLogger {
   getLogs(start: number = 0) {
@@ -51,6 +54,7 @@ class ConsoleTest {
   }
 
   async before() {
+    await WebdaSampleApplication.load();
     let dynamicFile = path.join(WebdaSampleApplication.getAppPath(), "lib", "services", "dynamic.js");
     if (fs.existsSync(dynamicFile)) {
       fs.unlinkSync(dynamicFile);
@@ -153,10 +157,11 @@ class ConsoleTest {
    * @param status to wait for
    * @param timeout max number of ms to wait for
    */
-  async waitForStatus(status: DebuggerStatus, timeout: number = 120000) {
+  async waitForStatus(status: DebuggerStatus, timeout: number = 10000) {
     let time = 0;
     do {
       let currentStatus = WebdaConsole.getDebuggerStatus();
+      console.log("WAIT FOR STATUS", status, "CURRENT", currentStatus);
       if (currentStatus === status) {
         return;
       }
@@ -182,6 +187,9 @@ class ConsoleTest {
 
   @test
   async debugCommandLine() {
+    Compiler.watchOptions = {
+      watchDirectory: ts.WatchDirectoryKind.FixedPollingInterval
+    };
     //WebdaSampleApplication.clean();
     this.commandLine(
       `debug -d Dev --bind=127.0.0.1 --logLevels=ERROR,WARN,INFO,DEBUG,TRACE --port 28080`,
@@ -218,15 +226,16 @@ class DynamicService extends Service {
       // Skip error on timeout
     }
     console.log("Test new route");
-    try {
-      let res = await fetch(`http://localhost:28080/myNewRoute`);
-      assert.strictEqual(res.status, 200);
-    } catch (err) {
-      // Skip this part on Travis and GitHub actions for now
-      if (!process.env.TRAVIS && !process.env.CI) {
-        throw err;
-      }
-    }
+    // Keep until tested on GitHub
+    // try {
+    let res = await fetch(`http://localhost:28080/myNewRoute`);
+    assert.strictEqual(res.status, 200);
+    // } catch (err) {
+    //   // Skip this part on Travis and GitHub actions for now
+    //   if (!process.env.TRAVIS && !process.env.CI) {
+    //     throw err;
+    //   }
+    // }
     fs.unlinkSync(this.dynamicFile);
     // Create a faulty one
     fs.writeFileSync(
@@ -243,9 +252,23 @@ class DynamicService extend Service {
 `
     );
     await new Promise(resolve => setTimeout(resolve, 2000));
+    p = this.waitForStatus(DebuggerStatus.Launching);
     fs.unlinkSync(this.dynamicFile);
+    console.log("Waiting for Launching");
+    await p;
+    console.log("Waiting for Serving");
+    await this.waitForStatus(DebuggerStatus.Serving);
     let stub = sinon.stub(process, "exit").callsFake(() => {});
+    const deploymentFile = WebdaSampleApplication.getAppPath("deployments/Dev.json");
     try {
+      p = this.waitForStatus(DebuggerStatus.Launching);
+      const deployment = FileUtils.load(deploymentFile);
+      deployment.test = Date.now();
+      FileUtils.save(deployment, deploymentFile);
+      console.log("Waiting for Launching");
+      await p;
+      console.log("Waiting for Serving");
+      await this.waitForStatus(DebuggerStatus.Serving);
       WebdaConsole.onSIGINT();
       // @ts-ignore
       WebdaConsole.terminal = {
@@ -259,6 +282,8 @@ class DynamicService extend Service {
     } finally {
       stub.restore();
       WebdaConsole.terminal = undefined;
+      execSync(`git checkout ${WebdaSampleApplication.getAppPath("webda.module.json")}`);
+      execSync(`git checkout ${deploymentFile}`);
     }
   }
 
@@ -266,15 +291,15 @@ class DynamicService extend Service {
   async serviceconfigCommandLine() {
     await this.commandLine("service-configuration CustomService");
     let logs = this.logger.getLogs();
-    assert.strictEqual(logs.length, 1);
+    let ind = logs.length - 1;
     assert.notStrictEqual(
-      logs[0].log.args[0].match(/[\w\W]*"sessionSecret":[\w\W]*"type": "Beans\/CustomService"[\w\W]*/gm),
-      undefined
+      logs[ind].log.args[0].match(/[\w\W]*"sessionSecret":[\w\W]*"type": "Beans\/CustomService"[\w\W]*/gm),
+      null
     );
     await this.commandLine("service-configuration UnknownService");
     logs = this.logger.getLogs();
-    assert.strictEqual(logs.length, 1);
-    assert.strictEqual(logs[0].log.args[0], "\u001b[31mThe service UnknownService is missing\u001b[39m");
+    ind = logs.length - 1;
+    assert.strictEqual(logs[ind].log.args[0], "\u001b[31mThe service UnknownService is missing\u001b[39m");
   }
 
   @test
@@ -294,20 +319,21 @@ class DynamicService extend Service {
     this.logger.setLogLevel("INFO");
     await this.commandLine("launch CustomService output DEBUG_MSG");
     logs = this.logger.getLogs();
-    assert.strictEqual(logs[0].log.args.length, 1);
-    assert.strictEqual(logs[0].log.args[0], "YOUR MESSAGE IS 'DEBUG_MSG'");
+    ind = logs.length - 1;
+    assert.strictEqual(logs[ind].log.args.length, 1);
+    assert.strictEqual(logs[ind].log.args[0], "YOUR MESSAGE IS 'DEBUG_MSG'");
     await this.commandLine("launch CustomService badMethod");
     logs = this.logger.getLogs();
-    assert.strictEqual(logs.length, 1);
-    assert.strictEqual(logs[0].log.args[0], "An error occured");
+    ind = logs.length - 1;
+    assert.strictEqual(logs[ind].log.args[0], "An error occured");
     await this.commandLine("launch CustomService unknownMethod");
     logs = this.logger.getLogs();
-    assert.strictEqual(logs.length, 1);
-    assert.strictEqual(logs[0].log.args[0], "The method unknownMethod is missing in service CustomService");
+    ind = logs.length - 1;
+    assert.strictEqual(logs[ind].log.args[0], "The method unknownMethod is missing in service CustomService");
     await this.commandLine("launch UnknownService");
     logs = this.logger.getLogs();
-    assert.strictEqual(logs.length, 1);
-    assert.strictEqual(logs[0].log.args[0], "The service UnknownService is missing");
+    ind = logs.length - 1;
+    assert.strictEqual(logs[ind].log.args[0], "The service UnknownService is missing");
   }
 
   @test
@@ -321,18 +347,22 @@ class DynamicService extend Service {
   }
 
   @test
-  async generateModule() {
-    let moduleFile = path.join(WebdaSampleApplication.getAppPath(), "webda.module.json");
-    if (fs.existsSync(moduleFile)) {
-      fs.unlinkSync(moduleFile);
+  async build() {
+    try {
+      let moduleFile = WebdaSampleApplication.getAppPath("webda.module.json");
+      if (fs.existsSync(moduleFile)) {
+        fs.unlinkSync(moduleFile);
+      }
+      await this.commandLine(`build`);
+      assert.strictEqual(fs.existsSync(moduleFile), true);
+      let module: Module = JSON.parse(fs.readFileSync(moduleFile).toString());
+      assert.ok(Object.keys(module.schemas).length >= 9);
+      assert.deepStrictEqual(module.schemas["webdademo/customdeployer"].title, "CustomDeployer");
+      assert.notStrictEqual(module.schemas["webdademo/customreusableservice"], undefined);
+      assert.notStrictEqual(module.schemas["webdademo/contact"], undefined);
+    } finally {
+      execSync(`git checkout ${WebdaSampleApplication.getAppPath("webda.module.json")}`);
     }
-    await this.commandLine(`module`);
-    assert.strictEqual(fs.existsSync(moduleFile), true);
-    let module: Module = JSON.parse(fs.readFileSync(moduleFile).toString());
-    assert.strictEqual(Object.keys(module.schemas).length, 3);
-    assert.deepStrictEqual(module.schemas["WebdaDemo/CustomDeployer"], { title: "CustomDeployer" });
-    assert.notStrictEqual(module.schemas["WebdaDemo/CustomReusableService"], undefined);
-    assert.notStrictEqual(module.schemas["WebdaDemo/Contact"], undefined);
   }
 
   @test
@@ -435,17 +465,6 @@ class DynamicService extend Service {
     assert.strictEqual(WebdaConsole.withinPatchVersion("1.2.1", "2.2.1"), false);
     assert.strictEqual(WebdaConsole.withinPatchVersion("1.2.1", "0.1.2"), false);
     assert.strictEqual(WebdaConsole.withinPatchVersion("1.2.1-beta", "1.1.2"), false);
-  }
-
-  @test
-  async configurationSchema() {
-    const f = "./myschemacfg.json";
-    if (fs.existsSync(f)) {
-      fs.unlinkSync(f);
-    }
-    await this.commandLine("configuration-schema myschemacfg.json");
-    assert.strictEqual(true, fs.existsSync(f));
-    assert.strictEqual(true, fs.existsSync(".webda-deployment-schema.json"));
   }
 
   @test
@@ -562,34 +581,6 @@ module.exports = {
   }
 
   @test
-  async migrateConfig() {
-    let appPath = path.join(__dirname, "..", "..", "test", "fakeoldapp");
-    fs.mkdirSync(appPath, { recursive: true });
-    fs.writeFileSync(path.join(appPath, "webda.config.json"), "{}");
-    if (fs.existsSync(path.join(appPath, "newfile.json"))) {
-      fs.unlinkSync(path.join(appPath, "newfile.json"));
-    }
-    // call with just migrate-configuration mynewfile.json
-    await this.commandLine(`--appPath ${appPath} migrate-configuration newfile.json`, false);
-    assert.deepStrictEqual(JSONUtils.loadFile(path.join(appPath, "newfile.json")), {
-      module: {
-        deployers: {},
-        services: {},
-        models: {}
-      },
-      parameters: {},
-      services: {},
-      version: 2
-    });
-    // call with just migrate-configuration
-    await this.commandLine(`--appPath ${appPath} migrate-configuration`, false);
-    assert.deepStrictEqual(
-      JSONUtils.loadFile(path.join(appPath, "newfile.json")),
-      JSONUtils.loadFile(path.join(appPath, "webda.config.json"))
-    );
-  }
-
-  @test
   async deploy() {
     // call one dummy deploy
     assert.strictEqual(await this.commandLine(`deploy`), -1);
@@ -632,19 +623,6 @@ module.exports = {
       assert.ok(register.getCall(0).args[0].endsWith("node_modules/generator-webda/generators/app/index.js"));
       assert.strictEqual(register.getCall(0).args[1], "webda");
       register.resetHistory();
-    } finally {
-      stub.restore();
-    }
-  }
-
-  @test
-  async typescriptWatch() {
-    WebdaConsole.app = WebdaSampleApplication;
-    WebdaConsole.typescriptWatch(WebdaConsole.getTransform(() => {}));
-    let stub = sinon.stub(process, "exit").callsFake(() => {});
-    try {
-      WebdaConsole.tscCompiler.emit("exit", 1);
-      assert.deepStrictEqual(stub.getCall(0).args, [1]);
     } finally {
       stub.restore();
     }
@@ -746,8 +724,10 @@ module.exports = {
   }
 
   @test
-  generateConfigurationSchemaTest() {
+  async generateConfigurationSchemaTest() {
+    await WebdaSampleApplication.load();
     WebdaConsole.app = new SourceApplication(WebdaSampleApplication.getAppPath());
+    await WebdaConsole.app.load();
     const config = WebdaSampleApplication.getConfiguration();
     let stub = sinon.stub(WebdaConsole.app, "getConfiguration").callsFake(() => {
       return {
@@ -759,7 +739,7 @@ module.exports = {
       };
     });
     try {
-      WebdaConsole.app.getCompiler().generateConfigurationSchema();
+      WebdaConsole.app.getCompiler().generateConfigurationSchemas();
     } finally {
       stub.restore();
     }

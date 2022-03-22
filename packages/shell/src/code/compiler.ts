@@ -1,5 +1,5 @@
 //node.kind === ts.SyntaxKind.ClassDeclaration
-import { Application, CachedModule, FileUtils, JSONUtils, Module, Section } from "@webda/core";
+import { Application, Logger, FileUtils, JSONUtils, Module, Section } from "@webda/core";
 import * as ts from "typescript";
 import * as path from "path";
 import { existsSync } from "fs";
@@ -21,18 +21,168 @@ import {
   ObjectProperty,
   InterfaceAndClassNodeParser,
   ReferenceType,
-  DefinitionType,
   Config,
-  AnnotatedType
+  AnnotatedType,
+  SubNodeParser,
+  NodeParser,
+  LogicError,
+  ObjectType,
+  LiteralType
 } from "ts-json-schema-generator";
 import { isPublic, isStatic } from "ts-json-schema-generator/dist/src/Utils/modifiers";
-import { JSONSchema7 } from "json-schema";
-import { DeploymentManager } from "..";
+import { JSONSchema7, JSONSchema7Definition } from "json-schema";
+import { UnknownType } from "ts-json-schema-generator/dist/src/Type/UnknownType";
+
+/**
+ * Temporary fix while waiting for https://github.com/vega/ts-json-schema-generator/pull/1182
+ */
+/* istanbul ignore next */
+export class FunctionTypeFormatter implements SubTypeFormatter {
+  // You can skip this line if you don't need childTypeFormatter
+  public constructor() {}
+
+  public supportsType(type: FunctionType): boolean {
+    return type instanceof FunctionType;
+  }
+
+  public getDefinition(type: FunctionType): Definition {
+    // Return a custom schema for the function property.
+    return {};
+  }
+
+  public getChildren(type: FunctionType): BaseType[] {
+    return [];
+  }
+}
+/* istanbul ignore next */
+export function hash(a: unknown): string | number {
+  if (typeof a === "number") {
+    return a;
+  }
+
+  const str = typeof a === "string" ? a : JSON.stringify(a);
+
+  // short strings can be used as hash directly, longer strings are hashed to reduce memory usage
+  if (str.length < 20) {
+    return str;
+  }
+
+  // from http://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    h = (h << 5) - h + char;
+    h = h & h; // Convert to 32bit integer
+  }
+
+  // we only want positive integers
+  if (h < 0) {
+    return -h;
+  }
+
+  return h;
+}
+/* istanbul ignore next */
+function getKey(node: ts.Node, context: Context): string {
+  const ids: (number | string)[] = [];
+  while (node) {
+    const file = node
+      .getSourceFile()
+      .fileName.substr(process.cwd().length + 1)
+      .replace(/\//g, "_");
+    ids.push(hash(file), node.pos, node.end);
+
+    node = node.parent;
+  }
+  const id = ids.join("-");
+
+  const argumentIds = context.getArguments().map(arg => arg?.getId());
+
+  return argumentIds.length ? `${id}<${argumentIds.join(",")}>` : id;
+}
+
+class ConstructorNodeParser implements SubNodeParser {
+  public constructor() {}
+
+  public supportsNode(node: ts.ConstructorTypeNode): boolean {
+    return node.kind === ts.SyntaxKind.ConstructorType;
+  }
+
+  public createType(node: ts.TypeQueryNode, context: Context, reference?: ReferenceType): BaseType | undefined {
+    return undefined;
+  }
+}
+
+/**
+ * Temporary fix while waiting for https://github.com/vega/ts-json-schema-generator/pull/1183
+ */
+/* istanbul ignore next */
+export class TypeofNodeParser implements SubNodeParser {
+  public constructor(protected typeChecker: ts.TypeChecker, protected childNodeParser: NodeParser) {}
+
+  public supportsNode(node: ts.TypeQueryNode): boolean {
+    return node.kind === ts.SyntaxKind.TypeQuery;
+  }
+
+  public createType(node: ts.TypeQueryNode, context: Context, reference?: ReferenceType): BaseType | undefined {
+    let symbol = this.typeChecker.getSymbolAtLocation(node.exprName)!;
+    if (symbol.flags & ts.SymbolFlags.Alias) {
+      symbol = this.typeChecker.getAliasedSymbol(symbol);
+    }
+
+    const valueDec = symbol.valueDeclaration!;
+    if (ts.isEnumDeclaration(valueDec)) {
+      return this.createObjectFromEnum(valueDec, context, reference);
+    } else if (
+      ts.isVariableDeclaration(valueDec) ||
+      ts.isPropertySignature(valueDec) ||
+      ts.isPropertyDeclaration(valueDec)
+    ) {
+      if (valueDec.type) {
+        return this.childNodeParser.createType(valueDec.type, context);
+      } else if (valueDec.initializer) {
+        return this.childNodeParser.createType(valueDec.initializer, context);
+      }
+    } else if (ts.isClassDeclaration(valueDec)) {
+      return this.childNodeParser.createType(valueDec, context);
+    } else if (ts.isPropertyAssignment(valueDec)) {
+      return this.childNodeParser.createType(valueDec.initializer, context);
+    } else if (valueDec.kind === ts.SyntaxKind.FunctionDeclaration) {
+      return;
+    }
+
+    throw new LogicError(`Invalid type query "${valueDec.getFullText()}" (ts.SyntaxKind = ${valueDec.kind})`);
+  }
+
+  protected createObjectFromEnum(node: ts.EnumDeclaration, context: Context, reference?: ReferenceType): ObjectType {
+    const id = `typeof-enum-${getKey(node, context)}`;
+    if (reference) {
+      reference.setId(id);
+      reference.setName(id);
+    }
+
+    let type: BaseType | null | undefined = null;
+    const properties = node.members.map(member => {
+      const name = member.name.getText();
+      if (member.initializer) {
+        type = this.childNodeParser.createType(member.initializer, context);
+      } else if (type === null) {
+        type = new LiteralType(0);
+      } else if (type instanceof LiteralType && typeof type.getValue() === "number") {
+        type = new LiteralType(+type.getValue() + 1);
+      } else {
+        throw new LogicError(`Enum initializer missing for "${name}"`);
+      }
+      return new ObjectProperty(name, type, true);
+    });
+
+    return new ObjectType(id, [], properties, false);
+  }
+}
 
 class WebdaAnnotatedNodeParser extends AnnotatedNodeParser {
   createType(node: ts.Node, context: Context, reference?: ReferenceType) {
     let type = super.createType(node, context, reference);
-    //console.log("createTypeKind", ts.SyntaxKind[node.parent.kind]);
     if (node.parent.kind === ts.SyntaxKind.PropertyDeclaration) {
       if ((<ts.PropertyDeclaration>node.parent).name.getText().startsWith("_")) {
         if (!(type instanceof AnnotatedType)) {
@@ -58,15 +208,6 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         .includes("WebdaModel")
     );
   }
-  /*
-  public createType(node: ts.ClassDeclaration, context: Context, reference?: ReferenceType): BaseType | undefined {
-    const objectType = super.createType(node, context, reference);
-    if (tsquery(node, "Decorator [name=Model]").length > 0) {
-      return new DefinitionType(node.name.escapedText.toString(), objectType);
-    }
-    return objectType;
-  }
- */
 
   /**
    * Override to filter __ properties
@@ -106,68 +247,18 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
       })
       .filter(prop => {
         if (prop.isRequired() && prop.getType() === undefined) {
+          /* istanbul ignore next */
           hasRequiredNever = true;
         }
         return prop.getType() !== undefined;
       });
 
     if (hasRequiredNever) {
+      /* istanbul ignore next */
       return undefined;
     }
 
     return properties;
-  }
-}
-
-const defaultCompilerHost = ts.createCompilerHost({});
-let sourceFile = ``;
-
-const customCompilerHost: ts.CompilerHost = {
-  getSourceFile: (name, languageVersion) => {
-    console.log(`getSourceFile ${name}`);
-
-    if (name === "src/dynamic.importer.ts") {
-      return ts.createSourceFile(name, sourceFile, ts.ScriptTarget.Latest);
-    } else {
-      return defaultCompilerHost.getSourceFile(name, languageVersion);
-    }
-  },
-  writeFile: (filename, data) => {},
-  getDefaultLibFileName: () => "lib.d.ts",
-  useCaseSensitiveFileNames: () => false,
-  getCanonicalFileName: filename => filename,
-  getCurrentDirectory: () => "",
-  getNewLine: () => "\n",
-  getDirectories: () => [],
-  fileExists: () => true,
-  readFile: () => ""
-};
-
-export class MyFunctionTypeFormatter implements SubTypeFormatter {
-  // You can skip this line if you don't need childTypeFormatter
-  public constructor() {}
-
-  public supportsType(type: FunctionType): boolean {
-    //    console.log("MyCustomFormatter Type", type);
-    return type instanceof FunctionType;
-  }
-
-  public getDefinition(type: FunctionType): Definition {
-    // Return a custom schema for the function property.
-    return {
-      type: "object",
-      properties: {
-        isFunction: {
-          type: "boolean",
-          const: true
-        }
-      }
-    };
-  }
-
-  // If this type does NOT HAVE children, generally all you need is:
-  public getChildren(type: FunctionType): BaseType[] {
-    return [];
   }
 }
 
@@ -179,10 +270,6 @@ export type SymbolRef = {
 };
 
 export class Compiler {
-  symbols: SymbolRef[] = [];
-  allSymbols: { [name: string]: ts.Type } = {};
-  userSymbols: { [name: string]: ts.Symbol } = {};
-  inheritingTypes: { [baseName: string]: string[] } = {};
   workingDir: string;
   sourceFile: ts.SourceFile;
   app: SourceApplication;
@@ -197,6 +284,10 @@ export class Compiler {
   configParseResult: any;
   schemaGenerator: SchemaGenerator;
   typeChecker: ts.TypeChecker;
+  compiled: boolean;
+  tsProgram: ts.Program;
+  watchProgram: ts.WatchOfConfigFile<ts.SemanticDiagnosticsBuilderProgram>;
+  static watchOptions: ts.WatchOptions;
 
   /**
    * Construct a compiler for a WebdaApplication
@@ -206,92 +297,34 @@ export class Compiler {
     this.app = app;
   }
 
-  build(
-    override: {
-      compilerOptions?: ts.CompilerOptions;
-      include?: string[];
-      exclude?: string[];
-      files?: string[];
-      extends?: string;
-    } = {},
-    currentDir = process.cwd()
-  ) {
-    const configFile = ts.findConfigFile(currentDir, ts.sys.fileExists, "tsconfig.json");
-    if (!configFile) throw Error("tsconfig.json not found");
-    const { config } = ts.readConfigFile(configFile, ts.sys.readFile);
-
-    config.compilerOptions = Object.assign({}, config.compilerOptions, override.compilerOptions);
-    if (override.include) config.include = override.include;
-    if (override.exclude) config.exclude = override.exclude;
-    if (override.files) config.files = override.files;
-    if (override.extends) config.files = override.extends;
-
-    const { options, fileNames, errors } = ts.parseJsonConfigFileContent(config, ts.sys, currentDir);
-
-    const program = ts.createProgram({ options, rootNames: fileNames, configFileParsingDiagnostics: errors });
-
-    const { diagnostics, emitSkipped } = program.emit();
-
-    const allDiagnostics = ts.getPreEmitDiagnostics(program).concat(diagnostics, errors);
-
-    if (allDiagnostics.length) {
-      const formatHost: ts.FormatDiagnosticsHost = {
-        getCanonicalFileName: path => path,
-        getCurrentDirectory: ts.sys.getCurrentDirectory,
-        getNewLine: () => ts.sys.newLine
-      };
-      const message = ts.formatDiagnostics(allDiagnostics, formatHost);
-      console.warn(message);
-    }
-
-    if (emitSkipped) process.exit(1);
-  }
-
-  getProgramFromConfig(app: Application = this.app): ts.Program {
+  /**
+   * Generate a program from app
+   * @param app
+   * @returns
+   */
+  createProgramFromApp(app: Application = this.app): void {
     const configFileName = app.getAppPath("tsconfig.json");
     // basically a copy of https://github.com/Microsoft/TypeScript/blob/3663d400270ccae8b69cbeeded8ffdc8fa12d7ad/src/compiler/tsc.ts -> parseConfigFile
-    const result = ts.parseConfigFileTextToJson(configFileName, ts.sys.readFile(configFileName)!);
-    const configObject = result.config;
-
     this.configParseResult = ts.parseJsonConfigFileContent(
-      configObject,
+      ts.parseConfigFileTextToJson(configFileName, ts.sys.readFile(configFileName)).config,
       ts.sys,
       path.dirname(configFileName),
       {},
       path.basename(configFileName)
     );
-    const options = this.configParseResult.options;
-    /*
-    options.noEmit = true;
-    delete options.out;
-    delete options.outDir;
-    delete options.outFile;
-    delete options.declaration;
-    delete options.declarationDir;
-    delete options.declarationMap;
-    */
-    const importer = app.getAppPath("src/dynamic.importer.ts");
-    const module = app.getModules();
-
-    let sources = [
-      ...Object.values(module.moddas).filter(s => s.startsWith("./node_modules")),
-      ...Object.values(module.deployers).filter(s => s.startsWith("./node_modules"))
-    ];
-    sourceFile = "";
-    sources.forEach((src, i) => {
-      sourceFile += `import * as i${i} from "${app.getAppPath(src.substr(2))}"\n`;
-    });
-    let program;
-
-    this.configParseResult.fileNames.push(importer);
-    program = ts.createProgram({
+    this.tsProgram = ts.createProgram({
       rootNames: this.configParseResult.fileNames,
-      options,
-      projectReferences: this.configParseResult.projectReferences
+      ...this.configParseResult
     });
-    return program;
+    this.typeChecker = this.tsProgram.getTypeChecker();
   }
 
+  /**
+   * Return the Javascript target file for a source
+   * @param sourceFile
+   * @param absolutePath
+   * @returns
+   */
   getJSTargetFile(sourceFile: ts.SourceFile, absolutePath: boolean = false) {
     let filePath = ts.getOutputFileNames(this.configParseResult, sourceFile.fileName, true)[0];
     if (absolutePath) {
@@ -300,6 +333,14 @@ export class Compiler {
     return path.relative(this.app.getAppPath(), filePath);
   }
 
+  /**
+   * Get the name of the export for a class
+   *
+   * Will also check if it is exported with a `export { MyClass }`
+   *
+   * @param node
+   * @returns
+   */
   getExportedName(node: ts.ClassDeclaration): string | undefined {
     let exportNodes = tsquery(node, "ExportKeyword");
     const className = node.name.escapedText.toString();
@@ -318,6 +359,11 @@ export class Compiler {
     return className;
   }
 
+  /**
+   * Sort object keys
+   * @param unordered
+   * @returns
+   */
   sortObject(unordered: any): any {
     return Object.keys(unordered)
       .sort()
@@ -335,10 +381,13 @@ export class Compiler {
    *
    * The @Bean and @Route Decorator will detect the Bean and ImplicitBean
    *
-   * @param tsp
+   * @param this.tsProgram
    * @returns
    */
-  generateModule(tsp: ts.Program) {
+  generateModule() {
+    // Ensure we have compiled the application
+    this.compile();
+
     // Local module
     const module: Module = {
       moddas: {},
@@ -347,14 +396,16 @@ export class Compiler {
       deployers: {},
       schemas: {}
     };
-    this.typeChecker = tsp.getTypeChecker();
-    // Generate the Module
-    tsp.getSourceFiles().forEach(sourceFile => {
-      if (!tsp.isSourceFileDefaultLibrary(sourceFile)) {
-        this.sourceFile = sourceFile;
-        this.inspect(sourceFile, tsp.getTypeChecker(), true);
 
-        if (tsp.getRootFileNames().includes(sourceFile.fileName) && !sourceFile.fileName.endsWith(".spec.ts")) {
+    // Generate the Module
+    this.tsProgram.getSourceFiles().forEach(sourceFile => {
+      if (!this.tsProgram.isSourceFileDefaultLibrary(sourceFile)) {
+        this.sourceFile = sourceFile;
+
+        if (
+          this.tsProgram.getRootFileNames().includes(sourceFile.fileName) &&
+          !sourceFile.fileName.endsWith(".spec.ts")
+        ) {
           const importTarget = this.getJSTargetFile(sourceFile).replace(/\.js$/, "");
           for (let node of tsquery(sourceFile, "ClassDeclaration")) {
             let clazz: ts.ClassDeclaration = <any>node;
@@ -387,7 +438,10 @@ export class Compiler {
               const classTree = this.getClassTree(this.typeChecker.getTypeAtLocation(clazz));
               if (tags["WebdaModel"]) {
                 section = "models";
-                schemaNode = clazz;
+                // We do not generate schema for technical model like Context or SessionCookie
+                if (this.extends(classTree, "@webda/core", "CoreModel")) {
+                  schemaNode = clazz;
+                }
               } else if (tags["WebdaModda"]) {
                 // Skip as it does not inherite from Service
                 if (!this.extends(classTree, "@webda/core", "Service")) {
@@ -441,13 +495,29 @@ export class Compiler {
                 });
               }
               if (section) {
-                let name = this.app.completeNamespace(
-                  tags[`Webda${section.substr(0, 1).toUpperCase()}${section.substr(1, section.length - 2)}`]
-                );
+                let originName =
+                  tags[`Webda${section.substr(0, 1).toUpperCase()}${section.substr(1, section.length - 2)}`];
+                let name = this.app.completeNamespace(originName);
                 module[section][name] = jsFile;
                 if (!module.schemas[name] && schemaNode) {
-                  module.schemas[name] = this.schemaGenerator.createSchemaFromNodes([schemaNode]);
-                  module.schemas[name]["$ref"] = `#/definitions/${name.replace("/", ".")}`;
+                  try {
+                    let schema = this.schemaGenerator.createSchemaFromNodes([schemaNode]);
+                    let definitionName = schema.$ref.split("/").pop();
+                    module.schemas[name] = <JSONSchema7>schema.definitions[definitionName];
+                    module.schemas[name].$schema = schema.$schema;
+                    // Copy sub definition if needed
+                    if (Object.keys(schema.definitions).length > 1) {
+                      module.schemas[name].definitions = schema.definitions;
+                      // Avoid cycle ref
+                      delete module.schemas[name].definitions[definitionName];
+                    }
+                    module.schemas[name].title = originName.split("/").pop();
+                    if (section === "models") {
+                      module.schemas[name].required = module.schemas[name].required.filter(p => !p.startsWith("_"));
+                    }
+                  } catch (err) {
+                    this.app.log("WARN", `Cannot generate schema for ${schemaNode.getText()}`, err);
+                  }
                 }
               }
             }
@@ -476,6 +546,7 @@ export class Compiler {
         }
       }
     });
+
     module.beans = this.sortObject(module.beans);
     module.models = this.sortObject(module.models);
     module.moddas = this.sortObject(module.moddas);
@@ -483,6 +554,11 @@ export class Compiler {
     return module;
   }
 
+  /**
+   * Get the package name for a type
+   * @param type
+   * @returns
+   */
   getPackageFromType(type: ts.Type): string {
     const fileName = type.symbol.getDeclarations()[0]?.getSourceFile()?.fileName;
     if (!fileName) {
@@ -507,22 +583,40 @@ export class Compiler {
    */
   extends(types: ts.Type[], packageName: string, symbolName: string) {
     for (const type of types) {
-      if (type.symbol.name === symbolName && this.getPackageFromType(type) === packageName) {
+      if (type.symbol?.name === symbolName && this.getPackageFromType(type) === packageName) {
         return true;
       }
     }
   }
 
-  compile() {
+  /**
+   * Compile typescript
+   */
+  compile(force: boolean = false): boolean {
+    if (this.compiled && !force) {
+      return;
+    }
     // https://convincedcoder.com/2019/01/19/Processing-TypeScript-using-TypeScript/
 
     this.app.log("INFO", "Compiling...");
 
-    let tsp = this.getProgramFromConfig();
-    const tc = tsp.getTypeChecker();
+    this.createProgramFromApp();
 
     // Emit all code
-    let emits = tsp.emit();
+    const { diagnostics, emitSkipped } = this.tsProgram.emit();
+
+    const allDiagnostics = ts.getPreEmitDiagnostics(this.tsProgram).concat(diagnostics, this.configParseResult.errors);
+
+    if (allDiagnostics.length) {
+      const formatHost: ts.FormatDiagnosticsHost = {
+        getCanonicalFileName: path => path,
+        getCurrentDirectory: ts.sys.getCurrentDirectory,
+        getNewLine: () => ts.sys.newLine
+      };
+      const message = ts.formatDiagnostics(allDiagnostics, formatHost);
+      this.app.log("WARN", message);
+      return false;
+    }
 
     this.app.log("INFO", "Analyzing...");
     // Generate schemas
@@ -534,31 +628,30 @@ export class Compiler {
       sortProps: true
     };
     const extraTags = new Set(["Modda", "Model"]);
-    const parser = createParser(tsp, config, (chainNodeParser: ChainNodeParser) => {
+    const parser = createParser(this.tsProgram, config, (chainNodeParser: ChainNodeParser) => {
+      chainNodeParser.addNodeParser(new ConstructorNodeParser());
+      chainNodeParser.addNodeParser(new TypeofNodeParser(this.typeChecker, chainNodeParser));
       chainNodeParser.addNodeParser(
         new CircularReferenceNodeParser(
           new AnnotatedNodeParser(
             new WebdaModelNodeParser(
-              tc,
-              new WebdaAnnotatedNodeParser(chainNodeParser, new ExtendedAnnotationsReader(tc, extraTags)),
+              this.typeChecker,
+              new WebdaAnnotatedNodeParser(chainNodeParser, new ExtendedAnnotationsReader(this.typeChecker, extraTags)),
               true
             ),
-            new ExtendedAnnotationsReader(tc, extraTags)
+            new ExtendedAnnotationsReader(this.typeChecker, extraTags)
           )
         )
       );
     });
     const formatter = createFormatter(config, (fmt, circularReferenceTypeFormatter) => {
       // If your formatter DOES NOT support children, e.g. getChildren() { return [] }:
-      fmt.addTypeFormatter(new MyFunctionTypeFormatter());
+      fmt.addTypeFormatter(new FunctionTypeFormatter());
       //fmt.addTypeFormatter(new WebdaObjectPropertyFormatter(circularReferenceTypeFormatter));
     });
-    this.schemaGenerator = new SchemaGenerator(tsp, parser, formatter, config);
-    const module = this.generateModule(tsp);
-
-    this.app.log("INFO", "Generating schemas...");
-    console.log("Module", JSON.stringify(module, undefined, 2));
-    //FileUtils.save(module, this.app.getAppPath("webda.module.json"));
+    this.schemaGenerator = new SchemaGenerator(this.tsProgram, parser, formatter, config);
+    this.compiled = true;
+    return true;
   }
 
   /**
@@ -567,19 +660,20 @@ export class Compiler {
    * @param filename to save for
    * @param full to keep all required
    */
-  generateConfigurationSchema(
+  generateConfigurationSchemas(
     filename: string = ".webda-config-schema.json",
     deploymentFilename: string = ".webda-deployment-schema.json",
     full: boolean = false
   ) {
-    let res: JSONSchema7 = this.schemaGenerator.createSchema("Configuration");
-    // Clean cached modules
-    delete res.definitions.CachedModule;
-    delete res.properties.cachedModules;
+    // Ensure we have compiled already
+    this.compile();
+    let rawSchema: JSONSchema7 = this.schemaGenerator.createSchema("UnpackedConfiguration");
+    let res: JSONSchema7 = <JSONSchema7>rawSchema.definitions["UnpackedConfiguration"];
+    res.definitions ??= {};
     // Add the definition for types
     res.definitions.ServicesType = {
       type: "string",
-      enum: Object.keys(this.app.getModdas())
+      enum: Object.keys(this.app.getModdas() || {})
     };
     res.properties.services = {
       type: "object",
@@ -593,6 +687,7 @@ export class Compiler {
       if (!definition) {
         return;
       }
+      definition.title = serviceType;
       (<JSONSchema7>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
       (<JSONSchema7>(<JSONSchema7>res.properties.services).additionalProperties).oneOf.push({
         $ref: `#/definitions/${key}`
@@ -606,7 +701,6 @@ export class Compiler {
     FileUtils.save(res, filename);
     // Build the deployment schema
     // Ensure builtin deployers are there
-    DeploymentManager.addBuiltinDeployers(this.app);
     const definitions = JSONUtils.duplicate(res.definitions);
     res = {
       properties: {
@@ -652,6 +746,7 @@ export class Compiler {
       if (!definition) {
         return;
       }
+      definition.title = serviceType;
       if (!definition.properties) {
         definition.properties = {
           type: {
@@ -667,6 +762,7 @@ export class Compiler {
         definition["required"] = ["type"];
       }
     });
+    FileUtils.save(res, deploymentFilename);
   }
 
   /**
@@ -680,7 +776,7 @@ export class Compiler {
    */
   getServiceTypePattern(type: string): string {
     let result = "";
-    type = this.app.completeNamespace(type).toLowerCase();
+    type = this.app.completeNamespace(type);
     for (let t of type) {
       if (t.match(/[a-z]/)) {
         result += `[${t}${t.toUpperCase()}]`;
@@ -697,44 +793,76 @@ export class Compiler {
    * Retrieve a schema from a Modda
    * @param type
    */
-  schemaFromModda(type: string) {}
+  getSchema(type: string) {
+    this.compile();
+    return this.schemaGenerator.createSchema(type);
+  }
 
   /**
    * Launch compiler in watch mode
    * @param callback
    */
-  watch(callback: () => void) {
-    // TODO Implement
-  }
-
-  displayItem(node: ts.Node, level: number = 0) {
-    console.log(".".repeat(level), ts.SyntaxKind[node.kind], node.getText().split("\n")[0].substr(0, 60));
-  }
-
-  getParent(node: ts.Node, type: ts.SyntaxKind): ts.Node {
-    let parent = node.parent;
-    while (parent) {
-      if (parent.kind === type) {
-        return parent;
+  watch(callback: (diagnostic: ts.Diagnostic) => void, logger: Logger) {
+    const formatHost: ts.FormatDiagnosticsHost = {
+      // This method is not easily reachable and is straightforward
+      getCanonicalFileName: /* istanbul ignore next */ path => path,
+      getCurrentDirectory: ts.sys.getCurrentDirectory,
+      getNewLine: () => ts.sys.newLine
+    };
+    const reportDiagnostic = (diagnostic: ts.Diagnostic) => {
+      callback(diagnostic);
+      logger.log(
+        "WARN",
+        diagnostic.code,
+        ":",
+        ts.flattenDiagnosticMessageText(diagnostic.messageText, formatHost.getNewLine())
+      );
+    };
+    const reportWatchStatusChanged = (diagnostic: ts.Diagnostic) => {
+      if ([6031, 6032, 6194, 6193].includes(diagnostic.code)) {
+        logger.log("INFO", diagnostic.messageText);
+        // Launching compile
+        if (diagnostic.code === 6032 || diagnostic.code === 6031) {
+          logger.logTitle("Compiling");
+        } else {
+          if (diagnostic.messageText.toString().startsWith("Found 0 errors")) {
+            logger.logTitle("Generating module");
+            this.compiled = false;
+            this.app.generateModule();
+          }
+        }
+      } else {
+        // Haven't seen other code yet so display them but cannot reproduce
+        /* istanbul ignore next */
+        logger.log("INFO", diagnostic, ts.formatDiagnostic(diagnostic, formatHost));
       }
-      parent = parent.parent;
-    }
-    return undefined;
+      callback(diagnostic);
+    };
+    const host = ts.createWatchCompilerHost(
+      this.app.getAppPath("tsconfig.json"),
+      {},
+      ts.sys,
+      ts.createSemanticDiagnosticsBuilderProgram,
+      reportDiagnostic,
+      reportWatchStatusChanged,
+      Compiler.watchOptions
+    );
+    this.watchProgram = ts.createWatchProgram(host);
   }
 
-  displayParents(node: ts.Node) {
-    let parent = node.parent;
-    let parents = [];
-    while (parent !== undefined) {
-      parents.unshift(parent);
-      parent = parent.parent;
-    }
-    parents.forEach((p, ind) => {
-      this.displayItem(p, ind);
-    });
-    this.displayItem(node, parents.length);
+  /**
+   * Stop watching for change on typescript
+   */
+  stopWatch() {
+    this.watchProgram?.close();
+    this.watchProgram = undefined;
   }
 
+  /**
+   * Get the class hierarchy
+   * @param type
+   * @returns
+   */
   getClassTree(type: ts.Type): ts.Type[] {
     let res = [type];
     while (type.getBaseTypes()) {
@@ -753,92 +881,60 @@ export class Compiler {
     return res;
   }
 
+  /********************* DEVELOPMENT UTILS ****************/
+
+  /**
+   * Utils to display a tree in console
+   *
+   * Useful during development
+   * @param node
+   * @param level
+   */
   displayTree(node: ts.Node, level: number = 0) {
     this.displayItem(node, level);
     ts.forEachChild(node, n => this.displayTree(n, level + 1));
   }
 
-  getDecoratorName(node: ts.Decorator) {
-    return (<ts.CallExpression>(<ts.Decorator>node).getChildren()[1]).expression.getText();
+  /**
+   * Display an item
+   * @param node
+   * @param level
+   */
+  displayItem(node: ts.Node, level: number = 0) {
+    console.log(".".repeat(level), ts.SyntaxKind[node.kind], node.getText().split("\n")[0].substr(0, 60));
   }
 
-  analyzeRoute(node: ts.MethodDeclaration) {
-    let ctxName;
-    let ctx: ts.Identifier;
-    let block;
-    ts.forEachChild(node, n => {
-      if (n.kind === ts.SyntaxKind.Parameter && !ctxName) {
-        ts.forEachChild(n, n => {
-          if (n.kind === ts.SyntaxKind.Identifier) {
-            ctx = <any>n;
-          }
-        });
-        console.log("....", (<ts.ParameterDeclaration>n).name.getText());
+  /**
+   * Get a parent of a certain Type
+   * @param node
+   * @param type
+   * @returns
+   */
+  getParent(node: ts.Node, type: ts.SyntaxKind): ts.Node {
+    let parent = node.parent;
+    while (parent) {
+      if (parent.kind === type) {
+        return parent;
       }
-      if (n.kind === ts.SyntaxKind.Block && ctx) {
-        console.log(".... SEARCH FOR", ctx.getText());
-        //this.recursiveSearchForSymbol(n, ctx);
-      }
-    });
-    //const ctxName = (<ts.ParameterDeclaration>childrens.filter(n => n.kind === ts.SyntaxKind.Parameter)[0]).name;
-    // Search for any usage of context
-    //console.log("Will search for any usage of context object", ctxName);
-  }
-
-  analyzeInject(node: ts.PropertyDeclaration) {}
-
-  isUserFile(file: ts.SourceFile) {
-    return !file.hasNoDefaultLib;
-  }
-
-  inspect(node: ts.Node, tc: ts.TypeChecker, deep: boolean = false, start: number = 0) {
-    if (
-      node.kind === ts.SyntaxKind.ClassDeclaration ||
-      node.kind === ts.SyntaxKind.InterfaceDeclaration ||
-      node.kind === ts.SyntaxKind.EnumDeclaration ||
-      node.kind === ts.SyntaxKind.TypeAliasDeclaration
-    ) {
-      const symbol: ts.Symbol = (<any>node).symbol;
-      const nodeType = tc.getTypeAtLocation(node);
-      const fullyQualifiedName = tc.getFullyQualifiedName(symbol);
-      const typeName = fullyQualifiedName.replace(/".*"\./, "");
-      const name = typeName;
-      this.types[fullyQualifiedName] = {
-        library: !deep,
-        type: nodeType,
-        extenders: new Set<string>()
-      };
-
-      this.symbols.push({ name, typeName, fullyQualifiedName, symbol });
-      if (!this.userSymbols[name]) {
-        this.allSymbols[name] = nodeType;
-      }
-
-      if (this.isUserFile(this.sourceFile)) {
-        this.userSymbols[name] = symbol;
-      }
-
-      const baseTypes = nodeType.getBaseTypes() || [];
-
-      baseTypes.forEach(baseType => {
-        var baseName = tc.typeToString(baseType, undefined, ts.TypeFormatFlags.UseFullyQualifiedType);
-        if (!this.inheritingTypes[baseName]) {
-          this.inheritingTypes[baseName] = [];
-        }
-        this.inheritingTypes[baseName].push(name);
-        if (!this.types[baseName]) {
-          //console.log(`\t${baseName}`);
-          this.types[baseName] = {
-            library: false,
-            type: baseType,
-            extenders: new Set<string>()
-          };
-        }
-        this.types[baseName].extenders.add(fullyQualifiedName);
-      });
-      //ts.forEachChild(node, n => this.inspect(n, tc, deep, start + 1));
-    } else {
-      ts.forEachChild(node, n => this.inspect(n, tc, deep, start + 1));
+      parent = parent.parent;
     }
+    return undefined;
+  }
+
+  /**
+   * Display all parent of a Node
+   * @param node
+   */
+  displayParents(node: ts.Node) {
+    let parent = node.parent;
+    let parents = [];
+    while (parent !== undefined) {
+      parents.unshift(parent);
+      parent = parent.parent;
+    }
+    parents.forEach((p, ind) => {
+      this.displayItem(p, ind);
+    });
+    this.displayItem(node, parents.length);
   }
 }

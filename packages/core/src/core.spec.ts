@@ -2,7 +2,7 @@ import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
 import { Core, OriginFilter, WebdaError, WebsiteOriginFilter } from "./core";
-import { Application, Authentication, Bean, ConsoleLoggerService, Route, Service } from "./index";
+import { Authentication, Bean, ConsoleLoggerService, Route, Service } from "./index";
 import { Store } from "./stores/store";
 import { TestApplication, WebdaTest } from "./test";
 import { Context, HttpContext } from "./utils/context";
@@ -434,6 +434,9 @@ class CoreTest extends WebdaTest {
     core.getServices()["implicitbean"].resolve = () => {
       throw new Error();
     };
+    // @ts-ignore
+    core.autoConnectServices();
+    core.getServices()["implicitbean"].resolve = undefined;
     // @ts-ignore
     core.autoConnectServices();
   }

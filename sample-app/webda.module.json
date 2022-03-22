@@ -1,11 +1,246 @@
 {
-  "services": {
-    "Beans/BeanService": "lib/services/bean",
-    "Beans/CustomService": "lib/services/custom",
-    "webdademo/customreusableservice": "lib/services/reusable:default"
+  "moddas": {
+    "webdademo/anotherservice": "lib/services/compiler:AnotherService",
+    "webdademo/customreusableservice": "lib/services/reusable:default",
+    "webdademo/fourthotherservice": "lib/services/compiler:FourthOtherService",
+    "webdademo/queueservice": "lib/services/compiler:QueueService",
+    "webdademo/secondotherservice": "lib/services/compiler:SecondOtherService",
+    "webdademo/simpleservice": "lib/services/compiler:SimpleService",
+    "webdademo/thirdotherservice": "lib/services/compiler:ThirdOtherService"
+  },
+  "beans": {
+    "beans/beanservice": "lib/services/bean",
+    "beans/customservice": "lib/services/custom"
   },
   "models": {
     "webdademo/contact": "lib/models/contact:default"
   },
-  "deployers": {}
+  "deployers": {
+    "webdademo/customdeployer": "lib/services/deployer:CustomDeployer"
+  },
+  "schemas": {
+    "webdademo/contact": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "firstName": {
+          "type": "string",
+          "description": "Contact firstname"
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Contact lastname"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "PERSONAL",
+            "PROFESSIONAL"
+          ],
+          "description": "Contact type"
+        },
+        "age": {
+          "type": "number",
+          "description": "Contact age",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "age",
+        "firstName",
+        "lastName",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Contact"
+    },
+    "webdademo/simpleservice": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ThirdOtherService"
+    },
+    "webdademo/anotherservice": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ThirdOtherService"
+    },
+    "webdademo/secondotherservice": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "anotherParameter": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "anotherParameter",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SecondOtherService"
+    },
+    "webdademo/thirdotherservice": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ThirdOtherService"
+    },
+    "webdademo/fourthotherservice": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "anotherParameter": {
+          "type": "string"
+        },
+        "fourthParameter": {
+          "type": "number",
+          "minimum": 100,
+          "maximum": 1000
+        }
+      },
+      "required": [
+        "anotherParameter",
+        "fourthParameter",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FourthOtherService"
+    },
+    "webdademo/queueservice": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "workerDelayer": {
+          "$ref": "#/definitions/WaitDelayerDefinition",
+          "description": "Delayer between two failed attempts to process messages"
+        },
+        "workerParallelism": {
+          "type": "boolean",
+          "description": "Define if worker should process multi message received in //",
+          "default": true
+        },
+        "maxConsumers": {
+          "type": "number",
+          "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
+          "default": 10
+        },
+        "expire": {
+          "type": "number",
+          "description": "Number of seconds before droping message",
+          "default": 30
+        },
+        "folder": {
+          "type": "string",
+          "description": "Where to store the queue"
+        }
+      },
+      "required": [
+        "folder",
+        "maxConsumers",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "WaitDelayerDefinition": {
+          "type": "object",
+          "properties": {
+            "interval": {
+              "type": "number",
+              "description": "Interval"
+            },
+            "type": {
+              "type": "string",
+              "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
+            }
+          },
+          "required": [
+            "interval",
+            "type"
+          ],
+          "description": "WaitDelayer definition"
+        }
+      },
+      "title": "QueueService"
+    },
+    "webdademo/customdeployer": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomDeployer"
+    },
+    "webdademo/customreusableservice": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "mandatoryField": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "mandatoryField",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomReusableService"
+    }
+  }
 }

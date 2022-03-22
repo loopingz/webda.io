@@ -14,6 +14,7 @@ export class User extends OwnerModel {
   private __password?: string;
   /**
    * Display name for this user
+   * @optional
    */
   protected displayName: string;
   /**
@@ -35,7 +36,7 @@ export class User extends OwnerModel {
   /**
    * Define the user avatar if exists
    */
-  private avatar?: string;
+  private _avatar?: string;
   /**
    * Contains the locale of the user if known
    */
@@ -68,7 +69,7 @@ export class User extends OwnerModel {
     return {
       displayName: this.displayName,
       uuid: this.getUuid(),
-      avatar: this.avatar
+      avatar: this._avatar
     };
   }
 

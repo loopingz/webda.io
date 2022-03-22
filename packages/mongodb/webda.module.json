@@ -1,8 +1,417 @@
 {
   "moddas": {
-    "Webda/MongoStore": "lib/mongodb:default"
+    "webda/mongostore": "lib/mongodb:default"
   },
+  "beans": {},
   "models": {},
   "deployers": {},
-  "schemas": {}
+  "schemas": {
+    "webda/mongostore": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "model": {
+          "type": "string",
+          "description": "Webda model to use within the Store",
+          "default": "Webda/CoreModel"
+        },
+        "asyncDelete": {
+          "type": "boolean",
+          "description": "async delete"
+        },
+        "expose": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ExposeParameters"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Expose the service to an urls"
+        },
+        "strict": {
+          "type": "boolean",
+          "description": "Allow to load object that does not have the type data",
+          "deprecated": 2,
+          "default": true
+        },
+        "url": {
+          "type": "string",
+          "description": "Contains the URL to Mongo Server\n\nWill try to use WEBDA_MONDO_URL environment variable if not defined"
+        },
+        "options": {
+          "description": "Additional options for Mongo connetion\n\nShould be MongoClientOptions but not available due to bug in ts-json-schema-generator https://docs.mongodb.com/manual/reference/connection-string"
+        },
+        "collection": {
+          "type": "string",
+          "description": "Which collection to use"
+        },
+        "database": {
+          "type": "string"
+        },
+        "databaseOptions": {
+          "$ref": "#/definitions/DbOptions",
+          "description": "Mongo Database Options"
+        }
+      },
+      "required": [
+        "asyncDelete",
+        "collection",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ExposeParameters": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL endpoint to use to expose REST Resources API",
+              "default": "service.getName().toLowerCase()"
+            },
+            "restrict": {
+              "type": "object",
+              "properties": {
+                "create": {
+                  "type": "boolean",
+                  "description": "Do not expose the POST"
+                },
+                "update": {
+                  "type": "boolean",
+                  "description": "Do not expose the PUT and PATCH"
+                },
+                "get": {
+                  "type": "boolean",
+                  "description": "Do not expose the GET"
+                },
+                "delete": {
+                  "type": "boolean",
+                  "description": "Do not expose the DELETE"
+                }
+              },
+              "description": "You can restrict any part of the CRUD",
+              "default": {}
+            }
+          }
+        },
+        "DbOptions": {
+          "type": "object",
+          "properties": {
+            "logger": {
+              "$ref": "#/definitions/LoggerFunction"
+            },
+            "loggerLevel": {
+              "$ref": "#/definitions/LoggerLevel"
+            },
+            "writeConcern": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/WriteConcern"
+                },
+                {
+                  "$ref": "#/definitions/WriteConcernSettings"
+                }
+              ],
+              "description": "Write Concern as an object"
+            },
+            "promoteLongs": {
+              "type": "boolean",
+              "description": "when deserializing a Long will fit it into a Number if it's smaller than 53 bits"
+            },
+            "promoteBuffers": {
+              "type": "boolean",
+              "description": "when deserializing a Binary will return it as a node.js Buffer instance."
+            },
+            "promoteValues": {
+              "type": "boolean",
+              "description": "when deserializing will promote BSON values to their Node.js closest equivalent types."
+            },
+            "fieldsAsRaw": {
+              "$ref": "#/definitions/Document",
+              "description": "allow to specify if there what fields we wish to return as unserialized raw buffer."
+            },
+            "bsonRegExp": {
+              "type": "boolean",
+              "description": "return BSON regular expressions as BSONRegExp instances."
+            },
+            "raw": {
+              "type": "boolean",
+              "description": "Return BSON filled buffers from operations"
+            },
+            "checkKeys": {
+              "type": "boolean",
+              "description": "the serializer will check if keys are valid."
+            },
+            "serializeFunctions": {
+              "type": "boolean",
+              "description": "serialize the javascript functions **(default:false)**."
+            },
+            "ignoreUndefined": {
+              "type": "boolean",
+              "description": "serialize will not emit undefined fields **(default:true)**"
+            },
+            "authSource": {
+              "type": "string",
+              "description": "If the database authentication is dependent on another databaseName."
+            },
+            "forceServerObjectId": {
+              "type": "boolean",
+              "description": "Force server to assign _id values instead of driver."
+            },
+            "readPreference": {
+              "$ref": "#/definitions/ReadPreferenceLike",
+              "description": "The preferred read preference (ReadPreference.PRIMARY, ReadPreference.PRIMARY_PREFERRED, ReadPreference.SECONDARY, ReadPreference.SECONDARY_PREFERRED, ReadPreference.NEAREST)."
+            },
+            "pkFactory": {
+              "$ref": "#/definitions/PkFactory",
+              "description": "A primary key factory object for generation of custom _id keys."
+            },
+            "readConcern": {
+              "$ref": "#/definitions/ReadConcern",
+              "description": "Specify a read concern for the collection. (only MongoDB 3.2 or higher supported)"
+            },
+            "retryWrites": {
+              "type": "boolean",
+              "description": "Should retry failed writes"
+            }
+          }
+        },
+        "LoggerFunction": {},
+        "LoggerLevel": {
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "error"
+            },
+            {
+              "type": "string",
+              "const": "warn"
+            },
+            {
+              "type": "string",
+              "const": "info"
+            },
+            {
+              "type": "string",
+              "const": "debug"
+            },
+            {}
+          ]
+        },
+        "WriteConcern": {
+          "type": "object",
+          "properties": {
+            "w": {
+              "$ref": "#/definitions/W",
+              "description": "request acknowledgment that the write operation has propagated to a specified number of mongod instances or to mongod instances with specified tags."
+            },
+            "wtimeout": {
+              "type": "number",
+              "description": "specify a time limit to prevent write operations from blocking indefinitely"
+            },
+            "j": {
+              "type": "boolean",
+              "description": "request acknowledgment that the write operation has been written to the on-disk journal"
+            },
+            "fsync": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "number",
+                  "const": 1
+                }
+              ],
+              "description": "equivalent to the j option"
+            }
+          },
+          "description": "A MongoDB WriteConcern, which describes the level of acknowledgement requested from MongoDB for write operations."
+        },
+        "W": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "const": "majority"
+            }
+          ]
+        },
+        "WriteConcernSettings": {
+          "type": "object",
+          "properties": {
+            "w": {
+              "$ref": "#/definitions/W",
+              "description": "The write concern"
+            },
+            "wtimeoutMS": {
+              "type": "number",
+              "description": "The write concern timeout"
+            },
+            "journal": {
+              "type": "boolean",
+              "description": "The journal write concern"
+            },
+            "j": {
+              "type": "boolean",
+              "description": "The journal write concern"
+            },
+            "wtimeout": {
+              "type": "number",
+              "description": "The write concern timeout"
+            },
+            "fsync": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "number",
+                  "const": 1
+                }
+              ],
+              "description": "The file sync write concern"
+            }
+          }
+        },
+        "Document": {
+          "type": "object"
+        },
+        "ReadPreferenceLike": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ReadPreference"
+            },
+            {
+              "$ref": "#/definitions/ReadPreferenceMode"
+            }
+          ]
+        },
+        "ReadPreference": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "$ref": "#/definitions/ReadPreferenceMode"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/TagSet"
+              }
+            },
+            "hedge": {
+              "$ref": "#/definitions/HedgeOptions"
+            },
+            "maxStalenessSeconds": {
+              "type": "number"
+            },
+            "minWireVersion": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "mode"
+          ],
+          "description": "The **ReadPreference** class is a class that represents a MongoDB ReadPreference and is used to construct connections."
+        },
+        "ReadPreferenceMode": {
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "primary"
+            },
+            {
+              "type": "string",
+              "const": "primaryPreferred"
+            },
+            {
+              "type": "string",
+              "const": "secondary"
+            },
+            {
+              "type": "string",
+              "const": "secondaryPreferred"
+            },
+            {
+              "type": "string",
+              "const": "nearest"
+            },
+            {}
+          ]
+        },
+        "TagSet": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "HedgeOptions": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Explicitly enable or disable hedged reads."
+            }
+          }
+        },
+        "PkFactory": {
+          "type": "object"
+        },
+        "ReadConcern": {
+          "type": "object",
+          "properties": {
+            "level": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ReadConcernLevel"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "required": [
+            "level"
+          ],
+          "description": "The MongoDB ReadConcern, which allows for control of the consistency and isolation properties of the data read from replica sets and replica set shards."
+        },
+        "ReadConcernLevel": {
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "local"
+            },
+            {
+              "type": "string",
+              "const": "majority"
+            },
+            {
+              "type": "string",
+              "const": "linearizable"
+            },
+            {
+              "type": "string",
+              "const": "available"
+            },
+            {
+              "type": "string",
+              "const": "snapshot"
+            },
+            {}
+          ]
+        }
+      },
+      "title": "MongoStore"
+    }
+  }
 }

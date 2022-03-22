@@ -168,7 +168,7 @@ class Cookie {
  * @category CoreFeatures
  * @WebdaModel
  */
-export class Context extends EventEmitter {
+export class Context<T = any, U = any> extends EventEmitter {
   clientInfo: ClientInfo;
   protected _body: any;
   protected _outputHeaders: Map<string, string>;
@@ -328,7 +328,7 @@ export class Context extends EventEmitter {
    * @param ...args any arguments to pass to the toPublicJSON method
    */
   // @ts-ignore
-  public write(output: any, encoding?: string, cb?: (error: Error) => void): boolean {
+  public write(output: U, encoding?: string, cb?: (error: Error) => void): boolean {
     if (this.statusCode === 204) {
       this.statusCode = 200;
     }
@@ -454,7 +454,7 @@ export class Context extends EventEmitter {
     return this._ended;
   }
 
-  getRequestBody<T = any>(
+  getRequestBody(
     sanitizedOptions: any = {
       allowedTags: [],
       allowedAttributes: {}

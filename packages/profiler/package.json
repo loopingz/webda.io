@@ -4,9 +4,8 @@
   "description": "Webda Basic Profiler",
   "main": "lib/index.js",
   "scripts": {
-    "webda-module": "webda module --noCompile",
-    "build": "tsc",
-    "pretest": "tsc",
+    "build": "webda build",
+    "pretest": "npm run build",
     "lint": "prettier --check src/**/*",
     "lint:fix": "prettier --write src/**/*",
     "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts"

@@ -11,8 +11,7 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc",
-    "pretest": "npm run build",
+    "build": "webda build",
     "lint": "prettier --check src/**/*",
     "lint:fix": "prettier --write src/**/*",
     "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts src/*.spec.ts"
@@ -48,6 +47,7 @@
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.1.2",
+    "@webda/shell": "^1.6.0-beta.3",
     "@types/node": "14.0.0"
   }
 }

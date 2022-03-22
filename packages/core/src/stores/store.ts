@@ -1229,7 +1229,7 @@ abstract class Store<
     object[this._creationDateField] = new Date();
     await object.canAct(ctx, "create");
     try {
-      await object.validate(ctx);
+      await object.validate(ctx, body);
     } catch (err) {
       this.log("INFO", "Object is not valid", err);
       throw 400;
@@ -1340,7 +1340,7 @@ abstract class Store<
           updateObject[i] = object[i];
         });
       try {
-        await updateObject.validate(ctx);
+        await updateObject.validate(ctx, body);
       } catch (err) {
         this.log("INFO", "Object invalid", err);
         throw 400;

@@ -21,10 +21,10 @@
     "typedoc-loopingz-theme": "~1.1.3",
     "typedoc-plugin-loopingz-pages": "~0.3.1",
     "typedoc-plugin-mermaid": "~1.4.0",
-    "typescript": "~4.4.3"
+    "typescript": "~4.6.3"
   },
   "resolutions": {
-    "typescript": "~4.4.3",
+    "typescript": "~4.6.3",
     "colors": "=1.4.0"
   },
   "author": "loopingz",
@@ -39,7 +39,6 @@
     "sample-app"
   ],
   "scripts": {
-    "webda-module": "lerna run webda-module",
     "build": "lerna run build",
     "test": "lerna run test --ignore @webda/sample-app",
     "new-version": "lerna version --ignore @webda/sample-app --message 'chore(release): publish'",

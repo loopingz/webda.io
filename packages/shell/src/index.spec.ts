@@ -1,18 +1,67 @@
-import { Application } from "@webda/core";
+import { CachedModule, FileUtils, Modda, SectionEnum } from "@webda/core";
 import * as assert from "assert";
-import * as fs from "fs-extra";
 import * as fetch from "node-fetch";
 import * as path from "path";
 import { SourceApplication } from "./code/sourceapplication";
 
-class TestApplication extends SourceApplication {
-  clean() {
-    fs.removeSync(this.getAppPath("lib"));
-    fs.removeSync(this.getAppPath("webda.module.json"));
+export class SourceTestApplication extends SourceApplication {
+  /**
+   * Only allow local and core module and sample-app
+   */
+  filterModule(filename: string): boolean {
+    const relativePath = path.relative(process.cwd(), filename);
+    return (
+      (!relativePath.includes("..") ||
+        relativePath.startsWith("../core") ||
+        relativePath.startsWith("../aws") ||
+        relativePath.startsWith("../../sample-app/")) &&
+      relativePath.indexOf("fake") === -1
+    );
+  }
+
+  /**
+   * Load a webda.module.json file
+   * Resolve the linked file to current application
+   *
+   * @param moduleFile to load
+   * @returns
+   */
+  loadWebdaModule(moduleFile: string): CachedModule {
+    // Test are using ts-node so local source should be loaded from .ts with ts-node aswell
+    if (process.cwd() === path.dirname(moduleFile)) {
+      let module = FileUtils.load(moduleFile);
+      Object.keys(SectionEnum)
+        .filter(k => Number.isNaN(+k))
+        .forEach(p => {
+          for (let key in module[SectionEnum[p]]) {
+            module[SectionEnum[p]][key] = path.join(
+              path.relative(this.getAppPath(), path.dirname(moduleFile)),
+              module[SectionEnum[p]][key].replace(/^lib\//, "src/")
+            );
+          }
+        });
+      return module;
+    }
+    return super.loadWebdaModule(moduleFile);
+  }
+
+  /**
+   * Add our test services
+   * @returns
+   */
+  async load() {
+    await super.load();
+
+    this.addService("webdatest/voidstore", <Modda>(<unknown>await import("../../core/test/moddas/voidstore")));
+    this.addService("webdatest/fakeservice", <Modda>(<unknown>await import("../../core/test/moddas/fakeservice")));
+    this.addService("webdatest/mailer", <Modda>(<unknown>await import("../../core/test/moddas/debugmailer")));
+    this.addModel("webdatest/task", await import("../../core/test/models/task"));
+    this.addModel("webdatest/ident", await import("../../core/test/models/ident"));
+    return this;
   }
 }
 
-export const WebdaSampleApplication = new SourceApplication(path.resolve(`${__dirname}/../../../sample-app/`));
+export const WebdaSampleApplication = new SourceTestApplication(path.resolve(`${__dirname}/../../../sample-app/`));
 
 /**
  * Test the sample application

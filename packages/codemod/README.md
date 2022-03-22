@@ -22,6 +22,9 @@ It upgrade methods `checkCSRF` to `checkRequest`
 
 Rename all `_params` to `parameters`
 
+### webda-1.x-2.0
+
+
 #### Warning
 
 MemoryQueue return now a stringified version of the message, you have to parse it

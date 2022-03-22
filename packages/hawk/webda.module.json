@@ -1,9 +1,9 @@
 {
   "moddas": {
-    "Webda/Hawk": "lib/hawk.js"
+    "Webda/Hawk": "lib/hawk"
   },
   "models": {
-    "Webda/ApiKey": "lib/apikey.js"
+    "Webda/ApiKey": "lib/apikey"
   },
   "deployers": {},
   "schemas": {

@@ -16,6 +16,7 @@ export class OwnerModel extends CoreModel {
   public?: boolean;
   /**
    * UUID of the object
+   * @readonly
    */
   uuid: string;
 

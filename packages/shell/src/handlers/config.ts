@@ -1,4 +1,13 @@
-import { Application, Configuration, Context, RequestFilter, Service, ServiceConstructor } from "@webda/core";
+import {
+  Application,
+  Configuration,
+  Context,
+  RequestFilter,
+  SectionEnum,
+  Service,
+  ServiceConstructor
+} from "@webda/core";
+import { WorkerOutput } from "@webda/workout";
 import * as path from "path";
 import { SourceApplication } from "../code/sourceapplication";
 import { Deployment } from "../models/deployment";
@@ -63,7 +72,7 @@ export default class ConfigurationService extends Service implements RequestFilt
 }
 export { ConfigurationService };
 
-export class ConfigApplication extends SourceApplication {
+export class ConfigApplication extends Application {
   getModel(model: string): any {
     if (model.toLowerCase() === "webdaconfiguration/deployment") {
       return Deployment;
@@ -78,20 +87,28 @@ export class ConfigApplication extends SourceApplication {
     return super.getModda(name);
   }
 
+  constructor(application: Application) {
+    super(application.getAppPath());
+    Object.values(SectionEnum).forEach(section => {
+      this[section] = application[section];
+    });
+  }
+
   getConfiguration(deploymentName: string = undefined): Configuration {
     return {
-      version: 2,
+      version: 3,
       parameters: {
         sessionSecret:
           "qwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqazqwertyuioplkjhgfdsazxcvbnm,klkjhgfdsaqwertyuioplkjhgfdsazxcvbnmnbvcxzasdfghjklpoiuytrewqaz"
       },
-      module: {
-        moddas: {},
-        models: {}
-      },
       services: {
         api: {
           type: "WebdaConfiguration/API"
+        },
+        logger: {
+          type: "Webda/FileLogger",
+          logLevel: "INFO",
+          file: "/tmp/.webda.config.log"
         },
         deployments: {
           type: "Webda/FileStore",
@@ -112,7 +129,7 @@ export class WebdaConfiguration extends WebdaServer {
   webdaApplication: Application;
 
   constructor(application: Application) {
-    super(new ConfigApplication(application.getAppPath()));
+    super(new ConfigApplication(application));
     this.webdaApplication = application;
   }
 

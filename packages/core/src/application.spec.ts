@@ -64,25 +64,45 @@ class ApplicationTest extends WebdaTest {
   }
 
   @test
-  cov() {
+  async cacheSchema() {
+    let app = new Application(__dirname + "/../test/config.json");
+    await app.load();
+    // Should load from cache
+    assert.notStrictEqual(app.getSchema("WebdaTest/Mailer"), undefined);
+    assert.strictEqual(app.getSchema("Webda/Container"), undefined);
+    // Check if cached just use cache
+    // @ts-ignore
+    app.baseConfiguration.cachedModules = {
+      schemas: {
+        // @ts-ignore
+        fake: 666
+      }
+    };
+    assert.strictEqual(app.getSchema("fake"), 666);
+  }
+
+  @test
+  async cov() {
     assert.throws(
       () => new Application("/notexisting"),
       /Not a webda application folder or webda.config.jsonc or webda.config.json file: unexisting.*/
     );
-    assert.throws(
-      () => new Application(__dirname + "/../test/moddas"),
+    await assert.rejects(
+      () => new Application(__dirname + "/../test/moddas").load(),
       /Not a webda application folder or webda.config.jsonc or webda.config.json file: .*/
     );
-    assert.throws(() => new Application(__dirname + "/../test/badapp"), /Cannot parse JSON of: .*/);
+    await assert.rejects(() => new Application(__dirname + "/../test/badapp").load(), /Cannot parse JSON of: .*/);
     // If allow module is enable the Application should let run anywhere
-    new Application(__dirname + "/../test/moddas", undefined, true);
-    let unpackedApp = new UnpackedApplication(__dirname + "/../test/badapp", undefined, true);
+    new Application(__dirname + "/../test/moddas", undefined);
+    let unpackedApp = new UnpackedApplication(__dirname + "/../test/badapp", undefined);
     unpackedApp.loadProjectInformation();
     // Read cached modules
-    let app = new Application(__dirname + "/../test/cachedapp", undefined, true);
+    let app = new Application(__dirname + "/../test/cachedapp", undefined);
+    await app.load();
     app.getGitInformation();
     // No package.json should not fail although more than abnormal
-    app = new TestApplication(__dirname + "/../test/config.old-default.json");
+    app = new TestApplication(__dirname + "/../test/config.json");
+    await app.load();
     assert.ok(!app.extends(null, String));
 
     app.getPackageWebda();
@@ -110,7 +130,8 @@ class ApplicationTest extends WebdaTest {
     assert.strictEqual(app.getCurrentDeployment(), "");
     assert.strictEqual(app.replaceVariables("hello", {}), "hello");
 
-    //assert.deepStrictEqual(app.getPackagesLocations(), ["lib/**/*.js"]);
+    unpackedApp = new UnpackedApplication(__dirname + "/../test/moddas", undefined);
+    await unpackedApp.load();
   }
 
   @test

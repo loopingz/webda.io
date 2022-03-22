@@ -47,7 +47,6 @@ export class DeploymentManager {
     this.application = app;
     this.application.compile();
     this.application.setCurrentDeployment(deploymentName);
-    this.application.loadModules();
     // webda.moodule.json is not working within webda-shell
     DeploymentManager.addBuiltinDeployers(this.application);
     let deployment = this.application.getDeployment(deploymentName);
@@ -80,8 +79,7 @@ export class DeploymentManager {
     let name = argv.name;
     let application = WebdaConsole.app;
     let output = application.getWorkerOutput();
-    await application.loadModules();
-    DeploymentManager.addBuiltinDeployers(application);
+    await application.load();
     let deployment: Deployment = {
       $schema: "../.webda-deployment-schema.json",
       units: [],

@@ -2,13 +2,12 @@ import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { WebdaSampleApplication } from "../index.spec";
 import { DeploymentManager } from "./deploymentmanager";
-import { WorkerOutput } from "@webda/workout";
-import WebdaConsole from "../console/webda";
 
 @suite
 class DeploymentManagerTest {
   @test
   async testGetDeployers() {
+    await WebdaSampleApplication.load();
     let deploymentManager = new DeploymentManager(WebdaSampleApplication, "Shell");
     assert.strictEqual(Object.keys(deploymentManager.deployers).length, 1);
     assert.rejects(() => deploymentManager.getDeployer("plop"), /Unknown deployer/g);

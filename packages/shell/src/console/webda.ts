@@ -13,7 +13,7 @@ import { WebdaTerminal } from "./terminal";
 import * as path from "path";
 import * as semver from "semver";
 import * as jsonc from "jsonc-parser";
-import { SourceApplication } from "../code/sourceapplication";
+import { BuildSourceApplication, SourceApplication } from "../code/sourceapplication";
 import { JSONSchema7 } from "json-schema";
 
 export type WebdaCommand = (argv: any[]) => void;
@@ -169,11 +169,23 @@ export default class WebdaConsole {
    * @param argv
    */
   static async debug(argv: yargs.Arguments) {
-    let launchServe = () => {
+    let launchServe = diagnostic => {
+      if (diagnostic.code === 6032 || diagnostic.code === 6031) {
+        this.setDebuggerStatus(DebuggerStatus.Compiling);
+      }
+      // Compilation succeed
+      if (
+        (diagnostic.code !== 6194 && diagnostic.code !== 6193) ||
+        !diagnostic.messageText.toString().startsWith("Found 0 errors")
+      ) {
+        return;
+      }
+      this.setDebuggerStatus(DebuggerStatus.Launching);
       if (this.serverProcess) {
-        this.logger.logTitle("Refresh webda server");
+        this.logger.logTitle("Refreshing Webda Server");
         this.serverProcess.kill();
       } else {
+        this.logger.logTitle("Launching Webda Server");
         this.output("Launch webda serve in debug mode");
       }
       let args = ["--noCompile"];
@@ -216,7 +228,7 @@ export default class WebdaConsole {
               line = line.replace(/\x1B\[(;?\d{1,3})+[mGK]/g, "");
               if (line.indexOf("Server running at") >= 0) {
                 webdaConsole.setDebuggerStatus(DebuggerStatus.Serving);
-                webdaConsole.logger.logTitle("Webda Debug " + line.substr(10));
+                webdaConsole.logger.logTitle("Webda " + line.substr(10));
                 return;
               }
               let lvl: WorkerLogLevel = "INFO";
@@ -239,12 +251,19 @@ export default class WebdaConsole {
       this.serverProcess = spawn("webda", args);
       this.serverProcess.stdout.pipe(addTime);
       this.serverProcess.on("exit", err => {
+        this.logger.logTitle("Webda Server stopped");
         // Might want to auto restart
-        this.output("Server process exit", err);
+        this.output("Webda Server process exit", err);
       });
     };
-    this.app.getCompiler().watch(launchServe);
-
+    this.app.getCompiler().watch(launchServe, this.logger);
+    WebdaConsole.configurationWatch(() => {
+      // Might want to validate against schemas before relaunch
+      launchServe({
+        code: 6193,
+        messageText: "Found 0 errors"
+      });
+    }, this.app.getCurrentDeployment());
     return new CancelablePromise(() => {
       // Never return
     });
@@ -271,48 +290,6 @@ export default class WebdaConsole {
   }
 
   /**
-   * Get stream transformer
-   * @param launchServe
-   */
-  static getTransform(launchServe: () => void): Transform {
-    let modification = -1;
-    let webdaConsole = this;
-    return new Transform({
-      transform(chunk, encoding, callback) {
-        let info = chunk.toString().trim();
-        if (info.length < 4) {
-          callback();
-          return;
-        }
-        info.split("\n").forEach(line => {
-          if (line.indexOf("TSFILE:") >= 0) {
-            modification++;
-            return;
-          }
-          if (line.substring(0, 8).match(/\d{1,2}:\d{2}:\d{2}/)) {
-            // Might generate issue with some localization
-            let offset = 2 - line.indexOf(":");
-            // Simulate the colors , typescript compiler detect it is not on a tty
-            if (line.match(/Found [1-9]\d* error/)) {
-              webdaConsole.logger.log("ERROR", line.substring(14 - offset));
-            } else {
-              webdaConsole.output(line.substring(14 - offset));
-              if (line.indexOf("Found 0 errors. Watching for file changes.") >= 0) {
-                modification = 0;
-                webdaConsole.setDebuggerStatus(DebuggerStatus.Launching);
-                launchServe();
-              }
-            }
-          } else {
-            webdaConsole.output(line);
-          }
-        });
-        callback();
-      }
-    });
-  }
-
-  /**
    * Get shell package version
    */
   static getVersion() {
@@ -333,23 +310,6 @@ export default class WebdaConsole {
       } else {
         this.output(json);
       }
-    }
-    return 0;
-  }
-
-  /**
-   * If deployment in argument: display or export the configuration
-   * Otherwise launch the configuration UI
-   *
-   * @param argv
-   */
-  static async migrateConfig(argv: yargs.Arguments): Promise<number> {
-    let json = JSON.stringify(this.app.getConfiguration(), null, " ");
-
-    if (argv.exportFile !== undefined) {
-      fs.writeFileSync(this.app.getAppPath(<string>argv.exportFile), json);
-    } else {
-      fs.writeFileSync(this.app.getAppPath("webda.config.json"), json);
     }
     return 0;
   }
@@ -466,7 +426,7 @@ export default class WebdaConsole {
     argv._.shift();
     let symbol = <string>argv.type;
     let filename = <string>argv.exportFile;
-    let schema = this.app.getSchema(symbol);
+    let schema = this.app.getCompiler().getSchema(symbol);
     if (filename) {
       FileUtils.save(schema, filename);
     } else {
@@ -511,12 +471,14 @@ export default class WebdaConsole {
   /**
    * Generate the webda.module.json
    */
-  static generateModule() {
+  static async build() {
+    await this.app.generateModule();
     if (fs.existsSync(this.app.configurationFile)) {
       // Generate config schema as well
-      //this.generateConfigurationSchema();
+      // @ts-ignore
+      console.log(this.app.getModdas(), this.app.baseConfiguration.cachedModules);
+      this.app.getCompiler().generateConfigurationSchemas();
     }
-    return this.app.generateModule();
   }
 
   /**
@@ -587,21 +549,13 @@ export default class WebdaConsole {
           return y.command("exportFile", "File to export configuration to");
         }
       },
-      "migrate-configuration": {
-        handler: WebdaConsole.migrateConfig,
-        command: "migrate-configuration [exportFile]",
-        description: "Migrate and save the configuration",
-        module: y => {
-          return y.command("exportFile", "File to export configuration to", { default: "webda.config.json" });
-        }
-      },
       init: {
         command: "init [generator]",
         handler: WebdaConsole.init,
         description: "Initiate a new webda project using yeoman generator"
       },
-      module: {
-        handler: WebdaConsole.generateModule,
+      build: {
+        handler: WebdaConsole.build,
         description: "Generate the module for the application"
       },
       openapi: {
@@ -624,17 +578,6 @@ export default class WebdaConsole {
         handler: WebdaConsole.types,
         description: "List all available types for this project"
       },
-      "configuration-schema": {
-        command: "configuration-schema [configurationSchemaFile] [deploymentSchemaFile]",
-        handler: WebdaConsole.configurationSchema,
-        description: "Create the json schema that defines your webda.config.json",
-        module: {
-          full: {
-            type: "boolean",
-            default: false
-          }
-        }
-      },
       faketerm: {
         handler: WebdaConsole.fakeTerm,
         description: "Launch a fake interactive terminal"
@@ -647,18 +590,11 @@ export default class WebdaConsole {
   }
 
   /**
-   * Generate a JSON Schema specific to the current configuration
-   */
-  static async configurationSchema(argv) {
-    // this.generateConfigurationSchema(argv.configurationSchemaFile, argv.deploymentSchemaFile, argv.full);
-  }
-
-  /**
    * Output all types of Deployers, Services and Models
    */
   static async types() {
     this.log("INFO", "Deployers:", Object.keys(this.app.getDeployers()).join(", "));
-    this.log("INFO", "Services:", Object.keys(this.app.getModdas()).join(", "));
+    this.log("INFO", "Moddas:", Object.keys(this.app.getModdas()).join(", "));
     this.log("INFO", "Models:", Object.keys(this.app.getModels()).join(", "));
   }
 
@@ -731,7 +667,7 @@ export default class WebdaConsole {
     }
 
     let logger;
-    if (argv.notty || !process.stdout.isTTY || ["init"].indexOf(<string>argv._[0]) >= 0) {
+    if (argv.notty || !process.stdout.isTTY || ["init", "build"].includes(<string>argv._[0])) {
       logger = new ConsoleLogger(output, <WorkerLogLevel>argv.logLevel, <string>argv.logFormat);
     } else {
       if (extension && extension.terminal) {
@@ -778,30 +714,16 @@ export default class WebdaConsole {
           `Versions mismatch: @webda/core (${versions["@webda/core"].version}) and @webda/shell (${versions["@webda/shell"].version}) are not within patch versions`
         );
       }
-
       // Load Application
       try {
-        this.app = new SourceApplication(<string>argv.appPath, output, true);
+        if (argv._[0] === "build") {
+          // Avoid loading the local module as source might not exist yet
+          this.app = new BuildSourceApplication(<string>argv.appPath, output);
+        } else {
+          this.app = new SourceApplication(<string>argv.appPath, output);
+        }
       } catch (err) {
         output.log("WARN", err.message);
-      }
-
-      // Update logo
-      if (this.app && this.app.getPackageWebda().logo && this.terminal) {
-        let logo = this.app.getPackageWebda().logo;
-        this.log("TRACE", "Updating logo", logo);
-        if (Array.isArray(logo)) {
-          this.terminal.setLogo(logo);
-        } else if (typeof logo === "string") {
-          if (fs.existsSync(this.app.getAppPath(logo))) {
-            this.terminal.setLogo(fs.readFileSync(this.app.getAppPath(logo)).toString().split("\n"));
-          } else {
-            this.log("WARN", "Cannot find logo", this.app.getAppPath(logo));
-          }
-        }
-      }
-      if (this.terminal && this.terminal.getLogo().length === 0) {
-        this.terminal.setDefaultLogo();
       }
 
       // Load deployment
@@ -827,7 +749,25 @@ export default class WebdaConsole {
 
       // Load webda module
       if (this.app) {
-        this.app.loadModules();
+        await this.app.load();
+      }
+
+      // Update logo
+      if (this.app && this.app.getPackageWebda().logo && this.terminal) {
+        let logo = this.app.getPackageWebda().logo;
+        this.log("TRACE", "Updating logo", logo);
+        if (Array.isArray(logo)) {
+          this.terminal.setLogo(logo);
+        } else if (typeof logo === "string") {
+          if (fs.existsSync(this.app.getAppPath(logo))) {
+            this.terminal.setLogo(fs.readFileSync(this.app.getAppPath(logo)).toString().split("\n"));
+          } else {
+            this.log("WARN", "Cannot find logo", this.app.getAppPath(logo));
+          }
+        }
+      }
+      if (this.terminal && this.terminal.getLogo().length === 0) {
+        this.terminal.setDefaultLogo();
       }
 
       // Launch builtin commands
@@ -843,6 +783,10 @@ export default class WebdaConsole {
         // TODO Implement a second yargs parser for the extension
         return await this.executeShellExtension(extension, extension.relPath, argv);
       }
+      // Would need to create a fake app with a throw exception in a module to generate this
+    } catch (err) /* istanbul ignore next */ {
+      this.log("ERROR", err);
+      throw err;
     } finally {
       if (this.terminal) {
         this.log("TRACE", "Closing terminal");
@@ -921,45 +865,15 @@ export default class WebdaConsole {
   }
 
   /**
-   * Launch tsc --watch and pass output to the stream
-   * @param stream to get output from
-   */
-  static async typescriptWatch(stream: Transform) {
-    this.output("Typescript compilation");
-    this.tscCompiler = spawn("tsc", ["--watch", "-p", this.app.getAppPath(), "--listEmittedFiles"], {});
-    this.tscCompiler.stdout.pipe(stream).pipe(process.stdout);
-    return new Promise<void>(resolve => {
-      this.tscCompiler.on("exit", code => {
-        this.tscCompiler = undefined;
-        this.setDebuggerStatus(DebuggerStatus.Stopped);
-        if (!code) {
-          resolve();
-          return;
-        }
-        process.exit(code);
-      });
-    });
-  }
-
-  /**
    * Stop the debugger and wait for its complete stop
    */
   static async stopDebugger() {
     if (this.serverProcess) {
       this.serverProcess.kill();
     }
-    if (this.tscCompiler) {
-      this.setDebuggerStatus(DebuggerStatus.Stopping);
-      this.tscCompiler.kill();
-    }
-    do {
-      if (!this.tscCompiler) {
-        this.setDebuggerStatus(DebuggerStatus.Stopped);
-        return;
-      }
-      // Waiting
-      await new Promise(resolve => setTimeout(resolve, 100));
-    } while (true);
+    this.setDebuggerStatus(DebuggerStatus.Stopping);
+    this.app?.getCompiler()?.stopWatch();
+    this.setDebuggerStatus(DebuggerStatus.Stopped);
   }
 
   /**

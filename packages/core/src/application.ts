@@ -12,6 +12,9 @@ export type PackageDescriptorAuthor =
       email?: string;
       url?: string;
     };
+
+export type Modda = ServiceConstructor<Service>;
+
 /**
  * Some package exists but seems pretty big for this
  * https://classic.yarnpkg.com/en/docs/package-json
@@ -101,41 +104,9 @@ export interface CachedModule extends Module {
   project: ProjectInformation;
 }
 
-/**
- * Configuration from Webda 1.0 > version > 0.5
- */
-export type ConfigurationV1 = {
-  /**
-   * Configuration version
-   */
-  version: 1;
-  /**
-   * Cached modules to avoid scanning node_modules
-   * This is used by packagers
-   */
-  cachedModules?: CachedModule;
-  /**
-   * Models
-   */
-  models?: any;
-  /**
-   * Services configuration
-   */
-  services?: any;
-  [key: string]: any;
-};
+export type UnpackedConfiguration = {
+  version: 3;
 
-export type Configuration = {
-  version: 2;
-  /**
-   * Cached modules to avoid scanning node_modules
-   * This is used by packagers
-   */
-  cachedModules?: CachedModule;
-  /**
-   * Module definition
-   */
-  module: Module;
   /**
    * Services configuration
    */
@@ -190,7 +161,15 @@ export type Configuration = {
   openapi?: any;
 };
 
-export type StoredConfiguration = ConfigurationV1 | Configuration;
+export type Configuration = UnpackedConfiguration & {
+  /**
+   * Cached modules to avoid scanning node_modules
+   * This is used by packagers
+   */
+  cachedModules?: CachedModule;
+};
+
+export type StoredConfiguration = Configuration;
 
 /**
  * Return the gather information from the repository
@@ -328,7 +307,7 @@ export class Application {
   /**
    * Get Application root path
    */
-  protected appPath: string;
+  readonly appPath: string;
   /**
    * Base configuration loaded from webda.config.json
    */
@@ -337,37 +316,6 @@ export class Application {
    * Current deployment
    */
   protected currentDeployment: string;
-
-  /**
-   * Contains all definitions from imported modules and current code
-   */
-  protected cachedModules: CachedModule = {
-    moddas: {},
-    models: {},
-    deployers: {},
-    beans: {},
-    schemas: {},
-    project: {
-      webda: {
-        namespace: ""
-      },
-      git: {
-        branch: "",
-        commit: "",
-        short: "",
-        tag: "",
-        tags: [],
-        version: ""
-      },
-      deployment: {
-        name: ""
-      },
-      package: {
-        name: "",
-        version: ""
-      }
-    }
-  };
 
   /**
    * Contains definitions of current application
@@ -391,7 +339,7 @@ export class Application {
   /**
    * Moddas registry
    */
-  protected moddas: { [key: string]: ServiceConstructor<Service> } = {};
+  protected moddas: { [key: string]: Modda } = {};
 
   /**
    * Models type registry
@@ -432,7 +380,7 @@ export class Application {
    * @param {string} fileOrFolder to load Webda Application from
    * @param {Logger} logger
    */
-  constructor(file: string, logger: WorkerOutput = undefined, allowModule: boolean = false) {
+  constructor(file: string, logger: WorkerOutput = undefined) {
     this.logger = logger || new WorkerOutput();
     this.initTime = Date.now();
     if (!fs.existsSync(file)) {
@@ -447,34 +395,17 @@ export class Application {
         file = file.substr(0, file.length - 1);
       }
     }
-    // Check if file is a file or folder
-    if (!fs.existsSync(file) && !allowModule) {
-      throw new WebdaError(
-        "NO_WEBDA_FOLDER",
-        `Not a webda application folder or webda.config.jsonc or webda.config.json file: ${file}`
-      );
-    }
+    this.configurationFile = file;
     this.appPath = path.dirname(file);
-    try {
-      this.configurationFile = file;
-      this.baseConfiguration = this.loadConfiguration(file);
-    } catch (err) {
-      this.log("WARN", err);
-      if (allowModule) {
-        this.baseConfiguration = { version: 2, module: {} };
-      } else {
-        throw new WebdaError("INVALID_WEBDA_CONFIG", `Cannot parse JSON of: ${file}`);
-      }
-    }
-
-    this.cachedModules = this.baseConfiguration.cachedModules;
   }
 
   /**
    * Import all required modules
    */
-  async load() {
-    await this.loadModule(this.cachedModules);
+  async load(): Promise<this> {
+    this.loadConfiguration(this.configurationFile);
+    await this.loadModule(this.baseConfiguration.cachedModules);
+    return this;
   }
 
   /**
@@ -483,8 +414,22 @@ export class Application {
    * @param file
    * @returns
    */
-  loadConfiguration(file: string) {
-    return FileUtils.load(file);
+  loadConfiguration(file: string): void {
+    // Check if file is a file or folder
+    if (!fs.existsSync(file)) {
+      throw new WebdaError(
+        "NO_WEBDA_FOLDER",
+        `Not a webda application folder or webda.config.jsonc or webda.config.json file: ${file}`
+      );
+    }
+    try {
+      this.baseConfiguration = FileUtils.load(file);
+      if (this.baseConfiguration.version !== 3) {
+        this.log("ERROR", "Your configuration file should use version 3, see https://docs.webda.io/");
+      }
+    } catch (err) {
+      throw new WebdaError("INVALID_WEBDA_CONFIG", `Cannot parse JSON of: ${file}`);
+    }
   }
 
   /**
@@ -509,7 +454,7 @@ export class Application {
    * @returns
    */
   getSchema(type: string): JSONSchema7 {
-    return this.cachedModules.schemas[type];
+    return this.baseConfiguration.cachedModules.schemas[type];
   }
 
   /**
@@ -519,7 +464,7 @@ export class Application {
    * It allows to avoid the search for `webda.module.json` inside node_modules and
    * take the schema from the cached modules also
    */
-  isCached() {
+  isCached(): boolean {
     return true;
   }
 
@@ -530,7 +475,7 @@ export class Application {
    */
   getPackageWebda(): WebdaPackageDescriptor {
     return (
-      this.cachedModules.project?.webda || {
+      this.baseConfiguration.cachedModules.project?.webda || {
         namespace: "Webda"
       }
     );
@@ -538,8 +483,8 @@ export class Application {
   /**
    * Retrieve content of package.json
    */
-  getPackageDescription() {
-    return this.cachedModules.project?.package || {};
+  getPackageDescription(): PackageDescriptor {
+    return this.baseConfiguration.cachedModules?.project?.package || {};
   }
 
   /**
@@ -566,7 +511,7 @@ export class Application {
    *
    * @param subpath to append to
    */
-  getAppPath(subpath: string = undefined) {
+  getAppPath(subpath: string = undefined): string {
     if (subpath && subpath !== "") {
       if (subpath.startsWith("/")) {
         return subpath;
@@ -582,9 +527,10 @@ export class Application {
    * @param name
    * @param service
    */
-  addService(name: string, service: ServiceConstructor<Service>) {
+  addService(name: string, service: Modda): this {
     this.log("TRACE", "Registering service", name);
     this.moddas[name.toLowerCase()] = service;
+    return this;
   }
 
   /**
@@ -614,14 +560,14 @@ export class Application {
    *
    * @param name
    */
-  getModda(name) {
+  getModda(name): Modda {
     return this.getWebdaObject("moddas", name);
   }
 
   /**
    * Return all services of the application
    */
-  getModdas() {
+  getModdas(): { [key: string]: Modda } {
     return this.moddas;
   }
 
@@ -630,7 +576,7 @@ export class Application {
    *
    * @param name model to retrieve
    */
-  getModel(name: string): any {
+  getModel(name: string): Context | CoreModelDefinition {
     return this.getWebdaObject("models", name);
   }
 
@@ -644,7 +590,7 @@ export class Application {
   /**
    * Return all deployers
    */
-  getDeployers(): { [key: string]: ServiceConstructor<Service> } {
+  getDeployers(): { [key: string]: Modda } {
     return this.deployers;
   }
 
@@ -654,9 +600,10 @@ export class Application {
    * @param name
    * @param model
    */
-  addModel(name: string, model: any) {
+  addModel(name: string, model: any): this {
     this.log("TRACE", "Registering model", name);
     this.models[name.toLowerCase()] = model;
+    return this;
   }
 
   /**
@@ -665,9 +612,10 @@ export class Application {
    * @param name
    * @param model
    */
-  addDeployer(name: string, model: any) {
+  addDeployer(name: string, model: any): this {
     this.log("TRACE", "Registering deployer", name);
     this.deployers[name.toLowerCase()] = model;
+    return this;
   }
 
   /**
@@ -686,8 +634,8 @@ export class Application {
    * {@link GitInformation} for more details on how the information is gathered
    * @return the git information
    */
-  getGitInformation(): GitInformation {
-    return this.cachedModules.project?.git;
+  getGitInformation(packageName?: string, version?: string): GitInformation {
+    return this.baseConfiguration.cachedModules.project?.git;
   }
 
   /**
@@ -702,7 +650,7 @@ export class Application {
       return templateString;
     }
     return new Function("return `" + templateString.replace(/\$\{/g, "${this.") + "`;").call({
-      ...this.cachedModules.project,
+      ...this.baseConfiguration.cachedModules.project,
       now: this.initTime,
       ...replacements
     });
@@ -762,8 +710,8 @@ export class Application {
   /**
    * Get current deployment name
    */
-  getCurrentDeployment() {
-    return this.cachedModules.project.deployment.name;
+  getCurrentDeployment(): string {
+    return this.baseConfiguration.cachedModules.project.deployment.name;
   }
 
   /**
@@ -773,7 +721,7 @@ export class Application {
    * @returns
    */
   getModules(): CachedModule {
-    return this.cachedModules;
+    return this.baseConfiguration.cachedModules;
   }
 
   /**
@@ -809,7 +757,7 @@ export class Application {
       info = this.appPath + "/" + info;
     }
     try {
-      this.log("INFO", "Load file", info, fs.existsSync(info));
+      this.log("TRACE", "Load file", info);
       const [importFilename, importName = "default"] = info.split(":");
       // const relativePath = "./" + path.relative(this.appPath, path.resolve(info));
       const importObject = (await import(importFilename))[importName];
@@ -818,7 +766,6 @@ export class Application {
       }
       return importObject;
     } catch (err) {
-      console.log(`LOAD MODULE ERROR ${info}`, err);
       this.log("WARN", "Cannot resolve require", info, err.message);
     }
   }
@@ -850,7 +797,7 @@ export class Application {
       sectionLoader("moddas"),
       sectionLoader("deployers"),
       sectionLoader("models"),
-      sectionLoader("beans")
+      ...Object.values(info.beans).map(f => import(path.join(parent, f)).catch(this.log.bind(this, "WARN")))
     ]);
   }
 
@@ -868,7 +815,7 @@ export class Application {
     if (name.indexOf("/") >= 0) {
       return name.toLowerCase();
     }
-    return `${this.cachedModules.project?.webda?.namespace || "webda"}/${name}`.toLowerCase();
+    return `${this.baseConfiguration.cachedModules.project?.webda?.namespace || "webda"}/${name}`.toLowerCase();
   }
 
   /**

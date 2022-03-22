@@ -1,4 +1,5 @@
-import Ajv from "ajv";
+import Ajv, { ErrorObject } from "ajv";
+import addFormats from "ajv-formats";
 import * as deepmerge from "deepmerge";
 import * as events from "events";
 import { JSONSchema7 } from "json-schema";
@@ -11,6 +12,7 @@ import { CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { OpenAPIWebdaDefinition, RouteInfo, Router } from "./router";
 import { WorkerOutput, WorkerLogLevel } from "@webda/workout";
 import { v4 as uuidv4 } from "uuid";
+import ValidationError from "ajv/dist/runtime/validation_error";
 
 /**
  * Error with a code
@@ -174,6 +176,15 @@ export type CoreEvents = {
   "Webda.NewContext": Context;
 };
 
+type NoSchemaResult = null;
+
+type SchemaValidResult = true;
+
+type SchemaInvalidResult = {
+  errors: ErrorObject[];
+  text: string;
+};
+
 /**
  * This is the main class of the framework, it handles the routing, the services initialization and resolution
  *
@@ -203,11 +214,12 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   /**
    * JSON Schema validator instance
    */
-  protected _ajv: any;
+  protected _ajv: Ajv;
   /**
    * JSON Schema registry
+   * Save if a schema was added to Ajv already
    */
-  protected _ajvSchemas: any;
+  protected _ajvSchemas: { [key: string]: true };
   /**
    * Current executor
    */
@@ -246,6 +258,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     this._initTime = new Date().getTime();
     // Schema validations
     this._ajv = new Ajv();
+    addFormats(this._ajv);
     this._ajvSchemas = {};
 
     // Load the configuration and migrate
@@ -256,7 +269,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     this.configuration.parameters ??= {};
     this.configuration.parameters.apiUrl ??= "http://localhost:18080";
     this.configuration.services ??= {};
-    this.configuration.module ??= {};
     // Add CSRF origins filtering
     if (this.configuration.parameters.csrfOrigins) {
       this.registerRequestFilter(new OriginFilter(this.configuration.parameters.csrfOrigins));
@@ -440,25 +452,24 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param schema path to use
    * @param object to validate
    */
-  validateSchema(webdaObject: CoreModel, object: any) {
-    let name = this.application.getFullNameFromPrototype(Object.getPrototypeOf(webdaObject));
+  validateSchema(webdaObject: CoreModel | string, object: any): NoSchemaResult | SchemaValidResult {
+    let name =
+      typeof webdaObject === "string"
+        ? webdaObject
+        : this.application.getFullNameFromPrototype(Object.getPrototypeOf(webdaObject));
     if (!this._ajvSchemas[name]) {
       let schema = this.application.getSchema(name);
       if (!schema) {
-        return true;
+        return null;
       }
       this.log("TRACE", "Add schema for", name);
       this._ajv.addSchema(schema, name);
       this._ajvSchemas[name] = true;
     }
-    return this._ajv.validate(name, object);
-  }
-
-  /**
-   * Get last errors from AJV schema validator ( called through validate method )
-   */
-  validationLastErrors() {
-    return this._ajv.errors;
+    if (this._ajv.validate(name, object)) {
+      return true;
+    }
+    throw new ValidationError(this._ajv.errors);
   }
 
   /**
@@ -800,6 +811,10 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       this.log("TRACE", "Auto-connect", service, Object.keys(this.configuration.services));
       try {
         let serviceBean = this.services[service];
+        if (!serviceBean.resolve) {
+          this.log("ERROR", `${service} seems to not extend Service`);
+          continue;
+        }
         serviceBean.resolve();
         let setters = this._getSetters(serviceBean);
         setters.forEach(setter => {

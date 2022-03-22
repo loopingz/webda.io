@@ -1,5 +1,5 @@
 {
-  "name": "myWebdaApp",
+  "name": "myWebdaCompileApp",
   "dependencies": {
     "@webda/core": "^1.2.1",
     "@webda/aws": "^1.2.1",

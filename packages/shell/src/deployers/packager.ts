@@ -189,9 +189,9 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     if (this.packagesGenerated[zipPath + entrypoint || ""]) {
       return;
     }
+    await this.app.load();
     this.app.compile();
     this.app.generateModule();
-    this.app.loadModules();
 
     let targetDir = path.dirname(zipPath);
     if (!fs.existsSync(targetDir)) {

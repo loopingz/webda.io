@@ -44,7 +44,6 @@ class LambdaHandlerTest extends WebdaAwsTest {
   async before() {
     await checkLocalStack();
     let app = new TestApplication(this.getTestConfiguration());
-    await app.loadModules();
     await app.load();
     this.webda = this.handler = new LambdaServer(app);
     this.webda.initStatics();

@@ -101,6 +101,10 @@ function getKey(node: ts.Node, context: Context): string {
   return argumentIds.length ? `${id}<${argumentIds.join(",")}>` : id;
 }
 
+/**
+ * Temporary fix
+ */
+/* istanbul ignore next */
 class ConstructorNodeParser implements SubNodeParser {
   public constructor() {}
 

@@ -82,5 +82,7 @@ class CompilerTest {
       throw new Error();
     };
     compiler.generateModule();
+    // Check if getSchema return null: 747
+    // Check if getSchema return object without properties: 751
   }
 }

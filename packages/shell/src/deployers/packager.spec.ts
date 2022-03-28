@@ -1,6 +1,5 @@
 import * as assert from "assert";
 import * as fs from "fs";
-import * as streams from "memory-streams";
 import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
 import * as unzip from "unzipper";
@@ -86,23 +85,14 @@ class PackagerTest {
       fs
         .createReadStream(zipPath + ".zip")
         .pipe(unzip.Parse())
-        .on("entry", function (entry) {
+        .on("entry", async function (entry) {
           var fileName = entry.path;
           files[fileName] = true;
           if (captureFiles[fileName] === undefined) {
             entry.autodrain();
             return;
           }
-          var writer = new streams.WritableStream();
-          entry.pipe(writer);
-          entry.on("end", () => {
-            // Do not cache in memory all files
-            if (fileName === "webda.config.json") {
-              captureFiles[fileName] = writer.toBuffer().toString();
-            } else {
-              captureFiles[fileName] = true;
-            }
-          });
+          captureFiles[fileName] = (await entry.buffer()).toString();
         })
         .on("close", resolve)
         .on("error", reject)
@@ -126,6 +116,7 @@ class PackagerTest {
     );
     assert.strictEqual(config.cachedModules.models["webdademo/contact"], "lib/models/contact:default");
     assert.strictEqual(config.parameters.accessKeyId, "PROD_KEY");
+
     deployer = new Packager(new DeploymentManager(WebdaSampleApplication, "Production"), {
       name: "deployer",
       type: "Packager",

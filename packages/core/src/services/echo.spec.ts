@@ -9,6 +9,7 @@ class EchoTest extends WebdaTest {
   @test
   async cov() {
     let service = new EchoService(this.webda, "test", { url: "/bouzouf", result: "plop" });
+    // @ts-ignore
     let stub = sinon.spy(service, "addRoute");
     try {
       service.initRoutes();

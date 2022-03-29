@@ -1,6 +1,7 @@
 import { ServiceParameters } from "@webda/core";
 import { AsyncAction, Runner, RunnerParameters, JobInfo } from "@webda/async";
-import * as AWS from "aws-sdk";
+import { AWSServiceParameters } from "./aws-mixin";
+import { Lambda } from "@aws-sdk/client-lambda";
 
 export interface LambdaAsyncJobEvent {
   eventSource: string;
@@ -10,7 +11,7 @@ export interface LambdaAsyncJobEvent {
 /**
  *
  */
-class LambdaCallerParameters extends RunnerParameters {
+class LambdaCallerParameters extends AWSServiceParameters(RunnerParameters) {
   /**
    * Default ARN to use
    */
@@ -45,7 +46,7 @@ class LambdaCaller<T extends LambdaCallerParameters = LambdaCallerParameters> ex
   /**
    * Lambda client
    */
-  protected client: AWS.Lambda;
+  protected client: Lambda;
 
   /**
    * @inheritdoc
@@ -59,7 +60,7 @@ class LambdaCaller<T extends LambdaCallerParameters = LambdaCallerParameters> ex
    */
   resolve() {
     super.resolve();
-    this.client = new AWS.Lambda();
+    this.client = new Lambda(this.parameters);
   }
 
   /**
@@ -69,18 +70,16 @@ class LambdaCaller<T extends LambdaCallerParameters = LambdaCallerParameters> ex
    * @param arn function to call default to the one from configuration
    * @returns
    */
-  async execute(params: any = {}, async: boolean = false, arn = this.parameters.arn) {
-    return (
-      await this.client
-        .invoke({
-          FunctionName: arn,
-          ClientContext: null,
-          InvocationType: async ? "Event" : "RequestResponse",
-          LogType: "None",
-          Payload: JSON.stringify(params)
-        })
-        .promise()
-    ).$response.data;
+  async execute(params: any = {}, async: boolean = false, arn = this.parameters.arn) : Promise<any> {
+    return JSON.parse(
+      (await this.client.invoke({
+        FunctionName: arn,
+        ClientContext: null,
+        InvocationType: async ? "Event" : "RequestResponse",
+        LogType: "None",
+        Payload: Buffer.from(JSON.stringify(params))
+      })
+    ).Payload.toString());
   }
 }
 

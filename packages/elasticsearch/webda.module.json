@@ -2,6 +2,8 @@
   "moddas": {
     "webda/elasticsearchservice": "lib/elasticsearchservice:default"
   },
+  "beans": {},
   "models": {},
-  "deployers": {}
+  "deployers": {},
+  "schemas": {}
 }

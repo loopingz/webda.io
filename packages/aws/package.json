@@ -31,8 +31,21 @@
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
+    "@aws-sdk/client-acm": "^3.58.0",
+    "@aws-sdk/client-api-gateway": "^3.58.0",
+    "@aws-sdk/client-cloudformation": "^3.58.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.58.0",
+    "@aws-sdk/client-dynamodb": "^3.58.0",
+    "@aws-sdk/client-ec2": "^3.58.0",
+    "@aws-sdk/client-lambda": "^3.58.0",
+    "@aws-sdk/client-route-53": "^3.58.0",
+    "@aws-sdk/client-s3": "^3.58.0",
+    "@aws-sdk/client-secrets-manager": "^3.58.0",
+    "@aws-sdk/client-sqs": "^3.58.0",
+    "@aws-sdk/client-sts": "^3.58.0",
+    "@aws-sdk/lib-dynamodb": "^3.58.0",
+    "@aws-sdk/s3-request-presigner": "^3.58.0",
     "@webda/core": "^1.6.0-beta.3",
-    "aws-sdk": "^2.953.0",
     "bluebird": "^3.7.2",
     "glob": "^7.1.7",
     "iam-policy-optimizer": "^1.1.2",
@@ -61,7 +74,7 @@
     "@types/node": "14.0.0",
     "@webda/async": "^1.6.0-beta.3",
     "@webda/shell": "^1.6.0-beta.3",
-    "aws-sdk-mock": "<5.5.0",
+    "aws-sdk-client-mock": "^0.6.2",
     "sinon": "^12.0.1"
   }
 }

@@ -19,8 +19,6 @@ spec:
 
 /**
  * Parameters for the KubeRunner
- *
- * @WebdaModda
  */
 export class KubeRunnerParameters extends RunnerParameters implements KubernetesParameters {
   /**
@@ -111,17 +109,6 @@ export default class KubeRunner<T extends KubeRunnerParameters = KubeRunnerParam
   resolve() {
     super.resolve();
     this.client = <k8s.KubernetesObjectApi>getKubernetesApiClient(this.parameters);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda() {
-    return {
-      uuid: "Webda/KubeRunner",
-      label: "Kubernetes Runner",
-      description: "Implements a runner that launch a local program"
-    };
   }
 }
 

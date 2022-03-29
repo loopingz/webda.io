@@ -77,6 +77,7 @@ class KubernetesDeployerTest extends DeployerTest<Kubernetes> {
     await assert.rejects(() => this.deployer.deploy(), /f/);
     this.deployer.resources.resourcesFiles = ["./test/myres.yml", "./test/myotherres.json"];
     let runner = sinon.stub(this.deployer.manager, "run").callsFake(async () => {});
+    // @ts-ignore
     let client = sinon.stub(this.deployer, "getClient").callsFake(api => {
       if (api) {
         return {
@@ -217,6 +218,7 @@ spec:
     read.resetHistory();
     create.resetHistory();
 
+    // @ts-ignore
     read.callsFake(async () => {});
     patch.callsFake(async () => {
       throw new Error();

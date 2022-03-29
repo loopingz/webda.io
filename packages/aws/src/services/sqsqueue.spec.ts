@@ -3,8 +3,10 @@ import * as assert from "assert";
 import { suite, test, timeout } from "@testdeck/mocha";
 import { checkLocalStack } from "../index.spec";
 import { SQSQueue } from "./sqsqueue";
-import { GetAWS } from "./aws-mixin";
 import * as sinon from "sinon";
+import { TestApplication } from "@webda/core/lib/test";
+import * as path from "path";
+import { SQS } from "@aws-sdk/client-sqs";
 @suite
 class SQSQueueTest extends QueueTest {
   async before() {
@@ -13,25 +15,30 @@ class SQSQueueTest extends QueueTest {
     await this.install();
   }
 
+  async tweakApp(app: TestApplication) {
+    super.tweakApp(app);
+    app.addService(
+      "test/awsevents",
+      (await import(path.join(__dirname, ..."../../test/moddas/awsevents.js".split("/")))).default
+    );
+  }
+
   async install() {
-    var sqs = new (GetAWS({}).SQS)({
+    var sqs = new SQS({
       endpoint: "http://localhost:4576"
     });
-    return sqs
-      .getQueueUrl({
+    try {
+      sqs.getQueueUrl({
         QueueName: "webda-test",
         QueueOwnerAWSAccountId: "123456789"
-      })
-      .promise()
-      .catch(err => {
-        if (err.code === "AWS.SimpleQueueService.NonExistentQueue") {
-          return sqs
-            .createQueue({
-              QueueName: "webda-test"
-            })
-            .promise();
-        }
       });
+    } catch (err) {
+      if (err.name === "AWS.SimpleQueueService.NonExistentQueue") {
+        return sqs.createQueue({
+          QueueName: "webda-test"
+        });
+      }
+    }
   }
 
   @test

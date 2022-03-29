@@ -1,4 +1,4 @@
-import { Application, Bean, Route, Service } from "@webda/core";
+import { Bean, Route, Service } from "@webda/core";
 import * as assert from "assert";
 import * as fs from "fs";
 import { suite, test } from "@testdeck/mocha";

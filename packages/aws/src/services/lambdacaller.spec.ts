@@ -2,10 +2,10 @@ import { WebdaTest } from "@webda/core/lib/test";
 import { test, suite } from "@testdeck/mocha";
 import * as assert from "assert";
 import { LambdaCaller } from "./lambdacaller";
-import * as AWSMock from "aws-sdk-mock";
-import * as AWS from "aws-sdk";
 import * as sinon from "sinon";
 import { JobInfo } from "@webda/async";
+import { mockClient } from "aws-sdk-client-mock";
+import { InvokeCommand, Lambda } from "@aws-sdk/client-lambda";
 
 const jobInfo: JobInfo = {
   JOB_ORCHESTRATOR: "async",
@@ -19,23 +19,20 @@ class LambdaCallerTest extends WebdaTest {
   async call() {
     // CodeCoverage test
     const lambdaCaller = new LambdaCaller(this.webda, "plop", { arn: "testor" });
-    try {
-      AWSMock.setSDKInstance(AWS);
-      AWSMock.mock("Lambda", "invoke", (params: any, callback: any) => {
-        return callback(null, { $response: { data: { plop: true } } });
+    mockClient(Lambda)
+      .on(InvokeCommand)
+      .resolves({
+        Payload: Buffer.from(JSON.stringify({ plop: true }))
       });
-      lambdaCaller.resolve();
-      assert.deepStrictEqual(await lambdaCaller.execute(), { plop: true });
-      assert.deepStrictEqual(await lambdaCaller.execute({}, true, "myarn"), { plop: true });
-    } finally {
-      AWSMock.restore();
-    }
+    lambdaCaller.resolve();
+    assert.deepStrictEqual(await lambdaCaller.execute(), { plop: true });
+    assert.deepStrictEqual(await lambdaCaller.execute({}, true, "myarn"), { plop: true });
   }
 
   @test
   async launcher() {
     const caller = new LambdaCaller(this.webda, "plop", {});
-    let stub = sinon.stub(caller, "execute").callsFake(() => {});
+    let stub = sinon.stub(caller, "execute").resolves();
     caller.launchAction(undefined, jobInfo);
     assert.ok(stub.callCount === 1);
     assert.deepStrictEqual(stub.getCall(0).args, [

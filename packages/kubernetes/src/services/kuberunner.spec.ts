@@ -10,8 +10,6 @@ class KubeRunnerTest extends WebdaTest {
   @test
   cov() {
     assert.throws(() => new KubeRunner(this.webda, "runner", {}), /Either jobImage or jobResources need/);
-    // COV Only
-    KubeRunner.getModda();
   }
 
   @test
@@ -36,6 +34,7 @@ class KubeRunnerTest extends WebdaTest {
     let runner = new KubeRunner(this.webda, "runner", { jobImage: "webda.io/runner" });
     runner.resolve();
     const kube = stub(runner.client, "create").returns({
+      // @ts-ignore
       body: {
         spec: true,
         metadata: "fake",
@@ -57,6 +56,7 @@ class KubeRunnerTest extends WebdaTest {
         { name: "JOB_ORCHESTRATOR", value: "test" },
         { name: "JOB_SECRET_KEY", value: "mykey" }
       ];
+      // @ts-ignore
       assert.deepStrictEqual(kube.getCall(0).args[0].spec.template.spec.containers[0].env, envs);
       kube.resetHistory();
       runner.getParameters().jobResources = {
@@ -79,7 +79,9 @@ class KubeRunnerTest extends WebdaTest {
         }
       };
       result = await runner.launchAction(action, this.getJobInfo(action));
+      // @ts-ignore
       assert.deepStrictEqual(kube.getCall(0).args[0].spec.template.spec.containers[0].env, envs);
+      // @ts-ignore
       assert.deepStrictEqual(kube.getCall(0).args[0].spec.template.spec.containers[1].env, [
         {
           name: "TEST",

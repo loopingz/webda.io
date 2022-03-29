@@ -82,7 +82,7 @@ class KubernetesConfigurationServiceTest extends AbstractKubernetesConfiguration
     assert.rejects(() => serv.init(), /Need a source for KubernetesConfigurationService/);
     serv.getParameters().source = "/notexisting";
     assert.rejects(() => serv.init(), /Need a source for KubernetesConfigurationService/);
-    let mock = stub(serv, "loadAndStoreConfiguration").callsFake(() => {});
+    let mock = stub(serv, "loadAndStoreConfiguration").resolves();
     await serv.initConfiguration();
     assert.strictEqual(mock.callCount, 1);
   }

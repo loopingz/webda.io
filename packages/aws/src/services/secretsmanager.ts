@@ -1,10 +1,8 @@
 import { ConfigurationProvider, Service, ServiceParameters } from "@webda/core";
-import { GetAWS } from "./aws-mixin";
+import { DeleteSecretRequest, SecretsManager } from "@aws-sdk/client-secrets-manager";
+import { AWSServiceParameters } from "./aws-mixin";
 
-export class AWSSecretsManagerParameters extends ServiceParameters {
-  endpoint: string;
-  region: string;
-}
+export class AWSSecretsManagerParameters extends AWSServiceParameters(ServiceParameters) {}
 
 /**
  * @WebdaModda
@@ -13,7 +11,7 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
   extends Service<T>
   implements ConfigurationProvider
 {
-  _client: AWS.SecretsManager;
+  _client: SecretsManager;
 
   /**
    * @inheritdoc
@@ -26,9 +24,7 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
    * @inheritdoc
    */
   computeParameters() {
-    this._client = new (GetAWS(this.parameters).SecretsManager)({
-      endpoint: this.parameters.endpoint
-    });
+    this._client = new SecretsManager(this.parameters);
   }
 
   /**
@@ -55,7 +51,7 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
   async create(id: string, values: any = {}, params: any = {}) {
     params.Name = id;
     params.SecretString = JSON.stringify(values);
-    await this._client.createSecret(params).promise();
+    await this._client.createSecret(params);
   }
 
   /**
@@ -66,7 +62,7 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
    * @param ForceDeleteWithoutRecovery
    */
   async delete(SecretId: string, RecoveryWindowInDays: number = 7, ForceDeleteWithoutRecovery: boolean = false) {
-    let params: AWS.SecretsManager.DeleteSecretRequest = {
+    let params: DeleteSecretRequest = {
       RecoveryWindowInDays,
       SecretId
     };
@@ -76,7 +72,7 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
         ForceDeleteWithoutRecovery
       };
     }
-    await this._client.deleteSecret(params).promise();
+    await this._client.deleteSecret(params);
   }
 
   /**
@@ -86,12 +82,10 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
    * @param value
    */
   async put(SecretId: string, value: any) {
-    await this._client
-      .putSecretValue({
-        SecretId,
-        SecretString: JSON.stringify(value)
-      })
-      .promise();
+    await this._client.putSecretValue({
+      SecretId,
+      SecretString: JSON.stringify(value)
+    });
   }
 
   /**
@@ -101,11 +95,9 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
    * @returns JSON.parse of SecretString
    */
   async get(SecretId: string) {
-    let res = await this._client
-      .getSecretValue({
-        SecretId
-      })
-      .promise();
+    let res = await this._client.getSecretValue({
+      SecretId
+    });
     return JSON.parse(res.SecretString);
   }
 

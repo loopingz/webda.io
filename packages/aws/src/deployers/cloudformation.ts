@@ -5,8 +5,10 @@ import { CloudFormationContributor } from "../services";
 import { JSONUtils, WebdaError } from "@webda/core";
 import { ContainerResources } from "@webda/shell";
 import * as fs from "fs";
-import AWS = require("aws-sdk");
 import { LambdaPackagerResources } from "./lambdapackager";
+import { CloudFormation } from "@aws-sdk/client-cloudformation";
+import { APIGateway } from "@aws-sdk/client-api-gateway";
+import { STS } from "@aws-sdk/client-sts";
 
 /**
  * Build Docker image for AWS
@@ -574,12 +576,12 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
    * @returns
    */
   async deleteCloudFormation() {
-    let cloudformation = new this.AWS.CloudFormation();
-    await cloudformation.deleteStack({ StackName: this.resources.StackName }).promise();
+    let cloudformation = new CloudFormation({});
+    await cloudformation.deleteStack({ StackName: this.resources.StackName });
     return this.waitFor(
       async resolve => {
         try {
-          await cloudformation.describeStacks({ StackName: this.resources.StackName }).promise();
+          await cloudformation.describeStacks({ StackName: this.resources.StackName });
         } catch (err) {
           resolve();
           return true;
@@ -618,16 +620,14 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   }
 
   async importOpenApi(openapi) {
-    let apigateway = new this.AWS.APIGateway();
+    let apigateway = new APIGateway({});
     console.log("Creating API Gateway");
-    await apigateway
-      .putRestApi({
-        body: JSON.stringify(openapi, undefined, 2),
-        failOnWarnings: false,
-        restApiId: this.resources.APIGatewayImportOpenApi,
-        mode: "overwrite"
-      })
-      .promise();
+    await apigateway.putRestApi({
+      body: Buffer.from(JSON.stringify(openapi)),
+      failOnWarnings: false,
+      restApiId: this.resources.APIGatewayImportOpenApi,
+      mode: "overwrite"
+    });
   }
 
   /**
@@ -635,7 +635,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
    * @param cloudformation
    * @returns
    */
-  async createCloudFormationChangeSet(cloudformation: AWS.CloudFormation) {
+  async createCloudFormationChangeSet(cloudformation: CloudFormation) {
     let changeSetParams = {
       ...this.resources.StackOptions,
       StackName: this.resources.StackName,
@@ -647,46 +647,43 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     };
     let changeSet;
     try {
-      changeSet = await cloudformation
-        .createChangeSet({
-          ...changeSetParams,
-          ChangeSetType: this.resources.ChangeSetType === "IMPORT" ? "IMPORT" : "UPDATE"
-        })
-        .promise();
+      changeSet = await cloudformation.createChangeSet({
+        ...changeSetParams,
+        ChangeSetType: this.resources.ChangeSetType === "IMPORT" ? "IMPORT" : "UPDATE"
+      });
     } catch (err) {
       if (err.message.endsWith(" is in ROLLBACK_COMPLETE state and can not be updated.")) {
         this.logger.log("WARN", "Deleting buguous stack");
         await this.deleteCloudFormation();
-        changeSet = await cloudformation
-          .createChangeSet({ ...changeSetParams, ChangeSetType: this.resources.ChangeSetType })
-          .promise();
+        changeSet = await cloudformation.createChangeSet({
+          ...changeSetParams,
+          ChangeSetType: this.resources.ChangeSetType
+        });
       } else if (err.message === `Stack [${this.resources.StackName}] does not exist`) {
-        changeSet = await cloudformation
-          .createChangeSet({ ...changeSetParams, ChangeSetType: this.resources.ChangeSetType })
-          .promise();
+        changeSet = await cloudformation.createChangeSet({
+          ...changeSetParams,
+          ChangeSetType: this.resources.ChangeSetType
+        });
       } else if (err.message.endsWith(" state and can not be updated.")) {
         await this.waitFor(
           async resolve => {
-            let res = await cloudformation
-              .describeStacks({
-                StackName: this.resources.StackName
-              })
-              .promise();
+            let res = await cloudformation.describeStacks({
+              StackName: this.resources.StackName
+            });
             if (res.Stacks.length === 0) {
               // If it disapeared, recreate
-              changeSet = await cloudformation
-                .createChangeSet({ ...changeSetParams, ChangeSetType: this.resources.ChangeSetType })
-                .promise();
+              changeSet = await cloudformation.createChangeSet({
+                ...changeSetParams,
+                ChangeSetType: this.resources.ChangeSetType
+              });
               resolve();
               return true;
             }
             if (res.Stacks[0].StackStatus.endsWith("COMPLETE")) {
-              changeSet = await cloudformation
-                .createChangeSet({
-                  ...changeSetParams,
-                  ChangeSetType: this.resources.ChangeSetType === "IMPORT" ? "IMPORT" : "UPDATE"
-                })
-                .promise();
+              changeSet = await cloudformation.createChangeSet({
+                ...changeSetParams,
+                ChangeSetType: this.resources.ChangeSetType === "IMPORT" ? "IMPORT" : "UPDATE"
+              });
               resolve();
               return true;
             }
@@ -698,15 +695,14 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         );
       } else if (err.code === "AlreadyExistsException") {
         this.logger.log("WARN", "ChangeSet exists and need to be clean");
-        await cloudformation
-          .deleteChangeSet({ StackName: this.resources.StackName, ChangeSetName: "WebdaCloudFormationDeployer" })
-          .promise();
-        changeSet = await cloudformation
-          .createChangeSet({
-            ...changeSetParams,
-            ChangeSetType: this.resources.ChangeSetType === "IMPORT" ? "IMPORT" : "UPDATE"
-          })
-          .promise();
+        await cloudformation.deleteChangeSet({
+          StackName: this.resources.StackName,
+          ChangeSetName: "WebdaCloudFormationDeployer"
+        });
+        changeSet = await cloudformation.createChangeSet({
+          ...changeSetParams,
+          ChangeSetType: this.resources.ChangeSetType === "IMPORT" ? "IMPORT" : "UPDATE"
+        });
       } else {
         throw err;
       }
@@ -719,7 +715,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
    * @returns
    */
   async createCloudFormation() {
-    let cloudformation: AWS.CloudFormation = new this.AWS.CloudFormation();
+    let cloudformation: CloudFormation = new CloudFormation({});
 
     let changeSet = await this.createCloudFormationChangeSet(cloudformation);
 
@@ -728,9 +724,10 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     // It will trigger an exception if timeout
     let changes = await this.waitFor(
       async (resolve, reject) => {
-        let localChanges = await cloudformation
-          .describeChangeSet({ ChangeSetName: "WebdaCloudFormationDeployer", StackName: this.resources.StackName })
-          .promise();
+        let localChanges = await cloudformation.describeChangeSet({
+          ChangeSetName: "WebdaCloudFormationDeployer",
+          StackName: this.resources.StackName
+        });
         if (localChanges.Status === "FAILED" || localChanges.Status === "CREATE_COMPLETE") {
           resolve(localChanges);
           return true;
@@ -762,18 +759,18 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     );
     this.logger.log("INFO", "Executing Change Set");
     let lastEvent = (
-      await cloudformation.describeStackEvents({ StackName: this.resources.StackName }).promise()
+      await cloudformation.describeStackEvents({ StackName: this.resources.StackName })
     ).StackEvents.shift();
-    await cloudformation
-      .executeChangeSet({ ChangeSetName: "WebdaCloudFormationDeployer", StackName: this.resources.StackName })
-      .promise();
+    await cloudformation.executeChangeSet({
+      ChangeSetName: "WebdaCloudFormationDeployer",
+      StackName: this.resources.StackName
+    });
     // Wait for the completion of change and display events in the meantime
     this.logger.log("INFO", "Waiting for update completion");
     let i = 0;
     let Timeout = true;
     do {
-      let events = (await cloudformation.describeStackEvents({ StackName: this.resources.StackName }).promise())
-        .StackEvents;
+      let events = (await cloudformation.describeStackEvents({ StackName: this.resources.StackName })).StackEvents;
       let display = lastEvent ? false : true;
       let event;
       while ((event = events.pop())) {
@@ -818,7 +815,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       let restApiId;
       // Retrieve resources
       do {
-        let res = await cloudformation.listStackResources({ StackName: this.resources.StackName, NextToken }).promise();
+        let res = await cloudformation.listStackResources({ StackName: this.resources.StackName, NextToken });
         NextToken = res.NextToken;
         res.StackResourceSummaries.forEach(resource => {
           if (resource.ResourceType === "AWS::ApiGateway::Stage") {
@@ -830,14 +827,12 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       } while (NextToken);
       // Get RestAPIId
       if (restApiId && stageName) {
-        const gw: AWS.APIGateway = new this.AWS.APIGateway();
+        const gw: APIGateway = new APIGateway({});
 
-        await gw
-          .createDeployment({
-            restApiId,
-            stageName
-          })
-          .promise();
+        await gw.createDeployment({
+          restApiId,
+          stageName
+        });
       }
     }
   }
@@ -864,10 +859,14 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     }
   }
 
+  getRegion(): string {
+    return "us-east-1";
+  }
+
   async completeOpenAPI(openapi) {
     openapi.info.title = this.resources.OpenAPITitle;
     let info = await this.getAWSIdentity();
-    let arn = `arn:aws:lambda:${this.AWS.config.region}:${info.Account}:function:${this.resources.Lambda.FunctionName}`;
+    let arn = `arn:aws:lambda:${this.getRegion()}:${info.Account}:function:${this.resources.Lambda.FunctionName}`;
     for (let p in openapi.paths) {
       // Not using mockCors as the {@link RequestFilter.checkRequest} can be dynamic
       // Invalid mapping expression parameter specified: method.response.header.Access-Control-Allow-Credentials
@@ -877,7 +876,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       for (let m in openapi.paths[p]) {
         openapi.paths[p][m]["x-amazon-apigateway-integration"] = {
           httpMethod: "POST",
-          uri: `arn:aws:apigateway:${this.AWS.config.region}:lambda:path/2015-03-31/functions/${arn}/invocations`,
+          uri: `arn:aws:apigateway:${this.getRegion()}:lambda:path/2015-03-31/functions/${arn}/invocations`,
           type: "aws_proxy"
         };
       }
@@ -956,7 +955,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         RestApiId: { Ref: "APIGateway" }
       }
     };
-    // SourceArn: "arn:aws:execute-api:" + this.AWS.config.region + ":" + awsId + ":" + this.restApiId + "/*"
+    // SourceArn: "arn:aws:execute-api:" + AWS.config.region + ":" + awsId + ":" + this.restApiId + "/*"
     this.template.Resources.APIGatewayStage = {
       Type: "AWS::ApiGateway::Stage",
       Properties: {
@@ -1117,10 +1116,10 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     }
     let pkg = JSONUtils.loadFile(packageDescr);
     pkg.webda = pkg.webda || {};
-    let sts = new AWS.STS();
+    let sts = new STS({});
     let identity;
     try {
-      identity = await sts.getCallerIdentity().promise();
+      identity = await sts.getCallerIdentity({});
     } catch (ex) {
       console.log("ERROR", "Cannot retrieve your AWS credentials, make sure to have a correct AWS setup");
       return -1;
@@ -1131,7 +1130,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       console.log(
         "INFO",
         `This will create a small CloudFormation on your AWS account (${identity.Account}) and region (${
-          AWS.config.region || process.env.AWS_DEFAULT_REGION || "us-east-1"
+          sts.config.region || process.env.AWS_DEFAULT_REGION || "us-east-1"
         })`
       );
       console.log("INFO", `The stack will be called ${StackName}`);
@@ -1139,28 +1138,26 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
         AssetsBucket: `webda-${pkgName}-assets`,
         Repository: `webda-${pkgName}`
       };
-      let cloudformation = new AWS.CloudFormation();
-      await cloudformation
-        .createStack({
-          StackName,
-          TemplateBody: JSON.stringify({
-            Resources: {
-              WebdaAssetsBucket: {
-                Type: "AWS::S3::Bucket",
-                Properties: {
-                  BucketName: pkg.webda.aws.AssetsBucket
-                }
-              },
-              WebdaECR: {
-                Type: "AWS::ECR::Repository",
-                Properties: {
-                  RepositoryName: pkg.webda.aws.Repository
-                }
+      let cloudformation = new CloudFormation({});
+      await cloudformation.createStack({
+        StackName,
+        TemplateBody: JSON.stringify({
+          Resources: {
+            WebdaAssetsBucket: {
+              Type: "AWS::S3::Bucket",
+              Properties: {
+                BucketName: pkg.webda.aws.AssetsBucket
+              }
+            },
+            WebdaECR: {
+              Type: "AWS::ECR::Repository",
+              Properties: {
+                RepositoryName: pkg.webda.aws.Repository
               }
             }
-          })
+          }
         })
-        .promise();
+      });
       console.log("INFO", "Updating package description with default information");
       JSONUtils.saveFile(pkg, packageDescr);
       return 0;

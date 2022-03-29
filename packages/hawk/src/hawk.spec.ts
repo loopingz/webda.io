@@ -250,7 +250,6 @@ class HawkServiceTest extends WebdaTest {
   @test
   async cov() {
     // Pure cov
-    HawkService.getModda();
     let test = new HawkService(this.webda, "cov", { keysStore: "bouzouf" });
     assert.strictEqual(test.getParameters().keysStore, "bouzouf");
     assert.rejects(() => test.init(), /Store must exist/);

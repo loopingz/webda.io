@@ -258,6 +258,7 @@ class DynamicService extend Service {
     await p;
     console.log("Waiting for Serving");
     await this.waitForStatus(DebuggerStatus.Serving);
+    // @ts-ignore
     let stub = sinon.stub(process, "exit").callsFake(() => {});
     const deploymentFile = WebdaSampleApplication.getAppPath("deployments/Dev.json");
     try {
@@ -374,6 +375,7 @@ class DynamicService extend Service {
     ConsoleTest.helpStub = {
       restore: () => {}
     };
+    // @ts-ignore
     let stub = sinon.stub(WebdaConsole, "parser").callsFake(async () => {
       const res = {
         showHelp: () => {

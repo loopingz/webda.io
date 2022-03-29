@@ -51,6 +51,7 @@ class LocalRunnerTest extends WebdaTest {
 
   @test
   async launchAction() {
+    // @ts-expect-error
     const spawn = stub(child_process, "spawn").returns({ pid: "fake" });
     try {
       const runner = new LocalRunner(this.webda, "runner", {});
@@ -70,6 +71,7 @@ class LocalRunnerTest extends WebdaTest {
   @test
   async launchActionAutoStatus() {
     const child = new FakeChildProcess();
+    // @ts-expect-error
     const spawn = stub(child_process, "spawn").returns(child);
     try {
       const runner = new LocalRunner(this.webda, "runner", { autoStatus: true });

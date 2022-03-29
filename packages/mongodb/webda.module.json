@@ -157,6 +157,10 @@
               "type": "boolean",
               "description": "serialize will not emit undefined fields **(default:true)**"
             },
+            "enableUtf8Validation": {
+              "type": "boolean",
+              "description": "Enable utf8 validation when deserializing BSON documents.  Defaults to true."
+            },
             "authSource": {
               "type": "string",
               "description": "If the database authentication is dependent on another databaseName."

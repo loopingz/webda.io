@@ -94,6 +94,7 @@ class InvitationTest extends WebdaTest {
 
   @test
   async initNoTemplate() {
+    // @ts-ignore
     let stub = sinon.stub(this.mailer, "hasNotification").callsFake(async () => false);
     try {
       this.service.getParameters().notification = "plop";

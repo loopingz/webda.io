@@ -98,7 +98,7 @@ export class WaitDelayerFactories {
  * @param delayer function that return pause between each call default to WaitExponential(1000)
  */
 export async function WaitFor<T = any>(
-  callback: (resolve: (value?: T) => void, reject: (reason?: any) => void) => Promise<boolean>,
+  callback: (resolve: (value?: T) => void, reject?: (reason?: any) => void) => Promise<boolean>,
   retries: number,
   title?: string,
   logger?: Logger,

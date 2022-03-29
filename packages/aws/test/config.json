@@ -1,8 +1,10 @@
 {
   "version": 2,
   "parameters": {
-    "accessKeyId": "Bouzouf",
-    "secretAccessKey": "Plop",
+    "credentials": {
+      "accessKeyId": "Bouzouf",
+      "secretAccessKey": "Plop"
+    },
     "TEST": "Global",
     "region": "us-east-1",
     "website": ["test.webda.io", "test2.webda.io"],
@@ -76,7 +78,7 @@
       "type": "S3Binary",
       "bucket": "webda-test",
       "endpoint": "http://localhost:4572",
-      "s3ForcePathStyle": true,
+      "forcePathStyle": true,
       "map": {
         "users": ["images"]
       },

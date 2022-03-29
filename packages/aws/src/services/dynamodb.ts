@@ -6,20 +6,25 @@ import {
   UpdateConditionFailError,
   StoreNotFoundError
 } from "@webda/core";
-import { CloudFormationContributor } from ".";
+import { AWSServiceParameters, CloudFormationContributor } from ".";
 import { CloudFormationDeployer } from "../deployers/cloudformation";
-import { GetAWS } from "./aws-mixin";
-import * as AWS from "aws-sdk";
 import { WorkerOutput } from "@webda/workout";
-
-export class DynamoStoreParameters extends StoreParameters {
+import { DynamoDBClient, DynamoDB, ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+export class DynamoStoreParameters extends AWSServiceParameters(StoreParameters) {
   table: string;
-  endpoint: string;
   CloudFormation: any;
   CloudFormationSkip: boolean;
-  region: string;
   scanPage: number;
+
+  constructor(params: any, service: DynamoStore) {
+    super(params, service);
+    if (this.table === undefined) {
+      throw new WebdaError("DYNAMODB_TABLE_PARAMETER_REQUIRED", "Need to define a table at least");
+    }
+  }
 }
+
 /**
  * DynamoStore handles the DynamoDB
  *
@@ -31,11 +36,14 @@ export class DynamoStoreParameters extends StoreParameters {
  *
  * @WebdaModda
  */
-export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParameters = DynamoStoreParameters>
+export default class DynamoStore<
+    T extends CoreModel = CoreModel,
+    K extends DynamoStoreParameters = DynamoStoreParameters
+  >
   extends Store<T, K>
   implements CloudFormationContributor
 {
-  _client: AWS.DynamoDB.DocumentClient;
+  _client: DynamoDBDocument;
 
   /**
    * Load the parameters
@@ -49,13 +57,12 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
   /**
    * Create the AWS client
    */
-  computeParameters() {
-    super.computeParameters();
-    if (this.parameters.table === undefined) {
-      throw new WebdaError("DYNAMODB_TABLE_PARAMETER_REQUIRED", "Need to define a table at least");
-    }
-    this._client = new (GetAWS(this.parameters).DynamoDB.DocumentClient)({
-      endpoint: this.parameters.endpoint
+  resolve() {
+    super.resolve();
+    this._client = DynamoDBDocument.from(new DynamoDBClient(this.parameters), {
+      marshallOptions: {
+        removeUndefinedValues: true
+      }
     });
   }
 
@@ -67,22 +74,17 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
    * @param target
    */
   static async copyTable(output: WorkerOutput, source: string, target: string): Promise<void> {
-    let db = new AWS.DynamoDB();
+    let db = new DynamoDB({});
     let ExclusiveStartKey;
-    let props = await db
-      .describeTable({
-        TableName: source
-      })
-      .promise();
+    let props = await db.describeTable({
+      TableName: source
+    });
     output.startProgress("copyTable", props.Table.ItemCount, `Copying ${source} to ${target}`);
     do {
-      let info = await db
-        .scan({
-          TableName: source,
-          ExclusiveStartKey
-        })
-        .promise();
-
+      let info = await db.scan({
+        TableName: source,
+        ExclusiveStartKey
+      });
       do {
         let items = [];
         while (info.Items.length && items.length < 25) {
@@ -95,7 +97,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
           RequestItems: {}
         };
         params.RequestItems[target] = items.map(Item => ({ PutRequest: { Item } }));
-        await db.batchWriteItem(params).promise();
+        await db.batchWriteItem(params);
         output.incrementProgress(items.length, "copyTable");
       } while (true);
       ExclusiveStartKey = info.LastEvaluatedKey;
@@ -126,9 +128,9 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     request.TableName = this.parameters.table;
     let result;
     if (scan) {
-      result = await this._client.scan(request).promise();
+      result = await this._client.scan(request);
     } else {
-      result = await this._client.query(request).promise();
+      result = await this._client.query(request);
     }
     return result.Items;
   }
@@ -198,9 +200,9 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     }
 
     try {
-      await this._client.update(params).promise();
+      await this._client.update(params);
     } catch (err) {
-      if (err.code === "ConditionalCheckFailedException") {
+      if (err instanceof ConditionalCheckFailedException) {
         if (!itemWriteConditionField) {
           throw new StoreNotFoundError(uuid, this.getName());
         }
@@ -235,11 +237,11 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
       params.ConditionExpression = "#condName[" + index + "].#field = :condValue";
     }
     try {
-      await this._client.update(params).promise();
+      await this._client.update(params);
     } catch (err) {
-      if (err.code === "ConditionalCheckFailedException") {
+      if (err instanceof ConditionalCheckFailedException) {
         throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
-      } else if (err.code === "ValidationException") {
+      } else if (err.name === "ValidationException") {
         throw new StoreNotFoundError(uid, this.getName());
       }
       throw err;
@@ -299,11 +301,11 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
       }
     }
     try {
-      await this._client.update(params).promise();
+      await this._client.update(params);
     } catch (err) {
-      if (err.code === "ConditionalCheckFailedException") {
+      if (err instanceof ConditionalCheckFailedException) {
         throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);
-      } else if (err.code === "ValidationException") {
+      } else if (err.name === "ValidationException") {
         throw new StoreNotFoundError(uuid, this.getName());
       }
       throw err;
@@ -341,9 +343,9 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
       this.setWriteCondition(params, writeCondition, itemWriteConditionField);
     }
     try {
-      await this._client.delete(params).promise();
+      await this._client.delete(params);
     } catch (err) {
-      if (err.code === "ConditionalCheckFailedException") {
+      if (err instanceof ConditionalCheckFailedException) {
         throw new UpdateConditionFailError(uid, itemWriteConditionField, writeCondition);
       }
       throw err;
@@ -389,9 +391,9 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
       this.setWriteCondition(params, itemWriteCondition, itemWriteConditionField);
     }
     try {
-      await this._client.update(params).promise();
+      await this._client.update(params);
     } catch (err) {
-      if (err.code === "ConditionalCheckFailedException") {
+      if (err instanceof ConditionalCheckFailedException) {
         throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
       }
       throw err;
@@ -413,10 +415,10 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
       this.setWriteCondition(params, itemWriteCondition, itemWriteConditionField);
     }
     try {
-      await this._client.put(params).promise();
+      await this._client.put(params);
       return object;
     } catch (err) {
-      if (err.code === "ConditionalCheckFailedException") {
+      if (err instanceof ConditionalCheckFailedException) {
         throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
       }
       throw err;
@@ -467,7 +469,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
         };
       })
     };
-    let result = await this._client.batchGet(params).promise();
+    let result = await this._client.batchGet(params);
     return result.Responses[this.parameters.table].map(this.initModel, this);
   }
 
@@ -481,7 +483,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
         uuid: uid
       }
     };
-    let item = (await this._client.get(params).promise()).Item;
+    let item = (await this._client.get(params)).Item;
     if (!item) {
       if (raiseIfNotFound) {
         throw new StoreNotFoundError(uid, this.getName());
@@ -513,9 +515,9 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
       }
     };
     try {
-      return await this._client.update(params).promise();
+      return await this._client.update(params);
     } catch (err) {
-      if (err.code === "ConditionalCheckFailedException") {
+      if (err instanceof ConditionalCheckFailedException) {
         throw new StoreNotFoundError(uid, this.getName());
       }
       throw err;
@@ -553,7 +555,7 @@ export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParam
     var params = {
       TableName: this.parameters.table
     };
-    let result = await this._client.scan(params).promise();
+    let result = await this._client.scan(params);
     var promises = [];
     for (var i in result.Items) {
       promises.push(this._delete(result.Items[i].uuid));

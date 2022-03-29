@@ -1,8 +1,8 @@
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { GetAWS } from "../index";
-import { checkLocalStack, WebdaAwsTest } from "../index.spec";
+import { checkLocalStack, defaultCreds, WebdaAwsTest } from "../index.spec";
 import { CloudWatchLogger } from "./cloudwatchlogger";
+import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 
 @suite
 class CloudWatchLoggerTest extends WebdaAwsTest {
@@ -14,18 +14,14 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
 
   async before() {
     await checkLocalStack();
-    let cloudwatch = new (GetAWS({
-      accessKeyId: "Bouzouf",
-      secretAccessKey: "plop"
-    }).CloudWatchLogs)({
+    let cloudwatch = new CloudWatchLogs({
+      credentials: defaultCreds,
       endpoint: "http://localhost:4586"
     });
     try {
-      await cloudwatch
-        .deleteLogGroup({
-          logGroupName: "webda-test"
-        })
-        .promise();
+      await cloudwatch.deleteLogGroup({
+        logGroupName: "webda-test"
+      });
     } catch (err) {
       // Skip bad delete
     }
@@ -43,11 +39,9 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
     this.webda.getLogger("whatever").logProgressStart("test", 100, "other");
     this.webda.log("DEBUG", "Plop 4", "Test");
     await this.webda.emitSync("Webda.Result");
-    let res = await this.service._cloudwatch
-      .describeLogStreams({
-        logGroupName: "webda-test"
-      })
-      .promise();
+    let res = await this.service._cloudwatch.describeLogStreams({
+      logGroupName: "webda-test"
+    });
     assert.strictEqual(res.logStreams.length, 1);
     assert.notStrictEqual(res.logStreams[0].lastEventTimestamp, undefined);
     this.service.getParameters().logGroupName = undefined;
@@ -84,22 +78,18 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
     this.webda.log("INFO", "Plop 0", "Test");
     this.webda.log("DEBUG", "Plop 1", "Test");
     await this.sleep(1000);
-    let res = await this.service._cloudwatch
-      .describeLogStreams({
-        logGroupName: "webda-test"
-      })
-      .promise();
+    let res = await this.service._cloudwatch.describeLogStreams({
+      logGroupName: "webda-test"
+    });
     assert.strictEqual(res.logStreams.length, 1);
     assert.notStrictEqual(res.logStreams[0].lastEventTimestamp, undefined);
     this.webda.log("DEBUG", "Plop 2", "Test");
     this.webda.log("DEBUG", "Plop 3", "Test");
     this.webda.log("DEBUG", "Plop 4", "Test");
     await this.webda.emitSync("Webda.Result");
-    res = await this.service._cloudwatch
-      .describeLogStreams({
-        logGroupName: "webda-test"
-      })
-      .promise();
+    res = await this.service._cloudwatch.describeLogStreams({
+      logGroupName: "webda-test"
+    });
     assert.strictEqual(res.logStreams.length, 1);
   }
 }

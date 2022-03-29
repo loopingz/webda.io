@@ -1,14 +1,15 @@
 import { BinaryTest } from "@webda/core/lib/services/binary.spec";
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { checkLocalStack } from "../index.spec";
+import { checkLocalStack, defaultCreds } from "../index.spec";
 import { S3Binary, S3BinaryParameters } from "./s3binary";
-import { GetAWS } from ".";
 import { DynamoDBTest } from "./dynamodb.spec";
-import * as AWSMock from "aws-sdk-mock";
-import * as AWS from "aws-sdk";
 import * as sinon from "sinon";
 import { Binary } from "@webda/core";
+import { TestApplication } from "@webda/core/lib/test";
+import * as path from "path";
+import { ListObjectsV2Command, S3 } from "@aws-sdk/client-s3";
+import { mockClient } from "aws-sdk-client-mock";
 
 @suite
 class S3BinaryTest extends BinaryTest<S3Binary> {
@@ -22,22 +23,29 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     await super.before();
   }
 
+  async tweakApp(app: TestApplication) {
+    super.tweakApp(app);
+    app.addService(
+      "test/awsevents",
+      (await import(path.join(__dirname, ..."../../test/moddas/awsevents.js".split("/")))).default
+    );
+  }
+
   // Override getNotFound as exception is raised after
   @test
   async getNotFound() {}
 
   async cleanData() {
-    var s3 = new (GetAWS({}).S3)({
+    var s3 = new S3({
       endpoint: "http://localhost:4572",
-      s3ForcePathStyle: true
+      credentials: defaultCreds,
+      forcePathStyle: true
     });
     const Bucket = "webda-test";
     // For test we do not have more than 1k objects
-    let data = await s3
-      .listObjectsV2({
-        Bucket
-      })
-      .promise();
+    let data = await s3.listObjectsV2({
+      Bucket
+    });
     var params = {
       Bucket,
       Delete: {
@@ -52,32 +60,33 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     if (params.Delete.Objects.length === 0) {
       return;
     }
-    return s3.deleteObjects(params).promise();
+    return s3.deleteObjects(params);
   }
 
   async install() {
-    var s3 = new (GetAWS({}).S3)({
+    var s3 = new S3({
       endpoint: "http://localhost:4572",
-      s3ForcePathStyle: true
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: "Bouzouf",
+        secretAccessKey: "Plop"
+      }
     });
     const Bucket = "webda-test";
-    return s3
-      .headBucket({
+    try {
+      return s3.headBucket({
         Bucket
-      })
-      .promise()
-      .catch(err => {
-        if (err.code === "Forbidden") {
-          this.webda.log("ERROR", "S3 bucket already exists in another account");
-        } else if (err.code === "NotFound") {
-          this.webda.log("INFO", "Creating S3 Bucket", Bucket);
-          return s3
-            .createBucket({
-              Bucket
-            })
-            .promise();
-        }
       });
+    } catch (err) {
+      if (err.name === "Forbidden") {
+        this.webda.log("ERROR", "S3 bucket already exists in another account");
+      } else if (err.name === "NotFound") {
+        this.webda.log("INFO", "Creating S3 Bucket", Bucket);
+        return s3.createBucket({
+          Bucket
+        });
+      }
+    }
   }
 
   @test
@@ -94,47 +103,43 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   @test
   async forEachFile() {
     let keys = [];
-    try {
-      AWSMock.setSDKInstance(AWS);
-      var spyChanges = sinon.stub().callsFake((p, c) => {
-        if (spyChanges.callCount === 1) {
-          return c(null, {
-            Contents: [
-              { Key: "test/test.txt" },
-              { Key: "test/test.json" },
-              { Key: "test2/test.txt" },
-              { Key: "loop.txt" }
-            ].filter(i => {
-              return i.Key.startsWith(p.Prefix);
-            }),
-            NextContinuationToken: "2"
-          });
-        }
-        return c(null, { Contents: [] });
-      });
-      AWSMock.mock("S3", "listObjectsV2", spyChanges);
-      await this.getBinary().forEachFile(
-        "myBucket",
-        async (Key: string) => {
-          keys.push(Key);
-        },
-        undefined,
-        /.*\.txt/
-      );
-      assert.deepStrictEqual(keys, ["test/test.txt", "test2/test.txt", "loop.txt"]);
-      keys = [];
-      spyChanges.resetHistory();
-      await this.getBinary().forEachFile(
-        "myBucket",
-        async (Key: string) => {
-          keys.push(Key);
-        },
-        "test/"
-      );
-      assert.deepStrictEqual(keys, ["test/test.txt", "test/test.json"]);
-    } finally {
-      AWSMock.restore();
-    }
+
+    var spyChanges = sinon.stub().callsFake(async (p, c) => {
+      if (spyChanges.callCount === 1) {
+        return {
+          Contents: [
+            { Key: "test/test.txt" },
+            { Key: "test/test.json" },
+            { Key: "test2/test.txt" },
+            { Key: "loop.txt" }
+          ].filter(i => {
+            return i.Key.startsWith(p.Prefix);
+          }),
+          NextContinuationToken: "2"
+        };
+      }
+      return { Contents: [] };
+    });
+    mockClient(S3).on(ListObjectsV2Command).callsFake(spyChanges);
+    await this.getBinary().forEachFile(
+      "myBucket",
+      async (Key: string) => {
+        keys.push(Key);
+      },
+      undefined,
+      /.*\.txt/
+    );
+    assert.deepStrictEqual(keys, ["test/test.txt", "test2/test.txt", "loop.txt"]);
+    keys = [];
+    spyChanges.resetHistory();
+    await this.getBinary().forEachFile(
+      "myBucket",
+      async (Key: string) => {
+        keys.push(Key);
+      },
+      "test/"
+    );
+    assert.deepStrictEqual(keys, ["test/test.txt", "test/test.json"]);
   }
 
   @test
@@ -143,12 +148,12 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   }
 
   @test
-  signedUrl() {
+  async signedUrl() {
     let urls = [
       this.getBinary().getSignedUrl("plop/test", "putObject", { Bucket: "myBuck" }),
       this.getBinary().getSignedUrl("plop/test")
     ];
-    urls.forEach(url => {
+    (await Promise.all(urls)).forEach(url => {
       assert.ok(
         url.match(
           /http:\/\/localhost:4572\/(myBuck|webda-test)\/plop\/test\?AWSAccessKeyId=Bouzouf&Expires=\d+&Signature=.*/

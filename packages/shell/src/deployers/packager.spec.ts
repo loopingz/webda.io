@@ -173,6 +173,7 @@ class PackagerTest {
 
   @test
   getResolvedDependencies() {
+    // @ts-ignore
     let stub = sinon.stub(Packager, "getDependencies").callsFake(() => {
       return {
         yargs: [{ version: ">=1.0.0" }, { version: "<1.0.0" }]
@@ -180,6 +181,7 @@ class PackagerTest {
     });
     try {
       Packager.getResolvedDependencies("yargs");
+      // @ts-ignore
       stub.callsFake(() => {
         return {
           yargs: [{ version: ">=0.9.8" }]

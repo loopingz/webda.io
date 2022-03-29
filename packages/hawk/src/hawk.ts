@@ -47,7 +47,7 @@ export class HawkServiceParameters extends ServiceParameters {
  * Implementation of hawk protocol
  * https://github.com/mozilla/hawk#readme
  *
- * @WebdaModda
+ * @WebdaModda Hawk
  */
 export default class HawkService extends Service<HawkServiceParameters> implements RequestFilter {
   /**

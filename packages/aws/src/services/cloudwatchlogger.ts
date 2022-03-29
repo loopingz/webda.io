@@ -2,25 +2,24 @@ import { Service, ServiceParameters } from "@webda/core";
 import { LogFilter, WorkerLogLevel, WorkerMessage } from "@webda/workout";
 import * as uuid from "uuid";
 import { CloudFormationContributor } from ".";
-import { GetAWS } from "./aws-mixin";
+import { AWSServiceParameters } from "./aws-mixin";
+import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 
 /**
  * Send webda log to CloudWatch
  */
-export class CloudWatchLoggerParameters extends ServiceParameters {
+export class CloudWatchLoggerParameters extends AWSServiceParameters(ServiceParameters) {
   /**
    * logGroupName to send logStream to
    */
   logGroupName: string;
   logStreamNamePrefix?: string;
-  endpoint: string;
   kmsKeyId: string;
   tags: any;
   logLevel: WorkerLogLevel;
   singlePush: boolean;
   CloudFormation: any;
   CloudFormationSkip: boolean;
-  region: string;
 }
 
 /**
@@ -58,29 +57,21 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
       throw Error("Require a log group `logGroupName` parameter");
     }
     this._logStreamName = (this.parameters.logStreamNamePrefix || "") + uuid.v4();
-    this._cloudwatch = new (GetAWS(this.parameters).CloudWatchLogs)({
-      endpoint: this.parameters.endpoint
+    this._cloudwatch = new CloudWatchLogs(this.parameters);
+    let res = await this._cloudwatch.describeLogGroups({
+      logGroupNamePrefix: this._logGroupName
     });
-    let res = await this._cloudwatch
-      .describeLogGroups({
-        logGroupNamePrefix: this._logGroupName
-      })
-      .promise();
     if (!res.logGroups.length) {
-      await this._cloudwatch
-        .createLogGroup({
-          logGroupName: this._logGroupName,
-          kmsKeyId: this.parameters.kmsKeyId,
-          tags: this.parameters.tags
-        })
-        .promise();
-    }
-    this._logStream = await this._cloudwatch
-      .createLogStream({
+      await this._cloudwatch.createLogGroup({
         logGroupName: this._logGroupName,
-        logStreamName: this._logStreamName
-      })
-      .promise();
+        kmsKeyId: this.parameters.kmsKeyId,
+        tags: this.parameters.tags
+      });
+    }
+    this._logStream = await this._cloudwatch.createLogStream({
+      logGroupName: this._logGroupName,
+      logStreamName: this._logStreamName
+    });
     this._webda.getWorkerOutput().on("message", (msg: WorkerMessage) => {
       if (msg.type !== "log") {
         return;
@@ -115,7 +106,7 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
       logStreamName: this._logStreamName,
       sequenceToken: this._seqToken
     };
-    let res = await this._cloudwatch.putLogEvents(params).promise();
+    let res = await this._cloudwatch.putLogEvents(params);
     this._seqToken = res.nextSequenceToken;
     if (!copy) {
       this._bufferedLogs = [];

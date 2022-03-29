@@ -1,8 +1,121 @@
 {
   "moddas": {
-    "webda/amqppubsub": "lib/pubsub",
-    "webda/amqpqueue": "lib/queue"
+    "webda/amqppubsub": "lib/pubsub:default",
+    "webda/amqpqueue": "lib/queue:default"
   },
+  "beans": {},
   "models": {},
-  "deployers": {}
+  "deployers": {},
+  "schemas": {
+    "webda/amqpqueue": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "workerDelayer": {
+          "$ref": "#/definitions/WaitDelayerDefinition",
+          "description": "Delayer between two failed attempts to process messages"
+        },
+        "workerParallelism": {
+          "type": "boolean",
+          "description": "Define if worker should process multi message received in //",
+          "default": true
+        },
+        "maxConsumers": {
+          "type": "number",
+          "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
+          "default": 10
+        },
+        "url": {
+          "type": "string"
+        },
+        "queue": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "maxConsumers",
+        "queue",
+        "type",
+        "url"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "WaitDelayerDefinition": {
+          "type": "object",
+          "properties": {
+            "interval": {
+              "type": "number",
+              "description": "Interval"
+            },
+            "type": {
+              "type": "string",
+              "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
+            }
+          },
+          "required": [
+            "interval",
+            "type"
+          ],
+          "description": "WaitDelayer definition"
+        }
+      },
+      "title": "AMQPQueue"
+    },
+    "webda/amqppubsub": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "url": {
+          "type": "string"
+        },
+        "channel": {
+          "type": "string"
+        },
+        "exchange": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "default": "fanout"
+            },
+            "durable": {
+              "type": "boolean",
+              "description": "if true, the exchange will survive broker restarts.",
+              "default": true
+            },
+            "internal": {
+              "type": "boolean",
+              "description": "if true, messages cannot be published directly to the exchange (i.e., it can only be the target of bindings, or possibly create messages ex-nihilo).",
+              "default": false
+            },
+            "autoDelete": {
+              "type": "boolean",
+              "description": "if true, the exchange will be destroyed once the number of bindings for which it is the source drop to zero.",
+              "default": false
+            },
+            "alternateExchange": {
+              "type": "string",
+              "description": "an exchange to send messages to if this exchange can’t route them to any queues.\n\nSpecific to RabbitMQ"
+            },
+            "arguments": {
+              "description": "any additional arguments that may be needed by an exchange"
+            }
+          }
+        }
+      },
+      "required": [
+        "channel",
+        "type",
+        "url"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AMQPPubSub"
+    }
+  }
 }

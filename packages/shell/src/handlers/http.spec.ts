@@ -83,6 +83,7 @@ class WebdaServerTest {
     assert.strictEqual(await res.text(), "Tested");
 
     // Test errors system
+    // @ts-ignore
     let stub = sinon.stub(this.server.getService("CustomService"), "test").callsFake(async () => {
       throw 404;
     });

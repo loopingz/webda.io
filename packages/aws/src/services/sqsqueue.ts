@@ -1,9 +1,9 @@
 import { Queue, QueueParameters, WebdaError, MessageReceipt } from "@webda/core";
-import { CloudFormationContributor } from ".";
+import { AWSServiceParameters, CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
-import { GetAWS } from "./aws-mixin";
+import { ReceiveMessageRequest, SQS } from "@aws-sdk/client-sqs";
 
-export class SQSQueueParameters extends QueueParameters {
+export class SQSQueueParameters extends AWSServiceParameters(QueueParameters) {
   /**
    * Time to wait pending for an item
    * @default 20
@@ -52,7 +52,7 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
   /**
    * AWS SQS Client
    */
-  sqs: AWS.SQS;
+  sqs: SQS;
   /**
    * @inheritdoc
    */
@@ -65,21 +65,17 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
    */
   async init(): Promise<void> {
     await super.init();
-    this.sqs = new (GetAWS(this.parameters).SQS)({
-      endpoint: this.parameters.endpoint
-    });
+    this.sqs = new SQS(this.parameters);
   }
 
   /**
    * @inheritdoc
    */
   async size(): Promise<number> {
-    let res = await this.sqs
-      .getQueueAttributes({
-        AttributeNames: ["ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"],
-        QueueUrl: this.parameters.queue
-      })
-      .promise();
+    let res = await this.sqs.getQueueAttributes({
+      AttributeNames: ["ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"],
+      QueueUrl: this.parameters.queue
+    });
     return (
       parseInt(res["Attributes"]["ApproximateNumberOfMessages"]) +
       parseInt(res["Attributes"]["ApproximateNumberOfMessagesNotVisible"])
@@ -97,20 +93,20 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
     }
     sqsParams.MessageBody = JSON.stringify(params);
 
-    await this.sqs.sendMessage(sqsParams).promise();
+    await this.sqs.sendMessage(sqsParams);
   }
 
   /**
    * @inheritdoc
    */
   async receiveMessage<L>(proto?: { new (): L }): Promise<MessageReceipt<L>[]> {
-    let queueArg: AWS.SQS.ReceiveMessageRequest = {
+    let queueArg: ReceiveMessageRequest = {
       QueueUrl: this.parameters.queue,
       WaitTimeSeconds: this.parameters.WaitTimeSeconds,
       AttributeNames: ["MessageGroupId"],
       MaxNumberOfMessages: this.parameters.maxConsumers > 10 ? 10 : this.parameters.maxConsumers
     };
-    let data = await this.sqs.receiveMessage(queueArg).promise();
+    let data = await this.sqs.receiveMessage(queueArg);
     data.Messages ??= [];
     return data.Messages.map(m => ({ ReceiptHandle: m.ReceiptHandle, Message: this.unserialize(m.Body, proto) }));
   }
@@ -130,12 +126,10 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
    * @inheritdoc
    */
   async deleteMessage(receipt: string): Promise<void> {
-    await this.sqs
-      .deleteMessage({
-        QueueUrl: this.parameters.queue,
-        ReceiptHandle: receipt
-      })
-      .promise();
+    await this.sqs.deleteMessage({
+      QueueUrl: this.parameters.queue,
+      ReceiptHandle: receipt
+    });
   }
 
   /**
@@ -147,11 +141,9 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
 
   private async __cleanWithRetry(fail): Promise<void> {
     try {
-      await this.sqs
-        .purgeQueue({
-          QueueUrl: this.parameters.queue
-        })
-        .promise();
+      await this.sqs.purgeQueue({
+        QueueUrl: this.parameters.queue
+      });
     } catch (err) {
       if (fail || err.code !== "AWS.SimpleQueueService.PurgeQueueInProgress") {
         throw err;

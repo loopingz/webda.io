@@ -1,11 +1,764 @@
 {
   "moddas": {
-    "Webda/GoogleCloudFireStore": "./lib/services/firestore",
-    "Webda/GoogleCloudPubSub": "./lib/services/pubsub",
-    "Webda/GoogleCloudQueue": "./lib/services/queue",
-    "Webda/GoogleCloudStorage": "./lib/services/storage"
+    "webda/firestore": "lib/services/firestore:default",
+    "webda/gcppubsubservice": "lib/services/pubsub:default",
+    "webda/gcpqueue": "lib/services/queue:default",
+    "webda/storage": "lib/services/storage:default"
   },
+  "beans": {},
   "models": {},
   "deployers": {},
-  "commands": {}
+  "schemas": {
+    "webda/storage": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "map": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": "Define the map to Object collection\n\nkey is a Store name the string[] represent all valids attributes to store files in"
+        },
+        "expose": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL to expose the service to"
+            },
+            "restrict": {
+              "type": "object",
+              "properties": {
+                "get": {
+                  "type": "boolean",
+                  "description": "Restrict GET"
+                },
+                "create": {
+                  "type": "boolean",
+                  "description": "Restrict POST"
+                },
+                "delete": {
+                  "type": "boolean",
+                  "description": "Restrict DELETE"
+                },
+                "metadata": {
+                  "type": "boolean",
+                  "description": "Restrict update of metadata"
+                }
+              },
+              "description": "Restrict some APIs"
+            }
+          },
+          "required": [
+            "url"
+          ],
+          "description": "Expose the service to http"
+        },
+        "prefix": {
+          "type": "string"
+        },
+        "bucket": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "bucket",
+        "map",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Storage"
+    },
+    "webda/firestore": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "model": {
+          "type": "string",
+          "description": "Webda model to use within the Store",
+          "default": "Webda/CoreModel"
+        },
+        "asyncDelete": {
+          "type": "boolean",
+          "description": "async delete"
+        },
+        "expose": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ExposeParameters"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Expose the service to an urls"
+        },
+        "strict": {
+          "type": "boolean",
+          "description": "Allow to load object that does not have the type data",
+          "deprecated": 2,
+          "default": true
+        },
+        "collection": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "asyncDelete",
+        "collection",
+        "type"
+      ],
+      "description": "Firebase parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ExposeParameters": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL endpoint to use to expose REST Resources API",
+              "default": "service.getName().toLowerCase()"
+            },
+            "restrict": {
+              "type": "object",
+              "properties": {
+                "create": {
+                  "type": "boolean",
+                  "description": "Do not expose the POST"
+                },
+                "update": {
+                  "type": "boolean",
+                  "description": "Do not expose the PUT and PATCH"
+                },
+                "get": {
+                  "type": "boolean",
+                  "description": "Do not expose the GET"
+                },
+                "delete": {
+                  "type": "boolean",
+                  "description": "Do not expose the DELETE"
+                }
+              },
+              "description": "You can restrict any part of the CRUD",
+              "default": {}
+            }
+          }
+        }
+      },
+      "title": "FireStore"
+    },
+    "webda/gcppubsubservice": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "topic": {
+          "type": "string",
+          "description": "Topic to use on GCP"
+        },
+        "subscriptionOptions": {
+          "$ref": "#/definitions/CreateSubscriptionOptions",
+          "description": "Subscription options to pass to GCP"
+        }
+      },
+      "required": [
+        "topic",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "CreateSubscriptionOptions": {
+          "type": "object",
+          "properties": {
+            "gaxOpts": {
+              "$ref": "#/definitions/CallOptions"
+            },
+            "flowControl": {
+              "$ref": "#/definitions/FlowControlOptions"
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Subscription name"
+            },
+            "topic": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Subscription topic"
+            },
+            "pushConfig": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/google.pubsub.v1.IPushConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Subscription pushConfig"
+            },
+            "ackDeadlineSeconds": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Subscription ackDeadlineSeconds"
+            },
+            "retainAckedMessages": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "Subscription retainAckedMessages"
+            },
+            "labels": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Subscription labels"
+            },
+            "enableMessageOrdering": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "Subscription enableMessageOrdering"
+            },
+            "expirationPolicy": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/google.pubsub.v1.IExpirationPolicy"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Subscription expirationPolicy"
+            },
+            "filter": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Subscription filter"
+            },
+            "deadLetterPolicy": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/google.pubsub.v1.IDeadLetterPolicy"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Subscription deadLetterPolicy"
+            },
+            "retryPolicy": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/google.pubsub.v1.IRetryPolicy"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Subscription retryPolicy"
+            },
+            "detached": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "Subscription detached"
+            },
+            "enableExactlyOnceDelivery": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "Subscription enableExactlyOnceDelivery"
+            },
+            "topicMessageRetentionDuration": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/google.protobuf.IDuration"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Subscription topicMessageRetentionDuration"
+            },
+            "messageRetentionDuration": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/google.protobuf.IDuration"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "pushEndpoint": {
+              "type": "string"
+            },
+            "oidcToken": {
+              "$ref": "#/definitions/OidcToken"
+            }
+          }
+        },
+        "CallOptions": {
+          "type": "object",
+          "properties": {
+            "timeout": {
+              "type": "number"
+            },
+            "retry": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Partial%3CRetryOptions%3E"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "autoPaginate": {
+              "type": "boolean"
+            },
+            "pageToken": {
+              "type": "string"
+            },
+            "pageSize": {
+              "type": "number"
+            },
+            "maxResults": {
+              "type": "number"
+            },
+            "maxRetries": {
+              "type": "number"
+            },
+            "otherArgs": {
+              "type": "object"
+            },
+            "bundleOptions": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BundleOptions"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "isBundling": {
+              "type": "boolean"
+            },
+            "longrunning": {
+              "$ref": "#/definitions/BackoffSettings"
+            },
+            "apiName": {
+              "type": "string"
+            },
+            "retryRequestOptions": {
+              "$ref": "#/definitions/RetryRequestOptions"
+            }
+          }
+        },
+        "Partial<RetryOptions>": {
+          "type": "object",
+          "properties": {
+            "retryCodes": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "backoffSettings": {
+              "$ref": "#/definitions/BackoffSettings"
+            }
+          }
+        },
+        "BackoffSettings": {
+          "type": "object",
+          "properties": {
+            "maxRetries": {
+              "type": "number"
+            },
+            "initialRetryDelayMillis": {
+              "type": "number"
+            },
+            "retryDelayMultiplier": {
+              "type": "number"
+            },
+            "maxRetryDelayMillis": {
+              "type": "number"
+            },
+            "initialRpcTimeoutMillis": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "maxRpcTimeoutMillis": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "totalTimeoutMillis": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "rpcTimeoutMultiplier": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "initialRetryDelayMillis",
+            "retryDelayMultiplier",
+            "maxRetryDelayMillis"
+          ]
+        },
+        "BundleOptions": {
+          "type": "object",
+          "properties": {
+            "elementCountLimit": {
+              "type": "number"
+            },
+            "requestByteLimit": {
+              "type": "number"
+            },
+            "elementCountThreshold": {
+              "type": "number"
+            },
+            "requestByteThreshold": {
+              "type": "number"
+            },
+            "delayThreshold": {
+              "type": "number"
+            }
+          }
+        },
+        "RetryRequestOptions": {
+          "type": "object",
+          "properties": {
+            "objectMode": {
+              "type": "boolean"
+            },
+            "request": {},
+            "retries": {
+              "type": "number"
+            },
+            "noResponseRetries": {
+              "type": "number"
+            },
+            "currentRetryAttempt": {
+              "type": "number"
+            },
+            "shouldRetryFn": {}
+          }
+        },
+        "FlowControlOptions": {
+          "type": "object",
+          "properties": {
+            "allowExcessMessages": {
+              "type": "boolean"
+            },
+            "maxBytes": {
+              "type": "number"
+            },
+            "maxMessages": {
+              "type": "number"
+            },
+            "maxExtensionMinutes": {
+              "type": "number"
+            },
+            "maxExtension": {
+              "type": "number",
+              "deprecated": "Use maxExtensionMinutes."
+            }
+          }
+        },
+        "google.pubsub.v1.IPushConfig": {
+          "type": "object",
+          "properties": {
+            "pushEndpoint": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "PushConfig pushEndpoint"
+            },
+            "attributes": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "PushConfig attributes"
+            },
+            "oidcToken": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/google.pubsub.v1.PushConfig.IOidcToken"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "PushConfig oidcToken"
+            }
+          },
+          "description": "Properties of a PushConfig."
+        },
+        "google.pubsub.v1.PushConfig.IOidcToken": {
+          "type": "object",
+          "properties": {
+            "serviceAccountEmail": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "OidcToken serviceAccountEmail"
+            },
+            "audience": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "OidcToken audience"
+            }
+          },
+          "description": "Properties of an OidcToken."
+        },
+        "google.pubsub.v1.IExpirationPolicy": {
+          "type": "object",
+          "properties": {
+            "ttl": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/google.protobuf.IDuration"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ExpirationPolicy ttl"
+            }
+          },
+          "description": "Properties of an ExpirationPolicy."
+        },
+        "google.protobuf.IDuration": {
+          "type": "object",
+          "properties": {
+            "seconds": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/definitions/Long"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Duration seconds"
+            },
+            "nanos": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Duration nanos"
+            }
+          },
+          "description": "Properties of a Duration."
+        },
+        "Long": {
+          "$ref": "#/definitions/Long.Long"
+        },
+        "Long.Long": {
+          "type": "object",
+          "properties": {
+            "high": {
+              "type": "number",
+              "description": "The high 32 bits as a signed value."
+            },
+            "low": {
+              "type": "number",
+              "description": "The low 32 bits as a signed value."
+            },
+            "unsigned": {
+              "type": "boolean",
+              "description": "Whether unsigned or not."
+            }
+          },
+          "required": [
+            "high",
+            "low",
+            "unsigned"
+          ]
+        },
+        "google.pubsub.v1.IDeadLetterPolicy": {
+          "type": "object",
+          "properties": {
+            "deadLetterTopic": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "DeadLetterPolicy deadLetterTopic"
+            },
+            "maxDeliveryAttempts": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "DeadLetterPolicy maxDeliveryAttempts"
+            }
+          },
+          "description": "Properties of a DeadLetterPolicy."
+        },
+        "google.pubsub.v1.IRetryPolicy": {
+          "type": "object",
+          "properties": {
+            "minimumBackoff": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/google.protobuf.IDuration"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "RetryPolicy minimumBackoff"
+            },
+            "maximumBackoff": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/google.protobuf.IDuration"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "RetryPolicy maximumBackoff"
+            }
+          },
+          "description": "Properties of a RetryPolicy."
+        },
+        "OidcToken": {
+          "$ref": "#/definitions/google.pubsub.v1.PushConfig.IOidcToken"
+        }
+      },
+      "title": "GCPPubSubService"
+    },
+    "webda/gcpqueue": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "workerDelayer": {
+          "$ref": "#/definitions/WaitDelayerDefinition",
+          "description": "Delayer between two failed attempts to process messages"
+        },
+        "workerParallelism": {
+          "type": "boolean",
+          "description": "Define if worker should process multi message received in //",
+          "default": true
+        },
+        "maxConsumers": {
+          "type": "number",
+          "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
+          "default": 10
+        },
+        "topic": {
+          "type": "string",
+          "description": "Topic to use"
+        },
+        "subscription": {
+          "type": "string",
+          "description": "Subscription to use for the queue\n\nAll instances will use the same subscription to create a queue style pubsub"
+        },
+        "timeout": {
+          "type": "number",
+          "description": "Timeout when receiveMessage is used before returning empty result (in ms)\n\nIf not define then no timeout is applied and receiveMessage can hang forever"
+        }
+      },
+      "required": [
+        "maxConsumers",
+        "subscription",
+        "topic",
+        "type"
+      ],
+      "description": "GCPQueue Parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "WaitDelayerDefinition": {
+          "type": "object",
+          "properties": {
+            "interval": {
+              "type": "number",
+              "description": "Interval"
+            },
+            "type": {
+              "type": "string",
+              "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
+            }
+          },
+          "required": [
+            "interval",
+            "type"
+          ],
+          "description": "WaitDelayer definition"
+        }
+      },
+      "title": "GCPQueue"
+    }
+  }
 }

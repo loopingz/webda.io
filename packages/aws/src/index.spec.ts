@@ -4,6 +4,10 @@ import * as path from "path";
 
 var localStack = undefined;
 
+export const defaultCreds = {
+  accessKeyId: "Bouzouf",
+  secretAccessKey: "plop"
+};
 export async function checkLocalStack() {
   if (localStack === undefined) {
     try {
@@ -23,7 +27,10 @@ export async function checkLocalStack() {
 export class WebdaAwsTest extends WebdaTest {
   async tweakApp(app: TestApplication) {
     super.tweakApp(app);
-    app.addService("Test/AWSEvents", await import(path.join(__dirname, ..."../test/moddas/awsevents.js".split("/"))));
+    app.addService(
+      "test/awsevents",
+      (await import(path.join(__dirname, ..."../test/moddas/awsevents.js".split("/")))).default
+    );
   }
 
   async before() {

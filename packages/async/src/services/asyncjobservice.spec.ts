@@ -366,6 +366,7 @@ class AsyncJobServiceTest extends WebdaTest {
 
       // First run call with no method
       stub.onCall(0).returns({
+        // @ts-ignore
         data: {
           serviceName: "plop"
         }
@@ -392,6 +393,7 @@ class AsyncJobServiceTest extends WebdaTest {
       });
       stub.resetHistory();
       stub.onCall(0).returns({
+        // @ts-expect-error
         data: {
           method: "plop"
         }
@@ -409,6 +411,7 @@ class AsyncJobServiceTest extends WebdaTest {
       });
       stub.resetHistory();
       stub.onCall(0).returns({
+        // @ts-expect-error
         data: {
           serviceName: "plop",
           method: "plop"
@@ -427,6 +430,7 @@ class AsyncJobServiceTest extends WebdaTest {
       });
       stub.resetHistory();
       stub.onCall(0).returns({
+        // @ts-ignore
         data: {
           serviceName: "mine",
           method: "plop"
@@ -449,6 +453,7 @@ class AsyncJobServiceTest extends WebdaTest {
       stub.resetHistory();
 
       stub.onCall(0).returns({
+        // @ts-expect-error
         data: {
           serviceName: "mine",
           method: "myMethod",

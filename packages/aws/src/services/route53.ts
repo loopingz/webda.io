@@ -1,5 +1,5 @@
+import { HostedZone, ListHostedZonesRequest, ListHostedZonesResponse, ListResourceRecordSetsResponse, Route53 } from "@aws-sdk/client-route-53";
 import { Service, Cache, JSONUtils } from "@webda/core";
-import * as AWS from "aws-sdk";
 import { PromiseResult } from "aws-sdk/lib/request";
 
 export class Route53Service extends Service {
@@ -9,16 +9,16 @@ export class Route53Service extends Service {
    * @param domain to get zone for
    */
   @Cache()
-  static async getZoneForDomainName(domain): Promise<AWS.Route53.HostedZone> {
+  static async getZoneForDomainName(domain): Promise<HostedZone> {
     domain = this.completeDomain(domain);
-    let targetZone: AWS.Route53.HostedZone;
+    let targetZone: HostedZone;
     // Find the right zone
-    let r53: AWS.Route53 = new AWS.Route53();
-    let res: AWS.Route53.ListHostedZonesResponse;
-    let params: AWS.Route53.ListHostedZonesRequest = {};
+    let r53: Route53 = new Route53({});
+    let res: ListHostedZonesResponse;
+    let params: ListHostedZonesRequest = {};
     // Identify the right zone first
     do {
-      res = await r53.listHostedZones(params).promise();
+      res = await r53.listHostedZones(params);
       for (let i in res.HostedZones) {
         let zone = res.HostedZones[i];
         if (domain.endsWith(zone.Name)) {
@@ -53,10 +53,10 @@ export class Route53Service extends Service {
     domain: string,
     type: string,
     value: string,
-    targetZone: AWS.Route53.HostedZone = undefined,
+    targetZone: HostedZone = undefined,
     Comment: string = "@webda/aws-created"
   ): Promise<void> {
-    let r53 = new AWS.Route53();
+    let r53 = new Route53({});
     domain = this.completeDomain(domain);
     if (!targetZone) {
       targetZone = await this.getZoneForDomainName(domain);
@@ -85,8 +85,7 @@ export class Route53Service extends Service {
           ],
           Comment
         }
-      })
-      .promise();
+      });
   }
 
   /**
@@ -95,20 +94,19 @@ export class Route53Service extends Service {
    * @param domain to retrieve from
    */
   static async getEntries(domain: string) {
-    let r53 = new AWS.Route53();
+    let r53 = new Route53({});
     const zone = await Route53Service.getZoneForDomainName(domain);
     if (!zone) {
       throw new Error(`Domain '${domain}' is not handled on AWS`);
     }
     const result = [];
-    let res: PromiseResult<AWS.Route53.ListResourceRecordSetsResponse, AWS.AWSError>;
+    let res;
     do {
       res = await r53
         .listResourceRecordSets({
           HostedZoneId: zone.Id,
           StartRecordIdentifier: res ? res.NextRecordIdentifier : undefined
-        })
-        .promise();
+        });
       result.push(...res.ResourceRecordSets);
     } while (res.IsTruncated);
     return result;
@@ -121,7 +119,7 @@ export class Route53Service extends Service {
   static async import(file: string, importEntriesOnly: boolean, Console) {
     let data = JSONUtils.loadFile(file);
     const targetZone = await this.getZoneForDomainName(data.domain);
-    const r53 = new AWS.Route53();
+    const r53 = new Route53({});
     if (!targetZone) {
       throw Error(`Domain '${data.domain}' is not handled on AWS`);
     }
@@ -143,8 +141,7 @@ export class Route53Service extends Service {
                 ResourceRecordSet: r
               }))
           }
-        })
-        .promise();
+        });
     } catch (err) {
       Console.log("ERROR", err);
     }

@@ -69,6 +69,7 @@ class ConfigurationServiceTest extends WebdaTest {
     let service = this.webda.getService<ConfigurationService>("ConfigurationService");
     // @ts-ignore
     await service.checkUpdate();
+    // @ts-ignore
     let mock = stub(service, "loadConfiguration").callsFake(() => {});
     // @ts-ignore
     service.nextCheck = Date.now() + 86400000;

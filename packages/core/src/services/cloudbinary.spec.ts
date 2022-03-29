@@ -80,7 +80,7 @@ export class FakeCloudBinaryTest extends WebdaTest {
 
     assert.strictEqual(new CloudBinaryParameters({}, service).prefix, "");
 
-    stub = sinon.stub(service, "deleteSuccess").callsFake(() => {});
+    sinon.stub(service, "deleteSuccess").resolves();
     let model = new CoreModel();
     model.load({ plop: [{}, { hash: "fake" }] }, true);
     await service.delete(model, "plop", 1);
@@ -91,6 +91,7 @@ export class FakeCloudBinaryTest extends WebdaTest {
   async initRoutes() {
     let service = new CloudBinaryFakeService(this.webda, "fake", {});
     let counter = 0;
+    // @ts-ignore addRoute is a protected method of service
     let stub = sinon.stub(service, "addRoute").callsFake(() => {
       counter++;
     });
@@ -130,6 +131,7 @@ export class FakeCloudBinaryTest extends WebdaTest {
       }
     };
     let storeGetResult;
+    // @ts-ignore
     sinon.stub(service, "_verifyMapAndStore").callsFake(() => {
       return {
         get: async () => {

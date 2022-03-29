@@ -158,6 +158,7 @@ CMD webda --noCompile $WEBDA_COMMAND`.trim()
       this.deployer.app = workspaceApp;
       process.chdir(workspaceApp.getAppPath());
 
+      // @ts-ignore
       stub = sinon.stub(this.deployer, "execute").callsFake(() => {});
       this.deployer.resources.includeLinkModules = true;
       this.deployer.resources.includeWorkspaces = true;

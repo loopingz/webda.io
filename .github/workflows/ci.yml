@@ -100,6 +100,8 @@ jobs:
 
       - name: Run AWS tests
         run: yarn run test --scope @webda/aws
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
 
       - id: auth
         uses: google-github-actions/auth@v0.4.0

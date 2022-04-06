@@ -375,6 +375,25 @@ export class Compiler {
       }, {});
   }
 
+  getSchemaNode(
+    classTree: any[],
+    typeName: string = "ServiceParameters",
+    packageName: string = "@webda/core"
+  ): ts.Node {
+    let schemaNode;
+    classTree.some(type => {
+      return (<ts.ClassDeclaration>(<unknown>type.symbol.valueDeclaration)).typeParameters?.some(t => {
+        // @ts-ignore
+        let paramType = ts.getEffectiveConstraintOfTypeParameter(t);
+        if (this.extends(this.getClassTree(this.typeChecker.getTypeFromTypeNode(paramType)), packageName, typeName)) {
+          schemaNode = t.constraint;
+          return true;
+        }
+      });
+    });
+    return schemaNode;
+  }
+
   /**
    * Generating the local module from source
    *
@@ -450,22 +469,7 @@ export class Compiler {
                   this.app.log("WARN", `${jsFile} have a @WebdaModda annotation but does not inherite from Service`);
                   continue;
                 }
-                // Should not be able to fail - get the schemaNode for service parameters
-                classTree.some(type => {
-                  return (<ts.ClassDeclaration>(<unknown>type.symbol.valueDeclaration)).typeParameters?.some(t => {
-                    let paramType = ts.getEffectiveConstraintOfTypeParameter(t);
-                    if (
-                      this.extends(
-                        this.getClassTree(this.typeChecker.getTypeFromTypeNode(paramType)),
-                        "@webda/core",
-                        "ServiceParameters"
-                      )
-                    ) {
-                      schemaNode = t.constraint;
-                      return true;
-                    }
-                  });
-                });
+                schemaNode = this.getSchemaNode(classTree);
                 section = "moddas";
               } else if (tags["WebdaDeployer"]) {
                 section = "deployers";
@@ -478,23 +482,7 @@ export class Compiler {
                   );
                   continue;
                 }
-                // Should not be able to fail - get the schemaNode for service parameters
-                classTree.some(type => {
-                  return (<ts.ClassDeclaration>(<unknown>type.symbol.valueDeclaration)).typeParameters?.some(t => {
-                    // @ts-ignore
-                    let paramType = ts.getEffectiveConstraintOfTypeParameter(t);
-                    if (
-                      this.extends(
-                        this.getClassTree(this.typeChecker.getTypeFromTypeNode(paramType)),
-                        "@webda/core",
-                        "DeployerResources"
-                      )
-                    ) {
-                      schemaNode = t.constraint;
-                      return true;
-                    }
-                  });
-                });
+                schemaNode = this.getSchemaNode(classTree, "DeployerResources");
               }
               if (section) {
                 let originName =
@@ -524,27 +512,45 @@ export class Compiler {
               }
             }
           }
-          // Detects Implicit Beans
-          for (let route of tsquery(sourceFile, "Decorator [name=Route]")) {
-            const clazz = <ts.ClassDeclaration>this.getParent(route, ts.SyntaxKind.ClassDeclaration);
-            // Skip as it does not inherite from Service
-            if (!this.extends(this.getClassTree(this.typeChecker.getTypeAtLocation(clazz)), "@webda/core", "Service")) {
-              this.app.log("WARN", `${importTarget} have a @Route annotation but does not inherite from Service`);
-              continue;
-            }
-            module.beans[`Beans/${clazz.name.escapedText}`.toLowerCase()] = importTarget;
-          }
 
-          // Detects Beans
-          for (let bean of tsquery(sourceFile, "Decorator [name=Bean]")) {
+          const beanExplorer = bean => {
             const clazz = <ts.ClassDeclaration>this.getParent(bean, ts.SyntaxKind.ClassDeclaration);
+            const classTree = this.getClassTree(this.typeChecker.getTypeAtLocation(clazz));
             // Skip as it does not inherite from Service
-            if (!this.extends(this.getClassTree(this.typeChecker.getTypeAtLocation(clazz)), "@webda/core", "Service")) {
-              this.app.log("WARN", `${importTarget} have a @Route annotation but does not inherite from Service`);
-              continue;
+            if (!this.extends(classTree, "@webda/core", "Service")) {
+              this.app.log(
+                "WARN",
+                `${importTarget} have a @Route or @Bean annotation but does not inherite from Service`
+              );
+              return;
+            } // Skip explicit beans
+            if (module.beans[`Beans/${clazz.name.escapedText}`.toLowerCase()]) {
+              return;
+            }
+            let name = `beans/${clazz.name.escapedText.toString().toLowerCase()}`;
+            let schemaNode = this.getSchemaNode(classTree);
+            if (schemaNode) {
+              try {
+                let schema = this.schemaGenerator.createSchemaFromNodes([schemaNode]);
+                let definitionName = schema.$ref.split("/").pop();
+                module.schemas[name] = <JSONSchema7>schema.definitions[definitionName];
+                module.schemas[name].$schema = schema.$schema;
+                // Copy sub definition if needed
+                if (Object.keys(schema.definitions).length > 1) {
+                  module.schemas[name].definitions = schema.definitions;
+                  // Avoid cycle ref
+                  delete module.schemas[name].definitions[definitionName];
+                }
+                module.schemas[name].title = clazz.name.escapedText.toString();
+              } catch (err) {
+                this.app.log("WARN", `Cannot generate schema for ${schemaNode.getText()}`, err);
+              }
             }
             module.beans[`Beans/${clazz.name.escapedText}`.toLowerCase()] = importTarget;
-          }
+          };
+
+          tsquery(sourceFile, "Decorator [name=Bean]").forEach(beanExplorer);
+          tsquery(sourceFile, "Decorator [name=Route]").forEach(beanExplorer);
         }
       }
     });
@@ -683,23 +689,43 @@ export class Compiler {
         oneOf: []
       }
     };
-    Object.keys(this.app.getModdas()).forEach(serviceType => {
-      const key = `ServiceType$${serviceType.replace(/\//g, "$")}`;
-      const definition: JSONSchema7 = (res.definitions[key] = <JSONSchema7>this.app.getSchema(serviceType));
-      if (!definition) {
-        return;
-      }
-      definition.title = serviceType;
-      (<JSONSchema7>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
-      (<JSONSchema7>(<JSONSchema7>res.properties.services).additionalProperties).oneOf.push({
-        $ref: `#/definitions/${key}`
-      });
-      delete res.definitions[key]["$schema"];
-      // Remove mandatory depending on option
-      if (!full) {
-        res.definitions[key]["required"] = ["type"];
-      }
-    });
+    const addServiceSchema = (type: "ServiceType" | "BeanType") => {
+      return serviceType => {
+        const key = `${type}$${serviceType.replace(/\//g, "$")}`;
+        const definition: JSONSchema7 = (res.definitions[key] = <JSONSchema7>this.app.getSchema(serviceType));
+        if (!definition) {
+          return;
+        }
+        definition.title ??= serviceType;
+        (<JSONSchema7>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
+        (<JSONSchema7>(<JSONSchema7>res.properties.services).additionalProperties).oneOf.push({
+          $ref: `#/definitions/${key}`
+        });
+        delete res.definitions[key]["$schema"];
+        // Flatten definition (might not be the best idea)
+        for (let def in definition.definitions) {
+          res.definitions[def] ??= definition.definitions[def];
+        }
+        delete definition.definitions;
+        // Remove mandatory depending on option
+        if (!full) {
+          res.definitions[key]["required"] = ["type"];
+        }
+        // Predefine beans
+        if (type === "BeanType") {
+          (<JSONSchema7>res.properties.services).properties ??= {};
+          res.properties.services[definition.title] = {
+            $ref: `#/definitions/${key}`
+          };
+          (<JSONSchema7>res.definitions[key]).required ??= [];
+          (<JSONSchema7>res.definitions[key]).required = (<JSONSchema7>res.definitions[key]).required.filter(
+            p => p !== "type"
+          );
+        }
+      };
+    };
+    Object.keys(this.app.getModdas()).forEach(addServiceSchema("ServiceType"));
+    Object.keys(this.app.getBeans()).forEach(addServiceSchema("BeanType"));
     FileUtils.save(res, filename);
     // Build the deployment schema
     // Ensure builtin deployers are there

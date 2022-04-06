@@ -475,8 +475,6 @@ export default class WebdaConsole {
     await this.app.generateModule();
     if (fs.existsSync(this.app.configurationFile)) {
       // Generate config schema as well
-      // @ts-ignore
-      console.log(this.app.getModdas(), this.app.baseConfiguration.cachedModules);
       this.app.getCompiler().generateConfigurationSchemas();
     }
   }

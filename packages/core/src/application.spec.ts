@@ -110,6 +110,7 @@ class ApplicationTest extends WebdaTest {
     app.getDeployers();
 
     app.getModules();
+    app.getBeans();
 
     // Alternative of files
     // @ts-ignore

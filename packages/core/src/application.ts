@@ -572,6 +572,13 @@ export class Application {
   }
 
   /**
+   * Return all beans of the application
+   */
+  getBeans(): { [key: string]: string } {
+    return this.baseConfiguration.cachedModules.beans;
+  }
+
+  /**
    * Retrieve the model implementation
    *
    * @param name model to retrieve
@@ -797,7 +804,10 @@ export class Application {
       sectionLoader("moddas"),
       sectionLoader("deployers"),
       sectionLoader("models"),
-      ...Object.values(info.beans).map(f => import(path.join(parent, f)).catch(this.log.bind(this, "WARN")))
+      ...Object.keys(info.beans).map(f => {
+        this.baseConfiguration.cachedModules.beans[f] = info.beans[f];
+        return import(path.join(parent, info.beans[f])).catch(this.log.bind(this, "WARN"));
+      })
     ]);
   }
 

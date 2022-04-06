@@ -65,6 +65,21 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Contact"
     },
+    "beans/beanservice": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomService"
+    },
     "webdademo/simpleservice": {
       "type": "object",
       "properties": {
@@ -78,7 +93,7 @@
       ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ThirdOtherService"
+      "title": "CustomService"
     },
     "webdademo/anotherservice": {
       "type": "object",
@@ -93,7 +108,7 @@
       ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ThirdOtherService"
+      "title": "CustomService"
     },
     "webdademo/secondotherservice": {
       "type": "object",
@@ -126,7 +141,7 @@
       ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ThirdOtherService"
+      "title": "CustomService"
     },
     "webdademo/fourthotherservice": {
       "type": "object",
@@ -210,6 +225,21 @@
         }
       },
       "title": "QueueService"
+    },
+    "beans/customservice": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "Interface to specify the Service parameters",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomService"
     },
     "webdademo/customdeployer": {
       "type": "object",

@@ -740,10 +740,13 @@ module.exports = {
         }
       };
     });
+    // Add a fake deployer to ensure when no schema
+    WebdaConsole.app.addDeployer("webda/fakedeployer", {});
     try {
       WebdaConsole.app.getCompiler().generateConfigurationSchemas();
     } finally {
       stub.restore();
+      delete WebdaConsole.app.getDeployers()["webda/fakedeployer"];
     }
   }
 }

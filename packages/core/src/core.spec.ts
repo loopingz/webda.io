@@ -344,6 +344,11 @@ class CoreTest extends WebdaTest {
   }
 
   @test
+  covValidateSchema() {
+    assert.strictEqual(this.webda.validateSchema("test", {}), null);
+  }
+
+  @test
   covGetModules() {
     this.webda.getModules();
   }

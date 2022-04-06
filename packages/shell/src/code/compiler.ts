@@ -30,9 +30,7 @@ import {
   LiteralType
 } from "ts-json-schema-generator";
 import { isPublic, isStatic } from "ts-json-schema-generator/dist/src/Utils/modifiers";
-import { JSONSchema7, JSONSchema7Definition } from "json-schema";
-import { UnknownType } from "ts-json-schema-generator/dist/src/Type/UnknownType";
-
+import { JSONSchema7 } from "json-schema";
 /**
  * Temporary fix while waiting for https://github.com/vega/ts-json-schema-generator/pull/1182
  */
@@ -751,13 +749,6 @@ export class Compiler {
         return;
       }
       definition.title = serviceType;
-      if (!definition.properties) {
-        definition.properties = {
-          type: {
-            type: "string"
-          }
-        };
-      }
       (<JSONSchema7>definition.properties.type).pattern = this.getServiceTypePattern(serviceType);
       (<JSONSchema7>(<JSONSchema7>res.properties.units).items).oneOf.push({ $ref: `#/definitions/${key}` });
       delete definition["$schema"];

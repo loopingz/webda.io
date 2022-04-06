@@ -147,8 +147,9 @@ export class UnpackedApplication extends Application {
     if (fs.existsSync(nodeModules)) {
       files = Finder.from(nodeModules).findFiles("webda.module.json");
     }
+
     // Search workspace for webda.module.json
-    if (module.project.webda.workspaces.path !== "") {
+    if (module.project.webda.workspaces && module.project.webda.workspaces.path !== "") {
       nodeModules = path.join(module.project.webda.workspaces.path, "node_modules");
       if (fs.existsSync(nodeModules)) {
         files.push(...Finder.from(nodeModules).findFiles("webda.module.json"));

@@ -11,7 +11,7 @@ export const defaultCreds = {
 export async function checkLocalStack() {
   if (localStack === undefined) {
     try {
-      let res = await fetch("http://localhost:4572", {
+      let res = await fetch("http://localhost:4566", {
         timeout: 500
       });
       localStack = true;

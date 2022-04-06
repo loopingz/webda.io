@@ -20,6 +20,9 @@ import {
 @suite
 export class DynamoDBTest extends StoreTest {
   async before() {
+    process.env.AWS_ACCESS_KEY_ID = defaultCreds.accessKeyId;
+    process.env.AWS_SECRET_ACCESS_KEY = defaultCreds.secretAccessKey;
+    process.env.AWS_DEFAULT_REGION = "us-east-1";
     await checkLocalStack();
     this.buildWebda();
     await DynamoDBTest.install("webda-test-idents");
@@ -48,8 +51,9 @@ export class DynamoDBTest extends StoreTest {
 
   static async install(TableName: string) {
     var dynamodb = new DynamoDB({
-      endpoint: "http://localhost:4569",
-      credentials: defaultCreds
+      endpoint: "http://localhost:4566",
+      credentials: defaultCreds,
+      region: "us-east-1"
     });
     try {
       await dynamodb.describeTable({
@@ -84,7 +88,6 @@ export class DynamoDBTest extends StoreTest {
   @test
   async dateHandling() {
     let userStore = this.getUserStore();
-
     await userStore.save({
       uuid: "testUpdate",
       subobject: {

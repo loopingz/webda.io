@@ -70,16 +70,18 @@ class LambdaCaller<T extends LambdaCallerParameters = LambdaCallerParameters> ex
    * @param arn function to call default to the one from configuration
    * @returns
    */
-  async execute(params: any = {}, async: boolean = false, arn = this.parameters.arn) : Promise<any> {
+  async execute(params: any = {}, async: boolean = false, arn = this.parameters.arn): Promise<any> {
     return JSON.parse(
-      (await this.client.invoke({
-        FunctionName: arn,
-        ClientContext: null,
-        InvocationType: async ? "Event" : "RequestResponse",
-        LogType: "None",
-        Payload: Buffer.from(JSON.stringify(params))
-      })
-    ).Payload.toString());
+      (
+        await this.client.invoke({
+          FunctionName: arn,
+          ClientContext: null,
+          InvocationType: async ? "Event" : "RequestResponse",
+          LogType: "None",
+          Payload: Buffer.from(JSON.stringify(params))
+        })
+      ).Payload.toString()
+    );
   }
 }
 

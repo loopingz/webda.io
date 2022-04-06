@@ -1,4 +1,10 @@
-import { HostedZone, ListHostedZonesRequest, ListHostedZonesResponse, ListResourceRecordSetsResponse, Route53 } from "@aws-sdk/client-route-53";
+import {
+  HostedZone,
+  ListHostedZonesRequest,
+  ListHostedZonesResponse,
+  ListResourceRecordSetsResponse,
+  Route53
+} from "@aws-sdk/client-route-53";
 import { Service, Cache, JSONUtils } from "@webda/core";
 import { PromiseResult } from "aws-sdk/lib/request";
 
@@ -64,28 +70,27 @@ export class Route53Service extends Service {
     if (!targetZone) {
       throw Error(`Domain '${domain}' is not handled on AWS`);
     }
-    await r53
-      .changeResourceRecordSets({
-        HostedZoneId: targetZone.Id,
-        ChangeBatch: {
-          Changes: [
-            {
-              Action: "UPSERT",
-              ResourceRecordSet: {
-                Name: domain,
-                ResourceRecords: [
-                  {
-                    Value: value
-                  }
-                ],
-                TTL: 360,
-                Type: type
-              }
+    await r53.changeResourceRecordSets({
+      HostedZoneId: targetZone.Id,
+      ChangeBatch: {
+        Changes: [
+          {
+            Action: "UPSERT",
+            ResourceRecordSet: {
+              Name: domain,
+              ResourceRecords: [
+                {
+                  Value: value
+                }
+              ],
+              TTL: 360,
+              Type: type
             }
-          ],
-          Comment
-        }
-      });
+          }
+        ],
+        Comment
+      }
+    });
   }
 
   /**
@@ -102,11 +107,10 @@ export class Route53Service extends Service {
     const result = [];
     let res;
     do {
-      res = await r53
-        .listResourceRecordSets({
-          HostedZoneId: zone.Id,
-          StartRecordIdentifier: res ? res.NextRecordIdentifier : undefined
-        });
+      res = await r53.listResourceRecordSets({
+        HostedZoneId: zone.Id,
+        StartRecordIdentifier: res ? res.NextRecordIdentifier : undefined
+      });
       result.push(...res.ResourceRecordSets);
     } while (res.IsTruncated);
     return result;
@@ -124,24 +128,23 @@ export class Route53Service extends Service {
       throw Error(`Domain '${data.domain}' is not handled on AWS`);
     }
     try {
-      await r53
-        .changeResourceRecordSets({
-          HostedZoneId: targetZone.Id,
-          ChangeBatch: {
-            Changes: data.entries
-              .filter(r => !(r.Type === "NS" && r.Name === targetZone.Name))
-              .map(r => {
-                if (!r.ResourceRecords.length) {
-                  delete r.ResourceRecords;
-                }
-                return r;
-              })
-              .map(r => ({
-                Action: "UPSERT",
-                ResourceRecordSet: r
-              }))
-          }
-        });
+      await r53.changeResourceRecordSets({
+        HostedZoneId: targetZone.Id,
+        ChangeBatch: {
+          Changes: data.entries
+            .filter(r => !(r.Type === "NS" && r.Name === targetZone.Name))
+            .map(r => {
+              if (!r.ResourceRecords.length) {
+                delete r.ResourceRecords;
+              }
+              return r;
+            })
+            .map(r => ({
+              Action: "UPSERT",
+              ResourceRecordSet: r
+            }))
+        }
+      });
     } catch (err) {
       Console.log("ERROR", err);
     }

@@ -35,7 +35,7 @@
     },
     "DebugMailer": {},
     "AWSSecretsManager": {
-      "endpoint": "http://localhost:4584"
+      "endpoint": "http://localhost:4566"
     },
     "IdentsMapper": {
       "type": "Webda/Mapper",
@@ -55,7 +55,7 @@
         }
       },
       "asyncDelete": true,
-      "endpoint": "http://localhost:4569",
+      "endpoint": "http://localhost:4566",
       "type": "DynamoStore",
       "table": "webda-test-idents",
       "model": "Webda/Ident"
@@ -69,7 +69,7 @@
         }
       },
       "scanPage": 2,
-      "endpoint": "http://localhost:4569",
+      "endpoint": "http://localhost:4566",
       "type": "DynamoStore",
       "table": "webda-test-users",
       "model": "Webda/User"

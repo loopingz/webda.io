@@ -32,18 +32,11 @@ jobs:
 
     services:
       localstack:
-        image: localstack/localstack:0.11.4
-        ports:
-          - 4567-4600:4567-4600
-        env:
-          SERVICES: iam,dynamodb,secretsmanager,sqs,logs,elasticsearch,cloudformation,route53,apigateway,sns,ses
-
-      localstack-recent:
         image: localstack/localstack:latest
         ports:
           - 4566:4566
         env:
-          SERVICES: s3,sts,sqs
+          SERVICES: s3,sts,sqs,dynamodb,secretsmanager,logs
 
       mongodb:
         image: mongo

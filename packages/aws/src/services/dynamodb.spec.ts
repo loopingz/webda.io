@@ -56,7 +56,7 @@ export class DynamoDBTest extends StoreTest {
         TableName
       });
     } catch (err) {
-      if (err.code === "ResourceNotFoundException") {
+      if (err.name === "ResourceNotFoundException") {
         let createTable = {
           TableName,
           ProvisionedThroughput: {
@@ -245,34 +245,38 @@ export class DynamoDBTest extends StoreTest {
   @test
   async copyTable() {
     const mock = mockClient(DynamoDBClient);
-    mock.on(DescribeTableCommand).resolves({
-      Table: {
-        ItemCount: 50
+    try {
+      mock.on(DescribeTableCommand).resolves({
+        Table: {
+          ItemCount: 50
+        }
+      });
+      const results = [];
+      let output = new WorkerOutput();
+      for (let i = 0; i < 50; i++) {
+        results.push({ Item: { S: `Title ${i}` } });
       }
-    });
-    const results = [];
-    let output = new WorkerOutput();
-    for (let i = 0; i < 50; i++) {
-      results.push({ Item: { S: `Title ${i}` } });
+
+      mock.on(ScanCommand).callsFake(async p => {
+        let offset = 0;
+        let LastEvaluatedKey;
+        if (p.ExclusiveStartKey) {
+          offset = parseInt(p.ExclusiveStartKey.year.N);
+        }
+        if (offset + 35 < results.length) {
+          LastEvaluatedKey = { year: { N: (offset + 35).toString() } };
+        }
+
+        return {
+          Items: results.slice(offset, 35),
+          LastEvaluatedKey
+        };
+      });
+      mock.on(BatchWriteItemCommand).resolves({});
+      let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
+      await DynamoStore.copyTable(output, "table1", "table2");
+    } finally {
+      mock.restore();
     }
-
-    mock.on(ScanCommand).callsFake(async p => {
-      let offset = 0;
-      let LastEvaluatedKey;
-      if (p.ExclusiveStartKey) {
-        offset = parseInt(p.ExclusiveStartKey.year.N);
-      }
-      if (offset + 35 < results.length) {
-        LastEvaluatedKey = { year: { N: (offset + 35).toString() } };
-      }
-
-      return {
-        Items: results.slice(offset, 35),
-        LastEvaluatedKey
-      };
-    });
-    mock.on(BatchWriteItemCommand).resolves({});
-    let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
-    await DynamoStore.copyTable(output, "table1", "table2");
   }
 }

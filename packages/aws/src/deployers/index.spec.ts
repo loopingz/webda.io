@@ -23,7 +23,7 @@ import {
   RequestCertificateCommand
 } from "@aws-sdk/client-acm";
 import { GetCallerIdentityCommand, STS } from "@aws-sdk/client-sts";
-import { ChangeResourceRecordSetsCommand, ListHostedZonesCommand, Route53 } from "@aws-sdk/client-route-53";
+import { ChangeResourceRecordSetsCommand, HostedZone, ListHostedZonesCommand, Route53 } from "@aws-sdk/client-route-53";
 class TestAWSDeployer extends AWSDeployer<AWSDeployerResources> {
   async deploy(): Promise<any> {}
 
@@ -110,18 +110,22 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
 
   @test
   async testGetPolicyDocument() {
-    mockClient(STS).on(GetCallerIdentityCommand).resolves({
+    const mock = mockClient(STS).on(GetCallerIdentityCommand).resolves({
       Account: "test"
     });
-    // @ts-ignore
-    this.manager.getWebda().getServices()["customservice"].getARNPolicy = () => {
-      return [
-        { Sid: "", Effect: "Allow", Action: [], Resource: "*" },
-        { Sid: "", Effect: "Allow", Action: [], Resource: "*" }
-      ];
-    };
-    let result = await this.deployer.getPolicyDocument();
-    assert.strictEqual(result.Statement.length, 4);
+    try {
+      // @ts-ignore
+      this.manager.getWebda().getServices()["customservice"].getARNPolicy = () => {
+        return [
+          { Sid: "", Effect: "Allow", Action: [], Resource: "*" },
+          { Sid: "", Effect: "Allow", Action: [], Resource: "*" }
+        ];
+      };
+      let result = await this.deployer.getPolicyDocument();
+      assert.strictEqual(result.Statement.length, 4);
+    } finally {
+      mock.restore();
+    }
   }
 
   @test
@@ -157,29 +161,37 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
         ]
       };
     });
-    mockClient(EC2).on(DescribeVpcsCommand).callsFake(vpcsSpy).on(DescribeSubnetsCommand).callsFake(subnetsSpy);
-    let result = await this.deployer.getDefaultVpc();
-    assert.strictEqual(vpcsSpy.calledOnce, true);
-    assert.strictEqual(subnetsSpy.notCalled, true);
-    assert.strictEqual(result, undefined);
+    const mock = mockClient(EC2)
+      .on(DescribeVpcsCommand)
+      .callsFake(vpcsSpy)
+      .on(DescribeSubnetsCommand)
+      .callsFake(subnetsSpy);
+    try {
+      let result = await this.deployer.getDefaultVpc();
+      assert.strictEqual(vpcsSpy.calledOnce, true);
+      assert.strictEqual(subnetsSpy.notCalled, true);
+      assert.strictEqual(result, undefined);
 
-    CacheService.clearAllCache();
-    result = await this.deployer.getDefaultVpc();
-    assert.deepStrictEqual(result, {
-      Id: "vpc-666",
-      Subnets: [{ SubnetId: "subnet-1" }, { SubnetId: "subnet-2" }]
-    });
-    assert.strictEqual(
-      subnetsSpy.calledWith({
-        Filters: [
-          {
-            Name: "vpc-id",
-            Values: ["vpc-666"]
-          }
-        ]
-      }),
-      true
-    );
+      CacheService.clearAllCache();
+      result = await this.deployer.getDefaultVpc();
+      assert.deepStrictEqual(result, {
+        Id: "vpc-666",
+        Subnets: [{ SubnetId: "subnet-1" }, { SubnetId: "subnet-2" }]
+      });
+      assert.strictEqual(
+        subnetsSpy.calledWith({
+          Filters: [
+            {
+              Name: "vpc-id",
+              Values: ["vpc-666"]
+            }
+          ]
+        }),
+        true
+      );
+    } finally {
+      mock.restore();
+    }
   }
 
   @test
@@ -209,32 +221,36 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
     });
     var createSpy = sinon.stub().resolves();
     var tagSpy = sinon.stub().resolves();
-    mockClient(S3)
+    const mock = mockClient(S3)
       .on(HeadBucketCommand)
       .callsFake(headSpy)
       .on(CreateBucketCommand)
       .callsFake(createSpy)
       .on(PutBucketTaggingCommand)
       .callsFake(tagSpy);
-    await this.deployer.createBucket("plop");
-    // Bucket exists
-    assert.strictEqual(headSpy.callCount, 1);
-    assert.strictEqual(headSpy.calledWith({ Bucket: "plop" }), true);
-    assert.strictEqual(createSpy.notCalled, true);
-    assert.strictEqual(tagSpy.notCalled, true);
-    // Bucket exists in another account or we do not have rights
-    await this.deployer.createBucket("plop");
-    assert.strictEqual(headSpy.callCount, 2);
-    assert.strictEqual(createSpy.notCalled, true);
-    await this.deployer.createBucket("plop");
-    assert.strictEqual(headSpy.callCount, 3);
-    assert.strictEqual(createSpy.calledOnce, true);
-    assert.strictEqual(createSpy.calledWith({ Bucket: "plop" }), true);
-    assert.strictEqual(tagSpy.calledOnce, true);
-    assert.strictEqual(
-      tagSpy.calledWith({ Bucket: "plop", Tagging: { TagSet: [{ Key: "test", Value: "mytag" }] } }),
-      true
-    );
+    try {
+      await this.deployer.createBucket("plop");
+      // Bucket exists
+      assert.strictEqual(headSpy.callCount, 1);
+      assert.strictEqual(headSpy.calledWith({ Bucket: "plop" }), true);
+      assert.strictEqual(createSpy.notCalled, true);
+      assert.strictEqual(tagSpy.notCalled, true);
+      // Bucket exists in another account or we do not have rights
+      await this.deployer.createBucket("plop");
+      assert.strictEqual(headSpy.callCount, 2);
+      assert.strictEqual(createSpy.notCalled, true);
+      await this.deployer.createBucket("plop");
+      assert.strictEqual(headSpy.callCount, 3);
+      assert.strictEqual(createSpy.calledOnce, true);
+      assert.strictEqual(createSpy.calledWith({ Bucket: "plop" }), true);
+      assert.strictEqual(tagSpy.calledOnce, true);
+      assert.strictEqual(
+        tagSpy.calledWith({ Bucket: "plop", Tagging: { TagSet: [{ Key: "test", Value: "mytag" }] } }),
+        true
+      );
+    } finally {
+      mock.restore();
+    }
   }
 
   @test
@@ -245,21 +261,25 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
     createBucket.resolves();
     putSpy.resolves();
     listSpy.resolves({ Contents: [] });
-    mockClient(S3).on(PutObjectCommand).callsFake(putSpy).on(ListObjectsV2Command).callsFake(listSpy);
-    // @ts-ignore shortcut to test both in one
-    await this.deployer.putFilesOnBucket("plop", [
-      { src: __filename },
-      { src: __dirname + "/index.ts", key: "plop.ts" },
-      { key: "buffer.out", src: Buffer.from("bouzouf"), mimetype: "text/plain" }
-    ]);
-    assert.strictEqual(putSpy.callCount, 3);
-    // checks call
-    assert.strictEqual(putSpy.firstCall.firstArg.Body.constructor.name, "ReadStream");
-    assert.strictEqual(putSpy.secondCall.firstArg.Body.constructor.name, "ReadStream");
-    assert.deepStrictEqual(putSpy.thirdCall.firstArg.Body.constructor.name, "Buffer");
-    assert.deepStrictEqual(putSpy.thirdCall.firstArg.Body.toString(), "bouzouf");
-    assert.strictEqual(createBucket.calledOnce, true);
-    // TODO Check upload optimization
+    const mock = mockClient(S3).on(PutObjectCommand).callsFake(putSpy).on(ListObjectsV2Command).callsFake(listSpy);
+    try {
+      // @ts-ignore shortcut to test both in one
+      await this.deployer.putFilesOnBucket("plop", [
+        { src: __filename },
+        { src: __dirname + "/index.ts", key: "plop.ts" },
+        { key: "buffer.out", src: Buffer.from("bouzouf"), mimetype: "text/plain" }
+      ]);
+      assert.strictEqual(putSpy.callCount, 3);
+      // checks call
+      assert.strictEqual(putSpy.firstCall.firstArg.Body.constructor.name, "ReadStream");
+      assert.strictEqual(putSpy.secondCall.firstArg.Body.constructor.name, "ReadStream");
+      assert.deepStrictEqual(putSpy.thirdCall.firstArg.Body.constructor.name, "Buffer");
+      assert.deepStrictEqual(putSpy.thirdCall.firstArg.Body.toString(), "bouzouf");
+      assert.strictEqual(createBucket.calledOnce, true);
+      // TODO Check upload optimization
+    } finally {
+      mock.restore();
+    }
   }
 
   @test
@@ -297,23 +317,32 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
           return { CertificateSummaryList: [] };
       }
     });
-    mockClient(ACM).on(ListCertificatesCommand).callsFake(putSpy);
-    let certificate = await this.deployer.getCertificate("test.webda.io.");
-    assert.strictEqual(putSpy.calledTwice, true);
-    assert.strictEqual(doCreateCertificate.notCalled, true);
-    assert.strictEqual(getZoneForDomainName.notCalled, true);
-    assert.deepStrictEqual(certificate, { DomainName: "test.webda.io" });
-    await assert.rejects(
-      async () => await this.deployer.getCertificate("test.webda.io"),
-      /Cannot create certificate as Route53 Zone was not found/g
-    );
-    assert.strictEqual(getZoneForDomainName.calledWith("test.webda.io"), true);
-    assert.strictEqual(doCreateCertificate.notCalled, true);
-    await this.deployer.getCertificate("test.webda.io", "us-east-1");
-    assert.strictEqual(
-      doCreateCertificate.calledWith("test.webda.io", { Id: "1234", HostedZone: "", Name: "", CallerReference: "" }),
-      true
-    );
+    const mock = mockClient(ACM).on(ListCertificatesCommand).callsFake(putSpy);
+    try {
+      let certificate = await this.deployer.getCertificate("test.webda.io.");
+      assert.strictEqual(putSpy.calledTwice, true);
+      assert.strictEqual(doCreateCertificate.notCalled, true);
+      assert.strictEqual(getZoneForDomainName.notCalled, true);
+      assert.deepStrictEqual(certificate, { DomainName: "test.webda.io" });
+      await assert.rejects(
+        async () => await this.deployer.getCertificate("test.webda.io"),
+        /Cannot create certificate as Route53 Zone was not found/g
+      );
+      assert.strictEqual(getZoneForDomainName.calledWith("test.webda.io"), true);
+      assert.strictEqual(doCreateCertificate.notCalled, true);
+      await this.deployer.getCertificate("test.webda.io", "us-east-1");
+      assert.strictEqual(
+        doCreateCertificate.calledWith("test.webda.io", <HostedZone>{
+          Id: "1234",
+          HostedZone: "",
+          Name: "",
+          CallerReference: ""
+        }),
+        true
+      );
+    } finally {
+      mock.restore();
+    }
   }
 
   @test
@@ -334,18 +363,22 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
           };
       }
     });
-    mockClient(Route53).on(ListHostedZonesCommand).callsFake(callSpy);
-    let result = await this.deployer.getZoneForDomainName("subdomain.test2.test.webda.io.");
-    assert.deepStrictEqual(result, {
-      Name: "test2.test.webda.io."
-    });
-    assert.strictEqual(callSpy.calledTwice, true);
-    result = await this.deployer.getZoneForDomainName("subdomain.webda.io");
-    assert.deepStrictEqual(result, {
-      Name: "webda.io."
-    });
-    result = await this.deployer.getZoneForDomainName("loopingz.com.");
-    assert.strictEqual(result, undefined);
+    const mock = mockClient(Route53).on(ListHostedZonesCommand).callsFake(callSpy);
+    try {
+      let result = await this.deployer.getZoneForDomainName("subdomain.test2.test.webda.io.");
+      assert.deepStrictEqual(result, {
+        Name: "test2.test.webda.io."
+      });
+      assert.strictEqual(callSpy.calledTwice, true);
+      result = await this.deployer.getZoneForDomainName("subdomain.webda.io");
+      assert.deepStrictEqual(result, {
+        Name: "webda.io."
+      });
+      result = await this.deployer.getZoneForDomainName("loopingz.com.");
+      assert.strictEqual(result, undefined);
+    } finally {
+      mock.restore();
+    }
   }
 
   @test
@@ -356,102 +389,106 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
     var waitFor = sinon.stub(this.deployer, "waitFor");
     createDNSEntry.callsFake(async () => {});
     describeCertificate.resolves({});
-    mockClient(ACM)
+    const mock = mockClient(ACM)
       .on(RequestCertificateCommand)
       .callsFake(requestCertificate)
       .on(DescribeCertificateCommand)
       .callsFake(describeCertificate);
-    waitFor.callsFake(async callback => {
-      switch (waitFor.callCount) {
-        case 1:
-          await callback();
-        case 2:
-          return new Promise(resolve => callback(resolve));
-      }
-    });
-    describeCertificate.callsFake(async () => {
-      if (describeCertificate.callCount === 1) {
-        return {
-          Certificate: {
-            DomainValidationOptions: [{}]
-          }
-        };
-      } else {
-        return {
-          Certificate: {
-            Status: "FAILED",
-            DomainValidationOptions: [{ ResourceRecord: "bouzouf" }]
-          }
-        };
-      }
-    });
-    requestCertificate.callsFake(async () => {
-      return { CertificateArn: "plop" };
-    });
-    await assert.rejects(
-      async () => await this.deployer.doCreateCertificate("test.webda.io.", <any>{ Id: "1234" }),
-      /Certificate validation has failed/g
-    );
-    waitFor.callsFake(() => undefined);
-    await assert.rejects(
-      async () => await this.deployer.doCreateCertificate("test.webda.io.", <any>{ Id: "1234" }),
-      /Certificate validation has failed/g
-    );
-    waitFor.resetHistory();
-    describeCertificate.resetHistory();
-    assert.strictEqual(createDNSEntry.notCalled, true);
-    // @ts-ignore
-    waitFor.callsFake(c => {
-      switch (waitFor.callCount) {
-        case 1:
-          return {
-            Status: "PENDING_VALIDATION",
-            DomainValidationOptions: [{ ResourceRecord: { Value: "plop.com.", Name: "bouzouf.com" } }],
-            CertificateArn: "arn:plop"
-          };
-        default:
-          return new Promise(async (resolve, reject) => {
-            for (let i = 0; i < 5; i++) {
-              if (await c(resolve, reject)) {
-                return;
-              }
-            }
-            reject("max");
-          });
-      }
-    });
-    describeCertificate.callsFake(async () => {
-      if (describeCertificate.callCount < 3) {
-        return {
-          Certificate: {
-            Status: "PENDING_VALIDATION"
-          }
-        };
-      } else {
-        return {
-          Certificate: {
-            Status: "ISSUED"
-          }
-        };
-      }
-    });
-    await this.deployer.doCreateCertificate("test.webda.io.", <any>{ Id: "1234" });
-    assert.strictEqual(
-      createDNSEntry.calledWith("bouzouf.com", "CNAME", "plop.com.", { Id: "1234" }),
-      true
-    );
-    assert.strictEqual(describeCertificate.callCount, 3);
-    waitFor.resetHistory();
-    describeCertificate.resolves({ Certificate: { Status: "ERROR" } });
-    let exception = false;
     try {
-      // Should be able to use assert.rejects
-      await this.deployer.doCreateCertificate("test.webda.io.", <any>{ Id: "1234" });
-    } catch (err) {
-      assert.deepStrictEqual(err, { Status: "ERROR" });
-      exception = true;
+      waitFor.callsFake(async callback => {
+        switch (waitFor.callCount) {
+          case 1:
+            await callback();
+          case 2:
+            return new Promise(resolve => callback(resolve));
+        }
+      });
+      describeCertificate.callsFake(async () => {
+        if (describeCertificate.callCount === 1) {
+          return {
+            Certificate: {
+              DomainValidationOptions: [{}]
+            }
+          };
+        } else {
+          return {
+            Certificate: {
+              Status: "FAILED",
+              DomainValidationOptions: [{ ResourceRecord: "bouzouf" }]
+            }
+          };
+        }
+      });
+      requestCertificate.callsFake(async () => {
+        return { CertificateArn: "plop" };
+      });
+      await assert.rejects(
+        async () => await this.deployer.doCreateCertificate("test.webda.io.", <any>{ Id: "1234" }),
+        /Certificate validation has failed/g
+      );
+      waitFor.callsFake(() => undefined);
+      await assert.rejects(
+        async () => await this.deployer.doCreateCertificate("test.webda.io.", <any>{ Id: "1234" }),
+        /Certificate validation has failed/g
+      );
+      waitFor.resetHistory();
+      describeCertificate.resetHistory();
+      assert.strictEqual(createDNSEntry.notCalled, true);
+      // @ts-ignore
+      waitFor.callsFake(c => {
+        switch (waitFor.callCount) {
+          case 1:
+            return {
+              Status: "PENDING_VALIDATION",
+              DomainValidationOptions: [{ ResourceRecord: { Value: "plop.com.", Name: "bouzouf.com" } }],
+              CertificateArn: "arn:plop"
+            };
+          default:
+            return new Promise(async (resolve, reject) => {
+              for (let i = 0; i < 5; i++) {
+                if (await c(resolve, reject)) {
+                  return;
+                }
+              }
+              reject("max");
+            });
+        }
+      });
+      describeCertificate.callsFake(async () => {
+        if (describeCertificate.callCount < 3) {
+          return {
+            Certificate: {
+              Status: "PENDING_VALIDATION"
+            }
+          };
+        } else {
+          return {
+            Certificate: {
+              Status: "ISSUED"
+            }
+          };
+        }
+      });
+      await this.deployer.doCreateCertificate("test.webda.io.", { Id: "1234", Name: "", CallerReference: "" });
+      assert.strictEqual(
+        createDNSEntry.calledWith("bouzouf.com", "CNAME", "plop.com.", { Id: "1234", Name: "", CallerReference: "" }),
+        true
+      );
+      assert.strictEqual(describeCertificate.callCount, 3);
+      waitFor.resetHistory();
+      describeCertificate.resolves({ Certificate: { Status: "ERROR" } });
+      let exception = false;
+      try {
+        // Should be able to use assert.rejects
+        await this.deployer.doCreateCertificate("test.webda.io.", <any>{ Id: "1234" });
+      } catch (err) {
+        assert.deepStrictEqual(err, { Status: "ERROR" });
+        exception = true;
+      }
+      assert.strictEqual(exception, true);
+    } finally {
+      mock.restore();
     }
-    assert.strictEqual(exception, true);
   }
 
   @test
@@ -465,35 +502,39 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
       return { Id: "1234", CallerReference: "", Name: "" };
     });
     callSpy.resolves();
-    mockClient(Route53).on(ChangeResourceRecordSetsCommand).callsFake(callSpy);
-    await assert.rejects(
-      async () => await this.deployer.restrictedCall("createDNSEntry", "webda.io", "CNAME", "loopingz.com"),
-      /Domain is not handled on AWS/g
-    );
-    assert.strictEqual(callSpy.notCalled, true);
-    await this.deployer.restrictedCall("createDNSEntry", "webda.io.", "CNAME", "loopingz.com");
-    assert.strictEqual(callSpy.calledOnce, true);
-    assert.deepStrictEqual(callSpy.firstCall.firstArg, {
-      HostedZoneId: "1234",
-      ChangeBatch: {
-        Changes: [
-          {
-            Action: "UPSERT",
-            ResourceRecordSet: {
-              Name: "webda.io.",
-              ResourceRecords: [
-                {
-                  Value: "loopingz.com"
-                }
-              ],
-              TTL: 360,
-              Type: "CNAME"
+    const mock = mockClient(Route53).on(ChangeResourceRecordSetsCommand).callsFake(callSpy);
+    try {
+      await assert.rejects(
+        async () => await this.deployer.restrictedCall("createDNSEntry", "webda.io", "CNAME", "loopingz.com"),
+        /Domain is not handled on AWS/g
+      );
+      assert.strictEqual(callSpy.notCalled, true);
+      await this.deployer.restrictedCall("createDNSEntry", "webda.io.", "CNAME", "loopingz.com");
+      assert.strictEqual(callSpy.calledOnce, true);
+      assert.deepStrictEqual(callSpy.firstCall.firstArg, {
+        HostedZoneId: "1234",
+        ChangeBatch: {
+          Changes: [
+            {
+              Action: "UPSERT",
+              ResourceRecordSet: {
+                Name: "webda.io.",
+                ResourceRecords: [
+                  {
+                    Value: "loopingz.com"
+                  }
+                ],
+                TTL: 360,
+                Type: "CNAME"
+              }
             }
-          }
-        ],
-        Comment: "webda-automated-deploiement"
-      }
-    });
+          ],
+          Comment: "webda-automated-deploiement"
+        }
+      });
+    } finally {
+      mock.restore();
+    }
   }
 
   @test

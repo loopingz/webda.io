@@ -189,9 +189,6 @@
             },
             "types": {
               "$ref": "#/definitions/CustomTypesConfig"
-            },
-            "options": {
-              "type": "string"
             }
           }
         },
@@ -822,9 +819,6 @@
             "types": {
               "$ref": "#/definitions/CustomTypesConfig"
             },
-            "options": {
-              "type": "string"
-            },
             "max": {
               "type": "number"
             },
@@ -837,12 +831,6 @@
             "log": {},
             "Promise": {
               "not": {}
-            },
-            "allowExitOnIdle": {
-              "type": "boolean"
-            },
-            "maxUses": {
-              "type": "number"
             }
           }
         }

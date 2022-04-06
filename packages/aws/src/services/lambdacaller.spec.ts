@@ -19,14 +19,18 @@ class LambdaCallerTest extends WebdaTest {
   async call() {
     // CodeCoverage test
     const lambdaCaller = new LambdaCaller(this.webda, "plop", { arn: "testor" });
-    mockClient(Lambda)
+    const mock = mockClient(Lambda)
       .on(InvokeCommand)
       .resolves({
         Payload: Buffer.from(JSON.stringify({ plop: true }))
       });
-    lambdaCaller.resolve();
-    assert.deepStrictEqual(await lambdaCaller.execute(), { plop: true });
-    assert.deepStrictEqual(await lambdaCaller.execute({}, true, "myarn"), { plop: true });
+    try {
+      lambdaCaller.resolve();
+      assert.deepStrictEqual(await lambdaCaller.execute(), { plop: true });
+      assert.deepStrictEqual(await lambdaCaller.execute({}, true, "myarn"), { plop: true });
+    } finally {
+      mock.restore();
+    }
   }
 
   @test

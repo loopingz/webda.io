@@ -49,7 +49,6 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   extends CloudBinary<T>
   implements CloudFormationContributor
 {
-  AWS: any;
   _s3: S3;
 
   /**
@@ -93,6 +92,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     let foundMap = false;
     let foundData = false;
     let challenge;
+    console.log("put redirect url", data);
     for (let i in data.Contents) {
       if (data.Contents[i].Key.endsWith("data")) foundData = true;
       if (data.Contents[i].Key.endsWith(uid)) foundMap = true;
@@ -155,7 +155,8 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     } else if (action === "putObject") {
       command = new PutObjectCommand(params);
     }
-    return await getSignedUrl(this._s3, command, params);
+    // Create new client as the implementation is an ugly middleware
+    return await getSignedUrl(new S3(this.parameters), command, params);
   }
 
   /**
@@ -195,7 +196,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
         Key
       });
     } catch (err) {
-      if (err.code === "NotFound") {
+      if (err.name === "NotFound") {
         return null;
       }
       throw err;
@@ -245,7 +246,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       await this._s3.headObject({ Bucket: this.parameters.bucket, Key: this._getKey(hash) });
       return true;
     } catch (err) {
-      if (err.code !== "NotFound") {
+      if (err.name !== "NotFound") {
         throw err;
       }
     }
@@ -259,13 +260,13 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   async _getS3(hash: string) {
     try {
-      return this._s3.headObject({
+      return await this._s3.headObject({
         Bucket: this.parameters.bucket,
         Key: this._getKey(hash)
       });
     } catch (err) {
-      if (err.code !== "NotFound") {
-        throw Error;
+      if (err.name !== "NotFound") {
+        throw err;
       }
     }
   }
@@ -277,17 +278,18 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @param bucket to retrieve from or default bucket
    * @returns
    */
-  getObject(key: string, bucket?: string) {
+  async getObject(key: string, bucket?: string): Promise<Readable> {
     bucket = bucket || this.parameters.bucket;
-    var s3obj = new this.AWS.S3({
+    var s3obj = new S3({
       endpoint: this.parameters.endpoint,
-      s3ForcePathStyle: this.parameters.forcePathStyle || false,
-      params: {
+      forcePathStyle: this.parameters.forcePathStyle || false
+    });
+    return (
+      await s3obj.getObject({
         Bucket: bucket,
         Key: key
-      }
-    });
-    return s3obj.getObject().createReadStream();
+      })
+    ).Body as Readable;
   }
 
   /**
@@ -305,24 +307,21 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   ) {
     let params: any = { Bucket, Prefix };
     let page = 0;
-    var s3 = new this.AWS.S3({
+    var s3 = new S3({
       endpoint: this.parameters.endpoint,
-      s3ForcePathStyle: this.parameters.forcePathStyle || false
+      forcePathStyle: this.parameters.forcePathStyle || false
     });
     do {
-      await s3
-        .listObjectsV2(params)
-
-        .then(async ({ Contents, NextContinuationToken }: any) => {
-          params.ContinuationToken = NextContinuationToken;
-          for (let f in Contents) {
-            let { Key } = Contents[f];
-            if (filter && filter.exec(Key) === null) {
-              continue;
-            }
-            await callback(Key, page);
+      await s3.listObjectsV2(params).then(async ({ Contents, NextContinuationToken }: any) => {
+        params.ContinuationToken = NextContinuationToken;
+        for (let f in Contents) {
+          let { Key } = Contents[f];
+          if (filter && filter.exec(Key) === null) {
+            continue;
           }
-        });
+          await callback(Key, page);
+        }
+      });
       page++;
     } while (params.ContinuationToken);
   }
@@ -341,16 +340,14 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     metadatas = {},
     bucket: string = this.parameters.bucket
   ) {
-    var s3obj = new this.AWS.S3({
+    var s3obj = new S3({
       endpoint: this.parameters.endpoint,
-      s3ForcePathStyle: this.parameters.forcePathStyle || false,
-      params: {
-        Bucket: bucket,
-        Key: key,
-        Metadata: metadatas
-      }
+      forcePathStyle: this.parameters.forcePathStyle || false
     });
-    await s3obj.upload({
+    await s3obj.putObject({
+      Bucket: bucket,
+      Key: key,
+      Metadata: metadatas,
       Body: body
     });
   }
@@ -365,16 +362,14 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     if (data === undefined) {
       let s3metas: any = {};
       s3metas["x-amz-meta-challenge"] = file.challenge;
-      var s3obj = new this.AWS.S3({
+      var s3obj = new S3({
         endpoint: this.parameters.endpoint,
-        s3ForcePathStyle: this.parameters.forcePathStyle || false,
-        params: {
-          Bucket: this.parameters.bucket,
-          Key: this._getKey(file.hash),
-          Metadata: s3metas
-        }
+        forcePathStyle: this.parameters.forcePathStyle || false
       });
-      await s3obj.upload({
+      await s3obj.putObject({
+        Bucket: this.parameters.bucket,
+        Key: this._getKey(file.hash),
+        Metadata: s3metas,
         Body: await file.get()
       });
     }

@@ -22,6 +22,8 @@ import {
 } from "@aws-sdk/client-cloudformation";
 import { GetCallerIdentityCommand, STS } from "@aws-sdk/client-sts";
 import { defaultCreds } from "../index.spec";
+import { mock } from "sinon";
+
 @suite
 class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
   mocks: { [key: string]: any } = {};
@@ -177,20 +179,24 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
     });
     await this.deployer.defaultResources();
     const mock = mockClient(APIGateway);
-    mock.on(PutRestApiCommand).resolves({});
+    try {
+      mock.on(PutRestApiCommand).resolves({});
 
-    console.log("Launch deploy", this.deployer.uploadStatics);
-    this.deployer.resources.Docker = {
-      tag: "plop",
-      includeRepository: false
-    };
-    this.deployer.resources.APIGatewayImportOpenApi = "yop";
-    sinon.stub(this.deployer.manager, "run").callsFake(async () => {});
-    await this.deployer.deploy();
-    console.log("Launch deploy done");
-    assert.strictEqual(sendCloudFormation.calledOnce, true);
-    assert.strictEqual(generateLambdaPackage.calledOnce, true);
-    await this.deployer.sleep(0.001);
+      console.log("Launch deploy", this.deployer.uploadStatics);
+      this.deployer.resources.Docker = {
+        tag: "plop",
+        includeRepository: false
+      };
+      this.deployer.resources.APIGatewayImportOpenApi = "yop";
+      sinon.stub(this.deployer.manager, "run").callsFake(async () => {});
+      await this.deployer.deploy();
+      console.log("Launch deploy done");
+      assert.strictEqual(sendCloudFormation.calledOnce, true);
+      assert.strictEqual(generateLambdaPackage.calledOnce, true);
+      await this.deployer.sleep(0.001);
+    } finally {
+      mock.restore();
+    }
   }
 
   @test
@@ -206,15 +212,19 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       await c(() => {});
       await c(() => {});
     });
-    mockClient(CloudFormation)
+    const mock = mockClient(CloudFormation)
       .on(DeleteStackCommand)
       .callsFake(this.mocks["deleteStack"])
       .on(DescribeStacksCommand)
       .callsFake(this.mocks["describeStacks"]);
-    await this.deployer.deleteCloudFormation();
-    assert.strictEqual(this.mocks["deleteStack"].calledOnce, true);
-    assert.strictEqual(this.mocks["waitFor"].calledOnce, true);
-    assert.strictEqual(this.mocks["describeStacks"].calledTwice, true);
+    try {
+      await this.deployer.deleteCloudFormation();
+      assert.strictEqual(this.mocks["deleteStack"].calledOnce, true);
+      assert.strictEqual(this.mocks["waitFor"].calledOnce, true);
+      assert.strictEqual(this.mocks["describeStacks"].calledTwice, true);
+    } finally {
+      mock.restore();
+    }
   }
 
   @test
@@ -237,25 +247,30 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       return { Account: "myAccount" };
     });
     let saver = sinon.stub(JSONUtils, "saveFile").callsFake(() => {});
-    mockClient(STS).on(GetCallerIdentityCommand).callsFake(caller);
-    let stub = sinon.stub().resolves({});
-    mockClient(CloudFormation).on(CreateStackCommand).callsFake(stub);
-    assert.ok((await CloudFormationDeployer.init(console)) === -1);
-    assert.deepStrictEqual(logs[0], ["ERROR", "package.json not found"]);
-    console.app.getAppPath = () => "./test/package.json";
-    assert.ok((await CloudFormationDeployer.init(console)) === -1);
-    assert.deepStrictEqual(logs[1], [
-      "ERROR",
-      "Cannot retrieve your AWS credentials, make sure to have a correct AWS setup"
-    ]);
-    logs = [];
-    assert.ok((await CloudFormationDeployer.init(console)) === 0);
-    assert.strictEqual(saver.getCall(0).args[0].webda.aws.AssetsBucket, "webda-webda-testor-assets");
-    assert.strictEqual(saver.getCall(0).args[0].webda.aws.Repository, "webda-webda-testor");
-    console.app.getAppPath = () => "./test/package-initiated.json";
-    logs = [];
-    assert.ok((await CloudFormationDeployer.init(console)) === -1);
-    assert.deepStrictEqual(logs[0], ["WARN", "Default information are already in your package.json"]);
+    const mocks = [];
+    try {
+      mocks.push(mockClient(STS).on(GetCallerIdentityCommand).callsFake(caller));
+      let stub = sinon.stub().resolves({});
+      mocks.push(mockClient(CloudFormation).on(CreateStackCommand).callsFake(stub));
+      assert.ok((await CloudFormationDeployer.init(console)) === -1);
+      assert.deepStrictEqual(logs[0], ["ERROR", "package.json not found"]);
+      console.app.getAppPath = () => "./test/package.json";
+      assert.ok((await CloudFormationDeployer.init(console)) === -1);
+      assert.deepStrictEqual(logs[1], [
+        "ERROR",
+        "Cannot retrieve your AWS credentials, make sure to have a correct AWS setup"
+      ]);
+      logs = [];
+      assert.ok((await CloudFormationDeployer.init(console)) === 0);
+      assert.strictEqual(saver.getCall(0).args[0].webda.aws.AssetsBucket, "webda-webda-testor-assets");
+      assert.strictEqual(saver.getCall(0).args[0].webda.aws.Repository, "webda-webda-testor");
+      console.app.getAppPath = () => "./test/package-initiated.json";
+      logs = [];
+      assert.ok((await CloudFormationDeployer.init(console)) === -1);
+      assert.deepStrictEqual(logs[0], ["WARN", "Default information are already in your package.json"]);
+    } finally {
+      mocks.forEach(m => m.restore());
+    }
   }
 
   @test
@@ -272,6 +287,7 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
         callback(resolve, reject);
       });
     });
+    const mocks = [];
     sinon.stub(this.deployer, "createCloudFormationChangeSet").callsFake(async () => "mychange");
     const mock = mockClient(CloudFormation)
       .on(DescribeChangeSetCommand)
@@ -279,8 +295,8 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       .on(ExecuteChangeSetCommand)
       .resolves({})
       .on(DescribeStackEventsCommand)
-      .callsFake(() => {
-        let res = [...describeStackEventsResult];
+      .callsFake(async () => {
+        let res = { ...describeStackEventsResult, StackEvents: [...describeStackEventsResult.StackEvents] };
         describeStackEventsResult.StackEvents.unshift({
           EventId: "123",
           ResourceType: "any",
@@ -308,37 +324,42 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
           }
         ]
       });
-    let createDeployment = sinon.stub().resolves({});
-    mockClient(APIGateway).on(CreateDeploymentCommand).callsFake(createDeployment);
-    // First scenario we have a 'ROLLBACK_COMPLETE', an error occured
-    await assert.rejects(() => this.deployer.createCloudFormation());
-    // 'FAILED' scenario with unknown error
-    logs.resetHistory();
-    describeChangeSetResult.Status = "FAILED";
-    describeChangeSetResult.StatusReason = "plop";
-    await this.deployer.createCloudFormation();
-    assert.deepStrictEqual(logs.getCall(1).args, ["ERROR", "Cannot execute ChangeSet:", "plop"]);
-    // 'FAILED' scenario because no changes to be made
-    describeChangeSetResult.StatusReason =
-      "The submitted information didn't contain changes. Submit different information to create a change set.";
-    logs.resetHistory();
-    await this.deployer.createCloudFormation();
-    assert.deepStrictEqual(logs.getCall(1).args, ["INFO", "No changes to be made"]);
-    // 'CREATE_COMPLETE' scenario
-    logs.resetHistory();
-    describeChangeSetResult.Status = "CREATE_COMPLETE";
-    describeChangeSetResult.Changes = [
-      { Type: "Resource", ResourceChange: { Action: "Create", ResourceType: "Fake", LogicalResourceId: "FakeId" } },
-      { Type: "Plop" }
-    ];
-    await this.deployer.createCloudFormation();
-    assert.deepStrictEqual(createDeployment.getCall(0).args[0], { restApiId: "restApi", stageName: "stage" });
-    // 'TIMEOUT'
-    this.deployer.sleep = async () => {};
-    describeStackEventsResult.StackEvents = [];
-    mock.on(DescribeStackEventsCommand).resolves(describeStackEventsResult);
-    await this.deployer.createCloudFormation();
-    assert.ok(createDeployment.callCount === 1);
+    mocks.push(mock);
+    try {
+      let createDeployment = sinon.stub().resolves({});
+      mocks.push(mockClient(APIGateway).on(CreateDeploymentCommand).callsFake(createDeployment));
+      // First scenario we have a 'ROLLBACK_COMPLETE', an error occured
+      await assert.rejects(() => this.deployer.createCloudFormation());
+      // 'FAILED' scenario with unknown error
+      logs.resetHistory();
+      describeChangeSetResult.Status = "FAILED";
+      describeChangeSetResult.StatusReason = "plop";
+      await this.deployer.createCloudFormation();
+      assert.deepStrictEqual(logs.getCall(1).args, ["ERROR", "Cannot execute ChangeSet:", "plop"]);
+      // 'FAILED' scenario because no changes to be made
+      describeChangeSetResult.StatusReason =
+        "The submitted information didn't contain changes. Submit different information to create a change set.";
+      logs.resetHistory();
+      await this.deployer.createCloudFormation();
+      assert.deepStrictEqual(logs.getCall(1).args, ["INFO", "No changes to be made"]);
+      // 'CREATE_COMPLETE' scenario
+      logs.resetHistory();
+      describeChangeSetResult.Status = "CREATE_COMPLETE";
+      describeChangeSetResult.Changes = [
+        { Type: "Resource", ResourceChange: { Action: "Create", ResourceType: "Fake", LogicalResourceId: "FakeId" } },
+        { Type: "Plop" }
+      ];
+      await this.deployer.createCloudFormation();
+      assert.deepStrictEqual(createDeployment.getCall(0).args[0], { restApiId: "restApi", stageName: "stage" });
+      // 'TIMEOUT'
+      this.deployer.sleep = async () => {};
+      describeStackEventsResult.StackEvents = [];
+      mock.on(DescribeStackEventsCommand).resolves(describeStackEventsResult);
+      await this.deployer.createCloudFormation();
+      assert.ok(createDeployment.callCount === 1);
+    } finally {
+      mocks.forEach(m => m.restore());
+    }
   }
 
   @test
@@ -377,57 +398,60 @@ class CloudFormationDeployerTest extends DeployerTest<CloudFormationDeployer> {
       .on(CreateChangeSetCommand)
       .resolves({})
       .on(DescribeStacksCommand)
-      .resolves(describeStacksResult)
+      .callsFake(async () => describeStacksResult)
       .on(DeleteChangeSetCommand)
       .resolves({});
     sinon.stub(this.deployer, "deleteCloudFormation").callsFake(async () => {});
-
-    let cloudformation = new CloudFormation({ credentials: defaultCreds });
-    // Nominal case
-    await this.deployer.createCloudFormationChangeSet(cloudformation);
-    // With error
-    let testError;
-    let errorFirst = sinon.stub().callsFake(async () => {
-      if (errorFirst.callCount === 1) {
-        throw testError
-      } else {
-        return {}
-      }
-    });
-    mock.on(CreateChangeSetCommand).callsFake(errorFirst);
-    testError = new Error("plop is in ROLLBACK_COMPLETE state and can not be updated.");
-    // Should still go through with a bugous stack
-    await this.deployer.createCloudFormationChangeSet(cloudformation);
-    // Non-existing stack
-    testError = new Error(`Stack [${this.deployer.resources.StackName}] does not exist`);
-    errorFirst.resetHistory();
-    await this.deployer.createCloudFormationChangeSet(cloudformation);
-    // Change set exist
-    testError = new Error();
-    testError.code = "AlreadyExistsException";
-    errorFirst.resetHistory();
-    await this.deployer.createCloudFormationChangeSet(cloudformation);
-    // True error
-    testError = new Error("Unknown");
-    errorFirst.resetHistory();
-    await assert.rejects(() => this.deployer.createCloudFormationChangeSet(cloudformation), /Unknown/);
-    // Test with stack status
-    testError = new Error("bouzouf state and can not be updated.");
-    sinon.stub(this.deployer, "waitFor").callsFake(callback => {
-      return new Promise(async (resolve, reject) => {
-        if (!(await callback(resolve, reject))) {
-          reject("BAD");
+    try {
+      let cloudformation = new CloudFormation({ credentials: defaultCreds });
+      // Nominal case
+      await this.deployer.createCloudFormationChangeSet(cloudformation);
+      // With error
+      let testError;
+      let errorFirst = sinon.stub().callsFake(async () => {
+        if (errorFirst.callCount === 1) {
+          throw testError;
+        } else {
+          return {};
         }
       });
-    });
-    errorFirst.resetHistory();
-    await assert.rejects(() => this.deployer.createCloudFormationChangeSet(cloudformation), /BAD/);
-    describeStacksResult = { Stacks: [{ StackStatus: "ANY_COMPLETE", StackName: "", CreationTime: new Date() }] };
-    errorFirst.resetHistory();
-    await this.deployer.createCloudFormationChangeSet(cloudformation);
-    describeStacksResult = { Stacks: [] };
-    errorFirst.resetHistory();
-    await this.deployer.createCloudFormationChangeSet(cloudformation);
+      mock.on(CreateChangeSetCommand).callsFake(errorFirst);
+      testError = new Error("plop is in ROLLBACK_COMPLETE state and can not be updated.");
+      // Should still go through with a bugous stack
+      await this.deployer.createCloudFormationChangeSet(cloudformation);
+      // Non-existing stack
+      testError = new Error(`Stack [${this.deployer.resources.StackName}] does not exist`);
+      errorFirst.resetHistory();
+      await this.deployer.createCloudFormationChangeSet(cloudformation);
+      // Change set exist
+      testError = new Error();
+      testError.code = "AlreadyExistsException";
+      errorFirst.resetHistory();
+      await this.deployer.createCloudFormationChangeSet(cloudformation);
+      // True error
+      testError = new Error("Unknown");
+      errorFirst.resetHistory();
+      await assert.rejects(() => this.deployer.createCloudFormationChangeSet(cloudformation), /Unknown/);
+      // Test with stack status
+      testError = new Error("bouzouf state and can not be updated.");
+      sinon.stub(this.deployer, "waitFor").callsFake(callback => {
+        return new Promise(async (resolve, reject) => {
+          if (!(await callback(resolve, reject))) {
+            reject("BAD");
+          }
+        });
+      });
+      errorFirst.resetHistory();
+      await assert.rejects(() => this.deployer.createCloudFormationChangeSet(cloudformation), /BAD/);
+      describeStacksResult = { Stacks: [{ StackStatus: "ANY_COMPLETE", StackName: "", CreationTime: new Date() }] };
+      errorFirst.resetHistory();
+      await this.deployer.createCloudFormationChangeSet(cloudformation);
+      describeStacksResult = { Stacks: [] };
+      errorFirst.resetHistory();
+      await this.deployer.createCloudFormationChangeSet(cloudformation);
+    } finally {
+      mock.restore();
+    }
   }
 
   @test

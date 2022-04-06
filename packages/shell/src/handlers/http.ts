@@ -1,7 +1,7 @@
 import { ClientInfo, Core as Webda, HttpContext, WaitFor, WaitLinearDelay, Context } from "@webda/core";
 import * as http from "http";
 import { serialize as cookieSerialize } from "cookie";
-const path = require("path");
+import * as path from "path";
 
 export enum ServerStatus {
   Stopped = "STOPPED",

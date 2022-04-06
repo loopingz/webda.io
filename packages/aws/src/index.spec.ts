@@ -35,6 +35,8 @@ export class WebdaAwsTest extends WebdaTest {
 
   async before() {
     await checkLocalStack();
+    process.env.AWS_ACCESS_KEY_ID = "plop";
+    process.env.AWS_SECRET_ACCESS_KEY = "plop";
     await super.before();
   }
 }

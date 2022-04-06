@@ -3,7 +3,9 @@
     "webda/amqppubsub": "lib/pubsub:default",
     "webda/amqpqueue": "lib/queue:default"
   },
-  "beans": {},
+  "beans": {
+    "beans/stompeventservice": "lib/stomp"
+  },
   "models": {},
   "deployers": {},
   "schemas": {

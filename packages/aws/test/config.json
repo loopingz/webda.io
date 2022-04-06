@@ -29,8 +29,8 @@
     },
     "SQSQueue": {
       "type": "SQSQueue",
-      "endpoint": "http://localhost:4576",
-      "queue": "http://localhost:4576/queue/webda-test",
+      "endpoint": "http://localhost:4566",
+      "queue": "http://localhost:4566/000000000000/webda-test",
       "maxConsumers": 1
     },
     "DebugMailer": {},
@@ -77,7 +77,7 @@
     "binary": {
       "type": "S3Binary",
       "bucket": "webda-test",
-      "endpoint": "http://localhost:4572",
+      "endpoint": "http://localhost:4566",
       "forcePathStyle": true,
       "map": {
         "users": ["images"]

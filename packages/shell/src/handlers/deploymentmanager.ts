@@ -1,14 +1,10 @@
-import { Application, Core, Cache, Logger, WebdaError, Deployment } from "@webda/core";
+import { Core, Cache, Logger, WebdaError, Deployment } from "@webda/core";
 import * as merge from "merge";
-import ChainDeployer from "../deployers/chaindeployer";
 import { Deployer } from "../deployers/deployer";
-import { Container } from "../deployers/container";
-import { Packager } from "../deployers/packager";
 import * as yargs from "yargs";
 import { WorkerOutput } from "@webda/workout";
 import * as fs from "fs";
 import * as path from "path";
-import { Kubernetes } from "../deployers/kubernetes";
 import WebdaConsole from "../console/webda";
 import { SourceApplication } from "../code/sourceapplication";
 
@@ -29,26 +25,10 @@ export class DeploymentManager {
   output: WorkerOutput;
   logger: Logger;
 
-  static addBuiltinDeployers(app: Application) {
-    app.addDeployer("WebdaDeployer/Packager", Packager);
-    app.addDeployer("WebdaDeployer/ChainDeployer", ChainDeployer);
-    /**
-     * `WebdaDeployer/Docker` type will be replaced by `WebdaDeployer/Container`
-     *
-     * @todo Remove in 2.1
-     * @deprecated for 2.1 version
-     */
-    app.addDeployer("WebdaDeployer/Docker", Container);
-    app.addDeployer("WebdaDeployer/Container", Container);
-    app.addDeployer("WebdaDeployer/Kubernetes", Kubernetes);
-  }
-
   constructor(app: SourceApplication, deploymentName: string, streams = undefined) {
     this.application = app;
     this.application.compile();
     this.application.setCurrentDeployment(deploymentName);
-    // webda.moodule.json is not working within webda-shell
-    DeploymentManager.addBuiltinDeployers(this.application);
     let deployment = this.application.getDeployment(deploymentName);
     this.webda = new Core(this.application);
     this.webda.initStatics();
@@ -61,7 +41,7 @@ export class DeploymentManager {
       this.streams = { out: console.log, err: console.error };
     }
     deployment.units.forEach(d => {
-      if (!this.deployersDefinition[d.type.toLowerCase()]) {
+      if (!this.deployersDefinition[this.application.completeNamespace(d.type)]) {
         this.logger.log(
           "ERROR",
           "Cannot find deployer",
@@ -155,7 +135,7 @@ export class DeploymentManager {
 
   async getDeployer(name: string) {
     if (!this.deployers[name]) {
-      throw new WebdaError("DEPLOYER_UNKNOWN", "Unknown deployer " + name);
+      throw new WebdaError("DEPLOYER_UNKNOWN", `Unknown deployer ${name} (${Object.keys(this.deployers).join(",")})`);
     }
     let deployer = new this.deployersDefinition[this.deployers[name].type.toLowerCase()](this, this.deployers[name]);
     deployer.setName(name);

@@ -8,18 +8,20 @@ import * as sinon from "sinon";
 import { Binary } from "@webda/core";
 import { TestApplication } from "@webda/core/lib/test";
 import * as path from "path";
-import { ListObjectsV2Command, S3 } from "@aws-sdk/client-s3";
+import { DeleteObjectsCommandInput, HeadObjectCommand, ListObjectsV2Command, S3 } from "@aws-sdk/client-s3";
 import { mockClient } from "aws-sdk-client-mock";
 
 @suite
 class S3BinaryTest extends BinaryTest<S3Binary> {
   async before() {
+    process.env.AWS_ACCESS_KEY_ID = "plop";
+    process.env.AWS_SECRET_ACCESS_KEY = "plop";
     await checkLocalStack();
     this.buildWebda();
     await this.install();
     await this.cleanData();
-    DynamoDBTest.install("webda-test-idents");
-    DynamoDBTest.install("webda-test-users");
+    await DynamoDBTest.install("webda-test-idents");
+    await DynamoDBTest.install("webda-test-users");
     await super.before();
   }
 
@@ -36,45 +38,47 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   async getNotFound() {}
 
   async cleanData() {
-    var s3 = new S3({
-      endpoint: "http://localhost:4572",
-      credentials: defaultCreds,
-      forcePathStyle: true
-    });
-    const Bucket = "webda-test";
-    // For test we do not have more than 1k objects
-    let data = await s3.listObjectsV2({
-      Bucket
-    });
-    var params = {
-      Bucket,
-      Delete: {
-        Objects: []
-      }
-    };
-    for (var i in data.Contents) {
-      params.Delete.Objects.push({
-        Key: data.Contents[i].Key
+    try {
+      var s3 = new S3({
+        endpoint: "http://localhost:4566",
+        credentials: defaultCreds,
+        forcePathStyle: true
       });
+      const Bucket = "webda-test";
+      // For test we do not have more than 1k objects
+      let data = await s3.listObjectsV2({
+        Bucket
+      });
+      var params: DeleteObjectsCommandInput = {
+        Bucket,
+        Delete: {
+          Objects: []
+        }
+      };
+      for (var i in data.Contents) {
+        params.Delete.Objects.push({
+          Key: data.Contents[i].Key
+        });
+      }
+      if (params.Delete.Objects.length === 0) {
+        return;
+      }
+
+      await s3.deleteObjects(params);
+    } catch (err) {
+      // Ignore error for now
     }
-    if (params.Delete.Objects.length === 0) {
-      return;
-    }
-    return s3.deleteObjects(params);
   }
 
   async install() {
     var s3 = new S3({
-      endpoint: "http://localhost:4572",
+      endpoint: "http://localhost:4566",
       forcePathStyle: true,
-      credentials: {
-        accessKeyId: "Bouzouf",
-        secretAccessKey: "Plop"
-      }
+      credentials: defaultCreds
     });
     const Bucket = "webda-test";
     try {
-      return s3.headBucket({
+      await s3.headBucket({
         Bucket
       });
     } catch (err) {
@@ -104,7 +108,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
   async forEachFile() {
     let keys = [];
 
-    var spyChanges = sinon.stub().callsFake(async (p, c) => {
+    const spyChanges = sinon.stub().callsFake(async (p, c) => {
       if (spyChanges.callCount === 1) {
         return {
           Contents: [
@@ -120,26 +124,30 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
       }
       return { Contents: [] };
     });
-    mockClient(S3).on(ListObjectsV2Command).callsFake(spyChanges);
-    await this.getBinary().forEachFile(
-      "myBucket",
-      async (Key: string) => {
-        keys.push(Key);
-      },
-      undefined,
-      /.*\.txt/
-    );
-    assert.deepStrictEqual(keys, ["test/test.txt", "test2/test.txt", "loop.txt"]);
-    keys = [];
-    spyChanges.resetHistory();
-    await this.getBinary().forEachFile(
-      "myBucket",
-      async (Key: string) => {
-        keys.push(Key);
-      },
-      "test/"
-    );
-    assert.deepStrictEqual(keys, ["test/test.txt", "test/test.json"]);
+    const mock = mockClient(S3).on(ListObjectsV2Command).callsFake(spyChanges);
+    try {
+      await this.getBinary().forEachFile(
+        "myBucket",
+        async (Key: string) => {
+          keys.push(Key);
+        },
+        undefined,
+        /.*\.txt/
+      );
+      assert.deepStrictEqual(keys, ["test/test.txt", "test2/test.txt", "loop.txt"]);
+      keys = [];
+      spyChanges.resetHistory();
+      await this.getBinary().forEachFile(
+        "myBucket",
+        async (Key: string) => {
+          keys.push(Key);
+        },
+        "test/"
+      );
+      assert.deepStrictEqual(keys, ["test/test.txt", "test/test.json"]);
+    } finally {
+      mock.restore();
+    }
   }
 
   @test
@@ -155,9 +163,7 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     ];
     (await Promise.all(urls)).forEach(url => {
       assert.ok(
-        url.match(
-          /http:\/\/localhost:4572\/(myBuck|webda-test)\/plop\/test\?AWSAccessKeyId=Bouzouf&Expires=\d+&Signature=.*/
-        ),
+        url.match(/http:\/\/localhost:\d+\/(myBuck|webda-test)\/plop\/test\?.*Signature=.*/),
         `'${url}' does not match expected`
       );
     });
@@ -169,7 +175,9 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     await this.getBinary().putObject(this.getBinary()._getKey("bouzouf"), "plop");
     assert.ok(await this.getBinary()._exists("bouzouf"));
     assert.strictEqual(
-      (await Binary.streamToBuffer(this.getBinary().getObject(this.getBinary()._getKey("bouzouf")))).toString("utf8"),
+      (await Binary.streamToBuffer(await this.getBinary().getObject(this.getBinary()._getKey("bouzouf")))).toString(
+        "utf8"
+      ),
       "plop"
     );
     assert.notStrictEqual(await this.getBinary().exists(this.getBinary()._getKey("bouzouf")), null);
@@ -240,17 +248,17 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
 
   @test
   async badErrors() {
-    let stub = sinon.stub(this.getBinary()._s3, "headObject").callsFake(() => ({
-      promise: async () => {
+    const mock = mockClient(S3)
+      .on(HeadObjectCommand)
+      .callsFake(() => {
         throw new Error("Fake");
-      }
-    }));
+      });
     try {
       await assert.rejects(() => this.getBinary()._getS3("plop"));
       await assert.rejects(() => this.getBinary()._exists("plop"));
       await assert.rejects(() => this.getBinary().exists("plop"));
     } finally {
-      stub.restore();
+      mock.restore();
     }
   }
 }

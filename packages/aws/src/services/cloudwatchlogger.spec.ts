@@ -16,7 +16,8 @@ class CloudWatchLoggerTest extends WebdaAwsTest {
     await checkLocalStack();
     let cloudwatch = new CloudWatchLogs({
       credentials: defaultCreds,
-      endpoint: "http://localhost:4586"
+      endpoint: "http://localhost:4586",
+      region: "us-east-1"
     });
     try {
       await cloudwatch.deleteLogGroup({

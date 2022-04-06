@@ -1,79 +1,76 @@
 {
- "uuid": "Production",
- "parameters": {
-  "website": {"path": "./wui", "url": "prod.webda-demo.com"},
-  "requestLimit": "1mb",
-  "csrfOrigins": [
-    "^accounts\\.google\\.\\w{2,}$",
-    "\\w+\\.facebook\\.com"
-  ],
-  "region": "eu-west-1",
-  "accessKeyId": "PROD_KEY",
-  "secretAccessKey": "PROD_SECRET",
-  "sessionSecret": "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
- },
- "services": {
-     "contacts": {
-        "type": "DynamoStore",
-        "table": "webda-sample-app-contacts"
-     },
-     "images": {
-       "type": "S3Binary",
-        "bucket": "webda-sample-app-images"
-     },
-     "thumbnailsqueue": {
-       "type": "SQSQueue",
-       "queue": "https://sqs.eu-west-1.amazonaws.com/277712386420/webda-sample-app-tumbnails-queue"
-     }
- },
- "resources": {},
- "units": [
-  {
-   "name": "WebdaSampleApplication",
-   "type": "WebdaAWSDeployer/CloudFormationDeployer",
+  "uuid": "Production",
+  "parameters": {
+    "website": { "path": "./wui", "url": "prod.webda-demo.com" },
+    "requestLimit": "1mb",
+    "csrfOrigins": ["^accounts\\.google\\.\\w{2,}$", "\\w+\\.facebook\\.com"],
+    "region": "eu-west-1",
+    "accessKeyId": "PROD_KEY",
+    "secretAccessKey": "PROD_SECRET",
+    "sessionSecret": "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+  },
+  "services": {
+    "contacts": {
+      "type": "DynamoStore",
+      "table": "webda-sample-app-contacts"
+    },
+    "images": {
+      "type": "S3Binary",
+      "bucket": "webda-sample-app-images"
+    },
+    "thumbnailsqueue": {
+      "type": "SQSQueue",
+      "queue": "https://sqs.eu-west-1.amazonaws.com/277712386420/webda-sample-app-tumbnails-queue"
+    }
+  },
+  "resources": {},
+  "units": [
+    {
+      "name": "WebdaSampleApplication",
+      "type": "webda/cloudformationdeployer",
 
-   "AssetsBucket": "webda-sample-app-artifacts",
-   "FargateCluster": "webda-demo",
+      "AssetsBucket": "webda-sample-app-artifacts",
+      "FargateCluster": "webda-demo",
 
-   "Tags": {
-     "test": "webda3"
-   },
+      "Tags": {
+        "test": "webda3"
+      },
 
-  "Certificates": {
-     "sampleapp.webda.io": {
-       "alt": ["*.sampleapp.webda.io"]
-     }
-   },
+      "Certificates": {
+        "sampleapp.webda.io": {
+          "alt": ["*.sampleapp.webda.io"]
+        }
+      },
 
-   "Lambda": {
-     "FunctionName": "webda-sample-app",
-     "Tags": {
-       "updater": "test"
-     }
-   },
+      "Lambda": {
+        "FunctionName": "webda-sample-app",
+        "Tags": {
+          "updater": "test"
+        }
+      },
 
-   "Resources": {},
+      "Resources": {},
 
-   "APIGateway": {},
-   "APIGatewayDomain": {"DomainName": "api.sampleapp.webda.io"},
+      "APIGateway": {},
+      "APIGatewayDomain": { "DomainName": "api.sampleapp.webda.io" },
 
-   "Statics": [{
-     "DomainName": "sampleapp.webda.io",
-     "CloudFront": {
-       
-     },
-     "Source": "wui"
-   }],
+      "Statics": [
+        {
+          "DomainName": "sampleapp.webda.io",
+          "CloudFront": {},
+          "Source": "wui"
+        }
+      ],
 
-   "Docker": "",
-   
-   "Workers": [
-     {
-       "FargateCluster": "webda-demo",
-       "FargateService": {"Name": "webda-demo-workers"},
-       "FargateTaskDefinition": {}
-     }
-   ]
-  }
- ]
+      "Docker": "",
+
+      "Workers": [
+        {
+          "FargateCluster": "webda-demo",
+          "FargateService": { "Name": "webda-demo-workers" },
+          "FargateTaskDefinition": {}
+        }
+      ]
+    }
+  ]
 }

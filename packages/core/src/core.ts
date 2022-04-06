@@ -1001,7 +1001,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     }
     let openapi: OpenAPIV3.Document = deepmerge(
       {
-        openapi: "3.0",
+        openapi: "3.0.3",
         info: {
           description: packageInfo.description,
           version: packageInfo.version || "0.0.0",

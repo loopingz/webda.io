@@ -14,8 +14,8 @@ import { mockClient } from "aws-sdk-client-mock";
 @suite
 class S3BinaryTest extends BinaryTest<S3Binary> {
   async before() {
-    process.env.AWS_ACCESS_KEY_ID = "plop";
-    process.env.AWS_SECRET_ACCESS_KEY = "plop";
+    process.env.AWS_ACCESS_KEY_ID = defaultCreds.accessKeyId;
+    process.env.AWS_SECRET_ACCESS_KEY = defaultCreds.secretAccessKey;
     await checkLocalStack();
     this.buildWebda();
     await this.install();
@@ -42,7 +42,8 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
       var s3 = new S3({
         endpoint: "http://localhost:4566",
         credentials: defaultCreds,
-        forcePathStyle: true
+        forcePathStyle: true,
+        region: "us-east-1"
       });
       const Bucket = "webda-test";
       // For test we do not have more than 1k objects
@@ -74,7 +75,8 @@ class S3BinaryTest extends BinaryTest<S3Binary> {
     var s3 = new S3({
       endpoint: "http://localhost:4566",
       forcePathStyle: true,
-      credentials: defaultCreds
+      credentials: defaultCreds,
+      region: "us-east-1"
     });
     const Bucket = "webda-test";
     try {

@@ -125,10 +125,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @inheritdoc
    */
   putMarker(hash, uuid, storeName) {
-    var s3obj = new S3({
-      endpoint: this.parameters.endpoint,
-      forcePathStyle: this.parameters.forcePathStyle || false
-    });
+    var s3obj = new S3(this.parameters);
     return s3obj.putObject({
       Bucket: this.parameters.bucket,
       Key: this._getKey(hash, uuid),
@@ -280,10 +277,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    */
   async getObject(key: string, bucket?: string): Promise<Readable> {
     bucket = bucket || this.parameters.bucket;
-    var s3obj = new S3({
-      endpoint: this.parameters.endpoint,
-      forcePathStyle: this.parameters.forcePathStyle || false
-    });
+    var s3obj = new S3(this.parameters);
     return (
       await s3obj.getObject({
         Bucket: bucket,
@@ -307,10 +301,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   ) {
     let params: any = { Bucket, Prefix };
     let page = 0;
-    var s3 = new S3({
-      endpoint: this.parameters.endpoint,
-      forcePathStyle: this.parameters.forcePathStyle || false
-    });
+    var s3 = new S3(this.parameters);
     do {
       await s3.listObjectsV2(params).then(async ({ Contents, NextContinuationToken }: any) => {
         params.ContinuationToken = NextContinuationToken;
@@ -340,10 +331,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     metadatas = {},
     bucket: string = this.parameters.bucket
   ) {
-    var s3obj = new S3({
-      endpoint: this.parameters.endpoint,
-      forcePathStyle: this.parameters.forcePathStyle || false
-    });
+    var s3obj = new S3(this.parameters);
     await s3obj.putObject({
       Bucket: bucket,
       Key: key,
@@ -362,10 +350,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     if (data === undefined) {
       let s3metas: any = {};
       s3metas["x-amz-meta-challenge"] = file.challenge;
-      var s3obj = new S3({
-        endpoint: this.parameters.endpoint,
-        forcePathStyle: this.parameters.forcePathStyle || false
-      });
+      var s3obj = new S3(this.parameters);
       await s3obj.putObject({
         Bucket: this.parameters.bucket,
         Key: this._getKey(file.hash),

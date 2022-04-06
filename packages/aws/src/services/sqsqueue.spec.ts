@@ -75,12 +75,9 @@ class SQSQueueTest extends QueueTest {
   @test
   @timeout(80000)
   async basic() {
-    console.log("BASIC TEST");
     let queue: SQSQueue = <SQSQueue>this.webda.getService("sqsqueue");
     queue.getParameters().queue = "http://localhost:4566/000000000000/webda-test";
-    console.log("CLEAN", this.info?.QueueUrl);
     await queue.__clean();
-    console.log("SIMPLE");
     // Update timeout to 80000ms as Purge can only be sent once every 60s
     await this.simple(queue, true);
     queue.getParameters().CloudFormationSkip = true;

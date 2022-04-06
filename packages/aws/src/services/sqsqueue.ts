@@ -141,25 +141,14 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
 
   private async __cleanWithRetry(fail): Promise<void> {
     try {
-      console.log(
-        {
-          QueueUrl: this.parameters.queue
-        },
-        this.sqs.config,
-        this.sqs.config.endpoint(),
-        this.sqs.config.region()
-      );
-      console.log();
       await this.sqs.purgeQueue({
         QueueUrl: this.parameters.queue
       });
     } catch (err) {
-      console.log("ERROR IS", err);
       if (fail || err.name !== "AWS.SimpleQueueService.PurgeQueueInProgress") {
         throw err;
       }
       let delay = Math.floor(err.retryDelay * 1100);
-      console.log("Retry PurgeQueue in ", delay);
       // 10% of margin
       return new Promise(resolve => {
         setTimeout(() => {

@@ -18,15 +18,6 @@
     }
   },
   "services": {
-    "ConsoleLogger": {
-      "type": "Webda/ConsoleLogger",
-      "logLevel": "INFO"
-    },
-    "ConsoleTestLogger": {
-      "type": "Webda/ConsoleLogger",
-      "logLevels": "TEST",
-      "logLevel": "TEST"
-    },
     "SQSQueue": {
       "type": "SQSQueue",
       "endpoint": "http://localhost:4566",

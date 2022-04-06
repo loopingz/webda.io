@@ -15,10 +15,6 @@
       "logStreamNamePrefix": "test-",
       "logLevel": "DEBUG",
       "endpoint": "http://localhost:4566"
-    },
-    "ConsoleLogger": {
-      "type": "Webda/ConsoleLogger",
-      "logLevel": "INFO"
     }
   }
 }

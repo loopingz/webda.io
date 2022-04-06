@@ -3,8 +3,7 @@ import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { Storage } from "./storage";
 import * as sinon from "sinon";
-import { Binary } from "@webda/core";
-import { Storage as GCS, GetSignedUrlConfig } from "@google-cloud/storage";
+import { Storage as GCS } from "@google-cloud/storage";
 import path from "path";
 
 class MockFile {
@@ -136,7 +135,6 @@ class StorageTest extends BinaryTest<Storage> {
     const binary = this.getBinary();
     const from = `${this.prefix}/rawAccess`;
     const to = `${this.prefix}/movedAccess`;
-    Storage.getModda();
     await binary.putObject(from, path.join(__dirname, "..", "..", "test", "Dockerfile.txt"));
     await binary.moveObject({ key: from }, { key: to });
     assert.deepStrictEqual(binary.getSignedUrlHeaders(), {});

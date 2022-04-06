@@ -343,17 +343,6 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       }
     );
   }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda() {
-    return {
-      uuid: "Webda/AsyncJobService",
-      label: "AsyncJobService",
-      description: "Implements a full async job system"
-    };
-  }
 }
 
 export { AsyncJobService };

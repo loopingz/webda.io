@@ -1,7 +1,7 @@
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { GCPPubSubService, GCPPubSubParameters } from "./pubsub";
+import { GCPPubSubService } from "./pubsub";
 import { CancelablePromise, WaitFor, WaitLinearDelay } from "@webda/core";
 import * as sinon from "sinon";
 
@@ -34,7 +34,6 @@ class GCPPubSubTest extends WebdaTest {
       );
     });
     await pubsub.sendMessage("plop");
-    GCPPubSubService.getModda();
     await WaitFor(
       async resolve => {
         if (counter === 2) {

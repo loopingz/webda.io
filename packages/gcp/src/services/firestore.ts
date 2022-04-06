@@ -18,7 +18,7 @@ export class FireStoreParameters extends StoreParameters {
 /**
  * Implement Firebase abstraction within Webda
  *
- * @WebdaModda
+ * @WebdaModda GoogleCloudFireStore
  */
 export default class FireStore<
   T extends CoreModel = CoreModel,

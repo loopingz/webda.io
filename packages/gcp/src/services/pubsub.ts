@@ -17,7 +17,7 @@ export class GCPPubSubParameters extends ServiceParameters {
  *
  * Can also act as queue
  *
- * @WebdaModda
+ * @WebdaModda GoogleCloudPubSub
  */
 export default class GCPPubSubService<
   T = any,

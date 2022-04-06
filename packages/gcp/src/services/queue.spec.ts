@@ -29,7 +29,6 @@ class GCPQueueTest extends QueueTest {
       this.log("DEBUG", "Verify receiveMessage is now empty");
       queue.getParameters().timeout = 3000;
       assert.deepStrictEqual(await queue.receiveMessage(), []);
-      GCPQueue.getModda();
     } finally {
       await queue.pubsub.subscription(queue.getParameters().subscription).delete();
     }

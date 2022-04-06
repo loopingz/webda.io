@@ -1,15 +1,15 @@
 {
   "moddas": {
-    "webda/firestore": "lib/services/firestore:default",
-    "webda/gcppubsubservice": "lib/services/pubsub:default",
-    "webda/gcpqueue": "lib/services/queue:default",
-    "webda/storage": "lib/services/storage:default"
+    "webda/googlecloudfirestore": "lib/services/firestore:default",
+    "webda/googlecloudpubsub": "lib/services/pubsub:default",
+    "webda/googlecloudqueue": "lib/services/queue:default",
+    "webda/googlecloudstorage": "lib/services/storage:default"
   },
   "beans": {},
   "models": {},
   "deployers": {},
   "schemas": {
-    "webda/storage": {
+    "webda/googlecloudstorage": {
       "type": "object",
       "properties": {
         "type": {
@@ -74,9 +74,9 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Storage"
+      "title": "GoogleCloudStorage"
     },
-    "webda/firestore": {
+    "webda/googlecloudfirestore": {
       "type": "object",
       "properties": {
         "type": {
@@ -158,9 +158,9 @@
           }
         }
       },
-      "title": "FireStore"
+      "title": "GoogleCloudFireStore"
     },
-    "webda/gcppubsubservice": {
+    "webda/googlecloudpubsub": {
       "type": "object",
       "properties": {
         "type": {
@@ -694,9 +694,9 @@
           "$ref": "#/definitions/google.pubsub.v1.PushConfig.IOidcToken"
         }
       },
-      "title": "GCPPubSubService"
+      "title": "GoogleCloudPubSub"
     },
-    "webda/gcpqueue": {
+    "webda/googlecloudqueue": {
       "type": "object",
       "properties": {
         "type": {
@@ -758,7 +758,7 @@
           "description": "WaitDelayer definition"
         }
       },
-      "title": "GCPQueue"
+      "title": "GoogleCloudQueue"
     }
   }
 }

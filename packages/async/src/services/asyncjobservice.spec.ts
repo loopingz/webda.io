@@ -19,15 +19,6 @@ class AsyncJobServiceTest extends WebdaTest {
     this.store = this.getService("AsyncJobs");
   }
 
-  /**
-   * Catch some lines with low business values
-   */
-  @test
-  async cov() {
-    // COV
-    AsyncJobService.getModda();
-  }
-
   @test
   async worker() {
     const service = this.getValidService();

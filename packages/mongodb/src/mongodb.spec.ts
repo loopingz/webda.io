@@ -19,11 +19,6 @@ class MongoDBTest extends StoreTest {
   }
 
   @test
-  getModda() {
-    MongoStore.getModda();
-  }
-
-  @test
   params() {
     assert.throws(() => new MongoParameters({}, this.getUserStore()), /An URL is required for MongoDB service/);
     new MongoParameters({ url: "", options: {} }, this.getUserStore());

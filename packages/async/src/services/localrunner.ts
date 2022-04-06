@@ -93,15 +93,4 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
       pid: child.pid
     };
   }
-
-  /**
-   * @inheritdoc
-   */
-  static getModda() {
-    return {
-      uuid: "Webda/LocalRunner",
-      label: "Local Runner",
-      description: "Implements a runner that launch a local program"
-    };
-  }
 }

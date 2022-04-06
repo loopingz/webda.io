@@ -48,7 +48,7 @@ export class StorageParameters extends BinaryParameters {
  * Storage handles the storage of binary on a Google Cloud Storage bucket
  *
  * See Binary the general interface
- * @WebdaModda
+ * @WebdaModda GoogleCloudStorage
  */
 export default class Storage<T extends StorageParameters = StorageParameters> extends CloudBinary<T> {
   private _storage?: GCS;

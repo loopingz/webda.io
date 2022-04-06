@@ -35,7 +35,6 @@ class LocalRunnerTest extends WebdaTest {
     assert.strictEqual(runner.handleType("plop"), true);
     assert.strictEqual(runner.handleType("plop2"), false);
     new LocalRunner(this.webda, "runner", { options: { env: { OK: "test" } } });
-    LocalRunner.getModda();
     // Just for loadParameters
     new FakeRunner(this.webda, "fake", {});
   }

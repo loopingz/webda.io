@@ -1,7 +1,7 @@
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import { Store, Ident } from "@webda/core";
 import { test, suite } from "@testdeck/mocha";
-import { FireStore, FireStoreParameters } from "./firestore";
+import { FireStore } from "./firestore";
 import * as assert from "assert";
 import * as sinon from "sinon";
 import { v4 as uuidv4 } from "uuid";
@@ -95,7 +95,7 @@ class FireStoreTest extends StoreTest {
 
   @test
   async cov() {
-    const store = this.getIdentStore();
+    const store: FireStore = <FireStore>this.getIdentStore();
     await assert.rejects(() => store.upsertItemToCollection("inexisting", "plop", {}, 0), /Item not found inexisting/);
     sinon.stub(store, "getDocumentRef").callsFake(() => {
       throw new Error("FAKE");

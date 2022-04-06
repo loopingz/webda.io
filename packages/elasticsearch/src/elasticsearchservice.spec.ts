@@ -67,7 +67,6 @@ class ElasticSearchTest extends WebdaTest {
 
   @test
   cov() {
-    ElasticSearchService.getModda();
     this.service.getClient();
     this.service.setRefreshMode(true);
 

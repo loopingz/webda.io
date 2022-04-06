@@ -26,7 +26,7 @@ export class GCPQueueParameters extends QueueParameters {
 /**
  * GCP Queue implementation on top of Pub/Sub
  *
- * @WebdaModda
+ * @WebdaModda GoogleCloudQueue
  */
 export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueueParameters> extends Queue<T, K> {
   /**

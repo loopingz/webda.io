@@ -295,7 +295,6 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     this.resources.Format = this.resources.Format || "JSON";
     this.resources.OpenAPIFileName = this.resources.OpenAPIFileName || "${resources.name}-openapi-${package.version}";
     this.resources.OpenAPITitle = this.resources.OpenAPITitle || this.resources.name;
-    let autoRole;
     // Default Lambda value
     if (this.resources.Lambda) {
       let zipPath = "lambda-${package.version}.zip";

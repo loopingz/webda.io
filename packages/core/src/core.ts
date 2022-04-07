@@ -1,6 +1,5 @@
 import Ajv, { ErrorObject } from "ajv";
 import addFormats from "ajv-formats";
-import * as deepmerge from "deepmerge";
 import * as events from "events";
 import { JSONSchema7 } from "json-schema";
 import * as jsonpath from "jsonpath";
@@ -13,6 +12,7 @@ import { OpenAPIWebdaDefinition, RouteInfo, Router } from "./router";
 import { WorkerOutput, WorkerLogLevel } from "@webda/workout";
 import { v4 as uuidv4 } from "uuid";
 import ValidationError from "ajv/dist/runtime/validation_error";
+import { deepmerge } from "deepmerge-ts";
 
 /**
  * Error with a code
@@ -390,7 +390,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
           this.configuration.parameters = { ...this.configuration.parameters, ...cfg.webda.parameters };
           for (let i in this.configuration.services) {
             this.configuration.services[i] = {
-              ...deepmerge.all([this.configuration.services[i], cfg.webda.services[i] || {}]),
+              ...deepmerge(this.configuration.services[i], cfg.webda.services[i] || {}),
               type: this.configuration.services[i].type
             };
           }
@@ -723,12 +723,12 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     configuration.parameters ??= {};
     configuration.services ??= {};
     configuration.services[service] ??= {};
-    const params: any = deepmerge.all([
+    const params: any = deepmerge(
       this.configuration.parameters || {},
       configuration.parameters || {},
       this.configuration.services[service] || {},
       configuration.services[service] || {}
-    ]);
+    );
     delete params.require;
     return params;
   }

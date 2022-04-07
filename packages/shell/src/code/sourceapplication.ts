@@ -6,8 +6,7 @@ import {
   GitInformation,
   JSONUtils,
   WebdaError,
-  Configuration,
-  CachedModule
+  Configuration
 } from "@webda/core";
 import * as path from "path";
 import * as fs from "fs";

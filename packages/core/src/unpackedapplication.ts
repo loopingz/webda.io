@@ -72,7 +72,10 @@ export class UnpackedApplication extends Application {
     return configuration;
   }
 
-  getGitInformation(name?: string, version?: string): GitInformation {
+  /**
+   * @returns empty git information
+   */
+  getGitInformation(_name?: string, _version?: string): GitInformation {
     return {
       branch: "",
       commit: "",
@@ -166,7 +169,7 @@ export class UnpackedApplication extends Application {
   /**
    * Only allow local and core module and sample-app
    */
-  filterModule(filename: string): boolean {
+  filterModule(_filename: string): boolean {
     return true;
   }
 

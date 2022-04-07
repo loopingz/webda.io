@@ -109,7 +109,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
    * @param redirect_uri
    * @param state
    */
-  generateAuthUrl(redirect_uri: string, state: string, ctx: Context) {
+  generateAuthUrl(redirect_uri: string, state: string, _ctx: Context) {
     let oauthClient = this.getOAuthClient(redirect_uri);
     return oauthClient.generateAuthUrl({
       access_type: this.parameters.access_type,

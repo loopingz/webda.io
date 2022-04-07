@@ -85,7 +85,7 @@ export class HttpContext {
    */
   setPrefix(prefix: string): void {
     if (prefix.endsWith("/")) {
-      prefix = prefix.substr(0, prefix.length - 1);
+      prefix = prefix.substring(0, prefix.length - 1);
     }
     this.prefix = prefix;
   }
@@ -94,7 +94,7 @@ export class HttpContext {
    * Return Uri without prefix
    */
   getRelativeUri(): string {
-    return this.uri.substr(this.prefix.length);
+    return this.uri.substring(this.prefix.length);
   }
 
   getUrl(): string {
@@ -221,7 +221,7 @@ export class Context<T = any, U = any> extends EventEmitter {
    * @private
    * Used in case of Buffer response ( like Lambda )
    */
-  public _write(chunk, enc, next) {
+  public _write(chunk, _enc, next) {
     if (this._body === undefined) {
       this._body = [];
     }
@@ -255,8 +255,8 @@ export class Context<T = any, U = any> extends EventEmitter {
    * @param name of the extension
    * @returns extension object
    */
-  public getExtension<T = any>(name: string): T {
-    return <T>this.extensions[name];
+  public getExtension<K = any>(name: string): K {
+    return <K>this.extensions[name];
   }
 
   /**
@@ -328,7 +328,7 @@ export class Context<T = any, U = any> extends EventEmitter {
    * @param ...args any arguments to pass to the toPublicJSON method
    */
   // @ts-ignore
-  public write(output: U, encoding?: string, cb?: (error: Error) => void): boolean {
+  public write(output: U, _encoding?: string, _cb?: (error: Error) => void): boolean {
     if (this.statusCode === 204) {
       this.statusCode = 200;
     }
@@ -520,8 +520,8 @@ export class Context<T = any, U = any> extends EventEmitter {
    * @see Webda
    * @param {String} name of the service
    */
-  getService<T extends Service>(name): T {
-    return this._webda.getService<T>(name);
+  getService<K extends Service>(name): K {
+    return this._webda.getService<K>(name);
   }
 
   /**
@@ -535,15 +535,15 @@ export class Context<T = any, U = any> extends EventEmitter {
   /**
    * Get the current user from session
    */
-  async getCurrentUser<T extends User>(refresh: boolean = false): Promise<T> {
+  async getCurrentUser<K extends User>(refresh: boolean = false): Promise<K> {
     if (!this.getCurrentUserId()) {
       return undefined;
     }
     // Caching the answer
     if (!this.user || refresh) {
-      this.user = await this._webda.getService<Store<T, any>>("Users").get(this.getCurrentUserId());
+      this.user = await this._webda.getService<Store<K, any>>("Users").get(this.getCurrentUserId());
     }
-    return <T>this.user;
+    return <K>this.user;
   }
 
   /**

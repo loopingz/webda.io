@@ -18,7 +18,7 @@ export default class DebugMailer extends AbstractMailer {
    * @param options
    * @param callback
    */
-  async send(options, callback = undefined): Promise<void> {
+  async send(options, _callback = undefined): Promise<void> {
     this.log("DEBUG", "Send a fake email", options);
     this.sent.push(options);
   }
@@ -36,7 +36,7 @@ export default class DebugMailer extends AbstractMailer {
    * @param name
    * @returns
    */
-  async hasNotification(name: string): Promise<boolean> {
+  async hasNotification(_name: string): Promise<boolean> {
     // Load template
     return true;
   }

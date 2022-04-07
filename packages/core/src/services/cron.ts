@@ -69,7 +69,7 @@ class CronService extends Service {
   private _scanned: boolean = false;
 
   static Annotation(cron: string, description: string = "", ...args) {
-    return (target: any, property: string, descriptor: PropertyDescriptor) => {
+    return (_target: any, property: string, descriptor: PropertyDescriptor) => {
       descriptor.value.cron = descriptor.value.cron || [];
       descriptor.value.cron.push(new CronDefinition(cron, args, "", property, description));
     };

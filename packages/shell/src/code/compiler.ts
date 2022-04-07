@@ -36,19 +36,16 @@ import { JSONSchema7 } from "json-schema";
  */
 /* istanbul ignore next */
 export class FunctionTypeFormatter implements SubTypeFormatter {
-  // You can skip this line if you don't need childTypeFormatter
-  public constructor() {}
-
   public supportsType(type: FunctionType): boolean {
     return type instanceof FunctionType;
   }
 
-  public getDefinition(type: FunctionType): Definition {
+  public getDefinition(_type: FunctionType): Definition {
     // Return a custom schema for the function property.
     return {};
   }
 
-  public getChildren(type: FunctionType): BaseType[] {
+  public getChildren(_type: FunctionType): BaseType[] {
     return [];
   }
 }
@@ -86,7 +83,7 @@ function getKey(node: ts.Node, context: Context): string {
   while (node) {
     const file = node
       .getSourceFile()
-      .fileName.substr(process.cwd().length + 1)
+      .fileName.substring(process.cwd().length + 1)
       .replace(/\//g, "_");
     ids.push(hash(file), node.pos, node.end);
 
@@ -104,13 +101,11 @@ function getKey(node: ts.Node, context: Context): string {
  */
 /* istanbul ignore next */
 class ConstructorNodeParser implements SubNodeParser {
-  public constructor() {}
-
   public supportsNode(node: ts.ConstructorTypeNode): boolean {
     return node.kind === ts.SyntaxKind.ConstructorType;
   }
 
-  public createType(node: ts.TypeQueryNode, context: Context, reference?: ReferenceType): BaseType | undefined {
+  public createType(_node: ts.TypeQueryNode, _context: Context, _reference?: ReferenceType): BaseType | undefined {
     return undefined;
   }
 }
@@ -132,7 +127,7 @@ export class TypeofNodeParser implements SubNodeParser {
       symbol = this.typeChecker.getAliasedSymbol(symbol);
     }
 
-    const valueDec = symbol.valueDeclaration!;
+    const valueDec = symbol.valueDeclaration;
     if (ts.isEnumDeclaration(valueDec)) {
       return this.createObjectFromEnum(valueDec, context, reference);
     } else if (
@@ -239,14 +234,14 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         member =>
           isPublic(member) && !isStatic(member) && member.type && !this.getPropertyName(member.name).startsWith("__")
       )
-      .map(member => {
-        let memberObject = new ObjectProperty(
-          this.getPropertyName(member.name),
-          this.childNodeParser.createType(member.type!, context),
-          !member.questionToken
-        );
-        return memberObject;
-      })
+      .map(
+        member =>
+          new ObjectProperty(
+            this.getPropertyName(member.name),
+            this.childNodeParser.createType(member.type, context),
+            !member.questionToken
+          )
+      )
       .filter(prop => {
         if (prop.isRequired() && prop.getType() === undefined) {
           /* istanbul ignore next */
@@ -486,7 +481,7 @@ export class Compiler {
               }
               if (section) {
                 let originName =
-                  tags[`Webda${section.substr(0, 1).toUpperCase()}${section.substr(1, section.length - 2)}`];
+                  tags[`Webda${section.substring(0, 1).toUpperCase()}${section.substring(1, section.length - 1)}`];
                 let name = this.app.completeNamespace(originName);
                 module[section][name] = jsFile;
                 if (!module.schemas[name] && schemaNode) {
@@ -611,13 +606,13 @@ export class Compiler {
     this.createProgramFromApp();
 
     // Emit all code
-    const { diagnostics, emitSkipped } = this.tsProgram.emit();
+    const { diagnostics } = this.tsProgram.emit();
 
     const allDiagnostics = ts.getPreEmitDiagnostics(this.tsProgram).concat(diagnostics, this.configParseResult.errors);
 
     if (allDiagnostics.length) {
       const formatHost: ts.FormatDiagnosticsHost = {
-        getCanonicalFileName: path => path,
+        getCanonicalFileName: p => p,
         getCurrentDirectory: ts.sys.getCurrentDirectory,
         getNewLine: () => ts.sys.newLine
       };
@@ -652,10 +647,9 @@ export class Compiler {
         )
       );
     });
-    const formatter = createFormatter(config, (fmt, circularReferenceTypeFormatter) => {
+    const formatter = createFormatter(config, (fmt, _circularReferenceTypeFormatter) => {
       // If your formatter DOES NOT support children, e.g. getChildren() { return [] }:
       fmt.addTypeFormatter(new FunctionTypeFormatter());
-      //fmt.addTypeFormatter(new WebdaObjectPropertyFormatter(circularReferenceTypeFormatter));
     });
     this.schemaGenerator = new SchemaGenerator(this.tsProgram, parser, formatter, config);
     this.compiled = true;
@@ -692,7 +686,7 @@ export class Compiler {
     const addServiceSchema = (type: "ServiceType" | "BeanType") => {
       return serviceType => {
         const key = `${type}$${serviceType.replace(/\//g, "$")}`;
-        const definition: JSONSchema7 = (res.definitions[key] = <JSONSchema7>this.app.getSchema(serviceType));
+        const definition: JSONSchema7 = (res.definitions[key] = this.app.getSchema(serviceType));
         if (!definition) {
           return;
         }
@@ -770,7 +764,7 @@ export class Compiler {
     });
     Object.keys(this.app.getDeployers()).forEach(serviceType => {
       const key = `DeployerType$${serviceType.replace(/\//g, "$")}`;
-      const definition: JSONSchema7 = (res.definitions[key] = <JSONSchema7>this.app.getSchema(serviceType));
+      const definition: JSONSchema7 = (res.definitions[key] = this.app.getSchema(serviceType));
       if (!definition) {
         return;
       }
@@ -826,7 +820,7 @@ export class Compiler {
   watch(callback: (diagnostic: ts.Diagnostic) => void, logger: Logger) {
     const formatHost: ts.FormatDiagnosticsHost = {
       // This method is not easily reachable and is straightforward
-      getCanonicalFileName: /* istanbul ignore next */ path => path,
+      getCanonicalFileName: /* istanbul ignore next */ p => p,
       getCurrentDirectory: ts.sys.getCurrentDirectory,
       getNewLine: () => ts.sys.newLine
     };
@@ -922,7 +916,7 @@ export class Compiler {
    * @param level
    */
   displayItem(node: ts.Node, level: number = 0) {
-    console.log(".".repeat(level), ts.SyntaxKind[node.kind], node.getText().split("\n")[0].substr(0, 60));
+    console.log(".".repeat(level), ts.SyntaxKind[node.kind], node.getText().split("\n")[0].substring(0, 60));
   }
 
   /**

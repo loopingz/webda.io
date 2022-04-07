@@ -30,7 +30,7 @@ export default class AWSSecretsManager<T extends AWSSecretsManagerParameters = A
   /**
    * @inheritdoc
    */
-  canTriggerConfiguration(id: string, callback: () => void) {
+  canTriggerConfiguration(_id: string, _callback: () => void) {
     return false;
   }
 

@@ -7,9 +7,7 @@ import {
   Service,
   ServiceConstructor
 } from "@webda/core";
-import { WorkerOutput } from "@webda/workout";
 import * as path from "path";
-import { SourceApplication } from "../code/sourceapplication";
 import { Deployment } from "../models/deployment";
 import { WebdaServer } from "./http";
 
@@ -94,7 +92,7 @@ export class ConfigApplication extends Application {
     });
   }
 
-  getConfiguration(deploymentName: string = undefined): Configuration {
+  getConfiguration(_deploymentName: string = undefined): Configuration {
     return {
       version: 3,
       parameters: {

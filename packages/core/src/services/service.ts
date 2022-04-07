@@ -3,7 +3,6 @@ import { Core, Logger } from "../index";
 import { HttpMethodType } from "../utils/context";
 import { EventService } from "./asyncevents";
 import { WorkerLogLevel } from "@webda/workout";
-import { JSONSchema6 } from "json-schema";
 import { OpenAPIWebdaDefinition } from "../router";
 
 /**
@@ -29,7 +28,7 @@ class Injector {
     this.optional = optional;
     if (!defaultValue) {
       if (parameterOrName.startsWith("params:")) {
-        this.parameter = parameterOrName.substr(7);
+        this.parameter = parameterOrName.substring(7);
       } else {
         this.value = parameterOrName;
       }

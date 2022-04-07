@@ -187,7 +187,7 @@ export class WebdaServer extends Webda {
     res.end();
   }
 
-  protected handleStaticIndexRequest(req, res, next) {
+  protected handleStaticIndexRequest(_req, res, _next) {
     res.sendFile(this.staticIndex);
   }
 
@@ -209,7 +209,7 @@ export class WebdaServer extends Webda {
    * @param express
    * @param app
    */
-  serveIndex(express, app) {
+  serveIndex(_express, app) {
     if (this.getGlobalParams().website && this.getGlobalParams().website.path) {
       let index = path.join(
         this.application.getAppPath(),

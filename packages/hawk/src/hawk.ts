@@ -62,8 +62,14 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
     return new HawkServiceParameters(params);
   }
 
+  /**
+   *
+   * @param id
+   * @param _timestamp used to invalidate cache
+   * @returns
+   */
   @Cache()
-  async getApiKey(id, timestamp = undefined) {
+  async getApiKey(id, _timestamp = undefined) {
     return (await this.store.get(id)).toHawkCredentials();
   }
 

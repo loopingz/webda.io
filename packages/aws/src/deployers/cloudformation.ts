@@ -362,7 +362,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       this.resources.APIGatewayBasePathMapping.DomainName ??= this.resources.APIGatewayDomain.DomainName;
       if (this.resources.APIGatewayBasePathMapping.DomainName.endsWith(".")) {
         this.resources.APIGatewayBasePathMapping.DomainName =
-          this.resources.APIGatewayBasePathMapping.DomainName.substr(
+          this.resources.APIGatewayBasePathMapping.DomainName.substring(
             0,
             this.resources.APIGatewayBasePathMapping.DomainName.length - 1
           );
@@ -383,7 +383,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       this.resources.APIGatewayV2ApiMapping.DomainName =
         this.resources.APIGatewayV2ApiMapping.DomainName || this.resources.APIGatewayDomain.DomainName;
       if (this.resources.APIGatewayV2ApiMapping.DomainName.endsWith(".")) {
-        this.resources.APIGatewayV2ApiMapping.DomainName = this.resources.APIGatewayV2ApiMapping.DomainName.substr(
+        this.resources.APIGatewayV2ApiMapping.DomainName = this.resources.APIGatewayV2ApiMapping.DomainName.substring(
           0,
           this.resources.APIGatewayV2ApiMapping.DomainName.length - 1
         );
@@ -395,7 +395,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       if (!conf.AssetsPath) {
         conf.AssetsPath = conf.Source;
         if (conf.AssetsPath.startsWith("/")) {
-          conf.AssetsPath = conf.AssetsPath.substr(1);
+          conf.AssetsPath = conf.AssetsPath.substring(1);
         }
         if (!conf.AssetsPath.endsWith("/")) {
           conf.AssetsPath += "/";
@@ -427,7 +427,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
             {
               DomainName: `${this.resources.AssetsBucket}.s3.amazonaws.com`,
               Id: conf.DomainName,
-              OriginPath: `/${conf.AssetsPath.substr(0, conf.AssetsPath.length - 1)}`,
+              OriginPath: `/${conf.AssetsPath.substring(0, conf.AssetsPath.length - 1)}`,
               S3OriginConfig: {}
             }
           ];
@@ -507,9 +507,8 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
 
   /**
    * Upload any asset to bucket
-   * @param assets
    */
-  async uploadStatics(assets: boolean = true) {
+  async uploadStatics() {
     for (let i in this.resources.Statics) {
       const { Source, AssetsPath } = this.resources.Statics[i];
 
@@ -887,7 +886,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   getStringified(object, filename, addPrefix: boolean = true) {
     let key = addPrefix ? path.join(this.resources.AssetsPrefix, filename) : filename;
     if (key.startsWith("/")) {
-      key = key.substr(1);
+      key = key.substring(1);
     }
     let src;
     // Default to Format parameter

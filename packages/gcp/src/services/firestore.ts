@@ -57,7 +57,7 @@ export default class FireStore<
    *
    * Return all for now
    */
-  _find(request: any, offset: any, limit: any): Promise<CoreModel[]> {
+  _find(_request: any, _offset: any, _limit: any): Promise<CoreModel[]> {
     return this.getAll();
   }
 

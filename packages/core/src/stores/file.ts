@@ -64,7 +64,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
     return fs.existsSync(this.file(uid));
   }
 
-  async _find(request, offset, limit): Promise<any> {
+  async _find(_request, _offset, _limit): Promise<any> {
     var files = fs.readdirSync(this.parameters.folder).filter(file => {
       return !fs.statSync(path.join(this.parameters.folder, file)).isDirectory();
     });
@@ -177,7 +177,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
       uids = [];
       var files = fs.readdirSync(this.parameters.folder);
       for (var file in files) {
-        uids.push(files[file].substr(0, files[file].length - FileStore.EXTENSION.length));
+        uids.push(files[file].substring(0, files[file].length - FileStore.EXTENSION.length));
       }
     }
     let result = [];

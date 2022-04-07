@@ -45,6 +45,7 @@ class LambdaCallerTest extends WebdaTest {
         service: jobInfo.JOB_ORCHESTRATOR,
         method: "runWebdaAsyncAction",
         args: [jobInfo],
+        action: undefined,
         // We also put the value in JOB_INFO for other type of runner
         JOB_INFO: jobInfo
       },

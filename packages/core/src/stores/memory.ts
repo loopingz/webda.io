@@ -31,7 +31,7 @@ class MemoryStore<T extends CoreModel, K extends StoreParameters = StoreParamete
   /**
    * @override
    */
-  async _find(request, offset, limit): Promise<any> {
+  async _find(_request, _offset, _limit): Promise<any> {
     // Need to transfert to Array
     return this.storage;
   }

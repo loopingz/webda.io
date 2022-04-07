@@ -392,7 +392,7 @@ export class Application {
     if (fs.lstatSync(file).isDirectory()) {
       file = path.join(file, "webda.config.jsonc");
       if (!fs.existsSync(file)) {
-        file = file.substr(0, file.length - 1);
+        file = file.substring(0, file.length - 1);
       }
     }
     this.configurationFile = file;
@@ -547,9 +547,9 @@ export class Application {
     }
     if (!this[section][objectName]) {
       throw Error(
-        `Undefined ${section.substr(0, section.length - 1)} ${name} or ${objectName} (${Object.keys(this[section]).join(
-          ", "
-        )})`
+        `Undefined ${section.substring(0, section.length - 1)} ${name} or ${objectName} (${Object.keys(
+          this[section]
+        ).join(", ")})`
       );
     }
     return this[section][objectName];
@@ -641,7 +641,7 @@ export class Application {
    * {@link GitInformation} for more details on how the information is gathered
    * @return the git information
    */
-  getGitInformation(packageName?: string, version?: string): GitInformation {
+  getGitInformation(_packageName?: string, _version?: string): GitInformation {
     return this.baseConfiguration.cachedModules.project?.git;
   }
 
@@ -735,7 +735,7 @@ export class Application {
    * Get application configuration
    * @returns
    */
-  getConfiguration(deployment: string = undefined): Configuration {
+  getConfiguration(_deployment: string = undefined): Configuration {
     return this.baseConfiguration;
   }
 
@@ -766,7 +766,6 @@ export class Application {
     try {
       this.log("TRACE", "Load file", info);
       const [importFilename, importName = "default"] = info.split(":");
-      // const relativePath = "./" + path.relative(this.appPath, path.resolve(info));
       const importObject = (await import(importFilename))[importName];
       if (!importObject) {
         this.log("WARN", `Module ${importFilename} does not have export named ${importName}`);

@@ -1,5 +1,5 @@
 import { Store, CoreModel, StoreParameters, UpdateConditionFailError, StoreNotFoundError } from "@webda/core";
-import { MongoClient, MongoClientOptions, DbOptions, Db, Collection, Document } from "mongodb";
+import { MongoClient, DbOptions, Db, Collection, Document } from "mongodb";
 
 export class MongoParameters extends StoreParameters {
   constructor(params: any, service: Store) {
@@ -20,7 +20,7 @@ export class MongoParameters extends StoreParameters {
   /**
    * Additional options for Mongo connetion
    *
-   * Should be MongoClientOptions but not available due to bug in ts-json-schema-generator
+   * Should be typed with MongoClientOptions but not available due to bug in ts-json-schema-generator
    * https://docs.mongodb.com/manual/reference/connection-string
    */
   options?: any;

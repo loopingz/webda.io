@@ -167,7 +167,7 @@ export default class ConfigurationService<
    *
    * @inheritdoc
    */
-  async reinit(config: any): Promise<void> {
+  async reinit(_config: any): Promise<void> {
     // Need to prevent any reinit
   }
 

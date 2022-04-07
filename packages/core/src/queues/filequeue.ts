@@ -90,7 +90,7 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
           ...fs.lstatSync(join(this.parameters.folder, f)),
           path: join(this.parameters.folder, f),
           hasLock: fs.existsSync(lockFile),
-          uid: f.substr(0, f.length - 5)
+          uid: f.substring(0, f.length - 5)
         };
         if (res.hasLock) {
           const lock = fs.lstatSync(lockFile);

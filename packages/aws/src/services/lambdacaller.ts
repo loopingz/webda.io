@@ -35,6 +35,7 @@ class LambdaCaller<T extends LambdaCallerParameters = LambdaCallerParameters> ex
         command: "launch",
         service: info.JOB_ORCHESTRATOR,
         method: "runWebdaAsyncAction",
+        action,
         args: [info],
         // We also put the value in JOB_INFO for other type of runner
         JOB_INFO: info

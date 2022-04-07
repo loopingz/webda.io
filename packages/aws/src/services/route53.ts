@@ -1,12 +1,5 @@
-import {
-  HostedZone,
-  ListHostedZonesRequest,
-  ListHostedZonesResponse,
-  ListResourceRecordSetsResponse,
-  Route53
-} from "@aws-sdk/client-route-53";
+import { HostedZone, ListHostedZonesRequest, ListHostedZonesResponse, Route53 } from "@aws-sdk/client-route-53";
 import { Service, Cache, JSONUtils } from "@webda/core";
-import { PromiseResult } from "aws-sdk/lib/request";
 
 export class Route53Service extends Service {
   /**
@@ -120,7 +113,7 @@ export class Route53Service extends Service {
    * Import all records to Route53
    * @param file
    */
-  static async import(file: string, importEntriesOnly: boolean, Console) {
+  static async import(file: string, Console) {
     let data = JSONUtils.loadFile(file);
     const targetZone = await this.getZoneForDomainName(data.domain);
     const r53 = new Route53({});
@@ -176,7 +169,7 @@ export class Route53Service extends Service {
     const command = args._.shift();
     switch (command) {
       case "import":
-        await this.import(args.file, false, Console);
+        await this.import(args.file, Console);
         break;
       case "export":
         await this.export(args.domain, args.file);

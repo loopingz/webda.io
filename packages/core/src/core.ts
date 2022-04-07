@@ -141,7 +141,7 @@ export function Route(
   allowPath: boolean = false,
   openapi: OpenAPIWebdaDefinition = {}
 ) {
-  return function (target: any, executor: string, descriptor: PropertyDescriptor) {
+  return function (target: any, executor: string) {
     let targetName = target.constructor.name.toLowerCase();
     beans[targetName] = beans[targetName] || {
       constructor: target.constructor
@@ -647,14 +647,14 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    *
    * @abstract
    */
-  public flushHeaders(context: Context): void {
+  public flushHeaders(_context: Context): void {
     // Should be overriden by implementation
   }
 
   /**
    * Flush the entire response to the client
    */
-  public flush(context: Context): void {
+  public flush(_context: Context): void {
     // Should be overriden by implementation
   }
 
@@ -915,7 +915,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param format to return different type of format
    * Plan to implement base64 and maybe base85
    */
-  public getUuid(format: "hex" = "hex"): string {
+  public getUuid(_format: "hex" = "hex"): string {
     return uuidv4().toString();
   }
 

@@ -119,7 +119,7 @@ export default class ApiKey extends OwnerModel {
       };
       updates[`key_${this.uuid}`] = {
         statics: this.origins.filter((l: string) => !l.startsWith("regexp://")),
-        patterns: this.origins.filter((l: string) => l.startsWith("regexp://")).map((l: string) => l.substr(9))
+        patterns: this.origins.filter((l: string) => l.startsWith("regexp://")).map((l: string) => l.substring(9))
       };
       await this.getStore().update(updates, false, true);
     } else {

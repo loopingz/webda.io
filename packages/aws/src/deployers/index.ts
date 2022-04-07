@@ -184,7 +184,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    * @param format hex or b64
    */
   protected hash(str: string, type: string = "md5", format: "hex" | "base64" = "hex"): string {
-    return crypto.createHash("md5").update(str).digest(format);
+    return crypto.createHash(type).update(str).digest(format);
   }
 
   /**
@@ -204,7 +204,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
    */
   async getCertificate(domain: string, region: string = undefined) {
     if (domain.endsWith(".")) {
-      domain = domain.substr(0, domain.length - 1);
+      domain = domain.substring(0, domain.length - 1);
     }
     let acm: ACM = new ACM({
       endpoint: this.resources.endpoints.ACM,
@@ -329,7 +329,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
       endpoint: this.resources.endpoints.S3
     });
     if (domain.endsWith(".")) {
-      domain = domain.substr(0, domain.length - 1);
+      domain = domain.substring(0, domain.length - 1);
     }
     let params = {
       DomainName: domain,
@@ -340,7 +340,7 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
         }
       ],
       ValidationMethod: "DNS",
-      IdempotencyToken: "Webda_" + this.md5(domain).substr(0, 26)
+      IdempotencyToken: "Webda_" + this.md5(domain).substring(0, 26)
     };
     let certificate = await acm.requestCertificate(params);
     let cert: CertificateDetail = await this.waitFor(

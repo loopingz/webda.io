@@ -59,7 +59,7 @@ export default class GCPPubSubService<
       }
     };
     return new CancelablePromise<void>(
-      async (resolve, reject) => {
+      async (_resolve, reject) => {
         try {
           subscription = this.pubsub.subscription(subscriptionName);
           const [result] = await this.pubsub

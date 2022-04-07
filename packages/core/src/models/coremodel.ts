@@ -130,8 +130,8 @@ class CoreModel {
    * @returns
    */
   async canAct(
-    ctx: Context,
-    action:
+    _ctx: Context,
+    _action:
       | "create"
       | "update"
       | "get"
@@ -309,7 +309,7 @@ class CoreModel {
    * @param object
    * @returns
    */
-  generateUid(object: any = undefined): string {
+  generateUid(_object: any = undefined): string {
     return uuidv4().toString();
   }
 
@@ -430,7 +430,7 @@ class CoreModel {
    *
    * @param updates to be send
    */
-  async _onUpdate(updates: any) {
+  async _onUpdate(_updates: any) {
     // Empty to be overriden
   }
 

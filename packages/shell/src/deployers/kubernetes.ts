@@ -111,7 +111,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     return hash
       .update(JSON.stringify(cron) + this.name + this.manager.getDeploymentName())
       .digest("hex")
-      .substr(0, 8);
+      .substring(0, 8);
   }
 
   async deploy() {

@@ -547,7 +547,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
     );
     assert.strictEqual(
       await this.deployer.restrictedCall("hash", "bouzouf", "sha256", "hex"),
-      "fc45f69f910da129848cd265448a5d00"
+      "af6773b1075007089c46a6d0b8e9ac03abfdb526de0683bfeb723f2448ea3f66"
     );
   }
 

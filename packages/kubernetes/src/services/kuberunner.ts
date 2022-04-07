@@ -73,7 +73,7 @@ export default class KubeRunner<T extends KubeRunnerParameters = KubeRunnerParam
   /**
    * @inheritdoc
    */
-  async launchAction(action: AsyncAction, info: JobInfo): Promise<KubeJob> {
+  async launchAction(_action: AsyncAction, info: JobInfo): Promise<KubeJob> {
     const resources = this.getWebda()
       .getApplication()
       .replaceVariables(this.parameters.jobResources, {

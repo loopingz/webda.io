@@ -97,7 +97,7 @@ export default class AMQPPubSubService<
   ): CancelablePromise {
     let consumerTag;
     return new CancelablePromise(
-      async (resolve, reject) => {
+      async (_resolve, reject) => {
         let queue = await this.channel.assertQueue("", {
           exclusive: true,
           durable: false,

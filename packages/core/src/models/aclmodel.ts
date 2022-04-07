@@ -117,7 +117,7 @@ export default class AclModel extends CoreModel {
   }
 
   // Should cache the user role in the session
-  getGroups(ctx: Context, user: User) {
+  getGroups(_ctx: Context, user: User) {
     if (!user) {
       return [];
     }

@@ -17,7 +17,7 @@ export interface IAWSServiceParameters {
 // for changing it with an encapsulated private property:
 
 export function AWSServiceParameters<TBase extends Constructor>(Base: TBase) {
-  return class AWSServiceParameters extends Base implements IAWSServiceParameters {
+  return class AWSServiceParametersMixin extends Base implements IAWSServiceParameters {
     // Mixins may not declare private/protected properties
     // however, you can use ES2020 private fields
     endpoint?: string;

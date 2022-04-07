@@ -1030,7 +1030,7 @@ abstract class Store<
    * @param uuid
    * @returns
    */
-  async cascadeDelete(obj: CoreModel, uuid: string): Promise<any> {
+  async cascadeDelete(obj: CoreModel, _uuid: string): Promise<any> {
     // We dont need uuid but Binary store will need it
     return this.delete(obj.getUuid());
   }
@@ -1117,7 +1117,7 @@ abstract class Store<
    * @param id
    * @param callback
    */
-  canTriggerConfiguration(id: string, callback: () => void) {
+  canTriggerConfiguration(_id: string, _callback: () => void) {
     return false;
   }
 

@@ -53,7 +53,7 @@ export default class Profiler<T extends ProfilerParameters = ProfilerParameters>
    * @param {Service} service being patched
    * @param method method being patch
    */
-  preprocessor(service: Service, method: string) {
+  preprocessor(_service: Service, _method: string) {
     return {
       start: Date.now()
     };
@@ -155,7 +155,7 @@ export default class Profiler<T extends ProfilerParameters = ProfilerParameters>
    * @param {Context} request to instrument
    * @param {any[]}
    */
-  instrumentRequest(ctx: Context, ...args: any[]) {
+  instrumentRequest(ctx: Context, ..._args: any[]) {
     const exec = ctx.execute.bind(ctx);
     // Dynamic replace the execute functionc
     ctx.execute = async () => {

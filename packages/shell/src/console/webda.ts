@@ -1,5 +1,4 @@
-"use strict";
-import { CancelablePromise, FileUtils, JSONUtils, Logger } from "@webda/core";
+import { CancelablePromise, FileUtils, Logger } from "@webda/core";
 import { ChildProcess, spawn } from "child_process";
 import * as colors from "colors";
 import * as crypto from "crypto";
@@ -14,7 +13,6 @@ import * as path from "path";
 import * as semver from "semver";
 import * as jsonc from "jsonc-parser";
 import { BuildSourceApplication, SourceApplication } from "../code/sourceapplication";
-import { JSONSchema7 } from "json-schema";
 
 export type WebdaCommand = (argv: any[]) => void;
 export interface WebdaShellExtension {
@@ -46,7 +44,7 @@ export default class WebdaConsole {
   static onSIGINT: () => never = undefined;
   static extensions: { [key: string]: WebdaShellExtension } = {};
 
-  static async parser(args): Promise<yargs.Argv> {
+  static async parser(_args): Promise<yargs.Argv> {
     let y = yargs()
       // @ts-ignore
       .exitProcess(false)
@@ -219,7 +217,7 @@ export default class WebdaConsole {
       args.push("--devMode");
       let webdaConsole = this;
       let addTime = new Transform({
-        transform(chunk, encoding, callback) {
+        transform(chunk, _encoding, callback) {
           chunk
             .toString()
             .split("\n")

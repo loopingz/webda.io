@@ -185,7 +185,7 @@ export class Container<T extends ContainerResources> extends Deployer<T> {
     return { tag };
   }
 
-  copyPackageToLinkModules(pkg: string, includeModules: boolean = false, subpkg: string = "") {
+  copyPackageToLinkModules(pkg: string, includeModules: boolean = false, _subpkg: string = "") {
     if (fs.realpathSync(pkg).startsWith(process.cwd())) {
       // We should not copy package that will be in the Docker context
       return;

@@ -1,4 +1,5 @@
-import { Bean, Route, Service } from "@webda/core";
+import { Bean, Route, Service, ServiceParameters } from "@webda/core";
+
 /**
  * @WebdaModda
  */
@@ -26,5 +27,22 @@ export class BadBeanFromRoute {
   @Route("/test")
   test() {}
 }
+
+/**
+ * Check for the subdefinition within bean
+ */
+interface GoodBeanSubDefinition {
+  toto: string;
+  num: number;
+}
+
+class GoodBeanParameter extends ServiceParameters {
+  subdefinition: GoodBeanSubDefinition;
+}
+/**
+ * To verify that error are thrown when we cannot create schema
+ */
+@Bean
+export class GoodBean extends Service<GoodBeanParameter> {}
 
 export { LaterExportService };

@@ -44,7 +44,7 @@ export class AsyncEvent {
   toJSON() {
     return {
       ...this,
-      payload: JSON.stringify(this.payload, (key: string, value: any) => {
+      payload: JSON.stringify(this.payload, (_key: string, value: any) => {
         if (value instanceof Service) {
           return `${AsyncEvent.ServiceTag}${value.getName()}`;
         }
@@ -64,9 +64,9 @@ export class AsyncEvent {
     let evt = new AsyncEvent(
       data.service,
       data.type,
-      JSON.parse(data.payload, (key: string, value: any) => {
+      JSON.parse(data.payload, (_key: string, value: any) => {
         if (typeof value === "string" && value.startsWith(AsyncEvent.ServiceTag)) {
-          return service.getService(value.substr(AsyncEvent.ServiceTag.length));
+          return service.getService(value.substring(AsyncEvent.ServiceTag.length));
         }
         return value;
       })

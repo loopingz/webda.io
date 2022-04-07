@@ -157,7 +157,7 @@ export class SecureCookie {
         cookieName = `${name}${j}`;
         limit--;
       }
-      ctx.cookie(cookieName, value.substr(i, limit), params);
+      ctx.cookie(cookieName, value.substring(i, i + limit), params);
       j++;
       i += limit;
     }

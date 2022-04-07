@@ -97,7 +97,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       if (data.Contents[i].Key.endsWith("data")) foundData = true;
       if (data.Contents[i].Key.endsWith(uid)) foundMap = true;
       if (data.Contents[i].Key.split("/").pop().startsWith("challenge_")) {
-        challenge = data.Contents[i].Key.split("/").pop().substr("challenge_".length);
+        challenge = data.Contents[i].Key.split("/").pop().substring("challenge_".length);
       }
     }
     if (foundMap) {
@@ -153,7 +153,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
       command = new PutObjectCommand(params);
     }
     // Create new client as the implementation is an ugly middleware
-    return await getSignedUrl(new S3(this.parameters), command, params);
+    return getSignedUrl(new S3(this.parameters), command, params);
   }
 
   /**
@@ -368,7 +368,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   /**
    * @inheritdoc
    */
-  getARNPolicy(accountId) {
+  getARNPolicy(_accountId: string) {
     return {
       Sid: this.constructor.name + this._name,
       Effect: "Allow",

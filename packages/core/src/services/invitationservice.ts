@@ -534,7 +534,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
         .filter(k => k.startsWith("invit_"))
         .map(async k => ({
           ...invitations[k],
-          model: await this.modelStore.get(k.substr(6))
+          model: await this.modelStore.get(k.substring(6))
         }))
     );
 

@@ -884,7 +884,7 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
   }
 
   getStringified(object, filename, addPrefix: boolean = true) {
-    let key = addPrefix ? `${this.resources.AssetsPrefix}/${filename}` : filename;
+    let key = addPrefix ? `${this.resources.AssetsPrefix}${filename}` : filename;
     if (key.startsWith("/")) {
       key = key.substring(1);
     }

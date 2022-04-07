@@ -57,7 +57,7 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
   /**
    * @override
    */
-  async _find(request: any, offset?: any, limit?: any): Promise<T[]> {
+  async _find(request: any, _offset?: any, limit?: any): Promise<T[]> {
     request ??= "TRUE";
     limit ??= 1000;
     if (typeof request !== "string") {

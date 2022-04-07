@@ -385,8 +385,8 @@ export class Compiler {
     let schemaNode;
     classTree.some(type => {
       let res = (<ts.ClassDeclaration>(<unknown>type.symbol.valueDeclaration)).heritageClauses?.some(t => {
-        return t.types?.some(arg => {
-          return arg.typeArguments?.some(arg => {
+        return t.types?.some(subtype => {
+          return subtype.typeArguments?.some(arg => {
             if (this.extends(this.getClassTree(this.typeChecker.getTypeFromTypeNode(arg)), packageName, typeName)) {
               schemaNode = arg;
               return true;

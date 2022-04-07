@@ -177,7 +177,7 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
         await canceller();
       }
     };
-    let parentQueueCallback = async (canceller: () => Promise<void>) => {
+    let parentQueueCallback = async (_canceller: () => Promise<void>) => {
       let res = await this.consumerReceiveMessage();
       if (res.items > 0 && res.speed < 3000 && consumers.size < this.getMaxConsumers() - 1) {
         this.log("TRACE", `Launching a new queue consumer for ${this.getName()}`);

@@ -103,7 +103,7 @@ export class Terminal {
       return;
     } else if (str.charCodeAt(0) === 127) {
       if (this.inputValue.length) {
-        this.inputValue = this.inputValue.substr(0, this.inputValue.length - 1);
+        this.inputValue = this.inputValue.substring(0, this.inputValue.length - 1);
       }
     } else if (str === "\u001B\u005B\u0035\u007e") {
       // PageUp
@@ -170,7 +170,7 @@ export class Terminal {
     this.title = title;
   }
 
-  resetTerm(...args) {
+  resetTerm(..._args) {
     if (this.reset) {
       return;
     }

@@ -336,7 +336,9 @@ export default class MapperService<T extends MapperParameters = MapperParameters
   /**
    * Recompute the whole mappers
    */
-  async recompute() {}
+  async recompute() {
+    // TODO Implement
+  }
 }
 
 export { MapperService };

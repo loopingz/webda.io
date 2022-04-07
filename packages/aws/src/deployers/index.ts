@@ -529,7 +529,8 @@ export abstract class AWSDeployer<T extends AWSDeployerResources> extends Deploy
     let files = glob.sync(`${absFolder}/**/*`);
     await this.putFilesOnBucket(
       bucket,
-      files.map(f => ({ key: `${prefix}${path.relative(absFolder, f)}`, src: f }))
+      // Replace \ by / for Windows system
+      files.map(f => ({ key: `${prefix}${path.relative(absFolder, f).replace(/\\/g, "/")}`, src: f }))
     );
   }
 

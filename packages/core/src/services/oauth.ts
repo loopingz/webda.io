@@ -314,7 +314,7 @@ export abstract class OAuthService<
    * @param identId
    * @param profile
    */
-  async handleReturn(ctx: Context, identId: string, profile: any, tokens: any = undefined) {
+  async handleReturn(ctx: Context, identId: string, profile: any, _tokens: any = undefined) {
     // If no identId has been provided error
     if (!identId) {
       throw 403;

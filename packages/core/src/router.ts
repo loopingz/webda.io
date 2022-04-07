@@ -1,4 +1,4 @@
-import { JSONSchema6 } from "json-schema";
+import { JSONSchema7 } from "json-schema";
 import { OpenAPIV3 } from "openapi-types";
 import * as uriTemplates from "uri-templates";
 import { Core } from "./core";
@@ -20,8 +20,8 @@ enum HttpMethods {
 
 export interface OpenApiWebdaOperation extends RecursivePartial<OpenAPIV3.OperationObject> {
   schemas?: {
-    input?: JSONSchema6 | string;
-    output?: JSONSchema6 | string;
+    input?: JSONSchema7 | string;
+    output?: JSONSchema7 | string;
   };
 }
 /**
@@ -288,7 +288,7 @@ export class Router {
         let path = i;
         if (i.indexOf("{?") >= 0) {
           urlParameters = i.substring(i.indexOf("{?") + 2, i.length - 1).split(",");
-          path = i.substr(0, i.indexOf("{?"));
+          path = i.substring(0, i.indexOf("{?"));
         }
         openapi.paths[path] = openapi.paths[path] || {};
         if (route._uriTemplateParse) {

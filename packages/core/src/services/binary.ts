@@ -319,7 +319,7 @@ export class BinaryParameters extends ServiceParameters {
     };
   };
 
-  constructor(params: any, service: Service) {
+  constructor(params: any, _service: Service) {
     super(params);
     if (this.expose) {
       this.expose.restrict = this.expose.restrict || {};
@@ -438,7 +438,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
     var readStream: any = await this._get(info);
     var writeStream = fs.createWriteStream(filename);
     return new Promise<void>((resolve, reject) => {
-      writeStream.on("finish", src => {
+      writeStream.on("finish", _src => {
         return resolve();
       });
       writeStream.on("error", src => {
@@ -787,7 +787,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
    *
    * @param ctx
    */
-  async putRedirectUrl(ctx: Context): Promise<{ url: string; method?: string }> {
+  async putRedirectUrl(_ctx: Context): Promise<{ url: string; method?: string }> {
     // Dont handle the redirect url
     throw 404;
   }
@@ -859,12 +859,8 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
       try {
         await new Promise<void>((resolve, reject) => {
           // We replaced all the event handlers with a simple call to readStream.pipe()
-          ctx._stream.on("finish", src => {
-            return resolve();
-          });
-          ctx._stream.on("error", src => {
-            return reject();
-          });
+          ctx._stream.on("finish", resolve);
+          ctx._stream.on("error", reject);
           readStream.pipe(ctx._stream);
         });
       } catch (err) {

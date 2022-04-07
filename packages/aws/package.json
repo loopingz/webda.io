@@ -50,7 +50,7 @@
     "glob": "^7.1.7",
     "iam-policy-optimizer": "^1.1.2",
     "uuid": "^8.3.2",
-    "yaml": "^1.10.2"
+    "yaml": "^2.0.0"
   },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",

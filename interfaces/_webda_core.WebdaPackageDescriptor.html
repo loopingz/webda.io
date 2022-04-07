@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>Configuration |
+	<title>WebdaPackageDescriptor |
 	webda.io</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -64,7 +64,7 @@
 				<a href="../modules/_webda_core.html">@webda/core</a>
 			</li>
 			<li>
-				<a href="_webda_core.Configuration.html">Configuration</a>
+				<a href="_webda_core.WebdaPackageDescriptor.html">WebdaPackageDescriptor</a>
 			</li>
 		</ul>
 	</div>
@@ -156,7 +156,7 @@
 				<div>
 					<ul class="tsd-hierarchy">
 						<li>
-							<span class="target">Configuration</span>
+							<span class="target">WebdaPackageDescriptor</span>
 						</li>
 					</ul>
 				</div>
@@ -164,25 +164,16 @@
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-interface tsd-parent-kind-module root">
-						<a href="_webda_core.Configuration.html" class="tsd-kind-icon">Configuration</a>
+						<a href="_webda_core.WebdaPackageDescriptor.html" class="tsd-kind-icon">Webda<wbr>Package<wbr>Descriptor</a>
 						<ul>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_webda_core.Configuration.html#cachedModules" class="tsd-kind-icon">cached<wbr>Modules</a>
+								<a href="_webda_core.WebdaPackageDescriptor.html#logo" class="tsd-kind-icon">logo</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_webda_core.Configuration.html#module" class="tsd-kind-icon">module</a>
+								<a href="_webda_core.WebdaPackageDescriptor.html#namespace" class="tsd-kind-icon">namespace</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_webda_core.Configuration.html#openapi" class="tsd-kind-icon">openapi</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_webda_core.Configuration.html#parameters" class="tsd-kind-icon">parameters</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_webda_core.Configuration.html#services" class="tsd-kind-icon">services</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_webda_core.Configuration.html#version" class="tsd-kind-icon">version</a>
+								<a href="_webda_core.WebdaPackageDescriptor.html#workspaces" class="tsd-kind-icon">workspaces</a>
 							</li>
 						</ul>
 					</li>
@@ -192,19 +183,23 @@
 			</nav>
 		</div>
 		<div class="col-content">
-			<h1>Interface Configuration</h1>
+			<h1>Interface WebdaPackageDescriptor</h1>
 			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
 					<div class="lead">
-						<p>Configuration from Webda version &gt;= 1.0</p>
+						<p>Webda specific metadata for the project</p>
 					</div>
 			</div></section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">Configuration</span>
+						<span class="target">WebdaPackageDescriptor</span>
 					</li>
 				</ul>
+			</section>
+			<section class="tsd-panel tsd-kind-interface tsd-parent-kind-module">
+				<h3 class="tsd-before-signature">Indexable</h3>
+				<div class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">any</span></div>
 			</section>
 			<section class="tsd-panel-group tsd-index-group">
 				<section class="tsd-panel tsd-index-panel">
@@ -212,12 +207,9 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.Configuration.html#cachedModules" class="tsd-kind-icon">cached<wbr>Modules</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.Configuration.html#module" class="tsd-kind-icon">module</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.Configuration.html#openapi" class="tsd-kind-icon">openapi</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.Configuration.html#parameters" class="tsd-kind-icon">parameters</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.Configuration.html#services" class="tsd-kind-icon">services</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.Configuration.html#version" class="tsd-kind-icon">version</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.WebdaPackageDescriptor.html#logo" class="tsd-kind-icon">logo</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.WebdaPackageDescriptor.html#namespace" class="tsd-kind-icon">namespace</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.WebdaPackageDescriptor.html#workspaces" class="tsd-kind-icon">workspaces</a></li>
 							</ul>
 						</section>
 					</div>
@@ -226,163 +218,56 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="cachedModules" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">cached<wbr>Modules<span class="tsd-signature-symbol">:</span> <a href="_webda_core.CachedModule.html" class="tsd-signature-type">CachedModule</a></div>
+					<a name="logo" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">logo<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
-							<p>Cached modules to avoid scanning node_modules
-							This is used by packagers</p>
+							<p>Logo to display within the shell tty</p>
 						</div>
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/core.ts:152</li>
+							<li>Defined in packages/core/src/application.ts:249</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="module" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">module<span class="tsd-signature-symbol">:</span> <a href="_webda_core.Module.html" class="tsd-signature-type">Module</a></div>
+					<a name="namespace" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">namespace<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
-							<p>Module definition</p>
+							<p>Webda namespace</p>
 						</div>
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/core.ts:156</li>
+							<li>Defined in packages/core/src/application.ts:245</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="openapi" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">openapi<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					<a name="workspaces" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">workspaces<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
-							<p>OpenAPI override</p>
-						</div>
-					</div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/src/core.ts:208</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="parameters" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">parameters<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
-					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-						<div class="lead">
-							<p>Global parameters</p>
+							<p>Information on the workspace</p>
 						</div>
 					</div>
 					<div class="tsd-type-declaration">
 						<h4>Type declaration</h4>
 						<ul class="tsd-parameters">
-							<li class="tsd-parameter-index-signature">
-								<h5><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">any</span></h5>
+							<li class="tsd-parameter">
+								<h5>packages<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h5>
 							</li>
 							<li class="tsd-parameter">
-								<h5><span class="tsd-flag ts-flagOptional">Optional</span> api<wbr>Url<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span></h5>
-								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-									<div class="lead">
-										<p>Define the api url</p>
-									</div>
-								</div>
+								<h5>parent<span class="tsd-signature-symbol">: </span><a href="_webda_core.PackageDescriptor.html" class="tsd-signature-type">PackageDescriptor</a></h5>
 							</li>
 							<li class="tsd-parameter">
-								<h5><span class="tsd-flag ts-flagOptional">Optional</span> configuration<wbr>Service<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span></h5>
-								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-									<div class="lead">
-										<p>Read from the configuration service before init</p>
-									</div>
-								</div>
-							</li>
-							<li class="tsd-parameter">
-								<h5><span class="tsd-flag ts-flagOptional">Optional</span> cookie<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">object</span></h5>
-								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-									<div class="lead">
-										<p>Cookie configuration for session</p>
-									</div>
-								</div>
-								<ul class="tsd-parameters">
-									<li class="tsd-parameter">
-										<h5>domain<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5>
-									</li>
-									<li class="tsd-parameter">
-										<h5>max<wbr>Age<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5>
-										<div class="tsd-comment tsd-typography tsd-comment-tags">
-											<dl class="tsd-comment-tags"><dt>minimum</dt>
-												<dd><p>1</p>
-											</dd></dl>
-										</div>
-									</li>
-									<li class="tsd-parameter">
-										<h5>path<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5>
-									</li>
-									<li class="tsd-parameter">
-										<h5>same<wbr>Site<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">"None"</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">"Strict"</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">"Lax"</span></h5>
-									</li>
-								</ul>
-							</li>
-							<li class="tsd-parameter">
-								<h5><span class="tsd-flag ts-flagOptional">Optional</span> csrf<wbr>Origins<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h5>
-								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-									<div class="lead">
-										<p>Allowed origin for referer that match
-										any of this regexp</p>
-									</div>
-									</div><div class="tsd-comment tsd-typography tsd-comment-text">
-									<p><a href="../classes/_webda_core.OriginFilter.html">OriginFilter</a></p>
-								</div>
-							</li>
-							<li class="tsd-parameter">
-								<h5><span class="tsd-flag ts-flagOptional">Optional</span> salt<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span></h5>
-								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-									<div class="lead">
-										<p>Application salt</p>
-									</div>
-								</div>
-							</li>
-							<li class="tsd-parameter">
-								<h5><span class="tsd-flag ts-flagOptional">Optional</span> website<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">object</span></h5>
-								<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-									<div class="lead">
-										<p>Allow you to authorize one or several websites
-										If you use &quot;*&quot; then the API is open to direct call and any origins</p>
-									</div>
-									</div><div class="tsd-comment tsd-typography tsd-comment-text">
-									<p><a href="../classes/_webda_core.WebsiteOriginFilter.html">WebsiteOriginFilter</a></p>
-								</div>
+								<h5>path<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5>
 							</li>
 						</ul>
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/core.ts:164</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="services" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">services<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
-					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-						<div class="lead">
-							<p>Services configuration</p>
-						</div>
-					</div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/src/core.ts:160</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="version" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">version<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
-					<div class="tsd-comment tsd-typography tsd-comment-tags">
-						<dl class="tsd-comment-tags"><dt>minimum</dt>
-							<dd><p>2</p>
-						</dd></dl>
-					</div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/src/core.ts:147</li>
+							<li>Defined in packages/core/src/application.ts:253</li>
 						</ul>
 					</aside>
 			</section>    </section>

@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>ConfigurationV1 |
+	<title>ProjectInformation |
 	webda.io</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -64,7 +64,7 @@
 				<a href="../modules/_webda_core.html">@webda/core</a>
 			</li>
 			<li>
-				<a href="_webda_core.ConfigurationV1.html">ConfigurationV1</a>
+				<a href="_webda_core.ProjectInformation.html">ProjectInformation</a>
 			</li>
 		</ul>
 	</div>
@@ -156,7 +156,7 @@
 				<div>
 					<ul class="tsd-hierarchy">
 						<li>
-							<span class="target">ConfigurationV1</span>
+							<span class="target">ProjectInformation</span>
 						</li>
 					</ul>
 				</div>
@@ -164,19 +164,19 @@
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-interface tsd-parent-kind-module root">
-						<a href="_webda_core.ConfigurationV1.html" class="tsd-kind-icon">Configuration<wbr>V1</a>
+						<a href="_webda_core.ProjectInformation.html" class="tsd-kind-icon">Project<wbr>Information</a>
 						<ul>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_webda_core.ConfigurationV1.html#cachedModules" class="tsd-kind-icon">cached<wbr>Modules</a>
+								<a href="_webda_core.ProjectInformation.html#deployment" class="tsd-kind-icon">deployment</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_webda_core.ConfigurationV1.html#models" class="tsd-kind-icon">models</a>
+								<a href="_webda_core.ProjectInformation.html#git" class="tsd-kind-icon">git</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_webda_core.ConfigurationV1.html#services" class="tsd-kind-icon">services</a>
+								<a href="_webda_core.ProjectInformation.html#package" class="tsd-kind-icon">package</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_webda_core.ConfigurationV1.html#version" class="tsd-kind-icon">version</a>
+								<a href="_webda_core.ProjectInformation.html#webda" class="tsd-kind-icon">webda</a>
 							</li>
 						</ul>
 					</li>
@@ -186,23 +186,19 @@
 			</nav>
 		</div>
 		<div class="col-content">
-			<h1>Interface ConfigurationV1</h1>
+			<h1>Interface ProjectInformation</h1>
 			<section class="tsd-panel tsd-comment"><div class="tsd-comment tsd-typography tsd-comment-shorttext">
 					<div class="lead">
-						<p>Configuration from Webda 1.0 &gt; version &gt; 0.5</p>
+						<p>Information on the whole project</p>
 					</div>
 			</div></section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">ConfigurationV1</span>
+						<span class="target">ProjectInformation</span>
 					</li>
 				</ul>
-			</section>
-			<section class="tsd-panel tsd-kind-interface tsd-parent-kind-module">
-				<h3 class="tsd-before-signature">Indexable</h3>
-				<div class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">any</span></div>
 			</section>
 			<section class="tsd-panel-group tsd-index-group">
 				<section class="tsd-panel tsd-index-panel">
@@ -210,10 +206,10 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.ConfigurationV1.html#cachedModules" class="tsd-kind-icon">cached<wbr>Modules</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.ConfigurationV1.html#models" class="tsd-kind-icon">models</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.ConfigurationV1.html#services" class="tsd-kind-icon">services</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.ConfigurationV1.html#version" class="tsd-kind-icon">version</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.ProjectInformation.html#deployment" class="tsd-kind-icon">deployment</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.ProjectInformation.html#git" class="tsd-kind-icon">git</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.ProjectInformation.html#package" class="tsd-kind-icon">package</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.ProjectInformation.html#webda" class="tsd-kind-icon">webda</a></li>
 							</ul>
 						</section>
 					</div>
@@ -222,56 +218,69 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="cachedModules" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">cached<wbr>Modules<span class="tsd-signature-symbol">:</span> <a href="_webda_core.CachedModule.html" class="tsd-signature-type">CachedModule</a></div>
+					<a name="deployment" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">deployment<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
-							<p>Cached modules to avoid scanning node_modules
-							This is used by packagers</p>
+							<p>Deployment information</p>
 						</div>
+					</div>
+					<div class="tsd-type-declaration">
+						<h4>Type declaration</h4>
+						<ul class="tsd-parameters">
+							<li class="tsd-parameter-index-signature">
+								<h5><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">any</span></h5>
+							</li>
+							<li class="tsd-parameter">
+								<h5>name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5>
+							</li>
+						</ul>
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/core.ts:128</li>
+							<li>Defined in packages/core/src/application.ts:283</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="models" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">models<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					<a name="git" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">git<span class="tsd-signature-symbol">:</span> <a href="_webda_core.GitInformation.html" class="tsd-signature-type">GitInformation</a></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
-							<p>Models</p>
+							<p>Git information gathered</p>
 						</div>
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/core.ts:132</li>
+							<li>Defined in packages/core/src/application.ts:279</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="services" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">services<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					<a name="package" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">package<span class="tsd-signature-symbol">:</span> <a href="_webda_core.PackageDescriptor.html" class="tsd-signature-type">PackageDescriptor</a></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
-							<p>Services configuration</p>
+							<p>package.json information</p>
 						</div>
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/core.ts:136</li>
+							<li>Defined in packages/core/src/application.ts:268</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="version" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">version<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
+					<a name="webda" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">webda<span class="tsd-signature-symbol">:</span> <a href="_webda_core.WebdaPackageDescriptor.html" class="tsd-signature-type">WebdaPackageDescriptor</a></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
 						<div class="lead">
-							<p>Configuration version</p>
+							<p>Webda project information</p>
 						</div>
+						</div><div class="tsd-comment tsd-typography tsd-comment-text">
+						<p>It is the aggregation of webda information contained in package
+						and its workspace meta</p>
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/core.ts:123</li>
+							<li>Defined in packages/core/src/application.ts:275</li>
 						</ul>
 					</aside>
 			</section>    </section>

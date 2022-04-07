@@ -172,16 +172,19 @@
 						<a href="_webda_core.Module.html" class="tsd-kind-icon">Module</a>
 						<ul>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="_webda_core.Module.html#beans" class="tsd-kind-icon">beans</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
 								<a href="_webda_core.Module.html#deployers" class="tsd-kind-icon">deployers</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="_webda_core.Module.html#moddas" class="tsd-kind-icon">moddas</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
 								<a href="_webda_core.Module.html#models" class="tsd-kind-icon">models</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
 								<a href="_webda_core.Module.html#schemas" class="tsd-kind-icon">schemas</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_webda_core.Module.html#services" class="tsd-kind-icon">services</a>
 							</li>
 						</ul>
 					</li>
@@ -218,10 +221,11 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.Module.html#beans" class="tsd-kind-icon">beans</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.Module.html#deployers" class="tsd-kind-icon">deployers</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.Module.html#moddas" class="tsd-kind-icon">moddas</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.Module.html#models" class="tsd-kind-icon">models</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.Module.html#schemas" class="tsd-kind-icon">schemas</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_webda_core.Module.html#services" class="tsd-kind-icon">services</a></li>
 							</ul>
 						</section>
 					</div>
@@ -230,6 +234,27 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="beans" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">beans<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Application beans</p>
+						</div>
+					</div>
+					<div class="tsd-type-declaration">
+						<h4>Type declaration</h4>
+						<ul class="tsd-parameters">
+							<li class="tsd-parameter-index-signature">
+								<h5><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">string</span></h5>
+							</li>
+						</ul>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/application.ts:93</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="deployers" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">deployers<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
@@ -251,7 +276,28 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/core.ts:99</li>
+							<li>Defined in packages/core/src/application.ts:85</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="moddas" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">moddas<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
+					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
+						<div class="lead">
+							<p>Services provided by the module</p>
+						</div>
+					</div>
+					<div class="tsd-type-declaration">
+						<h4>Type declaration</h4>
+						<ul class="tsd-parameters">
+							<li class="tsd-parameter-index-signature">
+								<h5><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">string</span></h5>
+							</li>
+						</ul>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/core/src/application.ts:75</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
@@ -272,7 +318,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/core.ts:93</li>
+							<li>Defined in packages/core/src/application.ts:79</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
@@ -287,34 +333,13 @@
 						<h4>Type declaration</h4>
 						<ul class="tsd-parameters">
 							<li class="tsd-parameter-index-signature">
-								<h5><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">JSONSchema6</span></h5>
+								<h5><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">JSONSchema7</span></h5>
 							</li>
 						</ul>
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/src/core.ts:103</li>
-						</ul>
-					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="services" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">services<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
-					<div class="tsd-comment tsd-typography tsd-comment-shorttext">
-						<div class="lead">
-							<p>Services provided by the module</p>
-						</div>
-					</div>
-					<div class="tsd-type-declaration">
-						<h4>Type declaration</h4>
-						<ul class="tsd-parameters">
-							<li class="tsd-parameter-index-signature">
-								<h5><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">string</span></h5>
-							</li>
-						</ul>
-					</div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in packages/core/src/core.ts:89</li>
+							<li>Defined in packages/core/src/application.ts:89</li>
 						</ul>
 					</aside>
 			</section>    </section>

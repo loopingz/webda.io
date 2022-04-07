@@ -242,9 +242,6 @@
 								<a href="_webda_shell.DeploymentManager.html#setOutput" class="tsd-kind-icon">set<wbr>Output</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
-								<a href="_webda_shell.DeploymentManager.html#addBuiltinDeployers" class="tsd-kind-icon">add<wbr>Builtin<wbr>Deployers</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
 								<a href="_webda_shell.DeploymentManager.html#newDeployment" class="tsd-kind-icon">new<wbr>Deployment</a>
 							</li>
 						</ul>
@@ -343,7 +340,6 @@
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.DeploymentManager.html#getWebda" class="tsd-kind-icon">get<wbr>Webda</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.DeploymentManager.html#run" class="tsd-kind-icon">run</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_webda_shell.DeploymentManager.html#setOutput" class="tsd-kind-icon">set<wbr>Output</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.DeploymentManager.html#addBuiltinDeployers" class="tsd-kind-icon">add<wbr>Builtin<wbr>Deployers</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_webda_shell.DeploymentManager.html#newDeployment" class="tsd-kind-icon">new<wbr>Deployment</a></li>
 							</ul>
 						</section>
@@ -355,7 +351,7 @@
 				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class">
 					<a name="constructor" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Deployment<wbr>Manager<span class="tsd-signature-symbol">(</span>app<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Application</span>, deploymentName<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, streams<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_shell.DeploymentManager.html" class="tsd-signature-type">DeploymentManager</a></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Deployment<wbr>Manager<span class="tsd-signature-symbol">(</span>app<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">SourceApplication</span>, deploymentName<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, streams<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_shell.DeploymentManager.html" class="tsd-signature-type">DeploymentManager</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -364,7 +360,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>app: <span class="tsd-signature-type">Application</span></h5>
+									<h5>app: <span class="tsd-signature-type">SourceApplication</span></h5>
 								</li>
 								<li>
 									<h5>deploymentName: <span class="tsd-signature-type">string</span></h5>
@@ -376,7 +372,7 @@
 							<h4 class="tsd-returns-title">Returns <a href="_webda_shell.DeploymentManager.html" class="tsd-signature-type">DeploymentManager</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:45</li>
+									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:28</li>
 								</ul>
 							</aside>
 						</li>
@@ -386,10 +382,10 @@
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="application" class="tsd-anchor"></a>
-					<div class="tsd-signature tsd-kind-icon">application<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Application</span></div>
+					<div class="tsd-signature tsd-kind-icon">application<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">SourceApplication</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:19</li>
+							<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:16</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -405,7 +401,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:21</li>
+							<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:18</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -421,7 +417,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:20</li>
+							<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:17</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -429,7 +425,7 @@
 					<div class="tsd-signature tsd-kind-icon">logger<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Logger</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:29</li>
+							<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:26</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -437,7 +433,7 @@
 					<div class="tsd-signature tsd-kind-icon">output<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WorkerOutput</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:28</li>
+							<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:25</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -445,7 +441,7 @@
 					<div class="tsd-signature tsd-kind-icon">package<wbr>Description<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:22</li>
+							<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:19</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -464,7 +460,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:23</li>
+							<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:20</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -472,7 +468,7 @@
 					<div class="tsd-signature tsd-kind-icon">webda<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Core</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">CoreEvents</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:27</li>
+							<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:24</li>
 						</ul>
 					</aside>
 			</section>    </section>
@@ -513,7 +509,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:123</li>
+									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:102</li>
 								</ul>
 							</aside>
 						</li>
@@ -521,7 +517,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getApplication" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Application<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Application</span></li>
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Application<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">SourceApplication</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -532,10 +528,10 @@
 									<p>Return the Webda Application</p>
 								</div>
 							</div>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Application</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">SourceApplication</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:153</li>
+									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:132</li>
 								</ul>
 							</aside>
 						</li>
@@ -558,7 +554,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_webda_shell.Deployer.html" class="tsd-signature-type">Deployer</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:157</li>
+									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:136</li>
 								</ul>
 							</aside>
 						</li>
@@ -575,7 +571,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:169</li>
+									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:148</li>
 								</ul>
 							</aside>
 						</li>
@@ -592,7 +588,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">WorkerOutput</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:115</li>
+									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:94</li>
 								</ul>
 							</aside>
 						</li>
@@ -600,7 +596,7 @@
 					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="getPackageDescription" class="tsd-anchor"></a>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Package<wbr>Description<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span></li>
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Package<wbr>Description<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">PackageDescriptor</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
@@ -611,10 +607,10 @@
 									<p>Get package.json information</p>
 								</div>
 							</div>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">PackageDescriptor</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:191</li>
+									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:170</li>
 								</ul>
 							</aside>
 						</li>
@@ -638,7 +634,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Core</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">CoreEvents</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:146</li>
+									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:125</li>
 								</ul>
 							</aside>
 						</li>
@@ -670,7 +666,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:178</li>
+									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:157</li>
 								</ul>
 							</aside>
 						</li>
@@ -695,30 +691,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:111</li>
-								</ul>
-							</aside>
-						</li>
-					</ul>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
-					<a name="addBuiltinDeployers" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
-						<li class="tsd-signature tsd-kind-icon">add<wbr>Builtin<wbr>Deployers<span class="tsd-signature-symbol">(</span>app<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Application</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>app: <span class="tsd-signature-type">Application</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:31</li>
+									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:90</li>
 								</ul>
 							</aside>
 						</li>
@@ -751,7 +724,7 @@
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:78</li>
+									<li>Defined in packages/shell/src/handlers/deploymentmanager.ts:58</li>
 								</ul>
 							</aside>
 						</li>

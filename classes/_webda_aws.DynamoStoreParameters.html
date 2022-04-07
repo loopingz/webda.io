@@ -156,7 +156,9 @@
 				<div>
 					<ul class="tsd-hierarchy">
 						<li>
-							<span class="tsd-signature-type">StoreParameters</span>
+							<span class="tsd-signature-type">AWSServiceParametersMixin</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">typeof StoreParameters</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">this</span><span class="tsd-signature-symbol">&gt;</span>
+							<span class="tsd-signature-symbol"> &amp; </span>
+							<span class="tsd-signature-type">StoreParameters</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">this</span><span class="tsd-signature-symbol">&gt;</span>
 							<ul class="tsd-hierarchy">
 								<li>
 									<span class="target">DynamoStoreParameters</span>
@@ -186,7 +188,7 @@
 					<li class="current tsd-kind-class tsd-parent-kind-module root">
 						<a href="_webda_aws.DynamoStoreParameters.html" class="tsd-kind-icon">Dynamo<wbr>Store<wbr>Parameters</a>
 						<ul>
-							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited">
+							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
 								<a href="_webda_aws.DynamoStoreParameters.html#constructor" class="tsd-kind-icon">constructor</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
@@ -198,7 +200,10 @@
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_aws.DynamoStoreParameters.html#asyncDelete" class="tsd-kind-icon">async<wbr>Delete</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+								<a href="_webda_aws.DynamoStoreParameters.html#credentials" class="tsd-kind-icon">credentials</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_aws.DynamoStoreParameters.html#endpoint" class="tsd-kind-icon">endpoint</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -207,7 +212,7 @@
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_aws.DynamoStoreParameters.html#model" class="tsd-kind-icon">model</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 								<a href="_webda_aws.DynamoStoreParameters.html#region" class="tsd-kind-icon">region</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
@@ -254,10 +259,13 @@
 						<a href="../interfaces/_webda_aws.IAMPolicyContributor.html" class="tsd-kind-icon">IAMPolicy<wbr>Contributor</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module root">
+						<a href="../interfaces/_webda_aws.IAWSServiceParameters.html" class="tsd-kind-icon">IAWSService<wbr>Parameters</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module root">
 						<a href="../interfaces/_webda_aws.LambdaAsyncJobEvent.html" class="tsd-kind-icon">Lambda<wbr>Async<wbr>Job<wbr>Event</a>
 					</li>
-					<li class=" tsd-kind-function tsd-parent-kind-module root">
-						<a href="../modules/_webda_aws.html#GetAWS" class="tsd-kind-icon">GetAWS</a>
+					<li class=" tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter root">
+						<a href="../modules/_webda_aws.html#AWSServiceParameters" class="tsd-kind-icon">AWSService<wbr>Parameters</a>
 					</li>
 				</ul>
 			</nav>
@@ -268,7 +276,9 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="tsd-signature-type">StoreParameters</span>
+						<a href="" class="tsd-signature-type">__type</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">typeof StoreParameters</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">this</span><span class="tsd-signature-symbol">&gt;</span>
+						<span class="tsd-signature-symbol"> &amp; </span>
+						<span class="tsd-signature-type">StoreParameters</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">this</span><span class="tsd-signature-symbol">&gt;</span>
 						<ul class="tsd-hierarchy">
 							<li>
 								<span class="target">DynamoStoreParameters</span>
@@ -280,10 +290,10 @@
 			<section class="tsd-panel-group tsd-index-group">
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
-						<section class="tsd-index-section tsd-is-inherited">
+						<section class="tsd-index-section ">
 							<h3>Constructors</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.DynamoStoreParameters.html#constructor" class="tsd-kind-icon">constructor</a></li>
+								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite"><a href="_webda_aws.DynamoStoreParameters.html#constructor" class="tsd-kind-icon">constructor</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
@@ -292,10 +302,11 @@
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_aws.DynamoStoreParameters.html#CloudFormation" class="tsd-kind-icon">Cloud<wbr>Formation</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_aws.DynamoStoreParameters.html#CloudFormationSkip" class="tsd-kind-icon">Cloud<wbr>Formation<wbr>Skip</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.DynamoStoreParameters.html#asyncDelete" class="tsd-kind-icon">async<wbr>Delete</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_aws.DynamoStoreParameters.html#endpoint" class="tsd-kind-icon">endpoint</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.DynamoStoreParameters.html#credentials" class="tsd-kind-icon">credentials</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.DynamoStoreParameters.html#endpoint" class="tsd-kind-icon">endpoint</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.DynamoStoreParameters.html#expose" class="tsd-kind-icon">expose</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.DynamoStoreParameters.html#model" class="tsd-kind-icon">model</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_aws.DynamoStoreParameters.html#region" class="tsd-kind-icon">region</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.DynamoStoreParameters.html#region" class="tsd-kind-icon">region</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_aws.DynamoStoreParameters.html#scanPage" class="tsd-kind-icon">scan<wbr>Page</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_webda_aws.DynamoStoreParameters.html#strict" class="tsd-kind-icon">strict</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webda_aws.DynamoStoreParameters.html#table" class="tsd-kind-icon">table</a></li>
@@ -305,17 +316,17 @@
 					</div>
 				</section>
 			</section>
-			<section class="tsd-panel-group tsd-member-group tsd-is-inherited">
+			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Constructors</h2>
-				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited">
+				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
 					<a name="constructor" class="tsd-anchor"></a>
-					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Dynamo<wbr>Store<wbr>Parameters<span class="tsd-signature-symbol">(</span>params<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, service<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Service</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Events</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_aws.DynamoStoreParameters.html" class="tsd-signature-type">DynamoStoreParameters</a></li>
+					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Dynamo<wbr>Store<wbr>Parameters<span class="tsd-signature-symbol">(</span>params<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span>, service<span class="tsd-signature-symbol">: </span><a href="_webda_aws.DynamoStore.html" class="tsd-signature-type">DynamoStore</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">CoreModel</span><span class="tsd-signature-symbol">, </span><a href="_webda_aws.DynamoStoreParameters.html" class="tsd-signature-type">DynamoStoreParameters</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webda_aws.DynamoStoreParameters.html" class="tsd-signature-type">DynamoStoreParameters</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
-								<p>Inherited from StoreParameters.constructor</p>
+								<p>Overrides AWSServiceParameters(StoreParameters).constructor</p>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
@@ -323,13 +334,13 @@
 									<h5>params: <span class="tsd-signature-type">any</span></h5>
 								</li>
 								<li>
-									<h5>service: <span class="tsd-signature-type">Service</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">Events</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<h5>service: <a href="_webda_aws.DynamoStore.html" class="tsd-signature-type">DynamoStore</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">CoreModel</span><span class="tsd-signature-symbol">, </span><a href="_webda_aws.DynamoStoreParameters.html" class="tsd-signature-type">DynamoStoreParameters</a><span class="tsd-signature-symbol">&gt;</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <a href="_webda_aws.DynamoStoreParameters.html" class="tsd-signature-type">DynamoStoreParameters</a></h4>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/core/lib/stores/store.d.ts:326</li>
+									<li>Defined in packages/aws/src/services/dynamodb.ts:20</li>
 								</ul>
 							</aside>
 						</li>
@@ -342,7 +353,7 @@
 					<div class="tsd-signature tsd-kind-icon">Cloud<wbr>Formation<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/dynamodb.ts:19</li>
+							<li>Defined in packages/aws/src/services/dynamodb.ts:16</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -350,7 +361,7 @@
 					<div class="tsd-signature tsd-kind-icon">Cloud<wbr>Formation<wbr>Skip<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/dynamodb.ts:20</li>
+							<li>Defined in packages/aws/src/services/dynamodb.ts:17</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -366,12 +377,34 @@
 							<li>Defined in packages/core/lib/stores/store.d.ts:314</li>
 						</ul>
 					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
+					<a name="credentials" class="tsd-anchor"></a>
+					<div class="tsd-signature tsd-kind-icon">credentials<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
+					<div class="tsd-type-declaration">
+						<h4>Type declaration</h4>
+						<ul class="tsd-parameters">
+							<li class="tsd-parameter">
+								<h5>access<wbr>Key<wbr>Id<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5>
+							</li>
+							<li class="tsd-parameter">
+								<h5>secret<wbr>Access<wbr>Key<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5>
+							</li>
+							<li class="tsd-parameter">
+								<h5><span class="tsd-flag ts-flagOptional">Optional</span> session<wbr>Token<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span></h5>
+							</li>
+						</ul>
+					</div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in packages/aws/src/services/aws-mixin.ts:24</li>
+						</ul>
+					</aside>
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="endpoint" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">endpoint<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/dynamodb.ts:18</li>
+							<li>Defined in packages/aws/src/services/aws-mixin.ts:23</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -404,12 +437,12 @@
 							<li>Defined in packages/core/lib/stores/store.d.ts:310</li>
 						</ul>
 					</aside>
-					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
 					<a name="region" class="tsd-anchor"></a>
 					<div class="tsd-signature tsd-kind-icon">region<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/dynamodb.ts:21</li>
+							<li>Defined in packages/aws/src/services/aws-mixin.ts:29</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
@@ -417,7 +450,7 @@
 					<div class="tsd-signature tsd-kind-icon">scan<wbr>Page<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/dynamodb.ts:22</li>
+							<li>Defined in packages/aws/src/services/dynamodb.ts:18</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -444,7 +477,7 @@
 					<div class="tsd-signature tsd-kind-icon">table<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/aws/src/services/dynamodb.ts:17</li>
+							<li>Defined in packages/aws/src/services/dynamodb.ts:15</li>
 						</ul>
 					</aside>
 					</section>                <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
@@ -457,7 +490,7 @@
 					</div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in packages/core/lib/services/service.d.ts:30</li>
+							<li>Defined in packages/core/lib/services/service.d.ts:28</li>
 						</ul>
 					</aside>
 			</section>    </section>

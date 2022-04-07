@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { suite, test, testOverload } from "@testdeck/mocha";
+import { suite, test } from "@testdeck/mocha";
 import { WebdaTest } from "../test";
 import { OAuthService } from "./oauth";
 import { HttpContext, Ident, Store } from "../";

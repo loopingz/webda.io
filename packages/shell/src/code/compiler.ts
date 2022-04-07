@@ -370,13 +370,33 @@ export class Compiler {
       }, {});
   }
 
+  /**
+   * Get a schema for a typed node
+   * @param classTree
+   * @param typeName
+   * @param packageName
+   * @returns
+   */
   getSchemaNode(
-    classTree: any[],
+    classTree: ts.Type[],
     typeName: string = "ServiceParameters",
     packageName: string = "@webda/core"
   ): ts.Node {
     let schemaNode;
     classTree.some(type => {
+      let res = (<ts.ClassDeclaration>(<unknown>type.symbol.valueDeclaration)).heritageClauses?.some(t => {
+        return t.types?.some(arg => {
+          return arg.typeArguments?.some(arg => {
+            if (this.extends(this.getClassTree(this.typeChecker.getTypeFromTypeNode(arg)), packageName, typeName)) {
+              schemaNode = arg;
+              return true;
+            }
+          });
+        });
+      });
+      if (res) {
+        return true;
+      }
       return (<ts.ClassDeclaration>(<unknown>type.symbol.valueDeclaration)).typeParameters?.some(t => {
         // @ts-ignore
         let paramType = ts.getEffectiveConstraintOfTypeParameter(t);
@@ -405,7 +425,7 @@ export class Compiler {
     this.compile();
 
     // Local module
-    const module: Module = {
+    const moduleInfo: Module = {
       moddas: {},
       beans: {},
       models: {},
@@ -483,22 +503,24 @@ export class Compiler {
                 let originName =
                   tags[`Webda${section.substring(0, 1).toUpperCase()}${section.substring(1, section.length - 1)}`];
                 let name = this.app.completeNamespace(originName);
-                module[section][name] = jsFile;
-                if (!module.schemas[name] && schemaNode) {
+                moduleInfo[section][name] = jsFile;
+                if (!moduleInfo.schemas[name] && schemaNode) {
                   try {
                     let schema = this.schemaGenerator.createSchemaFromNodes([schemaNode]);
                     let definitionName = schema.$ref.split("/").pop();
-                    module.schemas[name] = <JSONSchema7>schema.definitions[definitionName];
-                    module.schemas[name].$schema = schema.$schema;
+                    moduleInfo.schemas[name] = <JSONSchema7>schema.definitions[definitionName];
+                    moduleInfo.schemas[name].$schema = schema.$schema;
                     // Copy sub definition if needed
                     if (Object.keys(schema.definitions).length > 1) {
-                      module.schemas[name].definitions = schema.definitions;
+                      moduleInfo.schemas[name].definitions = schema.definitions;
                       // Avoid cycle ref
-                      delete module.schemas[name].definitions[definitionName];
+                      delete moduleInfo.schemas[name].definitions[definitionName];
                     }
-                    module.schemas[name].title = originName.split("/").pop();
+                    moduleInfo.schemas[name].title = originName.split("/").pop();
                     if (section === "models") {
-                      module.schemas[name].required = module.schemas[name].required.filter(p => !p.startsWith("_"));
+                      moduleInfo.schemas[name].required = moduleInfo.schemas[name].required.filter(
+                        p => !p.startsWith("_")
+                      );
                     }
                   } catch (err) {
                     this.app.log("WARN", `Cannot generate schema for ${schemaNode.getText()}`, err);
@@ -519,7 +541,7 @@ export class Compiler {
               );
               return;
             } // Skip explicit beans
-            if (module.beans[`Beans/${clazz.name.escapedText}`.toLowerCase()]) {
+            if (moduleInfo.beans[`Beans/${clazz.name.escapedText}`.toLowerCase()]) {
               return;
             }
             let name = `beans/${clazz.name.escapedText.toString().toLowerCase()}`;
@@ -528,20 +550,20 @@ export class Compiler {
               try {
                 let schema = this.schemaGenerator.createSchemaFromNodes([schemaNode]);
                 let definitionName = schema.$ref.split("/").pop();
-                module.schemas[name] = <JSONSchema7>schema.definitions[definitionName];
-                module.schemas[name].$schema = schema.$schema;
+                moduleInfo.schemas[name] = <JSONSchema7>schema.definitions[definitionName];
+                moduleInfo.schemas[name].$schema = schema.$schema;
                 // Copy sub definition if needed
                 if (Object.keys(schema.definitions).length > 1) {
-                  module.schemas[name].definitions = schema.definitions;
+                  moduleInfo.schemas[name].definitions = schema.definitions;
                   // Avoid cycle ref
-                  delete module.schemas[name].definitions[definitionName];
+                  delete moduleInfo.schemas[name].definitions[definitionName];
                 }
-                module.schemas[name].title = clazz.name.escapedText.toString();
+                moduleInfo.schemas[name].title = clazz.name.escapedText.toString();
               } catch (err) {
                 this.app.log("WARN", `Cannot generate schema for ${schemaNode.getText()}`, err);
               }
             }
-            module.beans[`Beans/${clazz.name.escapedText}`.toLowerCase()] = importTarget;
+            moduleInfo.beans[`Beans/${clazz.name.escapedText}`.toLowerCase()] = importTarget;
           };
 
           tsquery(sourceFile, "Decorator [name=Bean]").forEach(beanExplorer);
@@ -550,11 +572,11 @@ export class Compiler {
       }
     });
 
-    module.beans = this.sortObject(module.beans);
-    module.models = this.sortObject(module.models);
-    module.moddas = this.sortObject(module.moddas);
-    module.deployers = this.sortObject(module.deployers);
-    return module;
+    moduleInfo.beans = this.sortObject(moduleInfo.beans);
+    moduleInfo.models = this.sortObject(moduleInfo.models);
+    moduleInfo.moddas = this.sortObject(moduleInfo.moddas);
+    moduleInfo.deployers = this.sortObject(moduleInfo.deployers);
+    return moduleInfo;
   }
 
   /**

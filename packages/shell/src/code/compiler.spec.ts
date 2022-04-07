@@ -11,7 +11,11 @@ class CompilerTest {
   @test
   async compilerCov() {
     const node: ts.Node = {
-      kind: ts.SyntaxKind.AnyKeyword,
+      kind: ts.SyntaxKind.QualifiedName,
+      left: {
+        kind: ts.SyntaxKind.AnyKeyword,
+        getText: () => "Plop"
+      },
       getText: () => "Plop",
       parent: {
         kind: ts.SyntaxKind.AnyKeyword,
@@ -76,7 +80,9 @@ class CompilerTest {
     await app.load();
     let compiler = new Compiler(app);
     compiler.compile();
-    compiler.generateModule();
+    let mod = compiler.generateModule();
+    // Goodbean should be use the SubDefinition
+    assert.strictEqual(mod.schemas["beans/goodbean"].required.length, 3);
     // Ensure we manage failure in schema
     compiler.schemaGenerator.createSchemaFromNodes = () => {
       throw new Error();

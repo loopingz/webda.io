@@ -101,14 +101,17 @@
         "type": {
           "type": "string",
           "description": "Type of the service"
+        },
+        "anotherParameter": {
+          "type": "string"
         }
       },
       "required": [
+        "anotherParameter",
         "type"
       ],
-      "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CustomService"
+      "title": "AnotherService"
     },
     "webdademo/secondotherservice": {
       "type": "object",

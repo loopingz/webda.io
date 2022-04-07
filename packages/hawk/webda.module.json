@@ -14,12 +14,20 @@
         "type": {
           "type": "string",
           "description": "Type of the service"
+        },
+        "keysStore": {
+          "type": "string",
+          "description": "Key store name",
+          "default": "apikeys"
+        },
+        "dynamicSessionKey": {
+          "type": "string",
+          "description": "If specified will verify the signature match the key store in session"
         }
       },
       "required": [
         "type"
       ],
-      "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Hawk"
     },

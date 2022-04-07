@@ -36,13 +36,14 @@ interface GoodBeanSubDefinition {
   num: number;
 }
 
-class GoodBeanParameter extends ServiceParameters {
+class GoodBeanParameters extends ServiceParameters {
   subdefinition: GoodBeanSubDefinition;
+  subdefinition2: GoodBeanSubDefinition;
 }
 /**
  * To verify that error are thrown when we cannot create schema
  */
 @Bean
-export class GoodBean extends Service<GoodBeanParameter> {}
+export class GoodBean extends Service<GoodBeanParameters> {}
 
 export { LaterExportService };

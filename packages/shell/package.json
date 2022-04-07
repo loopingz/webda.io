@@ -85,7 +85,7 @@
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
-    "@testdeck/mocha": "^0.1.2",
+    "@testdeck/mocha": "^0.2.0",
     "@types/node": "14.0.0",
     "@types/yargs": "^17.0.2",
     "csstype": "^3.0.8",

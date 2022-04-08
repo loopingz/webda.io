@@ -1,7 +1,6 @@
 import { CoreModel, Service, Store, WebdaError } from "@webda/core";
 import { Client, ClientOptions } from "@elastic/elasticsearch";
 import { ServiceParameters } from "../../core/lib/services/service";
-import { Search } from "@elastic/elasticsearch/api/requestParams";
 
 interface IndexParameter {
   store: string;
@@ -209,8 +208,7 @@ export default class ElasticSearchService<
     await this._client.delete({
       index: index,
       id: uuid,
-      refresh: this._refreshMode,
-      type: index
+      refresh: this._refreshMode
     });
   }
 
@@ -224,7 +222,6 @@ export default class ElasticSearchService<
     await this._client.create({
       index: index,
       id: object.getUuid(),
-      type: index,
       refresh: this._refreshMode,
       body: object.toStoredJSON(false)
     });
@@ -234,7 +231,6 @@ export default class ElasticSearchService<
     await this._client.update({
       index: index,
       id: object.getUuid(),
-      type: index,
       refresh: this._refreshMode,
       body: {
         doc: object.toStoredJSON(false)
@@ -257,14 +253,15 @@ export default class ElasticSearchService<
 
   async search(index: string, query: any, from: number = 0) {
     let idx = this.checkIndex(index);
-    let q: Search<Record<string, any>> = {};
+    // Cannot import type from ES client easily
+    let q: any = {};
     if (typeof query === "string") {
       q = { q: query, index: index };
     } else {
       q = { index: index, body: query };
     }
     q.from = from;
-    let result = (await this._client.search(q)).body;
+    let result = await this._client.search(q);
     let objects = [];
     for (let i in result.hits.hits) {
       let hit = result.hits.hits[i];
@@ -302,7 +299,7 @@ export default class ElasticSearchService<
    */
   async bulk(index: string, objects: any) {
     let client = this.getClient();
-    let stats = { added: 0, updated: 0, errors: 0, errorsId: [] };
+    let stats: any = { create: 0, delete: 0, index: 0, update: 0, errorsId: [] };
     try {
       if (Array.isArray(objects)) {
         // Manage size limit
@@ -324,9 +321,11 @@ export default class ElasticSearchService<
             refresh: true,
             body: ElasticSearchService.flatten(push)
           });
-          res.body.items.forEach(r => {
-            stats[r.result] = stats[r.result] || 0;
-            stats[r.result]++;
+          res.items.forEach(r => {
+            Object.keys(r).forEach(t => {
+              stats[t] ??= 0;
+              stats[t] += r[t];
+            });
           });
         } while (current < items.length);
       } else {
@@ -359,10 +358,9 @@ export default class ElasticSearchService<
     return (
       await this._client.exists({
         index: index,
-        type: index,
         id: uuid
       })
-    ).body.valueOf();
+    ).valueOf();
   }
 
   /**
@@ -374,10 +372,10 @@ export default class ElasticSearchService<
    */
   async count(index: string = undefined): Promise<number> {
     if (!index) {
-      return (await this._client.count()).body.count;
+      return (await this._client.count()).count;
     }
     this.checkIndex(index);
-    return (await this._client.count({ index: index })).body.count;
+    return (await this._client.count({ index: index })).count;
   }
 
   /**
@@ -403,7 +401,7 @@ export default class ElasticSearchService<
   async __clean(): Promise<void> {
     await Promise.all(
       Object.values(this.indexes).map(async index => {
-        await this._client.deleteByQuery<null>({
+        await this._client.deleteByQuery({
           index: index.name,
           refresh: true,
           body: {

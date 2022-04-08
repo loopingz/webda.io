@@ -30,7 +30,7 @@
     "js-beautify": "^1.14.0",
     "mocha": "^9.0.3",
     "nyc": "^15.1.0",
-    "sinon": "^12.0.1",
+    "sinon": "^13.0.1",
     "source-map-support": "^0.5.19",
     "ts-node": "^10.2.0",
     "typescript": "~4.4.3"

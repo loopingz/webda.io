@@ -30,7 +30,7 @@
     "deepmerge-ts": "^4.0.3",
     "email-templates": "^9.0.0",
     "fs-finder": "^1.8.1",
-    "glob": "^7.1.7",
+    "glob": "^8.0.1",
     "global": "^4.4.0",
     "jsonc-parser": "^3.0.0",
     "jsonpath": "^1.1.1",

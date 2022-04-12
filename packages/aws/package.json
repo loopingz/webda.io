@@ -47,7 +47,7 @@
     "@aws-sdk/s3-request-presigner": "^3.58.0",
     "@webda/core": "^1.6.0-beta.3",
     "bluebird": "^3.7.2",
-    "glob": "^7.1.7",
+    "glob": "^8.0.1",
     "iam-policy-optimizer": "^1.1.2",
     "uuid": "^8.3.2",
     "yaml": "^2.0.0"

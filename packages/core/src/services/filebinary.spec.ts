@@ -1,4 +1,3 @@
-import { BinaryTest } from "./binary.spec";
 import * as assert from "assert";
 import { FileBinary } from "./filebinary";
 import { suite, test } from "@testdeck/mocha";
@@ -7,6 +6,7 @@ import * as fs from "fs";
 import * as jwt from "jsonwebtoken";
 import { BinaryFile, BinaryFileInfo, MemoryBinaryFile } from "./binary";
 import { Readable } from "stream";
+import { CloudBinaryTest } from "./cloudbinary.spec";
 
 class FaultyBinaryFile extends BinaryFile {
   async get() {
@@ -18,7 +18,7 @@ class FaultyBinaryFile extends BinaryFile {
   }
 }
 @suite
-class FileBinaryTest extends BinaryTest {
+class FileBinaryTest extends CloudBinaryTest {
   @test
   initMap() {
     let binary = this.getBinary();
@@ -62,6 +62,37 @@ class FileBinaryTest extends BinaryTest {
     // @ts-ignore
     binary._name = "Binary";
     binary.initRoutes();
+  }
+
+  @test
+  async downloadSignedUrl() {
+    let binary: FileBinary = this.getBinary() as FileBinary;
+    let { user1, ctx } = await this.setupDefault(false);
+
+    let url = await binary.getRedirectUrlFromObject(user1.images[0], ctx, 60);
+    assert.notStrictEqual(url, undefined);
+    await this.execute(ctx, "test.webda.io", "GET", url.substring("http://test.webda.io".length));
+    // c59d?token -> d59d?token
+    await assert.rejects(
+      () =>
+        this.execute(
+          ctx,
+          "test.webda.io",
+          "GET",
+          url.substring("http://test.webda.io".length).replace("c59d?token", "d59d?token")
+        ),
+      /403/
+    );
+    await assert.rejects(
+      () =>
+        this.execute(
+          ctx,
+          "test.webda.io",
+          "GET",
+          url.substring("http://test.webda.io".length).replace("eyJhbG", "ezJhbG")
+        ),
+      /403/
+    );
   }
 
   @test

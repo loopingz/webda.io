@@ -234,7 +234,15 @@ class WebdaTest {
     if (!exec) {
       throw new Error(`${method} ${url} route not found`);
     }
-    await exec.execute(ctx);
+    try {
+      await exec.execute(ctx);
+    } catch (err) {
+      if (err instanceof Error) {
+        throw 500;
+      }
+      throw err;
+    }
+
     let res = ctx.getResponseBody();
     if (res) {
       try {

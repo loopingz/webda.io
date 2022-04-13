@@ -850,6 +850,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
 
     // Now do the action
     if (ctx.getHttpContext().getMethod() === "GET") {
+      // Most implementation override this to do a REDIRECT to a GET url
       var file = object[property][index];
       ctx.writeHead(200, {
         "Content-Type": file.mimetype === undefined ? "application/octet-steam" : file.mimetype,

@@ -15,6 +15,7 @@ import {
 } from "./binary";
 import axios from "axios";
 import { EventEmitter } from "events";
+import { exec } from "child_process";
 export class ImageUser extends User {
   images: BinaryMap[];
 }
@@ -256,7 +257,7 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
 
   @test
   async httpDelete() {
-    let { binary, user1, ctx } = await this.setupDefault(false);
+    let { user1, ctx } = await this.setupDefault(false);
     let executor = this.getExecutor(
       ctx,
       "test.webda.io",
@@ -303,8 +304,18 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
         }
       };
     });
-    let executor = this.getExecutor(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
-    await assert.rejects(() => executor.execute(ctx), /500/, "GET binary with I/O");
+    await this.execute(ctx, "test.webda.io", "GET", `/binary/users/${user1.getUuid()}/images/0`, {});
+    await assert.rejects(
+      () =>
+        this.execute(
+          ctx,
+          "test.webda.io",
+          "GET",
+          ctx.getResponseHeaders().Location.substring("http://test.webda.io".length)
+        ),
+      /500/,
+      "GET binary with I/O"
+    );
     stub.restore();
   }
 
@@ -516,13 +527,50 @@ class BinaryAbstractTest extends WebdaTest {
     ctx.setPathParameters({
       property: "images",
       store: "users",
-      uid: "notfound"
+      uid: "notfound",
+      index: 0
     });
     ctx.getHttpContext().setBody({
       hash: "p",
       challenge: "z"
     });
     await assert.rejects(() => binary.httpChallenge(ctx), /404/);
+
+    let stubs = [];
+    try {
+      let model = {};
+      stubs.push(
+        sinon.stub(binary, "_verifyMapAndStore").callsFake(() => {
+          return {
+            get: async (uuid: string, ctx: Context) => {
+              return model as CoreModel;
+            }
+          } as Store<CoreModel>;
+        })
+      );
+      await assert.rejects(() => binary.httpRoute(ctx), /404/);
+      model = {
+        images: [
+          {
+            size: 10
+          }
+        ],
+        canAct: async () => true
+      };
+      stubs.push(
+        // @ts-ignore
+        sinon.stub(binary, "get").callsFake(async () => {
+          return {
+            pipe: stream => {
+              stream.emit("error", new Error("I/O"));
+            }
+          };
+        })
+      );
+      await assert.rejects(() => binary.httpRoute(ctx), /500/);
+    } finally {
+      stubs.forEach(stub => stub.restore());
+    }
   }
 
   @test

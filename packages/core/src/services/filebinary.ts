@@ -1,19 +1,19 @@
 import * as fs from "fs";
 import { Context } from "../utils/context";
 import { Binary, BinaryFile, BinaryMap, BinaryNotFoundError, BinaryParameters, MemoryBinaryFile } from "./binary";
-import { Service, ServiceParameters } from "./service";
+import { ServiceParameters } from "./service";
 import { join } from "path";
-import { CoreModel } from "..";
+import { CloudBinary, CloudBinaryParameters, CoreModel } from "..";
 import { Readable } from "stream";
 import * as jwt from "jsonwebtoken";
 
-export class FileBinaryParameters extends BinaryParameters {
+export class FileBinaryParameters extends CloudBinaryParameters {
   /**
    * Define the folder to store objects in
    */
   folder: string;
 
-  constructor(params: any, service: Service) {
+  constructor(params: any, service: Binary) {
     super(params, service);
     if (!this.folder.endsWith("/")) {
       this.folder += "/";
@@ -35,7 +35,7 @@ export class FileBinaryParameters extends BinaryParameters {
  * @category CoreServices
  * @WebdaModda
  */
-export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends Binary<T> {
+export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends CloudBinary<T> {
   /**
    * Load parameters
    *
@@ -58,9 +58,27 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   _initRoutes(): void {
     super._initRoutes();
     // Will redirect to this URL for direct upload
-    let url = this.parameters.expose.url + "/upload/data/{hash}{?token}";
+    let url = this.parameters.expose.url + "/download/data/{hash}{?token,content-disposition,content-type}";
     let name = this.getOperationName();
+    if (!this.parameters.expose.restrict.get) {
+      this.addRoute(url, ["GET"], this.downloadBinaryLink, {
+        put: {
+          operationId: `get${name}Binary`,
+          description: "Download a binary to an object after challenge",
+          summary: "Download a binary",
+          responses: {
+            "200": {
+              description: "Content of binary"
+            },
+            "403": {
+              description: "Wrong hash"
+            }
+          }
+        }
+      });
+    }
     if (!this.parameters.expose.restrict.create) {
+      url = this.parameters.expose.url + "/upload/data/{hash}{?token}";
       this.addRoute(url, ["PUT"], this.storeBinary, {
         put: {
           operationId: `put${name}Binary`,
@@ -86,6 +104,32 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   }
 
   /**
+   * Download a binary with a challenge
+   */
+  async downloadBinaryLink(ctx: Context) {
+    const { hash } = ctx.getPathParameters();
+    // Verify token
+    try {
+      let dt = jwt.verify(ctx.parameter("token"), this.getWebda().getSecret());
+      if (dt.hash !== hash) {
+        throw 403;
+      }
+    } catch (err) {
+      throw 403;
+    }
+    ctx.writeHead(200, {
+      "content-disposition": ctx.parameter("content-disposition"),
+      "content-type": ctx.parameter("content-type")
+    });
+    // Fake a binary map for this case
+    return new Promise<void>(async (resolve, reject) => {
+      const stream = ctx.getStream();
+      stream.on("error", reject).on("finish", resolve);
+      (await this.get({ hash } as BinaryMap)).pipe(stream);
+    });
+  }
+
+  /**
    * @inheritdoc
    */
   async _get(info: BinaryMap): Promise<Readable> {
@@ -96,6 +140,25 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     return fs.createReadStream(path);
   }
 
+  /**
+   * Get signed url to download an element
+   */
+  async getSignedUrlFromMap(map: BinaryMap, expires: number, context: Context): Promise<string> {
+    return `${context
+      .getHttpContext()
+      .getAbsoluteUrl(this.parameters.expose.url + "/download/data/" + map.hash)}?token=${this.getToken(
+      map.hash,
+      "GET",
+      expires
+    )}&content-type=${map.mimetype}&content-disposition=attachment`;
+  }
+
+  /**
+   * Get storage path for a hash
+   * @param hash
+   * @param postfix
+   * @returns
+   */
   _getPath(hash: string, postfix: string = undefined) {
     if (postfix === undefined) {
       return this.parameters.folder + hash;
@@ -109,12 +172,27 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     }
   }
 
+  /**
+   * Get token for action
+   *
+   * @param ctx
+   * @param expiresIn
+   */
+  getToken(hash: string, method: "PUT" | "GET", expiresIn: number = 60) {
+    return jwt.sign({ hash, method }, this.getWebda().getSecret(), {
+      expiresIn
+    });
+  }
+
+  /**
+   * Get put URL
+   * @param ctx
+   * @returns
+   */
   getPutUrl(ctx: Context) {
     // Get a full URL, this method should be in a Route Object
     // Add a JWT token for 60s
-    let token = jwt.sign({ hash: ctx.getRequestBody().hash }, this.getWebda().getSecret(), {
-      expiresIn: 60
-    });
+    let token = this.getToken(ctx.getRequestBody().hash, "PUT");
     return ctx
       .getHttpContext()
       .getAbsoluteUrl(this.parameters.expose.url + "/upload/data/" + ctx.getRequestBody().hash + `?token=${token}`);

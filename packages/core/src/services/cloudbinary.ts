@@ -1,6 +1,7 @@
 import { Binary, BinaryMap, BinaryParameters } from "./binary";
 import { CoreModel } from "../models/coremodel";
 import { join } from "path";
+import { Context } from "..";
 
 /**
  * Default binary parameters
@@ -126,7 +127,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
       service: this,
       context: context
     });
-    return this.getSignedUrlFromMap(binaryMap, expires);
+    return this.getSignedUrlFromMap(binaryMap, expires, context);
   }
 
   /**
@@ -169,5 +170,5 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
    * @param {GetSignedUrlParams} params
    * @returns {string} URL in order to download the file
    */
-  abstract getSignedUrlFromMap(map: BinaryMap, expires: number): Promise<string>;
+  abstract getSignedUrlFromMap(map: BinaryMap, expires: number, context: Context): Promise<string>;
 }

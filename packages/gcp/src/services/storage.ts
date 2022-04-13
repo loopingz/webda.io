@@ -1,6 +1,6 @@
 "use strict";
 import { Storage as GCS, GetSignedUrlConfig, Bucket } from "@google-cloud/storage";
-import { CloudBinary, BinaryMap, BinaryParameters, CoreModel, BinaryFile, DeepPartial } from "@webda/core";
+import { CloudBinary, BinaryMap, BinaryParameters, CoreModel, BinaryFile, DeepPartial, Context } from "@webda/core";
 import { Readable, Stream } from "stream";
 import { createReadStream } from "fs";
 import * as mime from "mime-types";
@@ -79,7 +79,7 @@ export default class Storage<T extends StorageParameters = StorageParameters> ex
   /**
    * @override
    */
-  getSignedUrlFromMap(map: BinaryMap, expires: number): Promise<string> {
+  getSignedUrlFromMap(map: BinaryMap, expires: number, _context: Context): Promise<string> {
     return this.getSignedUrl({ key: this._getKey(map.hash), expires, action: "read" });
   }
 

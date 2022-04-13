@@ -159,7 +159,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   /**
    * @override
    */
-  async getSignedUrlFromMap(binaryMap: BinaryMap, expire: number) {
+  async getSignedUrlFromMap(binaryMap: BinaryMap, expire: number, _context: Context) {
     var params: any = {};
     params.Expires = expire; // A get should not take more than 30s
     params.ResponseContentDisposition = `attachment; filename=${binaryMap.name || binaryMap.originalname}`;

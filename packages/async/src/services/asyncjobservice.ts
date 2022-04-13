@@ -134,11 +134,11 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   }
 
   /**
-   * Status hook for job report
    *
-   * Only updates specific fields: status, errorMessage, statusDetails, results, logs (appending)
+   * @param context
+   * @param action
    */
-  protected async statusHook(context: Context) {
+  async verifyJobRequest(context: Context): Promise<AsyncAction> {
     const jobId = context.getHttpContext().getHeader("X-Job-Id");
     if (!jobId) {
       this.log("TRACE", "Require Job Id");
@@ -156,9 +156,19 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       this.log("TRACE", "Invalid Job HMAC");
       throw 403;
     }
+    return action;
+  }
+
+  /**
+   * Status hook for job report
+   *
+   * Only updates specific fields: status, errorMessage, statusDetails, results, logs (appending)
+   */
+  protected async statusHook(context: Context) {
+    const action = await this.verifyJobRequest(context);
     const body = context.getRequestBody();
 
-    action._lastJobUpdate = Number.parseInt(jobTime) || 0;
+    action._lastJobUpdate = Number.parseInt(context.getHttpContext().getHeader("X-Job-Time")) || 0;
     if (Date.now() - action._lastJobUpdate > 60) {
       action._lastJobUpdate = Date.now();
     }

@@ -40,7 +40,7 @@
     "mustache": "^4.2.0",
     "node-cron": "^3.0.0",
     "nodemailer": "^6.6.3",
-    "openapi-types": "^10.0.0",
+    "openapi-types": "^11.0.0",
     "sanitize-html": "^2.4.0",
     "semver": "^7.3.5",
     "ts-method-cache": "^3.3.1",

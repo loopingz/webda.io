@@ -98,30 +98,44 @@ export class Router {
   }
 
   /**
+   * Include prefix to the url if not present
+   * @param url
+   * @returns
+   */
+  getFinalUrl(url: string): string {
+    const prefix = this.webda.getGlobalParams().routePrefix || "";
+    if (prefix && url.startsWith(prefix)) {
+      return url;
+    }
+    return `${prefix}${url}`;
+  }
+
+  /**
    * Add a route dynamicaly
    *
    * @param {String} url of the route can contains dynamic part like {uuid}
    * @param {Object} info the type of executor
    */
   addRoute(url: string, info: RouteInfo): void {
-    this.webda.log("TRACE", `Add route ${info.methods.join(",")} ${url}`);
+    const finalUrl = this.getFinalUrl(url);
+    this.webda.log("TRACE", `Add route ${info.methods.join(",")} ${finalUrl}`);
     info.openapi ??= {};
-    if (this.routes[url]) {
+    if (this.routes[finalUrl]) {
       // If route is already added do not do anything
-      if (this.routes[url].includes(info)) {
+      if (this.routes[finalUrl].includes(info)) {
         return;
       }
       // Check and add warning if same method is used
-      let methods = this.routes[url].map((r: RouteInfo) => r.methods).flat();
+      let methods = this.routes[finalUrl].map((r: RouteInfo) => r.methods).flat();
       info.methods.forEach(m => {
         if (methods.indexOf(m) >= 0) {
-          this.webda.log("WARN", `${m} ${url} overlap with another defined route`);
+          this.webda.log("WARN", `${m} ${finalUrl} overlap with another defined route`);
         }
       });
       // Last added need to be overriding
-      this.routes[url].unshift(info);
+      this.routes[finalUrl].unshift(info);
     } else {
-      this.routes[url] = [info];
+      this.routes[finalUrl] = [info];
     }
 
     if (this.initiated) {
@@ -135,10 +149,11 @@ export class Router {
    * @param {String} url to remove
    */
   removeRoute(url: string, info: RouteInfo = undefined): void {
+    const finalUrl = this.getFinalUrl(url);
     if (!info) {
-      delete this.routes[url];
-    } else if (this.routes[url] && this.routes[url].includes(info)) {
-      this.routes[url].splice(this.routes[url].indexOf(info), 1);
+      delete this.routes[finalUrl];
+    } else if (this.routes[finalUrl] && this.routes[finalUrl].includes(info)) {
+      this.routes[finalUrl].splice(this.routes[finalUrl].indexOf(info), 1);
     }
 
     this.remapRoutes();
@@ -151,6 +166,17 @@ export class Router {
    * Sort all routes again
    */
   public remapRoutes() {
+    // Might need to ensure each routes is prefixed
+    const prefix = this.webda.getGlobalParams().routePrefix || "";
+    if (prefix) {
+      Object.keys(this.routes)
+        .filter(k => !k.startsWith(prefix))
+        .forEach(k => {
+          this.routes[this.getFinalUrl(k)] = this.routes[k];
+          delete this.routes[k];
+        });
+    }
+
     this.initURITemplates(this.routes);
 
     // Order path desc
@@ -202,14 +228,15 @@ export class Router {
    * @param url
    */
   getRouteMethodsFromUrl(url): HttpMethodType[] {
+    const finalUrl = this.getFinalUrl(url);
     let methods = new Set<HttpMethodType>();
     for (let i in this.pathMap) {
       var routeUrl = this.pathMap[i].url;
       var map = this.pathMap[i].config;
 
       if (
-        routeUrl !== url &&
-        (map._uriTemplateParse === undefined || map._uriTemplateParse.fromUri(url) === undefined)
+        routeUrl !== finalUrl &&
+        (map._uriTemplateParse === undefined || map._uriTemplateParse.fromUri(finalUrl) === undefined)
       ) {
         continue;
       }
@@ -223,6 +250,7 @@ export class Router {
    * Get the route from a method / url
    */
   public getRouteFromUrl(ctx: Context, method: HttpMethodType, url: string): any {
+    const finalUrl = this.getFinalUrl(url);
     let parameters = this.webda.getConfiguration().parameters;
     for (let i in this.pathMap) {
       var routeUrl = this.pathMap[i].url;
@@ -233,7 +261,7 @@ export class Router {
         continue;
       }
 
-      if (routeUrl === url) {
+      if (routeUrl === finalUrl) {
         ctx.setServiceParameters(parameters);
         return map;
       }
@@ -241,7 +269,7 @@ export class Router {
       if (map._uriTemplateParse === undefined) {
         continue;
       }
-      var parse_result = map._uriTemplateParse.fromUri(url);
+      var parse_result = map._uriTemplateParse.fromUri(finalUrl);
       if (parse_result !== undefined) {
         ctx.setServiceParameters(parameters);
         ctx.setPathParameters(parse_result);

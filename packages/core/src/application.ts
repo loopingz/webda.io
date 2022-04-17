@@ -153,6 +153,15 @@ export type UnpackedConfiguration = {
      * Define the api url
      */
     apiUrl?: string;
+    /**
+     * Define the model to use for Context
+     *
+     * @default Context
+     */
+    contextModel?: string;
+    /**
+     * Allow any other type of parameters
+     */
     [key: string]: any;
   };
   /**

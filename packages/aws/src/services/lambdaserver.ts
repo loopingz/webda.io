@@ -224,7 +224,7 @@ export default class LambdaServer extends Webda {
     let origin = headers.Origin || headers.origin || ctx.clientInfo.referer;
     try {
       // Set predefined headers for CORS
-      if (await this.checkRequest(ctx)) {
+      if (await this.checkCORSRequest(ctx)) {
         if (origin) {
           ctx.setHeader("Access-Control-Allow-Origin", origin);
         }
@@ -234,6 +234,8 @@ export default class LambdaServer extends Webda {
         ctx.statusCode = 401;
         return this.handleLambdaReturn(ctx);
       }
+      // Check request overall
+      await this.checkRequest(ctx);
     } catch (err) {
       if (typeof err === "number") {
         ctx.statusCode = err;

@@ -214,7 +214,9 @@ export default class WebdaConsole {
       args.push("--logFormat");
       args.push("#W# %(l)s|%(m)s");
       args.push("--notty");
-      args.push("--devMode");
+      if (!process.env["NO_DEV_MODE"]) {
+        args.push("--devMode");
+      }
       let webdaConsole = this;
       let addTime = new Transform({
         transform(chunk, _encoding, callback) {

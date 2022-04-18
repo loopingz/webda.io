@@ -174,6 +174,7 @@ export type CoreEvents = {
   "Webda.Create.Services": { [key: string]: Service };
   "Webda.Init": Configuration;
   "Webda.NewContext": Context;
+  [key: string]: unknown;
 };
 
 type NoSchemaResult = null;
@@ -234,12 +235,19 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   protected logger: Logger;
   /**
-   * CORS Filter registry
+   * Request Filter registry
    *
    * Added via [[Webda.registerRequestFilter]]
    * See [[CorsFilter]]
    */
   protected _requestFilters: RequestFilter<Context>[] = [];
+  /**
+   * CORS Filter registry
+   *
+   * Added via [[Webda.registerCORSRequestFilter]]
+   * See [[CorsFilter]]
+   */
+  protected _requestCORSFilters: RequestFilter<Context>[] = [];
   private workerOutput: WorkerOutput;
   /**
    * Store the instance id
@@ -271,11 +279,11 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     this.configuration.services ??= {};
     // Add CSRF origins filtering
     if (this.configuration.parameters.csrfOrigins) {
-      this.registerRequestFilter(new OriginFilter(this.configuration.parameters.csrfOrigins));
+      this.registerCORSFilter(new OriginFilter(this.configuration.parameters.csrfOrigins));
     }
     // Add CSRF website filtering
     if (this.configuration.parameters.website) {
-      this.registerRequestFilter(new WebsiteOriginFilter(this.configuration.parameters.website));
+      this.registerCORSFilter(new WebsiteOriginFilter(this.configuration.parameters.website));
     }
   }
 
@@ -424,8 +432,24 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     return this._init;
   }
 
+  /**
+   * Register a request filtering
+   *
+   * Will apply to all requests regardless of the devMode
+   * @param filter
+   */
   registerRequestFilter(filter: RequestFilter<Context>) {
     this._requestFilters.push(filter);
+  }
+
+  /**
+   * Register a CORS request filtering
+   *
+   * Does not apply in devMode
+   * @param filter
+   */
+  registerCORSFilter(filter: RequestFilter<Context>) {
+    this._requestCORSFilters.push(filter);
   }
 
   /**
@@ -949,7 +973,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param queue
    * @returns
    */
-  on<Key extends keyof E>(event: Key | symbol | string, listener: (evt: E[Key]) => void): this {
+  on<Key extends keyof E>(event: Key | symbol, listener: (evt: E[Key]) => void): this {
     super.on(<string>event, listener);
     return this;
   }
@@ -971,14 +995,25 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   /**
-   * Verify if an origin is allowed to do request on the API
+   * Verify if a request can be done
    *
    * @param context Context of the request
    */
   protected async checkRequest(ctx: Context): Promise<boolean> {
-    return (await Promise.all(this._requestFilters.map(filter => filter.checkRequest(ctx)))).reduce(
-      (prev, cur) => prev || cur
-    );
+    // Do not need to filter on OPTIONS as CORS is for that
+    if (ctx.getHttpContext().getMethod() === "OPTIONS") {
+      return true;
+    }
+    return (await Promise.all(this._requestFilters.map(filter => filter.checkRequest(ctx)))).some(v => v);
+  }
+
+  /**
+   * Verify if an origin is allowed to do request on the API
+   *
+   * @param context Context of the request
+   */
+  protected async checkCORSRequest(ctx: Context): Promise<boolean> {
+    return (await Promise.all(this._requestCORSFilters.map(filter => filter.checkRequest(ctx)))).some(v => v);
   }
 
   exportOpenAPI(skipHidden: boolean = true): OpenAPIV3.Document {

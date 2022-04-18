@@ -93,10 +93,10 @@ export class WebdaServer extends Webda {
 
       // Fallback on reference as Origin is not always set by Edge
       let origin = req.headers.Origin || req.headers.origin || req.headers.Referer;
-      // Set predefined headers for CORS
 
       try {
-        if (this.devMode || (await this.checkRequest(ctx))) {
+        // Set predefined headers for CORS
+        if (this.devMode || (await this.checkCORSRequest(ctx))) {
           if (origin) {
             res.setHeader("Access-Control-Allow-Origin", origin);
           }
@@ -107,6 +107,8 @@ export class WebdaServer extends Webda {
           res.end();
           return;
         }
+        // Verify if request is authorized
+        await this.checkRequest(ctx);
       } catch (err) {
         if (typeof err === "number") {
           res.writeHead(err);

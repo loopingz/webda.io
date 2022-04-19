@@ -168,15 +168,7 @@ export default class LambdaServer extends Webda {
     }
     this.log("INFO", event.httpMethod || "GET", event.path);
     let httpContext = new HttpContext(vhost, method, resourcePath, protocol, port, body, headers);
-    if (event.path !== event.resource) {
-      let relativeUri = event.resource;
-      for (let j in event.pathParameters) {
-        relativeUri = relativeUri.replace(`\{${j}\}`, event.pathParameters[j]);
-      }
-      if (relativeUri !== event.path) {
-        httpContext.setPrefix(event.path.substr(0, event.path.length - relativeUri.length));
-      }
-    }
+    this.computePrefix(event, httpContext);
     var ctx = await this.newContext(httpContext);
     // TODO Get all client info
     // event['requestContext']['identity']['sourceIp']
@@ -244,6 +236,23 @@ export default class LambdaServer extends Webda {
         ctx.statusCode = 500;
       }
       return this.handleLambdaReturn(ctx);
+    }
+  }
+
+  /**
+   * Based on API Gateway event compute the prefix if any
+   * @param event
+   * @param httpContext
+   */
+  computePrefix(event: any, httpContext: HttpContext) {
+    if (event.path !== event.resource) {
+      let relativeUri = event.resource;
+      for (let j in event.pathParameters) {
+        relativeUri = relativeUri.replace(new RegExp(`\\{${j}\\+?\\}`), event.pathParameters[j]);
+      }
+      if (relativeUri !== event.path) {
+        httpContext.setPrefix(event.path.substr(0, event.path.length - relativeUri.length));
+      }
     }
   }
 

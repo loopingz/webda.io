@@ -69,6 +69,23 @@ class CSRFTest extends WebdaTest {
   }
 
   @test
+  async checkWebdaRequest() {
+    let calls = 0;
+    this.webda.registerRequestFilter({
+      checkRequest: async () => {
+        calls++;
+        return true;
+      }
+    });
+    // @ts-ignore
+    await this.webda.checkRequest(this.ctx);
+    this.ctx.getHttpContext().method = "OPTIONS";
+    // @ts-ignore
+    await this.webda.checkRequest(this.ctx);
+    assert.strictEqual(calls, 1);
+  }
+
+  @test
   getApiUrl() {
     assert.strictEqual(this.webda.getApiUrl("/plop"), "http://localhost:18080/plop");
     assert.strictEqual(this.webda.getApiUrl("plop"), "http://localhost:18080/plop");

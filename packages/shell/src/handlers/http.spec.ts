@@ -105,7 +105,7 @@ class WebdaServerTest {
       headers: { origin: "bouzouf", "x-forwarded-port": "443" }
     });
     assert.strictEqual(res.status, 401);
-    this.server.registerRequestFilter(this);
+    this.server.registerCORSFilter(this);
     res = await fetch(`http://localhost:${this.port}/test`, {
       headers: { origin: "bouzouf", "x-forwarded-port": "443" }
     });

@@ -28,6 +28,15 @@ class RouterTest extends WebdaTest {
   }
 
   @test
+  async testRouterWithPrefix() {
+    this.webda.addRoute("/test/{uuid}", { methods: ["GET"], executor: "DefinedMailer" });
+    this.webda.getGlobalParams().routePrefix = "/reprefix";
+    assert.strictEqual(this.webda.getRouter().getFinalUrl("/test/plop"), "/reprefix/test/plop");
+    assert.strictEqual(this.webda.getRouter().getFinalUrl("/reprefix/test/plop"), "/reprefix/test/plop");
+    this.webda.getRouter().remapRoutes();
+  }
+
+  @test
   async testRouteWithPrefix() {
     this.webda.addRoute("/test/{uuid}", { methods: ["GET"], executor: "DefinedMailer" });
     let httpContext = new HttpContext("test.webda.io", "GET", "/prefix/test/plop", "https");

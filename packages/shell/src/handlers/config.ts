@@ -26,7 +26,7 @@ export default class ConfigurationService extends Service implements RequestFilt
 
   resolve() {
     super.resolve();
-    this._webda.registerRequestFilter(this);
+    this._webda.registerCORSFilter(this);
     this.addRoute("/configuration", ["GET", "PUT"], this.crudConfiguration);
     this.addRoute("/application", ["GET"], this.getApplication);
     this.addRoute("/npm", ["POST"], this.npmSearch);

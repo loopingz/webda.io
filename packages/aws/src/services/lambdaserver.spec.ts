@@ -1,4 +1,4 @@
-import { Bean, Route, Service } from "@webda/core";
+import { Bean, HttpContext, Route, Service } from "@webda/core";
 import * as assert from "assert";
 import * as fs from "fs";
 import { suite, test } from "@testdeck/mocha";
@@ -305,5 +305,27 @@ class LambdaHandlerTest extends WebdaAwsTest {
         assert.notStrictEqual(service.getEvents().length, 0, "Should have get some events:" + JSON.stringify(event));
       }
     }
+  }
+
+  /**
+   * Wildcard path from API Gateway were missing the prefix
+   *
+   * @see https://github.com/loopingz/webda.io/issues/193
+   */
+  @test
+  async computePrefix() {
+    let httpContext = new HttpContext("test.webda.io", "GET", "/prefix/static1234/test/subfolder/index.html");
+    this.handler.computePrefix(
+      {
+        path: "/prefix/static1234/test/subfolder/index.html",
+        resource: "/static1234/{path+}",
+        pathParameters: {
+          path: "test/subfolder/index.html"
+        }
+      },
+      httpContext
+    );
+    assert.strictEqual(httpContext.getRelativeUri(), "/static1234/test/subfolder/index.html");
+    assert.strictEqual(httpContext.prefix, "/prefix");
   }
 }

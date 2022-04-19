@@ -39,7 +39,7 @@ class HawkServiceTest extends WebdaTest {
    */
   async checkRequest(ctx) {
     // @ts-ignore
-    return this.webda.checkRequest(ctx);
+    return this.webda.checkCORSRequest(ctx);
   }
 
   @test

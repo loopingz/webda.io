@@ -110,6 +110,13 @@
             "type": "string"
           },
           "description": "Authorize those origins only (regexp)"
+        },
+        "whitelist": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "If defined the key is only usable from these ips or dns"
         }
       },
       "required": [

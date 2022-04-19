@@ -98,7 +98,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
     }
     // Make sure origins exist
     await this.getOrigins();
-    this.getWebda().registerRequestFilter(this);
+    this.getWebda().registerCORSFilter(this);
     // Manage hawk server signature
     this.getWebda().on("Webda.Result", async ({ context }) => {
       try {

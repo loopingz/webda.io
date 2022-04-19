@@ -1,6 +1,6 @@
 {
   "name": "@webda/sample-app",
-  "version": "1.0.10",
+  "version": "1.0.11-alpha.0",
   "description": "Simple app used for deployment test",
   "keywords": [
     "aws",

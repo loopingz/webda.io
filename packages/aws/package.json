@@ -1,6 +1,6 @@
 {
   "name": "@webda/aws",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Webda AWS Services implementation",
   "main": "lib/index.js",
   "scripts": {
@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
-    "@webda/core": "^1.1.0",
+    "@webda/core": "^1.1.1",
     "aws-sdk": "^2.678.0",
     "bluebird": "^3.7.2",
     "glob": "^7.1.6",
@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.1.0",
-    "@webda/shell": "^1.0.2",
+    "@webda/shell": "^1.0.3",
     "aws-sdk-mock": "^5.1.0",
     "sinon": "^9.0.1"
   }

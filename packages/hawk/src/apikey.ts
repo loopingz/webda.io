@@ -38,6 +38,11 @@ export default class ApiKey extends OwnerModel {
   origins?: string[];
 
   /**
+   * If defined the key is only usable from these ips or dns
+   */
+  whitelist?: string[];
+
+  /**
    * Formatting structure needed for Hawk credentials
    * @returns {id,key,algorithm}
    */

@@ -3,7 +3,7 @@ const Webda = require("../../src/index");
 class VoidStore extends Webda.Store {
   constructor(webda, name, params) {
     super(webda, name, params);
-    webda.registerRequestFilter(this);
+    webda.registerCORSFilter(this);
     if (this.parameters.brokenConstructor) throw Error();
   }
 

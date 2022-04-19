@@ -46,7 +46,7 @@ class CSRFTest extends WebdaTest {
   filter: WebsiteOriginFilter;
   async checkRequest(ctx) {
     // @ts-ignore
-    return this.webda.checkRequest(ctx);
+    return this.webda.checkCORSRequest(ctx);
   }
 
   async before() {

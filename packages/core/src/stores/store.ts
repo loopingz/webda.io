@@ -143,7 +143,8 @@ export class StoreParameters extends ServiceParameters {
  */
 class Store<T extends CoreModel, K extends StoreParameters = StoreParameters>
   extends Service<K>
-  implements ConfigurationProvider {
+  implements ConfigurationProvider
+{
   _reverseMap: any[] = [];
   _cascade: any[] = [];
   _model: CoreModelDefinition;

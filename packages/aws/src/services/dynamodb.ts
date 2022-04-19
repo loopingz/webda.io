@@ -25,7 +25,8 @@ export class DynamoStoreParameters extends StoreParameters {
  */
 export default class DynamoStore<T extends CoreModel, K extends DynamoStoreParameters = DynamoStoreParameters>
   extends Store<T, K>
-  implements CloudFormationContributor {
+  implements CloudFormationContributor
+{
   _client: any;
 
   /**

@@ -49,5 +49,5 @@ you have to add a parameter in your deployment resources:
 To release a new version of the packages
 
 ```
-yarn new-version
+yarn && yarn build && yarn new-version
 ```

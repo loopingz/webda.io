@@ -31,7 +31,8 @@ export class S3BinaryParameters extends BinaryParameters {
  */
 export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
   extends Binary<T>
-  implements CloudFormationContributor {
+  implements CloudFormationContributor
+{
   AWS: any;
   _s3: any;
 

@@ -57,7 +57,8 @@ class OAuthServiceParameters extends ServiceParameters {
  */
 export abstract class OAuthService<T extends OAuthServiceParameters = OAuthServiceParameters>
   extends Service<T>
-  implements RequestFilter<Context> {
+  implements RequestFilter<Context>
+{
   _authenticationService: Authentication;
 
   /**

@@ -346,10 +346,11 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
       this.resources.APIGatewayBasePathMapping.DomainName =
         this.resources.APIGatewayBasePathMapping.DomainName || this.resources.APIGatewayDomain.DomainName;
       if (this.resources.APIGatewayBasePathMapping.DomainName.endsWith(".")) {
-        this.resources.APIGatewayBasePathMapping.DomainName = this.resources.APIGatewayBasePathMapping.DomainName.substr(
-          0,
-          this.resources.APIGatewayBasePathMapping.DomainName.length - 1
-        );
+        this.resources.APIGatewayBasePathMapping.DomainName =
+          this.resources.APIGatewayBasePathMapping.DomainName.substr(
+            0,
+            this.resources.APIGatewayBasePathMapping.DomainName.length - 1
+          );
       }
     }
 

@@ -46,6 +46,19 @@ export class CoreModelUnattachedError extends Error {
   }
 }
 
+export function NotEnumerable(target: any, propertyKey: string) {
+  Object.defineProperty(target, propertyKey, {
+    set(value) {
+      Object.defineProperty(this, propertyKey, {
+        value,
+        writable: true,
+        configurable: true
+      });
+    },
+    configurable: true
+  });
+}
+
 /**
  * Basic Object in Webda
  *
@@ -57,10 +70,10 @@ export class CoreModelUnattachedError extends Error {
  * @WebdaModel
  */
 class CoreModel {
-  static jsonExcludes = ["__store", "__ctx", "__class"];
   /**
    * Class reference to the object
    */
+  @NotEnumerable
   __class: any;
   /**
    * Type name
@@ -71,12 +84,14 @@ class CoreModel {
    *
    * @TJS-ignore
    */
+  @NotEnumerable
   __ctx: Context;
   /**
    * If object is attached to its store
    *
    * @TJS-ignore
    */
+  @NotEnumerable
   __store: Store<CoreModel>;
 
   /**
@@ -334,9 +349,6 @@ class CoreModel {
    */
   toStoredJSON(stringify = false): any | string {
     let obj = this._toJSON(true);
-    CoreModel.jsonExcludes.forEach(attr => {
-      delete obj[attr];
-    });
     obj.__type = this.__class.name;
     if (stringify) {
       return JSON.stringify(obj);
@@ -369,9 +381,6 @@ class CoreModel {
     let obj: any = {};
     for (let i in this) {
       let value = this[i];
-      if (CoreModel.jsonExcludes.indexOf(i) >= 0) {
-        continue;
-      }
       if (!secure) {
         value = this._jsonFilter(i, this[i]);
       }

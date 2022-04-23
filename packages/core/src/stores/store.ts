@@ -439,6 +439,10 @@ abstract class Store<
   implements ConfigurationProvider, MappingService<T>
 {
   /**
+   * Cache store
+   */
+  _cacheStore: Store<T>;
+  /**
    * Contain the reverse map
    */
   _reverseMap: { mapper: MappingService; property: string }[] = [];
@@ -492,6 +496,7 @@ abstract class Store<
     this._uuidField = this._model.getUuidField();
     this._lastUpdateField = this._model.getLastUpdateField();
     this._creationDateField = this._model.getCreationField();
+    this._cacheStore?.computeParameters();
   }
 
   /**
@@ -506,9 +511,30 @@ abstract class Store<
     return this._model.getLastUpdateField();
   }
 
-  getObject(uid: string): Promise<CoreModel> {
+  /**
+   * Get From Cache or main
+   * @param uid
+   * @param raiseIfNotFound
+   * @returns
+   */
+  async _getFromCache(uid: string, raiseIfNotFound: boolean = false): Promise<T> {
+    let res = await this._cacheStore?._get(uid);
+    if (!res) {
+      res = await this._get(uid, raiseIfNotFound);
+    } else {
+      res.__store = this;
+    }
+    return res;
+  }
+
+  /**
+   * Get object from store
+   * @param uid
+   * @returns
+   */
+  async getObject(uid: string): Promise<T> {
     this.metrics.get++;
-    return this._get(uid);
+    return this._getFromCache(uid);
   }
 
   /**
@@ -730,6 +756,7 @@ abstract class Store<
     let updateDate = new Date();
     this.metrics.increment++;
     await this._incrementAttribute(uid, prop, value, updateDate);
+    await this._cacheStore?._incrementAttribute(uid, prop, value, updateDate);
     return this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
       object_id: uid,
       store: this,
@@ -757,6 +784,15 @@ abstract class Store<
     let updateDate = new Date();
     this.metrics.collectionUpsert++;
     await this._upsertItemToCollection(uid, prop, item, index, itemWriteCondition, itemWriteConditionField, updateDate);
+    await this._cacheStore?._upsertItemToCollection(
+      uid,
+      prop,
+      item,
+      index,
+      itemWriteCondition,
+      itemWriteConditionField,
+      updateDate
+    );
 
     await this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
       object_id: uid,
@@ -782,6 +818,14 @@ abstract class Store<
     let updateDate = new Date();
     this.metrics.collectionDelete++;
     await this._deleteItemFromCollection(uid, prop, index, itemWriteCondition, itemWriteConditionField, updateDate);
+    await this._cacheStore?._deleteItemFromCollection(
+      uid,
+      prop,
+      index,
+      itemWriteCondition,
+      itemWriteConditionField,
+      updateDate
+    );
     await this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
       object_id: uid,
       store: this,
@@ -822,6 +866,7 @@ abstract class Store<
     await object._onSave();
     this.metrics.save++;
     let res = await this._save(object);
+    await this._cacheStore?._save(object);
     object = this.initModel(res);
     await this.emitSync("Store.Saved", <EventStoreSaved>{
       object: object,
@@ -944,7 +989,7 @@ abstract class Store<
 
     object[this._lastUpdateField] = new Date();
     this.metrics.get++;
-    let load = await this._get(object[this._uuidField], true);
+    let load = await this._getFromCache(object[this._uuidField], true);
     if (load.__type !== this._model.name && this.parameters.strict) {
       this.log("WARN", `Object '${object[this._uuidField]}' was not created by this store`);
       throw new StoreNotFoundError(object[this._uuidField], this.getName());
@@ -972,6 +1017,12 @@ abstract class Store<
     if (partial) {
       this.metrics.partialUpdate++;
       await this._patch(object, object[this._uuidField], load[this._lastUpdateField], this._lastUpdateField);
+      await this._cacheStore?._patch(
+        object,
+        object[this._uuidField],
+        load[this._lastUpdateField],
+        this._lastUpdateField
+      );
       res = object;
     } else {
       // Copy back the mappers
@@ -980,6 +1031,12 @@ abstract class Store<
       }
       this.metrics.update++;
       res = await this._update(object, object[this._uuidField], load[this._lastUpdateField], this._lastUpdateField);
+      await this._cacheStore?._update(
+        object,
+        object[this._uuidField],
+        load[this._lastUpdateField],
+        this._lastUpdateField
+      );
     }
     // Return updated
     for (let i in res) {
@@ -1015,6 +1072,7 @@ abstract class Store<
   async removeAttribute(uuid: string, attribute: string, itemWriteCondition?: any, itemWriteConditionField?: string) {
     this.metrics.attributeDelete++;
     await this._removeAttribute(uuid, attribute, itemWriteCondition, itemWriteConditionField);
+    await this._cacheStore?._removeAttribute(uuid, attribute, itemWriteCondition, itemWriteConditionField);
     await this.emitSync("Store.PartialUpdated", <EventStorePartialUpdated>{
       object_id: uuid,
       partial_update: {
@@ -1064,7 +1122,7 @@ abstract class Store<
       to_delete = uid;
     } else {
       this.metrics.get++;
-      to_delete = await this._get(uid);
+      to_delete = await this._getFromCache(uid);
       if (to_delete === undefined) {
         return;
       }
@@ -1097,10 +1155,17 @@ abstract class Store<
         },
         to_delete.getUuid()
       );
+      await this._cacheStore?._patch(
+        {
+          __deleted: true
+        },
+        to_delete.getUuid()
+      );
     } else {
       this.metrics.delete++;
       // Delete from the DB for real
       await this._delete(to_delete.getUuid(), writeCondition, writeConditionField);
+      await this._cacheStore?._delete(to_delete.getUuid(), writeCondition, writeConditionField);
     }
 
     // Send post event
@@ -1128,7 +1193,7 @@ abstract class Store<
    */
   async getConfiguration(id: string): Promise<{ [key: string]: any }> {
     this.metrics.get++;
-    let object = await this._get(id);
+    let object = await this._getFromCache(id);
     if (!object) {
       return undefined;
     }
@@ -1154,7 +1219,7 @@ abstract class Store<
       return undefined;
     }
     this.metrics.get++;
-    let object = await this._get(uid);
+    let object = await this._getFromCache(uid);
     if (!object) {
       return undefined;
     }

@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { CoreModel } from "../models/coremodel";
 import { JSONUtils } from "../utils/serializers";
+import { MemoryStore } from "./memory";
 import { Store, StoreNotFoundError, StoreParameters } from "./store";
 
 class FileStoreParameters extends StoreParameters {
@@ -43,6 +44,10 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
    */
   computeParameters() {
     super.computeParameters();
+    this._cacheStore = new MemoryStore(this._webda, `_${this.getName()}_cache`, {
+      model: this.parameters.model
+    });
+    this._cacheStore.computeParameters();
     if (!fs.existsSync(this.parameters.folder)) {
       fs.mkdirSync(this.parameters.folder);
     }

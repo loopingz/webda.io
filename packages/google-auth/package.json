@@ -31,7 +31,7 @@
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
     "@webda/core": "^1.6.0-beta.3",
-    "google-auth-library": "^7.3.0"
+    "google-auth-library": "^8.0.1"
   },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",

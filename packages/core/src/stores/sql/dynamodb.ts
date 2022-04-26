@@ -1,5 +1,3 @@
 class DynamoQuery {
-    getExpressableQuery() {
-        
-    }
+  getExpressableQuery() {}
 }

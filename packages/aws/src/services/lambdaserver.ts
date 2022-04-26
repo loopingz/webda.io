@@ -227,7 +227,10 @@ export default class LambdaServer extends Webda {
         return this.handleLambdaReturn(ctx);
       }
       // Check request overall
-      await this.checkRequest(ctx);
+      if (!(await this.checkRequest(ctx))) {
+        this.log("WARN", "Request refused");
+        throw 403;
+      }
     } catch (err) {
       if (typeof err === "number") {
         ctx.statusCode = err;

@@ -108,7 +108,10 @@ export class WebdaServer extends Webda {
           return;
         }
         // Verify if request is authorized
-        await this.checkRequest(ctx);
+        if (!(await this.checkRequest(ctx))) {
+          this.log("WARN", "Request refused");
+          throw 403;
+        }
       } catch (err) {
         if (typeof err === "number") {
           res.writeHead(err);

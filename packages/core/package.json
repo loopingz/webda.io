@@ -13,10 +13,11 @@
   "typings": "lib/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "grammar": "antlr4ts -visitor src/stores/sql/WebdaQLLexer.g4 src/stores/sql/WebdaQLParser.g4",
     "pretest": "npm run build",
     "lint": "prettier --check src/**/*",
     "lint:fix": "prettier --write src/**/*",
-    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts src/*.spec.ts"
+    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts src/*.spec.ts src/**/**/*.spec.ts"
   },
   "dependencies": {
     "@types/json-schema": "^7.0.8",
@@ -24,6 +25,7 @@
     "accept-language": "^3.0.18",
     "ajv": "^8.6.2",
     "ajv-formats": "^2.1.1",
+    "antlr4ts": "^0.5.0-alpha.4",
     "bcryptjs": "^2.4.3",
     "cookie": "^0.5.0",
     "dateformat": "^5.0.3",
@@ -53,6 +55,7 @@
     "@testdeck/mocha": "^0.2.0",
     "@types/node": "14.0.0",
     "@types/nodemailer": "^6.4.4",
+    "antlr4ts-cli": "^0.5.0-alpha.4",
     "axios": "^0.27.2",
     "fs-extra": "^10.0.0",
     "mocha": "^9.0.2",

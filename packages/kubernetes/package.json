@@ -21,7 +21,7 @@
     "@kubernetes/client-node": "^0.16.3",
     "@webda/async": "^1.6.0-beta.3",
     "@webda/core": "^1.6.0-beta.3",
-    "axios": "^0.26.1"
+    "axios": "^0.27.2"
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.1",

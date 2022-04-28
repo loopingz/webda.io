@@ -13,7 +13,7 @@
   "typings": "lib/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "grammar": "antlr4ts -visitor src/stores/sql/WebdaQLLexer.g4 src/stores/sql/WebdaQLParser.g4 && yarn run lint:fix",
+    "grammar": "antlr4ts -visitor src/stores/webdaql/WebdaQLLexer.g4 src/stores/webdaql/WebdaQLParser.g4 && yarn run lint:fix",
     "pretest": "npm run build",
     "lint": "prettier --check src/**/*",
     "lint:fix": "prettier --write src/**/*",

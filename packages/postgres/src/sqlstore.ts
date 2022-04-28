@@ -119,8 +119,6 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
     if (offset) {
       sql += ` OFFSET ${offset}`;
     }
-    console.log("Query", sql);
-    console.log("Result", await this.sqlQuery(sql));
     const results = (await this.sqlQuery(sql)).rows.map(c => this.initModel(c));
     return {
       results,

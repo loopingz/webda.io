@@ -4,7 +4,7 @@ import { ConfigurationProvider } from "../index";
 import { CoreModel, CoreModelDefinition, ModelAction } from "../models/coremodel";
 import { Service, ServiceParameters } from "../services/service";
 import { Context } from "../utils/context";
-import { WebdaQL } from "./sql/query";
+import { WebdaQL } from "./webdaql/query";
 
 export class StoreNotFoundError extends WebdaError {
   constructor(uuid: string, storeName: string) {

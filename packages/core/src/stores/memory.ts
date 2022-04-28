@@ -1,6 +1,6 @@
 import { CoreModel } from "../models/coremodel";
 import { WebdaQL } from "./sql/query";
-import { Store, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";
+import { Store, StoreFindResult, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";
 
 interface StorageMap {
   [key: string]: any;
@@ -32,14 +32,7 @@ class MemoryStore<T extends CoreModel, K extends StoreParameters = StoreParamete
   /**
    * @override
    */
-  async find(
-    request: WebdaQL.Expression,
-    continuationToken: string,
-    limit: number
-  ): Promise<{
-    results: T[];
-    continuationToken?: string;
-  }> {
+  async find(request: WebdaQL.Expression, continuationToken: string, limit: number): Promise<StoreFindResult<T>> {
     return this.simulateFind(request, continuationToken, limit, Object.keys(this.storage));
   }
 

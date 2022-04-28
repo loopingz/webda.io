@@ -313,6 +313,28 @@ export type ExposeParameters = {
 };
 
 /**
+ * Represent a query result on the Store
+ */
+export interface StoreFindResult<T> {
+  /**
+   * Current result objects
+   */
+  results: T[];
+  /**
+   * Continuation Token if more results are available
+   */
+  continuationToken?: string;
+  /**
+   * Remaining filtering to do as current store cannot filter
+   *
+   * If `true`, no more filtering is required apart from permissions
+   * If `filter === undefined`, a full postquery filtering will happen
+   * Otherwise filter.eval while be used on every results
+   */
+  filter?: WebdaQL.Expression | true;
+}
+
+/**
  * Store parameter
  */
 export class StoreParameters extends ServiceParameters {
@@ -887,6 +909,11 @@ abstract class Store<
     let secondOffset = parseInt(subOffset);
     while (result.results.length < limit) {
       let tmpResults = await this.find(queryValidator.getExpression(), mainOffest, limit);
+      // If no filter is returned assume it is by mistake and apply filtering
+      if (tmpResults.filter === undefined) {
+        tmpResults.filter = queryValidator.getExpression();
+        this.log("WARN", `Store '${this.getName()}' postquery full filtering`);
+      }
       let subOffsetCount = 0;
       for (let item of tmpResults.results) {
         // Because of dynamic filter and permission we need to suboffset the pagination
@@ -894,7 +921,7 @@ abstract class Store<
         if (subOffsetCount <= secondOffset) {
           continue;
         }
-        if (tmpResults.filter && !tmpResults.filter.eval(item)) {
+        if (tmpResults.filter !== true && !tmpResults.filter.eval(item)) {
           continue;
         }
         if (context) {
@@ -1605,15 +1632,7 @@ abstract class Store<
   /**
    * Search within the store
    */
-  abstract find(
-    request: WebdaQL.Expression,
-    offset: string,
-    limit: number
-  ): Promise<{
-    results: T[];
-    continuationToken?: string;
-    filter?: WebdaQL.Expression;
-  }>;
+  abstract find(request: WebdaQL.Expression, offset: string, limit: number): Promise<StoreFindResult<T>>;
 
   /**
    * Check if an object exists

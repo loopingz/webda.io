@@ -1,8 +1,8 @@
 import { WebdaTest } from "../test";
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { Store, StoreParameters } from "../index";
 import * as Idents from "../../test/models/ident";
+import { Store, StoreParameters } from "../index";
 import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./store";
 import { v4 as uuidv4 } from "uuid";
 import { CoreModel } from "../models/coremodel";
@@ -45,23 +45,36 @@ abstract class StoreTest extends WebdaTest {
     return Idents;
   }
 
+  /**
+   * Get the base of documents to query
+   */
+  getQueryDocuments(): any[] {
+    let docs = [];
+    for (let i = 0; i < 1000; i++) {
+      docs.push({
+        state: ["CA", "OR", "NY", "FL"][i % 4],
+        order: i,
+        team: {
+          id: i % 20
+        },
+        role: i % 10
+      });
+    }
+    return docs;
+  }
+
+  /**
+   * Fill the Store with data to be queried
+   */
+  async fillForQuery(): Promise<Store> {
+    let userStore = this.getUserStore();
+    await Promise.all(this.getQueryDocuments().map(d => userStore.save(d)));
+    return userStore;
+  }
+
   @test
   async query() {
-    let userStore = this.getUserStore();
-    let p = [];
-    for (let i = 0; i < 1000; i++) {
-      p.push(
-        userStore.save({
-          state: ["CA", "OR", "NY", "FL"][i % 4],
-          order: i,
-          team: {
-            id: i % 20
-          },
-          role: i % 10
-        })
-      );
-    }
-    await Promise.all(p);
+    let userStore = await this.fillForQuery();
     assert.strictEqual((await userStore.query('state = "CA"')).results.length, 250);
     assert.strictEqual((await userStore.query("team.id > 15")).results.length, 200);
     assert.strictEqual((await userStore.query("team.id >= 15")).results.length, 250);

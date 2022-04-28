@@ -4,12 +4,20 @@ import {
   StoreParameters,
   WebdaError,
   UpdateConditionFailError,
-  StoreNotFoundError
+  StoreNotFoundError,
+  WebdaQL,
+  StoreFindResult
 } from "@webda/core";
 import { AWSServiceParameters, CloudFormationContributor } from ".";
 import { CloudFormationDeployer } from "../deployers/cloudformation";
 import { WorkerOutput } from "@webda/workout";
-import { DynamoDBClient, DynamoDB, ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
+import {
+  DynamoDBClient,
+  DynamoDB,
+  ConditionalCheckFailedException,
+  ScanCommandOutput,
+  QueryCommandOutput
+} from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
 export class DynamoStoreParameters extends AWSServiceParameters(StoreParameters) {
   table: string;
@@ -119,20 +127,49 @@ export default class DynamoStore<
     return this._update(object, uid);
   }
 
-  async _find(request) {
-    var scan = false;
-    if (request === {} || request === undefined) {
-      request = {};
-      scan = true;
-    }
-    request.TableName = this.parameters.table;
-    let result;
-    if (scan) {
-      result = await this._client.scan(request);
+  /**
+   * @override
+   */
+  async find(
+    expression: WebdaQL.Expression,
+    continuationToken?: string,
+    Limit: number = 1000
+  ): Promise<StoreFindResult<T>> {
+    let scan = true;
+    let result: ScanCommandOutput | QueryCommandOutput;
+    const indexes = {
+      state: "order",
+      uuid: true
+    };
+    // We could use PartQL but localstack is not compatible
+    let filter: WebdaQL.Expression = new WebdaQL.AndExpression([]);
+    if (expression instanceof WebdaQL.AndExpression) {
+      expression.children.forEach(child => {
+        if (child instanceof WebdaQL.ComparisonExpression) {
+          if (indexes[child.attribute[0]]) {
+            scan = false;
+          }
+        }
+      });
     } else {
-      result = await this._client.query(request);
+      filter = expression;
     }
-    return result.Items;
+    if (scan) {
+      result = await this._client.scan({
+        TableName: this.parameters.table,
+        Limit
+      });
+    } else {
+      result = await this._client.query({
+        TableName: this.parameters.table,
+        Limit
+      });
+    }
+    return {
+      results: result.Items.map(c => this.initModel(c)),
+      filter,
+      continuationToken: JSON.stringify(result.LastEvaluatedKey)
+    };
   }
 
   /**

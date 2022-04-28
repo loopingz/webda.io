@@ -3,7 +3,7 @@ import * as path from "path";
 import { CoreModel } from "../models/coremodel";
 import { JSONUtils } from "../utils/serializers";
 import { MemoryStore } from "./memory";
-import { WebdaQL } from "./sql/query";
+import { WebdaQL } from "./webdaql/query";
 import { Store, StoreFindResult, StoreNotFoundError, StoreParameters } from "./store";
 
 class FileStoreParameters extends StoreParameters {

@@ -22,14 +22,8 @@ import { TerminalNode } from "antlr4ts/tree/TerminalNode";
 import { AbstractParseTreeVisitor } from "antlr4ts/tree/AbstractParseTreeVisitor";
 import { BaseModel } from "../../models/basemodel";
 
-/**
- * Apply post filtering on results and re-apply pagination
- */
-class Paginator {}
-
 type value = boolean | string | number;
 
-class FilterExpression {}
 export namespace WebdaQL {
   /**
    * Create Expression based on the parsed token
@@ -204,10 +198,10 @@ export namespace WebdaQL {
   /**
    * Represent the query expression or subset
    */
-  export abstract class Expression {
-    operator: string;
+  export abstract class Expression<T = string> {
+    operator: T;
 
-    constructor(operator: string) {
+    constructor(operator: T) {
       this.operator = operator;
     }
 
@@ -223,10 +217,11 @@ export namespace WebdaQL {
     abstract toString(depth?: number): string;
   }
 
+  type ComparisonOperator = "=" | "<=" | ">=" | "<" | ">" | "!=" | "LIKE" | "IN";
   /**
    * Comparison expression
    */
-  export class ComparisonExpression extends Expression {
+  export class ComparisonExpression<T extends ComparisonOperator = ComparisonOperator> extends Expression<T> {
     /**
      * Right side of the comparison
      */
@@ -241,11 +236,7 @@ export namespace WebdaQL {
      * @param attribute of the object to read
      * @param value
      */
-    constructor(
-      operator: "=" | "<=" | ">=" | "<" | ">" | "!=" | "LIKE" | "IN",
-      attribute: string,
-      value: value | any[]
-    ) {
+    constructor(operator: T, attribute: string, value: value | any[]) {
       super(operator);
       this.value = value;
       this.attribute = attribute.split(".");
@@ -334,20 +325,12 @@ export namespace WebdaQL {
     }
   }
 
-  class QueryExpression {
-    query() {}
-
-    eval() {
-      return true;
-    }
-  }
-
   /**
    * Abstract logic expression (AND|OR)
    *
    * Could add XOR in the future
    */
-  export abstract class LogicalExpression extends Expression {
+  export abstract class LogicalExpression<T> extends Expression<T> {
     /**
      * Contains the members of the logical expression
      */
@@ -357,7 +340,7 @@ export namespace WebdaQL {
      * @param operator
      * @param children
      */
-    constructor(operator: string, children: Expression[]) {
+    constructor(operator: T, children: Expression[]) {
       super(operator);
       this.children = children;
     }
@@ -366,7 +349,7 @@ export namespace WebdaQL {
      * @override
      */
     toString(depth: number = 0) {
-      if (depth && (this.operator === "AND" || this.operator === "OR")) {
+      if (depth) {
         return "( " + this.children.map(c => c.toString(depth + 1)).join(` ${this.operator} `) + " )";
       }
       return this.children.map(c => c.toString(depth + 1)).join(` ${this.operator} `);
@@ -376,7 +359,7 @@ export namespace WebdaQL {
   /**
    * AND Expression implementation
    */
-  export class AndExpression extends LogicalExpression {
+  export class AndExpression extends LogicalExpression<"AND"> {
     /**
      * @param children Expressions to use for AND
      */
@@ -400,7 +383,7 @@ export namespace WebdaQL {
   /**
    * OR Expression implementation
    */
-  export class OrExpression extends LogicalExpression {
+  export class OrExpression extends LogicalExpression<"OR"> {
     /**
      * @param children Expressions to use for OR
      */

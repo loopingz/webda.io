@@ -58,4 +58,4 @@ export * from "./utils/logger";
 export * from "./utils/serializers";
 export * from "./utils/waiter";
 
-export * from "./stores/sql/query";
+export * from "./stores/webdaql/query";

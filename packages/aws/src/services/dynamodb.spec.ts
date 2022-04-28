@@ -86,6 +86,14 @@ export class DynamoDBTest extends StoreTest {
   }
 
   @test
+  async query() {
+    console.log("Install a table with state as primary key and order as sort, uuid as first primary key");
+    // Run default query
+    await super.query();
+    console.log("Run additional query with state and order");
+  }
+
+  @test
   async dateHandling() {
     let userStore = this.getUserStore();
     await userStore.save({
@@ -237,12 +245,6 @@ export class DynamoDBTest extends StoreTest {
     } finally {
       stub.restore();
     }
-  }
-
-  @test
-  async findRequest() {
-    let userStore: DynamoStore<any> = <DynamoStore<any>>this.getService("users");
-    userStore._find({ Test: "" });
   }
 
   @test

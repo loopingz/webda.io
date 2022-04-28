@@ -1,5 +1,5 @@
 import { CoreModel } from "../models/coremodel";
-import { WebdaQL } from "./sql/query";
+import { WebdaQL } from "./webdaql/query";
 import { Store, StoreFindResult, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store";
 
 interface StorageMap {

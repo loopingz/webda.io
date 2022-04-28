@@ -1,4 +1,12 @@
-import { Store, CoreModel, StoreParameters, UpdateConditionFailError, StoreNotFoundError } from "@webda/core";
+import {
+  Store,
+  CoreModel,
+  StoreParameters,
+  UpdateConditionFailError,
+  StoreNotFoundError,
+  WebdaQL,
+  StoreFindResult
+} from "@webda/core";
 import { MongoClient, DbOptions, Db, Collection, Document } from "mongodb";
 
 export class MongoParameters extends StoreParameters {
@@ -246,11 +254,78 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
   }
 
   /**
+   * Get a mongodb query object from WebdaQL
+   */
+  mapExpression(expression: WebdaQL.Expression): any {
+    if (expression instanceof WebdaQL.AndExpression) {
+      let query: any = {};
+      expression.children.forEach(e => {
+        query = { ...query, ...this.mapExpression(e) };
+      });
+      return query;
+    } else if (expression instanceof WebdaQL.OrExpression) {
+      return {
+        $or: expression.children.map(e => this.mapExpression(e))
+      };
+    } else if (expression instanceof WebdaQL.ComparisonExpression) {
+      if (expression.operator === "=") {
+        return {
+          [expression.attribute.join(".")]: expression.value
+        };
+      } else if (expression.operator === "<") {
+        return {
+          [expression.attribute.join(".")]: { $lt: expression.value }
+        };
+      } else if (expression.operator === ">") {
+        return {
+          [expression.attribute.join(".")]: { $gt: expression.value }
+        };
+      } else if (expression.operator === "<=") {
+        return {
+          [expression.attribute.join(".")]: { $lte: expression.value }
+        };
+      } else if (expression.operator === ">=") {
+        return {
+          [expression.attribute.join(".")]: { $gte: expression.value }
+        };
+      } else if (expression.operator === "!=") {
+        return {
+          [expression.attribute.join(".")]: { $ne: expression.value }
+        };
+      } else if (expression.operator === "IN") {
+        return {
+          [expression.attribute.join(".")]: { $in: expression.value }
+        };
+      } else if (expression.operator === "LIKE") {
+        return {
+          [expression.attribute.join(".")]: new RegExp(<string>expression.value)
+        };
+      }
+      throw new Error(`Unkown comparaison ${expression.operator}`);
+    }
+  }
+
+  /**
    * @override
    */
-  async _find(request) {
+  async find(
+    request: WebdaQL.Expression,
+    continuationToken: string = undefined,
+    limit: number = 1000
+  ): Promise<StoreFindResult<T>> {
     await this._connect();
-    return (await this._collection.find(request).toArray()).map(doc => this.initModel(doc));
+    // We should be able to expression everything as an expression
+    return {
+      results: (
+        await this._collection
+          .find(this.mapExpression(request))
+          .skip(parseInt(continuationToken))
+          .limit(limit)
+          .toArray()
+      ).map(doc => this.initModel(doc)),
+      continuationToken: "",
+      filter: true
+    };
   }
 
   /**

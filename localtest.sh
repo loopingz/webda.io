@@ -7,7 +7,7 @@ docker run --name webda-localstack -v /tmp/localstack-recent/:/tmp/localstack/ -
 echo "Launching ElasticSearch"
 docker run --name webda-elasticsearch -p 9200:9200 elasticsearch:7.17.2
 echo "Launching MongoDB"
-docker run --name webda-mongo -e MONGO_INITDB_ROOT_USERNAME=root -e MONGO_INITDB_ROOT_PASSWORD=webda.io --name webda-mongo -p 27017:37017
+docker run --name webda-mongo -e MONGO_INITDB_ROOT_USERNAME=root -e MONGO_INITDB_ROOT_PASSWORD=webda.io --name webda-mongo -p 37017:27017
 
 echo "Launching Postgres"
 docker run --name webda-postgres -it -e POSTGRES_PASSWORD=testor 

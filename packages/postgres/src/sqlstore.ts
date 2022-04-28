@@ -1,4 +1,4 @@
-import { CoreModel, Store, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "@webda/core";
+import { CoreModel, Store, StoreNotFoundError, StoreParameters, UpdateConditionFailError, WebdaQL } from "@webda/core";
 
 export interface SQLDatabase {
   name: string;
@@ -18,11 +18,28 @@ export interface SQLResult<T> {
   rowCount: number;
 }
 
+export class SQLComparisonExpression extends WebdaQL.ComparisonExpression {
+  toStringValue(value: (string | number | boolean) | (string | number | boolean)[]): string {
+    if (typeof value === "string") {
+      return `'${value}'`;
+    }
+    return super.toStringValue(value);
+  }
+
+  toStringAttribute(): string {
+    if ([">", "<", "<=", ">="].includes(this.operator)) {
+      // coalesce(data#>>'{${this.attribute[0]}}', '0') ?
+      return `CAST(${this.attribute[0]} AS integer)`;
+    }
+    return this.attribute[0];
+  }
+}
+
 export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters = SQLStoreParameters> extends Store<
   T,
   K
 > {
-  query(q: string): Promise<SQLResult<T>> {
+  sqlQuery(q: string): Promise<SQLResult<T>> {
     q = this.completeQuery(q);
     return this.executeQuery(q);
   }
@@ -48,30 +65,75 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
     if (writeCondition) {
       query += this.getQueryCondition(writeCondition, writeConditionField);
     }
-    let res = await this.query(query);
+    let res = await this.sqlQuery(query);
     if (res.rowCount === 0 && writeCondition) {
       throw new UpdateConditionFailError(uid, writeConditionField, writeCondition);
+    }
+  }
+
+  abstract mapExpressionAttribute(attribute: string[]): string;
+
+  duplicateExpression(expression: WebdaQL.Expression): WebdaQL.Expression {
+    if (expression instanceof WebdaQL.AndExpression) {
+      return new WebdaQL.AndExpression(expression.children.map(exp => this.duplicateExpression(exp)));
+    } else if (expression instanceof WebdaQL.OrExpression) {
+      return new WebdaQL.OrExpression(expression.children.map(exp => this.duplicateExpression(exp)));
+    } else if (expression instanceof WebdaQL.ComparisonExpression) {
+      if (expression.operator === "IN") {
+        const attr = this.mapExpressionAttribute(expression.attribute);
+        return new WebdaQL.OrExpression(
+          (<string[]>expression.value).map(v => new SQLComparisonExpression("=", attr, v))
+        );
+      }
+      return new SQLComparisonExpression(
+        <any>expression.operator,
+        this.mapExpressionAttribute(expression.attribute),
+        expression.value
+      );
     }
   }
 
   /**
    * @override
    */
-  async _find(request: any, _offset?: any, limit?: any): Promise<T[]> {
-    request ??= "TRUE";
-    limit ??= 1000;
-    if (typeof request !== "string") {
-      throw new Error("Query should be a string");
+  async find(
+    request: WebdaQL.Expression,
+    continuationToken?: string,
+    limit?: number
+  ): Promise<{
+    results: T[];
+    continuationToken: string;
+    filter: WebdaQL.Expression;
+  }> {
+    // Update condition
+
+    let sql = this.duplicateExpression(request).toString() || "TRUE";
+    limit ??= 100;
+    let offset = 0;
+    try {
+      offset = parseInt(continuationToken, 10);
+    } catch (err) {
+      // Ignore parseError and fallback to 0
     }
-    request += ` LIMIT ${limit}`;
-    return (await this.query(request)).rows;
+    sql += ` LIMIT ${limit}`;
+    if (offset) {
+      sql += ` OFFSET ${offset}`;
+    }
+    console.log("Query", sql);
+    console.log("Result", await this.sqlQuery(sql));
+    const results = (await this.sqlQuery(sql)).rows.map(c => this.initModel(c));
+    return {
+      results,
+      continuationToken: limit <= results.length ? (offset + limit).toString() : undefined,
+      filter: new WebdaQL.AndExpression([])
+    };
   }
 
   /**
    * @override
    */
   async exists(uid: string): Promise<boolean> {
-    let res = await this.query(
+    let res = await this.sqlQuery(
       `SELECT uuid FROM ${this.parameters.table} WHERE ${this.getModel().getUuidField()} = '${this.getUuid(uid)}'`
     );
     return res.rowCount === 1;
@@ -81,7 +143,7 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
    * @override
    */
   async _get(uid: string, raiseIfNotFound?: boolean): Promise<T> {
-    let res = await this.query(`${this.getModel().getUuidField()} = '${this.getUuid(uid)}'`);
+    let res = await this.sqlQuery(`${this.getModel().getUuidField()} = '${this.getUuid(uid)}'`);
     if (res.rowCount === 0 && raiseIfNotFound) {
       throw new StoreNotFoundError(uid, this.getName());
     }
@@ -93,9 +155,9 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
    */
   async getAll(list?: string[]): Promise<T[]> {
     if (list) {
-      return (await this.query(list.map(uuid => `uuid='${this.getUuid(uuid)}'`).join(" OR "))).rows;
+      return (await this.sqlQuery(list.map(uuid => `uuid='${this.getUuid(uuid)}'`).join(" OR "))).rows;
     }
-    return (await this.query("TRUE")).rows;
+    return (await this.sqlQuery("TRUE")).rows;
   }
 
   abstract getQueryCondition(itemWriteCondition: any, itemWriteConditionField: string);
@@ -108,7 +170,7 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
     if (itemWriteCondition) {
       q += this.getQueryCondition(itemWriteCondition, itemWriteConditionField);
     }
-    let res = await this.query(q);
+    let res = await this.sqlQuery(q);
     if (res.rowCount === 0) {
       throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
     }
@@ -128,7 +190,7 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
    * @override
    */
   async _save(object: T): Promise<any> {
-    await this.query(
+    await this.sqlQuery(
       `INSERT INTO ${this.parameters.table}(uuid,data) VALUES('${this.getUuid(object)}', '${object.toStoredJSON(
         true
       )}')`
@@ -137,6 +199,6 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
   }
 
   async __clean() {
-    await this.query(`DELETE FROM ${this.parameters.table}`);
+    await this.sqlQuery(`DELETE FROM ${this.parameters.table}`);
   }
 }

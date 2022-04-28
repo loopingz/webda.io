@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 
-import { QueryValidator } from "./query";
+import { WebdaQL } from "./query";
 import * as assert from "assert";
 
 const targets = [
@@ -41,7 +41,7 @@ class QueryTest {
       "a = 1 AND b=2 OR a=1 AND b=3": "( a = 1 AND b = 2 ) OR ( a = 1 AND b = 3 )" // TODO Might want to auto-simplify to a = 1 AND b IN [2,3]
     };
     for (let query in queryMap) {
-      const validator = new QueryValidator(query);
+      const validator = new WebdaQL.QueryValidator(query);
       if (typeof queryMap[query] === "string") {
         assert.strictEqual(
           validator.getExpression().toString(),
@@ -58,31 +58,44 @@ class QueryTest {
   }
   @test
   simple() {
-    assert.strictEqual(new QueryValidator("test.attr1 = 'plop'").eval(targets[0]), true);
-    assert.strictEqual(new QueryValidator("test.attr1 = 'plop2'").eval(targets[0]), false);
+    assert.strictEqual(new WebdaQL.QueryValidator("test.attr1 = 'plop'").eval(targets[0]), true);
+    assert.strictEqual(new WebdaQL.QueryValidator("test.attr1 = 'plop2'").eval(targets[0]), false);
   }
   @test
   andQuery() {
-    assert.strictEqual(new QueryValidator("test.attr1 = 'plop' AND attr2 IN ['TEST', 'OK']").eval(targets[0]), true);
+    assert.strictEqual(
+      new WebdaQL.QueryValidator("test.attr1 = 'plop' AND attr2 IN ['TEST', 'OK']").eval(targets[0]),
+      true
+    );
   }
 
   @test
   orQuery() {
-    new QueryValidator("(test.attr1 = 'plop' AND attr2 IN ['TEST', 'OK']) OR attr3 <= 12").eval(targets[0]);
+    new WebdaQL.QueryValidator("(test.attr1 = 'plop' AND attr2 IN ['TEST', 'OK']) OR attr3 <= 12").eval(targets[0]);
   }
 
   @test
   multipleQuery() {
-    new QueryValidator("test.attr1 = 'plop' AND attr2 IN ['TEST', 'OK'] OR attr3 <= 12 AND attr4 = 'ok'").eval(
+    new WebdaQL.QueryValidator("test.attr1 = 'plop' AND attr2 IN ['TEST', 'OK'] OR attr3 <= 12 AND attr4 = 'ok'").eval(
       targets[0]
     );
-    new QueryValidator("test.attr1 = 'plop' AND attr2 IN ['TEST', 'OK'] AND attr3 <= 12 AND attr4 = 'ok'").eval(
+    new WebdaQL.QueryValidator("test.attr1 = 'plop' AND attr2 IN ['TEST', 'OK'] AND attr3 <= 12 AND attr4 = 'ok'").eval(
       targets[0]
     );
   }
 
   @test
+  limitOffset() {
+    let val = new WebdaQL.QueryValidator('LIMIT 10 OFFSET "pl"');
+    assert.strictEqual(val.getLimit(), 10);
+    assert.strictEqual(val.getOffset(), "pl");
+    val = new WebdaQL.QueryValidator('OFFSET "pl2"');
+    assert.strictEqual(val.getLimit(), 1000);
+    assert.strictEqual(val.getOffset(), "pl2");
+  }
+
+  @test
   badQuery() {
-    assert.throws(() => new QueryValidator("test lo 'plop'").eval(targets[0]));
+    assert.throws(() => new WebdaQL.QueryValidator("test lo 'plop'").eval(targets[0]));
   }
 }

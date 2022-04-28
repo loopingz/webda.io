@@ -3,7 +3,10 @@ grammar WebdaQLParser;
 import WebdaQLLexer;
 
 // Entrypoint
-webdaql: expression EOF;
+webdaql: expression? limitExpression? offsetExpression? EOF;
+
+limitExpression: LIMIT integerLiteral;
+offsetExpression: OFFSET stringLiteral;
 
 // Structure of operations, function invocations and expression
 expression

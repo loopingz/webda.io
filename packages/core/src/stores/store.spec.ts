@@ -46,6 +46,34 @@ abstract class StoreTest extends WebdaTest {
   }
 
   @test
+  async query() {
+    let userStore = this.getUserStore();
+    let p = [];
+    for (let i = 0; i < 1000; i++) {
+      p.push(
+        userStore.save({
+          state: ["CA", "OR", "NY", "FL"][i % 4],
+          order: i,
+          team: {
+            id: i % 20
+          },
+          role: i % 10
+        })
+      );
+    }
+    await Promise.all(p);
+    assert.strictEqual((await userStore.query('state = "CA"')).results.length, 250);
+    assert.strictEqual((await userStore.query("team.id > 15")).results.length, 200);
+    assert.strictEqual((await userStore.query("team.id >= 15")).results.length, 250);
+    assert.strictEqual((await userStore.query('state IN ["CA", "NY"]')).results.length, 500);
+    assert.strictEqual((await userStore.query('state IN ["CA", "NY", "NV"]')).results.length, 500);
+    assert.strictEqual((await userStore.query('state = "CA" AND team.id > 15')).results.length, 50);
+    assert.strictEqual((await userStore.query("team.id < 5 OR team.id > 15")).results.length, 450);
+    assert.strictEqual((await userStore.query("role < 5 AND team.id > 10 OR team.id > 15")).results.length, 400);
+    assert.strictEqual((await userStore.query("role < 5 AND (team.id > 10 OR team.id > 15)")).results.length, 200);
+  }
+
+  @test
   async mapper() {
     let identStore = this.getIdentStore();
     let userStore = this.getUserStore();
@@ -59,8 +87,8 @@ abstract class StoreTest extends WebdaTest {
       "Store.Deleted",
       "Store.Update",
       "Store.Updated",
-      "Store.Find",
-      "Store.Found"
+      "Store.Query",
+      "Store.Queried"
     ];
     for (let evt in events) {
       identStore.on(events[evt], function (evt) {
@@ -355,8 +383,8 @@ abstract class StoreTest extends WebdaTest {
       "Store.PatchUpdate",
       "Store.PatchUpdated",
       "Store.PartialUpdated",
-      "Store.Find",
-      "Store.Found"
+      "Store.Query",
+      "Store.Queried"
     ];
     for (let evt in events) {
       identStore.on(events[evt], function (e) {
@@ -609,13 +637,6 @@ abstract class StoreTest extends WebdaTest {
       () => store.deleteItemFromCollection(uuidv4(), "logs", 0, undefined, undefined),
       err => err instanceof StoreNotFoundError || err instanceof UpdateConditionFailError
     );
-  }
-
-  @test
-  async find() {
-    // Unknown how to do yet
-    let store = this.getIdentStore();
-    await store.find();
   }
 }
 

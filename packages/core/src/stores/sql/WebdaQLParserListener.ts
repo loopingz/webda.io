@@ -15,6 +15,8 @@ import { StringAtomContext } from "./WebdaQLParserParser";
 import { ValuesAtomContext } from "./WebdaQLParserParser";
 import { IdentifierAtomContext } from "./WebdaQLParserParser";
 import { WebdaqlContext } from "./WebdaQLParserParser";
+import { LimitExpressionContext } from "./WebdaQLParserParser";
+import { OffsetExpressionContext } from "./WebdaQLParserParser";
 import { ExpressionContext } from "./WebdaQLParserParser";
 import { ValuesContext } from "./WebdaQLParserParser";
 import { AtomContext } from "./WebdaQLParserParser";
@@ -195,6 +197,28 @@ export interface WebdaQLParserListener extends ParseTreeListener {
    * @param ctx the parse tree
    */
   exitWebdaql?: (ctx: WebdaqlContext) => void;
+
+  /**
+   * Enter a parse tree produced by `WebdaQLParserParser.limitExpression`.
+   * @param ctx the parse tree
+   */
+  enterLimitExpression?: (ctx: LimitExpressionContext) => void;
+  /**
+   * Exit a parse tree produced by `WebdaQLParserParser.limitExpression`.
+   * @param ctx the parse tree
+   */
+  exitLimitExpression?: (ctx: LimitExpressionContext) => void;
+
+  /**
+   * Enter a parse tree produced by `WebdaQLParserParser.offsetExpression`.
+   * @param ctx the parse tree
+   */
+  enterOffsetExpression?: (ctx: OffsetExpressionContext) => void;
+  /**
+   * Exit a parse tree produced by `WebdaQLParserParser.offsetExpression`.
+   * @param ctx the parse tree
+   */
+  exitOffsetExpression?: (ctx: OffsetExpressionContext) => void;
 
   /**
    * Enter a parse tree produced by `WebdaQLParserParser.expression`.

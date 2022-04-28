@@ -3,6 +3,7 @@ import * as path from "path";
 import { CoreModel } from "../models/coremodel";
 import { JSONUtils } from "../utils/serializers";
 import { MemoryStore } from "./memory";
+import { WebdaQL } from "./sql/query";
 import { Store, StoreNotFoundError, StoreParameters } from "./store";
 
 class FileStoreParameters extends StoreParameters {
@@ -69,11 +70,22 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
     return fs.existsSync(this.file(uid));
   }
 
-  async _find(_request, _offset, _limit): Promise<any> {
-    var files = fs.readdirSync(this.parameters.folder).filter(file => {
+  /**
+   * @override
+   */
+  async find(
+    request: WebdaQL.Expression,
+    continuationToken: string,
+    limit: number
+  ): Promise<{
+    results: T[];
+    continuationToken?: string;
+    filter?: WebdaQL.Expression;
+  }> {
+    const files = fs.readdirSync(this.parameters.folder).filter(file => {
       return !fs.statSync(path.join(this.parameters.folder, file)).isDirectory();
     });
-    return Promise.all(files.map(f => this._get(f)));
+    return this.simulateFind(request, continuationToken, limit, files);
   }
 
   /**

@@ -56,6 +56,10 @@ IN: 'IN';
 TRUE: 'TRUE';
 FALSE: 'FALSE';
 
+// Limit
+LIMIT: 'LIMIT';
+OFFSET: 'OFFSET';
+
 // Literals
 
 DQUOTED_STRING_LITERAL:                      DQUOTA_STRING;

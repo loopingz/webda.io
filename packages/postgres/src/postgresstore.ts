@@ -81,6 +81,13 @@ export default class PostgresStore<
   /**
    * @override
    */
+  mapExpressionAttribute(attribute: string[]): string {
+    return `data#>>'{${attribute.join(",")}}'`;
+  }
+
+  /**
+   * @override
+   */
   async _patch(object: any, uid: string, itemWriteCondition?: any, itemWriteConditionField?: string): Promise<any> {
     let query = `UPDATE ${this.parameters.table} SET data = data || '${JSON.stringify(
       object
@@ -88,7 +95,7 @@ export default class PostgresStore<
     if (itemWriteCondition) {
       query += this.getQueryCondition(itemWriteCondition, itemWriteConditionField);
     }
-    let res = await this.query(query);
+    let res = await this.sqlQuery(query);
     if (res.rowCount === 0) {
       throw new UpdateConditionFailError(uid, itemWriteConditionField, itemWriteCondition);
     }
@@ -107,7 +114,7 @@ export default class PostgresStore<
     if (itemWriteCondition) {
       query += this.getQueryCondition(itemWriteCondition, itemWriteConditionField);
     }
-    let res = await this.query(query);
+    let res = await this.sqlQuery(query);
     if (res.rowCount === 0) {
       if (itemWriteCondition) {
         throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);
@@ -133,7 +140,7 @@ export default class PostgresStore<
     } SET data = jsonb_set(jsonb_set(data, '{${attribute}}', (COALESCE(data->>'${attribute}','0')::int + ${value})::text::jsonb)::jsonb, '{_lastUpdate}', '"${updateDate.toISOString()}"'::jsonb) WHERE uuid = '${this.getUuid(
       uid
     )}'`;
-    let res = await this.query(query);
+    let res = await this.sqlQuery(query);
     if (res.rowCount === 0) {
       throw new StoreNotFoundError(uid, this.getName());
     }
@@ -163,7 +170,7 @@ export default class PostgresStore<
     if (itemWriteCondition) {
       query += ` AND (data#>>'{${attribute}, ${index}}')::jsonb->>'${itemWriteConditionField}'='${itemWriteCondition}'`;
     }
-    let res = await this.query(query);
+    let res = await this.sqlQuery(query);
     if (res.rowCount === 0) {
       if (itemWriteCondition) {
         throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);
@@ -192,7 +199,7 @@ export default class PostgresStore<
     if (itemWriteCondition) {
       query += ` AND (data#>>'{${attribute}, ${index}}')::jsonb->>'${itemWriteConditionField}'='${itemWriteCondition}'`;
     }
-    let res = await this.query(query);
+    let res = await this.sqlQuery(query);
     if (res.rowCount === 0) {
       if (itemWriteCondition) {
         throw new UpdateConditionFailError(uuid, itemWriteConditionField, itemWriteCondition);

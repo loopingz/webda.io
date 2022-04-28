@@ -4,6 +4,7 @@ import { ConfigurationProvider } from "../index";
 import { CoreModel, CoreModelDefinition, ModelAction } from "../models/coremodel";
 import { Service, ServiceParameters } from "../services/service";
 import { Context } from "../utils/context";
+import { WebdaQL } from "./sql/query";
 
 export class StoreNotFoundError extends WebdaError {
   constructor(uuid: string, storeName: string) {
@@ -169,11 +170,11 @@ export interface EventStorePartialUpdated {
 /**
  * Event sent when a query on the store is emitted
  */
-export interface EventStoreFind {
+export interface EventStoreQuery {
   /**
    * Request sent
    */
-  request: any;
+  query: string;
   /**
    * Emitting store
    */
@@ -181,7 +182,7 @@ export interface EventStoreFind {
   /**
    * Offset on the results
    */
-  offset: number;
+  continuationToken: string;
   /**
    * Max number of results
    */
@@ -190,7 +191,7 @@ export interface EventStoreFind {
 /**
  * Event sent when query is resolved
  */
-export interface EventStoreFound extends EventStoreFind {
+export interface EventStoreQueried extends EventStoreQuery {
   /**
    * Results from the query
    */
@@ -376,8 +377,8 @@ export type StoreEvents = {
   "Store.Delete": EventStoreDelete;
   "Store.Deleted": EventStoreDeleted;
   "Store.Get": EventStoreGet;
-  "Store.Find": EventStoreFind;
-  "Store.Found": EventStoreFound;
+  "Store.Query": EventStoreQuery;
+  "Store.Queried": EventStoreQueried;
   "Store.WebCreate": EventStoreWebCreate;
   "Store.Action": EventStoreAction;
   "Store.Actioned": EventStoreActioned;
@@ -584,6 +585,30 @@ abstract class Store<
     }
     if (!expose.restrict.get) {
       methods.push("GET");
+      this.addRoute(expose.url, ["GET"], this.httpQuery, {
+        model: this._model.name,
+        post: {
+          description: `Query on ${this._model.name} model with WebdaQL`,
+          summary: "Query " + this._model.name,
+          operationId: `create${this._model.name}`,
+          responses: {
+            "200": {
+              description: "Retrieve models",
+              content: {
+                "application/json": {
+                  // schema: this._model.name
+                }
+              }
+            },
+            "400": {
+              description: "Query is invalid"
+            },
+            "403": {
+              description: "You don't have permissions"
+            }
+          }
+        }
+      });
     }
     if (!expose.restrict.delete) {
       methods.push("DELETE");
@@ -837,6 +862,83 @@ abstract class Store<
         }
       }
     });
+  }
+
+  /**
+   * Query store with WebdaQL
+   * @param query
+   * @param context to apply permission
+   */
+  async query(query: string, context?: Context): Promise<{ results: T[]; continuationToken?: string }> {
+    let queryValidator = new WebdaQL.QueryValidator(query);
+    let offset = queryValidator.getOffset();
+    const limit = queryValidator.getLimit();
+    await this.emitSync("Store.Query", <EventStoreQuery>{
+      query,
+      store: this,
+      continuationToken: offset,
+      limit: limit
+    });
+    const result = {
+      results: [],
+      continuationToken: undefined
+    };
+    let [mainOffest, subOffset] = offset.split("_");
+    let secondOffset = parseInt(subOffset);
+    while (result.results.length < limit) {
+      let tmpResults = await this.find(queryValidator.getExpression(), mainOffest, limit);
+      let subOffsetCount = 0;
+      for (let item of tmpResults.results) {
+        // Because of dynamic filter and permission we need to suboffset the pagination
+        subOffsetCount++;
+        if (subOffsetCount <= secondOffset) {
+          continue;
+        }
+        if (tmpResults.filter && !tmpResults.filter.eval(item)) {
+          continue;
+        }
+        if (context) {
+          try {
+            await item.canAct(context, "get");
+          } catch (err) {
+            continue;
+          }
+        }
+        result.results.push(item);
+        if (result.results.length >= limit) {
+          result.continuationToken = `${offset}_${subOffsetCount}`;
+          break;
+        }
+      }
+      offset = tmpResults.continuationToken;
+      if (!tmpResults.continuationToken || result.results.length >= limit) {
+        break;
+      }
+    }
+    //return (await this.getAll()).filter(c => queryValidator.eval(c));
+    await this.emitSync("Store.Queried", <EventStoreQueried>{
+      query,
+      store: this,
+      continuationToken: result.continuationToken,
+      limit: limit,
+      results: result.results
+    });
+    return result;
+  }
+
+  /**
+   * Expose query to http
+   */
+  protected httpQuery(ctx: Context) {
+    try {
+      this.query("", ctx);
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        this.log("INFO", "Query syntax error");
+        throw 400;
+      }
+      throw err;
+    }
   }
 
   /**
@@ -1255,30 +1357,40 @@ abstract class Store<
   }
 
   /**
-   * Search inside the store
-   *
-   * Still need to define a good abstraction for it
-   *
-   * @param request
-   * @param offset
-   * @param limit
-   * @returns
+   * @override
    */
-  async find(request: any = undefined, offset: number = 0, limit: number = undefined): Promise<any> {
-    await this.emitSync("Store.Find", <EventStoreFind>{
-      request: request,
-      store: this,
-      offset: offset,
-      limit: limit
-    });
-    let result = await this._find(request, offset, limit);
-    await this.emitSync("Store.Found", <EventStoreFound>{
-      request: request,
-      store: this,
-      offset: offset,
-      limit: limit,
-      results: result
-    });
+  protected async simulateFind(
+    request: WebdaQL.Expression,
+    continuationToken: string,
+    limit: number,
+    uuids: string[]
+  ): Promise<{
+    results: T[];
+    continuationToken?: string;
+    filter?: WebdaQL.Expression;
+  }> {
+    let result = {
+      results: [],
+      continuationToken: undefined
+    };
+    let count = 0;
+    let offset = parseInt(continuationToken);
+    // Need to transfert to Array
+    for (let uuid of uuids) {
+      count++;
+      // Offset start
+      if (offset > count) {
+        continue;
+      }
+      let obj = await this._get(uuid);
+      if (request.eval(obj)) {
+        result.results.push(obj);
+        if (result.results.length >= limit) {
+          result.continuationToken = count.toString();
+          return result;
+        }
+      }
+    }
     return result;
   }
 
@@ -1490,8 +1602,18 @@ abstract class Store<
     return this._uuidField;
   }
 
-  // All the abstract method
-  abstract _find(request, offset, limit): Promise<CoreModel[]>;
+  /**
+   * Search within the store
+   */
+  abstract find(
+    request: WebdaQL.Expression,
+    offset: string,
+    limit: number
+  ): Promise<{
+    results: T[];
+    continuationToken?: string;
+    filter?: WebdaQL.Expression;
+  }>;
 
   /**
    * Check if an object exists

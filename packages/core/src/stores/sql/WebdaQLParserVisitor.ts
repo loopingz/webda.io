@@ -15,6 +15,8 @@ import { StringAtomContext } from "./WebdaQLParserParser";
 import { ValuesAtomContext } from "./WebdaQLParserParser";
 import { IdentifierAtomContext } from "./WebdaQLParserParser";
 import { WebdaqlContext } from "./WebdaQLParserParser";
+import { LimitExpressionContext } from "./WebdaQLParserParser";
+import { OffsetExpressionContext } from "./WebdaQLParserParser";
 import { ExpressionContext } from "./WebdaQLParserParser";
 import { ValuesContext } from "./WebdaQLParserParser";
 import { AtomContext } from "./WebdaQLParserParser";
@@ -134,6 +136,20 @@ export interface WebdaQLParserVisitor<Result> extends ParseTreeVisitor<Result> {
    * @return the visitor result
    */
   visitWebdaql?: (ctx: WebdaqlContext) => Result;
+
+  /**
+   * Visit a parse tree produced by `WebdaQLParserParser.limitExpression`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitLimitExpression?: (ctx: LimitExpressionContext) => Result;
+
+  /**
+   * Visit a parse tree produced by `WebdaQLParserParser.offsetExpression`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitOffsetExpression?: (ctx: OffsetExpressionContext) => Result;
 
   /**
    * Visit a parse tree produced by `WebdaQLParserParser.expression`.

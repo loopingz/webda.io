@@ -75,7 +75,6 @@ class FileStoreTest extends StoreTest {
       stub.restore();
     }
 
-    await identStore._find(undefined, undefined, undefined);
     // Shoud return directly
     await identStore.incrementAttribute("test", "test", 0);
     removeSync(identStore.getParameters().folder);

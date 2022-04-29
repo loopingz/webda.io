@@ -4,7 +4,7 @@ import { suite, test } from "@testdeck/mocha";
 import { Storage } from "./storage";
 import * as sinon from "sinon";
 import { Storage as GCS } from "@google-cloud/storage";
-import path from "path";
+import * as path from "path";
 
 class MockFile {
   constructor(path) {}
@@ -39,7 +39,7 @@ class StorageTest extends BinaryTest<Storage> {
     // Prepare for Mocked Version
     if (!process.env.NO_MOCK && false) {
       sinon.stub(this.getBinary(), "getStorageBucket").callsFake(() => {
-        return new MockBucket();
+        return <any>new MockBucket();
       });
     }
   }

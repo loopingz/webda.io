@@ -19,8 +19,27 @@ import {
   QueryCommandOutput
 } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+
+/**
+ * Define DynamoDB parameters
+ */
 export class DynamoStoreParameters extends AWSServiceParameters(StoreParameters) {
+  /**
+   * Table name
+   */
   table: string;
+  /**
+   * Additional global indexes
+   */
+  globalIndexes?: {
+    [key: string]: {
+      key: string;
+      sort?: string;
+    };
+  };
+  /**
+   * CloudFormation customization
+   */
   CloudFormation: any;
   CloudFormationSkip: boolean;
   scanPage: number;
@@ -30,6 +49,7 @@ export class DynamoStoreParameters extends AWSServiceParameters(StoreParameters)
     if (this.table === undefined) {
       throw new WebdaError("DYNAMODB_TABLE_PARAMETER_REQUIRED", "Need to define a table at least");
     }
+    this.globalIndexes ??= {};
   }
 }
 
@@ -129,6 +149,9 @@ export default class DynamoStore<
 
   /**
    * @override
+   *
+   * @see https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Query.html
+   * @see https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GSI.html
    */
   async find(
     expression: WebdaQL.Expression,
@@ -136,39 +159,144 @@ export default class DynamoStore<
     Limit: number = 1000
   ): Promise<StoreFindResult<T>> {
     let scan = true;
+    let IndexName = undefined;
     let result: ScanCommandOutput | QueryCommandOutput;
-    const indexes = {
-      state: "order",
-      uuid: true
-    };
+    let primaryKeys = { uuid: undefined };
+    Object.keys(this.parameters.globalIndexes).forEach(name => {
+      primaryKeys[this.parameters.globalIndexes[name].key] = name;
+    });
     // We could use PartQL but localstack is not compatible
-    let filter: WebdaQL.Expression = new WebdaQL.AndExpression([]);
-    if (expression instanceof WebdaQL.AndExpression) {
-      expression.children.forEach(child => {
-        if (child instanceof WebdaQL.ComparisonExpression) {
-          if (indexes[child.attribute[0]]) {
-            scan = false;
-          }
-        }
-      });
+    let filter: WebdaQL.AndExpression = new WebdaQL.AndExpression([]);
+    let KeyConditionExpression = "";
+    let ExpressionAttributeValues = {};
+    let FilterExpression: string[] = [];
+    let ExpressionAttributeNames = {};
+    let indexNode;
+    const toDynamoValue = (value: string | boolean | number | any[]) => {
+      if (typeof value === "string") {
+        return { S: value };
+      } else if (typeof value === "boolean") {
+        return { BOOL: value };
+      }
+      return { N: value };
+    };
+
+    let processingExpression: WebdaQL.AndExpression;
+    if (!(expression instanceof WebdaQL.AndExpression)) {
+      processingExpression = new WebdaQL.AndExpression([expression]);
     } else {
-      filter = expression;
+      processingExpression = expression;
     }
+
+    // Search for the index
+    processingExpression.children.some(child => {
+      if (child instanceof WebdaQL.ComparisonExpression) {
+        // Primary key requires equal operator
+        if (child.operator === "=" && primaryKeys[child.attribute[0]]) {
+          // Query not scan
+          scan = false;
+          IndexName = primaryKeys[child.attribute[0]];
+          indexNode = child;
+          KeyConditionExpression = `#${child.attribute[0]} = :${child.attribute[0]}`;
+          ExpressionAttributeNames[`#${child.attribute[0]}`] = child.attribute[0];
+          ExpressionAttributeValues[`:${child.attribute[0]}`] = child.value;
+          return true;
+        }
+      }
+    });
+    let count = 1;
+    // Build the Query/Filter
+    processingExpression.children.forEach(child => {
+      if (child === indexNode) {
+        return;
+      }
+      // Only work on Comparison Node for now
+      if (child instanceof WebdaQL.ComparisonExpression) {
+        let operator = child.operator;
+        // != is <> in Dynamo
+        if (operator === "!=") {
+          operator = "<>";
+        }
+        // DynamoDB does not allow more than 100 items in IN
+        if (child.operator === "IN" && (<any[]>child.value).length > 100) {
+          filter.children.push(child);
+          return;
+        }
+
+        // Subfields like team.id needs to be #a1.#a2
+        let attr = `a${count++}`;
+        let fullAttr = `#${attr}`;
+        child.attribute.splice(1).forEach(v => {
+          let subAttr = `#a${count++}`;
+          fullAttr += `.${subAttr}`;
+          ExpressionAttributeNames[subAttr] = v;
+        });
+        ExpressionAttributeNames[`#${attr}`] = child.attribute[0];
+
+        let valueExpression = `:${attr}`;
+
+        if (child.operator === "IN") {
+          // Need to follow `a IN (b, c, d)
+          valueExpression = "(" + valueExpression;
+          ExpressionAttributeValues[`:${attr}`] = child.value[0];
+          (<any[]>child.value).splice(1).forEach(v => {
+            let subAttr = `:a${count++}`;
+            valueExpression += `, ${subAttr}`;
+            ExpressionAttributeValues[subAttr] = v;
+          });
+          valueExpression += ")";
+        } else {
+          // For all other just give the value
+          ExpressionAttributeValues[`:${attr}`] = child.value;
+        }
+
+        // If this is a sort key
+        if (IndexName && this.parameters.globalIndexes[IndexName].sort === child.attribute[0]) {
+          // Sort key
+          KeyConditionExpression += `${fullAttr} ${operator} ${valueExpression}`;
+          return;
+        }
+        // Otherwise fallback to normal Filter
+        FilterExpression.push(`${fullAttr} ${operator} ${valueExpression}`);
+      } else {
+        filter.children.push(child);
+      }
+    });
+
+    if (!Object.keys(ExpressionAttributeNames).length) {
+      ExpressionAttributeNames = undefined;
+    }
+    if (!Object.keys(ExpressionAttributeValues).length) {
+      ExpressionAttributeValues = undefined;
+    }
+    const ExclusiveStartKey = continuationToken ? JSON.parse(continuationToken) : undefined;
+    // Scan if not primary key was provided
     if (scan) {
+      // SHould log bad query
       result = await this._client.scan({
         TableName: this.parameters.table,
+        FilterExpression: FilterExpression.length ? FilterExpression.join(" AND ") : undefined,
+        ExclusiveStartKey,
+        ExpressionAttributeNames,
+        ExpressionAttributeValues,
         Limit
       });
     } else {
       result = await this._client.query({
         TableName: this.parameters.table,
+        IndexName,
+        ExclusiveStartKey,
+        KeyConditionExpression,
+        FilterExpression: FilterExpression.length ? FilterExpression.join(" AND ") : undefined,
+        ExpressionAttributeNames,
+        ExpressionAttributeValues,
         Limit
       });
     }
     return {
       results: result.Items.map(c => this.initModel(c)),
       filter,
-      continuationToken: JSON.stringify(result.LastEvaluatedKey)
+      continuationToken: result.Items.length >= Limit ? JSON.stringify(result.LastEvaluatedKey) : undefined
     };
   }
 

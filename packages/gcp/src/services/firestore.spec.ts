@@ -1,11 +1,11 @@
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
-import { Store, Ident } from "@webda/core";
 import { test, suite } from "@testdeck/mocha";
 import { FireStore } from "./firestore";
 import * as assert from "assert";
 import * as sinon from "sinon";
 import { v4 as uuidv4 } from "uuid";
 import { Firestore } from "@google-cloud/firestore";
+import { Ident, WebdaQL } from "@webda/core";
 
 @suite
 class FireStoreTest extends StoreTest {
@@ -18,13 +18,13 @@ class FireStoreTest extends StoreTest {
     await super.before();
   }
 
-  getIdentStore(): Store<any> {
+  getIdentStore(): FireStore<any> {
     let ident = <FireStore<any>>this.getService("fireidents");
     ident.getParameters().collection += "_" + this.unitUuid;
     return ident;
   }
 
-  getUserStore(): Store<any> {
+  getUserStore(): FireStore<any> {
     let user = <FireStore<any>>this.getService("fireusers");
     user.getParameters().collection += "_" + this.unitUuid;
     return user;
@@ -44,6 +44,54 @@ class FireStoreTest extends StoreTest {
     return new Promise((resolve, reject) => {
       this.deleteQueryBatch(this.firestore, query, resolve).catch(reject);
     });
+  }
+
+  async cleanCollection() {
+    let collections = await this.firestore.listCollections();
+    await Promise.all(
+      collections.map(c => {
+        return this.deleteCollection(c.id, 1000);
+      })
+    );
+  }
+
+  async fillForQuery(): Promise<FireStore> {
+    // Create a new store
+    let store = new FireStore(this.webda, "queryStore", {
+      collection: "webda-query",
+      compoundIndexes: [["state", "team.id"]],
+    });
+    store.resolve();
+    await store.init();
+    let res = await this.firestore.collection("webda-query").where("order", "==", 1).get();
+    if (!res.docs.length) {
+      console.log("Init the query collection");
+      await Promise.all(this.getQueryDocuments().map(d => store.save(d)));
+    }
+    return store;
+  }
+
+  @test
+  async query() {
+    let store = await this.fillForQuery(); //await super.query();
+    let exp = new WebdaQL.QueryValidator('state = "CA" AND role = 4').getExpression();
+    let res = await store.find(exp, undefined);
+    assert.strictEqual(res.filter, true, `Should not have any post filter ${res.filter.toString()}`);
+    assert.strictEqual(res.results.length, 50);
+    exp = new WebdaQL.QueryValidator('state = "CA" AND team.id < 5').getExpression();
+    res = await store.find(exp, undefined);
+    assert.strictEqual(res.filter, true, `Should not have post filter ${res.filter.toString()}`);
+    assert.strictEqual(res.results.length, 100);
+    exp = new WebdaQL.QueryValidator('state = "CA" AND team.id < 5 AND role >= 4').getExpression();
+    res = await store.find(exp, undefined);
+    assert.notStrictEqual(res.filter, true, `Should have post filter ${res.filter.toString()}`);
+    assert.strictEqual(res.results.length, 100);
+    assert.strictEqual(res.results.filter(c => (<WebdaQL.Expression>res.filter).eval(c)).length, 50);
+    exp = new WebdaQL.QueryValidator('state = "CA" AND role <= 4').getExpression();
+    res = await store.find(exp, undefined);
+    assert.notStrictEqual(res.filter, true, "Should have post filter");
+    assert.strictEqual(res.results.length, 100);
+    return store;
   }
 
   /**
@@ -76,12 +124,10 @@ class FireStoreTest extends StoreTest {
     });
   }
 
-  /*
   async after() {
     await this.deleteCollection(`idents_${this.unitUuid}`, 10000);
     await this.deleteCollection(`users_${this.unitUuid}`, 10000);
   }
-  */
 
   @test
   async deleteCondition() {

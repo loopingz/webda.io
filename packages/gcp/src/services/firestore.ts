@@ -6,13 +6,24 @@ import {
   DeepPartial,
   StoreNotFoundError,
   UpdateConditionFailError,
+  WebdaQL,
+  StoreFindResult,
 } from "@webda/core";
 
 /**
  * Firebase parameters
  */
 export class FireStoreParameters extends StoreParameters {
+  /**
+   * Collection to use
+   */
   collection: string;
+  /**
+   * To allow efficient query on several fields
+   *
+   * @see https://firebase.google.com/docs/firestore/query-data/queries
+   */
+  compoundIndexes: string[][];
 }
 
 /**
@@ -57,8 +68,92 @@ export default class FireStore<
    *
    * Return all for now
    */
-  _find(_request: any, _offset: any, _limit: any): Promise<CoreModel[]> {
-    return this.getAll();
+  async find(
+    expression: WebdaQL.Expression,
+    continuationToken: string = "0",
+    limit: number = 1000
+  ): Promise<StoreFindResult<T>> {
+    console.log("QUERY", expression.toString());
+    let offset: number = parseInt(continuationToken);
+    if (isNaN(offset)) {
+      offset = 0;
+    }
+    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = this.firestore
+      .collection(this.parameters.collection)
+      .limit(limit);
+    if (offset) {
+      query = query.offset(offset);
+    }
+
+    let filter = new WebdaQL.AndExpression([]);
+    let rangeAttribute;
+    let toProcess: WebdaQL.AndExpression;
+    if (!(expression instanceof WebdaQL.AndExpression)) {
+      toProcess = new WebdaQL.AndExpression([expression]);
+    } else {
+      toProcess = expression;
+    }
+    const queryAttributes = new Set<string>();
+    let count = 0;
+    let hasIn = false;
+    toProcess.children.forEach((child: WebdaQL.Expression) => {
+      if (!(child instanceof WebdaQL.ComparisonExpression) || count) {
+        // Do not manage OR yet
+        filter.children.push(child);
+        return;
+      }
+      if (child.operator === "LIKE") {
+        this.log("WARN", "Firebase do not natively have 'LIKE'");
+        // LIKE is not managed by Firestore
+        filter.children.push(child);
+        return;
+      }
+      let operator: FirebaseFirestore.WhereFilterOp;
+      let attribute = child.attribute.join(".");
+      if (queryAttributes.size === 0) {
+        queryAttributes.add(attribute);
+      }
+      // Translate operators
+      if (["=", "IN"].includes(child.operator)) {
+        // = is permitted on every fields
+        // if rangeQuery then need to check indexes
+        if (child.operator === "=") {
+          operator = "==";
+        } else if (child.operator === "IN") {
+          operator = "in";
+          if ((<any[]>child.value).length > 10) {
+            this.log("WARN", "Firebase cannot have more than 10 values for 'in'");
+            filter.children.push(child);
+            return;
+          }
+          if (hasIn) {
+            this.log("WARN", "Firebase cannot have two 'in' clause");
+            filter.children.push(child);
+          }
+          hasIn = true;
+        }
+      } else {
+        // Requires compoundIndex
+        if (child.operator !== "!=") {
+          rangeAttribute ??= attribute;
+          // Range need to apply on only one attribute
+          if (rangeAttribute !== attribute) {
+            filter.children.push(child);
+            return;
+          }
+          operator = child.operator;
+        }
+      }
+      // count++;
+      query = query.where(attribute, operator, child.value);
+    });
+
+    const res = await query.get();
+    return {
+      results: res.docs.map(d => this.initModel(d.data())),
+      filter: filter.children.length ? filter : true,
+      continuationToken: res.docs.length >= limit ? (offset + limit).toString() : undefined,
+    };
   }
 
   /**

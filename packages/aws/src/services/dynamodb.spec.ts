@@ -1,4 +1,4 @@
-import { Ident, Store, UpdateConditionFailError } from "@webda/core";
+import { CoreModel, Ident, Store, StoreEvents, StoreParameters, UpdateConditionFailError } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
@@ -49,7 +49,7 @@ export class DynamoDBTest extends StoreTest {
     return Ident;
   }
 
-  static async install(TableName: string) {
+  static async install(TableName: string, GlobalSecondaryIndexes?, attrs: any[] = []) {
     var dynamodb = new DynamoDB({
       endpoint: "http://localhost:4566",
       credentials: defaultCreds,
@@ -67,6 +67,7 @@ export class DynamoDBTest extends StoreTest {
             ReadCapacityUnits: 5,
             WriteCapacityUnits: 5
           },
+          GlobalSecondaryIndexes,
           KeySchema: [
             {
               AttributeName: "uuid",
@@ -77,20 +78,76 @@ export class DynamoDBTest extends StoreTest {
             {
               AttributeName: "uuid",
               AttributeType: "S"
-            }
+            },
+            ...attrs
           ]
         };
-        return dynamodb.createTable(createTable);
+        let table = dynamodb.createTable(createTable);
+        return table;
       }
     }
   }
 
+  async fillForQuery(): Promise<Store<CoreModel, StoreParameters, StoreEvents>> {
+    await DynamoDBTest.install(
+      "webda-test-query",
+      [
+        {
+          IndexName: "States",
+          KeySchema: [
+            {
+              AttributeName: "state",
+              KeyType: "HASH"
+            },
+            {
+              AttributeName: "order",
+              KeyType: "RANGE"
+            }
+          ],
+          Projection: { ProjectionType: "ALL" },
+          ProvisionedThroughput: {
+            ReadCapacityUnits: 5,
+            WriteCapacityUnits: 5
+          }
+        }
+      ],
+      [
+        {
+          AttributeName: "state",
+          AttributeType: "S"
+        },
+        {
+          AttributeName: "order",
+          AttributeType: "N"
+        }
+      ]
+    );
+    let store = new DynamoStore(this.webda, "queryStore", {
+      table: "webda-test-query",
+      globalIndexes: {
+        States: {
+          key: "state",
+          sort: "order"
+        }
+      },
+      credentials: defaultCreds,
+      endpoint: "http://localhost:4566",
+      region: "us-east-1"
+    });
+    store.resolve();
+    await store.init();
+    if ((await store.getAll()).length < 1000) {
+      await Promise.all(this.getQueryDocuments().map(d => store.save(d)));
+    }
+    return store;
+  }
   @test
   async query() {
-    console.log("Install a table with state as primary key and order as sort, uuid as first primary key");
     // Run default query
-    await super.query();
-    console.log("Run additional query with state and order");
+    let store = await super.query();
+    store.query('state = "CA" AND order < 100');
+    // Add more test here
+    return store;
   }
 
   @test

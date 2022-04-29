@@ -906,7 +906,7 @@ abstract class Store<
       continuationToken: undefined
     };
     let [mainOffest, subOffset] = offset.split("_");
-    let secondOffset = parseInt(subOffset);
+    let secondOffset = parseInt(subOffset || "0");
     while (result.results.length < limit) {
       let tmpResults = await this.find(queryValidator.getExpression(), mainOffest, limit);
       // If no filter is returned assume it is by mistake and apply filtering
@@ -931,13 +931,14 @@ abstract class Store<
             continue;
           }
         }
+
         result.results.push(item);
         if (result.results.length >= limit) {
           result.continuationToken = `${offset}_${subOffsetCount}`;
           break;
         }
       }
-      offset = tmpResults.continuationToken;
+      mainOffest = tmpResults.continuationToken;
       if (!tmpResults.continuationToken || result.results.length >= limit) {
         break;
       }

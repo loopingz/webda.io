@@ -4,6 +4,7 @@ import { Context, Core, CoreModelDefinition, Service, WebdaError } from "./index
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import { JSONSchema7 } from "json-schema";
 import { FileUtils } from "./utils/serializers";
+import { OpenAPIV3_1 } from "openapi-types";
 
 export type PackageDescriptorAuthor =
   | string
@@ -167,7 +168,7 @@ export type UnpackedConfiguration = {
   /**
    * OpenAPI override
    */
-  openapi?: any;
+  openapi?: OpenAPIV3_1.Document;
 };
 
 export type Configuration = UnpackedConfiguration & {

@@ -1,5 +1,5 @@
 import { HostedZone, ListHostedZonesRequest, ListHostedZonesResponse, Route53 } from "@aws-sdk/client-route-53";
-import { Service, Cache, JSONUtils } from "@webda/core";
+import { Service, JSONUtils } from "@webda/core";
 
 export class Route53Service extends Service {
   /**
@@ -7,7 +7,6 @@ export class Route53Service extends Service {
    *
    * @param domain to get zone for
    */
-  @Cache()
   static async getZoneForDomainName(domain): Promise<HostedZone> {
     domain = this.completeDomain(domain);
     let targetZone: HostedZone;

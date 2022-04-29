@@ -82,7 +82,7 @@ class GCPQueueTest extends QueueTest {
     let queue: GCPQueue = this.webda.getService<GCPQueue>("queue");
     let service = new FakeSubscription();
     sinon.stub(queue.pubsub, "subscription").callsFake(() => {
-      return service;
+      return <any>service;
     });
     let consumer = queue.receiveMessage();
     service.emitError();

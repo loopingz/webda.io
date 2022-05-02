@@ -14,14 +14,12 @@ import {
   OrLogicExpressionContext,
   LimitExpressionContext,
   OffsetExpressionContext,
-  ExpressionContext,
   LikeExpressionContext
 } from "./WebdaQLParserParser";
 import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor";
 import { ParseTree } from "antlr4ts/tree/ParseTree";
 import { TerminalNode } from "antlr4ts/tree/TerminalNode";
 import { AbstractParseTreeVisitor } from "antlr4ts/tree/AbstractParseTreeVisitor";
-import { BaseModel } from "../../models/basemodel";
 
 type value = boolean | string | number;
 
@@ -221,7 +219,7 @@ export namespace WebdaQL {
      * Evaluate the expression for the target object
      * @param target to evaluate
      */
-    abstract eval(target: BaseModel): boolean;
+    abstract eval(target: any): boolean;
     /**
      * Return the representation of the expression
      * @param depth

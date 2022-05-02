@@ -256,10 +256,10 @@ export namespace WebdaQL {
       return new RegExp(
         like
           // Prevent common regexp chars
-          .replace(/\?/, "\\?")
-          .replace(/\[/, "\\[")
-          .replace(/\{/, "\\{")
-          .replace(/\(/, "\\(")
+          .replace(/\?/g, "\\?")
+          .replace(/\[/g, "\\[")
+          .replace(/\{/g, "\\{")
+          .replace(/\(/g, "\\(")
           // Update % and _ to match regex version
           .replace(/([^\\])_/g, "$1.{1}")
           .replace(/^_/g, ".{1}")

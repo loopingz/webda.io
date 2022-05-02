@@ -7,7 +7,7 @@
     },
     "images": {
       "type": "FileBinary",
-      "folder": true,
+      "folder": "./data/images",
       "map": {
         "contacts": [
           "picture"

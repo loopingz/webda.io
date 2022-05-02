@@ -309,7 +309,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
    */
   async find(
     request: WebdaQL.Expression,
-    continuationToken: string = undefined,
+    continuationToken?: string,
     limit: number = 1000
   ): Promise<StoreFindResult<T>> {
     await this._connect();

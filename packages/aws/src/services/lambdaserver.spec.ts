@@ -69,22 +69,13 @@ class LambdaHandlerTest extends WebdaAwsTest {
   }
 
   @test
-  async handleRefuseFilter() {
+  async checkRequestFalse() {
     // @ts-ignore
     this.webda._requestFilters = [];
-    await assert.rejects(
-      () =>
-        this.handler.handleRequest(
-          {
-            command: "launch",
-            service: "DebugMailer",
-            method: "send",
-            args: ["test"]
-          },
-          {}
-        ),
-      /403/
-    );
+    this.ensureGoodCSRF();
+    this.evt.queryStringParameters = { test: "Plop" };
+    let res = await this.handler.handleRequest(this.evt, this.context);
+    assert.strictEqual(res.statusCode, 403);
   }
 
   @test

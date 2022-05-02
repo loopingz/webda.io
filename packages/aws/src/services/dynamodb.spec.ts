@@ -130,6 +130,9 @@ export class DynamoDBTest extends StoreTest {
           sort: "order"
         }
       },
+      expose: {
+        url: "/none"
+      },
       credentials: defaultCreds,
       endpoint: "http://localhost:4566",
       region: "us-east-1"
@@ -146,6 +149,11 @@ export class DynamoDBTest extends StoreTest {
     // Run default query
     let store = await super.query();
     await store.query('state = "CA" AND order < 100');
+    let set = ["CA"];
+    for (let i = 1; i < 150; i++) {
+      set.push(i.toString(16));
+    }
+    assert.strictEqual((await store.query(`state IN [${set.map(e => `"${e}"`).join(",")}]`)).results.length, 250);
     // Add more test here
     return store;
   }

@@ -24,6 +24,13 @@ export class FireStoreParameters extends StoreParameters {
    * @see https://firebase.google.com/docs/firestore/query-data/queries
    */
   compoundIndexes: string[][];
+
+  constructor(params: DeepPartial<FireStoreParameters>, service: Store) {
+    super(params, service);
+    // Default to empty compoundIndexes
+    this.compoundIndexes ??= [];
+    this.compoundIndexes.forEach(a => a.sort());
+  }
 }
 
 /**
@@ -36,11 +43,12 @@ export default class FireStore<
   K extends FireStoreParameters = FireStoreParameters
 > extends Store<T, K> {
   firestore: Firestore;
+  compoundIndexes: string[];
 
   /**
    * @override
    */
-  loadParameters(params: DeepPartial<T>): FireStoreParameters {
+  loadParameters(params: DeepPartial<K>): FireStoreParameters {
     return new FireStoreParameters(params, this);
   }
 
@@ -51,6 +59,7 @@ export default class FireStore<
     await super.init();
     this.firestore = new Firestore();
     this.firestore.settings({ ignoreUndefinedProperties: true });
+    this.compoundIndexes = this.parameters.compoundIndexes.map(a => a.join("/"));
   }
 
   /**
@@ -73,7 +82,6 @@ export default class FireStore<
     continuationToken: string = "0",
     limit: number = 1000
   ): Promise<StoreFindResult<T>> {
-    console.log("QUERY", expression.toString());
     let offset: number = parseInt(continuationToken);
     if (isNaN(offset)) {
       offset = 0;
@@ -110,9 +118,7 @@ export default class FireStore<
       }
       let operator: FirebaseFirestore.WhereFilterOp;
       let attribute = child.attribute.join(".");
-      if (queryAttributes.size === 0) {
-        queryAttributes.add(attribute);
-      }
+      queryAttributes.add(attribute);
       // Translate operators
       if (["=", "IN"].includes(child.operator)) {
         // = is permitted on every fields
@@ -129,20 +135,30 @@ export default class FireStore<
           if (hasIn) {
             this.log("WARN", "Firebase cannot have two 'in' clause");
             filter.children.push(child);
+            return;
           }
           hasIn = true;
         }
       } else {
         // Requires compoundIndex
+        if (
+          queryAttributes.size > 1 &&
+          !this.compoundIndexes.includes([...queryAttributes.values()].sort().join("/"))
+        ) {
+          this.log("WARN", "Compound index not defined");
+          filter.children.push(child);
+          return;
+        }
         if (child.operator !== "!=") {
+          // Check compoundIndex exist
           rangeAttribute ??= attribute;
           // Range need to apply on only one attribute
           if (rangeAttribute !== attribute) {
             filter.children.push(child);
             return;
           }
-          operator = child.operator;
         }
+        operator = child.operator;
       }
       // count++;
       query = query.where(attribute, operator, child.value);

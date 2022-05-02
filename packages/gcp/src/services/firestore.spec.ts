@@ -60,6 +60,9 @@ class FireStoreTest extends StoreTest {
     let store = new FireStore(this.webda, "queryStore", {
       collection: "webda-query",
       compoundIndexes: [["state", "team.id"]],
+      expose: {
+        url: "/query",
+      },
     });
     store.resolve();
     await store.init();
@@ -73,24 +76,40 @@ class FireStoreTest extends StoreTest {
 
   @test
   async query() {
-    let store = await this.fillForQuery(); //await super.query();
+    let store = await super.query();
     let exp = new WebdaQL.QueryValidator('state = "CA" AND role = 4').getExpression();
-    let res = await store.find(exp, undefined);
+    let res = await store.find(exp, undefined, 1000);
     assert.strictEqual(res.filter, true, `Should not have any post filter ${res.filter.toString()}`);
     assert.strictEqual(res.results.length, 50);
     exp = new WebdaQL.QueryValidator('state = "CA" AND team.id < 5').getExpression();
-    res = await store.find(exp, undefined);
+    res = await store.find(exp, undefined, 1000);
     assert.strictEqual(res.filter, true, `Should not have post filter ${res.filter.toString()}`);
     assert.strictEqual(res.results.length, 100);
     exp = new WebdaQL.QueryValidator('state = "CA" AND team.id < 5 AND role >= 4').getExpression();
-    res = await store.find(exp, undefined);
+    res = await store.find(exp, undefined, 1000);
     assert.notStrictEqual(res.filter, true, `Should have post filter ${res.filter.toString()}`);
     assert.strictEqual(res.results.length, 100);
     assert.strictEqual(res.results.filter(c => (<WebdaQL.Expression>res.filter).eval(c)).length, 50);
     exp = new WebdaQL.QueryValidator('state = "CA" AND role <= 4').getExpression();
-    res = await store.find(exp, undefined);
+    res = await store.find(exp, undefined, 1000);
     assert.notStrictEqual(res.filter, true, "Should have post filter");
-    assert.strictEqual(res.results.length, 100);
+    assert.strictEqual(res.results.length, 250);
+    let items = ["CA", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
+    res = await store.find(
+      new WebdaQL.QueryValidator(`state IN [${items.map(i => `"${i}"`).join(",")}]`).getExpression(),
+      undefined,
+      1000
+    );
+    // Should be post filtered
+    assert.strictEqual(res.results.length, 1000);
+    res = await store.find(
+      new WebdaQL.QueryValidator(`state IN ["CA", "OR"] AND team.id IN [4,8]`).getExpression(),
+      undefined,
+      1000
+    );
+    assert.strictEqual(res.results.length, 500);
+    res = await store.find(new WebdaQL.QueryValidator(`team.id < 5 AND state > "CA"`).getExpression(), undefined, 1000);
+    assert.strictEqual(res.results.length, 250);
     return store;
   }
 

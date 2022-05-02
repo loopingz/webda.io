@@ -1,9 +1,10 @@
-import { StoreTest } from "./store.spec";
+import { PermissionModel, StoreTest } from "./store.spec";
 import { CoreModel, Store, MemoryStore, AggregatorService } from "../index";
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { HttpContext } from "../utils/context";
 import { StoreNotFoundError } from "./store";
+import { WebdaQL } from "./webdaql/query";
 
 @suite
 class MemoryStoreTest extends StoreTest {
@@ -60,6 +61,33 @@ class MemoryStoreTest extends StoreTest {
       err => err == 404
     );
     assert.strictEqual(identStore._getSync("notFound"), null);
+  }
+
+  @test
+  async queryAdditional() {
+    let userStore = await this.fillForQuery();
+    // Verify permission issue and half pagination
+    userStore.setModel(PermissionModel);
+    // Return undefined as filter to trigger the warning
+    let find = userStore.find;
+    userStore.find = async (_, offset, limit) => {
+      let res = await find.bind(userStore)(new WebdaQL.AndExpression([]), offset, limit);
+      return {
+        ...res,
+        filter: undefined
+      };
+    };
+    let context = await this.newContext();
+    // Verify pagination system
+    let res, offset;
+    let total = 0;
+    do {
+      res = await userStore.query(`state = 'CA' LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`, context);
+      offset = res.continuationToken;
+      total += res.results.length;
+    } while (offset);
+    assert.strictEqual(total, 100);
+    return userStore;
   }
 
   @test

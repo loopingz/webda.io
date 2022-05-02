@@ -309,7 +309,17 @@ export type ExposeParameters = {
      * Do not expose the DELETE
      */
     delete?: boolean;
+    /**
+     * Do not expose the query endpoint
+     */
+    query?: boolean;
   };
+
+  /**
+   * For confidentiality sometimes you might prefer to expose query through PUT
+   * To avoid GET logging
+   */
+  queryMethod: "PUT" | "GET";
 };
 
 /**
@@ -351,14 +361,19 @@ export class StoreParameters extends ServiceParameters {
   /**
    * Expose the service to an urls
    */
-  expose?: ExposeParameters | boolean | string;
+  expose?: ExposeParameters;
   /**
    * Allow to load object that does not have the type data
    *
-   * @deprecated 2.0
    * @default true
    */
   strict?: boolean;
+  /**
+   * Slow query threshold
+   *
+   * @default 30000
+   */
+  slowQueryThreshold: number;
 
   constructor(params: any, service: Service<any>) {
     super(params);
@@ -377,6 +392,7 @@ export class StoreParameters extends ServiceParameters {
     if (expose) {
       expose.restrict = expose.restrict || {};
       this.expose = expose;
+      (<ExposeParameters>this.expose).queryMethod ??= "GET";
     }
     if (params.map) {
       throw new Error("Deprecated map usage, use a MapperService");
@@ -385,6 +401,7 @@ export class StoreParameters extends ServiceParameters {
       throw new Error("Deprecated index usage, use an AggregatorService");
     }
     this.strict ??= true;
+    this.slowQueryThreshold ??= 30000;
   }
 }
 
@@ -497,7 +514,10 @@ abstract class Store<
     delete: 0,
     collectionUpsert: 0,
     collectionDelete: 0,
-    attributeDelete: 0
+    attributeDelete: 0,
+    query: 0,
+    queryDuration: 0,
+    slowQueries: 0
   };
 
   /**
@@ -521,6 +541,8 @@ abstract class Store<
     this._creationDateField = this._model.getCreationField();
     this._cacheStore?.computeParameters();
   }
+
+  logSlowQuery(query: string, reason: string, time: number) {}
 
   /**
    * Return Store current model
@@ -607,30 +629,38 @@ abstract class Store<
     }
     if (!expose.restrict.get) {
       methods.push("GET");
-      this.addRoute(expose.url, ["GET"], this.httpQuery, {
-        model: this._model.name,
-        post: {
-          description: `Query on ${this._model.name} model with WebdaQL`,
-          summary: "Query " + this._model.name,
-          operationId: `create${this._model.name}`,
-          responses: {
-            "200": {
-              description: "Retrieve models",
-              content: {
-                "application/json": {
-                  // schema: this._model.name
+    }
+    // Query endpoint
+    if (!expose.restrict.query) {
+      this.addRoute(
+        expose.queryMethod === "GET" ? `${expose.url}{?q}` : expose.url,
+        [expose.queryMethod],
+        this.httpQuery,
+        {
+          model: this._model.name,
+          [expose.queryMethod.toLowerCase()]: {
+            description: `Query on ${this._model.name} model with WebdaQL`,
+            summary: "Query " + this._model.name,
+            operationId: `create${this._model.name}`,
+            responses: {
+              "200": {
+                description: "Retrieve models",
+                content: {
+                  "application/json": {
+                    // schema: this._model.name
+                  }
                 }
+              },
+              "400": {
+                description: "Query is invalid"
+              },
+              "403": {
+                description: "You don't have permissions"
               }
-            },
-            "400": {
-              description: "Query is invalid"
-            },
-            "403": {
-              description: "You don't have permissions"
             }
           }
         }
-      });
+      );
     }
     if (!expose.restrict.delete) {
       methods.push("DELETE");
@@ -740,6 +770,16 @@ abstract class Store<
         }
       });
     }
+  }
+
+  /**
+   * OVerwrite the model
+   * Used mainly in test
+   */
+  setModel(model: CoreModelDefinition) {
+    this._model = model;
+    this._cacheStore?.setModel(model);
+    this.parameters.strict = false;
   }
 
   /**
@@ -905,10 +945,12 @@ abstract class Store<
       results: [],
       continuationToken: undefined
     };
-    let [mainOffest, subOffset] = offset.split("_");
+    let [mainOffset, subOffset] = offset.split("_");
     let secondOffset = parseInt(subOffset || "0");
+    let duration = Date.now();
+    this.metrics.query++;
     while (result.results.length < limit) {
-      let tmpResults = await this.find(queryValidator.getExpression(), mainOffest, limit);
+      let tmpResults = await this.find(queryValidator.getExpression(), mainOffset, limit);
       // If no filter is returned assume it is by mistake and apply filtering
       if (tmpResults.filter === undefined) {
         tmpResults.filter = queryValidator.getExpression();
@@ -934,14 +976,27 @@ abstract class Store<
 
         result.results.push(item);
         if (result.results.length >= limit) {
-          result.continuationToken = `${offset}_${subOffsetCount}`;
+          if (subOffsetCount === tmpResults.results.length) {
+            result.continuationToken = tmpResults.continuationToken;
+          } else {
+            result.continuationToken = `${mainOffset}_${subOffsetCount}`;
+          }
           break;
         }
       }
-      mainOffest = tmpResults.continuationToken;
-      if (!tmpResults.continuationToken || result.results.length >= limit) {
+      // Update both offset
+      mainOffset = tmpResults.continuationToken;
+      // Fresh new query so we do not need to skip
+      secondOffset = 0;
+      if (mainOffset === undefined || result.results.length >= limit) {
         break;
       }
+    }
+    duration = Date.now() - duration;
+    this.metrics.queryDuration =
+      (this.metrics.queryDuration * (this.metrics.query - 1) + duration) / this.metrics.query;
+    if (duration > this.parameters.slowQueryThreshold) {
+      this.logSlowQuery(query, "", duration);
     }
     //return (await this.getAll()).filter(c => queryValidator.eval(c));
     await this.emitSync("Store.Queried", <EventStoreQueried>{
@@ -957,9 +1012,15 @@ abstract class Store<
   /**
    * Expose query to http
    */
-  protected httpQuery(ctx: Context) {
+  protected async httpQuery(ctx: Context) {
+    let query: string;
+    if (ctx.getHttpContext().getMethod() === "GET") {
+      query = ctx.getParameters().q;
+    } else {
+      query = ctx.getRequestBody().q;
+    }
     try {
-      this.query("", ctx);
+      ctx.write(await this.query(query, ctx));
     } catch (err) {
       if (err instanceof SyntaxError) {
         this.log("INFO", "Query syntax error");
@@ -1392,26 +1453,26 @@ abstract class Store<
     continuationToken: string,
     limit: number,
     uuids: string[]
-  ): Promise<{
-    results: T[];
-    continuationToken?: string;
-    filter?: WebdaQL.Expression;
-  }> {
-    let result = {
+  ): Promise<StoreFindResult<T>> {
+    let result: StoreFindResult<T> = {
       results: [],
-      continuationToken: undefined
+      continuationToken: undefined,
+      filter: true
     };
     let count = 0;
     let offset = parseInt(continuationToken);
+    if (isNaN(offset)) {
+      offset = 0;
+    }
     // Need to transfert to Array
     for (let uuid of uuids) {
       count++;
       // Offset start
-      if (offset > count) {
+      if (offset >= count) {
         continue;
       }
-      let obj = await this._get(uuid);
-      if (request.eval(obj)) {
+      let obj = await this._getFromCache(uuid);
+      if (obj && request.eval(obj)) {
         result.results.push(obj);
         if (result.results.length >= limit) {
           result.continuationToken = count.toString();

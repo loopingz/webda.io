@@ -2,17 +2,31 @@ import { WebdaTest } from "../test";
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as Idents from "../../test/models/ident";
-import { Store, StoreParameters } from "../index";
+import { Context, Store, StoreParameters } from "../index";
 import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./store";
 import { v4 as uuidv4 } from "uuid";
 import { CoreModel } from "../models/coremodel";
+import { HttpContext } from "../utils/context";
+import { stub } from "sinon";
 
+/**
+ * Fake model that refuse the half of the items
+ */
+export class PermissionModel extends CoreModel {
+  order: number;
+  async canAct(ctx: Context, _action: string): Promise<this> {
+    if (this.order % 200 < 120) {
+      throw 403;
+    }
+    return this;
+  }
+}
 @suite
 class StoreParametersTest {
   @test
   cov() {
     let params = new StoreParameters({ expose: "/plop", lastUpdateField: "bz", creationDateField: "c" }, undefined);
-    assert.deepStrictEqual(params.expose, { url: "/plop", restrict: {} });
+    assert.deepStrictEqual(params.expose, { queryMethod: "GET", url: "/plop", restrict: {} });
     assert.throws(() => new StoreParameters({ map: {} }, undefined), Error);
     assert.throws(() => new StoreParameters({ index: [] }, undefined), Error);
   }
@@ -84,7 +98,11 @@ abstract class StoreTest extends WebdaTest {
       'state = "CA" AND team.id > 15': 50,
       "team.id < 5 OR team.id > 15": 450,
       "role < 5 AND team.id > 10 OR team.id > 15": 400,
-      "role < 5 AND (team.id > 10 OR team.id > 15)": 200
+      "role < 5 AND (team.id > 10 OR team.id > 15)": 200,
+      'state LIKE "C_"': 250,
+      'state LIKE "C__"': 0,
+      'state LIKE "C%"': 250,
+      "": 1000
     };
     for (let i in queries) {
       assert.strictEqual(
@@ -92,6 +110,70 @@ abstract class StoreTest extends WebdaTest {
         queries[i],
         `Query: ${i} should return ${queries[i]}`
       );
+    }
+    // Verify pagination system
+    let offset;
+    let res;
+    let i = 0;
+    do {
+      res = await userStore.query(`LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`);
+      offset = res.continuationToken;
+
+      if (i++ > 9) {
+        assert.strictEqual(res.results.length, 0);
+        assert.strictEqual(offset, undefined);
+      } else {
+        assert.strictEqual(res.results.length, 100);
+      }
+    } while (offset !== undefined);
+
+    // Verify permission issue and half pagination
+    userStore.setModel(PermissionModel);
+    let context = await this.newContext();
+    // Verify pagination system
+    i = 0;
+    let total = 0;
+    let q;
+    // To ensure we trigger slowQuery
+    userStore.getParameters().slowQueryThreshold = 0;
+    do {
+      q = `LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""}`;
+      context.setHttpContext(
+        new HttpContext(
+          "test.webda.io",
+          i++ % 2 ? "GET" : "PUT",
+          userStore.getParameters().expose.url + "?q=" + encodeURI(q),
+          "https",
+          443,
+          {
+            q
+          }
+        )
+      );
+      context.getParameters().q = q;
+      // @ts-ignore
+      await userStore.httpQuery(context);
+      res = JSON.parse(context.getResponseBody());
+      offset = res.continuationToken;
+      total += res.results.length;
+    } while (offset !== undefined);
+    assert.strictEqual(total, 400);
+    q = "BAD QUERY !";
+    context.setHttpContext(
+      new HttpContext("test.webda.io", "PUT", userStore.getParameters().expose.url, "https", 443, {
+        q
+      })
+    );
+    // @ts-ignore
+    await assert.rejects(() => userStore.httpQuery(context), /400/);
+    let mock = stub(userStore, "query").callsFake(() => {
+      throw new Error("Plop");
+    });
+    try {
+      // @ts-ignore
+      await assert.rejects(() => userStore.httpQuery(context), /Plop/);
+    } finally {
+      mock.restore();
     }
     return userStore;
   }

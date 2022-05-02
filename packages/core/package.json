@@ -83,7 +83,8 @@
     "exclude": [
       "src/test.ts",
       "**/*.spec.ts",
-      "test/**/*"
+      "test/**/*",
+      "src/stores/webdaql/WebdaQL*.ts"
     ]
   },
   "homepage": "https://webda.io",

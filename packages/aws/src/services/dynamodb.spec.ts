@@ -145,7 +145,7 @@ export class DynamoDBTest extends StoreTest {
   async query() {
     // Run default query
     let store = await super.query();
-    store.query('state = "CA" AND order < 100');
+    await store.query('state = "CA" AND order < 100');
     // Add more test here
     return store;
   }

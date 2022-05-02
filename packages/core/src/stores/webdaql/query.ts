@@ -14,7 +14,8 @@ import {
   OrLogicExpressionContext,
   LimitExpressionContext,
   OffsetExpressionContext,
-  ExpressionContext
+  ExpressionContext,
+  LikeExpressionContext
 } from "./WebdaQLParserParser";
 import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor";
 import { ParseTree } from "antlr4ts/tree/ParseTree";
@@ -155,6 +156,17 @@ export namespace WebdaQL {
     }
 
     /**
+     * a LIKE "%A?"
+     * @param ctx
+     * @returns
+     */
+    visitLikeExpression(ctx: LikeExpressionContext) {
+      const [left, _, right] = ctx.children;
+      let value = <any[]>(<unknown>this.visit(right));
+      return new ComparisonExpression("LIKE", left.text, value);
+    }
+
+    /**
      * Map the a IN ['b','c']
      */
     visitInExpression(ctx: InExpressionContext) {
@@ -242,6 +254,24 @@ export namespace WebdaQL {
       this.attribute = attribute.split(".");
     }
 
+    static likeToRegex(like: string): RegExp {
+      return new RegExp(
+        like
+          // Prevent common regexp chars
+          .replace(/\?/, "\\?")
+          .replace(/\[/, "\\[")
+          .replace(/\{/, "\\{")
+          .replace(/\(/, "\\(")
+          // Update % and _ to match regex version
+          .replace(/([^\\])_/g, "$1.{1}")
+          .replace(/^_/g, ".{1}")
+          .replace(/\\_/g, "_")
+          .replace(/([^\\])%/g, "$1.*")
+          .replace(/^%/g, ".*")
+          .replace(/\\%/g, "%")
+      );
+    }
+
     /**
      * Read the value from the object
      *
@@ -278,13 +308,12 @@ export namespace WebdaQL {
         case "LIKE":
           if (typeof left === "string") {
             // Grammar definie value as stringLiteral
-            return left.match(<string>this.value) !== undefined;
+            return left.match(ComparisonExpression.likeToRegex(<string>this.value)) !== null;
           }
-          return left.toString().match(<string>this.value) !== undefined;
+          return left.toString().match(ComparisonExpression.likeToRegex(<string>this.value)) !== null;
         case "IN":
           return (<value[]>this.value).includes(left);
       }
-      return false;
     }
 
     /**

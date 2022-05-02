@@ -1,4 +1,4 @@
-import { StoreTest } from "./store.spec";
+import { PermissionModel, StoreTest } from "./store.spec";
 import { FileStore, CoreModel, Store, FileUtils } from "../index";
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";

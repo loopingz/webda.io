@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { CoreModel } from "../models/coremodel";
+import { CoreModel, CoreModelDefinition } from "../models/coremodel";
 import { JSONUtils } from "../utils/serializers";
 import { MemoryStore } from "./memory";
 import { WebdaQL } from "./webdaql/query";
@@ -74,9 +74,13 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
    * @override
    */
   async find(request: WebdaQL.Expression, continuationToken: string, limit: number): Promise<StoreFindResult<T>> {
-    const files = fs.readdirSync(this.parameters.folder).filter(file => {
-      return !fs.statSync(path.join(this.parameters.folder, file)).isDirectory();
-    });
+    const files = fs
+      .readdirSync(this.parameters.folder)
+      .filter(file => {
+        return !fs.statSync(path.join(this.parameters.folder, file)).isDirectory();
+      })
+      .map(f => f.substring(0, f.length - FileStore.EXTENSION.length))
+      .sort();
     return this.simulateFind(request, continuationToken, limit, files);
   }
 

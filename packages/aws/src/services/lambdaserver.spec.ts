@@ -48,6 +48,9 @@ class LambdaHandlerTest extends WebdaAwsTest {
     await app.load();
     this.webda = this.handler = new LambdaServer(app);
     this.webda.initStatics();
+    this.webda.registerRequestFilter({
+      checkRequest: async () => true
+    });
     this.evt = {
       httpMethod: "GET",
       headers: {
@@ -63,6 +66,25 @@ class LambdaHandlerTest extends WebdaAwsTest {
       body: JSON.stringify({})
     };
     this.debugMailer = this.handler.getService("DebugMailer");
+  }
+
+  @test
+  async handleRefuseFilter() {
+    // @ts-ignore
+    this.webda._requestFilters = [];
+    await assert.rejects(
+      () =>
+        this.handler.handleRequest(
+          {
+            command: "launch",
+            service: "DebugMailer",
+            method: "send",
+            args: ["test"]
+          },
+          {}
+        ),
+      /403/
+    );
   }
 
   @test

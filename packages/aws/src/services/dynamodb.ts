@@ -172,14 +172,6 @@ export default class DynamoStore<
     let FilterExpression: string[] = [];
     let ExpressionAttributeNames = {};
     let indexNode;
-    const toDynamoValue = (value: string | boolean | number | any[]) => {
-      if (typeof value === "string") {
-        return { S: value };
-      } else if (typeof value === "boolean") {
-        return { BOOL: value };
-      }
-      return { N: value };
-    };
 
     let processingExpression: WebdaQL.AndExpression;
     if (!(expression instanceof WebdaQL.AndExpression)) {
@@ -272,6 +264,14 @@ export default class DynamoStore<
     const ExclusiveStartKey = continuationToken ? JSON.parse(continuationToken) : undefined;
     // Scan if not primary key was provided
     if (scan) {
+      console.log("SCAN", {
+        TableName: this.parameters.table,
+        FilterExpression: FilterExpression.length ? FilterExpression.join(" AND ") : undefined,
+        ExclusiveStartKey,
+        ExpressionAttributeNames,
+        ExpressionAttributeValues,
+        Limit
+      });
       // SHould log bad query
       result = await this._client.scan({
         TableName: this.parameters.table,
@@ -282,6 +282,16 @@ export default class DynamoStore<
         Limit
       });
     } else {
+      console.log("QUERY", {
+        TableName: this.parameters.table,
+        IndexName,
+        ExclusiveStartKey,
+        KeyConditionExpression,
+        FilterExpression: FilterExpression.length ? FilterExpression.join(" AND ") : undefined,
+        ExpressionAttributeNames,
+        ExpressionAttributeValues,
+        Limit
+      });
       result = await this._client.query({
         TableName: this.parameters.table,
         IndexName,
@@ -293,6 +303,7 @@ export default class DynamoStore<
         Limit
       });
     }
+    console.log("RETURN", filter.toString());
     return {
       results: result.Items.map(c => this.initModel(c)),
       filter,

@@ -92,7 +92,6 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
     let foundMap = false;
     let foundData = false;
     let challenge;
-    console.log("put redirect url", data);
     for (let i in data.Contents) {
       if (data.Contents[i].Key.endsWith("data")) foundData = true;
       if (data.Contents[i].Key.endsWith(uid)) foundMap = true;

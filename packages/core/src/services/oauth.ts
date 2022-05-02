@@ -259,10 +259,11 @@ export abstract class OAuthService<
   _redirect(ctx: Context) {
     // implement default behavior
     let redirect_uri = this.parameters.redirect_uri || `${ctx.getHttpContext().getAbsoluteUrl()}/callback`;
+    let redirect = ctx.getParameters().redirect || ctx.getHttpContext().getHeaders().referer;
 
     if (this.parameters.authorized_uris) {
       // Might want to use regexp here
-      if (this.parameters.authorized_uris.indexOf(ctx.getHttpContext().getHeaders().referer) < 0) {
+      if (this.parameters.authorized_uris.indexOf(redirect) < 0) {
         if (ctx.getHttpContext().getHeaders().referer || !this.parameters.no_referer) {
           // The redirect_uri is not authorized , might be forging HOST request
           throw 401;
@@ -272,7 +273,7 @@ export abstract class OAuthService<
     // Generate 2 random uuid: nonce and state
     ctx.getSession().state = uuidv4();
     // Redirect to the calling uri
-    ctx.getSession().redirect = ctx.getHttpContext().getHeaders().referer;
+    ctx.getSession().redirect = redirect;
     ctx.redirect(this.generateAuthUrl(redirect_uri, ctx.getSession().state, ctx));
   }
 

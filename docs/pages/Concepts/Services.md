@@ -35,3 +35,4 @@ E: Define the events and their types that the service emits
 ### @Inject
 
 You can use @Inject to retrieve another Service
+

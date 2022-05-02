@@ -38,10 +38,21 @@ class QueryTest {
       "a = 1 AND b = 2 OR c = 3 AND d = 4": null,
       "a = 1 AND b = 2 OR c = 3 AND d = 4 OR e = 5 AND f = 6": null,
       "a = 1 AND (b = 2 OR (c = 3 AND (d = 4 OR e = 5))) AND f = 6": null,
+      "": true,
+      'test.attr1 LIKE "pl_p"': true,
+      'test.attr1 LIKE "pl__p"': false,
+      'attr3 LIKE "1_"': true,
+      "attr3 >= 12": true,
+      "attr3 <= 12": false,
+      "attr3 != 12": true,
+      "attr3 > 12": true,
+      "attr3 < 13": false,
+      'test.attr1 LIKE "pl%"': true,
       "a = 1 AND b=2 OR a=1 AND b=3": "( a = 1 AND b = 2 ) OR ( a = 1 AND b = 3 )" // TODO Might want to auto-simplify to a = 1 AND b IN [2,3]
     };
     for (let query in queryMap) {
       const validator = new WebdaQL.QueryValidator(query);
+      assert.strictEqual(validator.displayTree().replace(/\s/g, ""), query.replace(/\s/g, ""));
       if (typeof queryMap[query] === "string") {
         assert.strictEqual(
           validator.getExpression().toString(),
@@ -56,6 +67,19 @@ class QueryTest {
       }
     }
   }
+
+  @test
+  likeRegexp() {
+    assert.deepStrictEqual(WebdaQL.ComparisonExpression.likeToRegex("test"), /test/);
+    assert.deepStrictEqual(WebdaQL.ComparisonExpression.likeToRegex("t_est"), /t.{1}est/);
+    assert.deepStrictEqual(WebdaQL.ComparisonExpression.likeToRegex("_test"), /.{1}test/);
+    assert.deepStrictEqual(WebdaQL.ComparisonExpression.likeToRegex("t\\_est"), /t_est/);
+
+    assert.deepStrictEqual(WebdaQL.ComparisonExpression.likeToRegex("t%est"), /t.*est/);
+    assert.deepStrictEqual(WebdaQL.ComparisonExpression.likeToRegex("%te?st"), /.*te\?st/);
+    assert.deepStrictEqual(WebdaQL.ComparisonExpression.likeToRegex("t\\%est"), /t%est/);
+  }
+
   @test
   simple() {
     assert.strictEqual(new WebdaQL.QueryValidator("test.attr1 = 'plop'").eval(targets[0]), true);

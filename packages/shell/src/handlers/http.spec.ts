@@ -117,6 +117,15 @@ class WebdaServerTest {
     assert.strictEqual(res.status, 500);
 
     stub.restore();
+
+    this.server.setDevMode(true);
+    // Remove request accept
+    // @ts-ignore
+    this.server._requestFilters = [];
+    res = await fetch(`http://localhost:${this.port}/test`, {
+      headers: { origin: "bouzouf", "x-forwarded-port": "443" }
+    });
+    assert.strictEqual(res.status, 403);
   }
 
   async checkRequest(): Promise<boolean> {

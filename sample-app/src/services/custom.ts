@@ -1,4 +1,4 @@
-import { Context, Route, Service } from "@webda/core";
+import { Context, RequestFilter, Route, Service } from "@webda/core";
 
 interface CustomBody {
   /**
@@ -11,7 +11,19 @@ interface CustomBody {
 interface DefinedOutput {
   plop: boolean;
 }
-class CustomService extends Service {
+class CustomService extends Service implements RequestFilter {
+  /**
+   * @override
+   */
+  resolve() {
+    super.resolve();
+    this.getWebda().registerRequestFilter(this);
+  }
+
+  async checkRequest() {
+    return true;
+  }
+
   @Route("/msg/{msg}", ["GET"])
   msgRoute(ctx: Context) {
     ctx.write(this.output(ctx.getParameters().msg));

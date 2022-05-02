@@ -93,6 +93,7 @@ abstract class StoreTest extends WebdaTest {
       'state = "CA"': 250,
       "team.id > 15": 200,
       "team.id >= 15": 250,
+      "team.id <= 14": 750,
       'state IN ["CA", "NY"]': 500,
       'state IN ["CA", "NY", "NV"]': 500,
       'state = "CA" AND team.id > 15': 50,
@@ -102,6 +103,7 @@ abstract class StoreTest extends WebdaTest {
       'state LIKE "C_"': 250,
       'state LIKE "C__"': 0,
       'state LIKE "C%"': 250,
+      'state != "CA"': 750,
       "": 1000
     };
     for (let i in queries) {

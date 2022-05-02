@@ -139,6 +139,10 @@ class WebdaTest {
   protected async buildWebda() {
     let app = new TestApplication(this.getTestConfiguration());
     await app.load();
+    if (app.getConfiguration() && app.getConfiguration().parameters) {
+      app.getConfiguration().parameters.sessionSecret ??= "1234567890ABCDEF".repeat(16);
+    }
+    
     await this.tweakApp(app);
 
     this.webda = new Core(app);

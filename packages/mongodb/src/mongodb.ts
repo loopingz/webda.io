@@ -298,10 +298,9 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
         };
       } else if (expression.operator === "LIKE") {
         return {
-          [expression.attribute.join(".")]: new RegExp(<string>expression.value)
+          [expression.attribute.join(".")]: WebdaQL.ComparisonExpression.likeToRegex(<string>expression.value)
         };
       }
-      throw new Error(`Unkown comparaison ${expression.operator}`);
     }
   }
 
@@ -314,16 +313,17 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
     limit: number = 1000
   ): Promise<StoreFindResult<T>> {
     await this._connect();
+    let offset = parseInt(continuationToken);
+    if (isNaN(offset)) {
+      offset = 0;
+    }
     // We should be able to expression everything as an expression
+    const results = (await this._collection.find(this.mapExpression(request)).skip(offset).limit(limit).toArray()).map(
+      doc => this.initModel(doc)
+    );
     return {
-      results: (
-        await this._collection
-          .find(this.mapExpression(request))
-          .skip(parseInt(continuationToken))
-          .limit(limit)
-          .toArray()
-      ).map(doc => this.initModel(doc)),
-      continuationToken: "",
+      results,
+      continuationToken: results.length >= limit ? (offset + limit).toString() : undefined,
       filter: true
     };
   }

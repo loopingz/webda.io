@@ -456,7 +456,7 @@ export namespace WebdaQL {
           msg: string,
           e: RecognitionException
         ) => {
-          throw new SyntaxError(msg);
+          throw new SyntaxError(`${msg} (Query: ${sql})`);
         }
       });
       // Parse the input, where `compilationUnit` is whatever entry point you defined

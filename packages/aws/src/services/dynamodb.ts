@@ -205,6 +205,11 @@ export default class DynamoStore<
       // Only work on Comparison Node for now
       if (child instanceof WebdaQL.ComparisonExpression) {
         let operator = child.operator;
+        // DynamoDB does not manage LIKE
+        if (child.operator === "LIKE") {
+          filter.children.push(child);
+          return;
+        }
         // != is <> in Dynamo
         if (operator === "!=") {
           operator = "<>";
@@ -245,7 +250,7 @@ export default class DynamoStore<
         // If this is a sort key
         if (IndexName && this.parameters.globalIndexes[IndexName].sort === child.attribute[0]) {
           // Sort key
-          KeyConditionExpression += `${fullAttr} ${operator} ${valueExpression}`;
+          KeyConditionExpression += ` AND ${fullAttr} ${operator} ${valueExpression}`;
           return;
         }
         // Otherwise fallback to normal Filter
@@ -261,17 +266,11 @@ export default class DynamoStore<
     if (!Object.keys(ExpressionAttributeValues).length) {
       ExpressionAttributeValues = undefined;
     }
-    const ExclusiveStartKey = continuationToken ? JSON.parse(continuationToken) : undefined;
+    const ExclusiveStartKey = continuationToken
+      ? JSON.parse(Buffer.from(continuationToken, "base64").toString())
+      : undefined;
     // Scan if not primary key was provided
     if (scan) {
-      console.log("SCAN", {
-        TableName: this.parameters.table,
-        FilterExpression: FilterExpression.length ? FilterExpression.join(" AND ") : undefined,
-        ExclusiveStartKey,
-        ExpressionAttributeNames,
-        ExpressionAttributeValues,
-        Limit
-      });
       // SHould log bad query
       result = await this._client.scan({
         TableName: this.parameters.table,
@@ -282,16 +281,6 @@ export default class DynamoStore<
         Limit
       });
     } else {
-      console.log("QUERY", {
-        TableName: this.parameters.table,
-        IndexName,
-        ExclusiveStartKey,
-        KeyConditionExpression,
-        FilterExpression: FilterExpression.length ? FilterExpression.join(" AND ") : undefined,
-        ExpressionAttributeNames,
-        ExpressionAttributeValues,
-        Limit
-      });
       result = await this._client.query({
         TableName: this.parameters.table,
         IndexName,
@@ -303,11 +292,13 @@ export default class DynamoStore<
         Limit
       });
     }
-    console.log("RETURN", filter.toString());
     return {
       results: result.Items.map(c => this.initModel(c)),
       filter,
-      continuationToken: result.Items.length >= Limit ? JSON.stringify(result.LastEvaluatedKey) : undefined
+      continuationToken:
+        result.Items.length >= Limit
+          ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString("base64")
+          : undefined
     };
   }
 

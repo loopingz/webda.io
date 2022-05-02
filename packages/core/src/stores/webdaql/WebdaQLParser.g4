@@ -31,7 +31,7 @@ values
     ;
 
 atom
-    : values # valuesAtom
+    : values #valuesAtom
     | identifier #identifierAtom
     ;
 

@@ -23,24 +23,18 @@
           "description": "async delete"
         },
         "expose": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/ExposeParameters"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string"
-            }
-          ],
+          "$ref": "#/definitions/ExposeParameters",
           "description": "Expose the service to an urls"
         },
         "strict": {
           "type": "boolean",
           "description": "Allow to load object that does not have the type data",
-          "deprecated": 2,
           "default": true
+        },
+        "slowQueryThreshold": {
+          "type": "number",
+          "description": "Slow query threshold",
+          "default": 30000
         },
         "table": {
           "type": "string"
@@ -67,6 +61,7 @@
       "required": [
         "asyncDelete",
         "database",
+        "slowQueryThreshold",
         "table",
         "type"
       ],
@@ -98,12 +93,27 @@
                 "delete": {
                   "type": "boolean",
                   "description": "Do not expose the DELETE"
+                },
+                "query": {
+                  "type": "boolean",
+                  "description": "Do not expose the query endpoint"
                 }
               },
               "description": "You can restrict any part of the CRUD",
               "default": {}
+            },
+            "queryMethod": {
+              "type": "string",
+              "enum": [
+                "PUT",
+                "GET"
+              ],
+              "description": "For confidentiality sometimes you might prefer to expose query through PUT To avoid GET logging"
             }
-          }
+          },
+          "required": [
+            "queryMethod"
+          ]
         },
         "SQLDatabase": {
           "type": "object",

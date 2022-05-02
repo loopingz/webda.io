@@ -120,10 +120,18 @@ abstract class StoreTest extends WebdaTest {
       offset = res.continuationToken;
 
       if (i++ > 9) {
-        assert.strictEqual(res.results.length, 0);
+        assert.strictEqual(
+          res.results.length,
+          0,
+          `Query: LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""} should return 0`
+        );
         assert.strictEqual(offset, undefined);
       } else {
-        assert.strictEqual(res.results.length, 100);
+        assert.strictEqual(
+          res.results.length,
+          100,
+          `Query: LIMIT 100 ${offset ? 'OFFSET "' + offset + '"' : ""} should return 0`
+        );
       }
     } while (offset !== undefined);
 

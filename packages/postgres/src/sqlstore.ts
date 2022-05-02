@@ -112,6 +112,9 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
     let offset = 0;
     try {
       offset = parseInt(continuationToken, 10);
+      if (isNaN(offset)) {
+        offset = 0;
+      }
     } catch (err) {
       // Ignore parseError and fallback to 0
     }

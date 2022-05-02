@@ -70,8 +70,9 @@ class LambdaHandlerTest extends WebdaAwsTest {
 
   @test
   async checkRequestFalse() {
+    await this.handler.init();
     // @ts-ignore
-    this.webda._requestFilters = [];
+    this.handler._requestFilters = [];
     this.ensureGoodCSRF();
     this.evt.queryStringParameters = { test: "Plop" };
     let res = await this.handler.handleRequest(this.evt, this.context);

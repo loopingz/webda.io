@@ -1,22 +1,6 @@
 # WebdaQL
 
-## References
-
-AWS: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Query.html
-https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Scan.html
-
-Firebase: https://firebase.google.com/docs/firestore/query-data/queries
-
-MongoDB: https://www.mongodb.com/docs/manual/tutorial/query-documents/
-
-## ANTRL4TS
-
-Validator: Ensure the parsing of the query
-Visitor: query() / filter(CoreModel): boolean
-
-## WebdaQL
-
-### Operators
+## Operators
 
 ```
 = equal to
@@ -37,47 +21,16 @@ a AND b OR c is equivalent to (a AND b) OR c
 a AND b OR c AND d is equivalent to (a AND b) OR (c AND d)
 ```
 
-## DynamoDB
+## Order By
 
-Require Key, then Sort
-Then filtering
+You can use `ORDER BY` to order the results, this is not a hard requirements to manage it on underlying Store.
 
-### Operators
+Currently, `MongoDB`, `Postgres`, `File` and `Memory` have a full ORDER BY capabilities
 
-```
-= equal to
-< less than
-> greater than
-<= less than or equal to
->= greater than or equal to
-a BETWEEN b AND c
+`DynamoDB` have some hard limitation, only the sortKey can be ordered and every other ORDER BY clause will be ignored
 
-For filtering:
-OR
-IN
-CONTAINS
-```
+`FireBase` have also limitations, only the defined index with their direction will be able to be used, every other ORDER BY clause will be ignored
 
-## Firebase
+## Limit and Offset
 
-You can't combine not-in and != in a compound query.
-In a compound query, range (<, <=, >, >=) and not equals (!=, not-in) comparisons must all filter on the same field.
-
-### Operators
-
-```
-< less than
-<= less than or equal to
-== equal to
-> greater than
->= greater than or equal to
-!= not equal to
-array-contains
-array-contains-any
-in
-not-in
-```
-
-## MongoDB
-
-### Operators
+To define the LIMIT just add LIMIT

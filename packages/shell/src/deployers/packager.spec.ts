@@ -146,7 +146,7 @@ class PackagerTest {
       includeLinkModules: true
     });
     await deployer.loadDefaults();
-    //await deployer.deploy();
+    await deployer.deploy();
   }
 
   @test

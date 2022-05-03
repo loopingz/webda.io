@@ -119,7 +119,11 @@ jobs:
           service_account: ${{ secrets.GCP_OIDC_SA}}
 
       - name: Run GCP tests
-        run: yarn run test --scope @webda/gcp
+        run: |
+          (echo "===== Core Test Attempt: 1 ====" && yarn run test --scope @webda/gcp) || \
+          (echo "===== Core Test Attempt: 2 ====" && yarn run test --scope @webda/gcp) || \
+          (echo "===== Core Test Attempt: 3 ====" && yarn run test --scope @webda/gcp) || \
+          (echo "===== Core Test Failed ====" && exit 1)
 
       - name: Run other modules tests
         run: yarn run test --ignore @webda/shell  --ignore @webda/aws  --ignore @webda/gcp --ignore @webda/core --ignore @webda/postgres

@@ -59,7 +59,7 @@ class FireStoreTest extends StoreTest {
     // Create a new store
     let store = new FireStore(this.webda, "queryStore", {
       collection: "webda-query",
-      compoundIndexes: [["state", "team.id"]],
+      compoundIndexes: [{ state: "asc", "team.id": "asc" }],
       expose: {
         url: "/query",
       },
@@ -120,8 +120,20 @@ class FireStoreTest extends StoreTest {
     let store = await this.fillForQuery();
     let res = await store.query("order > 900 ORDER BY order DESC LIMIT 10");
     assert.strictEqual((<any>res.results.shift()).order, 999);
+    res = await store.query("ORDER BY order ASC LIMIT 10");
+    assert.strictEqual((<any>res.results.shift()).order, 0);
+    res = await store.query("ORDER BY order DESC LIMIT 10");
+    assert.strictEqual((<any>res.results.shift()).order, 999);
     res = await store.query("ORDER BY state ASC, team.id ASC LIMIT 10");
-    console.log(res.results.map(c => this.mapQueryModel(c)));
+    res.results
+      .map(c => this.mapQueryModel(c))
+      .forEach(c => {
+        assert.deepStrictEqual({ teamId: 0, state: "CA" }, { teamId: c.teamId, state: c.state });
+      });
+    // It should not fail even if index is not found
+    res = await store.query("ORDER BY state ASC, team.id DESC LIMIT 10");
+    res = await store.query("order > 900 ORDER BY team.id ASC LIMIT 10");
+    res = await store.query("ORDER BY team.id ASC, order DESC LIMIT 10");
   }
 
   /**

@@ -27,3 +27,4 @@ Wildcard path: `/test/{path*}` will map all the rest of the uri
 ## Query arguments
 
 The search part of the query can be usefull too and need to be declared
+

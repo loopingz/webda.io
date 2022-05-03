@@ -11,6 +11,14 @@ import {
 } from "@webda/core";
 
 /**
+ * Definition of a FireStore index
+ */
+export type FireStoreIndex = { [key: string]: "asc" | "desc" };
+/**
+ * Stored version of indexes
+ */
+export type FireStoreIndexOrder = { [key: string]: Set<"asc" | "desc"> };
+/**
  * Firebase parameters
  */
 export class FireStoreParameters extends StoreParameters {
@@ -23,13 +31,12 @@ export class FireStoreParameters extends StoreParameters {
    *
    * @see https://firebase.google.com/docs/firestore/query-data/queries
    */
-  compoundIndexes: string[][];
+  compoundIndexes: FireStoreIndex[];
 
   constructor(params: DeepPartial<FireStoreParameters>, service: Store) {
     super(params, service);
     // Default to empty compoundIndexes
     this.compoundIndexes ??= [];
-    this.compoundIndexes.forEach(a => a.sort());
   }
 }
 
@@ -43,7 +50,7 @@ export default class FireStore<
   K extends FireStoreParameters = FireStoreParameters
 > extends Store<T, K> {
   firestore: Firestore;
-  compoundIndexes: string[];
+  compoundIndexes: { [key: string]: FireStoreIndexOrder };
 
   /**
    * @override
@@ -59,7 +66,16 @@ export default class FireStore<
     await super.init();
     this.firestore = new Firestore();
     this.firestore.settings({ ignoreUndefinedProperties: true });
-    this.compoundIndexes = this.parameters.compoundIndexes.map(a => a.join("/"));
+    this.compoundIndexes = {};
+    this.parameters.compoundIndexes.forEach(a => {
+      const key = Object.keys(a).join("/");
+      // Should contain the array of accessible order
+      this.compoundIndexes[key] = {};
+      Object.keys(a).forEach(field => {
+        this.compoundIndexes[key][field] ??= new Set<"asc" | "desc">();
+        this.compoundIndexes[key][field].add(a[field]);
+      });
+    });
   }
 
   /**
@@ -79,7 +95,6 @@ export default class FireStore<
    */
   async find(parsedQuery: WebdaQL.Query): Promise<StoreFindResult<T>> {
     let offset: number = parseInt(parsedQuery.continuationToken || "0");
-    let limit: number = parseInt(parsedQuery.limit || "0");
     let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = this.firestore.collection(
       this.parameters.collection
     );
@@ -88,7 +103,7 @@ export default class FireStore<
     }
 
     let filter = new WebdaQL.AndExpression([]);
-    let rangeAttribute;
+    let rangeAttribute: string;
     let toProcess: WebdaQL.AndExpression;
     if (!(parsedQuery.filter instanceof WebdaQL.AndExpression)) {
       toProcess = new WebdaQL.AndExpression([parsedQuery.filter]);
@@ -135,10 +150,7 @@ export default class FireStore<
         }
       } else {
         // Requires compoundIndex
-        if (
-          queryAttributes.size > 1 &&
-          !this.compoundIndexes.includes([...queryAttributes.values()].sort().join("/"))
-        ) {
+        if (queryAttributes.size > 1 && !this.compoundIndexes[[...queryAttributes.values()].sort().join("/")]) {
           this.log("WARN", "Compound index not defined");
           filter.children.push(child);
           return;
@@ -158,30 +170,70 @@ export default class FireStore<
       query = query.where(attribute, operator, child.value);
     });
 
-    // Manage order
-    if (parsedQuery.orderBy) {
-      // Range attribute must be first order per documentation
-      if (rangeAttribute) {
-        parsedQuery.orderBy.some(order => {
-          if (order.field === rangeAttribute) {
-            query = query.orderBy(order.field, <OrderByDirection>order.direction.toLowerCase());
-          }
-        });
-      }
-      // Manage the rest of order
-      parsedQuery.orderBy.forEach(order => {
-        if (order.field !== rangeAttribute) {
-          query = query.orderBy(order.field, <OrderByDirection>order.direction.toLowerCase());
-        }
-      });
-    }
+    // OrderBy have quite some complexity with FireStore
+    query = this.handleOrderBy(query, parsedQuery.orderBy, rangeAttribute);
 
-    const res = await query.limit(limit).get();
+    const res = await query.limit(parsedQuery.limit || 0).get();
     return {
       results: res.docs.map(d => this.initModel(d.data())),
       filter: filter.children.length ? filter : true,
       continuationToken: res.docs.length >= parsedQuery.limit ? (offset + parsedQuery.limit).toString() : undefined,
     };
+  }
+
+  /**
+   * Manage OrderBy complex condition on Firebase
+   * @param query
+   * @param orderBy
+   * @param rangeAttribute
+   * @param index
+   */
+  handleOrderBy(
+    query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData>,
+    orderBy: WebdaQL.OrderBy[],
+    rangeAttribute: string
+  ): FirebaseFirestore.Query<FirebaseFirestore.DocumentData> {
+    // Manage order if index
+    if (!orderBy) {
+      return query;
+    }
+    let requiredIndex = orderBy.map(order => order.field).sort();
+    let orders;
+    // Require index with multiple ORDER BY
+    if (requiredIndex.length > 1) {
+      orders = this.compoundIndexes[requiredIndex.join("/")];
+      if (!orders) {
+        this.log("WARN", "Skip orderBy as we are missing the index");
+        return query;
+      }
+    }
+    // Range must be the first orderBy
+    if (rangeAttribute) {
+      if (
+        !orderBy.some(order => {
+          // Need to check the permitted orderBy and direction
+          if (order.field === rangeAttribute) {
+            query = query.orderBy(order.field, <OrderByDirection>order.direction.toLowerCase());
+            return true;
+          }
+        })
+      ) {
+        this.log("WARN", "Skip orderBy as the range attribute is not within ORDER BY expression");
+        // If rangeAttribute is not in orderBy then skip the orderBy completely
+        return query;
+      }
+    }
+    // Add remaining orderBy from index
+    orderBy
+      .filter(order => order.field !== rangeAttribute)
+      .forEach(order => {
+        if (!orders || orders[order.field].has(<OrderByDirection>order.direction.toLowerCase())) {
+          query = query.orderBy(order.field, <OrderByDirection>order.direction.toLowerCase());
+        } else {
+          this.log("WARN", "Skip orderBy as the direction does not match index");
+        }
+      });
+    return query;
   }
 
   /**

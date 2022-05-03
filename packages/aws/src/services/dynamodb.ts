@@ -153,15 +153,11 @@ export default class DynamoStore<
    * @see https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Query.html
    * @see https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GSI.html
    */
-  async find(
-    expression: WebdaQL.Expression,
-    continuationToken?: string,
-    Limit: number = 1000
-  ): Promise<StoreFindResult<T>> {
+  async find(query: WebdaQL.Query): Promise<StoreFindResult<T>> {
     let scan = true;
     let IndexName = undefined;
     let result: ScanCommandOutput | QueryCommandOutput;
-    let primaryKeys = { uuid: undefined };
+    let primaryKeys = { uuid: null };
     Object.keys(this.parameters.globalIndexes).forEach(name => {
       primaryKeys[this.parameters.globalIndexes[name].key] = name;
     });
@@ -172,19 +168,20 @@ export default class DynamoStore<
     let FilterExpression: string[] = [];
     let ExpressionAttributeNames = {};
     let indexNode;
+    let sortOrder = "ASC";
 
     let processingExpression: WebdaQL.AndExpression;
-    if (!(expression instanceof WebdaQL.AndExpression)) {
-      processingExpression = new WebdaQL.AndExpression([expression]);
+    if (!(query.filter instanceof WebdaQL.AndExpression)) {
+      processingExpression = new WebdaQL.AndExpression([query.filter]);
     } else {
-      processingExpression = expression;
+      processingExpression = query.filter;
     }
 
     // Search for the index
     processingExpression.children.some(child => {
       if (child instanceof WebdaQL.ComparisonExpression) {
         // Primary key requires equal operator
-        if (child.operator === "=" && primaryKeys[child.attribute[0]]) {
+        if (child.operator === "=" && primaryKeys[child.attribute[0]] !== undefined) {
           // Query not scan
           scan = false;
           IndexName = primaryKeys[child.attribute[0]];
@@ -192,6 +189,19 @@ export default class DynamoStore<
           KeyConditionExpression = `#${child.attribute[0]} = :${child.attribute[0]}`;
           ExpressionAttributeNames[`#${child.attribute[0]}`] = child.attribute[0];
           ExpressionAttributeValues[`:${child.attribute[0]}`] = child.value;
+          if (
+            primaryKeys[child.attribute[0]] !== null &&
+            query.orderBy &&
+            this.parameters.globalIndexes[primaryKeys[child.attribute[0]]].sort
+          ) {
+            const sortKey = this.parameters.globalIndexes[primaryKeys[child.attribute[0]]].sort;
+            // Might update sort order
+            query.orderBy.some(order => {
+              if (order.field === sortKey) {
+                sortOrder = order.direction;
+              }
+            });
+          }
           return true;
         }
       }
@@ -266,8 +276,8 @@ export default class DynamoStore<
     if (!Object.keys(ExpressionAttributeValues).length) {
       ExpressionAttributeValues = undefined;
     }
-    const ExclusiveStartKey = continuationToken
-      ? JSON.parse(Buffer.from(continuationToken, "base64").toString())
+    const ExclusiveStartKey = query.continuationToken
+      ? JSON.parse(Buffer.from(query.continuationToken, "base64").toString())
       : undefined;
     // Scan if not primary key was provided
     if (scan) {
@@ -278,7 +288,7 @@ export default class DynamoStore<
         ExclusiveStartKey,
         ExpressionAttributeNames,
         ExpressionAttributeValues,
-        Limit
+        Limit: query.limit
       });
     } else {
       result = await this._client.query({
@@ -289,14 +299,15 @@ export default class DynamoStore<
         FilterExpression: FilterExpression.length ? FilterExpression.join(" AND ") : undefined,
         ExpressionAttributeNames,
         ExpressionAttributeValues,
-        Limit
+        Limit: query.limit,
+        ScanIndexForward: sortOrder === "ASC" ? true : false
       });
     }
     return {
       results: result.Items.map(c => this.initModel(c)),
       filter,
       continuationToken:
-        result.Items.length >= Limit
+        result.Items.length >= query.limit
           ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString("base64")
           : undefined
     };

@@ -73,7 +73,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
   /**
    * @override
    */
-  async find(request: WebdaQL.Expression, continuationToken: string, limit: number): Promise<StoreFindResult<T>> {
+  async find(query: WebdaQL.Query): Promise<StoreFindResult<T>> {
     const files = fs
       .readdirSync(this.parameters.folder)
       .filter(file => {
@@ -81,7 +81,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
       })
       .map(f => f.substring(0, f.length - FileStore.EXTENSION.length))
       .sort();
-    return this.simulateFind(request, continuationToken, limit, files);
+    return this.simulateFind(query, files);
   }
 
   /**

@@ -3,10 +3,12 @@ grammar WebdaQLParser;
 import WebdaQLLexer;
 
 // Entrypoint
-webdaql: expression? limitExpression? offsetExpression? EOF;
+webdaql: expression? orderExpression? limitExpression? offsetExpression? EOF;
 
 limitExpression: LIMIT integerLiteral;
 offsetExpression: OFFSET stringLiteral;
+orderFieldExpression: identifier (ASC | DESC)?;
+orderExpression: ORDER_BY orderFieldExpression ( COMMA orderFieldExpression )*;
 
 // Structure of operations, function invocations and expression
 expression

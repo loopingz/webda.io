@@ -1,4 +1,4 @@
-import { DocumentReference, FieldValue, Firestore, Timestamp } from "@google-cloud/firestore";
+import { DocumentReference, FieldValue, Firestore, OrderByDirection, Timestamp } from "@google-cloud/firestore";
 import {
   CoreModel,
   Store,
@@ -77,18 +77,12 @@ export default class FireStore<
    *
    * Return all for now
    */
-  async find(
-    expression: WebdaQL.Expression,
-    continuationToken: string = "0",
-    limit: number = 1000
-  ): Promise<StoreFindResult<T>> {
-    let offset: number = parseInt(continuationToken);
-    if (isNaN(offset)) {
-      offset = 0;
-    }
-    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = this.firestore
-      .collection(this.parameters.collection)
-      .limit(limit);
+  async find(parsedQuery: WebdaQL.Query): Promise<StoreFindResult<T>> {
+    let offset: number = parseInt(parsedQuery.continuationToken || "0");
+    let limit: number = parseInt(parsedQuery.limit || "0");
+    let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = this.firestore.collection(
+      this.parameters.collection
+    );
     if (offset) {
       query = query.offset(offset);
     }
@@ -96,10 +90,10 @@ export default class FireStore<
     let filter = new WebdaQL.AndExpression([]);
     let rangeAttribute;
     let toProcess: WebdaQL.AndExpression;
-    if (!(expression instanceof WebdaQL.AndExpression)) {
-      toProcess = new WebdaQL.AndExpression([expression]);
+    if (!(parsedQuery.filter instanceof WebdaQL.AndExpression)) {
+      toProcess = new WebdaQL.AndExpression([parsedQuery.filter]);
     } else {
-      toProcess = expression;
+      toProcess = parsedQuery.filter;
     }
     const queryAttributes = new Set<string>();
     let count = 0;
@@ -164,11 +158,29 @@ export default class FireStore<
       query = query.where(attribute, operator, child.value);
     });
 
-    const res = await query.get();
+    // Manage order
+    if (parsedQuery.orderBy) {
+      // Range attribute must be first order per documentation
+      if (rangeAttribute) {
+        parsedQuery.orderBy.some(order => {
+          if (order.field === rangeAttribute) {
+            query = query.orderBy(order.field, <OrderByDirection>order.direction.toLowerCase());
+          }
+        });
+      }
+      // Manage the rest of order
+      parsedQuery.orderBy.forEach(order => {
+        if (order.field !== rangeAttribute) {
+          query = query.orderBy(order.field, <OrderByDirection>order.direction.toLowerCase());
+        }
+      });
+    }
+
+    const res = await query.limit(limit).get();
     return {
       results: res.docs.map(d => this.initModel(d.data())),
       filter: filter.children.length ? filter : true,
-      continuationToken: res.docs.length >= limit ? (offset + limit).toString() : undefined,
+      continuationToken: res.docs.length >= parsedQuery.limit ? (offset + parsedQuery.limit).toString() : undefined,
     };
   }
 

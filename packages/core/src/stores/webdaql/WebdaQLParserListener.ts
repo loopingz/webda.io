@@ -1,4 +1,4 @@
-// Generated from src/stores/sql/WebdaQLParser.g4 by ANTLR 4.9.0-SNAPSHOT
+// Generated from src/stores/webdaql/WebdaQLParser.g4 by ANTLR 4.9.0-SNAPSHOT
 
 import { ParseTreeListener } from "antlr4ts/tree/ParseTreeListener";
 
@@ -17,6 +17,8 @@ import { IdentifierAtomContext } from "./WebdaQLParserParser";
 import { WebdaqlContext } from "./WebdaQLParserParser";
 import { LimitExpressionContext } from "./WebdaQLParserParser";
 import { OffsetExpressionContext } from "./WebdaQLParserParser";
+import { OrderFieldExpressionContext } from "./WebdaQLParserParser";
+import { OrderExpressionContext } from "./WebdaQLParserParser";
 import { ExpressionContext } from "./WebdaQLParserParser";
 import { ValuesContext } from "./WebdaQLParserParser";
 import { AtomContext } from "./WebdaQLParserParser";
@@ -219,6 +221,28 @@ export interface WebdaQLParserListener extends ParseTreeListener {
    * @param ctx the parse tree
    */
   exitOffsetExpression?: (ctx: OffsetExpressionContext) => void;
+
+  /**
+   * Enter a parse tree produced by `WebdaQLParserParser.orderFieldExpression`.
+   * @param ctx the parse tree
+   */
+  enterOrderFieldExpression?: (ctx: OrderFieldExpressionContext) => void;
+  /**
+   * Exit a parse tree produced by `WebdaQLParserParser.orderFieldExpression`.
+   * @param ctx the parse tree
+   */
+  exitOrderFieldExpression?: (ctx: OrderFieldExpressionContext) => void;
+
+  /**
+   * Enter a parse tree produced by `WebdaQLParserParser.orderExpression`.
+   * @param ctx the parse tree
+   */
+  enterOrderExpression?: (ctx: OrderExpressionContext) => void;
+  /**
+   * Exit a parse tree produced by `WebdaQLParserParser.orderExpression`.
+   * @param ctx the parse tree
+   */
+  exitOrderExpression?: (ctx: OrderExpressionContext) => void;
 
   /**
    * Enter a parse tree produced by `WebdaQLParserParser.expression`.

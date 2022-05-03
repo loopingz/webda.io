@@ -180,13 +180,9 @@ export interface EventStoreQuery {
    */
   store: Store;
   /**
-   * Offset on the results
+   * The parsed query by our grammar
    */
-  continuationToken: string;
-  /**
-   * Max number of results
-   */
-  limit: number;
+  parsedQuery: WebdaQL.Query;
 }
 /**
  * Event sent when query is resolved
@@ -196,6 +192,10 @@ export interface EventStoreQueried extends EventStoreQuery {
    * Results from the query
    */
   results: CoreModel[];
+  /**
+   * The next continuation token
+   */
+  continuationToken: string;
 }
 
 /**
@@ -935,22 +935,34 @@ abstract class Store<
     let queryValidator = new WebdaQL.QueryValidator(query);
     let offset = queryValidator.getOffset();
     const limit = queryValidator.getLimit();
+    const parsedQuery = queryValidator.getQuery();
+    // Emit the default event
     await this.emitSync("Store.Query", <EventStoreQuery>{
       query,
-      store: this,
-      continuationToken: offset,
-      limit: limit
+      parsedQuery,
+      store: this
     });
     const result = {
       results: [],
       continuationToken: undefined
     };
+    /*
+      Offset are split in two with _
+
+      MainOffset is the database offset, retrieving a page from the database
+      SubOffset is the offset within the page
+
+      As we filter through the page, for additional filters or permissions, the page cut
+      by database does not endup being our final page cut, so we need a page offset to 
+      abstract this completely
+     */
     let [mainOffset, subOffset] = offset.split("_");
     let secondOffset = parseInt(subOffset || "0");
     let duration = Date.now();
     this.metrics.query++;
+
     while (result.results.length < limit) {
-      let tmpResults = await this.find(queryValidator.getExpression(), mainOffset, limit);
+      let tmpResults = await this.find({ ...parsedQuery, continuationToken: mainOffset });
       // If no filter is returned assume it is by mistake and apply filtering
       if (tmpResults.filter === undefined) {
         tmpResults.filter = queryValidator.getExpression();
@@ -1001,9 +1013,9 @@ abstract class Store<
     //return (await this.getAll()).filter(c => queryValidator.eval(c));
     await this.emitSync("Store.Queried", <EventStoreQueried>{
       query,
+      parsedQuery: parsedQuery,
       store: this,
       continuationToken: result.continuationToken,
-      limit: limit,
       results: result.results
     });
     return result;
@@ -1448,21 +1460,19 @@ abstract class Store<
   /**
    * @override
    */
-  protected async simulateFind(
-    request: WebdaQL.Expression,
-    continuationToken: string,
-    limit: number,
-    uuids: string[]
-  ): Promise<StoreFindResult<T>> {
+  protected async simulateFind(query: WebdaQL.Query, uuids: string[]): Promise<StoreFindResult<T>> {
     let result: StoreFindResult<T> = {
       results: [],
       continuationToken: undefined,
       filter: true
     };
     let count = 0;
-    let offset = parseInt(continuationToken);
-    if (isNaN(offset)) {
+    let limit = query.limit;
+    let offset = parseInt(query.continuationToken || "0");
+    let originalOffset = offset;
+    if (query.orderBy && query.orderBy.length) {
       offset = 0;
+      limit = Number.MAX_SAFE_INTEGER;
     }
     // Need to transfert to Array
     for (let uuid of uuids) {
@@ -1472,12 +1482,35 @@ abstract class Store<
         continue;
       }
       let obj = await this._getFromCache(uuid);
-      if (obj && request.eval(obj)) {
+      if (obj && query.filter.eval(obj)) {
         result.results.push(obj);
         if (result.results.length >= limit) {
           result.continuationToken = count.toString();
           return result;
         }
+      }
+    }
+    if (query.orderBy && query.orderBy.length) {
+      result.results = result.results
+        .sort((a, b) => {
+          let valA, valB;
+          for (let orderBy of query.orderBy) {
+            let invert = orderBy.direction === "ASC" ? 1 : -1;
+            valA = WebdaQL.ComparisonExpression.getAttributeValue(a, orderBy.field.split("."));
+            valB = WebdaQL.ComparisonExpression.getAttributeValue(b, orderBy.field.split("."));
+            if (valA === valB) {
+              continue;
+            }
+            if (typeof valA === "string") {
+              return valA.localeCompare(valB) * invert;
+            }
+            return (valA < valB ? -1 : 1) * invert;
+          }
+          return -1;
+        })
+        .slice(originalOffset, query.limit + originalOffset);
+      if (result.results.length >= query.limit) {
+        result.continuationToken = (query.limit + originalOffset).toString();
       }
     }
     return result;
@@ -1694,7 +1727,7 @@ abstract class Store<
   /**
    * Search within the store
    */
-  abstract find(request: WebdaQL.Expression, offset: string, limit: number): Promise<StoreFindResult<T>>;
+  abstract find(query: WebdaQL.Query): Promise<StoreFindResult<T>>;
 
   /**
    * Check if an object exists

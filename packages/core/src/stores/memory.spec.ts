@@ -70,8 +70,12 @@ class MemoryStoreTest extends StoreTest {
     userStore.setModel(PermissionModel);
     // Return undefined as filter to trigger the warning
     let find = userStore.find;
-    userStore.find = async (_, offset, limit) => {
-      let res = await find.bind(userStore)(new WebdaQL.AndExpression([]), offset, limit);
+    userStore.find = async query => {
+      let res = await find.bind(userStore)({
+        filter: new WebdaQL.AndExpression([]),
+        continuationToken: query.continuationToken,
+        limit: query.limit
+      });
       return {
         ...res,
         filter: undefined

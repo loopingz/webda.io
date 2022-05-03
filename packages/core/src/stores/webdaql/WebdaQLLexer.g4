@@ -60,6 +60,11 @@ FALSE: 'FALSE';
 LIMIT: 'LIMIT';
 OFFSET: 'OFFSET';
 
+// Order by
+ORDER_BY: 'ORDER BY';
+ASC: 'ASC';
+DESC: 'DESC';
+
 // Literals
 
 DQUOTED_STRING_LITERAL:                      DQUOTA_STRING;

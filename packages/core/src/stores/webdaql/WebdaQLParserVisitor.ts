@@ -1,4 +1,4 @@
-// Generated from src/stores/sql/WebdaQLParser.g4 by ANTLR 4.9.0-SNAPSHOT
+// Generated from src/stores/webdaql/WebdaQLParser.g4 by ANTLR 4.9.0-SNAPSHOT
 
 import { ParseTreeVisitor } from "antlr4ts/tree/ParseTreeVisitor";
 
@@ -17,6 +17,8 @@ import { IdentifierAtomContext } from "./WebdaQLParserParser";
 import { WebdaqlContext } from "./WebdaQLParserParser";
 import { LimitExpressionContext } from "./WebdaQLParserParser";
 import { OffsetExpressionContext } from "./WebdaQLParserParser";
+import { OrderFieldExpressionContext } from "./WebdaQLParserParser";
+import { OrderExpressionContext } from "./WebdaQLParserParser";
 import { ExpressionContext } from "./WebdaQLParserParser";
 import { ValuesContext } from "./WebdaQLParserParser";
 import { AtomContext } from "./WebdaQLParserParser";
@@ -150,6 +152,20 @@ export interface WebdaQLParserVisitor<Result> extends ParseTreeVisitor<Result> {
    * @return the visitor result
    */
   visitOffsetExpression?: (ctx: OffsetExpressionContext) => Result;
+
+  /**
+   * Visit a parse tree produced by `WebdaQLParserParser.orderFieldExpression`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitOrderFieldExpression?: (ctx: OrderFieldExpressionContext) => Result;
+
+  /**
+   * Visit a parse tree produced by `WebdaQLParserParser.orderExpression`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitOrderExpression?: (ctx: OrderExpressionContext) => Result;
 
   /**
    * Visit a parse tree produced by `WebdaQLParserParser.expression`.

@@ -307,23 +307,30 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
   /**
    * @override
    */
-  async find(
-    request: WebdaQL.Expression,
-    continuationToken?: string,
-    limit: number = 1000
-  ): Promise<StoreFindResult<T>> {
+  async find(query: WebdaQL.Query): Promise<StoreFindResult<T>> {
     await this._connect();
-    let offset = parseInt(continuationToken);
+    let offset = parseInt(query.continuationToken);
     if (isNaN(offset)) {
       offset = 0;
     }
+    let sortObject = {};
+    if (query.orderBy) {
+      query.orderBy.forEach(e => {
+        sortObject[e.field] = e.direction === "ASC" ? 1 : -1;
+      });
+    }
     // We should be able to expression everything as an expression
-    const results = (await this._collection.find(this.mapExpression(request)).skip(offset).limit(limit).toArray()).map(
-      doc => this.initModel(doc)
-    );
+    const results = (
+      await this._collection
+        .find(this.mapExpression(query.filter))
+        .sort(sortObject)
+        .skip(offset)
+        .limit(query.limit || 1000)
+        .toArray()
+    ).map(doc => this.initModel(doc));
     return {
       results,
-      continuationToken: results.length >= limit ? (offset + limit).toString() : undefined,
+      continuationToken: results.length >= query.limit ? (offset + query.limit).toString() : undefined,
       filter: true
     };
   }

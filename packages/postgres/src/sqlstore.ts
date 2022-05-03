@@ -96,36 +96,29 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
   /**
    * @override
    */
-  async find(
-    request: WebdaQL.Expression,
-    continuationToken?: string,
-    limit?: number
-  ): Promise<{
+  async find(query: WebdaQL.Query): Promise<{
     results: T[];
     continuationToken: string;
     filter: WebdaQL.Expression;
   }> {
     // Update condition
 
-    let sql = this.duplicateExpression(request).toString() || "TRUE";
-    limit ??= 100;
+    let sql = this.duplicateExpression(query.filter).toString() || "TRUE";
     let offset = 0;
-    try {
-      offset = parseInt(continuationToken, 10);
-      if (isNaN(offset)) {
-        offset = 0;
-      }
-    } catch (err) {
-      // Ignore parseError and fallback to 0
+    offset = parseInt(query.continuationToken || "0", 10);
+    if (query.orderBy && query.orderBy.length) {
+      sql +=
+        " ORDER BY " +
+        query.orderBy.map(c => `${this.mapExpressionAttribute(c.field.split("."))} ${c.direction}`).join(", ");
     }
-    sql += ` LIMIT ${limit}`;
+    sql += ` LIMIT ${query.limit || "1000"}`;
     if (offset) {
       sql += ` OFFSET ${offset}`;
     }
     const results = (await this.sqlQuery(sql)).rows.map(c => this.initModel(c));
     return {
       results,
-      continuationToken: limit <= results.length ? (offset + limit).toString() : undefined,
+      continuationToken: query.limit <= results.length ? (offset + query.limit).toString() : undefined,
       filter: new WebdaQL.AndExpression([])
     };
   }

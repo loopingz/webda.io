@@ -188,6 +188,65 @@ abstract class StoreTest extends WebdaTest {
     return userStore;
   }
 
+  /**
+   * Simplify model
+   * @param model
+   * @returns
+   */
+  mapQueryModel(model: any) {
+    return {
+      order: model.order,
+      teamId: model.team.id,
+      state: model.state
+    };
+  }
+
+  @test
+  async queryOrder() {
+    let userStore = await this.fillForQuery();
+    let model = await userStore.save({
+      order: 996,
+      state: "CA",
+      team: { id: 16 }
+    });
+    try {
+      let res = await userStore.query('state = "CA" ORDER BY order DESC LIMIT 10');
+      assert.deepStrictEqual(
+        res.results.map((c: any) => ({ state: c.state, order: c.order, teamId: c.team.id })),
+        [
+          { state: "CA", order: 996, teamId: 16 },
+          { state: "CA", order: 996, teamId: 16 },
+          { state: "CA", order: 992, teamId: 12 },
+          { state: "CA", order: 988, teamId: 8 },
+          { state: "CA", order: 984, teamId: 4 },
+          { state: "CA", order: 980, teamId: 0 },
+          { state: "CA", order: 976, teamId: 16 },
+          { state: "CA", order: 972, teamId: 12 },
+          { state: "CA", order: 968, teamId: 8 },
+          { state: "CA", order: 964, teamId: 4 }
+        ]
+      );
+      res = await userStore.query("order > 980 ORDER BY state ASC, order DESC LIMIT 10");
+      assert.deepStrictEqual(
+        res.results.map((c: any) => ({ state: c.state, order: c.order, teamId: c.team.id })),
+        [
+          { state: "CA", order: 996, teamId: 16 },
+          { state: "CA", order: 996, teamId: 16 },
+          { state: "CA", order: 992, teamId: 12 },
+          { state: "CA", order: 988, teamId: 8 },
+          { state: "CA", order: 984, teamId: 4 },
+          { state: "FL", order: 999, teamId: 19 },
+          { state: "FL", order: 995, teamId: 15 },
+          { state: "FL", order: 991, teamId: 11 },
+          { state: "FL", order: 987, teamId: 7 },
+          { state: "FL", order: 983, teamId: 3 }
+        ]
+      );
+    } finally {
+      await model.delete();
+    }
+  }
+
   @test
   async mapper() {
     let identStore = this.getIdentStore();

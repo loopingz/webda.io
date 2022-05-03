@@ -49,6 +49,11 @@ export class DynamoDBTest extends StoreTest {
     return Ident;
   }
 
+  @test
+  async queryOrder() {
+    // Disable default ordering query as it is not possible with Dynamo
+  }
+
   static async install(TableName: string, GlobalSecondaryIndexes?, attrs: any[] = []) {
     var dynamodb = new DynamoDB({
       endpoint: "http://localhost:4566",
@@ -144,11 +149,17 @@ export class DynamoDBTest extends StoreTest {
     }
     return store;
   }
+
   @test
   async query() {
     // Run default query
     let store = await super.query();
-    await store.query('state = "CA" AND order < 100');
+    let res = await store.query('state = "CA" AND order < 100 ORDER BY team.id ASC, order DESC');
+    console.log(
+      "RES",
+      res.results.map(c => this.mapQueryModel(c))
+    );
+    assert.strictEqual((<any>res.results.shift()).order, 96);
     let set = ["CA"];
     for (let i = 1; i < 150; i++) {
       set.push(i.toString(16));

@@ -32,8 +32,8 @@ class MemoryStore<T extends CoreModel, K extends StoreParameters = StoreParamete
   /**
    * @override
    */
-  async find(request: WebdaQL.Expression, continuationToken: string, limit: number): Promise<StoreFindResult<T>> {
-    return this.simulateFind(request, continuationToken, limit, Object.keys(this.storage));
+  async find(query: WebdaQL.Query): Promise<StoreFindResult<T>> {
+    return this.simulateFind(query, Object.keys(this.storage));
   }
 
   /**

@@ -14,7 +14,9 @@ import {
   OrLogicExpressionContext,
   LimitExpressionContext,
   OffsetExpressionContext,
-  LikeExpressionContext
+  LikeExpressionContext,
+  OrderExpressionContext,
+  OrderFieldExpressionContext
 } from "./WebdaQLParserParser";
 import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor";
 import { ParseTree } from "antlr4ts/tree/ParseTree";
@@ -23,13 +25,23 @@ import { AbstractParseTreeVisitor } from "antlr4ts/tree/AbstractParseTreeVisitor
 
 type value = boolean | string | number;
 
+/**
+ * Meta Query Language
+ *
+ *
+ */
 export namespace WebdaQL {
+  export interface OrderBy {
+    field: string;
+    direction: "ASC" | "DESC";
+  }
+
   /**
    * Create Expression based on the parsed token
    *
    * Expression allow to optimize and split between Query and Filter
    */
-  export class ExpressionBuilder extends AbstractParseTreeVisitor<Expression> implements WebdaQLParserVisitor<any> {
+  export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implements WebdaQLParserVisitor<any> {
     /**
      * Contain the parsed limit
      */
@@ -38,14 +50,17 @@ export namespace WebdaQL {
      * Contain the parsed offset
      */
     offset: string;
+    orderBy: OrderBy[];
 
     /**
      * Default result for the override
      * @returns
      */
-    protected defaultResult(): Expression {
+    protected defaultResult(): Query {
       // An empty AND return true
-      return new AndExpression([]);
+      return {
+        filter: new AndExpression([])
+      };
     }
 
     /**
@@ -81,23 +96,49 @@ export namespace WebdaQL {
     }
 
     /**
+     * Visit a order field expression
+     */
+    visitOrderFieldExpression(ctx: OrderFieldExpressionContext): OrderBy {
+      return {
+        field: ctx.getChild(0).text,
+        direction: ctx.childCount > 1 ? <any>ctx.getChild(1).text : "ASC"
+      };
+    }
+
+    /**
+     * Read the order by values
+     */
+    visitOrderExpression(ctx: OrderExpressionContext): void {
+      this.orderBy = ctx.children
+        ?.filter(c => c instanceof OrderFieldExpressionContext)
+        .map((c: OrderFieldExpressionContext) => this.visitOrderFieldExpression(c));
+    }
+
+    /**
      * Return only AndExpression
      * @param ctx
      * @returns
      */
-    visitWebdaql(ctx: WebdaqlContext) {
+    visitWebdaql(ctx: WebdaqlContext): Query {
       if (ctx.childCount === 1) {
         // An empty AND return true
-        return new AndExpression([]);
+        return {
+          filter: new AndExpression([])
+        };
       }
 
-      // To parse offset and limit
+      // To parse offset and limit and order by
       for (let i = 1; i < ctx.childCount - 1; i++) {
         this.visit(ctx.getChild(i));
       }
 
       // Go down one level - if expression empty it means no expression were provided
-      return this.visit(ctx.getChild(0)) || new AndExpression([]);
+      return {
+        filter: <Expression>(<unknown>this.visit(ctx.getChild(0))) || new AndExpression([]),
+        limit: this.limit,
+        continuationToken: this.offset,
+        orderBy: this.orderBy
+      };
     }
 
     /**
@@ -134,7 +175,7 @@ export namespace WebdaQL {
      * This visitor simplify to a AND b AND c AND d with only one Expression
      */
     visitAndLogicExpression(ctx: AndLogicExpressionContext): AndExpression {
-      return new AndExpression(this.getComparison(ctx).map(c => this.visit(c)));
+      return new AndExpression(this.getComparison(ctx).map(c => <Expression>(<unknown>this.visit(c))));
     }
 
     /**
@@ -180,7 +221,7 @@ export namespace WebdaQL {
      * This visitor simplify to a OR b OR c OR d with only one Expression
      */
     visitOrLogicExpression(ctx: OrLogicExpressionContext) {
-      return new OrExpression(this.getComparison(ctx).map(c => this.visit(c)));
+      return new OrExpression(this.getComparison(ctx).map(c => <Expression>(<unknown>this.visit(c))));
     }
 
     /**
@@ -203,6 +244,28 @@ export namespace WebdaQL {
     visitIntegerLiteral(ctx: IntegerLiteralContext): number {
       return parseInt(ctx.text);
     }
+  }
+
+  /**
+   * Represent a full Query
+   */
+  export interface Query {
+    /**
+     * Filtering part of the expression
+     */
+    filter: Expression;
+    /**
+     * Limit value
+     */
+    limit?: number;
+    /**
+     * Offset value
+     */
+    continuationToken?: string;
+    /**
+     * Order by clause
+     */
+    orderBy?: OrderBy[];
   }
 
   /**
@@ -278,10 +341,10 @@ export namespace WebdaQL {
      * @param target
      * @returns
      */
-    getAttributeValue(target: any): any {
+    static getAttributeValue(target: any, attribute: string[]): any {
       let res = target;
-      for (let i = 0; res && i < this.attribute.length; i++) {
-        res = res[this.attribute[i]];
+      for (let i = 0; res && i < attribute.length; i++) {
+        res = res[attribute[i]];
       }
       return res;
     }
@@ -290,7 +353,7 @@ export namespace WebdaQL {
      * @override
      */
     eval(target: any): boolean {
-      const left = this.getAttributeValue(target);
+      const left = ComparisonExpression.getAttributeValue(target, this.attribute);
       switch (this.operator) {
         case "=":
           // ignore strong type on purpose
@@ -439,7 +502,7 @@ export namespace WebdaQL {
   export class QueryValidator {
     protected lexer: WebdaQLLexer;
     protected tree: WebdaqlContext;
-    protected expression: OrExpression | AndExpression;
+    protected query: Query;
     protected builder: ExpressionBuilder;
 
     constructor(sql: string) {
@@ -462,7 +525,7 @@ export namespace WebdaQL {
       // Parse the input, where `compilationUnit` is whatever entry point you defined
       this.tree = parser.webdaql();
       this.builder = new ExpressionBuilder();
-      this.expression = <OrExpression | AndExpression>this.builder.visit(this.tree);
+      this.query = <Query>this.builder.visit(this.tree);
     }
 
     /**
@@ -486,7 +549,15 @@ export namespace WebdaQL {
      * @returns
      */
     getExpression(): Expression {
-      return this.expression;
+      return this.query.filter;
+    }
+
+    /**
+     * Retrieve parsed query
+     * @returns
+     */
+    getQuery(): Query {
+      return this.query;
     }
 
     /**
@@ -495,7 +566,7 @@ export namespace WebdaQL {
      * @returns
      */
     eval(target: any) {
-      return this.expression.eval(target);
+      return this.query.filter.eval(target);
     }
 
     /**

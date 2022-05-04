@@ -771,12 +771,12 @@ export class Application {
    * @param info
    */
   async importFile(info: string): Promise<any> {
-    if (info.startsWith(".")) {
-      info = join(this.appPath, ...info.split("/"));
-    }
     try {
       this.log("TRACE", "Load file", info);
-      const [importFilename, importName = "default"] = info.split(":");
+      let [importFilename, importName = "default"] = info.split(":");
+      if (!path.isAbsolute(importFilename)) {
+        importFilename = join(this.appPath, ...importFilename.split("/"));
+      }
       const importObject = (await import(importFilename))[importName];
       if (!importObject) {
         this.log("WARN", `Module ${importFilename} does not have export named ${importName}`);

@@ -1,5 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
-import { Store } from "@webda/core";
+import { CoreModel, Store } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import { ElasticSearchService, ESUnknownIndexError } from "./elasticsearchservice";
 import * as assert from "assert";
@@ -73,40 +73,6 @@ class ElasticSearchTest extends WebdaTest {
     // Should display an ERROR msg
     this.service.getParameters().indexes["articles"].store = "plop";
     this.service.resolve();
-  }
-
-  @test
-  flatten() {
-    assert.deepStrictEqual(ElasticSearchService.flatten([1, [2, 3], [4, [5, 6]]]), [1, 2, 3, 4, 5, 6]);
-  }
-
-  @test
-  async bulk() {
-    let objects = [];
-    for (let i = 0; i < 1000; i++) {
-      objects.push({
-        body: `test${i}`.repeat(50),
-        title: `Article ${i}`
-      });
-    }
-    await this.service.bulk("articles", objects);
-    await this.service.bulk("articles", {
-      items: objects
-    });
-    // @ts-ignore
-    this.service.getClient = () => {
-      return {
-        create: async () => {
-          let err = new Error();
-          // @ts-ignore
-          err.statusCode = 409;
-          throw err;
-        }
-      };
-    };
-    await this.service.bulk("articles", {
-      items: objects.map(doc => [{ index: { _index: "articles", _id: doc.id } }, doc])
-    });
   }
 
   @test

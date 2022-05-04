@@ -206,7 +206,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     this.authenticationService.on("Authentication.Register", (evt: EventAuthenticationRegister) =>
       this.registrationListener(evt)
     );
-    const url = (<ExposeParameters>this.modelStore.getParameters().expose).url;
+    const url = this.modelStore.getParameters().expose.url;
     this.addRoute(`${url}/{uuid}/invitations`, ["GET", "POST", "PUT", "DELETE"], this.invite);
   }
 

@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { CoreModel, CoreModelDefinition } from "../models/coremodel";
+import { CoreModel } from "../models/coremodel";
 import { JSONUtils } from "../utils/serializers";
 import { MemoryStore } from "./memory";
 import { WebdaQL } from "./webdaql/query";

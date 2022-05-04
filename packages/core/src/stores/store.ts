@@ -392,7 +392,7 @@ export class StoreParameters extends ServiceParameters {
     if (expose) {
       expose.restrict = expose.restrict || {};
       this.expose = expose;
-      (<ExposeParameters>this.expose).queryMethod ??= "GET";
+      this.expose.queryMethod ??= "GET";
     }
     if (params.map) {
       throw new Error("Deprecated map usage, use a MapperService");
@@ -1010,7 +1010,6 @@ abstract class Store<
     if (duration > this.parameters.slowQueryThreshold) {
       this.logSlowQuery(query, "", duration);
     }
-    //return (await this.getAll()).filter(c => queryValidator.eval(c));
     await this.emitSync("Store.Queried", <EventStoreQueried>{
       query,
       parsedQuery: parsedQuery,

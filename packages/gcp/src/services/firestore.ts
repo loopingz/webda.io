@@ -166,7 +166,6 @@ export default class FireStore<
         }
         operator = child.operator;
       }
-      // count++;
       query = query.where(attribute, operator, child.value);
     });
 

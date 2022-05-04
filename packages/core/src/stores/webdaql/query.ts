@@ -84,7 +84,7 @@ export namespace WebdaQL {
      * @param ctx
      */
     visitLimitExpression(ctx: LimitExpressionContext) {
-      this.limit = <number>this.visitIntegerLiteral(<IntegerLiteralContext>ctx.getChild(1));
+      this.limit = this.visitIntegerLiteral(<IntegerLiteralContext>ctx.getChild(1));
     }
 
     /**
@@ -92,7 +92,7 @@ export namespace WebdaQL {
      * @param ctx
      */
     visitOffsetExpression(ctx: OffsetExpressionContext) {
-      this.offset = <string>this.visitStringLiteral(<StringLiteralContext>ctx.getChild(1));
+      this.offset = this.visitStringLiteral(<StringLiteralContext>ctx.getChild(1));
     }
 
     /**
@@ -191,7 +191,7 @@ export namespace WebdaQL {
      * Visit each value of the [..., ..., ...] set
      */
     visitSetExpression(ctx: SetExpressionContext): value[] {
-      return <value[]>(<unknown>ctx.children.filter((i, id) => id % 2).map(c => this.visit(c)));
+      return <value[]>(<unknown>ctx.children.filter((_i, id) => id % 2).map(c => this.visit(c)));
     }
 
     /**
@@ -517,7 +517,7 @@ export namespace WebdaQL {
           _line: number,
           _charPositionInLine: number,
           msg: string,
-          e: RecognitionException
+          _e: RecognitionException
         ) => {
           throw new SyntaxError(`${msg} (Query: ${sql})`);
         }

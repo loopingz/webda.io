@@ -86,7 +86,7 @@ export abstract class SQLStore<T extends CoreModel, K extends SQLStoreParameters
         );
       }
       return new SQLComparisonExpression(
-        <any>expression.operator,
+        expression.operator,
         this.mapExpressionAttribute(expression.attribute),
         expression.value
       );

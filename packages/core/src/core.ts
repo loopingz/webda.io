@@ -939,8 +939,18 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @param format to return different type of format
    * Plan to implement base64 and maybe base85
    */
-  public getUuid(_format: "hex" = "hex"): string {
-    return uuidv4().toString();
+  public getUuid(format: "ascii" | "base64" | "hex" | "binary" | "uuid" = "uuid"): string {
+    if (format === "uuid") {
+      return uuidv4().toString();
+    }
+    let buffer = Buffer.alloc(16);
+    uuidv4(undefined, buffer);
+    if (format === "base64") {
+      // Remove useless = we won't transfer back to original value or could just add ==
+      // https://datatracker.ietf.org/doc/html/rfc4648#page-7
+      return buffer.toString(format).replace(/=/g, "").replace(/\//g, "_").replace(/\+/g, "-");  
+    }
+    return buffer.toString(format);
   }
 
   /**

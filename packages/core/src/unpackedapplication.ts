@@ -117,7 +117,7 @@ export class UnpackedApplication extends Application {
           // Replace any relative path by absolute one
           for (let i in currentInfo.webda) {
             if (currentInfo.webda[i].startsWith("./")) {
-              currentInfo.webda[i] = path.resolve(parent) + "/" + currentInfo.webda[i].substr(2);
+              currentInfo.webda[i] = path.join(path.resolve(parent), currentInfo.webda[i].substr(2));
             }
           }
           info.webda = deepmerge(currentInfo.webda || {}, info.webda);
@@ -129,8 +129,8 @@ export class UnpackedApplication extends Application {
           break;
         }
       }
-      parent = path.join(parent, "..");
-    } while (path.resolve(parent) !== "/");
+      parent = path.resolve(path.join(parent, ".."));
+    } while (parent !== path.resolve(path.join(parent, "..")));
     // Check modules
 
     return info;

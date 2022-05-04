@@ -1,50 +1,55 @@
 {
   "moddas": {
-    "Webda/KubeRunner": "lib/services/kuberunner"
+    "webda/kuberunner": "lib/services/kuberunner:default"
   },
+  "beans": {},
   "models": {},
   "deployers": {},
   "schemas": {
-    "Webda/KubeRunner": {
-      "description": "Parameters for the KubeRunner",
+    "webda/kuberunner": {
       "type": "object",
       "properties": {
         "config": {
-          "description": "Kubernetes configuration",
           "anyOf": [
             {
-              "$ref": "#/definitions/Object"
+              "type": "string"
             },
             {
-              "type": "string"
+              "$ref": "#/definitions/Object"
             }
-          ]
+          ],
+          "description": "Kubernetes configuration"
         },
         "context": {
-          "description": "Default context to use",
-          "type": "string"
+          "type": "string",
+          "description": "Default context to use"
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Actions managed by the runner",
+          "default": []
         },
         "jobResources": {
           "description": "Kubernetes resources to use"
         },
         "jobImage": {
-          "description": "If default template, use this image",
-          "type": "string"
-        },
-        "actions": {
-          "description": "Actions managed by the runner",
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "type": {
-          "description": "Type of the service",
-          "type": "string"
+          "type": "string",
+          "description": "If default template, use this image"
         }
       },
-      "required": ["config", "type"],
+      "required": [
+        "config",
+        "type"
+      ],
+      "description": "Parameters for the KubeRunner",
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
         "Object": {
           "type": "object",
@@ -53,7 +58,9 @@
               "$ref": "#/definitions/Function"
             }
           },
-          "required": ["constructor"]
+          "required": [
+            "constructor"
+          ]
         },
         "Function": {
           "type": "object",
@@ -65,15 +72,17 @@
             "arguments": {},
             "caller": {
               "$ref": "#/definitions/Function"
-            },
-            "name": {
-              "type": "string"
             }
           },
-          "required": ["arguments", "caller", "length", "name", "prototype"]
+          "required": [
+            "prototype",
+            "length",
+            "arguments",
+            "caller"
+          ]
         }
       },
-      "$schema": "http://json-schema.org/draft-07/schema#"
+      "title": "KubeRunner"
     }
   }
 }

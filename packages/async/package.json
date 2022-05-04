@@ -4,7 +4,7 @@
   "description": "Async System",
   "main": "lib/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "webda build",
     "pretest": "npm run build",
     "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts",
     "run": "node core"

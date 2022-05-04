@@ -3,8 +3,457 @@
     "webda/asyncjobservice": "lib/services/asyncjobservice:default",
     "webda/localrunner": "lib/services/localrunner:default"
   },
+  "beans": {},
   "models": {
     "webda/asyncaction": "lib/models:default"
   },
-  "deployers": {}
+  "deployers": {},
+  "schemas": {
+    "webda/asyncaction": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "RUNNING",
+            "SUCCESS",
+            "ERROR",
+            "QUEUED",
+            "STARTING",
+            "TIMEOUT"
+          ],
+          "description": "Current status"
+        },
+        "errorMessage": {
+          "type": "string",
+          "description": "If an error occured it should contain the message"
+        },
+        "job": {
+          "$ref": "#/definitions/Job",
+          "description": "Job information"
+        },
+        "_lastJobUpdate": {
+          "type": "number",
+          "description": "Last time the job was updated",
+          "readOnly": true
+        },
+        "results": {
+          "description": "Results from the job"
+        },
+        "statusDetails": {
+          "description": "Job current status"
+        },
+        "type": {
+          "type": "string"
+        },
+        "arguments": {
+          "type": "array",
+          "items": {}
+        },
+        "logs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Current logs"
+        },
+        "action": {
+          "type": "string",
+          "description": "Expected action for the job\n\nIt should be a verb"
+        }
+      },
+      "required": [
+        "arguments",
+        "job",
+        "logs",
+        "results",
+        "status",
+        "statusDetails",
+        "type"
+      ],
+      "description": "Define here a model that can be used along with Store service",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Job": {
+          "type": "object",
+          "description": "Job information"
+        }
+      },
+      "title": "AsyncAction"
+    },
+    "webda/asyncjobservice": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "store": {
+          "type": "string",
+          "description": "Store name to use for async actions",
+          "default": "AsyncActions"
+        },
+        "queue": {
+          "type": "string",
+          "description": "Queue to post execution to",
+          "default": "AsyncActionsQueue"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL to expose job status report hook",
+          "default": "/async/jobs"
+        },
+        "fallbackOnFirst": {
+          "type": "boolean",
+          "description": "Fallback on first runner if none match",
+          "default": false
+        },
+        "runners": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Runners to use"
+        },
+        "concurrencyLimit": {
+          "type": "number",
+          "description": "Limit the maximum number of jobs running in //"
+        }
+      },
+      "required": [
+        "fallbackOnFirst",
+        "queue",
+        "runners",
+        "store",
+        "type",
+        "url"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AsyncJobService"
+    },
+    "webda/localrunner": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Actions managed by the runner",
+          "default": []
+        },
+        "command": {
+          "type": "string",
+          "description": "Command to launch"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Args"
+        },
+        "options": {
+          "$ref": "#/definitions/SpawnOptions",
+          "description": "Options\n\nBased on https://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options"
+        },
+        "autoStatus": {
+          "type": "boolean",
+          "description": "Use the observability of ChildProcess to update status accordingly"
+        }
+      },
+      "required": [
+        "command",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "SpawnOptions": {
+          "type": "object",
+          "properties": {
+            "signal": {
+              "$ref": "#/definitions/AbortSignal",
+              "description": "When provided the corresponding `AbortController` can be used to cancel an asynchronous action."
+            },
+            "serialization": {
+              "$ref": "#/definitions/SerializationType",
+              "description": "Specify the kind of serialization used for sending messages between processes.",
+              "default": "json"
+            },
+            "killSignal": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/global.NodeJS.Signals"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "The signal value to be used when the spawned process will be killed by the abort signal.",
+              "default": "SIGTERM"
+            },
+            "timeout": {
+              "type": "number",
+              "default": 0
+            },
+            "uid": {
+              "type": "number"
+            },
+            "gid": {
+              "type": "number"
+            },
+            "cwd": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/definitions/URL"
+                }
+              ]
+            },
+            "env": {
+              "$ref": "#/definitions/global.NodeJS.ProcessEnv"
+            },
+            "windowsHide": {
+              "type": "boolean",
+              "default": true
+            },
+            "argv0": {
+              "type": "string"
+            },
+            "stdio": {
+              "$ref": "#/definitions/StdioOptions"
+            },
+            "shell": {
+              "type": [
+                "boolean",
+                "string"
+              ]
+            },
+            "windowsVerbatimArguments": {
+              "type": "boolean"
+            },
+            "detached": {
+              "type": "boolean"
+            }
+          }
+        },
+        "AbortSignal": {
+          "type": "object",
+          "properties": {
+            "aborted": {
+              "type": "boolean"
+            },
+            "onabort": {
+              "anyOf": [
+                {},
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "aborted",
+            "onabort"
+          ]
+        },
+        "SerializationType": {
+          "type": "string",
+          "enum": [
+            "json",
+            "advanced"
+          ]
+        },
+        "global.NodeJS.Signals": {
+          "type": "string",
+          "enum": [
+            "SIGABRT",
+            "SIGALRM",
+            "SIGBUS",
+            "SIGCHLD",
+            "SIGCONT",
+            "SIGFPE",
+            "SIGHUP",
+            "SIGILL",
+            "SIGINT",
+            "SIGIO",
+            "SIGIOT",
+            "SIGKILL",
+            "SIGPIPE",
+            "SIGPOLL",
+            "SIGPROF",
+            "SIGPWR",
+            "SIGQUIT",
+            "SIGSEGV",
+            "SIGSTKFLT",
+            "SIGSTOP",
+            "SIGSYS",
+            "SIGTERM",
+            "SIGTRAP",
+            "SIGTSTP",
+            "SIGTTIN",
+            "SIGTTOU",
+            "SIGUNUSED",
+            "SIGURG",
+            "SIGUSR1",
+            "SIGUSR2",
+            "SIGVTALRM",
+            "SIGWINCH",
+            "SIGXCPU",
+            "SIGXFSZ",
+            "SIGBREAK",
+            "SIGLOST",
+            "SIGINFO"
+          ]
+        },
+        "URL": {
+          "type": "object",
+          "properties": {
+            "hash": {
+              "type": "string",
+              "description": "Gets and sets the fragment portion of the URL.\n\n```js const myURL = new URL('https://example.org/foo#bar'); console.log(myURL.hash); // Prints #bar\n\nmyURL.hash = 'baz'; console.log(myURL.href); // Prints https://example.org/foo#baz ```\n\nInvalid URL characters included in the value assigned to the `hash` property are `percent-encoded`. The selection of which characters to percent-encode may vary somewhat from what the  {@link  parse }  and  {@link  format }  methods would produce."
+            },
+            "host": {
+              "type": "string",
+              "description": "Gets and sets the host portion of the URL.\n\n```js const myURL = new URL('https://example.org:81/foo'); console.log(myURL.host); // Prints example.org:81\n\nmyURL.host = 'example.com:82'; console.log(myURL.href); // Prints https://example.com:82/foo ```\n\nInvalid host values assigned to the `host` property are ignored."
+            },
+            "hostname": {
+              "type": "string",
+              "description": "Gets and sets the host name portion of the URL. The key difference between`url.host` and `url.hostname` is that `url.hostname` does _not_ include the port.\n\n```js const myURL = new URL('https://example.org:81/foo'); console.log(myURL.hostname); // Prints example.org\n\n// Setting the hostname does not change the port myURL.hostname = 'example.com:82'; console.log(myURL.href); // Prints https://example.com:81/foo\n\n// Use myURL.host to change the hostname and port myURL.host = 'example.org:82'; console.log(myURL.href); // Prints https://example.org:82/foo ```\n\nInvalid host name values assigned to the `hostname` property are ignored."
+            },
+            "href": {
+              "type": "string",
+              "description": "Gets and sets the serialized URL.\n\n```js const myURL = new URL('https://example.org/foo'); console.log(myURL.href); // Prints https://example.org/foo\n\nmyURL.href = 'https://example.com/bar'; console.log(myURL.href); // Prints https://example.com/bar ```\n\nGetting the value of the `href` property is equivalent to calling  {@link  toString } .\n\nSetting the value of this property to a new value is equivalent to creating a new `URL` object using `new URL(value)`. Each of the `URL`object's properties will be modified.\n\nIf the value assigned to the `href` property is not a valid URL, a `TypeError`will be thrown."
+            },
+            "origin": {
+              "type": "string",
+              "description": "Gets the read-only serialization of the URL's origin.\n\n```js const myURL = new URL('https://example.org/foo/bar?baz'); console.log(myURL.origin); // Prints https://example.org ```\n\n```js const idnURL = new URL('https://測試'); console.log(idnURL.origin); // Prints https://xn--g6w251d\n\nconsole.log(idnURL.hostname); // Prints xn--g6w251d ```"
+            },
+            "password": {
+              "type": "string",
+              "description": "Gets and sets the password portion of the URL.\n\n```js const myURL = new URL('https://abc:xyz@example.com'); console.log(myURL.password); // Prints xyz\n\nmyURL.password = '123'; console.log(myURL.href); // Prints https://abc:123@example.com ```\n\nInvalid URL characters included in the value assigned to the `password` property are `percent-encoded`. The selection of which characters to percent-encode may vary somewhat from what the  {@link  parse }  and  {@link  format }  methods would produce."
+            },
+            "pathname": {
+              "type": "string",
+              "description": "Gets and sets the path portion of the URL.\n\n```js const myURL = new URL('https://example.org/abc/xyz?123'); console.log(myURL.pathname); // Prints /abc/xyz\n\nmyURL.pathname = '/abcdef'; console.log(myURL.href); // Prints https://example.org/abcdef?123 ```\n\nInvalid URL characters included in the value assigned to the `pathname`property are `percent-encoded`. The selection of which characters to percent-encode may vary somewhat from what the  {@link  parse }  and  {@link  format }  methods would produce."
+            },
+            "port": {
+              "type": "string",
+              "description": "Gets and sets the port portion of the URL.\n\nThe port value may be a number or a string containing a number in the range`0` to `65535` (inclusive). Setting the value to the default port of the`URL` objects given `protocol` will result in the `port` value becoming the empty string (`''`).\n\nThe port value can be an empty string in which case the port depends on the protocol/scheme:\n\n<omitted>\n\nUpon assigning a value to the port, the value will first be converted to a string using `.toString()`.\n\nIf that string is invalid but it begins with a number, the leading number is assigned to `port`. If the number lies outside the range denoted above, it is ignored.\n\n```js const myURL = new URL('https://example.org:8888'); console.log(myURL.port); // Prints 8888\n\n// Default ports are automatically transformed to the empty string // (HTTPS protocol's default port is 443) myURL.port = '443'; console.log(myURL.port); // Prints the empty string console.log(myURL.href); // Prints https://example.org/\n\nmyURL.port = 1234; console.log(myURL.port); // Prints 1234 console.log(myURL.href); // Prints https://example.org:1234/\n\n// Completely invalid port strings are ignored myURL.port = 'abcd'; console.log(myURL.port); // Prints 1234\n\n// Leading numbers are treated as a port number myURL.port = '5678abcd'; console.log(myURL.port); // Prints 5678\n\n// Non-integers are truncated myURL.port = 1234.5678; console.log(myURL.port); // Prints 1234\n\n// Out-of-range numbers which are not represented in scientific notation // will be ignored. myURL.port = 1e10; // 10000000000, will be range-checked as described below console.log(myURL.port); // Prints 1234 ```\n\nNumbers which contain a decimal point, such as floating-point numbers or numbers in scientific notation, are not an exception to this rule. Leading numbers up to the decimal point will be set as the URL's port, assuming they are valid:\n\n```js myURL.port = 4.567e21; console.log(myURL.port); // Prints 4 (because it is the leading number in the string '4.567e21') ```"
+            },
+            "protocol": {
+              "type": "string",
+              "description": "Gets and sets the protocol portion of the URL.\n\n```js const myURL = new URL('https://example.org'); console.log(myURL.protocol); // Prints https:\n\nmyURL.protocol = 'ftp'; console.log(myURL.href); // Prints ftp://example.org/ ```\n\nInvalid URL protocol values assigned to the `protocol` property are ignored."
+            },
+            "search": {
+              "type": "string",
+              "description": "Gets and sets the serialized query portion of the URL.\n\n```js const myURL = new URL('https://example.org/abc?123'); console.log(myURL.search); // Prints ?123\n\nmyURL.search = 'abc=xyz'; console.log(myURL.href); // Prints https://example.org/abc?abc=xyz ```\n\nAny invalid URL characters appearing in the value assigned the `search`property will be `percent-encoded`. The selection of which characters to percent-encode may vary somewhat from what the  {@link  parse }  and  {@link  format }  methods would produce."
+            },
+            "searchParams": {
+              "$ref": "#/definitions/URLSearchParams",
+              "description": "Gets the `URLSearchParams` object representing the query parameters of the URL. This property is read-only but the `URLSearchParams` object it provides can be used to mutate the URL instance; to replace the entirety of query parameters of the URL, use the  {@link  search }  setter. See `URLSearchParams` documentation for details.\n\nUse care when using `.searchParams` to modify the `URL` because, per the WHATWG specification, the `URLSearchParams` object uses different rules to determine which characters to percent-encode. For instance, the `URL` object will not percent encode the ASCII tilde (`~`) character, while `URLSearchParams` will always encode it:\n\n```js const myUrl = new URL('https://example.org/abc?foo=~bar');\n\nconsole.log(myUrl.search);  // prints ?foo=~bar\n\n// Modify the URL via searchParams... myUrl.searchParams.sort();\n\nconsole.log(myUrl.search);  // prints ?foo=%7Ebar ```"
+            },
+            "username": {
+              "type": "string",
+              "description": "Gets and sets the username portion of the URL.\n\n```js const myURL = new URL('https://abc:xyz@example.com'); console.log(myURL.username); // Prints abc\n\nmyURL.username = '123'; console.log(myURL.href); // Prints https://123:xyz@example.com/ ```\n\nAny invalid URL characters appearing in the value assigned the `username`property will be `percent-encoded`. The selection of which characters to percent-encode may vary somewhat from what the  {@link  parse }  and  {@link  format }  methods would produce."
+            }
+          },
+          "required": [
+            "hash",
+            "host",
+            "hostname",
+            "href",
+            "origin",
+            "password",
+            "pathname",
+            "port",
+            "protocol",
+            "search",
+            "searchParams",
+            "username"
+          ],
+          "description": "Browser-compatible `URL` class, implemented by following the WHATWG URL Standard. [Examples of parsed URLs](https://url.spec.whatwg.org/#example-url-parsing) may be found in the Standard itself. The `URL` class is also available on the global object.\n\nIn accordance with browser conventions, all properties of `URL` objects are implemented as getters and setters on the class prototype, rather than as data properties on the object itself. Thus, unlike `legacy urlObject` s, using the `delete` keyword on any properties of `URL` objects (e.g. `delete myURL.protocol`, `delete myURL.pathname`, etc) has no effect but will still return `true`."
+        },
+        "URLSearchParams": {
+          "type": "object",
+          "properties": {},
+          "description": "The `URLSearchParams` API provides read and write access to the query of a`URL`. The `URLSearchParams` class can also be used standalone with one of the four following constructors. The `URLSearchParams` class is also available on the global object.\n\nThe WHATWG `URLSearchParams` interface and the `querystring` module have similar purpose, but the purpose of the `querystring` module is more general, as it allows the customization of delimiter characters (`&#x26;` and `=`). On the other hand, this API is designed purely for URL query strings.\n\n```js const myURL = new URL('https://example.org/?abc=123'); console.log(myURL.searchParams.get('abc')); // Prints 123\n\nmyURL.searchParams.append('abc', 'xyz'); console.log(myURL.href); // Prints https://example.org/?abc=123&#x26;abc=xyz\n\nmyURL.searchParams.delete('abc'); myURL.searchParams.set('a', 'b'); console.log(myURL.href); // Prints https://example.org/?a=b\n\nconst newSearchParams = new URLSearchParams(myURL.searchParams); // The above is equivalent to // const newSearchParams = new URLSearchParams(myURL.search);\n\nnewSearchParams.append('a', 'c'); console.log(myURL.href); // Prints https://example.org/?a=b console.log(newSearchParams.toString()); // Prints a=b&#x26;a=c\n\n// newSearchParams.toString() is implicitly called myURL.search = newSearchParams; console.log(myURL.href); // Prints https://example.org/?a=b&#x26;a=c newSearchParams.delete('a'); console.log(myURL.href); // Prints https://example.org/?a=b&#x26;a=c ```"
+        },
+        "global.NodeJS.ProcessEnv": {
+          "type": "object",
+          "properties": {
+            "TZ": {
+              "type": "string",
+              "description": "Can be used to change the default timezone at runtime"
+            }
+          }
+        },
+        "StdioOptions": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/IOType"
+            },
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/IOType"
+                  },
+                  {
+                    "type": "string",
+                    "const": "ipc"
+                  },
+                  {
+                    "$ref": "#/definitions/internal.Stream"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "not": {}
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "IOType": {
+          "type": "string",
+          "enum": [
+            "overlapped",
+            "pipe",
+            "ignore",
+            "inherit"
+          ]
+        },
+        "internal.Stream": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "title": "LocalRunner"
+    }
+  }
 }

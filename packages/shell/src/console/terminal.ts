@@ -47,7 +47,7 @@ export class WebdaTerminal extends Terminal {
       let logoLength = Math.max(...logo.map(this.getTrueLength));
       logo.push("");
       for (let j in this.versions) {
-        let version: string = <any>`${j} - v${this.versions[j].version}`.bold;
+        let version: string = colors.bold(`${j} - v${this.versions[j].version}`);
         version = version.padStart(version.length + (logoLength - version.length) / 2).padEnd(logoLength);
         logo.push(version);
       }

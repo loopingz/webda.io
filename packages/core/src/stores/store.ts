@@ -592,7 +592,7 @@ abstract class Store<
       return;
     }
     // We enforce ExposeParameters within the constructor
-    const expose = <ExposeParameters>this.parameters.expose;
+    const expose = this.parameters.expose;
 
     if (!expose.restrict.create) {
       this.addRoute(expose.url, ["POST"], this.httpCreate, {
@@ -788,7 +788,7 @@ abstract class Store<
    * Get the url where the store is exposed
    */
   getUrl(): string {
-    return (<ExposeParameters>this.parameters.expose).url;
+    return this.parameters.expose.url;
   }
 
   /**
@@ -1492,7 +1492,7 @@ abstract class Store<
       }
     }
     if (query.orderBy && query.orderBy.length) {
-      result.results = result.results
+      result.results
         .sort((a, b) => {
           let valA, valB;
           for (let orderBy of query.orderBy) {

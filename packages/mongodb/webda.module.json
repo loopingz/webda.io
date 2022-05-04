@@ -23,24 +23,18 @@
           "description": "async delete"
         },
         "expose": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/ExposeParameters"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string"
-            }
-          ],
+          "$ref": "#/definitions/ExposeParameters",
           "description": "Expose the service to an urls"
         },
         "strict": {
           "type": "boolean",
           "description": "Allow to load object that does not have the type data",
-          "deprecated": 2,
           "default": true
+        },
+        "slowQueryThreshold": {
+          "type": "number",
+          "description": "Slow query threshold",
+          "default": 30000
         },
         "url": {
           "type": "string",
@@ -64,6 +58,7 @@
       "required": [
         "asyncDelete",
         "collection",
+        "slowQueryThreshold",
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -94,12 +89,27 @@
                 "delete": {
                   "type": "boolean",
                   "description": "Do not expose the DELETE"
+                },
+                "query": {
+                  "type": "boolean",
+                  "description": "Do not expose the query endpoint"
                 }
               },
               "description": "You can restrict any part of the CRUD",
               "default": {}
+            },
+            "queryMethod": {
+              "type": "string",
+              "enum": [
+                "PUT",
+                "GET"
+              ],
+              "description": "For confidentiality sometimes you might prefer to expose query through PUT To avoid GET logging"
             }
-          }
+          },
+          "required": [
+            "queryMethod"
+          ]
         },
         "DbOptions": {
           "type": "object",
@@ -156,6 +166,10 @@
             "ignoreUndefined": {
               "type": "boolean",
               "description": "serialize will not emit undefined fields **(default:true)**"
+            },
+            "enableUtf8Validation": {
+              "type": "boolean",
+              "description": "Enable utf8 validation when deserializing BSON documents.  Defaults to true."
             },
             "authSource": {
               "type": "string",

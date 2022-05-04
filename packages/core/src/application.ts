@@ -5,6 +5,7 @@ import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import { JSONSchema7 } from "json-schema";
 import { FileUtils } from "./utils/serializers";
 import { OpenAPIV3 } from "openapi-types";
+import { join } from "path";
 
 export type PackageDescriptorAuthor =
   | string
@@ -523,7 +524,7 @@ export class Application {
    */
   getAppPath(subpath: string = undefined): string {
     if (subpath && subpath !== "") {
-      if (subpath.startsWith("/")) {
+      if (path.isAbsolute(subpath)) {
         return subpath;
       }
       return path.join(this.appPath, subpath);
@@ -771,7 +772,7 @@ export class Application {
    */
   async importFile(info: string): Promise<any> {
     if (info.startsWith(".")) {
-      info = this.appPath + "/" + info;
+      info = join(this.appPath, ...info.split("/"));
     }
     try {
       this.log("TRACE", "Load file", info);

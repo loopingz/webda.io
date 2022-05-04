@@ -10,7 +10,7 @@
 # supported CodeQL languages.
 # ******** NOTE ********
 
-name: "CI"
+name: "CI Other Platforms"
 
 on:
   push:
@@ -26,35 +26,14 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-latest
+          - macos-latest
+          - windows-latest
         node_version:
-          - 14
           - 16
-          - 18
+
     name: Build with NodeJS v${{ matrix.node_version }} on ${{ matrix.os }}
     env:
       FORCE_COLOR: 1
-
-    services:
-      localstack:
-        image: localstack/localstack:latest
-        ports:
-          - 4566:4566
-        env:
-          SERVICES: s3,sts,sqs,dynamodb,secretsmanager,logs
-
-      mongodb:
-        image: mongo
-        ports:
-          - 37017:27017
-        env:
-          MONGO_INITDB_ROOT_USERNAME: root
-          MONGO_INITDB_ROOT_PASSWORD: webda.io
-
-      amqp:
-        image: rabbitmq
-        ports:
-          - 5672:5672
 
     permissions:
       id-token: "write"
@@ -66,27 +45,6 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node_version }}
-
-      - name: Configure sysctl limits
-        run: |
-          sudo swapoff -a
-          sudo sysctl -w vm.swappiness=1
-          sudo sysctl -w fs.file-max=262144
-          sudo sysctl -w vm.max_map_count=262144
-
-      - name: Runs Elasticsearch
-        uses: elastic/elastic-github-actions/elasticsearch@master
-        with:
-          stack-version: 8.1.3
-
-      - name: Setup postgresql
-        uses: Softwarepark/postgresql-action@v2
-        with:
-          postgresql version: "13" # See https://hub.docker.com/_/postgres for available versions
-          postgresql password: webda.io
-          postgresql user: webda.io
-          postgresql db: webda.io
-          postgresql init scripts: packages/postgres/test/sql
 
       - name: Install dependencies
         run: yarn
@@ -101,27 +59,12 @@ jobs:
           (echo "===== Core Test Attempt: 3 ====" && yarn run test --scope @webda/core) || \
           (echo "===== Core Test Failed ====" && exit 1)
 
-      - name: Run Postgres tests
-        run: yarn run test --scope @webda/postgres
-
       - name: Run shell tests
         run: |
           (echo "===== Shell Test Attempt: 1 ====" && yarn run test --scope @webda/shell) || \
           (echo "===== Shell Test Attempt: 2 ====" && yarn run test --scope @webda/shell) || \
           (echo "===== Shell Test Attempt: 3 ====" && yarn run test --scope @webda/shell) || \
           (echo "===== Shell Test Failed ====" && exit 1)
-
-      - name: Run AWS tests
-        run: yarn run test --scope @webda/aws
-        env:
-          NODE_OPTIONS: "--max-old-space-size=8192"
-
-      - id: auth
-        uses: google-github-actions/auth@v0.4.0
-        with:
-          create_credentials_file: true
-          workload_identity_provider: ${{ secrets.GCP_OIDC_ID_PROVIDER }}
-          service_account: ${{ secrets.GCP_OIDC_SA}}
 
       - name: Run GCP tests
         run: |
@@ -131,15 +74,5 @@ jobs:
           (echo "===== Core Test Failed ====" && exit 1)
 
       - name: Run other modules tests
-        run: yarn run test --ignore @webda/shell  --ignore @webda/aws  --ignore @webda/gcp --ignore @webda/core --ignore @webda/postgres
+        run: yarn run test --ignore @webda/shell  --ignore @webda/aws  --ignore @webda/gcp --ignore @webda/core --ignore @webda/postgres --ignore @webda/amqp
 
-      - name: SonarCloud Scan
-        uses: sonarsource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-      - name: CodeCov
-        uses: codecov/codecov-action@v2
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}

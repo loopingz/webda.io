@@ -1,4 +1,4 @@
-import { Store, Context, EventAuthenticationRegister, ExposeParameters, Ident, EventWithContext } from "../index";
+import { Store, Context, EventAuthenticationRegister, Ident, EventWithContext } from "../index";
 import { AclModel } from "../models/aclmodel";
 import { CoreModel } from "../models/coremodel";
 import { User } from "../models/user";

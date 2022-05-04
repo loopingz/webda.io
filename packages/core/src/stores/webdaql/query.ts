@@ -525,7 +525,7 @@ export namespace WebdaQL {
       // Parse the input, where `compilationUnit` is whatever entry point you defined
       this.tree = parser.webdaql();
       this.builder = new ExpressionBuilder();
-      this.query = <Query>this.builder.visit(this.tree);
+      this.query = this.builder.visit(this.tree);
     }
 
     /**

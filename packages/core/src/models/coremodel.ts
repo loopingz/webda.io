@@ -200,7 +200,7 @@ class CoreModel {
    * @param raw data
    * @param secure if false will ignore any _ variable
    */
-  load(raw: any, secure: boolean = false) {
+  load(raw: any, secure: boolean = false): this {
     // Object assign with filter
     for (let prop in raw) {
       if (!secure && prop[0] === "_") {
@@ -213,6 +213,7 @@ class CoreModel {
     if (!this.getUuid()) {
       this.setUuid(this.generateUid(raw));
     }
+    return this;
   }
 
   /**

@@ -318,8 +318,10 @@ export type ExposeParameters = {
   /**
    * For confidentiality sometimes you might prefer to expose query through PUT
    * To avoid GET logging
+   *
+   * @default "GET"
    */
-  queryMethod: "PUT" | "GET";
+  queryMethod?: "PUT" | "GET";
 };
 
 /**

@@ -21,12 +21,22 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        node: ["14", "16", "18"]
-    name: Build with NodeJS v${{ matrix.node }}
+        os:
+          - ubuntu-latest
+        node_version:
+          - 16
+          - 18
+        include:
+          - os: windows-latest
+            node_version: 14
+            architecture: x86
+          - os: macos-latest
+            node_version: 18
+    name: Build with NodeJS v${{ matrix.node }} on ${{ matrix.os }}
     env:
       FORCE_COLOR: 1
 

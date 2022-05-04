@@ -66,6 +66,13 @@ jobs:
           (echo "===== Shell Test Attempt: 3 ====" && yarn run test --scope @webda/shell) || \
           (echo "===== Shell Test Failed ====" && exit 1)
 
+      - id: auth
+        uses: google-github-actions/auth@v0.4.0
+        with:
+          create_credentials_file: true
+          workload_identity_provider: ${{ secrets.GCP_OIDC_ID_PROVIDER }}
+          service_account: ${{ secrets.GCP_OIDC_SA}}
+
       - name: Run GCP tests
         run: |
           (echo "===== Core Test Attempt: 1 ====" && yarn run test --scope @webda/gcp) || \

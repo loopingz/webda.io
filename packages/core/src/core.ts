@@ -13,6 +13,7 @@ import { WorkerOutput, WorkerLogLevel } from "@webda/workout";
 import { v4 as uuidv4 } from "uuid";
 import ValidationError from "ajv/dist/runtime/validation_error";
 import { deepmerge } from "deepmerge-ts";
+import * as crypto from "crypto";
 
 /**
  * Error with a code
@@ -85,10 +86,10 @@ export class OriginFilter implements RequestFilter<Context> {
   async checkRequest(context: Context): Promise<boolean> {
     let httpContext = context.getHttpContext();
     for (let regexp of this.regexs) {
-      if (httpContext.origin.match(regexp)) {
+      if (httpContext.hostname.match(regexp)) {
         return true;
       }
-      if (httpContext.root.match(regexp)) {
+      if (httpContext.origin.match(regexp)) {
         return true;
       }
     }
@@ -115,8 +116,8 @@ export class WebsiteOriginFilter implements RequestFilter<Context> {
   async checkRequest(context: Context): Promise<boolean> {
     let httpContext = context.getHttpContext();
     if (
-      this.websites.indexOf(httpContext.root) >= 0 ||
       this.websites.indexOf(httpContext.origin) >= 0 ||
+      this.websites.indexOf(httpContext.host) >= 0 ||
       this.websites.indexOf("*") >= 0
     ) {
       return true;
@@ -640,6 +641,15 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   /**
+   * Retrieve a HMAC for a string
+   * @param data
+   * @returns
+   */
+  public async getHmac(data: string): Promise<string> {
+    return crypto.createHmac("sha256", this.getSecret()).update(data).digest("hex");
+  }
+
+  /**
    * Return a salt to use when doing digest
    *
    * @returns {String} Current salt
@@ -948,7 +958,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     if (format === "base64") {
       // Remove useless = we won't transfer back to original value or could just add ==
       // https://datatracker.ietf.org/doc/html/rfc4648#page-7
-      return buffer.toString(format).replace(/=/g, "").replace(/\//g, "_").replace(/\+/g, "-");  
+      return buffer.toString(format).replace(/=/g, "").replace(/\//g, "_").replace(/\+/g, "-");
     }
     return buffer.toString(format);
   }

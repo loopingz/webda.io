@@ -14,6 +14,32 @@ class ContextTest extends WebdaTest {
   }
 
   @test
+  async urlObject() {
+    let urlObject = new URL("https://test.webda.io/mypath/is/long?search=1&test=2");
+    let ctx = new HttpContext("test.webda.io", "GET", "/mypath/is/long?search=1&test=2", "https", 443);
+    assert.strictEqual(ctx.getHost(), urlObject.host);
+    assert.strictEqual(ctx.getHostName(), urlObject.hostname);
+    assert.strictEqual(ctx.getPathName(), urlObject.pathname);
+    assert.strictEqual(ctx.getHref(), urlObject.href);
+    assert.strictEqual(ctx.getProtocol(), urlObject.protocol);
+    assert.strictEqual(ctx.getPort(), urlObject.port);
+    assert.strictEqual(ctx.getSearch(), urlObject.search);
+    assert.strictEqual(ctx.getOrigin(), urlObject.origin);
+    urlObject = new URL("http://test.webda.io:8800/mypath");
+    ctx = new HttpContext("test.webda.io", "GET", "/mypath", "http", 8800);
+    assert.strictEqual(ctx.getHost(), urlObject.host);
+    assert.strictEqual(ctx.getHostName(), urlObject.hostname);
+    assert.strictEqual(ctx.getPathName(), urlObject.pathname);
+    assert.strictEqual(ctx.getHref(), urlObject.href);
+    assert.strictEqual(ctx.getProtocol(), urlObject.protocol);
+    assert.strictEqual(ctx.getPort(), urlObject.port);
+    assert.strictEqual(ctx.getSearch(), urlObject.search);
+    assert.strictEqual(ctx.getOrigin(), urlObject.origin);
+    // Hash is not sent to server so no need in HttpContext (@see https://developer.mozilla.org/en-US/docs/Web/API/URL/hash)
+    // Username and password would endup in a header no in the url
+  }
+
+  @test
   async cov() {
     // Get the last lines
     this.ctx.logIn();
@@ -226,6 +252,6 @@ class HttpContextTest {
     let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, {}, { "X-Test": "weBda" });
     assert.strictEqual(ctx.getHeader("X-Test"), "weBda");
     assert.strictEqual(ctx.getHeader("X-Test"), ctx.getHeader("x-test"));
-    assert.strictEqual(ctx.getPort(), 80);
+    assert.strictEqual(ctx.getPort(), "");
   }
 }

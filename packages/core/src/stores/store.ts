@@ -942,7 +942,8 @@ abstract class Store<
     await this.emitSync("Store.Query", <EventStoreQuery>{
       query,
       parsedQuery,
-      store: this
+      store: this,
+      context
     });
     const result = {
       results: [],
@@ -1017,7 +1018,8 @@ abstract class Store<
       parsedQuery: parsedQuery,
       store: this,
       continuationToken: result.continuationToken,
-      results: result.results
+      results: result.results,
+      context
     });
     return result;
   }
@@ -1064,7 +1066,8 @@ abstract class Store<
     }
     await this.emitSync("Store.Save", <EventStoreSave>{
       object: object,
-      store: this
+      store: this,
+      context: ctx
     });
     // Handle object auto listener
     await object._onSave();
@@ -1074,7 +1077,8 @@ abstract class Store<
     object = this.initModel(res);
     await this.emitSync("Store.Saved", <EventStoreSaved>{
       object: object,
-      store: this
+      store: this,
+      context: ctx
     });
     await object._onSaved();
 
@@ -1435,7 +1439,8 @@ abstract class Store<
     object.setContext(ctx);
     await this.emitSync("Store.Get", <EventStoreGet>{
       object: object,
-      store: this
+      store: this,
+      context: ctx
     });
     await object._onGet();
     return object;

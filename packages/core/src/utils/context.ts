@@ -26,17 +26,25 @@ export class ClientInfo extends Map<string, any> {
 }
 
 /**
+ * The HttpContext
+ *
+ * It has similar properties than URL
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/URL_API
+ *
  * @category CoreFeatures
  */
 export class HttpContext {
-  host: string;
+  hostname: string;
   method: HttpMethodType;
   uri: string;
-  protocol: string;
-  port: number;
+  path: string;
+  search: string;
+  protocol: "http:" | "https:";
+  port: string;
   headers: any;
-  root: string;
   origin: string;
+  host: string;
   body: any;
   cookies: any;
   files: any[];
@@ -46,22 +54,29 @@ export class HttpContext {
   prefix: string = "";
 
   constructor(
-    host: string,
+    hostname: string,
     method: HttpMethodType,
     uri: string,
-    protocol: string = "http",
-    port: number = 80,
+    protocol: "http" | "https" = "http",
+    port: number | string = "80",
     body: any = {},
     headers: any = {},
     files: any[] = []
   ) {
     this.files = files;
     this.body = body;
-    this.host = host;
+    this.hostname = hostname;
     this.method = method;
     this.uri = uri;
-    this.protocol = protocol;
-    this.port = port;
+    [this.path, this.search] = uri.split("?");
+    if (this.search) {
+      this.search = "?" + this.search;
+    } else {
+      this.search = "";
+    }
+    // @ts-ignore
+    this.protocol = <unknown>protocol + ":";
+    this.port = port.toString();
     this.headers = headers;
     for (let i in this.headers) {
       if (i.toLowerCase() === "cookie") {
@@ -72,11 +87,25 @@ export class HttpContext {
       }
     }
     let portUrl = "";
-    if (port !== undefined && ((port !== 80 && protocol === "http") || (port !== 443 && protocol === "https"))) {
+    if (
+      port !== undefined &&
+      ((this.port !== "80" && protocol === "http") || (this.port !== "443" && protocol === "https"))
+    ) {
       portUrl = ":" + port;
+    } else {
+      this.port = "";
     }
-    this.root = this.protocol + "://" + this.host + portUrl;
-    this.origin = this.host + portUrl;
+    this.origin = this.protocol + "//" + this.hostname + portUrl;
+    this.host = this.hostname + portUrl;
+  }
+
+  /**
+   *
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/URL/href
+   * @returns
+   */
+  getHref(): string {
+    return this.getAbsoluteUrl();
   }
 
   /**
@@ -97,34 +126,83 @@ export class HttpContext {
     return this.uri.substring(this.prefix.length);
   }
 
+  /**
+   * Get full URI
+   * @returns
+   */
   getUrl(): string {
     return this.uri;
   }
 
+  /**
+   * Get cookies
+   * @returns
+   */
   getCookies() {
     return this.cookies;
   }
 
-  getPort(): number {
+  /**
+   * Get port number as string
+   *
+   * If http on port 80, or https on port 443 will return ""
+   */
+  getPort(): string {
     return this.port;
   }
 
+  /**
+   * Return hostname and port
+   * @returns
+   */
   getHost(): string {
     return this.host;
   }
 
+  /**
+   * Return protocol, hostname and port
+   * @returns
+   */
+  getOrigin(): string {
+    return this.origin;
+  }
+
+  /**
+   * Get the hostname
+   * @returns
+   */
+  getHostName(): string {
+    return this.hostname;
+  }
+
+  /**
+   * Get HTTP Method used
+   * @returns
+   */
   getMethod(): HttpMethodType {
     return this.method;
   }
 
-  getProtocol(): string {
+  /**
+   * Get protocol used
+   * @returns
+   */
+  getProtocol(): "http:" | "https:" {
     return this.protocol;
   }
 
+  /**
+   * Get request body
+   * @returns
+   */
   getBody() {
     return this.body;
   }
 
+  /**
+   * Get HTTP Headers
+   * @returns
+   */
   getHeaders() {
     return this.headers;
   }
@@ -138,6 +216,26 @@ export class HttpContext {
   }
 
   /**
+   * Get request path name
+   *
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/URL/pathname
+   * @returns
+   */
+  getPathName() {
+    return this.path;
+  }
+
+  /**
+   * Get search section
+   *
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/URL/search
+   * @returns
+   */
+  getSearch() {
+    return this.search;
+  }
+
+  /**
    *
    * @param uri to return absolute url from
    */
@@ -148,10 +246,10 @@ export class HttpContext {
     if (!uri.startsWith("/")) {
       uri = "/" + uri;
     }
-    if ((this.port !== 80 && this.protocol === "http") || (this.port !== 443 && this.protocol === "https")) {
-      return `${this.protocol}://${this.host}:${this.port}${uri}`;
+    if (this.port) {
+      return `${this.protocol}//${this.hostname}:${this.port}${uri}`;
     }
-    return `${this.protocol}://${this.host}${uri}`;
+    return `${this.protocol}//${this.hostname}${uri}`;
   }
 }
 

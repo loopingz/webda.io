@@ -235,4 +235,4 @@ You have the global configuration for the application, that is override by the d
 
 ## Requirements
 
-Node.js >= 12.0.0
+Node.js >= 14.0.0

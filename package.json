@@ -41,7 +41,7 @@
   "scripts": {
     "build": "lerna run build",
     "test": "lerna run test --ignore @webda/sample-app",
-    "new-version": "lerna version --ignore @webda/sample-app --message 'chore(release): publish'",
+    "new-version": "lerna run build && lerna version --ignore @webda/sample-app --message 'chore(release): publish'",
     "lint": "lerna run lint --parallel",
     "lint:fix": "lerna run lint:fix --parallel",
     "lerna:publish": "lerna publish",

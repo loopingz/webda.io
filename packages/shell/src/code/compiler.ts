@@ -309,6 +309,7 @@ export class Compiler {
       {},
       path.basename(configFileName)
     );
+
     this.tsProgram = ts.createProgram({
       rootNames: this.configParseResult.fileNames,
       ...this.configParseResult

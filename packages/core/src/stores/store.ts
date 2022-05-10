@@ -318,8 +318,10 @@ export type ExposeParameters = {
   /**
    * For confidentiality sometimes you might prefer to expose query through PUT
    * To avoid GET logging
+   *
+   * @default "GET"
    */
-  queryMethod: "PUT" | "GET";
+  queryMethod?: "PUT" | "GET";
 };
 
 /**
@@ -590,7 +592,7 @@ abstract class Store<
       return;
     }
     // We enforce ExposeParameters within the constructor
-    const expose = <ExposeParameters>this.parameters.expose;
+    const expose = this.parameters.expose;
 
     if (!expose.restrict.create) {
       this.addRoute(expose.url, ["POST"], this.httpCreate, {
@@ -786,7 +788,7 @@ abstract class Store<
    * Get the url where the store is exposed
    */
   getUrl(): string {
-    return (<ExposeParameters>this.parameters.expose).url;
+    return this.parameters.expose.url;
   }
 
   /**
@@ -940,7 +942,8 @@ abstract class Store<
     await this.emitSync("Store.Query", <EventStoreQuery>{
       query,
       parsedQuery,
-      store: this
+      store: this,
+      context
     });
     const result = {
       results: [],
@@ -1015,7 +1018,8 @@ abstract class Store<
       parsedQuery: parsedQuery,
       store: this,
       continuationToken: result.continuationToken,
-      results: result.results
+      results: result.results,
+      context
     });
     return result;
   }
@@ -1062,7 +1066,8 @@ abstract class Store<
     }
     await this.emitSync("Store.Save", <EventStoreSave>{
       object: object,
-      store: this
+      store: this,
+      context: ctx
     });
     // Handle object auto listener
     await object._onSave();
@@ -1072,7 +1077,8 @@ abstract class Store<
     object = this.initModel(res);
     await this.emitSync("Store.Saved", <EventStoreSaved>{
       object: object,
-      store: this
+      store: this,
+      context: ctx
     });
     await object._onSaved();
 
@@ -1433,7 +1439,8 @@ abstract class Store<
     object.setContext(ctx);
     await this.emitSync("Store.Get", <EventStoreGet>{
       object: object,
-      store: this
+      store: this,
+      context: ctx
     });
     await object._onGet();
     return object;
@@ -1490,7 +1497,7 @@ abstract class Store<
       }
     }
     if (query.orderBy && query.orderBy.length) {
-      result.results = result.results
+      result.results
         .sort((a, b) => {
           let valA, valB;
           for (let orderBy of query.orderBy) {

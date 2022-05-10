@@ -67,7 +67,9 @@
           "description": "UUID of the object"
         }
       },
-      "required": ["uuid"],
+      "required": [
+        "uuid"
+      ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "OwnerModel"
     },
@@ -132,7 +134,10 @@
           "description": "Email for this ident if it exist"
         }
       },
-      "required": ["uid", "uuid"],
+      "required": [
+        "uid",
+        "uuid"
+      ],
       "description": "First basic model for Ident",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Ident"
@@ -175,7 +180,9 @@
           "description": "Contain main user email if exists"
         }
       },
-      "required": ["uuid"],
+      "required": [
+        "uuid"
+      ],
       "description": "First basic model for User",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User"
@@ -199,7 +206,9 @@
           "description": "Make the event sending asynchronous"
         }
       },
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AsyncEvents"
     },
@@ -281,7 +290,11 @@
           "description": "Where to store the queue"
         }
       },
-      "required": ["folder", "maxConsumers", "type"],
+      "required": [
+        "folder",
+        "maxConsumers",
+        "type"
+      ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
         "WaitDelayerDefinition": {
@@ -296,7 +309,10 @@
               "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
             }
           },
-          "required": ["interval", "type"],
+          "required": [
+            "interval",
+            "type"
+          ],
           "description": "WaitDelayer definition"
         }
       },
@@ -329,7 +345,10 @@
           "default": 30
         }
       },
-      "required": ["maxConsumers", "type"],
+      "required": [
+        "maxConsumers",
+        "type"
+      ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
         "WaitDelayerDefinition": {
@@ -344,7 +363,10 @@
               "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
             }
           },
-          "required": ["interval", "type"],
+          "required": [
+            "interval",
+            "type"
+          ],
           "description": "WaitDelayer definition"
         }
       },
@@ -370,7 +392,10 @@
           "default": false
         }
       },
-      "required": ["senders", "type"],
+      "required": [
+        "senders",
+        "type"
+      ],
       "description": "Parameters for multi notification service",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MultiNotificationService"
@@ -405,7 +430,11 @@
           "description": "SES AWS Bean if transport === \"ses\""
         }
       },
-      "required": ["SES", "sender", "type"],
+      "required": [
+        "SES",
+        "sender",
+        "type"
+      ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Mailer"
     },
@@ -456,7 +485,12 @@
               "default": 3
             }
           },
-          "required": ["postValidation", "skipEmailValidation", "delay", "failedLoginBeforeDelay"],
+          "required": [
+            "postValidation",
+            "skipEmailValidation",
+            "delay",
+            "failedLoginBeforeDelay"
+          ],
           "description": "Enable the email authentication"
         },
         "password": {
@@ -490,7 +524,14 @@
           "description": "Redirect to this page once email is validate to finish the registration process"
         }
       },
-      "required": ["failureRedirect", "password", "registerRedirect", "salt", "successRedirect", "type"],
+      "required": [
+        "failureRedirect",
+        "password",
+        "registerRedirect",
+        "salt",
+        "successRedirect",
+        "type"
+      ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Authentication"
     },
@@ -513,7 +554,11 @@
           "description": "Default configuration to use"
         }
       },
-      "required": ["default", "source", "type"],
+      "required": [
+        "default",
+        "source",
+        "type"
+      ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ConfigurationService"
     },
@@ -525,10 +570,12 @@
           "description": "Type of the service"
         }
       },
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "EchoService"
+      "title": "CronService"
     },
     "webda/debugmailer": {
       "type": "object",
@@ -538,7 +585,9 @@
           "description": "Type of the service"
         }
       },
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "DebugMailer"
@@ -549,10 +598,30 @@
         "type": {
           "type": "string",
           "description": "Type of the service"
+        },
+        "mime": {
+          "type": "string",
+          "description": "Mime of the result"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {}
+          ],
+          "description": "result to write on the url"
+        },
+        "url": {
+          "type": "string",
+          "description": "Url to expose the service"
         }
       },
-      "required": ["type"],
-      "description": "Interface to specify the Service parameters",
+      "required": [
+        "result",
+        "type",
+        "url"
+      ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "EchoService"
     },
@@ -603,15 +672,24 @@
               "description": "Restrict some APIs"
             }
           },
-          "required": ["url"],
+          "required": [
+            "url"
+          ],
           "description": "Expose the service to http"
+        },
+        "prefix": {
+          "type": "string"
         },
         "folder": {
           "type": "string",
           "description": "Define the folder to store objects in"
         }
       },
-      "required": ["folder", "map", "type"],
+      "required": [
+        "folder",
+        "map",
+        "type"
+      ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "FileBinary"
     },
@@ -634,7 +712,11 @@
           "description": "Default configuration to use"
         }
       },
-      "required": ["default", "source", "type"],
+      "required": [
+        "default",
+        "source",
+        "type"
+      ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "FileConfiguration"
     },
@@ -729,7 +811,11 @@
           "description": "Default configuration to use"
         }
       },
-      "required": ["default", "source", "type"],
+      "required": [
+        "default",
+        "source",
+        "type"
+      ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "KubernetesConfigurationService"
     },
@@ -756,7 +842,9 @@
           "default": false
         }
       },
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "description": "ResourceService parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ResourceService"
@@ -777,7 +865,9 @@
           "default": "/version"
         }
       },
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "description": "Version parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "VersionService"
@@ -822,7 +912,16 @@
           "description": "Delete source if target object is deleted"
         }
       },
-      "required": ["async", "attribute", "cascade", "fields", "source", "target", "targetAttribute", "type"],
+      "required": [
+        "async",
+        "attribute",
+        "cascade",
+        "fields",
+        "source",
+        "target",
+        "targetAttribute",
+        "type"
+      ],
       "description": "Mapper configuration",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Mapper"
@@ -871,93 +970,19 @@
           "default": "index"
         }
       },
-      "required": ["async", "attribute", "cascade", "fields", "key", "source", "target", "targetAttribute", "type"],
+      "required": [
+        "async",
+        "attribute",
+        "cascade",
+        "fields",
+        "key",
+        "source",
+        "target",
+        "targetAttribute",
+        "type"
+      ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Aggregator"
-    },
-    "webda/filestore": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "model": {
-          "type": "string",
-          "description": "Webda model to use within the Store",
-          "default": "Webda/CoreModel"
-        },
-        "asyncDelete": {
-          "type": "boolean",
-          "description": "async delete"
-        },
-        "expose": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/ExposeParameters"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string"
-            }
-          ],
-          "description": "Expose the service to an urls"
-        },
-        "strict": {
-          "type": "boolean",
-          "description": "Allow to load object that does not have the type data",
-          "deprecated": 2,
-          "default": true
-        },
-        "folder": {
-          "type": "string",
-          "description": "Local path where to store all `json` files"
-        },
-        "beautify": {
-          "type": ["string", "number"],
-          "description": "Parameter sent to JSON.stringify when storing the json"
-        }
-      },
-      "required": ["asyncDelete", "folder", "type"],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "ExposeParameters": {
-          "type": "object",
-          "properties": {
-            "url": {
-              "type": "string",
-              "description": "URL endpoint to use to expose REST Resources API",
-              "default": "service.getName().toLowerCase()"
-            },
-            "restrict": {
-              "type": "object",
-              "properties": {
-                "create": {
-                  "type": "boolean",
-                  "description": "Do not expose the POST"
-                },
-                "update": {
-                  "type": "boolean",
-                  "description": "Do not expose the PUT and PATCH"
-                },
-                "get": {
-                  "type": "boolean",
-                  "description": "Do not expose the GET"
-                },
-                "delete": {
-                  "type": "boolean",
-                  "description": "Do not expose the DELETE"
-                }
-              },
-              "description": "You can restrict any part of the CRUD",
-              "default": {}
-            }
-          }
-        }
-      },
-      "title": "FileStore"
     },
     "webda/memorystore": {
       "type": "object",
@@ -976,27 +1001,25 @@
           "description": "async delete"
         },
         "expose": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/ExposeParameters"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string"
-            }
-          ],
+          "$ref": "#/definitions/ExposeParameters",
           "description": "Expose the service to an urls"
         },
         "strict": {
           "type": "boolean",
           "description": "Allow to load object that does not have the type data",
-          "deprecated": 2,
           "default": true
+        },
+        "slowQueryThreshold": {
+          "type": "number",
+          "description": "Slow query threshold",
+          "default": 30000
         }
       },
-      "required": ["asyncDelete", "type"],
+      "required": [
+        "asyncDelete",
+        "slowQueryThreshold",
+        "type"
+      ],
       "description": "Store parameter",
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
@@ -1026,15 +1049,127 @@
                 "delete": {
                   "type": "boolean",
                   "description": "Do not expose the DELETE"
+                },
+                "query": {
+                  "type": "boolean",
+                  "description": "Do not expose the query endpoint"
                 }
               },
               "description": "You can restrict any part of the CRUD",
               "default": {}
+            },
+            "queryMethod": {
+              "type": "string",
+              "enum": [
+                "PUT",
+                "GET"
+              ],
+              "description": "For confidentiality sometimes you might prefer to expose query through PUT To avoid GET logging",
+              "default": "GET"
             }
           }
         }
       },
       "title": "MemoryStore"
+    },
+    "webda/filestore": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of the service"
+        },
+        "model": {
+          "type": "string",
+          "description": "Webda model to use within the Store",
+          "default": "Webda/CoreModel"
+        },
+        "asyncDelete": {
+          "type": "boolean",
+          "description": "async delete"
+        },
+        "expose": {
+          "$ref": "#/definitions/ExposeParameters",
+          "description": "Expose the service to an urls"
+        },
+        "strict": {
+          "type": "boolean",
+          "description": "Allow to load object that does not have the type data",
+          "default": true
+        },
+        "slowQueryThreshold": {
+          "type": "number",
+          "description": "Slow query threshold",
+          "default": 30000
+        },
+        "folder": {
+          "type": "string",
+          "description": "Local path where to store all `json` files"
+        },
+        "beautify": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "Parameter sent to JSON.stringify when storing the json"
+        }
+      },
+      "required": [
+        "asyncDelete",
+        "folder",
+        "slowQueryThreshold",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ExposeParameters": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "URL endpoint to use to expose REST Resources API",
+              "default": "service.getName().toLowerCase()"
+            },
+            "restrict": {
+              "type": "object",
+              "properties": {
+                "create": {
+                  "type": "boolean",
+                  "description": "Do not expose the POST"
+                },
+                "update": {
+                  "type": "boolean",
+                  "description": "Do not expose the PUT and PATCH"
+                },
+                "get": {
+                  "type": "boolean",
+                  "description": "Do not expose the GET"
+                },
+                "delete": {
+                  "type": "boolean",
+                  "description": "Do not expose the DELETE"
+                },
+                "query": {
+                  "type": "boolean",
+                  "description": "Do not expose the query endpoint"
+                }
+              },
+              "description": "You can restrict any part of the CRUD",
+              "default": {}
+            },
+            "queryMethod": {
+              "type": "string",
+              "enum": [
+                "PUT",
+                "GET"
+              ],
+              "description": "For confidentiality sometimes you might prefer to expose query through PUT To avoid GET logging",
+              "default": "GET"
+            }
+          }
+        }
+      },
+      "title": "FileStore"
     },
     "webda/memorylogger": {
       "type": "object",
@@ -1051,12 +1186,21 @@
           "type": "number"
         }
       },
-      "required": ["logLevel", "type"],
+      "required": [
+        "logLevel",
+        "type"
+      ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
         "WorkerLogLevel": {
           "type": "string",
-          "enum": ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"],
+          "enum": [
+            "ERROR",
+            "WARN",
+            "INFO",
+            "DEBUG",
+            "TRACE"
+          ],
           "description": "LogLevel as intersection to compare with integer values"
         }
       },
@@ -1077,12 +1221,21 @@
           "type": "string"
         }
       },
-      "required": ["logLevel", "type"],
+      "required": [
+        "logLevel",
+        "type"
+      ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
         "WorkerLogLevel": {
           "type": "string",
-          "enum": ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"],
+          "enum": [
+            "ERROR",
+            "WARN",
+            "INFO",
+            "DEBUG",
+            "TRACE"
+          ],
           "description": "LogLevel as intersection to compare with integer values"
         }
       },
@@ -1109,12 +1262,22 @@
           "type": "number"
         }
       },
-      "required": ["file", "logLevel", "type"],
+      "required": [
+        "file",
+        "logLevel",
+        "type"
+      ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
         "WorkerLogLevel": {
           "type": "string",
-          "enum": ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"],
+          "enum": [
+            "ERROR",
+            "WARN",
+            "INFO",
+            "DEBUG",
+            "TRACE"
+          ],
           "description": "LogLevel as intersection to compare with integer values"
         }
       },

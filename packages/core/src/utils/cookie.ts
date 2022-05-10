@@ -120,9 +120,9 @@ export class SecureCookie {
     }
     var params = {
       path: "/",
-      domain: ctx.getHttpContext().getHost(),
+      domain: ctx.getHttpContext().getHostName(),
       httpOnly: true,
-      secure: ctx.getHttpContext().getProtocol() == "https",
+      secure: ctx.getHttpContext().getProtocol() === "https:",
       maxAge: 86400 * 7,
       sameSite: "Lax"
     };

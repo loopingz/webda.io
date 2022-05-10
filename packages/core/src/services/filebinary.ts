@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import { Context } from "../utils/context";
-import { Binary, BinaryFile, BinaryMap, BinaryNotFoundError, BinaryParameters, MemoryBinaryFile } from "./binary";
+import { Binary, BinaryFile, BinaryMap, BinaryNotFoundError, MemoryBinaryFile } from "./binary";
 import { ServiceParameters } from "./service";
 import { join } from "path";
 import { CloudBinary, CloudBinaryParameters, CoreModel } from "..";

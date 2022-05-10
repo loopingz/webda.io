@@ -231,6 +231,8 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.evt.queryStringParameters = {
       test: "plop"
     };
+    this.evt.headers.Origin = "https://test.webda.io";
+    this.evt.headers.Host = "test.webda.io";
     await this.handler.handleRequest(this.evt, this.context);
   }
 

@@ -5,8 +5,12 @@ import { FileQueue, FileQueueParameters, Service, ServiceParameters } from "@web
  */
 export class SimpleService extends Service {}
 
+interface MyInterfaceParam {
+  test: string;
+}
 class AnotherServiceParameters extends ServiceParameters {
   anotherParameter: string;
+  interfareParam: MyInterfaceParam;
 }
 
 class FourthServiceParameters extends AnotherServiceParameters {

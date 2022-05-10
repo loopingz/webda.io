@@ -57,13 +57,16 @@
         }
       },
       "required": [
-        "age",
         "firstName",
         "lastName",
-        "type"
+        "type",
+        "age"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Contact"
+      "title": "Contact",
+      "additionalProperties": {
+        "description": "Allow mine"
+      }
     },
     "beans/beanservice": {
       "type": "object",
@@ -104,10 +107,22 @@
         },
         "anotherParameter": {
           "type": "string"
+        },
+        "interfareParam": {
+          "type": "object",
+          "properties": {
+            "test": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "test"
+          ]
         }
       },
       "required": [
         "anotherParameter",
+        "interfareParam",
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -122,10 +137,22 @@
         },
         "anotherParameter": {
           "type": "string"
+        },
+        "interfareParam": {
+          "type": "object",
+          "properties": {
+            "test": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "test"
+          ]
         }
       },
       "required": [
         "anotherParameter",
+        "interfareParam",
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -156,6 +183,17 @@
         "anotherParameter": {
           "type": "string"
         },
+        "interfareParam": {
+          "type": "object",
+          "properties": {
+            "test": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "test"
+          ]
+        },
         "fourthParameter": {
           "type": "number",
           "minimum": 100,
@@ -165,6 +203,7 @@
       "required": [
         "anotherParameter",
         "fourthParameter",
+        "interfareParam",
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -178,7 +217,21 @@
           "description": "Type of the service"
         },
         "workerDelayer": {
-          "$ref": "#/definitions/WaitDelayerDefinition",
+          "type": "object",
+          "properties": {
+            "interval": {
+              "type": "number",
+              "description": "Interval"
+            },
+            "type": {
+              "type": "string",
+              "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
+            }
+          },
+          "required": [
+            "interval",
+            "type"
+          ],
           "description": "Delayer between two failed attempts to process messages"
         },
         "workerParallelism": {
@@ -207,26 +260,6 @@
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "WaitDelayerDefinition": {
-          "type": "object",
-          "properties": {
-            "interval": {
-              "type": "number",
-              "description": "Interval"
-            },
-            "type": {
-              "type": "string",
-              "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
-            }
-          },
-          "required": [
-            "interval",
-            "type"
-          ],
-          "description": "WaitDelayer definition"
-        }
-      },
       "title": "QueueService"
     },
     "beans/customservice": {

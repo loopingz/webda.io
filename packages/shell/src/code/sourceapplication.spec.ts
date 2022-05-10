@@ -162,7 +162,8 @@ class SourceApplicationTest extends WebdaTest {
         [
           "WARN",
           "../../sample-app/src/bouzouf.ts(1,1): error TS1434: Unexpected keyword or identifier.\n../../sample-app/src/bouzouf.ts(1,1): error TS2304: Cannot find name 'bad'.\n../../sample-app/src/bouzouf.ts(1,5): error TS2304: Cannot find name 'TS'.\n"
-        ]
+        ],
+	["INFO", "Analyzing..."]
       ]);
     } finally {
       fs.removeSync(testFile);

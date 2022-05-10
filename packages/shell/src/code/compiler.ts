@@ -228,13 +228,21 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
       )
       .map(member => {
         let type = this.childNodeParser.createType(member.type, context);
+        // Check for other tags
+        let ignore = false;
+        ts.getAllJSDocTags(member, (tag: ts.JSDocTag): tag is ts.JSDocTag => {
+          return true;
+        }).forEach(n => {
+          if (n.tagName.text === "SchemaIgnore") {
+            ignore = true;
+          }
+        });
+        if (ignore) {
+          return undefined;
+        }
         let readOnly = false;
         if (type instanceof AnnotatedType) {
           readOnly = type.getAnnotations().readOnly;
-          // Handle SchemaIgnore
-          if (type.getAnnotations().SchemaIgnore) {
-            return undefined;
-          }
         }
         // If property is in readOnly then we do not want to require it
         return new ObjectProperty(this.getPropertyName(member.name), type, !member.questionToken && !readOnly);
@@ -512,12 +520,7 @@ export class Compiler {
                     let definitionName = schema.$ref.split("/").pop();
                     moduleInfo.schemas[name] = <JSONSchema7>schema.definitions[definitionName];
                     moduleInfo.schemas[name].$schema = schema.$schema;
-                    // Copy sub definition if needed
-                    if (Object.keys(schema.definitions).length > 1) {
-                      moduleInfo.schemas[name].definitions = schema.definitions;
-                      // Avoid cycle ref
-                      delete moduleInfo.schemas[name].definitions[definitionName];
-                    }
+                    // Copy sub definition if needed, see 2.0.0-beta.0
                     moduleInfo.schemas[name].title = originName.split("/").pop();
                     if (section === "models" && tags["SchemaAdditionalProperties"]) {
                       moduleInfo.schemas[name].additionalProperties = {
@@ -554,12 +557,7 @@ export class Compiler {
                 let definitionName = schema.$ref.split("/").pop();
                 moduleInfo.schemas[name] = <JSONSchema7>schema.definitions[definitionName];
                 moduleInfo.schemas[name].$schema = schema.$schema;
-                // Copy sub definition if needed
-                if (Object.keys(schema.definitions).length > 1) {
-                  moduleInfo.schemas[name].definitions = schema.definitions;
-                  // Avoid cycle ref
-                  delete moduleInfo.schemas[name].definitions[definitionName];
-                }
+                // Copy sub definition if needed, see 2.0.0-beta.0
                 moduleInfo.schemas[name].title = clazz.name.escapedText.toString();
               } catch (err) {
                 this.app.log("WARN", `Cannot generate schema for ${schemaNode.getText()}`, err);

@@ -5,6 +5,8 @@ They are stored and exposed through API by Stores.
 
 They are close to a `POJO` but when attached to a Store, they are not truely POJO, similar to Hibernate.
 
+Their schema is build with the `webda build` command.
+
 The `toJSON` method filters the attached store and context.
 
 ## Attributes
@@ -52,4 +54,55 @@ class MyModel extends CoreModel {
   	return super.canAct(ctx,action);
   }
 }
+```
+
+## Model schemas
+
+The schema is generated with [ts-json-schema-generator](https://github.com/vega/ts-json-schema-generator)
+
+All servers properties: starting with a `_` will be ignored in the schema generation
+### JSDocs Annotation
+
+```
+@nullable: allow the attribute to be null
+@asType: to override the default type
+@example: to show an value example
+@minimum: define the minimum value (>=)
+@exclusiveMinimum: define the minimum value (>)
+@maximum: define the maximum value (<=)
+@exclusiveMaximum: define the maximum value (<)
+@multipleOf:
+@minLength:
+@maxLength:
+@minProperties:
+@maxProperties:
+@minItems:
+@maxItems:
+@uniqueItems:
+@propertyNames:
+@contains:
+@const:
+@examples:
+@default:
+@if:
+@then:
+@else:
+@readOnly:
+@writeOnly:
+@deprecated:
+@title:
+@description:
+@id:
+@format:
+@pattern:
+@ref:
+@comment:
+@contentMediaType:
+@contentEncoding:
+```
+
+Additional needed:
+
+```
+@allowAdditionalProperties
 ```

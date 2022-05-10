@@ -1,4 +1,3 @@
-"use strict";
 import { EventWithContext, WebdaError } from "../core";
 import { ConfigurationProvider } from "../index";
 import { CoreModel, CoreModelDefinition, ModelAction } from "../models/coremodel";
@@ -542,6 +541,7 @@ abstract class Store<
     this._lastUpdateField = this._model.getLastUpdateField();
     this._creationDateField = this._model.getCreationField();
     this._cacheStore?.computeParameters();
+    this.cacheStorePatchException();
   }
 
   logSlowQuery(query: string, reason: string, time: number) {}
@@ -789,6 +789,36 @@ abstract class Store<
    */
   getUrl(): string {
     return this.parameters.expose.url;
+  }
+
+  /**
+   * We should ignore exception from the store
+   */
+  cacheStorePatchException() {
+    if (!this._cacheStore) {
+      return;
+    }
+    const replacer = original => {
+      return (...args) => {
+        return original
+          .bind(this._cacheStore, ...args)()
+          .catch(err => {
+            this.log("TRACE", `Ignoring cache exception ${this._name}: ${err.message}`);
+          });
+      };
+    };
+    for (let i of [
+      "_get",
+      "_patch",
+      "_update",
+      "_delete",
+      "_incrementAttribute",
+      "_upsertItemToCollection",
+      "_deleteItemFromCollection",
+      "_removeAttribute"
+    ]) {
+      this._cacheStore[i] = replacer(this._cacheStore[i]);
+    }
   }
 
   /**

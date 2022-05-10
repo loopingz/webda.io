@@ -49,6 +49,7 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
       model: this.parameters.model
     });
     this._cacheStore.computeParameters();
+    this.cacheStorePatchException();
     if (!fs.existsSync(this.parameters.folder)) {
       fs.mkdirSync(this.parameters.folder);
     }

@@ -159,6 +159,14 @@ class FileStoreTest extends StoreTest {
   }
 
   @test
+  async cacheMishit() {
+    let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
+    let ident = await identStore.save({ uuid: "test" });
+    await identStore._cacheStore.__clean();
+    await ident.update({ retest: true }, false, true);
+  }
+
+  @test
   async modelStaticActions() {
     let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
     let ctx, executor;

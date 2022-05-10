@@ -1,4 +1,4 @@
-import events = require("events");
+import * as events from "events";
 import { Core, Logger } from "../index";
 import { HttpMethodType } from "../utils/context";
 import { EventService } from "./asyncevents";

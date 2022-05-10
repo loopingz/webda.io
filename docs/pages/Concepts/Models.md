@@ -104,5 +104,6 @@ All servers properties: starting with a `_` will be ignored in the schema genera
 Additional needed:
 
 ```
-@allowAdditionalProperties
+@SchemaAdditionalProperties: add a additionalProperties section (useful to avoid wildcarding the server types)
+@SchemaIgnore: ignore this property from the schema generation (readOnly is probably a better solution)
 ```

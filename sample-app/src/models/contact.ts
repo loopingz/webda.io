@@ -2,6 +2,8 @@ import { CoreModel } from "@webda/core";
 
 /**
  * @WebdaModel
+ *
+ * @SchemaAdditionalProperties Allow mine
  */
 export default class Contact extends CoreModel {
   /**
@@ -22,4 +24,8 @@ export default class Contact extends CoreModel {
    * @minimum 0
    */
   age: number;
+  /**
+   * @SchemaIgnore
+   */
+  custom: string;
 }

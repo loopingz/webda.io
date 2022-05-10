@@ -1,8 +1,7 @@
-"use strict";
 import * as Email from "email-templates";
 import * as fs from "fs";
 import * as nodemailer from "nodemailer";
-import path = require("path");
+import * as path from "path";
 import { Ident, User } from "..";
 import { NotificationService } from "./notificationservice";
 import { Service, ServiceParameters } from "./service";

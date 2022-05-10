@@ -195,15 +195,7 @@ class WebdaAnnotatedNodeParser extends AnnotatedNodeParser {
 
 class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
   public supportsNode(node: ts.InterfaceDeclaration | ts.ClassDeclaration): boolean {
-    return (
-      node.kind === ts.SyntaxKind.ClassDeclaration &&
-      ts
-        .getAllJSDocTags(node, (tag: ts.JSDocTag): tag is ts.JSDocTag => {
-          return true;
-        })
-        .map(n => n.tagName.escapedText.toString())
-        .includes("WebdaModel")
-    );
+    return node.kind === ts.SyntaxKind.ClassDeclaration || node.kind === ts.SyntaxKind.InterfaceDeclaration;
   }
 
   /**
@@ -234,15 +226,23 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         member =>
           isPublic(member) && !isStatic(member) && member.type && !this.getPropertyName(member.name).startsWith("__")
       )
-      .map(
-        member =>
-          new ObjectProperty(
-            this.getPropertyName(member.name),
-            this.childNodeParser.createType(member.type, context),
-            !member.questionToken
-          )
-      )
+      .map(member => {
+        let type = this.childNodeParser.createType(member.type, context);
+        let readOnly = false;
+        if (type instanceof AnnotatedType) {
+          readOnly = type.getAnnotations().readOnly;
+          // Handle SchemaIgnore
+          if (type.getAnnotations().SchemaIgnore) {
+            return undefined;
+          }
+        }
+        // If property is in readOnly then we do not want to require it
+        return new ObjectProperty(this.getPropertyName(member.name), type, !member.questionToken && !readOnly);
+      })
       .filter(prop => {
+        if (!prop) {
+          return false;
+        }
         if (prop.isRequired() && prop.getType() === undefined) {
           /* istanbul ignore next */
           hasRequiredNever = true;
@@ -452,6 +452,8 @@ export class Compiler {
               const tagName = n.tagName.escapedText.toString();
               if (tagName.startsWith("Webda")) {
                 tags[tagName] = n.comment?.toString().trim().split(" ").shift() || clazz.name.escapedText;
+              } else if (tagName.startsWith("Schema")) {
+                tags[tagName] = n.comment?.toString().trim() || "";
               }
             });
 
@@ -517,10 +519,10 @@ export class Compiler {
                       delete moduleInfo.schemas[name].definitions[definitionName];
                     }
                     moduleInfo.schemas[name].title = originName.split("/").pop();
-                    if (section === "models") {
-                      moduleInfo.schemas[name].required = moduleInfo.schemas[name].required.filter(
-                        p => !p.startsWith("_")
-                      );
+                    if (section === "models" && tags["SchemaAdditionalProperties"]) {
+                      moduleInfo.schemas[name].additionalProperties = {
+                        description: tags["SchemaAdditionalProperties"]
+                      };
                     }
                   } catch (err) {
                     this.app.log("WARN", `Cannot generate schema for ${schemaNode.getText()}`, err);
@@ -640,7 +642,6 @@ export class Compiler {
       };
       const message = ts.formatDiagnostics(allDiagnostics, formatHost);
       this.app.log("WARN", message);
-      return false;
     }
 
     this.app.log("INFO", "Analyzing...");
@@ -691,6 +692,7 @@ export class Compiler {
   ) {
     // Ensure we have compiled already
     this.compile();
+
     let rawSchema: JSONSchema7 = this.schemaGenerator.createSchema("UnpackedConfiguration");
     let res: JSONSchema7 = <JSONSchema7>rawSchema.definitions["UnpackedConfiguration"];
     res.definitions ??= {};

@@ -33,7 +33,7 @@
     "mock-stdin": "^1.0.0",
     "nyc": "^15.1.0",
     "prettier": "^2.3.2",
-    "sinon": "^13.0.1",
+    "sinon": "^14.0.0",
     "source-map-support": "^0.5.19",
     "ts-node": "^10.1.0",
     "typescript": "~4.6.3"

@@ -23,6 +23,7 @@ class ContextTest extends WebdaTest {
     assert.strictEqual(ctx.getHref(), urlObject.href);
     assert.strictEqual(ctx.getProtocol(), urlObject.protocol);
     assert.strictEqual(ctx.getPort(), urlObject.port);
+    assert.strictEqual(ctx.getPortNumber(), 443);
     assert.strictEqual(ctx.getSearch(), urlObject.search);
     assert.strictEqual(ctx.getOrigin(), urlObject.origin);
     urlObject = new URL("http://test.webda.io:8800/mypath");
@@ -33,6 +34,7 @@ class ContextTest extends WebdaTest {
     assert.strictEqual(ctx.getHref(), urlObject.href);
     assert.strictEqual(ctx.getProtocol(), urlObject.protocol);
     assert.strictEqual(ctx.getPort(), urlObject.port);
+    assert.strictEqual(ctx.getPortNumber(), 8800);
     assert.strictEqual(ctx.getSearch(), urlObject.search);
     assert.strictEqual(ctx.getOrigin(), urlObject.origin);
     // Hash is not sent to server so no need in HttpContext (@see https://developer.mozilla.org/en-US/docs/Web/API/URL/hash)
@@ -51,6 +53,7 @@ class ContextTest extends WebdaTest {
     this.ctx.setServiceParameters({ id: "service" });
     assert.strictEqual(this.ctx.getServiceParameters().id, "service");
     assert.strictEqual(this.ctx.getPathParameters().id, "plop");
+    assert.strictEqual(this.ctx.getHttpContext().getPortNumber(), 80);
     this.ctx.setExtension("mine", "plop");
     assert.strictEqual(this.ctx.getExtension("mine"), "plop");
     // @ts-ignore

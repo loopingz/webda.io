@@ -152,6 +152,20 @@ export class HttpContext {
   }
 
   /**
+   * Get the port number
+   */
+  getPortNumber(): number {
+    if (this.port) {
+      return Number.parseInt(this.port);
+    }
+    if (this.protocol === "https:") {
+      return 443;
+    } else {
+      return 80;
+    }
+  }
+
+  /**
    * Return hostname and port
    * @returns
    */

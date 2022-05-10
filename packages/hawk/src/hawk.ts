@@ -81,8 +81,8 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
     return {
       method: http.getMethod(),
       url: http.getUrl(),
-      host: (http.getHeaders()["host"] || "").split(":")[0],
-      port: http.getPort(),
+      host: http.getHostName(),
+      port: http.getPortNumber(),
       authorization: http.getHeaders()["authorization"]
     };
   }

@@ -101,19 +101,6 @@ class HawkServiceTest extends WebdaTest {
   }
 
   @test
-  async missingHostHeader() {
-    const { header, artifacts } = Hawk.client.header("http://test.webda.io/", "GET", {
-      credentials: this.key.toHawkCredentials()
-    });
-    this.context.getHttpContext().getHeaders()["authorization"] = header;
-    assert.equal(
-      await this.checkRequest(this.context),
-      false,
-      "Should refuse without errors as Authorization is malformed"
-    );
-  }
-
-  @test
   async validSignature() {
     const { header, artifacts } = Hawk.client.header("http://test.webda.io/", "GET", {
       credentials: this.key.toHawkCredentials()

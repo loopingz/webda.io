@@ -1,5 +1,5 @@
 import { WebdaQLLexer } from "./WebdaQLLexer";
-import { ANTLRInputStream, CommonTokenStream, RecognitionException, Recognizer, Token } from "antlr4ts";
+import { CharStreams, CommonTokenStream, RecognitionException, Recognizer, Token } from "antlr4ts";
 import {
   WebdaQLParserParser,
   WebdaqlContext,
@@ -506,7 +506,7 @@ export namespace WebdaQL {
     protected builder: ExpressionBuilder;
 
     constructor(sql: string) {
-      this.lexer = new WebdaQLLexer(new ANTLRInputStream(sql || ""));
+      this.lexer = new WebdaQLLexer(CharStreams.fromString(sql || ""));
       let tokenStream = new CommonTokenStream(this.lexer);
       let parser = new WebdaQLParserParser(tokenStream);
       parser.removeErrorListeners();

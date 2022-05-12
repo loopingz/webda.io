@@ -544,7 +544,7 @@ abstract class Store<
     this.cacheStorePatchException();
   }
 
-  logSlowQuery(query: string, reason: string, time: number) {}
+  logSlowQuery(_query: string, _reason: string, _time: number) {}
 
   /**
    * Return Store current model
@@ -1506,8 +1506,10 @@ abstract class Store<
     let limit = query.limit;
     let offset = parseInt(query.continuationToken || "0");
     let originalOffset = offset;
+
     if (query.orderBy && query.orderBy.length) {
       offset = 0;
+      // We need to retrieve everything to orderBy after
       limit = Number.MAX_SAFE_INTEGER;
     }
     // Need to transfert to Array
@@ -1526,29 +1528,32 @@ abstract class Store<
         }
       }
     }
+
+    // Order by
     if (query.orderBy && query.orderBy.length) {
-      result.results = result.results
-        .sort((a, b) => {
-          let valA, valB;
-          for (let orderBy of query.orderBy) {
-            let invert = orderBy.direction === "ASC" ? 1 : -1;
-            valA = WebdaQL.ComparisonExpression.getAttributeValue(a, orderBy.field.split("."));
-            valB = WebdaQL.ComparisonExpression.getAttributeValue(b, orderBy.field.split("."));
-            if (valA === valB) {
-              continue;
-            }
-            if (typeof valA === "string") {
-              return valA.localeCompare(valB) * invert;
-            }
-            return (valA < valB ? -1 : 1) * invert;
+      // Sorting the results
+      result.results.sort((a, b) => {
+        let valA, valB;
+        for (let orderBy of query.orderBy) {
+          let invert = orderBy.direction === "ASC" ? 1 : -1;
+          valA = WebdaQL.ComparisonExpression.getAttributeValue(a, orderBy.field.split("."));
+          valB = WebdaQL.ComparisonExpression.getAttributeValue(b, orderBy.field.split("."));
+          if (valA === valB) {
+            continue;
           }
-          return -1;
-        })
-        .slice(originalOffset, query.limit + originalOffset);
+          if (typeof valA === "string") {
+            return valA.localeCompare(valB) * invert;
+          }
+          return (valA < valB ? -1 : 1) * invert;
+        }
+        return -1;
+      });
+      result.results = result.results.slice(originalOffset, query.limit + originalOffset);
       if (result.results.length >= query.limit) {
         result.continuationToken = (query.limit + originalOffset).toString();
       }
     }
+
     return result;
   }
 

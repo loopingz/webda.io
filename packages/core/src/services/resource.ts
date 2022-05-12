@@ -26,6 +26,19 @@ export class ResourceServiceParameters extends ServiceParameters {
    * @default false
    */
   rootRedirect?: boolean;
+  /**
+   * Index file
+   *
+   * @default index.html
+   */
+  index?: string;
+  /**
+   * Return the index file for any unfound resource
+   * Useful for single page application
+   *
+   * @default true
+   */
+  catchAll?: boolean;
 
   constructor(params: any) {
     super(params);
@@ -41,6 +54,8 @@ export class ResourceServiceParameters extends ServiceParameters {
     if (!this.folder.endsWith("/")) {
       this.folder += "/";
     }
+    this.index ??= "index.html";
+    this.catchAll ??= true;
   }
 }
 
@@ -59,6 +74,10 @@ export default class ResourceService<
    * Resolved path to the folder to serve
    */
   _resolved: string;
+  /**
+   * If serving just one file
+   */
+  fileOnly: boolean;
 
   /**
    * Load the parameters for a service
@@ -73,6 +92,7 @@ export default class ResourceService<
   computeParameters() {
     super.computeParameters();
     this._resolved = path.resolve(this.parameters.folder);
+    this.fileOnly = !fs.lstatSync(this._resolved).isDirectory();
   }
 
   /**
@@ -152,17 +172,31 @@ export default class ResourceService<
    * @param ctx
    */
   _serve(ctx: Context) {
-    // TODO Add file only
-    let resource = ctx.parameter("resource") || "index.html";
-    let file = path.join(this.parameters.folder, resource);
+    let file = this._resolved;
+    // If resource is not a file
+    if (!this.fileOnly) {
+      file = path.join(this._resolved, ctx.parameter("resource") || this.parameters.index);
+    }
+
+    // Avoid path transversal
     if (!path.resolve(file).startsWith(this._resolved)) {
       throw 401;
     }
+
     if (!fs.existsSync(file)) {
-      throw 404;
+      // Catch All for SPA
+      if (this.parameters.catchAll) {
+        file = path.join(this._resolved, this.parameters.index);
+      } else {
+        throw 404;
+      }
+    }
+    let mimetype = mime.lookup(file) || "application/octet-stream";
+    if (mimetype.startsWith("text/")) {
+      mimetype += "; charset=UTF-8";
     }
     ctx.writeHead(200, {
-      "Content-Type": mime.lookup(file) || "application/octet-stream"
+      "Content-Type": mimetype
     });
     ctx.write(fs.readFileSync(file));
     ctx.end();

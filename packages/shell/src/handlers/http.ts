@@ -97,7 +97,26 @@ export class WebdaServer extends Webda {
       if (!this.updateContextWithRoute(ctx)) {
         let routes = this.router.getRouteMethodsFromUrl(httpContext.getRelativeUri());
         if (routes.length === 0) {
-          await resourceService._serve(await ctx.init());
+          // Static served should not be reachable via XHR
+          if (method !== "GET") {
+            ctx.writeHead(404);
+            await ctx.end();
+            return;
+          }
+          // Try to serve static resource
+          await ctx.init();
+          ctx.getParameters()["resource"] = ctx.getHttpContext().getUrl().substring(1);
+          try {
+            await resourceService._serve(await ctx.init());
+          } catch (err) {
+            if (typeof err === "number") {
+              ctx.writeHead(err);
+            } else {
+              console.log("CANNOT DO ANYTHING", ctx.getHttpContext(), err);
+              ctx.writeHead(500);
+            }
+          }
+          await ctx.end();
           return;
         }
       }
@@ -203,40 +222,6 @@ export class WebdaServer extends Webda {
     res.end();
   }
 
-  protected handleStaticIndexRequest(_req, res, _next) {
-    res.sendFile(this.staticIndex);
-  }
-
-  /**
-   * Serve a static directory
-   *
-   * @param express
-   * @param app
-   */
-  serveStaticWebsite(express, app) {
-    if (this.getGlobalParams().website && this.getGlobalParams().website.path) {
-      app.use(express.static(path.join(this.application.getAppPath(), this.getGlobalParams().website.path)));
-    }
-  }
-
-  /**
-   * Serve a static index if page not found, usefull for Single Page Application
-   *
-   * @param express
-   * @param app
-   */
-  serveIndex(_express, app) {
-    if (this.getGlobalParams().website && this.getGlobalParams().website.path) {
-      let index = path.join(
-        this.application.getAppPath(),
-        this.getGlobalParams().website.path,
-        this.getGlobalParams().website.index || "index.html"
-      );
-      this.staticIndex = path.resolve(index);
-      app.get("*", this.handleStaticIndexRequest.bind(this));
-    }
-  }
-
   /**
    * Start listening to serve request
    *
@@ -247,14 +232,14 @@ export class WebdaServer extends Webda {
   async serve(port: number = 18080, websockets: boolean = false, bind: string = undefined) {
     this.serverStatus = ServerStatus.Starting;
     let resourceService;
-    if (this.getGlobalParams().website && this.getGlobalParams().website.path) {
-      resourceService = new ResourceService(this, "websiteResource", {
-        folder: this.getGlobalParams().website.path
-      });
-      resourceService.resolve();
-      await resourceService.init();
-    }
     try {
+      if (this.getGlobalParams().website && this.getGlobalParams().website.path) {
+        resourceService = new ResourceService(this, "websiteResource", {
+          folder: this.getAppPath(this.getGlobalParams().website.path)
+        });
+        resourceService.resolve();
+        await resourceService.init();
+      }
       this.http = http
         .createServer((req, res) => {
           this.handleRequest(req, res, resourceService).finally(() => {

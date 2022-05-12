@@ -106,6 +106,9 @@ export class Context<T = any, U = any> extends EventEmitter {
     this.reinit();
   }
 
+  /**
+   * Remove samitized body
+   */
   public reinit() {
     this._sanitized = undefined;
   }
@@ -458,9 +461,9 @@ export class Context<T = any, U = any> extends EventEmitter {
   getLocale() {
     let locales = this._webda.getLocales();
     acceptLanguage.languages(locales);
-    let headers = this.getHttpContext().getHeaders();
-    if (headers["Accept-Language"]) {
-      return acceptLanguage.get(headers["Accept-Language"]);
+    let header = this.getHttpContext().getUniqueHeader("accept-language");
+    if (header) {
+      return acceptLanguage.get(header);
     }
     return locales[0];
   }

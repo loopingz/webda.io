@@ -93,9 +93,9 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
       url: http.getUrl(),
       host: http.getHostName(),
       port: http.getPortNumber(),
-      authorization: http.getHeaders()["authorization"],
+      authorization: http.getUniqueHeader("authorization"),
       payload: http.getRawBody() || "",
-      contentType: http.getHeader("content-type") || ""
+      contentType: http.getUniqueHeader("content-type") || ""
     };
   }
 
@@ -198,11 +198,11 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
   async checkRequest(context: Context): Promise<boolean> {
     // Authorize the options
     if (context.getHttpContext().getMethod() === "OPTIONS") {
-      return this.checkOPTIONS(context.getHttpContext().getHeader("origin") || "");
+      return this.checkOPTIONS(context.getHttpContext().getUniqueHeader("origin") || "");
     }
 
     // Only check Hawk
-    let authorization = context.getHttpContext().getHeaders()["authorization"];
+    let authorization = context.getHttpContext().getUniqueHeader("authorization");
     if (!authorization || !authorization.startsWith("Hawk id=")) {
       return false;
     }

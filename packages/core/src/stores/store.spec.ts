@@ -154,10 +154,10 @@ abstract class StoreTest extends WebdaTest {
           i++ % 2 ? "GET" : "PUT",
           userStore.getParameters().expose.url + "?q=" + encodeURI(q),
           "https",
-          443,
-          JSON.stringify({ q })
+          443
         )
       );
+      context.getHttpContext().setBody({ q });
       context.getParameters().q = q;
       // @ts-ignore
       await userStore.httpQuery(context);
@@ -167,9 +167,8 @@ abstract class StoreTest extends WebdaTest {
     } while (offset !== undefined);
     assert.strictEqual(total, 400);
     q = "BAD QUERY !";
-    context.setHttpContext(
-      new HttpContext("test.webda.io", "PUT", userStore.getParameters().expose.url, "https", 443, JSON.stringify({ q }))
-    );
+    context.setHttpContext(new HttpContext("test.webda.io", "PUT", userStore.getParameters().expose.url, "https", 443));
+    context.getHttpContext().setBody({ q });
     // @ts-ignore
     await assert.rejects(() => userStore.httpQuery(context), /400/);
     let mock = stub(userStore, "query").callsFake(() => {

@@ -208,12 +208,14 @@ class WebdaTest {
     method: HttpMethodType = "GET",
     url: string = "/",
     body: any = {},
-    headers: object = {}
+    headers: { [key: string]: string } = {}
   ): Executor {
+    let httpContext = new HttpContext(host, method, url, "http", 80, headers);
+    httpContext.setBody(body);
     if (!ctx) {
-      ctx = new Context(this.webda, new HttpContext(host, method, url, "http", 80, body, headers));
+      ctx = new Context(this.webda, httpContext);
     } else {
-      ctx.setHttpContext(new HttpContext(host, method, url, "http", 80, body, headers));
+      ctx.setHttpContext(httpContext);
     }
     if (this.webda.updateContextWithRoute(ctx)) {
       return {
@@ -232,7 +234,7 @@ class WebdaTest {
     method: HttpMethodType = "GET",
     url: string = "/",
     body: any = {},
-    headers: object = {}
+    headers: { [key: string]: string } = {}
   ) {
     const exec = this.getExecutor(ctx, host, method, url, body, headers);
     if (!exec) {

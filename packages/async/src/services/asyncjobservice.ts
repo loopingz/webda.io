@@ -25,6 +25,10 @@ export class AsyncJobServiceParameters extends ServiceParameters {
    */
   store: string;
   /**
+   * If set on init the worker will be launch
+   */
+  launchWorker: boolean;
+  /**
    * Queue to post execution to
    * @default AsyncActionsQueue
    */
@@ -119,6 +123,16 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   }
 
   /**
+   * @override
+   */
+  async init() {
+    await super.init();
+    if (this.parameters.launchWorker) {
+      this.worker();
+    }
+  }
+
+  /**
    * Allow job status report url
    */
   async checkRequest(context: Context): Promise<boolean> {
@@ -127,9 +141,9 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     return (
       url.startsWith(this.parameters.url) &&
       url.endsWith("/status") &&
-      context.getHttpContext().getHeader("X-Job-Id") !== "" &&
-      context.getHttpContext().getHeader("X-Job-Time") !== "" &&
-      context.getHttpContext().getHeader("X-Job-Hash") !== ""
+      context.getHttpContext().getUniqueHeader("X-Job-Id") !== "" &&
+      context.getHttpContext().getUniqueHeader("X-Job-Time") !== "" &&
+      context.getHttpContext().getUniqueHeader("X-Job-Hash") !== ""
     );
   }
 
@@ -139,7 +153,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * @param action
    */
   async verifyJobRequest(context: Context): Promise<AsyncAction> {
-    const jobId = context.getHttpContext().getHeader("X-Job-Id");
+    const jobId = context.getHttpContext().getUniqueHeader("X-Job-Id");
     if (!jobId) {
       this.log("TRACE", "Require Job Id");
       throw 404;
@@ -149,8 +163,8 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       this.log("TRACE", `Unknown Job Id '${jobId}'`);
       throw 404;
     }
-    const jobTime = context.getHttpContext().getHeader("X-Job-Time");
-    const jobHash = context.getHttpContext().getHeader("X-Job-Hash");
+    const jobTime = context.getHttpContext().getUniqueHeader("X-Job-Time");
+    const jobHash = context.getHttpContext().getUniqueHeader("X-Job-Hash");
     // Ensure hash mac is correct
     if (jobHash !== crypto.createHmac(AsyncJobService.HMAC_ALGO, action.__secretKey).update(jobTime).digest("hex")) {
       this.log("TRACE", "Invalid Job HMAC");
@@ -168,7 +182,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     const action = await this.verifyJobRequest(context);
     const body = await context.getRequestBody();
 
-    action._lastJobUpdate = Number.parseInt(context.getHttpContext().getHeader("X-Job-Time")) || 0;
+    action._lastJobUpdate = Number.parseInt(context.getHttpContext().getUniqueHeader("X-Job-Time")) || 0;
     if (Date.now() - action._lastJobUpdate > 60) {
       action._lastJobUpdate = Date.now();
     }

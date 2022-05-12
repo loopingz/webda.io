@@ -71,23 +71,23 @@ class AsyncJobServiceTest extends WebdaTest {
   async checkRequest() {
     this.service = this.getValidService();
     let context = await this.newContext();
-    context.setHttpContext(new HttpContext("test.webda.io", "GET", "/", "https", 443, undefined, {}));
+    context.setHttpContext(new HttpContext("test.webda.io", "GET", "/", "https", 443, {}));
     assert.strictEqual(await this.service.checkRequest(context), false);
     context.setHttpContext(
-      new HttpContext("test.webda.io", "GET", "/", "https", 443, undefined, {
+      new HttpContext("test.webda.io", "GET", "/", "https", 443, {
         "X-Job-Id": "plop"
       })
     );
     assert.strictEqual(await this.service.checkRequest(context), false);
     context.setHttpContext(
-      new HttpContext("test.webda.io", "GET", "/", "https", 443, undefined, {
+      new HttpContext("test.webda.io", "GET", "/", "https", 443, {
         "X-Job-Id": "plop",
         "X-Job-Time": "12345"
       })
     );
     assert.strictEqual(await this.service.checkRequest(context), false);
     context.setHttpContext(
-      new HttpContext("test.webda.io", "GET", "/", "https", 443, undefined, {
+      new HttpContext("test.webda.io", "GET", "/", "https", 443, {
         "X-Job-Id": "plop",
         "X-Job-Time": "12345",
         "X-Job-Hash": "myhash"
@@ -95,7 +95,7 @@ class AsyncJobServiceTest extends WebdaTest {
     );
     assert.strictEqual(await this.service.checkRequest(context), false);
     context.setHttpContext(
-      new HttpContext("test.webda.io", "GET", "/status", "https", 443, undefined, {
+      new HttpContext("test.webda.io", "GET", "/status", "https", 443, {
         "X-Job-Id": "plop",
         "X-Job-Time": "12345",
         "X-Job-Hash": "myhash"
@@ -103,7 +103,7 @@ class AsyncJobServiceTest extends WebdaTest {
     );
     assert.strictEqual(await this.service.checkRequest(context), false);
     context.setHttpContext(
-      new HttpContext("test.webda.io", "GET", "/async/jobs/status", "https", 443, undefined, {
+      new HttpContext("test.webda.io", "GET", "/async/jobs/status", "https", 443, {
         "X-Job-Id": "plop",
         "X-Job-Time": "12345",
         "X-Job-Hash": "myhash"
@@ -135,14 +135,14 @@ class AsyncJobServiceTest extends WebdaTest {
     // @ts-ignore
     const hook = service.statusHook.bind(service);
     context.setHttpContext(
-      new HttpContext("test.webda.io", "GET", "/", "https", 443, undefined, {
+      new HttpContext("test.webda.io", "GET", "/", "https", 443, {
         "X-Job-Time": "12345",
         "X-Job-Hash": "myhash"
       })
     );
     await assert.rejects(() => hook(context), /404/);
     context.setHttpContext(
-      new HttpContext("test.webda.io", "GET", "/", "https", 443, undefined, {
+      new HttpContext("test.webda.io", "GET", "/", "https", 443, {
         "X-Job-Time": "12345",
         "X-Job-Hash": "myhash",
         "X-Job-Id": "plop"
@@ -159,44 +159,30 @@ class AsyncJobServiceTest extends WebdaTest {
     });
     await assert.rejects(() => hook(context), /403/);
     context.setHttpContext(
-      new HttpContext(
-        "test.webda.io",
-        "GET",
-        "/",
-        "https",
-        443,
-        {
-          logs: ["line 1", "line 2"],
-          status: "RUNNING"
-        },
-        {
-          "X-Job-Time": "12345",
-          "X-Job-Hash": crypto.createHmac("sha256", "mine").update("12345").digest("hex"),
-          "X-Job-Id": "plop"
-        }
-      )
+      new HttpContext("test.webda.io", "GET", "/", "https", 443, {
+        "X-Job-Time": "12345",
+        "X-Job-Hash": crypto.createHmac("sha256", "mine").update("12345").digest("hex"),
+        "X-Job-Id": "plop"
+      })
     );
+    context.getHttpContext().setBody({
+      logs: ["line 1", "line 2"],
+      status: "RUNNING"
+    });
     await hook(context);
     const now = Date.now().toString();
     context.setHttpContext(
-      new HttpContext(
-        "test.webda.io",
-        "GET",
-        "/",
-        "https",
-        443,
-        {
-          statusDetails: {
-            progress: 100
-          }
-        },
-        {
-          "X-Job-Time": now,
-          "X-Job-Hash": crypto.createHmac("sha256", "mine").update(now).digest("hex"),
-          "X-Job-Id": "plop"
-        }
-      )
+      new HttpContext("test.webda.io", "GET", "/", "https", 443, {
+        "X-Job-Time": now,
+        "X-Job-Hash": crypto.createHmac("sha256", "mine").update(now).digest("hex"),
+        "X-Job-Id": "plop"
+      })
     );
+    context.getHttpContext().setBody({
+      statusDetails: {
+        progress: 100
+      }
+    });
     await hook(context);
     const res = JSON.parse(context.getResponseBody());
     assert.strictEqual(res.job.param1, "plop");
@@ -205,22 +191,16 @@ class AsyncJobServiceTest extends WebdaTest {
       logs.push(`newline ${i}`);
     }
     context.setHttpContext(
-      new HttpContext(
-        "test.webda.io",
-        "GET",
-        "/",
-        "https",
-        443,
-        {
-          logs
-        },
-        {
-          "X-Job-Time": "bouzouf",
-          "X-Job-Hash": crypto.createHmac("sha256", "mine").update("bouzouf").digest("hex"),
-          "X-Job-Id": "plop"
-        }
-      )
+      new HttpContext("test.webda.io", "GET", "/", "https", 443, {
+        "X-Job-Time": "bouzouf",
+        "X-Job-Hash": crypto.createHmac("sha256", "mine").update("bouzouf").digest("hex"),
+        "X-Job-Id": "plop"
+      })
     );
+    context.getHttpContext().setBody({
+      logs
+    });
+
     await hook(context);
     assert.strictEqual(JSON.parse(context.getResponseBody())._lastJobUpdate - res._lastJobUpdate > 0, true);
     assert.strictEqual((await this.store.get("plop")).logs.length, 100);
@@ -345,7 +325,7 @@ class AsyncJobServiceTest extends WebdaTest {
         let ctx = await this.newContext(args[1]);
         if (args.length > 2 && args[2].headers) {
           for (let k in args[2].headers) {
-            ctx.getHttpContext().headers[k.toLowerCase()] = args[2].headers[k];
+            ctx.getHttpContext().headers[k.toLowerCase()] = args[2].headers[k].toString();
           }
         }
         // @ts-ignore

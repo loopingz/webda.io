@@ -1557,7 +1557,7 @@ abstract class Store<
    * @param ctx
    */
   async httpCreate(ctx: Context) {
-    let body = ctx.getRequestBody();
+    let body = await ctx.getRequestBody();
     var object = new this._model();
     object.setContext(ctx);
     object.load(body);
@@ -1641,7 +1641,7 @@ abstract class Store<
    * @param ctx context of the request
    */
   async httpUpdate(ctx: Context) {
-    let body = ctx.getRequestBody();
+    let body = await ctx.getRequestBody();
     let uuid = ctx.parameter("uuid");
     body[this._uuidField] = uuid;
     let object = await this.get(uuid, ctx);

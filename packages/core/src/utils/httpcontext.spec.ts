@@ -6,7 +6,7 @@ import { HttpContext } from "./httpcontext";
 class HttpContextTest {
   @test
   lowerCaseHeader() {
-    let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, undefined, { "X-Test": "weBda" });
+    let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, { "X-Test": "weBda" });
     assert.strictEqual(ctx.getHeader("X-Test"), "weBda");
     assert.strictEqual(ctx.getHeader("X-Test"), ctx.getHeader("x-test"));
     assert.strictEqual(ctx.getPort(), "");

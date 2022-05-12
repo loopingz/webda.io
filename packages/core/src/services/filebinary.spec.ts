@@ -35,14 +35,11 @@ class FileBinaryTest extends CloudBinaryTest {
   @test
   async _getFile() {
     let binary = this.getBinary();
-    const files = [{}];
-    // @ts-ignore
-    assert.strictEqual(binary._getFile({ files }), files[0]);
     let ctx = await this.newContext();
     ctx.getHttpContext().setBody("plop");
     ctx.getHttpContext().headers = { "content-type": "text/plain" };
     assert.deepStrictEqual(
-      binary._getFile(ctx),
+      await binary._getFile(ctx),
       new MemoryBinaryFile(Buffer.from("plop"), {
         challenge: undefined,
         hash: undefined,

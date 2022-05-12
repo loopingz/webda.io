@@ -31,12 +31,12 @@ export class HttpContext {
   search: string;
   protocol: "http:" | "https:";
   port: string;
-  headers: any;
+  headers: { [key: string]: string | string[] };
   origin: string;
   host: string;
   body: string | Readable | undefined;
   cookies: any;
-  files: any[];
+
   /**
    * URI prefix in case it is exposed through something that prefix the uri
    */
@@ -48,10 +48,8 @@ export class HttpContext {
     uri: string,
     protocol: "http" | "https" = "http",
     port: number | string = "80",
-    body?: string | Readable,
-    headers: any = {}
+    headers: { [key: string]: string | string[] } = {}
   ) {
-    this.body = body;
     this.hostname = hostname;
     this.method = method;
     this.uri = uri;
@@ -67,7 +65,9 @@ export class HttpContext {
     this.headers = headers;
     for (let i in this.headers) {
       if (i.toLowerCase() === "cookie") {
-        this.cookies = cookieParse(this.headers[i]);
+        this.cookies = Array.isArray(this.headers[i])
+          ? (<string[]>this.headers[i]).map(c => cookieParse(c))
+          : cookieParse(<string>this.headers[i]);
       }
       if (i.toLowerCase() !== i) {
         this.headers[i.toLowerCase()] = this.headers[i];
@@ -243,12 +243,37 @@ export class HttpContext {
     return this.headers;
   }
 
-  getHeader(name: string, def?: string): string {
+  /**
+   * Get header value
+   * @param name
+   * @param def
+   * @returns
+   */
+  getHeader(name: string, def?: string): string | string[] {
     return this.headers[name.toLowerCase()] || def;
   }
 
-  setBody(body) {
-    this.body = body;
+  /**
+   * Return the last header found with that name
+   */
+  getUniqueHeader(name: string, def?: string): string {
+    let header = this.getHeader(name, def);
+    if (Array.isArray(header)) {
+      return header.pop() || def;
+    }
+    return header || def;
+  }
+
+  /**
+   * Used for test
+   * @param body
+   */
+  setBody(body: string | Readable | any) {
+    if (body instanceof Readable || typeof body === "string") {
+      this.body = body;
+    } else {
+      this.body = JSON.stringify(body);
+    }
   }
 
   /**

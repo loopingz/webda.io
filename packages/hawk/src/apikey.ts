@@ -60,7 +60,7 @@ export default class ApiKey extends OwnerModel {
    * @returns {boolean} TRUE if this origin is authorized with the current key
    */
   checkOrigin(ctx: HttpContext): boolean {
-    const origin = ctx.getHeader("origin") || "";
+    const origin = ctx.getUniqueHeader("origin", "");
     if (!this.origins || !this.origins.length) {
       // There is no origin contraints
       return true;

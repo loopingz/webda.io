@@ -785,7 +785,7 @@ class Authentication<
    * @param hash generate prior by hashPassword
    * @param password as entered by the user
    */
-  checkPassword(hash, pass): boolean {
+  checkPassword(hash: string, pass: string): boolean {
     return bcrypt.compareSync(pass, hash);
   }
 
@@ -936,7 +936,7 @@ class Authentication<
       delete body.password;
       delete body.register;
       delete body.token;
-      let user = await this.registerUser(ctx, {}, uuid, body);
+      let user = await this.registerUser(ctx, {}, uuid, { ...body, __password });
       await this.emitSync("Authentication.PasswordCreate", <EventAuthenticationPasswordUpdate>{
         user,
         password: __password,

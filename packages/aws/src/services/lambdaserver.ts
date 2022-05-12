@@ -197,9 +197,11 @@ export default class LambdaServer extends Webda {
       resourcePath,
       <"http" | "https">protocol,
       port,
-      event.body,
       headers
     );
+    if (["PUT", "PATCH", "POST", "DELETE"].includes(method)) {
+      httpContext.setBody(event.body);
+    }
     this.computePrefix(event, httpContext);
     var ctx = await this.newContext(httpContext);
     // TODO Get all client info

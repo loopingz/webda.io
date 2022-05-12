@@ -589,8 +589,8 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
     let file = await req.getHttpContext().getRawBody(10 * 1024 * 1024);
     // TODO Check if we have other type
     return new MemoryBinaryFile(Buffer.from(file), {
-      mimetype: req.getHttpContext().getHeader("Content-Type", "application/octet-stream"),
-      size: parseInt(req.getHttpContext().getHeader("Content-Length")) || file.length,
+      mimetype: req.getHttpContext().getUniqueHeader("Content-Type", "application/octet-stream"),
+      size: parseInt(req.getHttpContext().getUniqueHeader("Content-Length")) || file.length,
       name: ""
     });
   }
@@ -862,7 +862,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
       }
     } else {
       if (ctx.getHttpContext().getMethod() === "POST") {
-        await this.store(object, property, await this._getFile(ctx), ctx.getRequestBody());
+        await this.store(object, property, await this._getFile(ctx), await ctx.getRequestBody());
       } else {
         if (object[property][index].hash !== ctx.parameter("hash")) {
           throw 412;
@@ -870,7 +870,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
         if (ctx.getHttpContext().getMethod() === "DELETE") {
           await this.delete(object, property, index);
         } else if (ctx.getHttpContext().getMethod() === "PUT") {
-          let metadata: BinaryMetadata = ctx.getRequestBody();
+          let metadata: BinaryMetadata = await ctx.getRequestBody();
           // Limit metadata to 4kb
           if (JSON.stringify(metadata).length >= 4096) {
             throw 400;

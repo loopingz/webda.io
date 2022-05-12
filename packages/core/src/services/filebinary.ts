@@ -245,9 +245,9 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   async storeBinary(ctx: Context) {
     let body = await ctx.getHttpContext().getRawBody(10 * 1024 * 1024);
     var result = await new MemoryBinaryFile(Buffer.from(body), {
-      mimetype: ctx.getHttpContext().getHeader("content-type"),
+      mimetype: ctx.getHttpContext().getUniqueHeader("content-type"),
       name: "",
-      size: parseInt(ctx.getHttpContext().getHeader("content-length"))
+      size: parseInt(ctx.getHttpContext().getUniqueHeader("content-length"))
     }).getHashes();
     if (ctx.parameter("hash") !== result.hash) {
       throw 400;

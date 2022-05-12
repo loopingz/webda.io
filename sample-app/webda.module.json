@@ -108,24 +108,27 @@
         "anotherParameter": {
           "type": "string"
         },
-        "interfareParam": {
+        "interfaceParam": {
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
+          "description": "The Partial will generate a new $ref"
+        }
+      },
+      "required": [
+        "anotherParameter",
+        "interfaceParam",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Partial<interface-829200435-159-207-829200435-0-1151>": {
           "type": "object",
           "properties": {
             "test": {
               "type": "string"
             }
-          },
-          "required": [
-            "test"
-          ]
+          }
         }
       },
-      "required": [
-        "anotherParameter",
-        "interfareParam",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AnotherService"
     },
     "webdademo/secondotherservice": {
@@ -138,24 +141,27 @@
         "anotherParameter": {
           "type": "string"
         },
-        "interfareParam": {
+        "interfaceParam": {
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
+          "description": "The Partial will generate a new $ref"
+        }
+      },
+      "required": [
+        "anotherParameter",
+        "interfaceParam",
+        "type"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Partial<interface-829200435-159-207-829200435-0-1151>": {
           "type": "object",
           "properties": {
             "test": {
               "type": "string"
             }
-          },
-          "required": [
-            "test"
-          ]
+          }
         }
       },
-      "required": [
-        "anotherParameter",
-        "interfareParam",
-        "type"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "SecondOtherService"
     },
     "webdademo/thirdotherservice": {
@@ -183,16 +189,9 @@
         "anotherParameter": {
           "type": "string"
         },
-        "interfareParam": {
-          "type": "object",
-          "properties": {
-            "test": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "test"
-          ]
+        "interfaceParam": {
+          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
+          "description": "The Partial will generate a new $ref"
         },
         "fourthParameter": {
           "type": "number",
@@ -203,10 +202,20 @@
       "required": [
         "anotherParameter",
         "fourthParameter",
-        "interfareParam",
+        "interfaceParam",
         "type"
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Partial<interface-829200435-159-207-829200435-0-1151>": {
+          "type": "object",
+          "properties": {
+            "test": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "title": "FourthOtherService"
     },
     "webdademo/queueservice": {

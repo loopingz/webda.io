@@ -64,7 +64,7 @@ export default class AsyncAction extends CoreModel {
   /**
    *
    */
-  public arguments: any[];
+  public arguments?: any[];
 
   /**
    * Current logs

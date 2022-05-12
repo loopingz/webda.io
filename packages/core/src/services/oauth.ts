@@ -132,7 +132,7 @@ export abstract class OAuthService<
     }
     let regexps = this.getCallbackReferer();
     let valid = false;
-    let referer = context.getHttpContext().getHeader("referer") || "";
+    let referer = context.getHttpContext().getUniqueHeader("referer", "");
     if (this.parameters.no_referer && referer === "") {
       return true;
     }

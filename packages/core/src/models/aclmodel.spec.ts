@@ -109,15 +109,19 @@ class AclPolicyTest {
     };
     let actions = AclModel.getActions();
     assert.notStrictEqual(actions.acl, undefined);
-    this._ctx.setHttpContext(new HttpContext("test.webda.io", "PUT", "/", undefined, undefined, { acl: "mine" }));
+    this._ctx.setHttpContext(
+      new HttpContext("test.webda.io", "PUT", "/", undefined, undefined, JSON.stringify({ acl: "mine" }))
+    );
     await this.model._acl(this._ctx);
     // @ts-ignore
     assert.strictEqual(this.model.getAcl().acl, "mine");
     this._ctx.setHttpContext(
-      new HttpContext("test.webda.io", "PUT", "/", undefined, undefined, { raw: { acl: "mine" } })
+      new HttpContext("test.webda.io", "PUT", "/", undefined, undefined, JSON.stringify({ raw: { acl: "mine" } }))
     );
     await assert.rejects(() => this.model._acl(this._ctx));
-    this._ctx.setHttpContext(new HttpContext("test.webda.io", "GET", "/", undefined, undefined, { acl: "mine" }));
+    this._ctx.setHttpContext(
+      new HttpContext("test.webda.io", "GET", "/", undefined, undefined, JSON.stringify({ acl: "mine" }))
+    );
     await this.model._acl(this._ctx);
     assert.deepStrictEqual(JSON.parse(this._ctx.getResponseBody()), {
       raw: {

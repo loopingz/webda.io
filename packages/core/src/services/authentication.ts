@@ -5,8 +5,9 @@ import { Ident } from "../models/ident";
 import { User } from "../models/user";
 import { Inject, Service, ServiceParameters } from "../services/service";
 import { Store } from "../stores/store";
-import { Context, HttpContext } from "../utils/context";
+import { Context } from "../utils/context";
 import { Mailer } from "./mailer";
+import { HttpContext } from "../utils/httpcontext";
 
 /**
  * Emitted when the /me route is called
@@ -19,7 +20,7 @@ export interface EventAuthenticationGetMe extends EventWithContext {
  * Emitted when new user registered
  */
 export interface EventAuthenticationRegister extends EventAuthenticationGetMe {
-  datas: any;
+  data: any;
   identId: string;
 }
 
@@ -68,19 +69,41 @@ export interface PasswordVerifier extends Service {
 /**
  * Information required to reset a password
  */
-export class PasswordRecoveryInfos {
+export interface PasswordRecoveryInfos {
   /**
    * Links are short lived
    */
-  public expire: number;
+  expire: number;
   /**
    * Generated token
    */
-  public token: string;
+  token: string;
   /**
    * Login to reset password fors
    */
-  public login: string;
+  login: string;
+}
+
+interface PasswordRecoveryBody extends PasswordRecoveryInfos {
+  /**
+   * Password to set
+   */
+  password: string;
+}
+
+/**
+ * Login info
+ *
+ * If register = true, you can add many other information
+ *
+ * @SchemaAdditionalProperties
+ */
+interface LoginBody {
+  login: string;
+  register?: boolean;
+  token?: string;
+  email?: string;
+  password?: string;
 }
 
 export class AuthenticationParameters extends ServiceParameters {
@@ -545,17 +568,12 @@ class Authentication<
     await this.onIdentLogin(ctx, provider, identId, profile);
   }
 
-  async registerUser(
-    ctx: Context,
-    datas: any,
-    identId: string,
-    user: any = this._usersStore.initModel()
-  ): Promise<any> {
-    user.email = datas.email;
+  async registerUser(ctx: Context, data: any, identId: string, user: any = this._usersStore.initModel()): Promise<any> {
+    user.email = data.email;
     user.locale = ctx.getLocale();
     await this.emitSync("Authentication.Register", <EventAuthenticationRegister>{
       user: user,
-      datas: datas,
+      data: data,
       context: ctx,
       identId
     });
@@ -615,8 +633,8 @@ class Authentication<
     }
   }
 
-  async _passwordRecovery(ctx: Context) {
-    let body = ctx.getRequestBody();
+  async _passwordRecovery(ctx: Context<PasswordRecoveryBody>) {
+    let body = await ctx.getRequestBody();
     if (
       body.password === undefined ||
       body.login === undefined ||
@@ -828,11 +846,11 @@ class Authentication<
    * @param ctx
    * @param ident
    */
-  protected async handleLogin(ctx: Context, ident: Ident) {
+  protected async handleLogin(ctx: Context<LoginBody>, ident: Ident) {
     let updates: any = {};
     let user: User = await this._usersStore.get(ident.getUser());
     // Check password
-    if (this.checkPassword(user.getPassword(), ctx.getRequestBody().password)) {
+    if (this.checkPassword(user.getPassword(), (await ctx.getRequestBody()).password)) {
       if (ident._failedLogin > 0) {
         ident._failedLogin = 0;
       }
@@ -867,13 +885,13 @@ class Authentication<
    * @param ctx
    * @returns
    */
-  async _handleEmail(ctx: Context) {
+  async _handleEmail(ctx: Context<LoginBody>) {
     // If called while logged in reject
     if (ctx.getCurrentUserId() !== undefined) {
       throw 410;
     }
 
-    let body = ctx.getRequestBody();
+    let body = await ctx.getRequestBody();
 
     if (body.login === undefined) {
       throw 400;
@@ -912,7 +930,7 @@ class Authentication<
         throw 400;
       }
       // Store with a _
-      body.__password = this.hashPassword(body.password);
+      let __password = this.hashPassword(body.password);
       await this._verifyPassword(body.password);
       // Remove useless attributes
       delete body.password;
@@ -921,7 +939,7 @@ class Authentication<
       let user = await this.registerUser(ctx, {}, uuid, body);
       await this.emitSync("Authentication.PasswordCreate", <EventAuthenticationPasswordUpdate>{
         user,
-        password: body.__password,
+        password: __password,
         context: ctx
       });
       user = await this._usersStore.save(user);

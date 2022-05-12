@@ -1,8 +1,8 @@
-import { PermissionModel, StoreTest } from "./store.spec";
+import { StoreTest } from "./store.spec";
 import { FileStore, CoreModel, Store, FileUtils } from "../index";
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { HttpContext } from "../utils/context";
+import { HttpContext } from "../utils/httpcontext";
 import { removeSync } from "fs-extra";
 import { existsSync } from "fs";
 import { StoreNotFoundError, UpdateConditionFailError } from "./store";

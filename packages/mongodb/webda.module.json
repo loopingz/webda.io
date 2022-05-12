@@ -51,7 +51,166 @@
           "type": "string"
         },
         "databaseOptions": {
-          "$ref": "#/definitions/DbOptions",
+          "type": "object",
+          "properties": {
+            "logger": {
+              "$ref": "#/definitions/LoggerFunction"
+            },
+            "loggerLevel": {
+              "$ref": "#/definitions/LoggerLevel"
+            },
+            "writeConcern": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "w": {
+                      "$ref": "#/definitions/W",
+                      "description": "request acknowledgment that the write operation has propagated to a specified number of mongod instances or to mongod instances with specified tags."
+                    },
+                    "wtimeout": {
+                      "type": "number",
+                      "description": "specify a time limit to prevent write operations from blocking indefinitely"
+                    },
+                    "j": {
+                      "type": "boolean",
+                      "description": "request acknowledgment that the write operation has been written to the on-disk journal"
+                    },
+                    "fsync": {
+                      "anyOf": [
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "number",
+                          "const": 1
+                        }
+                      ],
+                      "description": "equivalent to the j option"
+                    }
+                  },
+                  "description": "A MongoDB WriteConcern, which describes the level of acknowledgement requested from MongoDB for write operations."
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "w": {
+                      "$ref": "#/definitions/W",
+                      "description": "The write concern"
+                    },
+                    "wtimeoutMS": {
+                      "type": "number",
+                      "description": "The write concern timeout"
+                    },
+                    "journal": {
+                      "type": "boolean",
+                      "description": "The journal write concern"
+                    },
+                    "j": {
+                      "type": "boolean",
+                      "description": "The journal write concern"
+                    },
+                    "wtimeout": {
+                      "type": "number",
+                      "description": "The write concern timeout"
+                    },
+                    "fsync": {
+                      "anyOf": [
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "number",
+                          "const": 1
+                        }
+                      ],
+                      "description": "The file sync write concern"
+                    }
+                  }
+                }
+              ],
+              "description": "Write Concern as an object"
+            },
+            "promoteLongs": {
+              "type": "boolean",
+              "description": "when deserializing a Long will fit it into a Number if it's smaller than 53 bits"
+            },
+            "promoteBuffers": {
+              "type": "boolean",
+              "description": "when deserializing a Binary will return it as a node.js Buffer instance."
+            },
+            "promoteValues": {
+              "type": "boolean",
+              "description": "when deserializing will promote BSON values to their Node.js closest equivalent types."
+            },
+            "fieldsAsRaw": {
+              "type": "object",
+              "description": "allow to specify if there what fields we wish to return as unserialized raw buffer."
+            },
+            "bsonRegExp": {
+              "type": "boolean",
+              "description": "return BSON regular expressions as BSONRegExp instances."
+            },
+            "raw": {
+              "type": "boolean",
+              "description": "Return BSON filled buffers from operations"
+            },
+            "checkKeys": {
+              "type": "boolean",
+              "description": "the serializer will check if keys are valid."
+            },
+            "serializeFunctions": {
+              "type": "boolean",
+              "description": "serialize the javascript functions **(default:false)**."
+            },
+            "ignoreUndefined": {
+              "type": "boolean",
+              "description": "serialize will not emit undefined fields **(default:true)**"
+            },
+            "enableUtf8Validation": {
+              "type": "boolean",
+              "description": "Enable utf8 validation when deserializing BSON documents.  Defaults to true."
+            },
+            "authSource": {
+              "type": "string",
+              "description": "If the database authentication is dependent on another databaseName."
+            },
+            "forceServerObjectId": {
+              "type": "boolean",
+              "description": "Force server to assign _id values instead of driver."
+            },
+            "readPreference": {
+              "$ref": "#/definitions/ReadPreferenceLike",
+              "description": "The preferred read preference (ReadPreference.PRIMARY, ReadPreference.PRIMARY_PREFERRED, ReadPreference.SECONDARY, ReadPreference.SECONDARY_PREFERRED, ReadPreference.NEAREST)."
+            },
+            "pkFactory": {
+              "type": "object",
+              "description": "A primary key factory object for generation of custom _id keys."
+            },
+            "readConcern": {
+              "type": "object",
+              "properties": {
+                "level": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/definitions/ReadConcernLevel"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "level"
+              ],
+              "description": "Specify a read concern for the collection. (only MongoDB 3.2 or higher supported)"
+            },
+            "retryWrites": {
+              "type": "boolean",
+              "description": "Should retry failed writes"
+            }
+          },
           "description": "Mongo Database Options"
         }
       },
@@ -104,96 +263,8 @@
                 "PUT",
                 "GET"
               ],
-              "description": "For confidentiality sometimes you might prefer to expose query through PUT To avoid GET logging"
-            }
-          },
-          "required": [
-            "queryMethod"
-          ]
-        },
-        "DbOptions": {
-          "type": "object",
-          "properties": {
-            "logger": {
-              "$ref": "#/definitions/LoggerFunction"
-            },
-            "loggerLevel": {
-              "$ref": "#/definitions/LoggerLevel"
-            },
-            "writeConcern": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/WriteConcern"
-                },
-                {
-                  "$ref": "#/definitions/WriteConcernSettings"
-                }
-              ],
-              "description": "Write Concern as an object"
-            },
-            "promoteLongs": {
-              "type": "boolean",
-              "description": "when deserializing a Long will fit it into a Number if it's smaller than 53 bits"
-            },
-            "promoteBuffers": {
-              "type": "boolean",
-              "description": "when deserializing a Binary will return it as a node.js Buffer instance."
-            },
-            "promoteValues": {
-              "type": "boolean",
-              "description": "when deserializing will promote BSON values to their Node.js closest equivalent types."
-            },
-            "fieldsAsRaw": {
-              "$ref": "#/definitions/Document",
-              "description": "allow to specify if there what fields we wish to return as unserialized raw buffer."
-            },
-            "bsonRegExp": {
-              "type": "boolean",
-              "description": "return BSON regular expressions as BSONRegExp instances."
-            },
-            "raw": {
-              "type": "boolean",
-              "description": "Return BSON filled buffers from operations"
-            },
-            "checkKeys": {
-              "type": "boolean",
-              "description": "the serializer will check if keys are valid."
-            },
-            "serializeFunctions": {
-              "type": "boolean",
-              "description": "serialize the javascript functions **(default:false)**."
-            },
-            "ignoreUndefined": {
-              "type": "boolean",
-              "description": "serialize will not emit undefined fields **(default:true)**"
-            },
-            "enableUtf8Validation": {
-              "type": "boolean",
-              "description": "Enable utf8 validation when deserializing BSON documents.  Defaults to true."
-            },
-            "authSource": {
-              "type": "string",
-              "description": "If the database authentication is dependent on another databaseName."
-            },
-            "forceServerObjectId": {
-              "type": "boolean",
-              "description": "Force server to assign _id values instead of driver."
-            },
-            "readPreference": {
-              "$ref": "#/definitions/ReadPreferenceLike",
-              "description": "The preferred read preference (ReadPreference.PRIMARY, ReadPreference.PRIMARY_PREFERRED, ReadPreference.SECONDARY, ReadPreference.SECONDARY_PREFERRED, ReadPreference.NEAREST)."
-            },
-            "pkFactory": {
-              "$ref": "#/definitions/PkFactory",
-              "description": "A primary key factory object for generation of custom _id keys."
-            },
-            "readConcern": {
-              "$ref": "#/definitions/ReadConcern",
-              "description": "Specify a read concern for the collection. (only MongoDB 3.2 or higher supported)"
-            },
-            "retryWrites": {
-              "type": "boolean",
-              "description": "Should retry failed writes"
+              "description": "For confidentiality sometimes you might prefer to expose query through PUT To avoid GET logging",
+              "default": "GET"
             }
           }
         },
@@ -219,36 +290,6 @@
             {}
           ]
         },
-        "WriteConcern": {
-          "type": "object",
-          "properties": {
-            "w": {
-              "$ref": "#/definitions/W",
-              "description": "request acknowledgment that the write operation has propagated to a specified number of mongod instances or to mongod instances with specified tags."
-            },
-            "wtimeout": {
-              "type": "number",
-              "description": "specify a time limit to prevent write operations from blocking indefinitely"
-            },
-            "j": {
-              "type": "boolean",
-              "description": "request acknowledgment that the write operation has been written to the on-disk journal"
-            },
-            "fsync": {
-              "anyOf": [
-                {
-                  "type": "boolean"
-                },
-                {
-                  "type": "number",
-                  "const": 1
-                }
-              ],
-              "description": "equivalent to the j option"
-            }
-          },
-          "description": "A MongoDB WriteConcern, which describes the level of acknowledgement requested from MongoDB for write operations."
-        },
         "W": {
           "anyOf": [
             {
@@ -260,82 +301,45 @@
             }
           ]
         },
-        "WriteConcernSettings": {
-          "type": "object",
-          "properties": {
-            "w": {
-              "$ref": "#/definitions/W",
-              "description": "The write concern"
-            },
-            "wtimeoutMS": {
-              "type": "number",
-              "description": "The write concern timeout"
-            },
-            "journal": {
-              "type": "boolean",
-              "description": "The journal write concern"
-            },
-            "j": {
-              "type": "boolean",
-              "description": "The journal write concern"
-            },
-            "wtimeout": {
-              "type": "number",
-              "description": "The write concern timeout"
-            },
-            "fsync": {
-              "anyOf": [
-                {
-                  "type": "boolean"
-                },
-                {
-                  "type": "number",
-                  "const": 1
-                }
-              ],
-              "description": "The file sync write concern"
-            }
-          }
-        },
-        "Document": {
-          "type": "object"
-        },
         "ReadPreferenceLike": {
           "anyOf": [
             {
-              "$ref": "#/definitions/ReadPreference"
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "$ref": "#/definitions/ReadPreferenceMode"
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/TagSet"
+                  }
+                },
+                "hedge": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "Explicitly enable or disable hedged reads."
+                    }
+                  }
+                },
+                "maxStalenessSeconds": {
+                  "type": "number"
+                },
+                "minWireVersion": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "mode"
+              ],
+              "description": "The **ReadPreference** class is a class that represents a MongoDB ReadPreference and is used to construct connections."
             },
             {
               "$ref": "#/definitions/ReadPreferenceMode"
             }
           ]
-        },
-        "ReadPreference": {
-          "type": "object",
-          "properties": {
-            "mode": {
-              "$ref": "#/definitions/ReadPreferenceMode"
-            },
-            "tags": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/TagSet"
-              }
-            },
-            "hedge": {
-              "$ref": "#/definitions/HedgeOptions"
-            },
-            "maxStalenessSeconds": {
-              "type": "number"
-            },
-            "minWireVersion": {
-              "type": "number"
-            }
-          },
-          "required": [
-            "mode"
-          ],
-          "description": "The **ReadPreference** class is a class that represents a MongoDB ReadPreference and is used to construct connections."
         },
         "ReadPreferenceMode": {
           "anyOf": [
@@ -367,37 +371,6 @@
           "additionalProperties": {
             "type": "string"
           }
-        },
-        "HedgeOptions": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "description": "Explicitly enable or disable hedged reads."
-            }
-          }
-        },
-        "PkFactory": {
-          "type": "object"
-        },
-        "ReadConcern": {
-          "type": "object",
-          "properties": {
-            "level": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/ReadConcernLevel"
-                },
-                {
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "required": [
-            "level"
-          ],
-          "description": "The MongoDB ReadConcern, which allows for control of the consistency and isolation properties of the data read from replica sets and replica set shards."
         },
         "ReadConcernLevel": {
           "anyOf": [

@@ -1,6 +1,6 @@
 import * as events from "events";
 import { Core, Logger } from "../index";
-import { HttpMethodType } from "../utils/context";
+import { HttpMethodType } from "../utils/httpcontext";
 import { EventService } from "./asyncevents";
 import { WorkerLogLevel } from "@webda/workout";
 import { OpenAPIWebdaDefinition } from "../router";

@@ -1,7 +1,17 @@
-import { ClientInfo, Core as Webda, HttpContext, WaitFor, WaitLinearDelay, Context } from "@webda/core";
+import {
+  ClientInfo,
+  Core as Webda,
+  HttpContext,
+  WaitFor,
+  WaitLinearDelay,
+  Context,
+  ResourceService,
+  HttpMethodType
+} from "@webda/core";
 import * as http from "http";
 import { serialize as cookieSerialize } from "cookie";
 import * as path from "path";
+import { AddressInfo } from "net";
 
 export enum ServerStatus {
   Stopped = "STOPPED",
@@ -45,55 +55,53 @@ export class WebdaServer extends Webda {
    * @param res
    * @param next
    */
-  async handleRequest(req, res, next) {
+  async handleRequest(
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+    resourceService: ResourceService
+  ): Promise<void> {
     try {
       res.on("error", this.log.bind(this, "ERROR"));
       // Wait for Webda to be ready
       await this.init();
 
       // Handle reverse proxy
-      var vhost = req.headers.host.match(/:/g)
+      let vhost: string = req.headers.host.match(/:/g)
         ? req.headers.host.slice(0, req.headers.host.indexOf(":"))
         : req.headers.host;
-      if (req.hostname !== undefined) {
-        vhost = req.hostname;
-      }
+      // Might want to add some whitelisting
       if (req.headers["x-forwarded-host"] !== undefined) {
-        vhost = req.headers["x-forwarded-host"];
+        vhost = <string>req.headers["x-forwarded-host"];
       }
-      var protocol = req.protocol;
+      let protocol: "http" | "https" = "http";
       if (req.headers["x-forwarded-proto"] !== undefined) {
-        protocol = req.headers["x-forwarded-proto"];
+        protocol = <"http" | "https">req.headers["x-forwarded-proto"];
       }
 
       let method = req.method;
       let port;
       if (req.socket && req.socket.address()) {
-        port = req.socket.address().port;
+        port = (<AddressInfo>req.socket.address()).port;
       }
       if (req.headers["x-forwarded-port"] !== undefined) {
-        port = parseInt(req.headers["x-forwarded-port"]);
+        port = parseInt(<string>req.headers["x-forwarded-port"]);
       }
-      let httpContext = new HttpContext(vhost, method, req.url, protocol, port, req.body, req.headers, req.files);
+      let httpContext = new HttpContext(vhost, <HttpMethodType>method, req.url, protocol, port, req, req.headers);
       let ctx = await this.newContext(httpContext, res, true);
       ctx.clientInfo = this.getClientInfo(req);
 
       if (!this.updateContextWithRoute(ctx)) {
         let routes = this.router.getRouteMethodsFromUrl(httpContext.getRelativeUri());
         if (routes.length === 0) {
-          return next();
+          await resourceService._serve(await ctx.init());
+          return;
         }
       }
 
       await ctx.init();
-      req.session = ctx.getSession().getProxy();
-
-      // Setup the right session cookie
-      //req.session.cookie.domain = vhost;
 
       // Fallback on reference as Origin is not always set by Edge
       let origin = req.headers.Origin || req.headers.origin || req.headers.Referer;
-
       try {
         // Set predefined headers for CORS
         if (this.devMode || (await this.checkCORSRequest(ctx))) {
@@ -155,7 +163,7 @@ export class WebdaServer extends Webda {
         if (typeof err === "number") {
           ctx.statusCode = err;
           this.flushHeaders(ctx);
-          return res.end();
+          return;
         } else {
           this.output("ERROR Exception occured : " + JSON.stringify(err), err.stack);
           res.writeHead(500);
@@ -166,7 +174,6 @@ export class WebdaServer extends Webda {
     } catch (err) {
       res.writeHead(500);
       this.output("ERROR Exception occured : " + JSON.stringify(err), err.stack);
-      res.end();
     }
   }
 
@@ -175,11 +182,11 @@ export class WebdaServer extends Webda {
       return;
     }
     ctx.setFlushedHeaders(true);
-    var res = ctx._stream;
+    let res = <http.ServerResponse>ctx.getStream();
     var headers = ctx.getResponseHeaders();
     let cookies = ctx.getResponseCookies();
     for (let i in cookies) {
-      res.header("Set-Cookie", cookieSerialize(cookies[i].name, cookies[i].value, cookies[i].options));
+      res.setHeader("Set-Cookie", cookieSerialize(cookies[i].name, cookies[i].value, cookies[i].options));
     }
     res.writeHead(ctx.statusCode, headers);
   }
@@ -235,47 +242,22 @@ export class WebdaServer extends Webda {
    */
   async serve(port: number = 18080, websockets: boolean = false, bind: string = undefined) {
     this.serverStatus = ServerStatus.Starting;
+    let resourceService;
+    if (this.getGlobalParams().website && this.getGlobalParams().website.path) {
+      resourceService = new ResourceService(this, "websiteResource", {
+        folder: this.getGlobalParams().website.path
+      });
+      resourceService.resolve();
+      await resourceService.init();
+    }
     try {
-      var express = require("express");
-      var cookieParser = require("cookie-parser");
-      var bodyParser = require("body-parser");
-      var multer = require("multer"); // v1.0.5
-      var upload = multer(); // for parsing multipart/form-data
-
-      var requestLimit = this.getGlobalParams().requestLimit ? this.getGlobalParams().requestLimit : "20mb";
-      var app = express();
-      app.use(cookieParser());
-      app.use(
-        bodyParser.text({
-          type: "text/plain"
+      this.http = http
+        .createServer((req, res) => {
+          this.handleRequest(req, res, resourceService).finally(() => {
+            res.end();
+          });
         })
-      );
-      app.use(
-        bodyParser.json({
-          limit: requestLimit
-        })
-      );
-      app.use(
-        bodyParser.urlencoded({
-          extended: true
-        })
-      );
-      app.use(upload.array("file"));
-      // Will lower the limit soon, we should have a library that handle multipart file
-      app.use(
-        bodyParser.raw({
-          type: "*/*",
-          limit: requestLimit
-        })
-      );
-
-      app.set("trust proxy", "loopback, 10.0.0.0/8");
-      app.set("x-powered-by", false);
-
-      app.use(this.handleRequest.bind(this));
-      this.serveStaticWebsite(express, app);
-
-      this.http = http.createServer(app).listen(port, bind);
+        .listen(port, bind);
       process.on("SIGINT", this.onSIGINT.bind(this));
       this.http.on("close", () => {
         this.serverStatus = ServerStatus.Stopped;
@@ -290,7 +272,6 @@ export class WebdaServer extends Webda {
         this.io = require("socket.io")(this.http);
         this.emit("Webda.Init.SocketIO", this.io);
       }
-      this.serveIndex(express, app);
       this.output("Server running at http://0.0.0.0:" + port);
       this.serverStatus = ServerStatus.Started;
     } catch (err) {

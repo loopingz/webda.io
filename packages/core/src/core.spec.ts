@@ -5,7 +5,8 @@ import { Core, OriginFilter, WebdaError, WebsiteOriginFilter } from "./core";
 import { Authentication, Bean, ConsoleLoggerService, Route, Service } from "./index";
 import { Store } from "./stores/store";
 import { TestApplication, WebdaTest } from "./test";
-import { Context, HttpContext } from "./utils/context";
+import { Context } from "./utils/context";
+import { HttpContext } from "./utils/httpcontext";
 import * as sinon from "sinon";
 
 class BadService {
@@ -56,15 +57,15 @@ class CSRFTest extends WebdaTest {
   @test
   async csrfRegExp() {
     this.webda.getConfiguration().parameters.website = "http://localhost:18181";
-    this.ctx.setHttpContext(new HttpContext("accounts.google.fr", "GET", "/", "https", 443, {}));
+    this.ctx.setHttpContext(new HttpContext("accounts.google.fr", "GET", "/", "https", 443));
     assert.strictEqual(await this.checkRequest(this.ctx), true);
-    this.ctx.setHttpContext(new HttpContext("accounts.google.com", "GET", "/", "https", 443, {}));
+    this.ctx.setHttpContext(new HttpContext("accounts.google.com", "GET", "/", "https", 443));
     assert.strictEqual(await this.checkRequest(this.ctx), true);
-    this.ctx.setHttpContext(new HttpContext("accounts.google.fr.loopingz.com", "GET", "/", "https", 443, {}));
+    this.ctx.setHttpContext(new HttpContext("accounts.google.fr.loopingz.com", "GET", "/", "https", 443));
     assert.strictEqual(await this.checkRequest(this.ctx), false);
-    this.ctx.setHttpContext(new HttpContext("www.facebook.com", "GET", "/", "https", 443, {}));
+    this.ctx.setHttpContext(new HttpContext("www.facebook.com", "GET", "/", "https", 443));
     assert.strictEqual(await this.checkRequest(this.ctx), true);
-    this.ctx.setHttpContext(new HttpContext("www.facebook.com.eu", "GET", "/", "https", 443, {}));
+    this.ctx.setHttpContext(new HttpContext("www.facebook.com.eu", "GET", "/", "https", 443));
     assert.strictEqual(await this.checkRequest(this.ctx), false);
   }
 
@@ -95,52 +96,52 @@ class CSRFTest extends WebdaTest {
   async websiteString() {
     this.filter = new WebsiteOriginFilter("http://localhost:18181");
     // Exact match
-    this.ctx.setHttpContext(new HttpContext("localhost:18181", "GET", "/", "http", 80, {}));
+    this.ctx.setHttpContext(new HttpContext("localhost:18181", "GET", "/", "http", 80));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), true);
 
     // Bad protocol
-    this.ctx.setHttpContext(new HttpContext("localhost:18181", "GET", "/", "https", 443, {}));
+    this.ctx.setHttpContext(new HttpContext("localhost:18181", "GET", "/", "https", 443));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), false);
 
     // Bad port
-    this.ctx.setHttpContext(new HttpContext("localhost:18181", "GET", "/", "http", 18182, {}));
+    this.ctx.setHttpContext(new HttpContext("localhost:18181", "GET", "/", "http", 18182));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), false);
 
     // Bad host
-    this.ctx.setHttpContext(new HttpContext("localhost2:18181", "GET", "/", "http", 18181, {}));
+    this.ctx.setHttpContext(new HttpContext("localhost2:18181", "GET", "/", "http", 18181));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), false);
   }
 
   @test
   async websiteArray() {
     this.filter = new WebsiteOriginFilter(["http://localhost:18181", "http://localhost2:18181"]);
-    this.ctx.setHttpContext(new HttpContext("localhost", "GET", "/", "http", 18181, {}));
+    this.ctx.setHttpContext(new HttpContext("localhost", "GET", "/", "http", 18181));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), true);
 
     // Just host headers
     this.webda.getConfiguration().parameters.website = ["http://localhost:18181", "http://localhost2:18181"];
 
     // First host
-    this.ctx.setHttpContext(new HttpContext("localhost", "GET", "/", "http", 18181, {}));
+    this.ctx.setHttpContext(new HttpContext("localhost", "GET", "/", "http", 18181));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), true);
 
     // Second host
-    this.ctx.setHttpContext(new HttpContext("localhost2", "GET", "/", "http", 18181, {}));
+    this.ctx.setHttpContext(new HttpContext("localhost2", "GET", "/", "http", 18181));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), true);
 
     // Bad port
-    this.ctx.setHttpContext(new HttpContext("localhost", "GET", "/", "http", 18182, {}));
+    this.ctx.setHttpContext(new HttpContext("localhost", "GET", "/", "http", 18182));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), false);
 
     // Bad host
-    this.ctx.setHttpContext(new HttpContext("localhost3", "GET", "/", "http", 18181, {}));
+    this.ctx.setHttpContext(new HttpContext("localhost3", "GET", "/", "http", 18181));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), false);
   }
 
   @test
   async originFilter() {
     let filter = new OriginFilter(["https://localhost3"]);
-    this.ctx.setHttpContext(new HttpContext("localhost3", "GET", "/", "https", 443, {}));
+    this.ctx.setHttpContext(new HttpContext("localhost3", "GET", "/", "https", 443));
     assert.strictEqual(await filter.checkRequest(this.ctx), true);
   }
 
@@ -151,15 +152,15 @@ class CSRFTest extends WebdaTest {
       url: "localhost:18181"
     });
     // Good host
-    this.ctx.setHttpContext(new HttpContext("localhost", "GET", "/", "http", 18181, {}));
+    this.ctx.setHttpContext(new HttpContext("localhost", "GET", "/", "http", 18181));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), true);
 
     // Bad host
-    this.ctx.setHttpContext(new HttpContext("localhost2", "GET", "/", "http", 18181, {}));
+    this.ctx.setHttpContext(new HttpContext("localhost2", "GET", "/", "http", 18181));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), false);
 
     // Bad port
-    this.ctx.setHttpContext(new HttpContext("localhost", "GET", "/", "http", 18182, {}));
+    this.ctx.setHttpContext(new HttpContext("localhost", "GET", "/", "http", 18182));
     assert.strictEqual(await this.filter.checkRequest(this.ctx), false);
   }
 
@@ -170,11 +171,11 @@ class CSRFTest extends WebdaTest {
         url: "localhost:18181"
       }
      */
-    this.ctx.setHttpContext(new HttpContext("csrf.com", "GET", "/bouzouf/route", "https", 443, {}));
+    this.ctx.setHttpContext(new HttpContext("csrf.com", "GET", "/bouzouf/route", "https", 443));
     assert.strictEqual(await this.checkRequest(this.ctx), true);
-    this.ctx.setHttpContext(new HttpContext("csrf.com", "GET", "/bouzouf2/route", "https", 443, {}));
+    this.ctx.setHttpContext(new HttpContext("csrf.com", "GET", "/bouzouf2/route", "https", 443));
     assert.strictEqual(await this.checkRequest(this.ctx), false);
-    this.ctx.setHttpContext(new HttpContext("csrfs.com", "GET", "/bouzouf/route", "https", 443, {}));
+    this.ctx.setHttpContext(new HttpContext("csrfs.com", "GET", "/bouzouf/route", "https", 443));
     assert.strictEqual(await this.checkRequest(this.ctx), false);
   }
 }

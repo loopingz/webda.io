@@ -10,7 +10,10 @@ interface MyInterfaceParam {
 }
 class AnotherServiceParameters extends ServiceParameters {
   anotherParameter: string;
-  interfareParam: MyInterfaceParam;
+  /**
+   * The Partial will generate a new $ref
+   */
+  interfaceParam: Partial<MyInterfaceParam>;
 }
 
 class FourthServiceParameters extends AnotherServiceParameters {

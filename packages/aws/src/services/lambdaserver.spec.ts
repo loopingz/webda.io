@@ -88,7 +88,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
         method: "send",
         args: ["test"]
       },
-      {}
+      undefined
     );
     assert.strictEqual(this.debugMailer.sent[0], "test");
   }
@@ -102,7 +102,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
         method: "send",
         args: ["test"]
       },
-      {}
+      undefined
     );
     assert.strictEqual(this.debugMailer.sent.length, 0);
   }
@@ -115,7 +115,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
         service: "DebugMailer",
         method: "sends"
       },
-      {}
+      undefined
     );
     assert.strictEqual(this.debugMailer.sent.length, 0);
   }

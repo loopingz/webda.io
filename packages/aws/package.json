@@ -71,6 +71,7 @@
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.2.0",
+    "@types/aws-lambda": "^8.10.97",
     "@types/node": "14.0.0",
     "@webda/async": "^2.0.0-beta.0",
     "@webda/shell": "^2.0.0-beta.0",

@@ -18,6 +18,12 @@ class LambdaCallerParameters extends AWSServiceParameters(RunnerParameters) {
   arn: string;
 }
 
+export interface LambdaCommandEvent {
+  command: "launch";
+  service: string;
+  method: string;
+  args?: string[];
+}
 /**
  * A service that calls a Lambda function and retrieve its result
  *

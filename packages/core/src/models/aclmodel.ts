@@ -108,11 +108,12 @@ export default class AclModel extends CoreModel {
    *
    */
   async _httpPutAcls(ctx: Context) {
+    let acl = await ctx.getRequestBody();
     // This looks like a bad request
-    if (ctx.getRequestBody().raw) {
+    if (acl.raw) {
       throw 400;
     }
-    this.__acl = ctx.getRequestBody();
+    this.__acl = acl;
     await this.save();
   }
 

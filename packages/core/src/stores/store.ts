@@ -1062,7 +1062,7 @@ abstract class Store<
     if (ctx.getHttpContext().getMethod() === "GET") {
       query = ctx.getParameters().q;
     } else {
-      query = ctx.getRequestBody().q;
+      query = (await ctx.getRequestBody()).q;
     }
     try {
       ctx.write(await this.query(query, ctx));

@@ -176,7 +176,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
    * Verify a Google Auth Token
    */
   async handleToken(context: Context) {
-    let tokens = context.getRequestBody().tokens;
+    let tokens = (await context.getRequestBody()).tokens;
     if (!tokens) {
       throw 400;
     }

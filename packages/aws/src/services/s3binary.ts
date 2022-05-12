@@ -71,7 +71,7 @@ export default class S3Binary<T extends S3BinaryParameters = S3BinaryParameters>
    * @inheritdoc
    */
   async putRedirectUrl(ctx: Context): Promise<{ url: string; method: string }> {
-    let body = ctx.getRequestBody();
+    let body = await ctx.getRequestBody();
     let uid = ctx.parameter("uid");
     let store = ctx.parameter("store");
     let property = ctx.parameter("property");

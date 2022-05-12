@@ -166,7 +166,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    */
   protected async statusHook(context: Context) {
     const action = await this.verifyJobRequest(context);
-    const body = context.getRequestBody();
+    const body = await context.getRequestBody();
 
     action._lastJobUpdate = Number.parseInt(context.getHttpContext().getHeader("X-Job-Time")) || 0;
     if (Date.now() - action._lastJobUpdate > 60) {

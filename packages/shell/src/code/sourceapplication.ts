@@ -99,7 +99,9 @@ export class SourceApplication extends UnpackedApplication {
    */
   async generateModule() {
     // Compile
-    this.compile();
+    if (!this.compile()) {
+      process.exit(1);
+    }
     // Write module
     FileUtils.save(this.getCompiler().generateModule(), this.getAppPath("webda.module.json"));
   }
@@ -115,10 +117,11 @@ export class SourceApplication extends UnpackedApplication {
    * Compile the application if it is a Typescript application
    * Do nothing otherwise
    */
-  compile() {
+  compile(): boolean {
     if (!this.compiled) {
       this.compiled = this.getCompiler().compile();
     }
+    return this.compiled;
   }
 
   /**

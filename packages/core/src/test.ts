@@ -142,7 +142,7 @@ class WebdaTest {
     if (app.getConfiguration() && app.getConfiguration().parameters) {
       app.getConfiguration().parameters.sessionSecret ??= "1234567890ABCDEF".repeat(16);
     }
-    
+
     await this.tweakApp(app);
 
     this.webda = new Core(app);

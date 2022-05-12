@@ -6,7 +6,7 @@ import { Context, Store, StoreParameters } from "../index";
 import { StoreEvents, StoreNotFoundError, UpdateConditionFailError } from "./store";
 import { v4 as uuidv4 } from "uuid";
 import { CoreModel } from "../models/coremodel";
-import { HttpContext } from "../utils/context";
+import { HttpContext } from "../utils/httpcontext";
 import { stub } from "sinon";
 
 /**
@@ -155,9 +155,7 @@ abstract class StoreTest extends WebdaTest {
           userStore.getParameters().expose.url + "?q=" + encodeURI(q),
           "https",
           443,
-          {
-            q
-          }
+          JSON.stringify({ q })
         )
       );
       context.getParameters().q = q;
@@ -170,9 +168,7 @@ abstract class StoreTest extends WebdaTest {
     assert.strictEqual(total, 400);
     q = "BAD QUERY !";
     context.setHttpContext(
-      new HttpContext("test.webda.io", "PUT", userStore.getParameters().expose.url, "https", 443, {
-        q
-      })
+      new HttpContext("test.webda.io", "PUT", userStore.getParameters().expose.url, "https", 443, JSON.stringify({ q }))
     );
     // @ts-ignore
     await assert.rejects(() => userStore.httpQuery(context), /400/);

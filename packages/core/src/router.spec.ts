@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { WebdaTest } from "./test";
-import { HttpContext } from "./utils/context";
+import { HttpContext } from "./utils/httpcontext";
 import { RouteInfo } from "./router";
 
 @suite

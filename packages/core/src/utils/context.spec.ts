@@ -2,8 +2,9 @@ import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { Service } from "../services/service";
 import { WebdaTest } from "../test";
-import { Context, HttpContext } from "./context";
+import { Context } from "./context";
 import { SecureCookie } from "./cookie";
+import { HttpContext } from "./httpcontext";
 
 @suite
 class ContextTest extends WebdaTest {
@@ -245,16 +246,5 @@ class ContextTest extends WebdaTest {
   fallbackLocale() {
     this.ctx.getHttpContext().getHeaders()["Accept-Language"] = "zn-CH,zn;q=0.8,en-US;q=0.6,en;q=0.4,es;q=0.2";
     assert.strictEqual(this.ctx.getLocale(), "en");
-  }
-}
-
-@suite
-class HttpContextTest {
-  @test
-  lowerCaseHeader() {
-    let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, {}, { "X-Test": "weBda" });
-    assert.strictEqual(ctx.getHeader("X-Test"), "weBda");
-    assert.strictEqual(ctx.getHeader("X-Test"), ctx.getHeader("x-test"));
-    assert.strictEqual(ctx.getPort(), "");
   }
 }

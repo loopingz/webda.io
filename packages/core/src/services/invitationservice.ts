@@ -6,6 +6,10 @@ import { Authentication } from "./authentication";
 import { NotificationService } from "./notificationservice";
 import { DeepPartial, Inject, ServiceParameters, Service } from "./service";
 
+interface InvitationAnswerBody {
+  accept: boolean;
+}
+
 interface Invitation {
   /**
    * User to invite to target
@@ -228,9 +232,10 @@ export default class InvitationService<T extends InvitationParameters = Invitati
    * @param ctx
    * @param model
    */
-  async answerInvitation(ctx: Context, model: CoreModel) {
+  async answerInvitation(ctx: Context<InvitationAnswerBody>, model: CoreModel) {
+    let body = await ctx.getRequestBody();
     // Need to specify if you accept or not
-    if (typeof ctx.getRequestBody().accept !== "boolean") {
+    if (typeof body.accept !== "boolean") {
       throw 400;
     }
     // Invitation on the model is gone
@@ -250,7 +255,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
       metadata = model[this.parameters.pendingAttribute][`user_${user.getUuid()}`];
       delete model[this.parameters.pendingAttribute][`user_${user.getUuid()}`];
     }
-    if (metadata && ctx.getRequestBody().accept) {
+    if (metadata && body.accept) {
       model[this.parameters.attribute][user.getUuid()] = metadata;
     }
     await this.updateModel(model);
@@ -258,7 +263,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
       metadata,
       model,
       context: ctx,
-      accept: ctx.getRequestBody().accept
+      accept: body.accept
     });
   }
 
@@ -279,8 +284,8 @@ export default class InvitationService<T extends InvitationParameters = Invitati
    * @param ctx
    * @param model
    */
-  async uninvite(ctx: Context, model: CoreModel) {
-    const body: Invitation = ctx.getRequestBody();
+  async uninvite(ctx: Context<Invitation>, model: CoreModel) {
+    const body: Invitation = await ctx.getRequestBody();
     body.users ??= [];
     body.idents ??= [];
     const promises = [];
@@ -378,7 +383,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
       ctx.write(model[this.parameters.pendingAttribute] || {});
       return;
     }
-    const body: Invitation = ctx.getRequestBody();
+    const body: Invitation = await ctx.getRequestBody();
     // For each ident
     const identsStore = this.authenticationService.getIdentStore();
     // Load all idents with orignal

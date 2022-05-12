@@ -31,6 +31,15 @@ export class HawkServiceParameters extends ServiceParameters {
    * If specified will verify the signature match the key store in session
    */
   dynamicSessionKey?: string;
+  /**
+   * redirect endpoint
+   * @param params
+   */
+  redirectUrl?: string;
+  /**
+   * Allowed redirection with CSRF
+   */
+  redirectUris?: string[];
 
   /**
    * @inheritdoc
@@ -38,6 +47,7 @@ export class HawkServiceParameters extends ServiceParameters {
   constructor(params: any) {
     super(params);
     this.keysStore ??= "apikeys";
+    this.redirectUris ??= [];
   }
 }
 
@@ -83,7 +93,9 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
       url: http.getUrl(),
       host: http.getHostName(),
       port: http.getPortNumber(),
-      authorization: http.getHeaders()["authorization"]
+      authorization: http.getHeaders()["authorization"],
+      payload: http.getRawBody() || "",
+      contentType: http.getHeader("content-type") || ""
     };
   }
 
@@ -93,12 +105,21 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
   async init() {
     await super.init();
     this.store = this.getService<Store<ApiKey>>(this.parameters.keysStore);
-    if (!this.store) {
+    if (!this.store && !this.parameters.dynamicSessionKey) {
       throw new Error("Store must exist");
     }
-    // Make sure origins exist
-    await this.getOrigins();
+    if (this.store) {
+      // Make sure origins exist
+      await this.getOrigins();
+    }
+
     this.getWebda().registerCORSFilter(this);
+    this.getWebda().registerRequestFilter(this);
+
+    // Solution to get an CSRF token
+    if (this.parameters.redirectUrl) {
+      this.addRoute(this.parameters.redirectUrl + "{?url}", ["GET"], this._redirect);
+    }
     // Manage hawk server signature
     this.getWebda().on("Webda.Result", async ({ context }) => {
       try {
@@ -121,6 +142,24 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
         this.log("TRACE", `Hawk init failed : '${err.message}'`);
       }
     });
+  }
+
+  /**
+   * Redirect with a CSRF
+   * @param context
+   */
+  async _redirect(context: Context) {
+    const { url } = context.getParameters();
+    if (!this.parameters.redirectUris.includes(url)) {
+      throw 403;
+    }
+    context.getSession()[this.parameters.dynamicSessionKey] ??= this.getWebda().getUuid("base64");
+    let updatedUrl = new URL(url);
+    updatedUrl.searchParams.set(
+      "csrf",
+      await this.getWebda().getHmac(context.getSession()[this.parameters.dynamicSessionKey])
+    );
+    context.redirect(updatedUrl.toString());
   }
 
   @Cache()
@@ -168,33 +207,49 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
       return false;
     }
 
+    // We already check through the CORS part
+    if (context.getExtension("HawkReviewed")) {
+      return true;
+    }
+    context.setExtension("HawkReviewed", true);
+
     // Specific dynamic session checks (useful for CSRF token)
     if (this.parameters.dynamicSessionKey && authorization.startsWith('Hawk id="session"')) {
       try {
         context.setExtension(
           "hawk",
-          await Hawk.server.authenticate(this.getHawkRequest(context), () => ({
-            id: "session",
-            key: context.getSession()[this.parameters.dynamicSessionKey],
-            algorithm: "sha256"
-          }))
+          await Hawk.server.authenticate(
+            this.getHawkRequest(context),
+            async () => ({
+              id: "session",
+              key: await this.getWebda().getHmac(context.getSession()[this.parameters.dynamicSessionKey]),
+              algorithm: "sha256"
+            }),
+            {
+              timestampSkewSec: 86400
+            }
+          )
         );
       } catch (err) {
         this.log("ERROR", `Hawk error (${err.message})`);
-        return false;
+        throw 403;
       }
       return true;
     }
 
-    try {
-      context.setExtension(
-        "hawk",
-        await Hawk.server.authenticate(this.getHawkRequest(context), this.getApiKey.bind(this))
-      );
-      let fullKey = await this.store.get(context.getExtension("hawk").credentials.id);
-      return fullKey.canRequest(context.getHttpContext());
-    } catch (err) {
-      this.log("TRACE", err);
+    // We have an Api Key store
+    if (this.store) {
+      try {
+        context.setExtension(
+          "hawk",
+          await Hawk.server.authenticate(this.getHawkRequest(context), this.getApiKey.bind(this))
+        );
+        let fullKey = await this.store.get(context.getExtension("hawk").credentials.id);
+        return fullKey.canRequest(context.getHttpContext());
+      } catch (err) {
+        this.log("TRACE", err);
+        throw 403;
+      }
     }
     return false;
   }

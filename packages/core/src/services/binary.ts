@@ -585,22 +585,14 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
    * @param req
    * @returns
    */
-  _getFile(req: Context): BinaryFile {
-    if (req.files !== undefined) {
-      // TODO Map express files to BinaryFile
-      return req.files[0];
-    } else {
-      let buffer = req.getRequestBody();
-      if (typeof buffer === "string") {
-        buffer = Buffer.from(buffer);
-      }
-      // TODO Check if we have other type
-      return new MemoryBinaryFile(buffer, {
-        mimetype: req.getHttpContext().getHeader("Content-Type", "application/octet-stream"),
-        size: parseInt(req.getHttpContext().getHeader("Content-Length")) || req.getRequestBody().length,
-        name: ""
-      });
-    }
+  async _getFile(req: Context): Promise<BinaryFile> {
+    let file = await req.getHttpContext().getRawBody(10 * 1024 * 1024);
+    // TODO Check if we have other type
+    return new MemoryBinaryFile(Buffer.from(file), {
+      mimetype: req.getHttpContext().getHeader("Content-Type", "application/octet-stream"),
+      size: parseInt(req.getHttpContext().getHeader("Content-Length")) || file.length,
+      name: ""
+    });
   }
 
   /**
@@ -795,8 +787,8 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
   /**
    * Mechanism to add a data based on challenge
    */
-  async httpChallenge(ctx: Context) {
-    let body = ctx.getRequestBody();
+  async httpChallenge(ctx: Context<BinaryFile>) {
+    let body = await ctx.getRequestBody();
     if (!body.hash || !body.challenge) {
       throw 400;
     }
@@ -809,7 +801,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
     }
     await object.canAct(ctx, "attach_binary");
     let url = await this.putRedirectUrl(ctx);
-    let base64String = Buffer.from(ctx.getRequestBody().hash, "hex").toString("base64");
+    let base64String = Buffer.from(body.hash, "hex").toString("base64");
     ctx.write({
       ...url,
       done: url === undefined,
@@ -870,7 +862,7 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
       }
     } else {
       if (ctx.getHttpContext().getMethod() === "POST") {
-        await this.store(object, property, this._getFile(ctx), ctx.getRequestBody());
+        await this.store(object, property, await this._getFile(ctx), ctx.getRequestBody());
       } else {
         if (object[property][index].hash !== ctx.parameter("hash")) {
           throw 412;

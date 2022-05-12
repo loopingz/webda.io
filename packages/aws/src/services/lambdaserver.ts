@@ -1,6 +1,7 @@
-"use strict";
-import { ClientInfo, Context, Core as Webda, HttpContext } from "@webda/core";
+import { ClientInfo, Context, Core as Webda, HttpContext, HttpMethodType } from "@webda/core";
 import { serialize as cookieSerialize } from "cookie";
+import { APIGatewayProxyEvent, APIGatewayProxyResult, S3Event, Context as LambdaContext } from "aws-lambda";
+import { LambdaCommandEvent } from "./lambdacaller";
 
 /**
  * Handler for AWS Events definition
@@ -100,34 +101,33 @@ export default class LambdaServer extends Webda {
    * @returns
    */
   async handleAWSEvents(events) {
-    let found = false;
     if (events.Records) {
       let source = events.Records[0].eventSource;
-      await this.handleAWSEvent(source, events);
-      found = true;
+      await this.handleAWSEvent(source, <S3Event>events);
+      return true;
     } else if (events.invocationId && events.records) {
       await this.handleAWSEvent("aws:kinesis", events);
-      found = true;
+      return true;
     } else if (events["detail-type"] && events.detail && events.resources) {
       await this.handleAWSEvent("aws:scheduled-event", events);
-      found = true;
+      return true;
     } else if (events.awslogs) {
       await this.handleAWSEvent("aws:cloudwatch-logs", events);
-      found = true;
+      return true;
     } else if (events["CodePipeline.job"]) {
       await this.handleAWSEvent("aws:codepipeline", events);
-      found = true;
+      return true;
     } else if (events.identityPoolId) {
       await this.handleAWSEvent("aws:cognito", events);
-      found = true;
+      return true;
     } else if (events.configRuleId) {
       await this.handleAWSEvent("aws:config", events);
-      found = true;
+      return true;
     } else if (events.jobDefinition || events.jobId) {
       await this.handleAWSEvent("aws:batch", events);
-      found = true;
+      return true;
     }
-    return found;
+    return false;
   }
 
   /**
@@ -135,30 +135,33 @@ export default class LambdaServer extends Webda {
    *
    * @ignore
    */
-  async handleRequest(event, context) {
+  async handleRequest(sourceEvent: any, context: LambdaContext) {
     await this.init();
     // Handle AWS event
-    if (await this.handleAWSEvents(event)) {
-      this.log("INFO", "Handled AWS event", event);
+    if (await this.handleAWSEvents(sourceEvent)) {
+      this.log("INFO", "Handled AWS event", sourceEvent);
       return;
     }
     // Manual launch of webda
-    if (event.command === "launch" && event.service && event.method) {
-      let args = event.args || [];
-      this.log("INFO", "Executing", event.method, "on", event.service, "with", args);
-      let service = this.getService(event.service);
+    if (sourceEvent.command === "launch" && sourceEvent.service && sourceEvent.method) {
+      let commandEvent: LambdaCommandEvent = sourceEvent;
+      let args = commandEvent.args || [];
+      this.log("INFO", "Executing", commandEvent.method, "on", commandEvent.service, "with", args);
+      let service = this.getService(commandEvent.service);
       if (!service) {
-        this.log("ERROR", "Cannot find", event.service);
+        this.log("ERROR", "Cannot find", commandEvent.service);
         return;
       }
-      if (typeof service[event.method] !== "function") {
-        this.log("ERROR", "Cannot find method", event.method, "on", event.service);
+      if (typeof service[commandEvent.method] !== "function") {
+        this.log("ERROR", "Cannot find method", commandEvent.method, "on", commandEvent.service);
         return;
       }
-      service[event.method](...args);
+      service[commandEvent.method](...args);
       this.log("INFO", "Finished");
       return;
     }
+
+    let event: APIGatewayProxyEvent = <APIGatewayProxyEvent>sourceEvent;
     context.callbackWaitsForEmptyEventLoop =
       (this.getConfiguration().parameters && this.getConfiguration().parameters.waitForEmptyEventLoop) || false;
     this._result = {};
@@ -187,18 +190,16 @@ export default class LambdaServer extends Webda {
         sep = "&";
       }
     }
-    //
-    var body = event.body;
-    try {
-      // Try to interpret as JSON by default
-      body = JSON.parse(event.body);
-    } catch (err) {
-      if (headers["Content-Type"] === "application/json") {
-        throw err;
-      }
-    }
     this.log("INFO", event.httpMethod || "GET", event.path);
-    let httpContext = new HttpContext(vhost, method, resourcePath, protocol, port, body, headers);
+    let httpContext = new HttpContext(
+      vhost,
+      <HttpMethodType>method,
+      resourcePath,
+      <"http" | "https">protocol,
+      port,
+      event.body,
+      headers
+    );
     this.computePrefix(event, httpContext);
     var ctx = await this.newContext(httpContext);
     // TODO Get all client info

@@ -506,7 +506,7 @@ export namespace WebdaQL {
     protected builder: ExpressionBuilder;
 
     constructor(sql: string) {
-      this.lexer = new WebdaQLLexer(new ANTLRInputStream(sql));
+      this.lexer = new WebdaQLLexer(new ANTLRInputStream(sql || ""));
       let tokenStream = new CommonTokenStream(this.lexer);
       let parser = new WebdaQLParserParser(tokenStream);
       parser.removeErrorListeners();

@@ -2,7 +2,8 @@ import { JSONSchema7 } from "json-schema";
 import { OpenAPIV3 } from "openapi-types";
 import * as uriTemplates from "uri-templates";
 import { Core } from "./core";
-import { Context, HttpMethodType } from "./utils/context";
+import { Context } from "./utils/context";
+import { HttpMethodType } from "./utils/httpcontext";
 
 type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;

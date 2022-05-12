@@ -189,13 +189,14 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @param ctx
    * @returns
    */
-  getPutUrl(ctx: Context) {
+  async getPutUrl(ctx: Context<BinaryFile>) {
+    let body = await ctx.getRequestBody();
     // Get a full URL, this method should be in a Route Object
     // Add a JWT token for 60s
-    let token = this.getToken(ctx.getRequestBody().hash, "PUT");
+    let token = this.getToken(body.hash, "PUT");
     return ctx
       .getHttpContext()
-      .getAbsoluteUrl(this.parameters.expose.url + "/upload/data/" + ctx.getRequestBody().hash + `?token=${token}`);
+      .getAbsoluteUrl(this.parameters.expose.url + "/upload/data/" + body.hash + `?token=${token}`);
   }
 
   /**
@@ -203,12 +204,12 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    *
    * @ignore
    */
-  async putRedirectUrl(ctx: Context): Promise<{ url: string; method: string }> {
-    let body = ctx.getRequestBody();
+  async putRedirectUrl(ctx: Context<BinaryFile>): Promise<{ url: string; method: string }> {
+    let body = await ctx.getRequestBody();
     let uid = ctx.parameter("uid");
     let store = ctx.parameter("store");
     let property = ctx.parameter("property");
-    let result = { url: this.getPutUrl(ctx), method: "PUT" };
+    let result = { url: await this.getPutUrl(ctx), method: "PUT" };
     if (fs.existsSync(this._getPath(body.hash, store + "_" + uid))) {
       if (!fs.existsSync(this._getPath(body.hash, "data"))) {
         return result;
@@ -242,7 +243,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @ignore
    */
   async storeBinary(ctx: Context) {
-    let body = ctx.getRequestBody();
+    let body = await ctx.getHttpContext().getRawBody(10 * 1024 * 1024);
     var result = await new MemoryBinaryFile(Buffer.from(body), {
       mimetype: ctx.getHttpContext().getHeader("content-type"),
       name: "",

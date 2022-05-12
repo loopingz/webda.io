@@ -131,7 +131,7 @@ export class SecureCookie {
     if (cookie !== undefined) {
       params = { ...params, ...cookie };
     }
-    let value = jwt.sign(JSON.parse(JSON.stringify(this)), this._secret);
+    let value = jwt.sign(JSON.stringify(this), this._secret);
     this.sendCookie(ctx, this._name, value, params);
     // Transform the cookie to a plain object
   }

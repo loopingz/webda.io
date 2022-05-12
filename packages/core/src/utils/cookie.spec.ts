@@ -1,6 +1,6 @@
 import { WebdaTest } from "../test";
 import { SecureCookie, Context } from "../index";
-import { HttpContext } from "./context";
+import { HttpContext } from "./httpcontext";
 import { test, suite } from "@testdeck/mocha";
 import * as assert from "assert";
 import { serialize as cookieSerialize } from "cookie";

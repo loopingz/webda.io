@@ -520,7 +520,12 @@ export class Compiler {
                     let definitionName = schema.$ref.split("/").pop();
                     moduleInfo.schemas[name] = <JSONSchema7>schema.definitions[definitionName];
                     moduleInfo.schemas[name].$schema = schema.$schema;
-                    // Copy sub definition if needed, see 2.0.0-beta.0
+                    // Copy sub definition if needed
+                    if (Object.keys(schema.definitions).length > 1) {
+                      moduleInfo.schemas[name].definitions = schema.definitions;
+                      // Avoid cycle ref
+                      delete moduleInfo.schemas[name].definitions[definitionName];
+                    }
                     moduleInfo.schemas[name].title = originName.split("/").pop();
                     if (section === "models" && tags["SchemaAdditionalProperties"]) {
                       moduleInfo.schemas[name].additionalProperties = {
@@ -557,7 +562,12 @@ export class Compiler {
                 let definitionName = schema.$ref.split("/").pop();
                 moduleInfo.schemas[name] = <JSONSchema7>schema.definitions[definitionName];
                 moduleInfo.schemas[name].$schema = schema.$schema;
-                // Copy sub definition if needed, see 2.0.0-beta.0
+                // Copy sub definition if needed
+                if (Object.keys(schema.definitions).length > 1) {
+                  moduleInfo.schemas[name].definitions = schema.definitions;
+                  // Avoid cycle ref
+                  delete moduleInfo.schemas[name].definitions[definitionName];
+                }
                 moduleInfo.schemas[name].title = clazz.name.escapedText.toString();
               } catch (err) {
                 this.app.log("WARN", `Cannot generate schema for ${schemaNode.getText()}`, err);
@@ -619,8 +629,9 @@ export class Compiler {
    */
   compile(force: boolean = false): boolean {
     if (this.compiled && !force) {
-      return;
+      return true;
     }
+    let result = true;
     // https://convincedcoder.com/2019/01/19/Processing-TypeScript-using-TypeScript/
 
     this.app.log("INFO", "Compiling...");
@@ -640,6 +651,7 @@ export class Compiler {
       };
       const message = ts.formatDiagnostics(allDiagnostics, formatHost);
       this.app.log("WARN", message);
+      result = false;
     }
 
     this.app.log("INFO", "Analyzing...");
@@ -673,8 +685,8 @@ export class Compiler {
       fmt.addTypeFormatter(new FunctionTypeFormatter());
     });
     this.schemaGenerator = new SchemaGenerator(this.tsProgram, parser, formatter, config);
-    this.compiled = true;
-    return true;
+    this.compiled = result;
+    return result;
   }
 
   /**

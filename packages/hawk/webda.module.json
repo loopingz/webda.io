@@ -23,6 +23,17 @@
         "dynamicSessionKey": {
           "type": "string",
           "description": "If specified will verify the signature match the key store in session"
+        },
+        "redirectUrl": {
+          "type": "string",
+          "description": "redirect endpoint"
+        },
+        "redirectUris": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Allowed redirection with CSRF"
         }
       },
       "required": [

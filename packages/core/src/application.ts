@@ -105,7 +105,12 @@ export interface CachedModule extends Module {
    */
   project: ProjectInformation;
 }
-
+export type StaticWebsite = {
+  url: string;
+  path?: string;
+  index?: string;
+  catchAll?: boolean;
+};
 export type UnpackedConfiguration = {
   version: 3;
 
@@ -127,10 +132,15 @@ export type UnpackedConfiguration = {
     /**
      * Allow you to authorize one or several websites
      * If you use "*" then the API is open to direct call and any origins
+     * You can also serve one static website by having a
      *
      * {@link WebsiteOriginFilter}
      */
-    website?: string | string[] | { url: string };
+    website?: string | string[];
+    /**
+     * Serve statically a website
+     */
+    static?: StaticWebsite;
     /**
      * Cookie configuration for session
      */

@@ -218,11 +218,6 @@ class LambdaHandlerTest extends WebdaAwsTest {
     this.evt.body = "{wew''";
     // Should fallback on port 443
     await this.handler.handleRequest(this.evt, this.context);
-    this.evt.headers["Content-Type"] = "application/json";
-    await assert.rejects(
-      () => this.handler.handleRequest(this.evt, this.context),
-      /Unexpected token w in JSON at position 1/
-    );
   }
 
   @test

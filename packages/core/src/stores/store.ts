@@ -1527,7 +1527,7 @@ abstract class Store<
       }
     }
     if (query.orderBy && query.orderBy.length) {
-      result.results
+      result.results = result.results
         .sort((a, b) => {
           let valA, valB;
           for (let orderBy of query.orderBy) {

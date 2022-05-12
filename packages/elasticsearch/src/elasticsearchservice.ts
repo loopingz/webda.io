@@ -1,5 +1,5 @@
 import { CoreModel, Service, Store, WebdaError } from "@webda/core";
-import { Client, ClientOptions } from "@elastic/elasticsearch";
+import { Client } from "@elastic/elasticsearch";
 import { ServiceParameters } from "../../core/lib/services/service";
 
 interface IndexParameter {
@@ -11,9 +11,12 @@ interface IndexInfo extends IndexParameter {
   _store: Store;
   name: string;
 }
-
 class ElasticSearchServiceParameters extends ServiceParameters {
-  client: ClientOptions;
+  /**
+   * ClientOptions is not usable for now
+   * ts-json-schema error
+   */
+  client: any;
   indexes: { [key: string]: IndexParameter };
 
   constructor(params: any) {

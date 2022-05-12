@@ -20,7 +20,8 @@
   "services": {
     "ResourceService": {
       "type": "Webda/ResourceService",
-      "folder": "test"
+      "folder": "test",
+      "indexFallback": false
     },
     "VersionService": {
       "type": "Webda/VersionService"

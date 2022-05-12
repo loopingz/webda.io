@@ -38,7 +38,7 @@ export class ResourceServiceParameters extends ServiceParameters {
    *
    * @default true
    */
-  catchAll?: boolean;
+  indexFallback?: boolean;
 
   constructor(params: any) {
     super(params);
@@ -55,7 +55,7 @@ export class ResourceServiceParameters extends ServiceParameters {
       this.folder += "/";
     }
     this.index ??= "index.html";
-    this.catchAll ??= true;
+    this.indexFallback ??= true;
   }
 }
 
@@ -185,7 +185,7 @@ export default class ResourceService<
 
     if (!fs.existsSync(file)) {
       // Catch All for SPA
-      if (this.parameters.catchAll) {
+      if (this.parameters.indexFallback) {
         file = path.join(this._resolved, this.parameters.index);
       } else {
         throw 404;

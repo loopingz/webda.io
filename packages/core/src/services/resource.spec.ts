@@ -91,7 +91,7 @@ class ResourceTest extends WebdaTest {
     assert.notStrictEqual(executor, undefined);
     await executor.execute(this.ctx);
     assert.strictEqual(this.ctx.getResponseBody().toString(), fs.readFileSync("./test/data/test.txt").toString());
-    assert.strictEqual(this.ctx.getResponseHeaders()["Content-Type"], "text/plain");
+    assert.strictEqual(this.ctx.getResponseHeaders()["Content-Type"], "text/plain; charset=UTF-8");
   }
   // Check Store HTTP mapping
   @test

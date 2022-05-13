@@ -5,7 +5,7 @@ import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import { ServerStatus, WebdaServer } from "./http";
 import * as sinon from "sinon";
 import * as http from "http";
-import { HttpContext } from "@webda/core";
+import { HttpContext, ResourceService } from "@webda/core";
 @suite
 class WebdaServerTest {
   server: WebdaServer;
@@ -148,6 +148,26 @@ class WebdaServerTest {
     });
     assert.strictEqual(res.status, 500);
     stub.restore();
+    let resourceService =  new ResourceService(this.server, "static", {
+      folder: "test"
+    });
+    // @ts-ignore
+    this.server.resourceService = resourceService;
+    let stub2 = sinon.stub(resourceService, "_serve").callsFake(() => {
+      throw 404;
+    })
+    res = await fetch(`http://localhost:${this.port}/index.html`, {
+      headers: { origin: "bouzouf", "x-forwarded-port": "443" }
+    });
+    assert.strictEqual(res.status, 404);
+    stub2.callsFake(() => {
+      throw new Error("Random")
+    })
+    res = await fetch(`http://localhost:${this.port}/index.html`, {
+      headers: { origin: "bouzouf", "x-forwarded-port": "443" }
+    });
+    assert.strictEqual(res.status, 500);
+    stub2.restore();
     // Test SIGINT
     this.server.onSIGINT();
   }
@@ -177,10 +197,9 @@ class WebdaServerTest {
     WebdaSampleApplication.setCurrentDeployment("Dev");
     this.server = new WebdaServer(WebdaSampleApplication);
     await this.server.init();
-    sinon.stub(this.server, "getGlobalParams").callsFake(() => {
-      throw new Error("Not OK");
-    });
-    await assert.rejects(() => this.server.serve(this.port, false), /Not OK/);
+    // To Trigger a bad reference access
+    this.server.onSIGINT = null;
+    await assert.rejects(() => this.server.serve(this.port, false), TypeError);
     assert.strictEqual(this.server.getServerStatus(), ServerStatus.Stopped);
   }
 }

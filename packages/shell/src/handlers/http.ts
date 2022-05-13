@@ -24,9 +24,18 @@ export class WebdaServer extends Webda {
   private http: http.Server;
   private io: any;
   protected devMode: boolean;
-  protected staticIndex: string;
   protected serverStatus: ServerStatus = ServerStatus.Stopped;
+  /**
+   * Resource services used to serve static content
+   */
+  protected resourceService: ResourceService;
 
+  /**
+   * Toggle DevMode
+   * 
+   * In DevMode CORS is allowed
+   * @param devMode 
+   */
   setDevMode(devMode: boolean) {
     this.devMode = devMode;
   }
@@ -57,8 +66,7 @@ export class WebdaServer extends Webda {
    */
   async handleRequest(
     req: http.IncomingMessage,
-    res: http.ServerResponse,
-    resourceService: ResourceService
+    res: http.ServerResponse
   ): Promise<void> {
     try {
       res.on("error", this.log.bind(this, "ERROR"));
@@ -98,7 +106,7 @@ export class WebdaServer extends Webda {
         let routes = this.router.getRouteMethodsFromUrl(httpContext.getRelativeUri());
         if (routes.length === 0) {
           // Static served should not be reachable via XHR
-          if (method !== "GET") {
+          if (method !== "GET" || !this.resourceService) {
             ctx.writeHead(404);
             await ctx.end();
             return;
@@ -107,7 +115,8 @@ export class WebdaServer extends Webda {
           await ctx.init();
           ctx.getParameters()["resource"] = ctx.getHttpContext().getUrl().substring(1);
           try {
-            await resourceService._serve(await ctx.init());
+            console.log("SERVING WITH", this.resourceService._serve, this.resourceService.getName());
+            await this.resourceService._serve(await ctx.init());
           } catch (err) {
             if (typeof err === "number") {
               ctx.writeHead(err);
@@ -217,6 +226,16 @@ export class WebdaServer extends Webda {
     res.end();
   }
 
+  async init() {
+    await super.init();
+    if (this.getGlobalParams().website && this.getGlobalParams().website.path && !this.resourceService) {
+      this.resourceService = new ResourceService(this, "websiteResource", {
+        folder: this.getAppPath(this.getGlobalParams().website.path)
+      });
+      this.resourceService.resolve();
+      await this.resourceService.init();
+    }
+  }
   /**
    * Start listening to serve request
    *
@@ -226,18 +245,10 @@ export class WebdaServer extends Webda {
    */
   async serve(port: number = 18080, websockets: boolean = false, bind: string = undefined) {
     this.serverStatus = ServerStatus.Starting;
-    let resourceService;
     try {
-      if (this.getGlobalParams().website && this.getGlobalParams().website.path) {
-        resourceService = new ResourceService(this, "websiteResource", {
-          folder: this.getAppPath(this.getGlobalParams().website.path)
-        });
-        resourceService.resolve();
-        await resourceService.init();
-      }
       this.http = http
         .createServer((req, res) => {
-          this.handleRequest(req, res, resourceService).finally(() => {
+          this.handleRequest(req, res).finally(() => {
             res.end();
           });
         })
@@ -265,6 +276,9 @@ export class WebdaServer extends Webda {
     }
   }
 
+  /**
+   * Close server and exit
+   */
   onSIGINT() {
     if (this.http) {
       this.http.close();

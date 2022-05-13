@@ -96,7 +96,9 @@ class ContextTest extends WebdaTest {
     await this.ctx.end();
 
     this.ctx.getHttpContext().setBody(undefined);
-    this.ctx.getRequestBody();
+    assert.strictEqual(await this.ctx.getRequestBody(), undefined);
+    this.ctx.getHttpContext().setBody("");
+    assert.strictEqual(await this.ctx.getRequestBody(), undefined);
 
     // @ts-ignore
     this.ctx._ended = false;

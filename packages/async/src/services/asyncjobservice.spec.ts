@@ -47,6 +47,17 @@ class AsyncJobServiceTest extends WebdaTest {
   }
 
   @test
+  async initService() {
+    this.service = new AsyncJobService(this.webda, "async", { queue: "AsyncQueue", store: "AsyncJobs" });
+    let stub = sinon.stub(this.service, "worker");
+    await this.service.init();
+    assert.strictEqual(stub.callCount, 0);
+    this.service.getParameters().launchWorker = true;
+    await this.service.init();
+    assert.strictEqual(stub.callCount, 1);
+  }
+
+  @test
   async resolve() {
     this.service = new AsyncJobService(this.webda, "async", {});
     assert.throws(() => this.service.resolve(), /requires a valid queue/);

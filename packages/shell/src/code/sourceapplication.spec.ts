@@ -7,7 +7,7 @@ import { removeSync } from "fs-extra/lib/remove";
 import * as fs from "fs-extra";
 import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
-import { SourceApplication } from "./sourceapplication";
+import { BuildSourceApplication, SourceApplication } from "./sourceapplication";
 import * as sinon from "sinon";
 import { SourceTestApplication } from "../index.spec";
 
@@ -186,6 +186,13 @@ class SourceApplicationTest extends WebdaTest {
       "lib/services/deployer:CustomDeployer"
     );
     assert.deepStrictEqual(config.schemas["WebdaDemo/CustomDeployer".toLowerCase()].title, "CustomDeployer");
+    let app = new BuildSourceApplication(this.sampleApp.getAppPath());
+    let stub = sinon.stub(app, "compile").callsFake(() => false);
+    try {
+      await app.generateModule();
+    } finally {
+      stub?.restore();
+    }
     // COV one
     this.sampleApp.getPackagesLocations = () => {
       // @ts-ignore

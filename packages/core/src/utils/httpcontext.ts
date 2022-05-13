@@ -216,7 +216,8 @@ export class HttpContext {
         });
         req.on("end", () => {
           clearTimeout(timeoutId);
-          console.log("Resolve", body.length);
+          // Cache body as stream won't be able to be read twice
+          this.body = body;
           resolve(body);
         });
       });

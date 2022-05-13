@@ -81,7 +81,7 @@
       ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CustomService"
+      "title": "ThirdOtherService"
     },
     "webdademo/simpleservice": {
       "type": "object",
@@ -96,7 +96,7 @@
       ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CustomService"
+      "title": "ThirdOtherService"
     },
     "webdademo/anotherservice": {
       "type": "object",
@@ -177,7 +177,7 @@
       ],
       "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CustomService"
+      "title": "ThirdOtherService"
     },
     "webdademo/fourthotherservice": {
       "type": "object",
@@ -277,13 +277,27 @@
         "type": {
           "type": "string",
           "description": "Type of the service"
+        },
+        "introspection": {
+          "$ref": "#/definitions/Partial%3Cclass-1131383939-939-1249-1131383939-0-5993976353190%3E"
         }
       },
       "required": [
+        "introspection",
         "type"
       ],
-      "description": "Interface to specify the Service parameters",
       "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Partial<class-1131383939-939-1249-1131383939-0-5993976353190>": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Type of the service"
+            }
+          }
+        }
+      },
       "title": "CustomService"
     },
     "webdademo/customdeployer": {

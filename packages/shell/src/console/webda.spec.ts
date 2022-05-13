@@ -349,6 +349,7 @@ class DynamicService extend Service {
 
   @test
   async build() {
+    let stub;
     try {
       let moduleFile = WebdaSampleApplication.getAppPath("webda.module.json");
       if (fs.existsSync(moduleFile)) {
@@ -361,7 +362,10 @@ class DynamicService extend Service {
       assert.deepStrictEqual(module.schemas["webdademo/customdeployer"].title, "CustomDeployer");
       assert.notStrictEqual(module.schemas["webdademo/customreusableservice"], undefined);
       assert.notStrictEqual(module.schemas["webdademo/contact"], undefined);
+      stub = sinon.stub(WebdaConsole.app, "generateModule").callsFake(async () => false);
+      assert.strictEqual(await WebdaConsole.build(), -1);
     } finally {
+      stub?.restore();
       execSync(`git checkout ${WebdaSampleApplication.getAppPath("webda.module.json")}`);
     }
   }

@@ -459,7 +459,11 @@ class DynamicService extend Service {
   async types() {
     await this.commandLine("types");
     let logs = this.logger.getLogs();
-    assert.strictEqual(logs.length, 3, "We should have 3 logs with Deployers, Services, Models");
+    assert.strictEqual(
+      logs.length,
+      5,
+      "We should have 5 logs with Deployers, Services, Models and the two configuration misses"
+    );
   }
 
   @test

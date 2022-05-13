@@ -47,6 +47,12 @@ class FileStoreTest extends StoreTest {
   }
 
   @test
+  async update(delay: number = 100) {
+    // Increase the delay for FileStore
+    return super.update(delay);
+  }
+
+  @test
   async cov() {
     let identStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("idents");
     let userStore: FileStore<CoreModel> = this.getService<FileStore<CoreModel>>("users");

@@ -41,6 +41,13 @@ class ApplicationTest extends WebdaTest {
   }
 
   @test
+  configurationImports() {
+    assert.strictEqual(this.sampleApp.getConfiguration().parameters.import1, true);
+    assert.strictEqual(this.sampleApp.getConfiguration().parameters.import2, true);
+    assert.strictEqual(this.sampleApp.getConfiguration().parameters.import3, undefined);
+  }
+
+  @test
   testStringParameter() {
     assert.strictEqual(
       this.sampleApp.replaceVariables("${resources.replace}", {

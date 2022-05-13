@@ -237,7 +237,7 @@ export class Terminal {
     let levelColor = level.padStart(5);
     let groupsPart = "";
     if (groups.length) {
-      groupsPart = `[${groups.map(g => `${color(g)}`).join(colors.grey(">"))}] `;
+      groupsPart = `[${groups.map(g => color(g)).join(colors.grey(">"))}] `;
     }
     args
       .map(a => (typeof a === "object" ? util.inspect(a) : a.toString()))

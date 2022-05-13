@@ -90,7 +90,14 @@ export class ConsoleLogger extends Logger {
   static format(msg: WorkerMessage, format: string = ConsoleLogger.defaultFormat) {
     let info: WorkerLogMessage = {
       m: msg.log.args
-        .map(a => (a === undefined ? "undefined" : typeof a === "object" ? util.inspect(a) : a.toString()))
+        .map(a => {
+          if (a === undefined) {
+            return "undefined";
+          } else if (typeof a === "object") {
+            return util.inspect(a);
+          }
+          return a.toString();
+        })
         .join(" "),
       l: msg.log.level.padStart(5),
       t: msg.timestamp,

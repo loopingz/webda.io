@@ -10,7 +10,6 @@ import {
 } from "@webda/core";
 import * as http from "http";
 import { serialize as cookieSerialize } from "cookie";
-import * as path from "path";
 import { AddressInfo } from "net";
 
 export enum ServerStatus {
@@ -112,8 +111,7 @@ export class WebdaServer extends Webda {
           await ctx.init();
           ctx.getParameters()["resource"] = ctx.getHttpContext().getUrl().substring(1);
           try {
-            console.log("SERVING WITH", this.resourceService._serve, this.resourceService.getName());
-            await this.resourceService._serve(await ctx.init());
+            this.resourceService._serve(await ctx.init());
           } catch (err) {
             if (typeof err === "number") {
               ctx.writeHead(err);

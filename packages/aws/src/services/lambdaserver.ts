@@ -1,6 +1,6 @@
 import { ClientInfo, Context, Core as Webda, HttpContext, HttpMethodType } from "@webda/core";
 import { serialize as cookieSerialize } from "cookie";
-import { APIGatewayProxyEvent, APIGatewayProxyResult, S3Event, Context as LambdaContext } from "aws-lambda";
+import { APIGatewayProxyEvent, S3Event, Context as LambdaContext } from "aws-lambda";
 import { LambdaCommandEvent } from "./lambdacaller";
 
 /**

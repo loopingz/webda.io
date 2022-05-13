@@ -62,17 +62,20 @@ export class UnpackedApplication extends Application {
   completeConfiguration(configuration: Configuration): Configuration {
     // Only one level of includes is permitted
     let imports = configuration.imports || [];
+    let effectiveImports = [];
     for (let importFile of imports) {
       if (!fs.existsSync(this.getAppPath(importFile))) {
         this.log("WARN", `Cannot import configuration '${importFile}'`);
         continue;
       }
+      effectiveImports.push(importFile);
       let includeConfiguration = FileUtils.load(this.getAppPath(importFile));
       if (includeConfiguration.imports?.length) {
         this.log("WARN", `Imported configuration '${importFile}' has nested imports that will be skipped`);
       }
       configuration = deepmerge(includeConfiguration, configuration);
     }
+    configuration.imports = effectiveImports;
     configuration.cachedModules = {
       project: this.loadProjectInformation(),
       beans: {},

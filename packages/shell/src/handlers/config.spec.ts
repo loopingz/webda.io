@@ -57,8 +57,13 @@ class WebdaConfigurationServerTest {
     res.parameters.sessionSecret = "PLOP";
     let cfg = FileUtils.load(WebdaSampleApplication.configurationFile);
     delete res.cachedModules;
-    cfg.parameters.sessionSecret = "PLOP";
-    assert.strictEqual(JSON.stringify(res), JSON.stringify(cfg));
+    cfg.parameters = {
+      sessionSecret: "PLOP",
+      import1: true,
+      import2: true
+    };
+    cfg.imports = ["./webda.import.jsonc", "./webda.import2.jsonc"];
+    assert.deepStrictEqual(res, cfg);
     res = await this.fetch("/configuration", { method: "PUT" });
   }
 

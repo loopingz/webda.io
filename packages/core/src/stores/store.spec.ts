@@ -754,14 +754,14 @@ abstract class StoreTest extends WebdaTest {
   }
 
   @test
-  async update() {
+  async update(delay: number = 1) {
     let store = this.getIdentStore();
     let model = await store.save({ counter: 1 });
     let model2 = await store.get(model.getUuid());
     store.on("Store.Update", async () => {
       model2._lastUpdate = new Date();
       await store._update(model2, model2.getUuid());
-      await this.sleep(1);
+      await this.sleep(delay);
     });
     model.plop = "yop";
     // Delete with condition
@@ -769,7 +769,7 @@ abstract class StoreTest extends WebdaTest {
     store.removeAllListeners("Store.Update");
     store.on("Store.Update", async () => {
       await store._delete(model.getUuid());
-      await this.sleep(1);
+      await this.sleep(delay);
     });
     await assert.rejects(
       () => store.update(model),

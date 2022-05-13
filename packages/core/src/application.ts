@@ -198,6 +198,13 @@ export type UnpackedConfiguration = {
    * OpenAPI override
    */
   openapi?: Partial<OpenAPIV3.Document>;
+  /**
+   * Include other configuration.json
+   * 
+   * This allow you so share Store definition or parameters between different components
+   * The configuration is merged with `deepmerge(...imports, local)`
+   */
+  imports?: string[];
 };
 
 export type Configuration = UnpackedConfiguration & {

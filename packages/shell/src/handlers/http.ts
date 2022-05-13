@@ -32,9 +32,9 @@ export class WebdaServer extends Webda {
 
   /**
    * Toggle DevMode
-   * 
+   *
    * In DevMode CORS is allowed
-   * @param devMode 
+   * @param devMode
    */
   setDevMode(devMode: boolean) {
     this.devMode = devMode;
@@ -64,10 +64,7 @@ export class WebdaServer extends Webda {
    * @param res
    * @param next
    */
-  async handleRequest(
-    req: http.IncomingMessage,
-    res: http.ServerResponse
-  ): Promise<void> {
+  async handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     try {
       res.on("error", this.log.bind(this, "ERROR"));
       // Wait for Webda to be ready

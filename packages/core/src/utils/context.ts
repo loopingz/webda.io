@@ -345,16 +345,15 @@ export class Context<T = any, U = any> extends EventEmitter {
       return obj;
     };
     try {
-      this._sanitized =
-        recursiveSanitize(
-          JSON.parse(
-            await this.getHttpContext().getRawBody(
-              this.getWebda().getGlobalParams().requestLimit,
-              this.getWebda().getGlobalParams().requestTimeout
-            )
-          ),
-          sanitizedOptions
-        ) || {};
+      this._sanitized = recursiveSanitize(
+        JSON.parse(
+          await this.getHttpContext().getRawBody(
+            this.getWebda().getGlobalParams().requestLimit,
+            this.getWebda().getGlobalParams().requestTimeout
+          )
+        ),
+        sanitizedOptions
+      );
     } catch (err) {
       this.log("ERROR", err, this.getHttpContext().getRawBody());
       return undefined;

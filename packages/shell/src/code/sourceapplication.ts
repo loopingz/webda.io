@@ -97,13 +97,14 @@ export class SourceApplication extends UnpackedApplication {
   /**
    * Generate the module for current application
    */
-  async generateModule() {
+  async generateModule(): Promise<boolean> {
     // Compile
     if (!this.compile()) {
-      process.exit(1);
+      return false;
     }
     // Write module
     FileUtils.save(this.getCompiler().generateModule(), this.getAppPath("webda.module.json"));
+    return true;
   }
 
   /**
@@ -298,11 +299,14 @@ export class BuildSourceApplication extends SourceApplication {
    * @override
    */
   async generateModule() {
-    await super.generateModule();
+    if (!(await super.generateModule())) {
+      return false;
+    }
     // Module is generated
     this.moduleReady = true;
     // Reload all modules now
     this.mergeModules(this.baseConfiguration);
     await this.loadModule(this.baseConfiguration.cachedModules);
+    return true;
   }
 }

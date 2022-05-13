@@ -69,10 +69,10 @@ class HawkServiceTest extends WebdaTest {
     });
     this.context.getHttpContext().getHeaders()["host"] = "test.webda.io";
     this.context.getHttpContext().getHeaders()["authorization"] = header;
-    assert.equal(
-      await this.checkRequest(this.context),
-      false,
-      "Should refuse without errors as Authorization is using an unknown key"
+    await assert.rejects(
+      () => this.checkRequest(this.context),
+      /403/,
+      "Should refuse with error as Authorization is using an unknown key"
     );
   }
 
@@ -83,9 +83,9 @@ class HawkServiceTest extends WebdaTest {
     });
     this.context.getHttpContext().getHeaders()["host"] = "test.webda.io";
     this.context.getHttpContext().getHeaders()["authorization"] = header;
-    assert.equal(
-      await this.checkRequest(this.context),
-      false,
+    await assert.rejects(
+      () => this.checkRequest(this.context),
+      /403/,
       "Should refuse as signed URL is different from requested URL"
     );
   }
@@ -161,6 +161,7 @@ class HawkServiceTest extends WebdaTest {
   }
 
   async doValidRequest(url = "/", method: HttpMethodType = "GET", headers = {}) {
+    this.context = await this.newContext();
     const { header, artifacts } = Hawk.client.header(`http://test.webda.io${url}`, method, {
       credentials: this.key.toHawkCredentials()
     });
@@ -185,10 +186,10 @@ class HawkServiceTest extends WebdaTest {
     await this.key.save();
     // Reset cache
     CacheService.clearAllCache();
-    assert.equal(await this.doValidRequest(), false, "Should refuse as permissions are set");
+    await assert.rejects(() => this.doValidRequest(), /403/, "Should refuse as permissions are set");
     assert.equal(await this.doValidRequest("/restricted/plop", "GET"), true);
-    assert.equal(await this.doValidRequest("/restricted/plop", "PUT"), false);
-    assert.equal(await this.doValidRequest("/restricted/plop", "PATCH"), false);
+    await assert.rejects(() => this.doValidRequest("/restricted/plop", "PUT"), /403/);
+    await assert.rejects(() => this.doValidRequest("/restricted/plop", "PATCH"), /403/);
     assert.equal(await this.doValidRequest("/restricted/plop", "POST"), true);
     assert.equal(await this.doValidRequest("/any", "POST"), true);
     assert.equal(await this.doValidRequest("/test", "PUT"), true);
@@ -240,6 +241,21 @@ class HawkServiceTest extends WebdaTest {
     let test = new HawkService(this.webda, "cov", { keysStore: "bouzouf" });
     assert.strictEqual(test.getParameters().keysStore, "bouzouf");
     assert.rejects(() => test.init(), /Store must exist/);
+    test = new HawkService(this.webda, "cov", { dynamicSessionKey: "bouzouf", redirectUrl: "/redirect" });
+    await test.init();
+  }
+
+  @test
+  async redirect() {
+    let test = new HawkService(this.webda, "cov", { dynamicSessionKey: "bouzouf", redirectUrl: "/redirect" });
+    await test.init();
+    let ctx = await this.newContext();
+    ctx.getParameters().url = "http://test.webda.io";
+    await assert.rejects(() => test._redirect(ctx), /403/);
+    test.getParameters().redirectUris.push("http://test.webda.io");
+    await test._redirect(ctx);
+    let location = new URL(ctx.getResponseHeaders().Location);
+    assert.notStrictEqual(location.searchParams.get("csrf"), undefined);
   }
 
   @test
@@ -250,7 +266,7 @@ class HawkServiceTest extends WebdaTest {
     const { header, artifacts } = Hawk.client.header(`http://test.webda.io${url}`, "GET", {
       credentials: {
         id: "session",
-        key: sessionKey,
+        key: await test.getWebda().getHmac(sessionKey),
         algorithm: "sha256"
       }
     });
@@ -261,6 +277,10 @@ class HawkServiceTest extends WebdaTest {
     // It should be ok
     assert.strictEqual(await test.checkRequest(this.context), true);
     this.context.getSession()["myCSRF"] = "anotherone";
-    assert.strictEqual(await test.checkRequest(this.context), false);
+    this.context.setExtension("HawkReviewed", false);
+    await assert.rejects(() => test.checkRequest(this.context), /403/);
+    // Simulate pre-reviewed
+    this.context.setExtension("HawkReviewed", true);
+    await test.checkRequest(this.context);
   }
 }

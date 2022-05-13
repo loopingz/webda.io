@@ -112,8 +112,7 @@ export class WebdaServer extends Webda {
             if (typeof err === "number") {
               ctx.writeHead(err);
             } else {
-              console.log("CANNOT DO ANYTHING", ctx.getHttpContext(), err);
-              ctx.writeHead(500);
+              throw err;
             }
           }
           await ctx.end();
@@ -187,12 +186,8 @@ export class WebdaServer extends Webda {
           ctx.statusCode = err;
           this.flushHeaders(ctx);
           return;
-        } else {
-          this.output("ERROR Exception occured : " + JSON.stringify(err), err.stack);
-          res.writeHead(500);
-          res.end();
-          throw err;
         }
+        throw err;
       }
     } catch (err) {
       res.writeHead(500);

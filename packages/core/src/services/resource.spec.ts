@@ -59,12 +59,10 @@ class ResourceTest extends WebdaTest {
 
   @test
   async unknownFile() {
+    this.getService<ResourceService>("ResourceService").getParameters().indexFallback = true;
     let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/resources/config.unknown.json");
     assert.notStrictEqual(executor, undefined);
-    await assert.rejects(
-      () => executor.execute(this.ctx),
-      err => err == 404
-    );
+    await assert.rejects(() => executor.execute(this.ctx), /404/);
   }
 
   @test

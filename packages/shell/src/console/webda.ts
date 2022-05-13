@@ -473,7 +473,9 @@ export default class WebdaConsole {
    * Generate the webda.module.json
    */
   static async build() {
-    await this.app.generateModule();
+    if (!(await this.app.generateModule())) {
+      return -1;
+    }
     if (fs.existsSync(this.app.configurationFile)) {
       // Generate config schema as well
       this.app.getCompiler().generateConfigurationSchemas();

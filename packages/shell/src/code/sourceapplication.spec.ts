@@ -147,7 +147,7 @@ class SourceApplicationTest extends WebdaTest {
   }
 
   @test
-  compileError() {
+  async compileError() {
     this.sampleApp.preventCompilation(false);
     const lines = [];
     sinon.stub(this.sampleApp, "log").callsFake((...args) => lines.push(args));
@@ -165,6 +165,8 @@ class SourceApplicationTest extends WebdaTest {
         ],
         ["INFO", "Analyzing..."]
       ]);
+      // Verify generateModule stop
+      assert.strictEqual(await this.sampleApp.generateModule(), false);
     } finally {
       fs.removeSync(testFile);
     }

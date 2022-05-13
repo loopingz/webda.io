@@ -544,7 +544,9 @@ abstract class Store<
     this.cacheStorePatchException();
   }
 
-  logSlowQuery(_query: string, _reason: string, _time: number) {}
+  logSlowQuery(_query: string, _reason: string, _time: number) {
+    // TODO Need to implement: https://github.com/loopingz/webda.io/issues/202
+  }
 
   /**
    * Return Store current model

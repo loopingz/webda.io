@@ -184,10 +184,9 @@ export default class ResourceService<
     }
 
     if (!fs.existsSync(file)) {
+      file = path.join(this._resolved, this.parameters.index);
       // Catch All for SPA
-      if (this.parameters.indexFallback) {
-        file = path.join(this._resolved, this.parameters.index);
-      } else {
+      if (!(this.parameters.indexFallback && fs.existsSync(file))) {
         throw 404;
       }
     }

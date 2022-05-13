@@ -172,6 +172,24 @@ export type UnpackedConfiguration = {
      */
     contextModel?: string;
     /**
+     * Will not try to parse request bigger than this
+     *
+     * This parameter can be overriden by a direct call to
+     * getHttpContext().getRawBody(xxx)
+     *
+     * @default 10Mb
+     */
+    requestLimit?: number;
+    /**
+     * Will not take more than this to read a request (unit: milliseconds)
+     *
+     * This parameter can be overriden by a direct call to
+     * getHttpContext().getRawBody(undefined, xxx)
+     *
+     * @default 60000
+     */
+    requestTimeout?: number;
+    /**
      * Allow any other type of parameters
      */
     [key: string]: any;

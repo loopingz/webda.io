@@ -86,7 +86,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
   /**
    * Return information for hawk
    */
-  getHawkRequest(context: Context) {
+  async getHawkRequest(context: Context) {
     let http = context.getHttpContext();
     return {
       method: http.getMethod(),
@@ -94,7 +94,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
       host: http.getHostName(),
       port: http.getPortNumber(),
       authorization: http.getUniqueHeader("authorization"),
-      payload: http.getRawBody() || "",
+      payload: (await http.getRawBody()) || "",
       contentType: http.getUniqueHeader("content-type") || ""
     };
   }
@@ -212,46 +212,36 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
       return true;
     }
     context.setExtension("HawkReviewed", true);
-
+    const hawkRequest = await this.getHawkRequest(context);
     // Specific dynamic session checks (useful for CSRF token)
     if (this.parameters.dynamicSessionKey && authorization.startsWith('Hawk id="session"')) {
       try {
         context.setExtension(
           "hawk",
-          await Hawk.server.authenticate(
-            this.getHawkRequest(context),
-            async () => ({
-              id: "session",
-              key: await this.getWebda().getHmac(context.getSession()[this.parameters.dynamicSessionKey]),
-              algorithm: "sha256"
-            }),
-            {
-              timestampSkewSec: 86400
-            }
-          )
+          await Hawk.server.authenticate(hawkRequest, async () => ({
+            id: "session",
+            key: await this.getWebda().getHmac(context.getSession()[this.parameters.dynamicSessionKey]),
+            algorithm: "sha256"
+          }))
         );
       } catch (err) {
         this.log("ERROR", `Hawk error (${err.message})`);
         throw 403;
       }
-      return true;
-    }
-
-    // We have an Api Key store
-    if (this.store) {
+    } else if (this.store) {
+      // We have an Api Key store
       try {
-        context.setExtension(
-          "hawk",
-          await Hawk.server.authenticate(this.getHawkRequest(context), this.getApiKey.bind(this))
-        );
+        context.setExtension("hawk", await Hawk.server.authenticate(hawkRequest, this.getApiKey.bind(this)));
         let fullKey = await this.store.get(context.getExtension("hawk").credentials.id);
-        return fullKey.canRequest(context.getHttpContext());
+        if (!fullKey.canRequest(context.getHttpContext())) {
+          throw 403;
+        }
       } catch (err) {
         this.log("TRACE", err);
         throw 403;
       }
     }
-    return false;
+    return true;
   }
 }
 

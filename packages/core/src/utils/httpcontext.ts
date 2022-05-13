@@ -196,27 +196,27 @@ export class HttpContext {
    * Get request body
    * @returns
    */
-  async getRawBody(limit: number = 1024 * 1024 * 10): Promise<string | undefined> {
+  async getRawBody(limit: number = 1024 * 1024 * 10, timeout: number = 60000): Promise<string | undefined> {
     if (this.body instanceof Readable) {
       return new Promise((resolve, reject) => {
         let req = <Readable>this.body;
         let body = "";
-        const limit = 1024 * 1024 * 10;
-        let timeout = setTimeout(() => {
+        let timeoutId = setTimeout(() => {
           reject("Request timeout");
-        });
+        }, timeout);
         req.on("readable", () => {
-          if (req.readableLength + body.length > limit) {
-            clearTimeout(timeout);
+          let chunk = req.read();
+          if (chunk.length + body.length > limit) {
+            clearTimeout(timeoutId);
             reject("Request oversized");
           }
-          let chunk = req.read();
           if (chunk !== null) {
-            body += req.read();
+            body += chunk;
           }
         });
         req.on("end", () => {
-          clearTimeout(timeout);
+          clearTimeout(timeoutId);
+          console.log("Resolve", body.length);
           resolve(body);
         });
       });

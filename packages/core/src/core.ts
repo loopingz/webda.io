@@ -650,24 +650,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   /**
-   * Retrieve a HMAC for a string
-   * @param data
-   * @returns
-   */
-  public async encrypt(data: string): Promise<string> {
-    return crypto.createHmac("sha256", this.getSecret()).update(data).digest("hex");
-  }
-
-  /**
-   * Retrieve a HMAC for a string
-   * @param data
-   * @returns
-   */
-  public async decrypt(data: string): Promise<string> {
-    return crypto.createHmac("sha256", this.getSecret()).update(data).digest("hex");
-  }
-
-  /**
    * Return a salt to use when doing digest
    *
    * @returns {String} Current salt

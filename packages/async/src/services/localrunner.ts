@@ -66,7 +66,8 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
       action.getUuid(),
       "started with",
       this.parameters.command,
-      this.parameters.args ? this.parameters.args : ""
+      this.parameters.args ? this.parameters.args : "",
+      envs
     );
     const child = spawn(this.parameters.command, this.parameters.args, {
       ...this.parameters.options,

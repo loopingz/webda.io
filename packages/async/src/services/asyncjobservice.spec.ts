@@ -47,17 +47,6 @@ class AsyncJobServiceTest extends WebdaTest {
   }
 
   @test
-  async initService() {
-    this.service = new AsyncJobService(this.webda, "async", { queue: "AsyncQueue", store: "AsyncJobs" });
-    let stub = sinon.stub(this.service, "worker");
-    await this.service.init();
-    assert.strictEqual(stub.callCount, 0);
-    this.service.getParameters().launchWorker = true;
-    await this.service.init();
-    assert.strictEqual(stub.callCount, 1);
-  }
-
-  @test
   async resolve() {
     this.service = new AsyncJobService(this.webda, "async", {});
     assert.throws(() => this.service.resolve(), /requires a valid queue/);
@@ -126,6 +115,8 @@ class AsyncJobServiceTest extends WebdaTest {
   @test
   async launchAction() {
     const service = this.getValidService();
+    // @ts-ignore protected field
+    let stub = sinon.stub(service, "handleEvent");
     await service.launchAction(new AsyncAction());
     const actions = await service.getService<Store<AsyncAction>>("AsyncJobs").getAll();
     assert.strictEqual(actions.length, 1);
@@ -137,6 +128,11 @@ class AsyncJobServiceTest extends WebdaTest {
     assert.strictEqual(msg.type, actions[0].type);
     assert.strictEqual(msg.uuid, actions[0].getUuid());
     assert.strictEqual(msg.__secretKey, actions[0].__secretKey);
+
+    assert.strictEqual(stub.callCount, 0);
+    service.getParameters().localLaunch = true;
+    await service.launchAction(new AsyncAction());
+    assert.strictEqual(stub.callCount, 1);
   }
 
   @test

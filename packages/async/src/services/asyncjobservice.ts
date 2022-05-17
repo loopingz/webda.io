@@ -242,7 +242,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     const info: JobInfo = {
       JOB_SECRET_KEY: action.__secretKey,
       JOB_ID: action.getUuid(),
-      JOB_HOOK: this.getWebda().getApiUrl(`${this.parameters.url}/status`), // How to find the absolute url
+      JOB_HOOK: this.getWebda().getApiUrl(this.parameters.url), // How to find the absolute url
       JOB_ORCHESTRATOR: this.getName()
     };
     await action.update({

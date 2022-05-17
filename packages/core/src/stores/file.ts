@@ -15,6 +15,14 @@ class FileStoreParameters extends StoreParameters {
    * Parameter sent to JSON.stringify when storing the json
    */
   beautify?: string | number;
+  /**
+   * Disable memory cache
+   *
+   * Useful if several process update storage files
+   *
+   * @default false
+   */
+  noCache?: boolean;
 }
 
 /**
@@ -45,11 +53,13 @@ class FileStore<T extends CoreModel, K extends FileStoreParameters = FileStorePa
    */
   computeParameters() {
     super.computeParameters();
-    this._cacheStore = new MemoryStore(this._webda, `_${this.getName()}_cache`, {
-      model: this.parameters.model
-    });
-    this._cacheStore.computeParameters();
-    this.cacheStorePatchException();
+    if (!this.parameters.noCache) {
+      this._cacheStore = new MemoryStore(this._webda, `_${this.getName()}_cache`, {
+        model: this.parameters.model
+      });
+      this._cacheStore.computeParameters();
+      this.cacheStorePatchException();
+    }
     if (!fs.existsSync(this.parameters.folder)) {
       fs.mkdirSync(this.parameters.folder);
     }

@@ -230,9 +230,10 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         let type = this.childNodeParser.createType(member.type, context);
         // Check for other tags
         let ignore = false;
-        ts.getAllJSDocTags(member, (tag: ts.JSDocTag): tag is ts.JSDocTag => {
+        let jsDocs = ts.getAllJSDocTags(member, (tag: ts.JSDocTag): tag is ts.JSDocTag => {
           return true;
-        }).forEach(n => {
+        });
+        jsDocs.forEach(n => {
           if (n.tagName.text === "SchemaIgnore") {
             ignore = true;
           }
@@ -240,12 +241,20 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         if (ignore) {
           return undefined;
         }
-        let readOnly = false;
-        if (type instanceof AnnotatedType) {
-          readOnly = type.getAnnotations().readOnly;
-        }
+        let optional = false;
+        jsDocs.forEach(n => {
+          if (n.tagName.text === "SchemaOptional") {
+            optional = true;
+          } else if (n.tagName.text === "readOnly") {
+            optional = true;
+          }
+        });
         // If property is in readOnly then we do not want to require it
-        return new ObjectProperty(this.getPropertyName(member.name), type, !member.questionToken && !readOnly);
+        return new ObjectProperty(
+          this.getPropertyName(member.name),
+          type,
+          !member.questionToken && !optional && !this.getPropertyName(member.name).startsWith("_")
+        );
       })
       .filter(prop => {
         if (!prop) {

@@ -28,4 +28,18 @@ export default class Contact extends CoreModel {
    * @SchemaIgnore
    */
   custom: string;
+  /**
+   * To indicate a property that will be set by server,
+   * similar to @SchemaOptional
+   *
+   * @readOnly
+   */
+  readonly: number;
+  /**
+   * Useful to auto complete on the creation side without
+   * forcing UI to push the attribute
+   *
+   * @SchemaOptional
+   */
+  optional: string;
 }

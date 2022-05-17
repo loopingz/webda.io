@@ -166,9 +166,12 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     return this.parameters.folder + hash + "/" + postfix;
   }
 
-  _touch(path) {
-    if (!fs.existsSync(path)) {
-      fs.closeSync(fs.openSync(path, "w"));
+  _touch(filePath, mode = 0o600) {
+    try {
+      const fd = fs.openSync(filePath, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_RDWR, mode);
+      fs.closeSync(fd);
+    } catch (e) {
+      // file existed
     }
   }
 

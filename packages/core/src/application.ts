@@ -833,7 +833,7 @@ export class Application {
   async loadLocalModule() {
     let moduleFile = path.join(process.cwd(), "webda.module.json");
     if (fs.existsSync(moduleFile)) {
-      await this.loadModule(JSON.parse(fs.readFileSync(moduleFile).toString()), process.cwd());
+      await this.loadModule(FileUtils.load(moduleFile), process.cwd());
     }
   }
 

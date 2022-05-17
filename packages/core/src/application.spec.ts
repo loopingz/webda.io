@@ -137,6 +137,7 @@ class ApplicationTest extends WebdaTest {
     assert.strictEqual(app.isCached(), true);
     assert.strictEqual(app.getCurrentDeployment(), "");
     assert.strictEqual(app.replaceVariables("hello", {}), "hello");
+    assert.throws(() => app.replaceVariables("hello ${process.exit(0)}", {}), /Variable .*/);
 
     unpackedApp = new UnpackedApplication(__dirname + "/../test/moddas", undefined);
     await unpackedApp.load();

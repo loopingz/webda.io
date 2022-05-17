@@ -200,7 +200,7 @@ export type UnpackedConfiguration = {
   openapi?: Partial<OpenAPIV3.Document>;
   /**
    * Include other configuration.json
-   * 
+   *
    * This allow you so share Store definition or parameters between different components
    * The configuration is merged with `deepmerge(...imports, local)`
    */
@@ -702,7 +702,12 @@ export class Application {
     if (templateString.indexOf("${") < 0) {
       return templateString;
     }
-    return new Function("return `" + templateString.replace(/\$\{/g, "${this.") + "`;").call({
+    // Ensure nothing else than variable are set within the ${}
+    let ex = templateString.match(/\$\{.*[^a-zA-Z0-9._-]+.*\}/);
+    if (ex) {
+      throw new Error(`Variable can only be [a-zA-Z0-9._-]* found ${ex[1]}`);
+    }
+    return new Function("return `" + templateString.replace(/\$\{([a-zA-Z0-9._-]*)}/g, "${this.$1}") + "`;").call({
       ...this.baseConfiguration.cachedModules.project,
       now: this.initTime,
       ...replacements

@@ -842,7 +842,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   protected autoConnectServices(): void {
     for (let service in this.services) {
-      this.log("TRACE", "Auto-connect", service, Object.keys(this.configuration.services));
+      this.log("TRACE", "Auto-connect", service);
       try {
         let serviceBean = this.services[service];
         if (!serviceBean.resolve) {

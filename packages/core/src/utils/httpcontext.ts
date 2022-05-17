@@ -206,11 +206,11 @@ export class HttpContext {
         }, timeout);
         req.on("readable", () => {
           let chunk = req.read();
-          if (chunk.length + body.length > limit) {
-            clearTimeout(timeoutId);
-            reject("Request oversized");
-          }
           if (chunk !== null) {
+            if (chunk.length + body.length > limit) {
+              clearTimeout(timeoutId);
+              reject("Request oversized");
+            }
             body += chunk;
           }
         });

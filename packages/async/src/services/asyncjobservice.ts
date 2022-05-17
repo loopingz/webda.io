@@ -25,9 +25,11 @@ export class AsyncJobServiceParameters extends ServiceParameters {
    */
   store: string;
   /**
-   * If set on init the worker will be launch
+   * If set runner will be called without queue
+   *
+   * @default false
    */
-  launchWorker: boolean;
+  localLaunch?: boolean;
   /**
    * Queue to post execution to
    * @default AsyncActionsQueue
@@ -120,16 +122,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       .filter(r => r !== undefined);
 
     this.addRoute(`${this.parameters.url}/status`, ["POST"], this.statusHook);
-  }
-
-  /**
-   * @override
-   */
-  async init() {
-    await super.init();
-    if (this.parameters.launchWorker) {
-      this.worker();
-    }
+    this.getWebda().registerRequestFilter(this);
   }
 
   /**
@@ -152,7 +145,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * @param context
    * @param action
    */
-  async verifyJobRequest(context: Context): Promise<AsyncAction> {
+  async verifyJobRequest<T extends AsyncAction = AsyncAction>(context: Context): Promise<T> {
     const jobId = context.getHttpContext().getUniqueHeader("X-Job-Id");
     if (!jobId) {
       this.log("TRACE", "Require Job Id");
@@ -170,7 +163,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       this.log("TRACE", "Invalid Job HMAC");
       throw 403;
     }
-    return action;
+    return <T>action;
   }
 
   /**
@@ -267,6 +260,9 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     action.type = action.constructor.name;
     action.__secretKey = uuidv4();
     await this.store.save(action);
+    if (this.parameters.localLaunch) {
+      return this.handleEvent({ uuid: action.getUuid(), __secretKey: action.__secretKey, type: action.type });
+    }
     return this.queue.sendMessage({ uuid: action.getUuid(), __secretKey: action.__secretKey, type: action.type });
   }
 

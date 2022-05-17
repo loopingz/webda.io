@@ -1,8 +1,6 @@
 import { Context, EventWithContext, RequestFilter } from "../";
 import { Service, ServiceParameters } from "./service";
 import { Authentication } from "./authentication";
-
-import { v4 as uuidv4 } from "uuid";
 import { Core } from "../core";
 
 export interface EventOAuthToken extends EventWithContext {
@@ -271,7 +269,7 @@ export abstract class OAuthService<
       }
     }
     // Generate 2 random uuid: nonce and state
-    ctx.getSession().state = uuidv4();
+    ctx.getSession().state = this.getWebda().getUuid("base64");
     // Redirect to the calling uri
     ctx.getSession().redirect = redirect;
     ctx.redirect(this.generateAuthUrl(redirect_uri, ctx.getSession().state, ctx));

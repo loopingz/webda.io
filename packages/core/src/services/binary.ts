@@ -5,7 +5,7 @@ import * as mime from "mime-types";
 import * as path from "path";
 import { Readable } from "stream";
 import { WebdaError } from "..";
-import { CoreModel } from "../models/coremodel";
+import { CoreModel, NotEnumerable } from "../models/coremodel";
 import { EventStoreDeleted, MappingService, Store } from "../stores/store";
 import { Context } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
@@ -223,10 +223,12 @@ export class BinaryMap extends BinaryFile {
   /**
    * Current context
    */
+  @NotEnumerable
   __ctx: Context;
   /**
    * Link to the binary store
    */
+  @NotEnumerable
   __store: Binary;
 
   constructor(service: Binary, obj: BinaryFileInfo) {

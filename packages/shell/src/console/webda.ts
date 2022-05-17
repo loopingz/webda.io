@@ -219,6 +219,7 @@ export default class WebdaConsole {
         args.push("--devMode");
       }
       let webdaConsole = this;
+      let lastLineLogLevel: WorkerLogLevel;
       let addTime = new Transform({
         transform(chunk, _encoding, callback) {
           chunk
@@ -234,8 +235,10 @@ export default class WebdaConsole {
               }
               let lvl: WorkerLogLevel = "INFO";
               if (line.startsWith("#W# ")) {
-                lvl = line.substr(4, 5).trim();
+                lastLineLogLevel = lvl = line.substr(4, 5).trim();
                 line = line.substr(10);
+              } else {
+                lvl = lastLineLogLevel;
               }
               if (line === "") return;
               if (argv.logLevel) {

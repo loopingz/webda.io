@@ -1,9 +1,9 @@
-import { Service, ServiceParameters, Queue, Store, RequestFilter, Context } from "@webda/core";
+import { CloudBinary, Context, Queue, RequestFilter, Service, ServiceParameters, Store } from "@webda/core";
+import axios, { AxiosResponse } from "axios";
+import * as crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import { AsyncAction, AsyncActionQueueItem, WebdaAsyncAction } from "../models";
 import { Runner } from "./runner";
-import * as crypto from "crypto";
-import axios, { AxiosResponse } from "axios";
 
 /**
  * Represent a Job information as you will find in env
@@ -24,6 +24,12 @@ export class AsyncJobServiceParameters extends ServiceParameters {
    * @default AsyncActions
    */
   store: string;
+  /**
+   * If we want to expose a way to upload/download binary for the job
+   *
+   * It will expose a /download and /upload additional url
+   */
+  binaryStore?: string;
   /**
    * If set runner will be called without queue
    *
@@ -90,6 +96,10 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * HMAC Algorithm used for simple auth
    */
   static HMAC_ALGO: string = "sha256";
+  /**
+   * If we want job to be able to upload/download
+   */
+  protected binaryStore: CloudBinary;
 
   /**
    * @inheritdoc
@@ -121,7 +131,28 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       })
       .filter(r => r !== undefined);
 
-    this.addRoute(`${this.parameters.url}/status`, ["POST"], this.statusHook);
+    // This is internal job reporting so no need to document the api
+    this.addRoute(`${this.parameters.url}/status`, ["POST"], this.statusHook, {
+      hidden: true
+    });
+
+    // Add upload/download route if needed
+    if (this.parameters.binaryStore) {
+      this.binaryStore = this.getService<CloudBinary>(this.parameters.binaryStore);
+      // Call directly Webda addRoute as we are setting a route for another service in fact
+      this.getWebda().addRoute(`${this.parameters.url}/download/{store}/{uid}/{property}/{index}`, {
+        _method: this.binaryStore.getRedirectUrlInfo,
+        executor: this.parameters.binaryStore,
+        openapi: { hidden: true },
+        methods: ["GET"]
+      });
+      this.getWebda().addRoute(`${this.parameters.url}/upload/{store}/{uid}/{property}`, {
+        _method: this.binaryStore.httpChallenge,
+        executor: this.parameters.binaryStore,
+        openapi: { hidden: true },
+        methods: ["PUT"]
+      });
+    }
     this.getWebda().registerRequestFilter(this);
   }
 
@@ -130,14 +161,12 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    */
   async checkRequest(context: Context): Promise<boolean> {
     const url = context.getHttpContext().getRelativeUri();
-    // Allow status url to be called without other mechanism
-    return (
-      url.startsWith(this.parameters.url) &&
-      url.endsWith("/status") &&
-      context.getHttpContext().getUniqueHeader("X-Job-Id") !== "" &&
-      context.getHttpContext().getUniqueHeader("X-Job-Time") !== "" &&
-      context.getHttpContext().getUniqueHeader("X-Job-Hash") !== ""
-    );
+    if (url.startsWith(this.parameters.url)) {
+      // Allow status url to be called without other mechanism
+      await this.verifyJobRequest(context);
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -163,6 +192,8 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       this.log("TRACE", "Invalid Job HMAC");
       throw 403;
     }
+    // Set the context extension
+    context.setExtension("asyncJob", action);
     return <K>action;
   }
 

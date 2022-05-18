@@ -1,12 +1,12 @@
-import { WebdaTest } from "@webda/core/lib/test";
-import AsyncJobService from "./asyncjobservice";
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { HttpContext, Queue, Store } from "@webda/core";
-import AsyncAction, { WebdaAsyncAction } from "../models";
+import { WebdaTest } from "@webda/core/lib/test";
+import * as assert from "assert";
+import axios from "axios";
 import * as crypto from "crypto";
 import * as sinon from "sinon";
-import axios from "axios";
+import AsyncAction, { WebdaAsyncAction } from "../models";
+import AsyncJobService from "./asyncjobservice";
 import { Runner } from "./runner";
 
 @suite
@@ -65,11 +65,22 @@ class AsyncJobServiceTest extends WebdaTest {
     this.service.resolve();
     // @ts-ignore
     assert.strictEqual(this.service.runners.length, 0);
+    this.service.getParameters().binaryStore = "Binary";
+    // @ts-ignore
+    let previousRouteCount = Object.keys(this.webda.getRouter().routes).length;
+    this.service.resolve();
+    // @ts-ignore
+    let routeCount = Object.keys(this.webda.getRouter().routes).length;
+    assert.strictEqual(routeCount, previousRouteCount + 2);
   }
 
   @test
   async checkRequest() {
     this.service = this.getValidService();
+    // @ts-ignore
+    let action = await this.service.store.save({ uuid: "plop", __secretKey: "plop" });
+    let jobTime = Date.now().toString();
+    let jobHash = crypto.createHmac(AsyncJobService.HMAC_ALGO, action.__secretKey).update(jobTime).digest("hex");
     let context = await this.newContext();
     context.setHttpContext(new HttpContext("test.webda.io", "GET", "/", "https", 443, {}));
     assert.strictEqual(await this.service.checkRequest(context), false);
@@ -82,34 +93,48 @@ class AsyncJobServiceTest extends WebdaTest {
     context.setHttpContext(
       new HttpContext("test.webda.io", "GET", "/", "https", 443, {
         "X-Job-Id": "plop",
-        "X-Job-Time": "12345"
+        "X-Job-Time": jobTime
       })
     );
     assert.strictEqual(await this.service.checkRequest(context), false);
     context.setHttpContext(
       new HttpContext("test.webda.io", "GET", "/", "https", 443, {
         "X-Job-Id": "plop",
-        "X-Job-Time": "12345",
-        "X-Job-Hash": "myhash"
+        "X-Job-Time": jobTime,
+        "X-Job-Hash": jobHash
       })
     );
     assert.strictEqual(await this.service.checkRequest(context), false);
     context.setHttpContext(
       new HttpContext("test.webda.io", "GET", "/status", "https", 443, {
         "X-Job-Id": "plop",
-        "X-Job-Time": "12345",
-        "X-Job-Hash": "myhash"
+        "X-Job-Time": jobTime,
+        "X-Job-Hash": jobHash
       })
     );
     assert.strictEqual(await this.service.checkRequest(context), false);
     context.setHttpContext(
       new HttpContext("test.webda.io", "GET", "/async/jobs/status", "https", 443, {
         "X-Job-Id": "plop",
-        "X-Job-Time": "12345",
-        "X-Job-Hash": "myhash"
+        "X-Job-Time": jobTime,
+        "X-Job-Hash": jobHash
       })
     );
     assert.strictEqual(await this.service.checkRequest(context), true);
+    assert.notStrictEqual(context.getExtension("asyncJob"), undefined);
+    context.setHttpContext(
+      new HttpContext("test.webda.io", "GET", "/async/jobs/status", "https", 443, {
+        "X-Job-Id": "plop",
+        "X-Job-Time": jobTime
+      })
+    );
+    await assert.rejects(() => this.service.checkRequest(context), /403/);
+    context.setHttpContext(
+      new HttpContext("test.webda.io", "GET", "/async/jobs/status", "https", 443, {
+        "X-Job-Time": jobTime
+      })
+    );
+    await assert.rejects(() => this.service.checkRequest(context), /404/);
   }
 
   @test

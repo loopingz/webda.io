@@ -19,6 +19,10 @@
       "type": "Webda/LocalRunner",
       "command": "echo",
       "args": ["$JOB_ID"]
+    },
+    "Binary": {
+      "type": "Webda/FileBinary",
+      "folder": "./data"
     }
   }
 }

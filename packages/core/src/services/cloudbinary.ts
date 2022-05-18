@@ -94,7 +94,7 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
     await object.canAct(ctx, "get_binary");
     let url = await this.getRedirectUrlFromObject(object[property][index], ctx);
     if (returnInfo) {
-      ctx.write({ Location: url });
+      ctx.write({ Location: url, Map: object[property][index] });
     } else {
       ctx.writeHead(302, {
         Location: url

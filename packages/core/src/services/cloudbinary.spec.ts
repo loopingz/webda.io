@@ -168,7 +168,14 @@ export class FakeCloudBinaryTest extends WebdaTest {
     assert.deepStrictEqual(wroteHead, [302, { Location: "myhash:30" }]);
     await service.getRedirectUrlInfo(context);
     assert.strictEqual(counter, 2);
-    assert.deepStrictEqual(wrote, [{ Location: "myhash:30" }]);
+    assert.deepStrictEqual(wrote, [
+      {
+        Location: "myhash:30",
+        Map: {
+          hash: "myhash"
+        }
+      }
+    ]);
     assert.strictEqual(myEvt, "get_binary");
   }
 }

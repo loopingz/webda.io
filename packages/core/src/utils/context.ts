@@ -574,6 +574,3 @@ export class Context<T = any, U = any> extends EventEmitter {
     this.emit("error", err);
   }
 }
-
-class StoreSessionContext extends Context {}
-class CookieSessionContext extends Context {}

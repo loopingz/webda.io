@@ -199,6 +199,7 @@ class AWSDeployerTest extends DeployerTest<TestAWSDeployer> {
     assert.strictEqual(this.deployer.commonPrefix("/test/bouzf", "/test/reffff"), "/test/");
     assert.strictEqual(this.deployer.commonPrefix("test/bouzf", "/test/reffff"), "");
     assert.strictEqual(this.deployer.commonPrefix("/tes", "/test/reffff"), "/tes");
+    assert.strictEqual(this.deployer.commonPrefix("test/bouzf", "test/bouzf212"), "test/bouzf");
   }
 
   @test

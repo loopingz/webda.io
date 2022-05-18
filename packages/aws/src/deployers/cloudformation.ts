@@ -254,8 +254,6 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
 }
 
 const LAMBDA_LATEST_VERSION = "nodejs14.x";
-export { LAMBDA_LATEST_VERSION };
-export { CloudFormationDeployer };
 /**
  * Deploy the application and its resources using AWS CloudFormation
  *
@@ -1167,3 +1165,5 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     }
   }
 }
+
+export { LAMBDA_LATEST_VERSION, CloudFormationDeployer };

@@ -1,11 +1,11 @@
-import * as fs from "fs";
-import * as path from "path";
-import { Context, Core, CoreModelDefinition, Service, WebdaError } from "./index";
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
+import * as fs from "fs";
 import { JSONSchema7 } from "json-schema";
-import { FileUtils } from "./utils/serializers";
 import { OpenAPIV3 } from "openapi-types";
+import * as path from "path";
 import { join } from "path";
+import { Context, Core, CoreModelDefinition, Service, WebdaError } from "./index";
+import { FileUtils } from "./utils/serializers";
 
 export type PackageDescriptorAuthor =
   | string
@@ -898,7 +898,6 @@ export class Application {
     if (!obj) {
       return false;
     }
-    let i = 1;
     while (obj && Object.getPrototypeOf(obj)) {
       let proto = Object.getPrototypeOf(obj);
       if (proto.name == className.name || proto == className.name) {

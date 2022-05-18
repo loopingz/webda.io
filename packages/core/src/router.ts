@@ -8,16 +8,6 @@ import { HttpMethodType } from "./utils/httpcontext";
 type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
 };
-enum HttpMethods {
-  GET = "get",
-  PUT = "put",
-  POST = "post",
-  DELETE = "delete",
-  OPTIONS = "options",
-  HEAD = "head",
-  PATCH = "patch",
-  TRACE = "trace"
-}
 
 export interface OpenApiWebdaOperation extends RecursivePartial<OpenAPIV3.OperationObject> {
   schemas?: {

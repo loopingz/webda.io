@@ -1,2 +1,3 @@
 paths-ignore:
   - "**/*.spec.ts"
+  - packages/core/src/stores/webdaql/WebdaQL*

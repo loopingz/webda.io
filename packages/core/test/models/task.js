@@ -1,7 +1,6 @@
 "use strict";
 const Webda = require("../../src/index");
 const OwnerModel = Webda.OwnerModel;
-const Context = Webda.Context;
 
 /**
  * @class

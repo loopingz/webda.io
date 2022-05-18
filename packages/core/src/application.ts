@@ -702,12 +702,11 @@ export class Application {
     if (templateString.indexOf("${") < 0) {
       return templateString;
     }
-    // Ensure nothing else than variable are set within the ${}
-    let ex = templateString.match(/\$\{.*[^a-zA-Z0-9._-]+.*\}/);
+    let ex = templateString.match(/\$\{[^\}]*[|&;<>\\]+[^\}]*\}/);
     if (ex) {
-      throw new Error(`Variable can only be [a-zA-Z0-9._-]* found ${ex[1]}`);
+      throw new Error(`Variable cannot use every javascript features found ${ex}`);
     }
-    return new Function("return `" + templateString.replace(/\$\{([a-zA-Z0-9._-]*)}/g, "${this.$1}") + "`;").call({
+    return new Function("return `" + templateString.replace(/\$\{([^\}]+)}/g, "${this.$1}") + "`;").call({
       ...this.baseConfiguration.cachedModules.project,
       now: this.initTime,
       ...replacements

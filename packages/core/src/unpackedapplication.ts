@@ -119,7 +119,7 @@ export class UnpackedApplication extends Application {
     };
     let packageJson = path.join(this.appPath, "package.json");
     if (fs.existsSync(packageJson)) {
-      info.package = JSON.parse(fs.readFileSync(packageJson).toString());
+      info.package = FileUtils.load(packageJson);
     }
     info.git = this.getGitInformation(info.package?.name, info.package?.version);
     info.webda = info.package.webda || {};
@@ -127,7 +127,7 @@ export class UnpackedApplication extends Application {
     do {
       packageJson = path.join(parent, "package.json");
       if (fs.existsSync(packageJson)) {
-        let currentInfo = JSON.parse(fs.readFileSync(packageJson).toString());
+        let currentInfo = FileUtils.load(packageJson);
         if (currentInfo.workspaces) {
           this.log("DEBUG", "Application is running within a workspace");
           // Replace any relative path by absolute one

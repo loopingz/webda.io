@@ -1,4 +1,4 @@
-import { Core, Cache, Logger, WebdaError, Deployment } from "@webda/core";
+import { Core, Cache, Logger, WebdaError, Deployment, FileUtils } from "@webda/core";
 import * as merge from "merge";
 import { Deployer } from "../deployers/deployer";
 import * as yargs from "yargs";
@@ -75,7 +75,8 @@ export class DeploymentManager {
       deploymentPath = application.getAppPath(path.join("deployments", name + ".json"));
     }
 
-    fs.writeFileSync(deploymentPath, JSON.stringify({ ...deployment, name: undefined }, undefined, 2));
+    FileUtils.save({ ...deployment, name: undefined }, deploymentPath);
+
     output.log(
       "INFO",
       "You can customize the parameters,resources and services objects within the deployment",

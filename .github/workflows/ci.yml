@@ -21,6 +21,7 @@ on:
 
 jobs:
   test:
+    # Cannot rely on Github Azure hosted action because of GCP connection
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -127,12 +128,6 @@ jobs:
 
       - name: Run other modules tests
         run: yarn run test --ignore @webda/shell  --ignore @webda/aws  --ignore @webda/gcp --ignore @webda/core --ignore @webda/postgres
-
-      - name: SonarCloud Scan
-        uses: sonarsource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: CodeCov
         uses: codecov/codecov-action@v2

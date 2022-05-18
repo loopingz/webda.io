@@ -3,9 +3,7 @@
     "webda/amqppubsub": "lib/pubsub:default",
     "webda/amqpqueue": "lib/queue:default"
   },
-  "beans": {
-    "beans/stompeventservice": "lib/stomp"
-  },
+  "beans": {},
   "models": {},
   "deployers": {},
   "schemas": {
@@ -112,72 +110,6 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AMQPPubSub"
-    },
-    "beans/stompeventservice": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Type of the service"
-        },
-        "workerDelayer": {
-          "type": "object",
-          "properties": {
-            "interval": {
-              "type": "number",
-              "description": "Interval"
-            },
-            "type": {
-              "type": "string",
-              "description": "Type of delayer registered in WaitDelayerFactoryRegistry"
-            }
-          },
-          "required": [
-            "interval",
-            "type"
-          ],
-          "description": "Delayer between two failed attempts to process messages"
-        },
-        "workerParallelism": {
-          "type": "boolean",
-          "description": "Define if worker should process multi message received in //",
-          "default": true
-        },
-        "maxConsumers": {
-          "type": "number",
-          "description": "Max number of queue consumers Queue will auto increase to this max number if queue is loaded and it will decrease to just one consumer if no messages are available",
-          "default": 10
-        },
-        "url": {
-          "type": "string"
-        },
-        "queue": {
-          "type": "string"
-        },
-        "stores": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "async": {
-          "type": "boolean"
-        },
-        "topic": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "async",
-        "maxConsumers",
-        "queue",
-        "stores",
-        "topic",
-        "type",
-        "url"
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "StompEventService"
     }
   }
 }

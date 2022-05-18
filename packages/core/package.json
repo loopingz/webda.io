@@ -1,6 +1,6 @@
 {
   "name": "@webda/core",
-  "version": "2.0.0-beta.0",
+  "version": "2.0.0-beta.1",
   "description": "Expose API with Lambda",
   "keywords": [
     "aws",
@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@types/json-schema": "^7.0.8",
-    "@webda/workout": "^2.0.0-beta.0",
+    "@webda/workout": "^2.0.0-beta.1",
     "accept-language": "^3.0.18",
     "ajv": "^8.6.2",
     "ajv-formats": "^2.1.1",

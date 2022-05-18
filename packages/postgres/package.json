@@ -1,6 +1,6 @@
 {
   "name": "@webda/postgres",
-  "version": "2.0.0-beta.0",
+  "version": "2.0.0-beta.1",
   "description": "Implements Postgres on webda",
   "keywords": [
     "postgres",
@@ -18,7 +18,7 @@
     "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts src/*.spec.ts"
   },
   "dependencies": {
-    "@webda/core": "^2.0.0-beta.0",
+    "@webda/core": "^2.0.0-beta.1",
     "pg": "^8.7.1"
   },
   "files": [
@@ -48,6 +48,6 @@
   },
   "devDependencies": {
     "@types/node": "14.0.0",
-    "@webda/shell": "^2.0.0-beta.0"
+    "@webda/shell": "^2.0.0-beta.1"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@webda/mongo",
-  "version": "2.0.0-beta.0",
+  "version": "2.0.0-beta.1",
   "description": "Implements Mongo DB on webda",
   "keywords": [
     "mongo",
@@ -17,7 +17,7 @@
     "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts src/*.spec.ts"
   },
   "dependencies": {
-    "@webda/core": "^2.0.0-beta.0",
+    "@webda/core": "^2.0.0-beta.1",
     "mongodb": "^4.1.2"
   },
   "files": [
@@ -48,6 +48,6 @@
   "devDependencies": {
     "@testdeck/mocha": "^0.2.0",
     "@types/node": "14.0.0",
-    "@webda/shell": "^2.0.0-beta.0"
+    "@webda/shell": "^2.0.0-beta.1"
   }
 }

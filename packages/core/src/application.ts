@@ -702,9 +702,13 @@ export class Application {
     if (templateString.indexOf("${") < 0) {
       return templateString;
     }
-    let ex = templateString.match(/\$\{[^\}]*[|&;<>\\]+[^\}]*\}/);
-    if (ex) {
-      throw new Error(`Variable cannot use every javascript features found ${ex}`);
+
+    let re = /\$\{([^\}]+)\}/g;
+    let res;
+    while ((res = re.exec(templateString)) !== null) {
+      if (res[1].match(/[|&;<>\\]/)) {
+        throw new Error(`Variable cannot use every javascript features found ${res[0]}`);
+      }
     }
     return new Function("return `" + templateString.replace(/\$\{([^\}]+)}/g, "${this.$1}") + "`;").call({
       ...this.baseConfiguration.cachedModules.project,

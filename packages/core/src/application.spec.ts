@@ -137,8 +137,13 @@ class ApplicationTest extends WebdaTest {
     assert.strictEqual(app.isCached(), true);
     assert.strictEqual(app.getCurrentDeployment(), "");
     assert.strictEqual(app.replaceVariables("hello", {}), "hello");
+    assert.strictEqual(app.replaceVariables("hello ${test} ${test2}", {}), "hello undefined undefined");
     assert.throws(
       () => app.replaceVariables("hello ${now && process.exit(666)}", {}),
+      /Variable cannot use every javascript features/
+    );
+    assert.throws(
+      () => app.replaceVariables("hello ${test} ${now && process.exit(666)}", {}),
       /Variable cannot use every javascript features/
     );
 

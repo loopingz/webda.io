@@ -121,10 +121,7 @@ jobs:
 
       - name: Run GCP tests
         run: |
-          (echo "===== Core Test Attempt: 1 ====" && yarn run test --scope @webda/gcp) || \
-          (echo "===== Core Test Attempt: 2 ====" && yarn run test --scope @webda/gcp) || \
-          (echo "===== Core Test Attempt: 3 ====" && yarn run test --scope @webda/gcp) || \
-          (echo "===== Core Test Failed ====" && exit 1)
+          (echo "===== Core Test Attempt: 1 ====" && yarn run test --scope @webda/gcp)
 
       - name: Run other modules tests
         run: yarn run test --ignore @webda/shell  --ignore @webda/aws  --ignore @webda/gcp --ignore @webda/core --ignore @webda/postgres

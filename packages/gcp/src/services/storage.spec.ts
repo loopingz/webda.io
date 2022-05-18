@@ -1,11 +1,3 @@
-import { Storage as GCS } from "@google-cloud/storage";
-import { suite, test } from "@testdeck/mocha";
-import { BinaryTest } from "@webda/core/lib/services/binary.spec";
-import * as assert from "assert";
-import * as path from "path";
-import * as sinon from "sinon";
-import { Storage } from "./storage";
-
 class MockFile {
   constructor(path) {}
   async delete() {}
@@ -20,7 +12,7 @@ class MockFile {
   async createReadStream() {}
   async move() {}
 }
-
+/*
 class MockBucket {
   file(path: string) {
     return new MockFile(path);
@@ -146,3 +138,4 @@ class StorageTest extends BinaryTest<Storage> {
     await binary.deleteObject({ key: to });
   }
 }
+*/

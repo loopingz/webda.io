@@ -146,6 +146,7 @@ class ApplicationTest extends WebdaTest {
       () => app.replaceVariables("hello ${test} ${{ test}", {}),
       /Variable cannot use every javascript features/
     );
+    assert.throws(() => app.replaceVariables("hello " + "${test}".repeat(12), {}), /Too many variables/);
 
     unpackedApp = new UnpackedApplication(__dirname + "/../test/moddas", undefined);
     await unpackedApp.load();

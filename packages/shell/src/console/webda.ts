@@ -233,7 +233,7 @@ export default class WebdaConsole {
                 webdaConsole.logger.logTitle("Webda " + line.substr(10));
                 return;
               }
-              let lvl: WorkerLogLevel = "INFO";
+              let lvl: WorkerLogLevel;
               if (line.startsWith("#W# ")) {
                 lastLineLogLevel = lvl = line.substr(4, 5).trim();
                 line = line.substr(10);

@@ -145,7 +145,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * @param context
    * @param action
    */
-  async verifyJobRequest<T extends AsyncAction = AsyncAction>(context: Context): Promise<T> {
+  async verifyJobRequest<K extends AsyncAction = AsyncAction>(context: Context): Promise<K> {
     const jobId = context.getHttpContext().getUniqueHeader("X-Job-Id");
     if (!jobId) {
       this.log("TRACE", "Require Job Id");
@@ -163,7 +163,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       this.log("TRACE", "Invalid Job HMAC");
       throw 403;
     }
-    return <T>action;
+    return <K>action;
   }
 
   /**

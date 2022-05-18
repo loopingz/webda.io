@@ -241,14 +241,7 @@ class WebdaModelNodeParser extends InterfaceAndClassNodeParser {
         if (ignore) {
           return undefined;
         }
-        let optional = false;
-        jsDocs.forEach(n => {
-          if (n.tagName.text === "SchemaOptional") {
-            optional = true;
-          } else if (n.tagName.text === "readOnly") {
-            optional = true;
-          }
-        });
+        let optional = jsDocs.filter(n => ["SchemaOptional", "readOnly"].includes(n.tagName.text)).length > 0;
         // If property is in readOnly then we do not want to require it
         return new ObjectProperty(
           this.getPropertyName(member.name),

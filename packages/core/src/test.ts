@@ -280,22 +280,6 @@ class WebdaTest {
   }
 
   /**
-   * Call getModda() on all services
-   *
-   * @deprecated ?
-   */
-  consumeAllModdas() {
-    let services = this.webda.getApplication().getModdas();
-    /*
-    for (let i in services) {
-      if (services[i].getModda) {
-        services[i].getModda();
-      }
-    }
-    */
-  }
-
-  /**
    * Dynamic add a service to webda
    *
    * @param name of the service to add

@@ -298,11 +298,6 @@ class LambdaHandlerTest extends WebdaAwsTest {
   }
 
   @test
-  consumeAllModdas() {
-    super.consumeAllModdas();
-  }
-
-  @test
   async awsEvents() {
     let service: any = this.handler.getService("awsEvents");
     let files = fs.readdirSync(__dirname + "/../../test/aws-events");

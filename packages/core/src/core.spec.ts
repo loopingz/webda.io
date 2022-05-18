@@ -267,11 +267,6 @@ class CoreTest extends WebdaTest {
   }
 
   @test
-  consumeAllModdas() {
-    super.consumeAllModdas();
-  }
-
-  @test
   getStores() {
     let moddas = this.webda.getStores();
     assert.strictEqual(Object.keys(moddas).length, 7);

@@ -1,10 +1,10 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
+import * as fs from "fs";
 import { unlinkSync } from "fs";
+import { emptyDirSync } from "fs-extra";
 import { FileQueue } from "./filequeue";
 import { QueueTest } from "./queue.spec";
-import * as fs from "fs";
-import { emptyDirSync } from "fs-extra";
 
 @suite
 class FileQueueTest extends QueueTest {

@@ -1,7 +1,7 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { HttpContext } from "./httpcontext";
+import * as assert from "assert";
 import { Readable } from "stream";
+import { HttpContext } from "./httpcontext";
 
 export class FakeReadable extends Readable {
   _read() {}

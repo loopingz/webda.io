@@ -1,7 +1,7 @@
+import { ConsoleLogger, WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaSampleApplication } from "../index.spec";
 import { Deployer } from "./deployer";
-import { WorkerOutput, ConsoleLogger, WorkerLogLevel } from "@webda/workout";
 
 export abstract class DeployerTest<T extends Deployer<any>> {
   deployer: T;

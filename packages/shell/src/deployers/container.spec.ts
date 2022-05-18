@@ -1,14 +1,13 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import * as path from "path";
-import { DeploymentManager } from "../handlers/deploymentmanager";
-import { DeployerTest } from "./deployertest";
-import { Container, ContainerResources } from "./container";
+import * as assert from "assert";
 import * as fs from "fs-extra";
+import * as path from "path";
 import * as sinon from "sinon";
+import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaSampleApplication } from "../index.spec";
+import { Container, ContainerResources } from "./container";
+import { DeployerTest } from "./deployertest";
 import { WorkspaceTestApplication } from "./packager.spec";
-import { Packager } from "@webda/shell";
 
 @suite
 class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> {

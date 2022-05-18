@@ -1,10 +1,10 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
+import { YAMLUtils } from "@webda/core";
+import * as assert from "assert";
+import * as sinon from "sinon";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { DeployerTest } from "./deployertest";
-import { Kubernetes, KubernetesObjectToURI, KubernetesResources } from "./kubernetes";
-import * as sinon from "sinon";
-import { YAMLUtils } from "@webda/core";
+import { Kubernetes, KubernetesObjectToURI } from "./kubernetes";
 
 @suite
 class KubernetesDeployerTest extends DeployerTest<Kubernetes> {

@@ -1,17 +1,17 @@
 import * as colors from "colors";
+import { constants } from "os";
 import * as readline from "readline";
+import * as util from "util";
 import {
   LogFilter,
+  WorkerInput,
+  WorkerInputType,
   WorkerLogLevel,
   WorkerMessage,
   WorkerOutput,
-  WorkerProgress,
-  WorkerInput,
-  WorkerInputType
+  WorkerProgress
 } from "..";
 import { ConsoleLogger } from "../loggers/console";
-import * as util from "util";
-import { constants } from "os";
 
 export class Terminal {
   tty: boolean;

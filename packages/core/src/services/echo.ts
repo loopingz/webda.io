@@ -1,5 +1,5 @@
 import { Context } from "../index";
-import { ServiceParameters, Service } from "./service";
+import { Service, ServiceParameters } from "./service";
 
 export class EchoServiceParameters extends ServiceParameters {
   /**

@@ -1,13 +1,12 @@
-import { QueueTest } from "@webda/core/lib/queues/queue.spec";
-import * as assert from "assert";
+import { GetQueueUrlCommandOutput, PurgeQueueCommand, SQS } from "@aws-sdk/client-sqs";
 import { suite, test, timeout } from "@testdeck/mocha";
+import { QueueTest } from "@webda/core/lib/queues/queue.spec";
+import { TestApplication } from "@webda/core/lib/test";
+import * as assert from "assert";
+import { mockClient } from "aws-sdk-client-mock";
+import * as path from "path";
 import { checkLocalStack, defaultCreds } from "../index.spec";
 import { SQSQueue } from "./sqsqueue";
-import * as sinon from "sinon";
-import { TestApplication } from "@webda/core/lib/test";
-import * as path from "path";
-import { GetQueueUrlCommandOutput, PurgeQueueCommand, SQS } from "@aws-sdk/client-sqs";
-import { mockClient } from "aws-sdk-client-mock";
 
 @suite
 class SQSQueueTest extends QueueTest {

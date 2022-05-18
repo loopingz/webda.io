@@ -1,11 +1,11 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
+import { HttpContext, ResourceService } from "@webda/core";
+import * as assert from "assert";
+import * as http from "http";
 import * as fetch from "node-fetch";
+import * as sinon from "sinon";
 import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import { ServerStatus, WebdaServer } from "./http";
-import * as sinon from "sinon";
-import * as http from "http";
-import { HttpContext, ResourceService } from "@webda/core";
 @suite
 class WebdaServerTest {
   server: WebdaServer;

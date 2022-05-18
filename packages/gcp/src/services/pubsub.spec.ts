@@ -1,9 +1,9 @@
+import { suite, test } from "@testdeck/mocha";
+import { CancelablePromise, WaitFor, WaitLinearDelay } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
-import { suite, test } from "@testdeck/mocha";
-import { GCPPubSubService } from "./pubsub";
-import { CancelablePromise, WaitFor, WaitLinearDelay } from "@webda/core";
 import * as sinon from "sinon";
+import { GCPPubSubService } from "./pubsub";
 
 @suite
 class GCPPubSubTest extends WebdaTest {

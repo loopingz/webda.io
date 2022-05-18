@@ -1,8 +1,8 @@
+import { suite, test } from "@testdeck/mocha";
+import { Ident, Store } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
-import { Store, Ident } from "@webda/core";
-import { test, suite } from "@testdeck/mocha";
-import { MongoStore, MongoParameters } from "./mongodb";
 import * as assert from "assert";
+import { MongoParameters } from "./mongodb";
 
 @suite
 class MongoDBTest extends StoreTest {

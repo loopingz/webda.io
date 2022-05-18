@@ -1,11 +1,11 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
+import * as sinon from "sinon";
 import { CoreModel } from "../models/coremodel";
 import { Queue } from "../queues/queueservice";
 import { Store } from "../stores/store";
 import { WebdaTest } from "../test";
 import { AsyncEvent, EventService } from "./asyncevents";
-import * as sinon from "sinon";
 
 @suite
 class AsyncEventsTest extends WebdaTest {

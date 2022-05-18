@@ -1,5 +1,5 @@
-import { FileLogger } from "./file";
 import { WorkerMessage, WorkerOutput } from "..";
+import { FileLogger } from "./file";
 
 /**
  * Unit test in file.spec.ts

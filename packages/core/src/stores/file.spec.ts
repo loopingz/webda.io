@@ -1,14 +1,14 @@
-import { StoreTest } from "./store.spec";
-import { FileStore, CoreModel, Store, FileUtils } from "../index";
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { HttpContext } from "../utils/httpcontext";
-import { removeSync } from "fs-extra";
+import * as assert from "assert";
 import { existsSync } from "fs";
-import { StoreNotFoundError, UpdateConditionFailError } from "./store";
+import { removeSync } from "fs-extra";
 import * as sinon from "sinon";
-import AggregatorService from "./aggregator";
+import { CoreModel, FileStore, FileUtils, Store } from "../index";
 import { User } from "../models/user";
+import { HttpContext } from "../utils/httpcontext";
+import AggregatorService from "./aggregator";
+import { StoreNotFoundError, UpdateConditionFailError } from "./store";
+import { StoreTest } from "./store.spec";
 
 /**
  * Cast for test user

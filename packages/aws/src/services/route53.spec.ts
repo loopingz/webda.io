@@ -1,10 +1,10 @@
-import { suite, test } from "@testdeck/mocha";
-import { Route53Service } from "./route53";
-import * as sinon from "sinon";
-import * as assert from "assert";
-import { JSONUtils } from "@webda/core";
-import { mockClient } from "aws-sdk-client-mock";
 import { ChangeResourceRecordSetsCommand, ListResourceRecordSetsCommand, Route53 } from "@aws-sdk/client-route-53";
+import { suite, test } from "@testdeck/mocha";
+import { JSONUtils } from "@webda/core";
+import * as assert from "assert";
+import { mockClient } from "aws-sdk-client-mock";
+import * as sinon from "sinon";
+import { Route53Service } from "./route53";
 
 @suite
 class Route53Test {

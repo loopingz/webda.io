@@ -1,8 +1,8 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { JSONUtils, YAMLUtils, FileUtils } from "./serializers";
-import * as path from "path";
+import * as assert from "assert";
 import { readFileSync } from "fs";
+import * as path from "path";
+import { FileUtils, JSONUtils, YAMLUtils } from "./serializers";
 
 const TEST_FOLDER = __dirname + "/../../test/jsonutils/";
 @suite

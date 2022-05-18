@@ -1,15 +1,15 @@
-import * as assert from "assert";
+import { suite, test } from "@testdeck/mocha";
+import { CacheService, ConsoleLoggerService, Core, Module } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
+import * as assert from "assert";
 import { execSync } from "child_process";
-import { CacheService, Application, Core, Module, ConsoleLoggerService, Modda } from "@webda/core";
+import * as fs from "fs-extra";
 import { emptyDirSync } from "fs-extra/lib/empty";
 import { removeSync } from "fs-extra/lib/remove";
-import * as fs from "fs-extra";
-import { suite, test } from "@testdeck/mocha";
 import * as path from "path";
-import { BuildSourceApplication, SourceApplication } from "./sourceapplication";
 import * as sinon from "sinon";
 import { SourceTestApplication } from "../index.spec";
+import { BuildSourceApplication, SourceApplication } from "./sourceapplication";
 
 @suite
 class SourceApplicationTest extends WebdaTest {

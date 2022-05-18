@@ -1,27 +1,27 @@
-import { WebdaQLLexer } from "./WebdaQLLexer";
 import { CharStreams, CommonTokenStream, RecognitionException, Recognizer, Token } from "antlr4ts";
+import { AbstractParseTreeVisitor } from "antlr4ts/tree/AbstractParseTreeVisitor";
+import { ParseTree } from "antlr4ts/tree/ParseTree";
+import { TerminalNode } from "antlr4ts/tree/TerminalNode";
+import { WebdaQLLexer } from "./WebdaQLLexer";
 import {
-  WebdaQLParserParser,
-  WebdaqlContext,
+  AndLogicExpressionContext,
   BinaryComparisonExpressionContext,
   BooleanLiteralContext,
   InExpressionContext,
   IntegerLiteralContext,
+  LikeExpressionContext,
+  LimitExpressionContext,
+  OffsetExpressionContext,
+  OrderExpressionContext,
+  OrderFieldExpressionContext,
+  OrLogicExpressionContext,
   SetExpressionContext,
   StringLiteralContext,
   SubExpressionContext,
-  AndLogicExpressionContext,
-  OrLogicExpressionContext,
-  LimitExpressionContext,
-  OffsetExpressionContext,
-  LikeExpressionContext,
-  OrderExpressionContext,
-  OrderFieldExpressionContext
+  WebdaqlContext,
+  WebdaQLParserParser
 } from "./WebdaQLParserParser";
 import { WebdaQLParserVisitor } from "./WebdaQLParserVisitor";
-import { ParseTree } from "antlr4ts/tree/ParseTree";
-import { TerminalNode } from "antlr4ts/tree/TerminalNode";
-import { AbstractParseTreeVisitor } from "antlr4ts/tree/AbstractParseTreeVisitor";
 
 type value = boolean | string | number;
 

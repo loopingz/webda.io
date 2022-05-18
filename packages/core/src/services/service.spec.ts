@@ -1,8 +1,8 @@
 import { suite, test } from "@testdeck/mocha";
-import { WebdaTest } from "../test";
 import * as assert from "assert";
-import { Inject, Service } from "..";
 import * as sinon from "sinon";
+import { Inject, Service } from "..";
+import { WebdaTest } from "../test";
 import { ServiceParameters } from "./service";
 
 class FakeServiceParameters extends ServiceParameters {

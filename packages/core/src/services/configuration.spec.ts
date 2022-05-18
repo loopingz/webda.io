@@ -1,10 +1,10 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
+import { stub } from "sinon";
 import { CoreModel } from "../models/coremodel";
 import { Store } from "../stores/store";
 import { WebdaTest } from "../test";
-import { ConfigurationService, ConfigurationServiceParameters } from "./configuration";
-import { stub } from "sinon";
+import { ConfigurationService } from "./configuration";
 
 @suite
 class ConfigurationServiceTest extends WebdaTest {

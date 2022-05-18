@@ -1,5 +1,5 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { DeployerTest } from "./deployertest";
 import ShellDeployer from "./shell";

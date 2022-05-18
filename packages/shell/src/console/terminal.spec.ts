@@ -1,8 +1,8 @@
 import { suite, test } from "@testdeck/mocha";
-import { WebdaTerminal } from "./terminal";
-import * as assert from "assert";
 import { WorkerMessage, WorkerOutput } from "@webda/workout";
+import * as assert from "assert";
 import * as sinon from "sinon";
+import { WebdaTerminal } from "./terminal";
 
 @suite
 class TerminalTest {

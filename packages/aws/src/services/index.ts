@@ -27,8 +27,8 @@ export interface CloudFormationContributor {
 export * from "./aws-mixin";
 export * from "./cloudwatchlogger";
 export * from "./dynamodb";
+export * from "./lambdacaller";
 export * from "./lambdaserver";
 export * from "./s3binary";
 export * from "./secretsmanager";
 export * from "./sqsqueue";
-export * from "./lambdacaller";

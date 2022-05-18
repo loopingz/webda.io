@@ -1,29 +1,29 @@
-import { DeploymentManager } from "@webda/shell";
-import { DeployerTest } from "@webda/shell/lib/deployers/deployertest";
-import * as assert from "assert";
-import { suite, test } from "@testdeck/mocha";
-import * as sinon from "sinon";
-import { AWSDeployer, AWSDeployerResources } from ".";
-import { CacheService } from "@webda/core";
-import { mockClient } from "aws-sdk-client-mock";
-import {
-  CreateBucketCommand,
-  HeadBucketCommand,
-  ListObjectsV2Command,
-  PutBucketTaggingCommand,
-  PutObjectCommand,
-  S3,
-  NotFound
-} from "@aws-sdk/client-s3";
-import { DescribeSubnetsCommand, DescribeVpcsCommand, EC2 } from "@aws-sdk/client-ec2";
 import {
   ACM,
   DescribeCertificateCommand,
   ListCertificatesCommand,
   RequestCertificateCommand
 } from "@aws-sdk/client-acm";
-import { GetCallerIdentityCommand, STS } from "@aws-sdk/client-sts";
+import { DescribeSubnetsCommand, DescribeVpcsCommand, EC2 } from "@aws-sdk/client-ec2";
 import { ChangeResourceRecordSetsCommand, HostedZone, ListHostedZonesCommand, Route53 } from "@aws-sdk/client-route-53";
+import {
+  CreateBucketCommand,
+  HeadBucketCommand,
+  ListObjectsV2Command,
+  NotFound,
+  PutBucketTaggingCommand,
+  PutObjectCommand,
+  S3
+} from "@aws-sdk/client-s3";
+import { GetCallerIdentityCommand, STS } from "@aws-sdk/client-sts";
+import { suite, test } from "@testdeck/mocha";
+import { CacheService } from "@webda/core";
+import { DeploymentManager } from "@webda/shell";
+import { DeployerTest } from "@webda/shell/lib/deployers/deployertest";
+import * as assert from "assert";
+import { mockClient } from "aws-sdk-client-mock";
+import * as sinon from "sinon";
+import { AWSDeployer, AWSDeployerResources } from ".";
 class TestAWSDeployer extends AWSDeployer<AWSDeployerResources> {
   async deploy(): Promise<any> {}
 

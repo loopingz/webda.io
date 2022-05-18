@@ -1,13 +1,13 @@
 import { DocumentReference, FieldValue, Firestore, OrderByDirection, Timestamp } from "@google-cloud/firestore";
 import {
   CoreModel,
-  Store,
-  StoreParameters,
   DeepPartial,
+  Store,
+  StoreFindResult,
   StoreNotFoundError,
+  StoreParameters,
   UpdateConditionFailError,
   WebdaQL,
-  StoreFindResult,
 } from "@webda/core";
 
 /**

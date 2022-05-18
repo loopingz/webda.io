@@ -1,5 +1,5 @@
+import { CreateSubscriptionOptions, Message, PubSub, Subscription } from "@google-cloud/pubsub";
 import { CancelablePromise, PubSubService, ServiceParameters } from "@webda/core";
-import { PubSub, CreateSubscriptionOptions, Subscription, Message } from "@google-cloud/pubsub";
 
 export class GCPPubSubParameters extends ServiceParameters {
   /**

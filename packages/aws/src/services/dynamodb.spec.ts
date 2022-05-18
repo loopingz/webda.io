@@ -1,21 +1,21 @@
-import { CoreModel, Ident, Store, StoreEvents, StoreParameters, UpdateConditionFailError } from "@webda/core";
-import { StoreTest } from "@webda/core/lib/stores/store.spec";
-import * as assert from "assert";
-import { suite, test } from "@testdeck/mocha";
-import { checkLocalStack, defaultCreds } from "../index.spec";
-import { DynamoStore, DynamoStoreParameters } from "./dynamodb";
-import * as sinon from "sinon";
-import { WorkerOutput } from "@webda/workout";
-import { TestApplication } from "@webda/core/lib/test";
-import path from "path";
-import { mockClient } from "aws-sdk-client-mock";
 import {
-  DynamoDBClient,
   BatchWriteItemCommand,
   DescribeTableCommand,
-  ScanCommand,
-  DynamoDB
+  DynamoDB,
+  DynamoDBClient,
+  ScanCommand
 } from "@aws-sdk/client-dynamodb";
+import { suite, test } from "@testdeck/mocha";
+import { CoreModel, Ident, Store, StoreEvents, StoreParameters, UpdateConditionFailError } from "@webda/core";
+import { StoreTest } from "@webda/core/lib/stores/store.spec";
+import { TestApplication } from "@webda/core/lib/test";
+import { WorkerOutput } from "@webda/workout";
+import * as assert from "assert";
+import { mockClient } from "aws-sdk-client-mock";
+import path from "path";
+import * as sinon from "sinon";
+import { checkLocalStack, defaultCreds } from "../index.spec";
+import { DynamoStore, DynamoStoreParameters } from "./dynamodb";
 
 @suite
 export class DynamoDBTest extends StoreTest {

@@ -1,4 +1,4 @@
-import { Service, Context, LoggerService, ServiceParameters } from "@webda/core";
+import { Context, LoggerService, Service, ServiceParameters } from "@webda/core";
 
 /**
  * Profiler Parameters

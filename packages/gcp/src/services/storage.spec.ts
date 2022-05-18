@@ -1,10 +1,10 @@
+import { Storage as GCS } from "@google-cloud/storage";
+import { suite, test } from "@testdeck/mocha";
 import { BinaryTest } from "@webda/core/lib/services/binary.spec";
 import * as assert from "assert";
-import { suite, test } from "@testdeck/mocha";
-import { Storage } from "./storage";
-import * as sinon from "sinon";
-import { Storage as GCS } from "@google-cloud/storage";
 import * as path from "path";
+import * as sinon from "sinon";
+import { Storage } from "./storage";
 
 class MockFile {
   constructor(path) {}

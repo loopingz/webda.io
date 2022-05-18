@@ -1,8 +1,8 @@
-import * as assert from "assert";
-import { test, suite } from "@testdeck/mocha";
-import { ApiKey } from "./apikey";
+import { suite, test } from "@testdeck/mocha";
 import { Context } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
+import * as assert from "assert";
+import { ApiKey } from "./apikey";
 const KEY = {
   __secret: "the-secret",
   algorithm: "sha256",

@@ -1,9 +1,9 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { WebdaTest } from "../test";
-import { CronDefinition, Cron, Service, CronService } from "..";
+import * as assert from "assert";
 import * as crontab from "node-cron";
 import * as sinon from "sinon";
+import { Cron, CronDefinition, CronService, Service } from "..";
+import { WebdaTest } from "../test";
 
 class MyService extends Service {
   @Cron("0/15 * * * *", "plop")

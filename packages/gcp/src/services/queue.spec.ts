@@ -1,9 +1,9 @@
+import { suite, test } from "@testdeck/mocha";
 import { QueueTest } from "@webda/core/lib/queues/queue.spec";
 import * as assert from "assert";
-import { suite, test } from "@testdeck/mocha";
-import GCPQueue from "./queue";
 import { EventEmitter } from "events";
 import * as sinon from "sinon";
+import GCPQueue from "./queue";
 
 class FakeSubscription extends EventEmitter {
   emitError() {

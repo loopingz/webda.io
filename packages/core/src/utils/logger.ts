@@ -1,13 +1,13 @@
-import { Service, ServiceParameters } from "../services/service";
 import {
-  Logger as WorkoutLogger,
-  WorkerOutput,
-  WorkerLogLevel,
-  MemoryLogger,
   ConsoleLogger,
-  FileLogger
+  FileLogger,
+  Logger as WorkoutLogger,
+  MemoryLogger,
+  WorkerLogLevel,
+  WorkerOutput
 } from "@webda/workout";
 import { Core } from "../core";
+import { Service, ServiceParameters } from "../services/service";
 
 export class LoggerServiceParameters extends ServiceParameters {
   /**

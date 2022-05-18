@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
-import { AbstractDeployer } from "./abstractdeployer";
 import * as assert from "assert";
+import { AbstractDeployer } from "./abstractdeployer";
 
 @suite
 class CovAbstractDeployer {

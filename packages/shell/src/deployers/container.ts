@@ -1,9 +1,9 @@
+import { DeployerResources } from "@webda/core";
 import * as fs from "fs-extra";
 import * as glob from "glob";
 import * as path from "path";
-import { DeployerResources } from "@webda/core";
-import { Deployer } from "./deployer";
 import { Packager } from "..";
+import { Deployer } from "./deployer";
 
 /**
  * Command mapping for your preferred containerd client

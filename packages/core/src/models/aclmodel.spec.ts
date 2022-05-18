@@ -1,6 +1,6 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { AclModel, Core, CoreModel, HttpContext, SecureCookie, User, Context } from "../index";
+import * as assert from "assert";
+import { AclModel, Context, Core, HttpContext, SecureCookie, User } from "../index";
 import { TestApplication } from "../test";
 
 @suite

@@ -1,7 +1,7 @@
-import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "..";
 import * as fs from "fs";
 import * as path from "path";
 import { Logger } from ".";
+import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "..";
 
 /**
  * Record all messages in memory

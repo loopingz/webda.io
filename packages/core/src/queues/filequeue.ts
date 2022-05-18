@@ -1,9 +1,9 @@
+import * as fs from "fs";
+import { join } from "path";
 import * as uuid from "uuid";
 import { ServiceParameters } from "../services/service";
 import { JSONUtils } from "../utils/serializers";
 import { MessageReceipt, Queue, QueueParameters } from "./queueservice";
-import * as fs from "fs";
-import { join } from "path";
 
 export class FileQueueParameters extends QueueParameters {
   /**

@@ -1,7 +1,7 @@
 import { Context, EventWithContext, RequestFilter } from "../";
-import { Service, ServiceParameters } from "./service";
-import { Authentication } from "./authentication";
 import { Core } from "../core";
+import { Authentication } from "./authentication";
+import { Service, ServiceParameters } from "./service";
 
 export interface EventOAuthToken extends EventWithContext {
   /**

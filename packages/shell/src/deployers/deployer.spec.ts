@@ -1,5 +1,5 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
 import { Deployer } from "./deployer";
 import { DeployerTest } from "./deployertest";
 class TestDeployer extends Deployer<any> {

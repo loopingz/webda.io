@@ -1,11 +1,11 @@
 import * as fs from "fs";
+import * as jwt from "jsonwebtoken";
+import { join } from "path";
+import { Readable } from "stream";
+import { CloudBinary, CloudBinaryParameters, CoreModel } from "..";
 import { Context } from "../utils/context";
 import { Binary, BinaryFile, BinaryMap, BinaryNotFoundError, MemoryBinaryFile } from "./binary";
 import { ServiceParameters } from "./service";
-import { join } from "path";
-import { CloudBinary, CloudBinaryParameters, CoreModel } from "..";
-import { Readable } from "stream";
-import * as jwt from "jsonwebtoken";
 
 export class FileBinaryParameters extends CloudBinaryParameters {
   /**

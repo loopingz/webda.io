@@ -1,12 +1,12 @@
-import * as assert from "assert";
-import { FileBinary } from "./filebinary";
 import { suite, test } from "@testdeck/mocha";
-import { removeSync } from "fs-extra";
+import * as assert from "assert";
 import * as fs from "fs";
+import { removeSync } from "fs-extra";
 import * as jwt from "jsonwebtoken";
-import { BinaryFile, BinaryFileInfo, MemoryBinaryFile } from "./binary";
 import { Readable } from "stream";
+import { BinaryFile, BinaryFileInfo, MemoryBinaryFile } from "./binary";
 import { CloudBinaryTest } from "./cloudbinary.spec";
+import { FileBinary } from "./filebinary";
 
 class FaultyBinaryFile extends BinaryFile {
   async get() {

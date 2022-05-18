@@ -1,11 +1,11 @@
-import { Configuration, JSONUtils, DeployerResources } from "@webda/core";
+import { Configuration, DeployerResources, JSONUtils } from "@webda/core";
+import * as crypto from "crypto";
 import * as fs from "fs";
+import * as glob from "glob";
 import * as path from "path";
-import { Deployer } from "./deployer";
 import * as semver from "semver";
 import { intersect } from "semver-intersect";
-import * as glob from "glob";
-import * as crypto from "crypto";
+import { Deployer } from "./deployer";
 
 export interface PackagerResources extends DeployerResources {
   zipPath: string;

@@ -1,7 +1,7 @@
-import ConfigurationService, { ConfigurationServiceParameters } from "./configuration";
-import { WebdaError } from "../core";
 import * as fs from "fs";
 import { JSONUtils } from "..";
+import { WebdaError } from "../core";
+import ConfigurationService, { ConfigurationServiceParameters } from "./configuration";
 
 /**
  * Allow for dynamic configuration from a file

@@ -1,9 +1,9 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
 import * as sinon from "sinon";
 import { WorkerOutput } from "..";
-import { ConsoleLogger } from "./console";
 import { WorkerLog, WorkerMessage } from "../core";
+import { ConsoleLogger } from "./console";
 
 @suite
 class ConsoleLoggerTest {

@@ -1,6 +1,6 @@
+import { Context, OAuthEvents, OAuthService, OAuthServiceParameters, RequestFilter } from "@webda/core";
+import { Credentials, OAuth2Client } from "google-auth-library";
 import * as http from "http";
-import { OAuthService, RequestFilter, OAuthServiceParameters, Context, OAuthEvents } from "@webda/core";
-import { OAuth2Client, Credentials } from "google-auth-library";
 
 export interface EventGoogleOAuthToken {
   /**

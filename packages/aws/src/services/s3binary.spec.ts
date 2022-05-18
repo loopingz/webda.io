@@ -1,15 +1,15 @@
-import { BinaryTest } from "@webda/core/lib/services/binary.spec";
-import * as assert from "assert";
-import { suite, test } from "@testdeck/mocha";
-import { checkLocalStack, defaultCreds } from "../index.spec";
-import { S3Binary, S3BinaryParameters } from "./s3binary";
-import { DynamoDBTest } from "./dynamodb.spec";
-import * as sinon from "sinon";
-import { Binary } from "@webda/core";
-import { TestApplication } from "@webda/core/lib/test";
-import * as path from "path";
 import { DeleteObjectsCommandInput, HeadObjectCommand, ListObjectsV2Command, S3 } from "@aws-sdk/client-s3";
+import { suite, test } from "@testdeck/mocha";
+import { Binary } from "@webda/core";
+import { BinaryTest } from "@webda/core/lib/services/binary.spec";
+import { TestApplication } from "@webda/core/lib/test";
+import * as assert from "assert";
 import { mockClient } from "aws-sdk-client-mock";
+import * as path from "path";
+import * as sinon from "sinon";
+import { checkLocalStack, defaultCreds } from "../index.spec";
+import { DynamoDBTest } from "./dynamodb.spec";
+import { S3Binary, S3BinaryParameters } from "./s3binary";
 
 @suite
 class S3BinaryTest extends BinaryTest<S3Binary> {

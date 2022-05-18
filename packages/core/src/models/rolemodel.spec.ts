@@ -1,6 +1,6 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { Application, Core, CoreModel, HttpContext, RoleModel, SecureCookie, User } from "../index";
+import * as assert from "assert";
+import { Core, HttpContext, RoleModel, SecureCookie, User } from "../index";
 import { TestApplication } from "../test";
 
 class RolePolicyModel extends RoleModel {

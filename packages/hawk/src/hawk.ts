@@ -1,6 +1,6 @@
-import { Service, ServiceParameters, Store, Cache, RequestFilter, Context } from "@webda/core";
-import { ApiKey } from "./apikey";
+import { Cache, Context, RequestFilter, Service, ServiceParameters, Store } from "@webda/core";
 import * as Hawk from "hawk";
+import { ApiKey } from "./apikey";
 
 /**
  * Hawk Credentials representation

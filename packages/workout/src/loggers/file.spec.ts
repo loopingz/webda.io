@@ -1,11 +1,11 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { WorkerOutput } from "..";
-import { FileLogger } from "./file";
-import { writeFileSync, unlinkSync, readdirSync, lstatSync } from "fs";
-import { DebugLogger } from "./debug";
-import { WorkerMessage } from "../core";
 import { WaitFor, WaitLinearDelay } from "@webda/core";
+import * as assert from "assert";
+import { readdirSync, unlinkSync, writeFileSync } from "fs";
+import { WorkerOutput } from "..";
+import { WorkerMessage } from "../core";
+import { DebugLogger } from "./debug";
+import { FileLogger } from "./file";
 
 @suite
 class FileConsoleTest {

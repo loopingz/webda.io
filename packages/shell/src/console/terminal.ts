@@ -1,4 +1,4 @@
-import { Terminal, WorkerOutput, WorkerLogLevel, WorkerMessage } from "@webda/workout";
+import { Terminal, WorkerLogLevel, WorkerMessage, WorkerOutput } from "@webda/workout";
 import * as colors from "colors";
 
 export class WebdaTerminal extends Terminal {

@@ -1,10 +1,12 @@
-import { WebdaTest } from "../test";
-import * as assert from "assert";
-import * as fs from "fs";
-import { Binary, Context, Store, User } from "..";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
+import axios from "axios";
+import { EventEmitter } from "events";
+import * as fs from "fs";
 import * as sinon from "sinon";
+import { Binary, Context, Store, User } from "..";
 import { CoreModel } from "../models/coremodel";
+import { WebdaTest } from "../test";
 import {
   BinaryEvents,
   BinaryFileInfo,
@@ -13,9 +15,6 @@ import {
   LocalBinaryFile,
   MemoryBinaryFile
 } from "./binary";
-import axios from "axios";
-import { EventEmitter } from "events";
-import { exec } from "child_process";
 export class ImageUser extends User {
   images: BinaryMap[];
 }

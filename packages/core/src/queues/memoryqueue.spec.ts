@@ -1,5 +1,5 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
 import { CancelablePromise, Queue } from "..";
 import { MemoryQueue } from "./memoryqueue";
 import { QueueTest } from "./queue.spec";

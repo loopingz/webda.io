@@ -1,6 +1,6 @@
+import { suite, test } from "@testdeck/mocha";
 import { QueueTest } from "@webda/core/lib/queues/queue.spec";
 import * as assert from "assert";
-import { suite, test } from "@testdeck/mocha";
 import AMQPQueue from "./queue";
 
 @suite

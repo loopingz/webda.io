@@ -11,3 +11,7 @@ docker run --name webda-mongo -e MONGO_INITDB_ROOT_USERNAME=root -e MONGO_INITDB
 
 echo "Launching Postgres"
 docker run --name webda-postgres -it -e POSTGRES_PASSWORD=testor 
+
+echo "Launching GCP emulators"
+gcloud beta emulators firestore start --host-port=localhost:19090
+gcloud beta emulators pubsub start --host-port=localhost:19091

@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
-import { WebdaTest } from "../test";
 import * as assert from "assert";
+import { WebdaTest } from "../test";
 
 @suite
 class VersionTest extends WebdaTest {

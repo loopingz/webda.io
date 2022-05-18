@@ -1,6 +1,6 @@
+import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as fs from "fs";
-import { suite, test } from "@testdeck/mocha";
 import { WebdaTest } from "../test";
 import ResourceService, { ResourceServiceParameters } from "./resource";
 

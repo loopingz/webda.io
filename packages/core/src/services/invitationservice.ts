@@ -1,10 +1,10 @@
-import { Store, Context, EventAuthenticationRegister, Ident, EventWithContext } from "../index";
+import { Context, EventAuthenticationRegister, EventWithContext, Ident, Store } from "../index";
 import { AclModel } from "../models/aclmodel";
 import { CoreModel } from "../models/coremodel";
 import { User } from "../models/user";
 import { Authentication } from "./authentication";
 import { NotificationService } from "./notificationservice";
-import { DeepPartial, Inject, ServiceParameters, Service } from "./service";
+import { DeepPartial, Inject, Service, ServiceParameters } from "./service";
 
 interface InvitationAnswerBody {
   accept: boolean;

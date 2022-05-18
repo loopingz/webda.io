@@ -1,8 +1,8 @@
 import { suite, test } from "@testdeck/mocha";
-import { CoreModel, Store } from "@webda/core";
+import { Store } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
-import { ElasticSearchService, ESUnknownIndexError } from "./elasticsearchservice";
 import * as assert from "assert";
+import { ElasticSearchService } from "./elasticsearchservice";
 
 @suite
 class ElasticSearchTest extends WebdaTest {

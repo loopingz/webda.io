@@ -1,36 +1,36 @@
 //node.kind === ts.SyntaxKind.ClassDeclaration
-import { Application, Logger, FileUtils, JSONUtils, Module, Section } from "@webda/core";
-import * as ts from "typescript";
-import * as path from "path";
-import { existsSync } from "fs";
 import { tsquery } from "@phenomnomnominal/tsquery";
-import { SourceApplication } from "./sourceapplication";
+import { Application, FileUtils, JSONUtils, Logger, Module, Section } from "@webda/core";
+import { existsSync } from "fs";
+import { JSONSchema7 } from "json-schema";
+import * as path from "path";
 import {
-  createFormatter,
-  createParser,
-  FunctionType,
-  SchemaGenerator,
-  SubTypeFormatter,
-  Definition,
+  AnnotatedNodeParser,
+  AnnotatedType,
   BaseType,
   ChainNodeParser,
   CircularReferenceNodeParser,
-  AnnotatedNodeParser,
-  ExtendedAnnotationsReader,
-  Context,
-  ObjectProperty,
-  InterfaceAndClassNodeParser,
-  ReferenceType,
   Config,
-  AnnotatedType,
-  SubNodeParser,
-  NodeParser,
+  Context,
+  createFormatter,
+  createParser,
+  Definition,
+  ExtendedAnnotationsReader,
+  FunctionType,
+  InterfaceAndClassNodeParser,
+  LiteralType,
   LogicError,
+  NodeParser,
+  ObjectProperty,
   ObjectType,
-  LiteralType
+  ReferenceType,
+  SchemaGenerator,
+  SubNodeParser,
+  SubTypeFormatter
 } from "ts-json-schema-generator";
 import { isPublic, isStatic } from "ts-json-schema-generator/dist/src/Utils/modifiers";
-import { JSONSchema7 } from "json-schema";
+import * as ts from "typescript";
+import { SourceApplication } from "./sourceapplication";
 /**
  * Temporary fix while waiting for https://github.com/vega/ts-json-schema-generator/pull/1182
  */

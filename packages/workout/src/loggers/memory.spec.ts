@@ -1,5 +1,5 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
 import { WorkerOutput } from "..";
 import { MemoryLogger } from "./memory";
 

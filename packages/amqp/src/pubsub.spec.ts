@@ -1,9 +1,9 @@
+import { suite, test } from "@testdeck/mocha";
+import { CancelablePromise, WaitFor, WaitLinearDelay } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
-import { suite, test } from "@testdeck/mocha";
-import { AMQPPubSubService, AMQPPubSubParameters } from "./pubsub";
-import { CancelablePromise, WaitFor, WaitLinearDelay } from "@webda/core";
 import * as sinon from "sinon";
+import { AMQPPubSubParameters, AMQPPubSubService } from "./pubsub";
 
 @suite
 class AMQPPubSubTest extends WebdaTest {

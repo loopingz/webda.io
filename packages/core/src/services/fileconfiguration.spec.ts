@@ -1,7 +1,7 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
+import { existsSync, unlinkSync, writeFileSync } from "fs";
 import { WebdaTest } from "../test";
-import { writeFileSync, unlinkSync, existsSync } from "fs";
 import { FileConfigurationService } from "./fileconfiguration";
 
 @suite

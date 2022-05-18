@@ -1,9 +1,9 @@
+import { WorkerLogLevel } from "@webda/workout";
 import * as events from "events";
 import { Core, Logger } from "../index";
+import { OpenAPIWebdaDefinition } from "../router";
 import { HttpMethodType } from "../utils/httpcontext";
 import { EventService } from "./asyncevents";
-import { WorkerLogLevel } from "@webda/workout";
-import { OpenAPIWebdaDefinition } from "../router";
 
 /**
  * Represent a Inject annotation

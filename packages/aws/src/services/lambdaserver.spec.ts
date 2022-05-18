@@ -1,10 +1,10 @@
+import { suite, test } from "@testdeck/mocha";
 import { Bean, HttpContext, Route, Service } from "@webda/core";
+import { TestApplication } from "@webda/core/lib/test";
 import * as assert from "assert";
 import * as fs from "fs";
-import { suite, test } from "@testdeck/mocha";
 import { checkLocalStack, WebdaAwsTest } from "../index.spec";
 import { LambdaServer } from "./lambdaserver";
-import { TestApplication } from "@webda/core/lib/test";
 
 @Bean
 class ExceptionExecutor extends Service {

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
-import * as yaml from "yaml";
 import * as jsonc from "jsonc-parser";
+import * as yaml from "yaml";
 
 /**
  * Allow save/load of yaml or json file

@@ -1,5 +1,5 @@
-import { ConfigurationProvider, Service, ServiceParameters } from "@webda/core";
 import { DeleteSecretRequest, SecretsManager } from "@aws-sdk/client-secrets-manager";
+import { ConfigurationProvider, Service, ServiceParameters } from "@webda/core";
 import { AWSServiceParameters } from "./aws-mixin";
 
 export class AWSSecretsManagerParameters extends AWSServiceParameters(ServiceParameters) {}

@@ -1,11 +1,11 @@
+import { Firestore } from "@google-cloud/firestore";
+import { suite, test } from "@testdeck/mocha";
+import { Ident, WebdaQL } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
-import { test, suite } from "@testdeck/mocha";
-import { FireStore } from "./firestore";
 import * as assert from "assert";
 import * as sinon from "sinon";
 import { v4 as uuidv4 } from "uuid";
-import { Firestore } from "@google-cloud/firestore";
-import { Ident, WebdaQL } from "@webda/core";
+import { FireStore } from "./firestore";
 
 @suite
 class FireStoreTest extends StoreTest {

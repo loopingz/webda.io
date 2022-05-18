@@ -1,11 +1,11 @@
 import { suite, test } from "@testdeck/mocha";
+import { WorkerInputType } from "@webda/workout";
+import * as assert from "assert";
+import { nextTick } from "process";
 import * as sinon from "sinon";
 import { WorkerLogLevelEnum, WorkerOutput } from "..";
-import { Terminal } from "./terminal";
-import * as assert from "assert";
-import { WorkerInputType } from "@webda/workout";
 import { WorkerProgress } from "../core";
-import { nextTick } from "process";
+import { Terminal } from "./terminal";
 
 var stdin = require("mock-stdin").stdin();
 

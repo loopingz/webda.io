@@ -1,4 +1,4 @@
-import { PubSubService, ServiceParameters, JSONUtils, CancelablePromise } from "@webda/core";
+import { CancelablePromise, JSONUtils, PubSubService, ServiceParameters } from "@webda/core";
 import * as amqplib from "amqplib";
 
 export class AMQPPubSubParameters extends ServiceParameters {

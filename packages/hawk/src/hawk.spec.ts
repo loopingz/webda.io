@@ -1,11 +1,10 @@
 "use strict";
 var assert = require("assert");
-import * as Hawk from "hawk";
 import { suite, test } from "@testdeck/mocha";
+import { CacheService, Context, HttpContext, HttpMethodType, Store } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
-import { HttpMethodType } from "@webda/core";
+import * as Hawk from "hawk";
 import { ApiKey } from "./apikey";
-import { CacheService, HttpContext, Store, Context } from "@webda/core";
 import { HawkService } from "./hawk";
 
 @suite

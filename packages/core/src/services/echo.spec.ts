@@ -1,8 +1,8 @@
-import { WebdaTest } from "../test";
-import * as assert from "assert";
-import { EchoService } from "./echo";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
 import * as sinon from "sinon";
+import { WebdaTest } from "../test";
+import { EchoService } from "./echo";
 
 @suite
 class EchoTest extends WebdaTest {

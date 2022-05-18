@@ -1,6 +1,6 @@
 import { CoreModel, StoreNotFoundError, UpdateConditionFailError } from "@webda/core";
+import { Client, ClientConfig, Pool, PoolConfig } from "pg";
 import { SQLResult, SQLStore, SQLStoreParameters } from "./sqlstore";
-import { Pool, Client, ClientConfig, PoolConfig } from "pg";
 
 class PostgresParameters extends SQLStoreParameters {
   /**

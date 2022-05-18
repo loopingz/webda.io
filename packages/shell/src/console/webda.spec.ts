@@ -1,19 +1,19 @@
 "use strict";
-import * as assert from "assert";
-import * as fs from "fs";
 import { suite, test } from "@testdeck/mocha";
+import { FileUtils, JSONUtils, Logger, Module, WebdaError } from "@webda/core";
+import { MemoryLogger, WorkerOutput } from "@webda/workout";
+import * as assert from "assert";
+import { execSync } from "child_process";
+import * as fs from "fs";
 import * as fetch from "node-fetch";
 import * as path from "path";
+import * as sinon from "sinon";
+import * as ts from "typescript";
+import { Compiler } from "../code/compiler";
+import { SourceApplication } from "../code/sourceapplication";
 import { ServerStatus } from "../handlers/http";
 import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import { DebuggerStatus, WebdaConsole } from "./webda";
-import { MemoryLogger, WorkerOutput } from "@webda/workout";
-import { FileUtils, JSONUtils, Logger, Module, WebdaError } from "@webda/core";
-import * as sinon from "sinon";
-import { SourceApplication } from "../code/sourceapplication";
-import { execSync } from "child_process";
-import { Compiler } from "../code/compiler";
-import * as ts from "typescript";
 
 class DebugLogger extends MemoryLogger {
   getLogs(start: number = 0) {

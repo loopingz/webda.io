@@ -1,11 +1,10 @@
-import * as assert from "assert";
-import * as fs from "fs";
 import { suite, test } from "@testdeck/mocha";
+import { FileUtils } from "@webda/core";
+import * as assert from "assert";
 import * as fetch from "node-fetch";
 import { WebdaSampleApplication } from "../index.spec";
 import { WebdaConfiguration } from "./config";
 import { ServerStatus } from "./http";
-import { FileUtils } from "@webda/core";
 
 const DEFAULT_CONFIG_HOST = "http://localhost:18181";
 

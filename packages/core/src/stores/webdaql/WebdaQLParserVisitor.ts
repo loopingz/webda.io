@@ -1,32 +1,33 @@
 // Generated from src/stores/webdaql/WebdaQLParser.g4 by ANTLR 4.9.0-SNAPSHOT
 
 import { ParseTreeVisitor } from "antlr4ts/tree/ParseTreeVisitor";
-
-import { LikeExpressionContext } from "./WebdaQLParserParser";
-import { InExpressionContext } from "./WebdaQLParserParser";
-import { BinaryComparisonExpressionContext } from "./WebdaQLParserParser";
-import { AndLogicExpressionContext } from "./WebdaQLParserParser";
-import { OrLogicExpressionContext } from "./WebdaQLParserParser";
-import { SubExpressionContext } from "./WebdaQLParserParser";
-import { AtomExpressionContext } from "./WebdaQLParserParser";
-import { BooleanAtomContext } from "./WebdaQLParserParser";
-import { IntegerAtomContext } from "./WebdaQLParserParser";
-import { StringAtomContext } from "./WebdaQLParserParser";
-import { ValuesAtomContext } from "./WebdaQLParserParser";
-import { IdentifierAtomContext } from "./WebdaQLParserParser";
-import { WebdaqlContext } from "./WebdaQLParserParser";
-import { LimitExpressionContext } from "./WebdaQLParserParser";
-import { OffsetExpressionContext } from "./WebdaQLParserParser";
-import { OrderFieldExpressionContext } from "./WebdaQLParserParser";
-import { OrderExpressionContext } from "./WebdaQLParserParser";
-import { ExpressionContext } from "./WebdaQLParserParser";
-import { ValuesContext } from "./WebdaQLParserParser";
-import { AtomContext } from "./WebdaQLParserParser";
-import { IdentifierContext } from "./WebdaQLParserParser";
-import { BooleanLiteralContext } from "./WebdaQLParserParser";
-import { StringLiteralContext } from "./WebdaQLParserParser";
-import { IntegerLiteralContext } from "./WebdaQLParserParser";
-import { SetExpressionContext } from "./WebdaQLParserParser";
+import {
+  AndLogicExpressionContext,
+  AtomContext,
+  AtomExpressionContext,
+  BinaryComparisonExpressionContext,
+  BooleanAtomContext,
+  BooleanLiteralContext,
+  ExpressionContext,
+  IdentifierAtomContext,
+  IdentifierContext,
+  InExpressionContext,
+  IntegerAtomContext,
+  IntegerLiteralContext,
+  LikeExpressionContext,
+  LimitExpressionContext,
+  OffsetExpressionContext,
+  OrderExpressionContext,
+  OrderFieldExpressionContext,
+  OrLogicExpressionContext,
+  SetExpressionContext,
+  StringAtomContext,
+  StringLiteralContext,
+  SubExpressionContext,
+  ValuesAtomContext,
+  ValuesContext,
+  WebdaqlContext
+} from "./WebdaQLParserParser";
 
 /**
  * This interface defines a complete generic visitor for a parse tree produced

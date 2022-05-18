@@ -1,10 +1,10 @@
 import { ServiceParameters } from "../services/service";
 import {
-  WaitDelayerDefinition,
-  WaitDelayer,
-  WaitDelayerFactories,
+  CancelableLoopPromise,
   CancelablePromise,
-  CancelableLoopPromise
+  WaitDelayer,
+  WaitDelayerDefinition,
+  WaitDelayerFactories
 } from "../utils/waiter";
 import { PubSubService } from "./pubsubservice";
 

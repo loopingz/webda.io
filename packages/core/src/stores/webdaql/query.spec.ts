@@ -1,7 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
-
-import { WebdaQL } from "./query";
 import * as assert from "assert";
+import { WebdaQL } from "./query";
 
 const targets = [
   {

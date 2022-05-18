@@ -1,13 +1,13 @@
-import * as crypto from "crypto";
 import * as bcrypt from "bcryptjs";
+import * as crypto from "crypto";
 import { EventWithContext } from "../core";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
 import { Inject, Service, ServiceParameters } from "../services/service";
 import { Store } from "../stores/store";
 import { Context } from "../utils/context";
-import { Mailer } from "./mailer";
 import { HttpContext } from "../utils/httpcontext";
+import { Mailer } from "./mailer";
 
 /**
  * Emitted when the /me route is called

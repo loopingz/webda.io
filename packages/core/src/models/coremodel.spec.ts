@@ -1,8 +1,8 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { WebdaTest } from "../test";
-import { CoreModel } from "..";
 import * as sinon from "sinon";
+import { CoreModel } from "..";
+import { WebdaTest } from "../test";
 const Task = require("../../test/models/task");
 
 @suite

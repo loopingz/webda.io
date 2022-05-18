@@ -1,7 +1,7 @@
-import { Ident, Store, UpdateConditionFailError } from "@webda/core";
+import { suite, test } from "@testdeck/mocha";
+import { Ident, Store } from "@webda/core";
 import { StoreTest } from "@webda/core/lib/stores/store.spec";
 import * as assert from "assert";
-import { suite, test } from "@testdeck/mocha";
 import PostgresStore from "./postgresstore";
 
 @suite

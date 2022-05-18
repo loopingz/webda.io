@@ -1,9 +1,9 @@
-import { PermissionModel, StoreTest } from "./store.spec";
-import { CoreModel, Store, MemoryStore, AggregatorService } from "../index";
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
+import { AggregatorService, CoreModel, MemoryStore, Store } from "../index";
 import { HttpContext } from "../utils/httpcontext";
 import { StoreNotFoundError } from "./store";
+import { PermissionModel, StoreTest } from "./store.spec";
 import { WebdaQL } from "./webdaql/query";
 
 @suite

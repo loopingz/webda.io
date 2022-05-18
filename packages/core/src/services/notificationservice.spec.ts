@@ -1,9 +1,9 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { WebdaTest } from "../test";
-import { NotificationService, MultiNotificationService } from "./notificationservice";
+import * as assert from "assert";
 import { Service } from "..";
 import { User } from "../models/user";
+import { WebdaTest } from "../test";
+import { MultiNotificationService, NotificationService } from "./notificationservice";
 
 class FakeNotification extends Service implements NotificationService {
   template: boolean = false;

@@ -1,8 +1,8 @@
+import { suite, test } from "@testdeck/mocha";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
-import { suite, test } from "@testdeck/mocha";
-import { GoogleAuthentication } from "./google-auth";
 import * as fetch from "node-fetch";
+import { GoogleAuthentication } from "./google-auth";
 @suite
 class GoogleAuthTest extends WebdaTest {
   service: GoogleAuthentication;

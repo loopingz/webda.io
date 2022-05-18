@@ -1,7 +1,7 @@
-import { Store } from "../index";
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
 import * as sinon from "sinon";
+import { Store } from "../index";
 import { WebdaTest } from "../test";
 import MapperService from "./mapper";
 

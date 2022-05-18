@@ -1,11 +1,11 @@
-import { WebdaTest } from "@webda/core/lib/test";
-import { test, suite } from "@testdeck/mocha";
-import * as assert from "assert";
-import { LambdaCaller } from "./lambdacaller";
-import * as sinon from "sinon";
-import { JobInfo } from "@webda/async";
-import { mockClient } from "aws-sdk-client-mock";
 import { InvokeCommand, Lambda } from "@aws-sdk/client-lambda";
+import { suite, test } from "@testdeck/mocha";
+import { JobInfo } from "@webda/async";
+import { WebdaTest } from "@webda/core/lib/test";
+import * as assert from "assert";
+import { mockClient } from "aws-sdk-client-mock";
+import * as sinon from "sinon";
+import { LambdaCaller } from "./lambdacaller";
 
 const jobInfo: JobInfo = {
   JOB_ORCHESTRATOR: "async",

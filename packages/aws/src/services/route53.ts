@@ -1,5 +1,5 @@
 import { HostedZone, ListHostedZonesRequest, ListHostedZonesResponse, Route53 } from "@aws-sdk/client-route-53";
-import { Service, JSONUtils } from "@webda/core";
+import { JSONUtils, Service } from "@webda/core";
 
 export class Route53Service extends Service {
   /**

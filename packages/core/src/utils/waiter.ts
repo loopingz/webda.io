@@ -1,5 +1,5 @@
-import { Logger } from "..";
 import { v4 as uuidv4 } from "uuid";
+import { Logger } from "..";
 
 /**
  * Function that define the amount of time between calls

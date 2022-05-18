@@ -1,8 +1,8 @@
-import { WebdaTest } from "@webda/core/lib/test";
 import { suite, test } from "@testdeck/mocha";
 import { DebugMailer, MemoryLoggerService } from "@webda/core";
-import { Profiler } from "./profiler";
+import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
+import { Profiler } from "./profiler";
 
 @suite
 export class ProfilerServiceTest extends WebdaTest {

@@ -1,8 +1,8 @@
 import * as colors from "colors";
-import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "..";
-import * as util from "util";
 import { sprintf } from "sprintf-js";
+import * as util from "util";
 import { Logger } from ".";
+import { LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput } from "..";
 
 interface WorkerLogMessage {
   m: string;

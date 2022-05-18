@@ -1,4 +1,9 @@
-import { Cache, WebdaError, DeployerResources, WaitFor, WaitLinearDelay } from "@webda/core";
+import { ACM, CertificateDetail, ListCertificatesResponse } from "@aws-sdk/client-acm";
+import { EC2 } from "@aws-sdk/client-ec2";
+import { HostedZone, Route53 } from "@aws-sdk/client-route-53";
+import { NotFound, S3 } from "@aws-sdk/client-s3";
+import { GetCallerIdentityResponse, STS } from "@aws-sdk/client-sts";
+import { Cache, DeployerResources, WaitFor, WaitLinearDelay, WebdaError } from "@webda/core";
 import { Deployer, DeploymentManager } from "@webda/shell";
 import * as bluebird from "bluebird";
 import * as crypto from "crypto";
@@ -7,14 +12,9 @@ import * as glob from "glob";
 import IamPolicyOptimizer from "iam-policy-optimizer";
 import * as mime from "mime-types";
 import * as path from "path";
-import { IAMPolicyContributor } from "../services";
 import { v4 as uuidv4 } from "uuid";
+import { IAMPolicyContributor } from "../services";
 import { Route53Service } from "../services/route53";
-import { GetCallerIdentityResponse, STS } from "@aws-sdk/client-sts";
-import { EC2 } from "@aws-sdk/client-ec2";
-import { ACM, CertificateDetail, ListCertificatesResponse } from "@aws-sdk/client-acm";
-import { HostedZone, Route53 } from "@aws-sdk/client-route-53";
-import { NotFound, S3 } from "@aws-sdk/client-s3";
 
 export type TagsDefinition = { Key: string; Value: string }[] | { [key: string]: string };
 

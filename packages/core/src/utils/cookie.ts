@@ -1,7 +1,7 @@
+import { serialize as cookieSerialize } from "cookie";
 import * as jwt from "jsonwebtoken";
 import { WebdaError } from "../core";
 import { Context } from "./context";
-import { serialize as cookieSerialize } from "cookie";
 
 /**
  * Cookie cannot be more than 4096, so we split them by this constant

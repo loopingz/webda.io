@@ -1,12 +1,12 @@
-import { Core, Cache, Logger, WebdaError, Deployment, FileUtils } from "@webda/core";
-import * as merge from "merge";
-import { Deployer } from "../deployers/deployer";
-import * as yargs from "yargs";
+import { Cache, Core, Deployment, FileUtils, Logger, WebdaError } from "@webda/core";
 import { WorkerOutput } from "@webda/workout";
 import * as fs from "fs";
+import * as merge from "merge";
 import * as path from "path";
-import WebdaConsole from "../console/webda";
+import * as yargs from "yargs";
 import { SourceApplication } from "../code/sourceapplication";
+import WebdaConsole from "../console/webda";
+import { Deployer } from "../deployers/deployer";
 
 export interface DeployerConstructor {
   new (manager: DeploymentManager, resources: any): Deployer<any>;

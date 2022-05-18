@@ -1,12 +1,12 @@
 "use strict";
 
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
+import * as sinon from "sinon";
+import { MailerParameters, User } from "..";
 import { WebdaTest } from "../test";
 import { Context } from "../utils/context";
-import { MailerParameters, User } from "..";
 import { Mailer } from "./mailer";
-import * as sinon from "sinon";
 
 @suite
 class MailerTest extends WebdaTest {

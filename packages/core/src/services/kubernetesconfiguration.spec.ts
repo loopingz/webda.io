@@ -1,12 +1,12 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { WebdaTest } from "../test";
-import { outputFileSync, emptyDirSync, ensureSymlinkSync } from "fs-extra";
-import * as path from "path";
-import * as yaml from "yaml";
+import * as assert from "assert";
 import { mkdirSync, unlinkSync } from "fs";
-import { KubernetesConfigurationService } from "..";
+import { emptyDirSync, ensureSymlinkSync, outputFileSync } from "fs-extra";
+import * as path from "path";
 import { stub } from "sinon";
+import * as yaml from "yaml";
+import { KubernetesConfigurationService } from "..";
+import { WebdaTest } from "../test";
 
 class AbstractKubernetesConfigurationServiceTest extends WebdaTest {
   folder: string = __dirname + "/../../test/kube";

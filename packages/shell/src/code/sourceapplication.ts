@@ -1,19 +1,19 @@
 import {
   Cache,
-  UnpackedApplication,
+  Configuration,
   Deployment,
   FileUtils,
   GitInformation,
   JSONUtils,
-  WebdaError,
-  Configuration
+  UnpackedApplication,
+  WebdaError
 } from "@webda/core";
-import * as path from "path";
-import * as fs from "fs";
-import * as semver from "semver";
 import { execSync } from "child_process";
 import * as dateFormat from "dateformat";
+import * as fs from "fs";
 import * as merge from "merge";
+import * as path from "path";
+import * as semver from "semver";
 import { Compiler } from "./compiler";
 
 export class SourceApplication extends UnpackedApplication {

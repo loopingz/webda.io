@@ -1,7 +1,7 @@
-import { Binary, BinaryMap, BinaryParameters } from "./binary";
-import { CoreModel } from "../models/coremodel";
 import { join } from "path";
 import { Context } from "..";
+import { CoreModel } from "../models/coremodel";
+import { Binary, BinaryMap, BinaryParameters } from "./binary";
 
 /**
  * Default binary parameters

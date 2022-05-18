@@ -1,14 +1,14 @@
-import * as assert from "assert";
-import * as fs from "fs";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
+import { EventEmitter } from "events";
+import * as fs from "fs";
+import * as fse from "fs-extra";
 import * as path from "path";
+import * as sinon from "sinon";
 import * as unzip from "unzipper";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { SourceTestApplication, WebdaSampleApplication } from "../index.spec";
 import { Packager } from "./packager";
-import * as fse from "fs-extra";
-import * as sinon from "sinon";
-import { EventEmitter } from "events";
 export class WorkspaceTestApplication extends SourceTestApplication {
   loadConfiguration(file) {
     fse.mkdirSync(path.join(__dirname, "..", "..", "test", "fakeworkspace", "node_modules", "@webda"), {

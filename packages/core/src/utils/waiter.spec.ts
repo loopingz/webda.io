@@ -1,6 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
-import { Logger } from "./logger";
 import * as assert from "assert";
+import * as sinon from "sinon";
+import { Logger } from "./logger";
 import {
   CancelableLoopPromise,
   CancelablePromise,
@@ -9,7 +10,6 @@ import {
   WaitFor,
   WaitLinearDelay
 } from "./waiter";
-import * as sinon from "sinon";
 
 @suite
 class WaiterTest {

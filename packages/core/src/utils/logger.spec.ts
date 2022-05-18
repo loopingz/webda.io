@@ -1,8 +1,7 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { WebdaTest } from "../test";
-import { FileLoggerService, Logger, MemoryLoggerService } from "./logger";
 import { WorkerOutput } from "@webda/workout";
+import { WebdaTest } from "../test";
+import { FileLoggerService, Logger } from "./logger";
 
 @suite
 class LoggerTest extends WebdaTest {

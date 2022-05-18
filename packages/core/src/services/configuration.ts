@@ -1,6 +1,6 @@
-import { Service, ServiceParameters } from "./service";
-import { WebdaError } from "../core";
 import * as jsonpath from "jsonpath";
+import { WebdaError } from "../core";
+import { Service, ServiceParameters } from "./service";
 
 /**
  * Service that can store configuration

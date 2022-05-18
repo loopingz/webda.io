@@ -1,8 +1,8 @@
-import * as assert from "assert";
+import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
 import { checkLocalStack, defaultCreds, WebdaAwsTest } from "../index.spec";
 import { CloudWatchLogger } from "./cloudwatchlogger";
-import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 
 @suite
 class CloudWatchLoggerTest extends WebdaAwsTest {

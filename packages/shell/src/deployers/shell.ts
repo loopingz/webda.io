@@ -1,5 +1,5 @@
-import { Deployer } from "./deployer";
 import { DeployerResources } from "@webda/core";
+import { Deployer } from "./deployer";
 
 export interface ShellDeployerResources extends DeployerResources {
   scripts: string[];

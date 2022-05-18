@@ -1,14 +1,14 @@
+import { APIGateway } from "@aws-sdk/client-api-gateway";
+import { CloudFormation } from "@aws-sdk/client-cloudformation";
+import { STS } from "@aws-sdk/client-sts";
+import { JSONUtils, WebdaError } from "@webda/core";
+import { ContainerResources } from "@webda/shell";
+import * as fs from "fs";
 import * as path from "path";
 import * as YAML from "yaml";
 import { AWSDeployer, AWSDeployerResources } from ".";
 import { CloudFormationContributor } from "../services";
-import { JSONUtils, WebdaError } from "@webda/core";
-import { ContainerResources } from "@webda/shell";
-import * as fs from "fs";
 import { LambdaPackagerResources } from "./lambdapackager";
-import { CloudFormation } from "@aws-sdk/client-cloudformation";
-import { APIGateway } from "@aws-sdk/client-api-gateway";
-import { STS } from "@aws-sdk/client-sts";
 
 /**
  * Build Docker image for AWS
@@ -255,6 +255,7 @@ interface CloudFormationDeployerResources extends AWSDeployerResources {
 
 const LAMBDA_LATEST_VERSION = "nodejs14.x";
 export { LAMBDA_LATEST_VERSION };
+export { CloudFormationDeployer };
 /**
  * Deploy the application and its resources using AWS CloudFormation
  *
@@ -1166,5 +1167,3 @@ export default class CloudFormationDeployer extends AWSDeployer<CloudFormationDe
     }
   }
 }
-
-export { CloudFormationDeployer };

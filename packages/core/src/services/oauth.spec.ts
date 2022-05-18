@@ -1,9 +1,8 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
+import { HttpContext, Ident, Store } from "../";
 import { WebdaTest } from "../test";
 import { OAuthService } from "./oauth";
-import { HttpContext, Ident, Store } from "../";
-import * as sinon from "sinon";
 
 class FakeOAuthService extends OAuthService {
   getDefaultUrl() {

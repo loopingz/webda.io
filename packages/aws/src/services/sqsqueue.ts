@@ -1,7 +1,8 @@
 import { Queue, QueueParameters, WebdaError, MessageReceipt } from "@webda/core";
 import { AWSServiceParameters, CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
-import { ReceiveMessageRequest, SQS } from "@aws-sdk/client-sqs";
+import { ReceiveMessageRequest, SendMessageCommandInput, SQS } from "@aws-sdk/client-sqs";
+import { createHash } from "crypto";
 
 export class SQSQueueParameters extends AWSServiceParameters(QueueParameters) {
   /**
@@ -86,13 +87,14 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
    * @inheritdoc
    */
   async sendMessage(params: T): Promise<void> {
-    var sqsParams: any = {};
-    sqsParams.QueueUrl = this.parameters.queue;
+    var sqsParams: SendMessageCommandInput = {
+      QueueUrl: this.parameters.queue,
+      MessageBody: JSON.stringify(params)
+    };
     if (this.parameters.MessageGroupId) {
       sqsParams.MessageGroupId = this.parameters.MessageGroupId;
     }
-    sqsParams.MessageBody = JSON.stringify(params);
-
+    sqsParams.MessageDeduplicationId = createHash("sha256").update(sqsParams.MessageBody).digest("hex");
     await this.sqs.sendMessage(sqsParams);
   }
 

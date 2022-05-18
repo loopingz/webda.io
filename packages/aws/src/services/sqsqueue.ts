@@ -94,7 +94,9 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
     if (this.parameters.MessageGroupId) {
       sqsParams.MessageGroupId = this.parameters.MessageGroupId;
     }
-    sqsParams.MessageDeduplicationId = createHash("sha256").update(sqsParams.MessageBody).digest("hex");
+    if (this.parameters.queue.endsWith(".fifo")) {
+      sqsParams.MessageDeduplicationId = createHash("sha256").update(sqsParams.MessageBody).digest("hex");
+    }
     await this.sqs.sendMessage(sqsParams);
   }
 

@@ -143,7 +143,7 @@ class ApplicationTest extends WebdaTest {
       /Variable cannot use every javascript features/
     );
     assert.throws(
-      () => app.replaceVariables("hello ${test} ${now && process.exit(666)}", {}),
+      () => app.replaceVariables("hello ${test} ${{ test}", {}),
       /Variable cannot use every javascript features/
     );
 

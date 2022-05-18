@@ -703,14 +703,21 @@ export class Application {
       return templateString;
     }
 
-    let re = /\$\{([^\}]+)\}/g;
-    let res;
-    while ((res = re.exec(templateString)) !== null) {
-      if (res[1].match(/[|&;<>\\]/)) {
-        throw new Error(`Variable cannot use every javascript features found ${res[0]}`);
+    let scan = templateString;
+    let index;
+    let i = 0;
+    while ((index = scan.indexOf("${")) >= 0) {
+      let next = scan.indexOf("}", index);
+      let variable = scan.substring(index + 2, next);
+      scan = scan.substring(next);
+      if (variable.match(/[|&;<>\\\{]/)) {
+        throw new Error(`Variable cannot use every javascript features found ${variable}`);
+      }
+      if (i++ > 10) {
+        throw new Error("Too many variables");
       }
     }
-    return new Function("return `" + templateString.replace(/\$\{([^\}]+)}/g, "${this.$1}") + "`;").call({
+    return new Function("return `" + templateString.replace(/\$\{([^\}\{]+)}/g, "${this.$1}") + "`;").call({
       ...this.baseConfiguration.cachedModules.project,
       now: this.initTime,
       ...replacements

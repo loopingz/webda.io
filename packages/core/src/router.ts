@@ -72,6 +72,10 @@ export interface RouteInfo {
    * Hash
    */
   hash?: string;
+  /**
+   * Intend to override existing
+   */
+  override?: boolean;
 }
 
 /**
@@ -120,7 +124,9 @@ export class Router {
       let methods = this.routes[finalUrl].map((r: RouteInfo) => r.methods).flat();
       info.methods.forEach(m => {
         if (methods.indexOf(m) >= 0) {
-          this.webda.log("WARN", `${m} ${finalUrl} overlap with another defined route`);
+          if (!info.override) {
+            this.webda.log("WARN", `${m} ${finalUrl} overlap with another defined route`);
+          }
         }
       });
       // Last added need to be overriding

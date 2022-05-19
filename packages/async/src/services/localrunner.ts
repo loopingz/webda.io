@@ -1,8 +1,8 @@
-import { AgentInfo, Runner, RunnerParameters } from "./runner";
-import { AsyncAction } from "../models";
-import { spawn, SpawnOptions } from "child_process";
 import { ServiceParameters } from "@webda/core";
+import { spawn, SpawnOptions } from "child_process";
+import { AsyncAction } from "../models";
 import { JobInfo } from "./asyncjobservice";
+import { AgentInfo, Runner, RunnerParameters } from "./runner";
 
 export class LocalRunnerParameters extends RunnerParameters {
   /**
@@ -65,9 +65,11 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
       "Job",
       action.getUuid(),
       "started with",
+      Object.keys(envs)
+        .map(k => `${k}=${envs[k]}`)
+        .join(" "),
       this.parameters.command,
-      this.parameters.args ? this.parameters.args : "",
-      envs
+      this.parameters.args ? this.parameters.args.map(a => `'${a}'`).join(" ") : ""
     );
     const child = spawn(this.parameters.command, this.parameters.args, {
       ...this.parameters.options,

@@ -237,7 +237,8 @@ abstract class Service<
     methods: HttpMethodType[],
     executer: Function,
     openapi: OpenAPIWebdaDefinition = {},
-    allowPath: boolean = false
+    allowPath: boolean = false,
+    override: boolean = false
   ) {
     let info: any = {};
     info._method = executer;
@@ -250,7 +251,8 @@ abstract class Service<
       executor: this._name,
       allowPath,
       openapi,
-      methods
+      methods,
+      override
     });
   }
 
@@ -404,7 +406,8 @@ abstract class Service<
    * @param args
    */
   log(level: WorkerLogLevel, ...args: any[]) {
-    this.logger.log(level, ...args);
+    // Add the service name to avoid confusion
+    this.logger.log(level, `[${this._name}]`, ...args);
   }
 }
 

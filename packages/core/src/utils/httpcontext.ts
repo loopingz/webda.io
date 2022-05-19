@@ -34,7 +34,7 @@ export class HttpContext {
   headers: { [key: string]: string | string[] };
   origin: string;
   host: string;
-  body: string | Readable | undefined;
+  body: Buffer | Readable | undefined;
   cookies: any;
 
   /**
@@ -193,14 +193,41 @@ export class HttpContext {
   }
 
   /**
-   * Get request body
+   * Get the raw body as string
+   *
+   * @param limit the size of readable request
+   * @param timeout the time to read the request
+   * @param encoding to analyze
    * @returns
    */
-  async getRawBody(limit: number = 1024 * 1024 * 10, timeout: number = 60000): Promise<string | undefined> {
+  async getRawBodyAsString(limit: number = 1024 * 1024 * 10, timeout: number = 60000, encoding?: string) {
+    // Get charset from header
+    if (!encoding) {
+      let match = this.getUniqueHeader("content-type", "charset=utf-8").match(/charset=([^;\s]+)/);
+      if (match) {
+        encoding = match[1].trim();
+      } else {
+        encoding = "utf-8";
+      }
+    }
+    if (encoding !== "utf-8") {
+      throw new Error("Only UTF-8 is currently managed: https://github.com/loopingz/webda.io/issues/221");
+    }
+    return (await this.getRawBody(limit, timeout)).toString(<BufferEncoding>encoding);
+  }
+
+  /**
+   * Get request body
+   *
+   * @param limit the size of readable request
+   * @param timeout the time to read the request
+   * @returns
+   */
+  async getRawBody(limit: number = 1024 * 1024 * 10, timeout: number = 60000): Promise<Buffer | undefined> {
     if (this.body instanceof Readable) {
       return new Promise((resolve, reject) => {
         let req = <Readable>this.body;
-        let body = "";
+        let body = [];
         let timeoutId = setTimeout(() => {
           reject("Request timeout");
         }, timeout);
@@ -211,14 +238,14 @@ export class HttpContext {
               clearTimeout(timeoutId);
               reject("Request oversized");
             }
-            body += chunk;
+            body.push(chunk);
           }
         });
         req.on("end", () => {
           clearTimeout(timeoutId);
           // Cache body as stream won't be able to be read twice
-          this.body = body;
-          resolve(body);
+          this.body = Buffer.concat(body);
+          resolve(this.body);
         });
       });
     } else {
@@ -269,11 +296,15 @@ export class HttpContext {
    * Used for test
    * @param body
    */
-  setBody(body: string | Readable | any) {
-    if (body instanceof Readable || typeof body === "string") {
+  setBody(body: Buffer | string | Readable | any) {
+    if (body instanceof Readable || body instanceof Buffer) {
       this.body = body;
+    } else if (typeof body === "string") {
+      this.body = Buffer.from(body);
+    } else if (body === undefined) {
+      this.body = undefined;
     } else {
-      this.body = JSON.stringify(body);
+      this.body = Buffer.from(JSON.stringify(body));
     }
   }
 

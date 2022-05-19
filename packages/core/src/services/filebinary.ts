@@ -12,12 +12,18 @@ export class FileBinaryParameters extends CloudBinaryParameters {
    * Define the folder to store objects in
    */
   folder: string;
+  /**
+   * Maximum size to handle
+   * @default 10Mb
+   */
+  maxSize?: number;
 
   constructor(params: any, service: Binary) {
     super(params, service);
     if (!this.folder.endsWith("/")) {
       this.folder += "/";
     }
+    this.maxSize ??= 10 * 1024 * 1024;
   }
 }
 /**
@@ -246,22 +252,25 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @ignore
    */
   async storeBinary(ctx: Context) {
-    let body = await ctx.getHttpContext().getRawBody(10 * 1024 * 1024);
-    var result = await new MemoryBinaryFile(Buffer.from(body), {
-      mimetype: ctx.getHttpContext().getUniqueHeader("content-type"),
+    let body = await ctx.getHttpContext().getRawBody(this.parameters.maxSize);
+    var result = await new MemoryBinaryFile(body, {
+      mimetype: (ctx.getHttpContext().getUniqueHeader("content-type") || "application/json").split(";")[0],
       name: "",
       size: parseInt(ctx.getHttpContext().getUniqueHeader("content-length"))
     }).getHashes();
     if (ctx.parameter("hash") !== result.hash) {
+      this.log("WARN", "Request hash differ", ctx.parameter("hash"), "!==", result.hash);
       throw 400;
     }
     // Verify token
     try {
       let dt = jwt.verify(ctx.parameter("token"), this.getWebda().getSecret());
       if (dt.hash !== result.hash) {
+        this.log("WARN", "JWT hash differ", ctx.parameter("hash"), "!==", result.hash);
         throw 403;
       }
     } catch (err) {
+      this.log("WARN", "Invalid JWT token");
       throw 403;
     }
     if (!fs.existsSync(this._getPath(result.hash))) {

@@ -28,27 +28,34 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
     var url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}";
     let name = this.getOperationName();
     if (!this.parameters.expose.restrict.get) {
-      this.addRoute(url, ["GET"], this.getRedirectUrl, {
-        get: {
-          description: "Download a binary linked to an object",
-          summary: "Download a binary",
-          operationId: `get${name}Binary`,
-          responses: {
-            "302": {
-              description: "Redirect to download url"
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Object does not exist or attachment does not exist"
-            },
-            "412": {
-              description: "Provided hash does not match"
+      this.addRoute(
+        url,
+        ["GET"],
+        this.getRedirectUrl,
+        {
+          get: {
+            description: "Download a binary linked to an object",
+            summary: "Download a binary",
+            operationId: `get${name}Binary`,
+            responses: {
+              "302": {
+                description: "Redirect to download url"
+              },
+              "403": {
+                description: "You don't have permissions"
+              },
+              "404": {
+                description: "Object does not exist or attachment does not exist"
+              },
+              "412": {
+                description: "Provided hash does not match"
+              }
             }
           }
-        }
-      });
+        },
+        false,
+        true
+      );
       url = this.parameters.expose.url + "/{store}/{uid}/{property}/{index}/url";
       name = this._name === "Binary" ? "" : this._name;
       this.addRoute(url, ["GET"], this.getRedirectUrlInfo, {

@@ -347,7 +347,7 @@ export class Context<T = any, U = any> extends EventEmitter {
     try {
       this._sanitized = recursiveSanitize(
         JSON.parse(
-          await this.getHttpContext().getRawBody(
+          await this.getHttpContext().getRawBodyAsString(
             this.getWebda().getGlobalParams().requestLimit,
             this.getWebda().getGlobalParams().requestTimeout
           )

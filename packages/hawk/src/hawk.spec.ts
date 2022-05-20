@@ -53,6 +53,7 @@ class HawkServiceTest extends WebdaTest {
     this.service.getWebda().log = (...args) => {
       logs.push(args);
     };
+    // @ts-ignore
     this.context.getHttpContext().getHeaders()["authorization"] = "This is mine";
     // Check no API
     assert.equal(await this.checkRequest(this.context), false, "Should refuse without unknown Authorization header");
@@ -66,7 +67,9 @@ class HawkServiceTest extends WebdaTest {
       payload: JSON.stringify({}),
       credentials: this.fakeCredentials
     });
+    // @ts-ignore
     this.context.getHttpContext().getHeaders()["host"] = "test.webda.io";
+    // @ts-ignore
     this.context.getHttpContext().getHeaders()["authorization"] = header;
     await assert.rejects(
       () => this.checkRequest(this.context),
@@ -80,7 +83,9 @@ class HawkServiceTest extends WebdaTest {
     const { header, artifacts } = Hawk.client.header("http://test.webda.io/test", "GET", {
       credentials: this.key.toHawkCredentials()
     });
+    // @ts-ignore
     this.context.getHttpContext().getHeaders()["host"] = "test.webda.io";
+    // @ts-ignore
     this.context.getHttpContext().getHeaders()["authorization"] = header;
     await assert.rejects(
       () => this.checkRequest(this.context),
@@ -91,6 +96,7 @@ class HawkServiceTest extends WebdaTest {
 
   @test
   async malformedAuthorizationHeader() {
+    // @ts-ignore
     this.context.getHttpContext().getHeaders()["authorization"] = "notatrueheader";
     assert.equal(
       await this.checkRequest(this.context),
@@ -104,7 +110,9 @@ class HawkServiceTest extends WebdaTest {
     const { header, artifacts } = Hawk.client.header("http://test.webda.io/", "GET", {
       credentials: this.key.toHawkCredentials()
     });
+    // @ts-ignore
     this.context.getHttpContext().getHeaders()["host"] = "test.webda.io";
+    // @ts-ignore
     this.context.getHttpContext().getHeaders()["authorization"] = header;
     assert.equal(await this.checkRequest(this.context), true, "Should accept as signature valid");
     let body = JSON.stringify({ fake: "answer" });
@@ -164,10 +172,14 @@ class HawkServiceTest extends WebdaTest {
     const { header, artifacts } = Hawk.client.header(`http://test.webda.io${url}`, method, {
       credentials: this.key.toHawkCredentials()
     });
-    this.context.setHttpContext(new HttpContext("test.webda.io", method, url));
-    this.context.getHttpContext().getHeaders()["host"] = "test.webda.io";
-    this.context.getHttpContext().getHeaders()["authorization"] = header;
+    this.context.setHttpContext(
+      new HttpContext("test.webda.io", method, url, "http", 80, {
+        host: "test.webda.io",
+        authorization: header
+      })
+    );
     for (let k in headers) {
+      // @ts-ignore
       this.context.getHttpContext().getHeaders()[k] = headers[k];
     }
     return await this.checkRequest(this.context);
@@ -270,9 +282,12 @@ class HawkServiceTest extends WebdaTest {
       }
     });
     this.context.getSession()["myCSRF"] = sessionKey;
-    this.context.setHttpContext(new HttpContext("test.webda.io", "GET", url));
-    this.context.getHttpContext().getHeaders()["host"] = "test.webda.io";
-    this.context.getHttpContext().getHeaders()["authorization"] = header;
+    this.context.setHttpContext(
+      new HttpContext("test.webda.io", "GET", url, "http", 80, {
+        host: "test.webda.io",
+        authorization: header
+      })
+    );
     // It should be ok
     assert.strictEqual(await test.checkRequest(this.context), true);
     this.context.getSession()["myCSRF"] = "anotherone";

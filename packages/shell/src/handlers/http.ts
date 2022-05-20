@@ -93,7 +93,7 @@ export class WebdaServer extends Webda {
         !this.isProxyTrusted(req.socket.remoteAddress)
       ) {
         // Do not even let the query go through
-        this.log("WARN", "X-Forwarded-* headers set from an unknown source");
+        this.log("WARN", `X-Forwarded-* headers set from an unknown source: ${req.socket.remoteAddress}`);
         res.writeHead(400);
         res.end();
         return;

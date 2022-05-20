@@ -95,6 +95,14 @@ export class HttpContext {
   }
 
   /**
+   * Set the client ip
+   */
+  setClientIp(ip: string): this {
+    this.clientIp = ip;
+    return this;
+  }
+
+  /**
    * Get the client ip
    */
   getClientIp(): string {

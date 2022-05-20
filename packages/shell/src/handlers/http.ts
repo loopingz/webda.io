@@ -86,10 +86,14 @@ export class WebdaServer extends Webda {
         ? req.headers.host.slice(0, req.headers.host.indexOf(":"))
         : req.headers.host;
       if (
-        (req.headers["x-forwarded-host"] || req.headers["x-forwarded-proto"] || req.headers["x-forwarded-port"]) &&
+        (req.headers["x-forwarded-for"] ||
+          req.headers["x-forwarded-host"] ||
+          req.headers["x-forwarded-proto"] ||
+          req.headers["x-forwarded-port"]) &&
         !this.isProxyTrusted(req.socket.remoteAddress)
       ) {
         // Do not even let the query go through
+        this.log("WARN", "X-Forwarded-* headers set from an unknown source");
         res.writeHead(400);
         res.end();
         return;
@@ -111,7 +115,14 @@ export class WebdaServer extends Webda {
       if (req.headers["x-forwarded-port"] !== undefined) {
         port = parseInt(<string>req.headers["x-forwarded-port"]);
       }
-      let httpContext = new HttpContext(vhost, <HttpMethodType>method, req.url, protocol, port, req.headers);
+      let httpContext = new HttpContext(
+        vhost,
+        <HttpMethodType>method,
+        req.url,
+        protocol,
+        port,
+        req.headers
+      ).setClientIp(req.headers["x-forwarded-for"] || req.socket.remoteAddress);
       // https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
       if (["PUT", "PATCH", "POST", "DELETE"].includes(method)) {
         httpContext.setBody(req);

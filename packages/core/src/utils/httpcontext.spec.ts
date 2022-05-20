@@ -25,6 +25,8 @@ class HttpContextTest {
   async stream() {
     let ctx = new HttpContext("test.webda.io", "GET", "/test", "http", 80, { "X-Test": "weBda" });
     ctx.setBody("Test");
+    // Next line is just for cov
+    ctx.setClientIp("127.0.0.1").getClientIp();
     let stream = ctx.getRawStream();
     ctx.setBody(stream);
     ctx.getRawStream();

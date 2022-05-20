@@ -198,7 +198,7 @@ export default class LambdaServer extends Webda {
       <"http" | "https">protocol,
       port,
       headers
-    );
+    ).setClientIp(headers["X-Real-Ip"]);
     if (["PUT", "PATCH", "POST", "DELETE"].includes(method)) {
       httpContext.setBody(event.body);
     }

@@ -127,7 +127,7 @@
           "items": {
             "type": "string"
           },
-          "description": "If defined the key is only usable from these ips or dns"
+          "description": "If defined the key is only usable from these ips\n\nSupport of DNS is not yet ready"
         }
       },
       "required": [

@@ -53,6 +53,29 @@ class ApiKeyTest extends WebdaTest {
   }
 
   @test
+  checkWhitelist() {
+    this.apikey.load({ ...KEY, whitelist: ["127.0.0.1", "10.0.0.0/16"], origins: undefined }, true);
+
+    this.getExecutor(this.context, "test.webda.io", "PUT", "/path/to/the/valhalla");
+    assert.ok(
+      this.apikey.canRequest(this.context.getHttpContext().setClientIp("127.0.0.1")),
+      "remotehost should be granted"
+    );
+    assert.ok(
+      !this.apikey.canRequest(this.context.getHttpContext().setClientIp("127.0.0.2")),
+      "127.0.0.2 should not be granted"
+    );
+    assert.ok(
+      this.apikey.canRequest(this.context.getHttpContext().setClientIp("10.0.0.1")),
+      "10.0.0.1 should be granted"
+    );
+    assert.ok(
+      !this.apikey.canRequest(this.context.getHttpContext().setClientIp("10.1.0.1")),
+      "10.1.0.1 should not be granted"
+    );
+  }
+
+  @test
   canRequestNoOrigin() {
     this.apikey.load({ ...KEY, origins: undefined }, true);
 

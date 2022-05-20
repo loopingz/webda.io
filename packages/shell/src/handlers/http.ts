@@ -115,14 +115,8 @@ export class WebdaServer extends Webda {
       if (req.headers["x-forwarded-port"] !== undefined) {
         port = parseInt(<string>req.headers["x-forwarded-port"]);
       }
-      let httpContext = new HttpContext(
-        vhost,
-        <HttpMethodType>method,
-        req.url,
-        protocol,
-        port,
-        req.headers
-      ).setClientIp(req.headers["x-forwarded-for"] || req.socket.remoteAddress);
+      let httpContext = new HttpContext(vhost, <HttpMethodType>method, req.url, protocol, port, req.headers);
+      httpContext.setClientIp(httpContext.getUniqueHeader("x-forwarded-for", req.socket.remoteAddress));
       // https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
       if (["PUT", "PATCH", "POST", "DELETE"].includes(method)) {
         httpContext.setBody(req);

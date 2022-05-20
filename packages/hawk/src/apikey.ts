@@ -1,4 +1,5 @@
-import { Context, HttpContext, OwnerModel } from "@webda/core";
+import { Context, HttpContext, NotEnumerable, OwnerModel } from "@webda/core";
+import { createChecker } from "is-in-subnet";
 import { HawkCredentials } from "./hawk";
 
 /**
@@ -31,6 +32,11 @@ export default class ApiKey extends OwnerModel {
    * Secret that will stay within server
    */
   __secret: string;
+  /**
+   * Subnet checker if needed
+   */
+  @NotEnumerable
+  __checker: (address: string) => boolean;
 
   /**
    * Authorize those origins only (regexp)
@@ -38,7 +44,9 @@ export default class ApiKey extends OwnerModel {
   origins?: string[];
 
   /**
-   * If defined the key is only usable from these ips or dns
+   * If defined the key is only usable from these ips
+   *
+   * Support of DNS is not yet ready
    */
   whitelist?: string[];
 
@@ -86,6 +94,13 @@ export default class ApiKey extends OwnerModel {
   canRequest(ctx: HttpContext): boolean {
     if (!this.checkOrigin(ctx)) {
       return false;
+    }
+    // Check ip whitelist
+    if (this.whitelist) {
+      this.__checker ??= createChecker(this.whitelist.map(c => (c.indexOf("/") < 0 ? `${c}/32` : c)));
+      if (!this.__checker(ctx.getClientIp())) {
+        return false;
+      }
     }
     if (!this.permissions) {
       return true;

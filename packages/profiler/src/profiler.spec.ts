@@ -27,9 +27,9 @@ export class ProfilerServiceTest extends WebdaTest {
       messages.map(m => m.level),
       ["DEBUG", "TRACE", "TRACE"]
     );
-    assert.strictEqual(messages[0].args[0], "Send a fake email");
-    assert.notStrictEqual(messages[1].args[0].match(/DebugMailer\.log: \d+ms/), null);
-    assert.notStrictEqual(messages[2].args[0].match(/DebugMailer\.send: \d+ms/), null);
+    assert.strictEqual(messages[0].args[1], "Send a fake email");
+    assert.notStrictEqual(messages[1].args[1].match(/DebugMailer\.log: \d+ms/), null);
+    assert.notStrictEqual(messages[2].args[1].match(/DebugMailer\.send: \d+ms/), null);
 
     // @ts-ignore
     service.workoutLogger.messages = [];
@@ -42,7 +42,7 @@ export class ProfilerServiceTest extends WebdaTest {
     messages = service.workoutLogger.messages.map(m => m.log);
     assert.strictEqual(messages.length, 1);
     assert.strictEqual(messages[0].level, "TRACE");
-    assert.notStrictEqual(messages[0].args[0].match(/DebugMailer\.error: \d+ms - ERROR Error: FakeError/), null);
+    assert.notStrictEqual(messages[0].args[1].match(/DebugMailer\.error: \d+ms - ERROR Error: FakeError/), null);
   }
 
   @test
@@ -62,12 +62,12 @@ export class ProfilerServiceTest extends WebdaTest {
 
     assert.strictEqual(messages.length, 2);
     assert.notStrictEqual(
-      messages[0].args[0].match(/DebugMailer\.async: \d+ms/),
+      messages[0].args[1].match(/DebugMailer\.async: \d+ms/),
       null,
       `Expect 'DebugMail.async: \\d+ms' got '${messages[1].args[0]}'`
     );
     assert.notStrictEqual(
-      messages[1].args[0].match(/DebugMailer\.errorAsync: \d+ms - ERROR FakeError/),
+      messages[1].args[1].match(/DebugMailer\.errorAsync: \d+ms - ERROR FakeError/),
       null,
       `Expect 'DebugMail.asyncError: \\d+ms - ERROR FakeError' got '${messages[1].args[0]}'`
     );
@@ -93,7 +93,7 @@ export class ProfilerServiceTest extends WebdaTest {
 
     assert.strictEqual(messages.length, 1);
     assert.strictEqual(messages[0].level, "TRACE");
-    assert.notStrictEqual(messages[0].args[0].match(/Request took \d+ms/), null);
+    assert.notStrictEqual(messages[0].args[1].match(/Request took \d+ms/), null);
 
     ctx.execute = async () => {
       throw new Error("TestError");
@@ -111,9 +111,9 @@ export class ProfilerServiceTest extends WebdaTest {
     assert.strictEqual(messages.length, 1);
     assert.strictEqual(messages[0].level, "TRACE");
     assert.notStrictEqual(
-      messages[0].args[0].match(/Request took \d+ms - ERROR TestError/),
+      messages[0].args[1].match(/Request took \d+ms - ERROR TestError/),
       null,
-      `Expect 'Request took \\d+ms - ERROR FakeError' got '${messages[0].args[0]}'`
+      `Expect 'Request took \\d+ms - ERROR FakeError' got '${messages[0].args[1]}'`
     );
   }
 }

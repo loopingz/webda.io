@@ -73,7 +73,8 @@ jobs:
       - name: Runs Elasticsearch
         uses: elastic/elastic-github-actions/elasticsearch@master
         with:
-          stack-version: 8.1.3
+          stack-version: 8.2.0
+          security-enabled: false
 
       - name: Setup postgresql
         uses: Softwarepark/postgresql-action@v2

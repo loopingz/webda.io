@@ -1,14 +1,14 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
-import { WebdaTest } from "@webda/core/lib/test";
-import LocalRunner from "./localrunner";
-import { Runner } from "./runner";
-import models, { AsyncAction } from "../models";
 import { Store } from "@webda/core";
-import { stub } from "sinon";
+import { WebdaTest } from "@webda/core/lib/test";
+import * as assert from "assert";
 import * as child_process from "child_process";
 import * as EventEmitter from "events";
 import { nextTick } from "process";
+import { stub } from "sinon";
+import models, { AsyncAction } from "../models";
+import LocalRunner from "./localrunner";
+import { Runner } from "./runner";
 
 class FakeRunner extends Runner {
   launchAction(action: models): Promise<any> {
@@ -62,6 +62,8 @@ class LocalRunnerTest extends WebdaTest {
       assert.strictEqual(job.pid, "fake");
       await action.refresh();
       assert.strictEqual(action.status, "STARTING");
+      runner.getParameters().args = ["test"];
+      await runner.launchAction(action, this.getJobInfo(action));
     } finally {
       spawn.restore();
     }

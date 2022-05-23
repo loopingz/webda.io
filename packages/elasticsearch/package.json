@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/loopingz/webda.io#readme",
   "dependencies": {
-    "@elastic/elasticsearch": "^8.1.0",
+    "@elastic/elasticsearch": "=8.1.0",
     "@webda/core": "^2.0.0-beta.1",
     "yaml": "^2.0.0"
   },

@@ -171,9 +171,21 @@ export type CoreEvents = {
    * Emitted when a request does not match any route
    */
   "Webda.404": EventWithContext;
+  /**
+   * Emitted when Services have been initialized
+   */
   "Webda.Init.Services": { [key: string]: Service };
+  /**
+   * Emitted when Services have been created
+   */
   "Webda.Create.Services": { [key: string]: Service };
+  /**
+   * Emitted when Core is initialized
+   */
   "Webda.Init": Configuration;
+  /**
+   * Emitted whenever a new Context is created
+   */
   "Webda.NewContext": Context;
   [key: string]: unknown;
 };
@@ -199,9 +211,21 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @hidden
    */
   protected services: { [key: string]: Service } = {};
+  /**
+   * Application that generates this Core
+   */
   protected application: Application;
+  /**
+   * Router that will route http request in
+   */
   protected router: Router = new Router(this);
+  /**
+   * If Core is already initiated
+   */
   protected _initiated: boolean = false;
+  /**
+   * Services who failed to create or initialize
+   */
   protected failedServices: { [key: string]: any } = {};
   /**
    * Init promise to ensure, webda is initiated
@@ -228,7 +252,13 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   protected _currentExecutor: any;
 
   protected _configFile: string;
+  /**
+   * Contains the current initialization process
+   */
   protected _initPromise: Promise<void>;
+  /**
+   * When the Core was initialized
+   */
   protected _initTime: number;
   /**
    * Console logger
@@ -249,6 +279,11 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * See [[CorsFilter]]
    */
   protected _requestCORSFilters: RequestFilter<Context>[] = [];
+  /**
+   * Worker output
+   *
+   * @see @webda/workout
+   */
   private workerOutput: WorkerOutput;
   /**
    * Store the instance id

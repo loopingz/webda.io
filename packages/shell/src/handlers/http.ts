@@ -258,7 +258,7 @@ export class WebdaServer extends Webda {
       this.getGlobalParams().trustedProxies = this.getGlobalParams().trustedProxies.split(",");
     }
     this.subnetChecker = createChecker(
-      this.getGlobalParams().trustedProxies.map(n => (n.indexOf("/") < 0 ? `${n}/32` : n))
+      this.getGlobalParams().trustedProxies.map(n => (n.indexOf("/") < 0 ? `${n.trim()}/32` : n.trim()))
     );
     if (this.getGlobalParams().website && this.getGlobalParams().website.path && !this.resourceService) {
       this.resourceService = new ResourceService(this, "websiteResource", {

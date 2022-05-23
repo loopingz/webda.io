@@ -60,7 +60,7 @@ class WebdaConfigurationServerTest {
       sessionSecret: "PLOP",
       import1: true,
       import2: true,
-      trustedProxies: "127.0.0.1"
+      trustedProxies: "127.0.0.1, ::1"
     };
     cfg.imports = ["./webda.import.jsonc", "./webda.import2.jsonc"];
     assert.deepStrictEqual(res, cfg);

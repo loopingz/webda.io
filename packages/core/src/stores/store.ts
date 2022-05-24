@@ -834,9 +834,7 @@ abstract class Store<
   initModel(object: any = {}): T {
     // Make sure to send a model object
     if (!(object instanceof this._model)) {
-      let model = new this._model();
-      model.load(object, true);
-      object = model;
+      object = this._model.factory(this._model, object);
     }
     if (!object.getUuid()) {
       object.setUuid(object.generateUid(object));
@@ -966,7 +964,20 @@ abstract class Store<
    * @param context to apply permission
    */
   async query(query: string, context?: Context): Promise<{ results: T[]; continuationToken?: string }> {
-    let queryValidator = new WebdaQL.QueryValidator(query);
+    let permissionQuery = this._model.getPermissionQuery(context);
+    let partialPermission = true;
+    let fullQuery;
+    if (permissionQuery) {
+      partialPermission = permissionQuery.partial;
+      if (query.trim() !== "") {
+        fullQuery = `(${permissionQuery.query}) AND ${query}`;
+      } else {
+        fullQuery = permissionQuery.query;
+      }
+    } else {
+      fullQuery = query;
+    }
+    let queryValidator = new WebdaQL.QueryValidator(fullQuery);
     let offset = queryValidator.getOffset();
     const limit = queryValidator.getLimit();
     const parsedQuery = queryValidator.getQuery();
@@ -1013,7 +1024,7 @@ abstract class Store<
         if (tmpResults.filter !== true && !tmpResults.filter.eval(item)) {
           continue;
         }
-        if (context) {
+        if (context && partialPermission) {
           try {
             await item.canAct(context, "get");
           } catch (err) {
@@ -1567,9 +1578,7 @@ abstract class Store<
    */
   async httpCreate(ctx: Context) {
     let body = await ctx.getRequestBody();
-    var object = new this._model();
-    object.setContext(ctx);
-    object.load(body);
+    let object = this._model.factory(this._model, body, ctx);
     object[this._creationDateField] = new Date();
     await object.canAct(ctx, "create");
     try {

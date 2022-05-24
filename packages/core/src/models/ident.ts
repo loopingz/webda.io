@@ -1,4 +1,6 @@
+import { ModelLink } from "./coremodel";
 import { OwnerModel } from "./ownermodel";
+import { User } from "./user";
 
 export class IdentTokens {
   refresh: string;
@@ -15,7 +17,7 @@ export class Ident extends OwnerModel {
   __profile: any;
   __tokens: IdentTokens;
   _lastUsed: Date;
-  _user: string;
+  _user: ModelLink<User, "_idents">;
   __new: boolean;
   _failedLogin: number;
   /**

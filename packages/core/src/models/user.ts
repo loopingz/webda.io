@@ -1,4 +1,4 @@
-import { PartialModel } from "../services/service";
+import { ModelMap } from "./coremodel";
 import { Ident } from "./ident";
 import { OwnerModel } from "./ownermodel";
 
@@ -32,7 +32,7 @@ export class User extends OwnerModel {
   /**
    * Idents used by the user
    */
-  private _idents: Ident[] = [];
+  _idents: ModelMap<Ident, "_user", "_type" | "uuid" | "email"> = [];
   /**
    * Define the user avatar if exists
    */
@@ -85,7 +85,7 @@ export class User extends OwnerModel {
     return this.displayName;
   }
 
-  getIdents(): PartialModel<Ident>[] {
+  getIdents(): ModelMap<Ident, "_user", "_type" | "uuid" | "email"> {
     return this._idents;
   }
 

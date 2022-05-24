@@ -5,12 +5,35 @@ import { Store } from "../stores/store";
 import { Context } from "../utils/context";
 import { HttpMethodType } from "../utils/httpcontext";
 
+type ModelLoader<T> = { refresh: () => Promise<T>; getUuid(): string };
+
+type ModelLinker<T> = string & ModelLoader<T>;
+
+/**
+ * Load related objects
+ */
+export type ModelLinked<T> = (query?: string) => Promise<T[]>;
+/**
+ * Define a ModelMap attribute
+ */
+export type ModelMap<T, _FK extends keyof T, K extends keyof T> = (Pick<T, K> & ModelLoader<T>)[];
+/**
+ * Define a link to 1:n or 1:1 relation
+ */
+export type ModelLink<T, _FK extends keyof T> = ModelLinker<T>;
+/**
+ * Define several links for n:m relation
+ */
+export type ModelLinks<T, _FK extends keyof T> = ModelLinker<T>[] | { [key: string]: ModelLinker<T> };
+
+export type ModelParent<T, FK extends keyof T> = ModelLink<T, FK>;
 /**
  * Define an export of actions from Model
  */
 export type ModelActions = {
   [key: string]: ModelAction;
 };
+
 export interface ModelAction {
   /**
    * Method for the route
@@ -30,12 +53,23 @@ export interface ModelAction {
    */
   openapi?: any;
 }
-export interface CoreModelDefinition {
-  new (): CoreModel;
+export interface CoreModelDefinition<T extends CoreModel = CoreModel> {
+  new (): T;
+  /**
+   * Create a CoreModel object loaded with the content of object
+   *
+   * It allows polymorphism from Store
+   *
+   * @param model to create by default
+   * @param object to load data from
+   * @param context if the data is unsafe from http
+   */
+  factory(model: new () => T, object: any, context?: Context): T;
   getActions(): { [key: string]: ModelAction };
   getUuidField(): string;
   getLastUpdateField(): string;
   getCreationField(): string;
+  getPermissionQuery(context?: Context): null | { partial: boolean; query: string };
 }
 
 /**
@@ -143,6 +177,16 @@ class CoreModel {
   }
 
   /**
+   * Return the expressable query for permission
+   *
+   * @param context of the query
+   * @returns
+   */
+  static getPermissionQuery(_ctx: Context): null | { partial: boolean; query: string } {
+    return null;
+  }
+
+  /**
    * By default nothing is permitted on a CoreModel
    * @returns
    */
@@ -181,6 +225,14 @@ class CoreModel {
    */
   static getCreationField(): string {
     return "_creationDate";
+  }
+
+  /**
+   * Create an object
+   * @returns
+   */
+  static factory(model: new () => CoreModel, object: any, context?: Context): CoreModel {
+    return new model().setContext(context).load(object, context === undefined);
   }
 
   /**
@@ -251,8 +303,9 @@ class CoreModel {
   /**
    * Context of the request
    */
-  setContext(ctx: Context) {
+  setContext(ctx: Context): this {
     this.__ctx = ctx;
+    return this;
   }
 
   /**

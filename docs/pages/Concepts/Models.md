@@ -107,3 +107,35 @@ Additional needed:
 @SchemaAdditionalProperties: add a additionalProperties section (useful to avoid wildcarding the server types)
 @SchemaIgnore: ignore this property from the schema generation (readOnly is probably a better solution)
 ```
+
+## Relations
+
+A `CoreModel` represent one type of object within your application, it can be linked to other type of object.
+
+```
+1-n: lazy collection   ModelLink <-> ModelLinked
+n-m: is not currently handled as several NoSQL databases won't be able to query
+denormalized(1-n): denormalized collection ModelLink <-> ModelMap
+denormalized(n-m): denormalized collection ModelNLink <-> ModelMap
+```
+
+
+```
+ModelLink: contains a full uuid to an object, if not optional this full uuid is required and some access required
+ModelLinks: contains several full uuid, no permissions is modified by default
+ModelMap: contains a denormalized map of the target object
+ModelLinked: field is just a loader to read collection
+```
+
+Denormalized are managed through a Mapper service that keeps in sync the mapper.
+### Mapper
+
+A mapper is a `PartialModel<CoreModel>` that represent a target object.
+
+Relations are resolved at compile time.
+
+### Domain service
+
+The domain service is the service that based on the resolved relationship can automate the creation of the different stores and mapper.
+
+It can also expose the GraphQL API

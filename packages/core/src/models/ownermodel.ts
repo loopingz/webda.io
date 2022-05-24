@@ -82,6 +82,22 @@ export class OwnerModel extends CoreModel {
   }
 
   /**
+   * Return a query to filter OwnerModel
+   *
+   * @param context
+   * @returns
+   */
+  static getPermissionQuery(context?: Context): null | { partial: boolean; query: string } {
+    if (!context) {
+      return null;
+    }
+    return {
+      query: `_user = '${context.getCurrentUserId()}' OR public = TRUE`,
+      partial: false
+    };
+  }
+
+  /**
    * Return false if can't update
    */
   async canUpdate(ctx: Context): Promise<this> {

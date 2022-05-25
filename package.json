@@ -22,7 +22,7 @@
     "typedoc-loopingz-theme": "~1.1.3",
     "typedoc-plugin-loopingz-pages": "~0.3.1",
     "typedoc-plugin-mermaid": "~1.8.0",
-    "typescript": "~4.6.3"
+    "typescript": "~4.7.2"
   },
   "resolutions": {
     "typescript": "~4.6.3",

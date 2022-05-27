@@ -159,10 +159,6 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
     await super.init();
     // Load keys
     if (!(await this.load()) && this.parameters.autoRotate) {
-      // Create an init version
-      this.current = `init-${this.getWebda().getInstanceId()}`;
-      await this.registry.put("keys", { current: this.current });
-      // Try to create keys as they do not exist
       await this.rotate();
     }
     if (this.parameters.expose) {
@@ -267,7 +263,7 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
     if (typeof data !== "string") {
       data = JSONUtils.stringify(data);
     }
-    let [ keyId, mac ] = hmac.split(".");
+    let [keyId, mac] = hmac.split(".");
     if (!(await this.checkKey(keyId))) {
       return false;
     }
@@ -419,6 +415,10 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
       ...this.generateAsymetricKeys(),
       symetric: this.generateSymetricKey()
     };
+    if (!(await this.registry.exists("keys"))) {
+      this.current = `init-${this.getWebda().getInstanceId()}`;
+      await this.registry.put("keys", { current: this.current });
+    }
     if (await this.registry.conditionalPatch("keys", next, "current", this.current)) {
       this.keys ??= {};
       this.keys[id] = next[`key_${id}`];

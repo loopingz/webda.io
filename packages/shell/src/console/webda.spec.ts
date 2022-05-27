@@ -338,13 +338,8 @@ class DynamicService extend Service {
   }
 
   @test
-  async generateSecret() {
-    let info = WebdaSampleApplication.getConfiguration();
-    let oldContent = fs.readFileSync(path.join(WebdaSampleApplication.getAppPath(), "webda.config.jsonc")).toString();
-    await this.commandLine("generate-session-secret");
-    let file = FileUtils.load(path.join(WebdaSampleApplication.getAppPath(), "webda.config.jsonc"));
-    assert.notStrictEqual(info.parameters.sessionSecret, file.parameters.sessionSecret);
-    fs.writeFileSync(path.join(WebdaSampleApplication.getAppPath(), "webda.config.jsonc"), oldContent);
+  async rotateKeys() {
+    await this.commandLine("rotate-keys");
   }
 
   @test
@@ -633,19 +628,6 @@ module.exports = {
       assert.ok(register.getCall(0).args[0].endsWith("node_modules/generator-webda/generators/app/index.js"));
       assert.strictEqual(register.getCall(0).args[1], "webda");
       register.resetHistory();
-    } finally {
-      stub.restore();
-    }
-  }
-
-  @test
-  async generateRandomStringError() {
-    // Test error
-    let stub = sinon.stub(require("crypto"), "randomBytes").callsFake((_, callback) => {
-      callback("ERROR", null);
-    });
-    try {
-      await assert.rejects(() => WebdaConsole.generateRandomString(), /ERROR/);
     } finally {
       stub.restore();
     }

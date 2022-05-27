@@ -317,6 +317,16 @@ export default class WebdaConsole {
   }
 
   /**
+   * Rotate crypto keys
+   */
+  static async rotateKeys(): Promise<number> {
+    WebdaConsole.webda = new WebdaServer(this.app);
+    await WebdaConsole.webda.init();
+    await WebdaConsole.webda.getCrypto().rotate();
+    return 0;
+  }
+
+  /**
    * Deploy the new code
    * @param argv
    */
@@ -583,6 +593,10 @@ export default class WebdaConsole {
       faketerm: {
         handler: WebdaConsole.fakeTerm,
         description: "Launch a fake interactive terminal"
+      },
+      "rotate-keys": {
+        handler: WebdaConsole.rotateKeys,
+        description: "Rotate encryption keys or create them"
       }
     };
   }

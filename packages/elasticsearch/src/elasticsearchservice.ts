@@ -1,6 +1,5 @@
 import { Client } from "@elastic/elasticsearch";
-import { CoreModel, Service, Store, WebdaError } from "@webda/core";
-import { ServiceParameters } from "../../core/lib/services/service";
+import { CoreModel, Service, ServiceParameters, Store, WebdaError } from "@webda/core";
 
 interface IndexParameter {
   store: string;

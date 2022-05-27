@@ -37,7 +37,7 @@
     "archiver": "^5.3.0",
     "cli-progress": "^3.9.0",
     "colors": "=1.4.0",
-    "filesize": "^8.0.0",
+    "filesize": "^9.0.0",
     "fs-extra": "^10.0.0",
     "fs-finder": "^1.8.1",
     "generator-webda": "^1.2.0",

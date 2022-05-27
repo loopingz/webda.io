@@ -28,9 +28,10 @@ export default class GCPPubSubService<
   /**
    * @override
    */
-  async init() {
+  async init(): Promise<this> {
     await super.init();
     this.pubsub = new PubSub();
+    return this;
   }
 
   /**

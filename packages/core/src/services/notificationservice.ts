@@ -73,7 +73,8 @@ export default class MultiNotificationService<T extends MultiNotificationParamet
   /**
    * @override
    */
-  resolve() {
+  resolve(): this {
+    super.resolve();
     this.senders = this.parameters.senders.map(s => {
       let service = <NotificationService>(<unknown>this.getService(s));
       if (!service) {
@@ -81,6 +82,7 @@ export default class MultiNotificationService<T extends MultiNotificationParamet
       }
       return service;
     });
+    return this;
   }
 
   /**

@@ -62,7 +62,7 @@ export default class FireStore<
   /**
    * @override
    */
-  async init() {
+  async init(): Promise<this> {
     await super.init();
     this.firestore = new Firestore();
     this.firestore.settings({ ignoreUndefinedProperties: true });
@@ -76,6 +76,7 @@ export default class FireStore<
         this.compoundIndexes[key][field].add(a[field]);
       });
     });
+    return this;
   }
 
   /**

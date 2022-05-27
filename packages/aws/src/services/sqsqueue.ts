@@ -64,9 +64,10 @@ export default class SQSQueue<T = any, K extends SQSQueueParameters = SQSQueuePa
   /**
    * @inheritdoc
    */
-  async init(): Promise<void> {
+  async init(): Promise<this> {
     await super.init();
     this.sqs = new SQS(this.parameters);
+    return this;
   }
 
   /**

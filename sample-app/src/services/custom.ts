@@ -20,9 +20,10 @@ class CustomService<T extends CustomParameters = CustomParameters> extends Servi
   /**
    * @override
    */
-  resolve() {
+  resolve(): this {
     super.resolve();
     this.getWebda().registerRequestFilter(this);
+    return this;
   }
 
   async checkRequest() {

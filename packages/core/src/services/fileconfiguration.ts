@@ -11,7 +11,7 @@ export class FileConfigurationService<
   T extends ConfigurationServiceParameters = ConfigurationServiceParameters
 > extends ConfigurationService<T> {
   /** @ignore */
-  async init() {
+  async init(): Promise<this> {
     // Do not call super as we diverged
     if (!this.parameters.source) {
       throw new WebdaError("FILE_CONFIGURATION_SOURCE_MISSING", "Need a source for FileConfigurationService");
@@ -29,6 +29,7 @@ export class FileConfigurationService<
     this.watch("$.webda.services", this._webda.reinit.bind(this._webda));
 
     await this.checkUpdate();
+    return this;
   }
 
   /**

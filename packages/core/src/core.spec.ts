@@ -261,20 +261,26 @@ class CoreTest extends WebdaTest {
   }
 
   @test
+  async registry() {
+    await this.webda.getRegistry().put("test", {anyData: "plop"});
+    assert.strictEqual((await this.webda.getRegistry().get("test")).anyData, "plop");
+  }
+
+  @test
   getServicesImplementations() {
     let moddas = this.webda.getServicesOfType();
-    assert.strictEqual(Object.keys(moddas).length, 26);
+    assert.strictEqual(Object.keys(moddas).length, 29);
   }
 
   @test
   getStores() {
     let moddas = this.webda.getStores();
-    assert.strictEqual(Object.keys(moddas).length, 7);
+    assert.strictEqual(Object.keys(moddas).length, 8);
   }
   @test
   getServicesImplementationsWithType() {
     let stores = this.webda.getServicesOfType(Store);
-    assert.strictEqual(Object.keys(stores).length, 7);
+    assert.strictEqual(Object.keys(stores).length, 8);
   }
 
   @test
@@ -460,16 +466,14 @@ class CoreTest extends WebdaTest {
   }
 
   @test
-  cov() {
+  async cov() {
     //assert.deepStrictEqual(this.webda.getDeployers(), {});
     this.webda.getUuid();
     this.webda.getInstanceId();
-    this.webda.getHmac(this.webda.getInstanceId());
     // a8b7f4a4-62aa-4b2a-b6a8-0ffdc0d82c96
     assert.ok(/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}/.exec(this.webda.getUuid()) !== null);
     assert.ok(/[0-9a-f]{32}/.exec(this.webda.getUuid("hex")) !== null);
     assert.ok(/[0-9a-zA-Z\-_]{22}/.exec(this.webda.getUuid("base64")) !== null);
-    assert.strictEqual(this.webda.getSalt(), this.webda.getConfiguration().parameters.salt);
   }
 
   @test

@@ -2,7 +2,8 @@
   "version": 2,
   "parameters": {
     "cookie": {
-      "sameSite": "None"
+      "sameSite": "None",
+      "name": "test"
     },
     "TEST": "Global",
     "region": "us-east-1",

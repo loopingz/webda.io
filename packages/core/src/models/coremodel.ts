@@ -18,15 +18,17 @@ export type ModelLinked<T> = (query?: string) => Promise<T[]>;
  */
 export type ModelMap<T, _FK extends keyof T, K extends keyof T> = (Pick<T, K> & ModelLoader<T>)[];
 /**
- * Define a link to 1:n or 1:1 relation
+ * Define a link to 1:n relation
  */
-export type ModelLink<T, _FK extends keyof T> = ModelLinker<T>;
+export type ModelLink<T, _FK extends keyof T = any> = ModelLinker<T>;
 /**
  * Define several links for n:m relation
  */
 export type ModelLinks<T, _FK extends keyof T> = ModelLinker<T>[] | { [key: string]: ModelLinker<T> };
-
-export type ModelParent<T, FK extends keyof T> = ModelLink<T, FK>;
+/**
+ * Define the parent of the model
+ */
+export type ModelParent<T> = ModelLink<T, any>;
 /**
  * Define an export of actions from Model
  */

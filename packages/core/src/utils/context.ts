@@ -8,19 +8,9 @@ import { Core } from "../core";
 import { User } from "../models/user";
 import { Service } from "../services/service";
 import { Store } from "../stores/store";
-import { SessionCookie } from "../utils/cookie";
+import { Session, SessionManager } from "../utils/session";
 import { HttpContext } from "./httpcontext";
 import { JSONUtils } from "./serializers";
-
-/**
- * @category CoreFeatures
- */
-export class ClientInfo extends Map<string, any> {
-  ip: string;
-  userAgent: string;
-  locale: string;
-  referer: string;
-}
 
 /**
  * @category CoreFeatures
@@ -36,32 +26,51 @@ class Cookie {
  * @WebdaModel
  */
 export class Context<T = any, U = any> extends EventEmitter {
-  clientInfo: ClientInfo;
   protected _body: any;
   protected _outputHeaders: Map<string, string>;
+  /**
+   * Contain emitting Core
+   */
   protected _webda: Core;
+  /**
+   * Current status code
+   */
   statusCode: number;
   _cookie: Map<string, Cookie>;
   headers: Map<string, string>;
   _route: any;
   _buffered: boolean;
-  protected session: SessionCookie;
+  /**
+   * Session
+   */
+  protected session: Session;
   _ended: Promise<any> = undefined;
   _stream: any;
+  /**
+   * Contain all registered promises to this context
+   */
   _promises: Promise<any>[];
   _executor: Service<any>;
-  _flushHeaders: boolean;
-  _sanitized: any;
+  /**
+   * If headers were flushed
+   */
+  protected flushHeaders: boolean;
+  /**
+   * Contain the sanitized request body if computed
+   */
+  protected _sanitized: any;
   protected parameters: any = undefined;
   protected _pathParams: any = {};
   protected _serviceParams: any = {};
-  files: any[];
   protected static __globalContext: Context;
   private global: boolean = false;
   /**
    * Allow extensions
    */
   protected extensions: { [key: string]: any };
+  /**
+   * Loaded user if exist
+   */
   private user: User;
 
   /**
@@ -81,9 +90,13 @@ export class Context<T = any, U = any> extends EventEmitter {
     Context.__globalContext = ctx;
   }
 
+  /**
+   * Return if context is global
+   */
   public isGlobal() {
     return this.global;
   }
+
   /**
    * @private
    * Used in case of Buffer response ( like Lambda )
@@ -162,11 +175,12 @@ export class Context<T = any, U = any> extends EventEmitter {
     this.parameters = Object.assign(this.parameters, this._pathParams);
   }
 
-  public getSession() {
-    if (this.session) {
-      return this.session.getProxy();
-    }
-    return undefined;
+  /**
+   * Get linked session
+   * @returns
+   */
+  public getSession<K = Session>(): K {
+    return <K>(<unknown>this.session);
   }
 
   public getServiceParameters() {
@@ -309,12 +323,15 @@ export class Context<T = any, U = any> extends EventEmitter {
     }
     this._ended = new Promise<void>(async resolve => {
       this.emit("end");
+      if (this.getExtension("http")) {
+        await this._webda.getService<SessionManager>("SessionManager").save(this, this.session);
+      }
       await Promise.all(this._promises);
       if (this._buffered && this._stream._body !== undefined) {
         this._body = Buffer.concat(this._stream._body);
         this.statusCode = 200;
       }
-      if (!this._flushHeaders) {
+      if (!this.flushHeaders) {
         this._webda.flushHeaders(this);
       }
       this._webda.flush(this);
@@ -355,7 +372,7 @@ export class Context<T = any, U = any> extends EventEmitter {
         sanitizedOptions
       );
     } catch (err) {
-      this.log("ERROR", err, this.getHttpContext().getRawBody());
+      this.log("ERROR", err, `Body: '${await this.getHttpContext().getRawBodyAsString()}'`);
       return undefined;
     }
     return this._sanitized;
@@ -431,7 +448,7 @@ export class Context<T = any, U = any> extends EventEmitter {
    */
   getCurrentUserId() {
     if (this.session) {
-      return this.session.getUserId();
+      return this.session.userId;
     }
     return undefined;
   }
@@ -514,7 +531,7 @@ export class Context<T = any, U = any> extends EventEmitter {
    * @returns
    */
   hasFlushedHeaders() {
-    return this._flushHeaders;
+    return this.flushHeaders;
   }
 
   /**
@@ -522,7 +539,7 @@ export class Context<T = any, U = any> extends EventEmitter {
    * @param status
    */
   setFlushedHeaders(status: boolean = true) {
-    this._flushHeaders = status;
+    this.flushHeaders = status;
   }
 
   /**
@@ -531,14 +548,13 @@ export class Context<T = any, U = any> extends EventEmitter {
    */
   constructor(webda: Core, httpContext: HttpContext, stream: any = undefined) {
     super();
-    this.clientInfo = new ClientInfo();
     this.extensions = {
       http: httpContext
     };
     this._webda = webda;
     this._promises = [];
     this._outputHeaders = new Map();
-    this._flushHeaders = false;
+    this.flushHeaders = false;
     this._body = undefined;
     this.statusCode = 204;
     this._stream = stream;
@@ -556,8 +572,12 @@ export class Context<T = any, U = any> extends EventEmitter {
     }
   }
 
+  /**
+   * Create a new session
+   * @returns
+   */
   newSession() {
-    this.session = new (this._webda.getModel(this._webda.parameter("sessionModel") || "Webda/SessionCookie"))(this);
+    this.session = new (this._webda.getModel(this._webda.parameter("sessionModel") || "Webda/Session"))(this);
     return this.session;
   }
 
@@ -566,7 +586,9 @@ export class Context<T = any, U = any> extends EventEmitter {
       this._buffered = true;
       this._webda.flushHeaders(this);
     });
-    await this.session.init();
+    if (this.getExtension("http")) {
+      this.session = (await this._webda.getService<SessionManager>("SessionManager").load(this)).getProxy();
+    }
     return this;
   }
 

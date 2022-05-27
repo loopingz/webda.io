@@ -13,12 +13,56 @@
     "beans/customservice": "lib/services/custom"
   },
   "models": {
-    "webdademo/contact": "lib/models/contact:default"
+    "webdademo/company": "lib/models/company:Company",
+    "webdademo/contact": "lib/models/contact:default",
+    "webdademo/project": "lib/models/project:Project",
+    "webdademo/user": "lib/models/user:User"
   },
   "deployers": {
     "webdademo/customdeployer": "lib/services/deployer:CustomDeployer"
   },
   "schemas": {
+    "webdademo/user": {
+      "type": "object",
+      "properties": {
+        "_creationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date",
+          "readOnly": true
+        },
+        "_lastUpdate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update date",
+          "readOnly": true
+        },
+        "_company": {
+          "$ref": "#/definitions/ModelParent%3Cclass-922587926-131-283-922587926-0-284%2C%22users%22%3E",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ModelParent<class-922587926-131-283-922587926-0-284,\"users\">": {
+          "$ref": "#/definitions/ModelLink%3Cclass-922587926-131-283-922587926-0-284%2C%22users%22%3E"
+        },
+        "ModelLink<class-922587926-131-283-922587926-0-284,\"users\">": {
+          "$ref": "#/definitions/ModelLinker%3Cclass-922587926-131-283-922587926-0-284%3E",
+          "description": "Define a link to 1:n or 1:1 relation"
+        },
+        "ModelLinker<class-922587926-131-283-922587926-0-284>": {
+          "type": "string"
+        }
+      },
+      "title": "User"
+    },
     "webdademo/contact": {
       "type": "object",
       "properties": {
@@ -118,7 +162,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-159-207-1076421816-0-1151%3E",
           "description": "The Partial will generate a new $ref"
         }
       },
@@ -129,7 +173,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-159-207-829200435-0-1151>": {
+        "Partial<interface-1076421816-159-207-1076421816-0-1151>": {
           "type": "object",
           "properties": {
             "test": {
@@ -151,7 +195,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-159-207-1076421816-0-1151%3E",
           "description": "The Partial will generate a new $ref"
         }
       },
@@ -162,7 +206,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-159-207-829200435-0-1151>": {
+        "Partial<interface-1076421816-159-207-1076421816-0-1151>": {
           "type": "object",
           "properties": {
             "test": {
@@ -199,7 +243,7 @@
           "type": "string"
         },
         "interfaceParam": {
-          "$ref": "#/definitions/Partial%3Cinterface-829200435-159-207-829200435-0-1151%3E",
+          "$ref": "#/definitions/Partial%3Cinterface-1076421816-159-207-1076421816-0-1151%3E",
           "description": "The Partial will generate a new $ref"
         },
         "fourthParameter": {
@@ -216,7 +260,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<interface-829200435-159-207-829200435-0-1151>": {
+        "Partial<interface-1076421816-159-207-1076421816-0-1151>": {
           "type": "object",
           "properties": {
             "test": {
@@ -288,7 +332,7 @@
           "description": "Type of the service"
         },
         "introspection": {
-          "$ref": "#/definitions/Partial%3Cclass-1131383939-939-1249-1131383939-0-6061976353190%3E"
+          "$ref": "#/definitions/Partial%3Cclass-178760925-939-1249-178760925-0-6061976353190%3E"
         }
       },
       "required": [
@@ -297,7 +341,7 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#",
       "definitions": {
-        "Partial<class-1131383939-939-1249-1131383939-0-6061976353190>": {
+        "Partial<class-178760925-939-1249-178760925-0-6061976353190>": {
           "type": "object",
           "properties": {
             "type": {

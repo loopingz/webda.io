@@ -2,7 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { HttpContext, Ident, Store } from "../";
 import { WebdaTest } from "../test";
-import { OAuthService } from "./oauth";
+import { OAuthService, OAuthSession } from "./oauth";
 
 class FakeOAuthService extends OAuthService {
   getDefaultUrl() {
@@ -83,14 +83,14 @@ class OAuthServiceTest extends WebdaTest {
     assert.strictEqual(await this.webda.getService<Store<Ident>>("Idents").exists("rcattiau@gmail.com_email"), true);
     ctx.newSession();
     // Log with known ident / email
-    assert.strictEqual(ctx.getSession().getIdentUsed(), undefined);
+    assert.strictEqual(ctx.getSession().identUsed, undefined);
     await this.service.handleReturn(ctx, "plop", { email: "rcattiau@gmail.com" }, undefined);
-    assert.strictEqual(ctx.getSession().getIdentUsed(), "plop_fake");
+    assert.strictEqual(ctx.getSession().identUsed, "plop_fake");
     let userId = ctx.getCurrentUserId();
     ctx.newSession();
     // Log with new ident / known email
     await this.service.handleReturn(ctx, "plop2", { email: "rcattiau@gmail.com" }, undefined);
-    assert.strictEqual(ctx.getSession().getIdentUsed(), "plop2_fake");
+    assert.strictEqual(ctx.getSession().identUsed, "plop2_fake");
     assert.strictEqual(ctx.getCurrentUserId(), userId);
     await this.service.handleReturn(ctx, "plop3", { email: "rcattiau@gmail.com" }, undefined);
     // Default to false for token
@@ -120,10 +120,12 @@ class OAuthServiceTest extends WebdaTest {
     this.service.addListener("OAuth.Callback", () => {
       event++;
     });
-    ctx.getSession().redirect = "bouzouf.com";
+    ctx.getSession<OAuthSession>().oauth.redirect = "bouzouf.com";
     await this.getExecutor(ctx, "webda.io", "GET", "/bouzouf/callback").execute(ctx);
     assert.strictEqual(event, 2);
-    assert.strictEqual(ctx.getSession().redirect, "bouzouf.com");
+    assert.strictEqual(ctx.getResponseHeaders()["Location"], "bouzouf.com");
+    assert.strictEqual(ctx.getSession<OAuthSession>().oauth.redirect, undefined);
+    assert.strictEqual(ctx.getSession<OAuthSession>().oauth.state, undefined);
 
     // @ts-ignore
     this.service.parameters = this.service.loadParameters({
@@ -135,7 +137,7 @@ class OAuthServiceTest extends WebdaTest {
     // @ts-ignore readonly
     ctx.getHttpContext().getHeaders().referer = "http://myownwebsite.com";
     this.service._redirect(ctx);
-    assert.strictEqual(ctx.getSession().redirect, "http://myownwebsite.com");
+    assert.strictEqual(ctx.getSession<OAuthSession>().oauth.redirect, "http://myownwebsite.com");
   }
 
   @test
@@ -147,8 +149,8 @@ class OAuthServiceTest extends WebdaTest {
       })
     );
     await this.service._redirect(ctx);
-    assert.notStrictEqual(ctx.getSession().state, undefined);
-    assert.strictEqual(ctx.getSession().redirect, "https://redirect.me/plop");
+    assert.notStrictEqual(ctx.getSession<OAuthSession>().oauth.state, undefined);
+    assert.strictEqual(ctx.getSession<OAuthSession>().oauth.redirect, "https://redirect.me/plop");
     assert.strictEqual(ctx.getResponseHeaders().Location, "/fakeredirect");
     ctx.setHttpContext(
       new HttpContext("test.webda.io", "GET", "/fake", "https", 443, {
@@ -162,7 +164,7 @@ class OAuthServiceTest extends WebdaTest {
     // Enable the no_referer
     this.service.getParameters().no_referer = true;
     this.service._redirect(ctx);
-    assert.strictEqual(ctx.getSession().redirect, undefined);
+    assert.strictEqual(ctx.getSession<OAuthSession>().oauth.redirect, undefined);
     assert.strictEqual(ctx.getResponseHeaders().Location, "/fakeredirect");
   }
 }

@@ -5,7 +5,7 @@ import { Readable } from "stream";
 export type HttpMethodType = "GET" | "OPTIONS" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 type HeadersRequest = IncomingHttpHeaders & {
-  // Permit any property starting with 'data-'.
+  // Permit any property starting with 'x-'.
   [headerName: `x-${string}`]: string;
 };
 
@@ -236,7 +236,7 @@ export class HttpContext {
     if (encoding !== "utf-8") {
       throw new Error("Only UTF-8 is currently managed: https://github.com/loopingz/webda.io/issues/221");
     }
-    return (await this.getRawBody(limit, timeout)).toString(<BufferEncoding>encoding);
+    return ((await this.getRawBody(limit, timeout)) || Buffer.from("")).toString(<BufferEncoding>encoding);
   }
 
   /**

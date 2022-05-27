@@ -53,7 +53,7 @@ export default class ElasticSearchService<
   /**
    * @inheritdoc
    */
-  resolve() {
+  resolve(): this {
     super.resolve();
     this._client = new Client(this.parameters.client);
     this.log("DEBUG", "Indexes", this.parameters.indexes);
@@ -109,6 +109,7 @@ export default class ElasticSearchService<
         return this._delete(index.name, evt.object.getUuid());
       });
     }
+    return this;
   }
 
   /**

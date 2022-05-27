@@ -1,5 +1,4 @@
 import {
-  ClientInfo,
   Context,
   Core as Webda,
   HttpContext,
@@ -43,19 +42,6 @@ export class WebdaServer extends Webda {
 
   output(...args) {
     this.log("INFO", ...args);
-  }
-
-  /**
-   * Initialize a ClientInfo structure based on request
-   * @param {http.Request} req
-   */
-  getClientInfo(req): ClientInfo {
-    let res = new ClientInfo();
-    res.ip = req.connection.remoteAddress;
-    res.userAgent = req.headers["user-agent"];
-    res.locale = req.headers["Accept-Language"];
-    res.referer = req.headers["Referer"];
-    return res;
   }
 
   /**
@@ -122,7 +108,6 @@ export class WebdaServer extends Webda {
         httpContext.setBody(req);
       }
       let ctx = await this.newContext(httpContext, res, true);
-      ctx.clientInfo = this.getClientInfo(req);
 
       if (!this.updateContextWithRoute(ctx)) {
         let routes = this.router.getRouteMethodsFromUrl(httpContext.getRelativeUri());

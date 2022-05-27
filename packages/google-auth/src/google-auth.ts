@@ -1,4 +1,4 @@
-import { Context, OAuthEvents, OAuthService, OAuthServiceParameters, RequestFilter } from "@webda/core";
+import { Context, OAuthEvents, OAuthService, OAuthServiceParameters, OAuthSession, RequestFilter } from "@webda/core";
 import { Credentials, OAuth2Client } from "google-auth-library";
 import * as http from "http";
 
@@ -134,8 +134,11 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
    */
   async handleCallback(ctx: Context) {
     // Verify state are equal
-    if (ctx.getRequestParameters().state !== ctx.getSession().state) {
-      this.log("WARN", `GoogleAuth Bad State ${ctx.getRequestParameters().state} !== ${ctx.getSession().state}`);
+    if (ctx.getRequestParameters().state !== ctx.getSession<OAuthSession>().oauth.state) {
+      this.log(
+        "WARN",
+        `GoogleAuth Bad State ${ctx.getRequestParameters().state} !== ${ctx.getSession<OAuthSession>().oauth.state}`
+      );
       throw 403;
     }
     let code: string = ctx.getRequestParameters().code;

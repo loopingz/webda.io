@@ -50,7 +50,7 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
   /**
    * @inheritdoc
    */
-  async init(): Promise<void> {
+  async init(): Promise<this> {
     await super.init();
     this._logGroupName = this.parameters.logGroupName;
     if (!this._logGroupName) {
@@ -81,6 +81,7 @@ export default class CloudWatchLogger<T extends CloudWatchLoggerParameters = Clo
       }
     });
     this._webda.on("Webda.Result", this.sendLogs.bind(this));
+    return this;
   }
 
   /**

@@ -85,6 +85,29 @@ export type OAuthEvents = {
 };
 
 /**
+ * OAuth Session variables
+ */
+export interface OAuthSession {
+  /**
+   * Store within an oauth object
+   */
+  oauth?: {
+    /**
+     * state sent
+     */
+    state?: string;
+    /**
+     * redirect after auth
+     */
+    redirect?: string;
+    /**
+     * Profile retrieved
+     */
+    profile?: any;
+  };
+}
+
+/**
  * OAuth service implementing the default OAuth workflow
  * It is abstract as it does not manage any provider as is
  */
@@ -146,9 +169,10 @@ export abstract class OAuthService<
   /**
    * Resolve dynamic dependancy
    */
-  resolve() {
+  resolve(): this {
     super.resolve();
     this._authenticationService = this.getService(this.parameters.authenticationService);
+    return this;
   }
 
   /**
@@ -268,11 +292,13 @@ export abstract class OAuthService<
         }
       }
     }
+    const session = ctx.getSession<OAuthSession>();
+    session.oauth ??= {};
     // Generate 2 random uuid: nonce and state
-    ctx.getSession().state = this.getWebda().getUuid("base64");
+    session.oauth.state = this.getWebda().getUuid("base64");
     // Redirect to the calling uri
-    ctx.getSession().redirect = redirect;
-    ctx.redirect(this.generateAuthUrl(redirect_uri, ctx.getSession().state, ctx));
+    session.oauth.redirect = redirect;
+    ctx.redirect(this.generateAuthUrl(redirect_uri, session.oauth.state, ctx));
   }
 
   /**
@@ -319,6 +345,8 @@ export abstract class OAuthService<
       throw 403;
     }
 
+    const session = ctx.getSession<OAuthSession>();
+    session.oauth ??= {};
     // If authentication service then create a User/Ident couple
     if (this._authenticationService) {
       // Should call the onIdentLogin()
@@ -327,15 +355,18 @@ export abstract class OAuthService<
       // Login in session
       ctx.getSession().login(identId, identId);
       // Store the profile retrieved
-      ctx.getSession().profile = profile;
+      session.oauth.profile = profile;
     }
 
     // Redirect to our targets
-    if (ctx.getSession().redirect) {
-      ctx.redirect(ctx.getSession().redirect);
+    if (session.oauth.redirect) {
+      ctx.redirect(session.oauth.redirect);
     } else {
       ctx.write("Your authentication is successful");
     }
+    // Clean variables from session
+    session.oauth.state = undefined;
+    session.oauth.redirect = undefined;
   }
 
   /**

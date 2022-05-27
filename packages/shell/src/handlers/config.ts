@@ -24,7 +24,7 @@ export default class ConfigurationService extends Service implements RequestFilt
     return false;
   }
 
-  resolve() {
+  resolve(): this {
     super.resolve();
     this._webda.registerCORSFilter(this);
     this.addRoute("/configuration", ["GET", "PUT"], this.crudConfiguration);
@@ -33,11 +33,13 @@ export default class ConfigurationService extends Service implements RequestFilt
     this.addRoute("/npm/search", ["POST"], this.npmSearch);
     this.addRoute("/webda", ["GET"], this.getWebdaVersions);
     this.addRoute("/openapi", ["GET"], this.crudConfiguration);
+    return this;
   }
 
-  async init() {
+  async init(): Promise<this> {
     await super.init();
     this.webdaApplication = (<WebdaConfiguration>this._webda).getWebdaApplication();
+    return this;
   }
 
   async crudConfiguration(ctx: Context) {

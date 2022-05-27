@@ -106,9 +106,10 @@ export default class KubeRunner<T extends KubeRunnerParameters = KubeRunnerParam
   /**
    * @inheritdoc
    */
-  resolve() {
+  resolve() : this {
     super.resolve();
     this.client = <k8s.KubernetesObjectApi>getKubernetesApiClient(this.parameters);
+    return this;
   }
 }
 

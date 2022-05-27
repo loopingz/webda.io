@@ -23,11 +23,12 @@ export default class AMQPQueue<T = any, K extends AMQPQueueParameters = AMQPQueu
   /**
    * @override
    */
-  async init() {
+  async init(): Promise<this> {
     await super.init();
     this.conn = await amqplib.connect(this.parameters.url);
     this.channel = await this.conn.createChannel();
     await this.channel.assertQueue(this.parameters.queue);
+    return this;
   }
 
   /**

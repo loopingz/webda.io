@@ -52,7 +52,7 @@ class InvitationTest extends WebdaTest {
     this.invitations = this.webda.getService<Store<CoreModel>>("Invitations");
     this.authentication = this.webda.getService<Authentication>("Authentication");
     this.mailer = this.webda.getService<Mailer>("DebugMailer");
-    this.service.resolve();
+    await this.service.resolve().init();
   }
 
   @test

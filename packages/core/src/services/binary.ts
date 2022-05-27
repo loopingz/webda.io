@@ -458,9 +458,10 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
   /**
    * @override
    */
-  resolve() {
+  resolve(): this {
     super.resolve();
     this.initMap(this.parameters.map);
+    return this;
   }
 
   abstract _get(info: BinaryMap): Promise<Readable>;

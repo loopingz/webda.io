@@ -65,9 +65,10 @@ class LambdaCaller<T extends LambdaCallerParameters = LambdaCallerParameters> ex
   /**
    * @inheritdoc
    */
-  resolve() {
+  resolve(): this {
     super.resolve();
     this.client = new Lambda(this.parameters);
+    return this;
   }
 
   /**

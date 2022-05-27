@@ -1,11 +1,10 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { serialize as cookieSerialize } from "cookie";
-import * as sinon from "sinon";
 import { Context, SecureCookie } from "../index";
 import { WebdaTest } from "../test";
-import { SessionCookie } from "./cookie";
 import { HttpContext } from "./httpcontext";
+import { Session } from "./session";
 
 const SECRET =
   "Lp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5EN";
@@ -18,12 +17,12 @@ class CookieTest extends WebdaTest {
     this._ctx = await this.webda.newContext(new HttpContext("test.webda.io", "GET", "/"));
     this.webda.updateContextWithRoute(this._ctx);
   }
-
+  /*
   @test("No changes") testNoChanges() {
     var cookie = new SecureCookie(
       "test",
       {
-        secret: SECRET
+        secretOrPublicKey: SECRET
       },
       this._ctx,
       {
@@ -40,7 +39,7 @@ class CookieTest extends WebdaTest {
     var cookie = new SecureCookie(
       "test",
       {
-        secret: SECRET
+        secretOrPublicKey: SECRET
       },
       this._ctx,
       {
@@ -59,7 +58,7 @@ class CookieTest extends WebdaTest {
     var cookie = new SecureCookie(
       "test",
       {
-        secret: SECRET
+        secretOrPublicKey: SECRET
       },
       this._ctx,
       {
@@ -77,7 +76,7 @@ class CookieTest extends WebdaTest {
     var cookie = new SecureCookie(
       "test",
       {
-        secret: SECRET
+        secretOrPublicKey: SECRET
       },
       this._ctx,
       {
@@ -95,7 +94,7 @@ class CookieTest extends WebdaTest {
     var cookie = new SecureCookie(
       "test",
       {
-        secret: SECRET
+        secretOrPublicKey: SECRET
       },
       this._ctx,
       {}
@@ -110,18 +109,18 @@ class CookieTest extends WebdaTest {
     assert.strictEqual(cookie.isLogged(), true);
   }
 
-  @test("Cookie parameters") testCookieParameters() {
+  @test("Cookie parameters") async testCookieParameters() {
     var cookie = new SecureCookie(
       "test",
       {
-        secret: SECRET
+        secretOrPublicKey: SECRET
       },
       this._ctx,
       {}
     ).getProxy();
     cookie["title"] = "plop";
     assert.strictEqual(cookie.needSave(), true);
-    cookie.save(this._ctx);
+    await cookie.save(this._ctx);
     assert.deepStrictEqual(this._ctx.getResponseCookies()["test"].options, {
       path: "/",
       domain: "test.webda.io",
@@ -136,7 +135,7 @@ class CookieTest extends WebdaTest {
     this._ctx.parameters.cookie = {
       maxAge: 3600
     };
-    cookie.save(this._ctx);
+    await cookie.save(this._ctx);
     assert.deepStrictEqual(this._ctx.getResponseCookies()["test"].options, {
       path: "/",
       domain: "test.webda.io",
@@ -157,7 +156,7 @@ class CookieTest extends WebdaTest {
       new SecureCookie(
         "testor",
         {
-          secret: "plop".repeat(64)
+          secretOrPublicKey: "plop".repeat(64)
         },
         this._ctx
       );
@@ -168,11 +167,11 @@ class CookieTest extends WebdaTest {
     }
   }
 
-  @test("Normal enc/dec") testEncryption() {
+  @test("Normal enc/dec") async testEncryption() {
     var cookie = new SecureCookie(
       "test",
       {
-        secret: SECRET
+        secretOrPublicKey: SECRET
       },
       this._ctx,
       {
@@ -183,8 +182,9 @@ class CookieTest extends WebdaTest {
     assert.strictEqual(cookie["title"], "TITLE");
     assert.strictEqual(cookie["desc"], "DESCRIPTION");
     // Force encryption
-    cookie._changed = true;
-    cookie.save(this._ctx);
+    // @ts-ignore
+    cookie.changed = true;
+    await cookie.save(this._ctx);
     let cookies = this._ctx.getResponseCookies();
     let httpContext = this._ctx.getHttpContext();
     httpContext.cookies = httpContext.cookies || {};
@@ -194,7 +194,7 @@ class CookieTest extends WebdaTest {
     var cookie2 = new SecureCookie(
       "test",
       {
-        secret: SECRET
+        secretOrPublicKey: SECRET
       },
       this._ctx
     );
@@ -203,68 +203,27 @@ class CookieTest extends WebdaTest {
     assert.strictEqual(cookie.desc, cookie2.desc);
   }
 
-  @test("Bad secret") testBadSecret() {
-    var cookie = new SecureCookie(
-      "test",
-      {
-        secret: SECRET
-      },
-      this._ctx,
-      {
-        title: "TITLE",
-        desc: "DESCRIPTION"
-      }
-    ).getProxy();
-    assert.strictEqual(cookie["title"], "TITLE");
-    assert.strictEqual(cookie["desc"], "DESCRIPTION");
-    cookie.save(this._ctx);
-    var exception = false;
-    try {
-      new SecureCookie(
-        "test",
-        {
-          secret: SECRET + "2"
-        },
-        this._ctx
-      );
-    } catch (err) {
-      exception = true;
-    }
-    assert.strictEqual(exception, false);
-    // TODO Add test for s_fid=3C43F8B5AAFA0B87-0087E6884E64AFFD; s_dslv=1462619672626; s_dslv_s=Less%20than%201%20day;
+  
+*/
+  @test("Bad cookie") async testBadSecret() {
+    let ctx = await this.newContext();
+    ctx.getHttpContext().cookies = {};
+    ctx.getHttpContext().cookies["test"] = "plop";
+    let session = await SecureCookie.load("test", ctx, undefined);
+    assert.strictEqual(Object.keys(session).length, 0);
   }
 
-  @test("bad secret length") testBadSecretLength() {
-    let exception = false;
-    try {
-      new SecureCookie(
-        "test",
-        {
-          secret: "BOUZOUF"
-        },
-        this._ctx
-      );
-    } catch (err) {
-      exception = true;
-    }
-    assert.strictEqual(exception, true);
+  @test
+  async cov() {
+    let session = await SecureCookie.load("test", new Context(this.webda, undefined, undefined), undefined);
+    assert.strictEqual(Object.keys(session).length, 0);
   }
 
   @test("Oversize cookie") async testOversize() {
-    var cookie = new SecureCookie(
-      "test",
-      {
-        secret: SECRET
-      },
-      this._ctx,
-      {
-        title: "TITLE",
-        desc: "DESCRIPTION"
-      }
-    ).getProxy();
-    cookie.test = "PLOP".repeat(3000);
-    assert.strictEqual(cookie.needSave(), true);
-    cookie.save(this._ctx);
+    var cookie = new Session().getProxy();
+    cookie.identUsed = "PLOP".repeat(3000);
+    assert.strictEqual(cookie.isDirty(), true);
+    await SecureCookie.save("test", this._ctx, cookie);
     assert.strictEqual(Object.keys(this._ctx.getResponseCookies()).length, 5);
     for (let i = 1; i < 5; i++) {
       const cookie = this._ctx.getResponseCookies()[`test${i > 1 ? i : ""}`];
@@ -276,7 +235,7 @@ class CookieTest extends WebdaTest {
     Object.keys(cookies).forEach(k => {
       ctx.getHttpContext().cookies[k] = cookies[k].value;
     });
-    cookie = new SecureCookie("test", { secret: SECRET }, ctx);
-    assert.strictEqual(cookie.test, "PLOP".repeat(3000));
+    await ctx.init();
+    assert.strictEqual(ctx.getSession().identUsed, "PLOP".repeat(3000));
   }
 }

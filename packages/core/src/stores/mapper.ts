@@ -80,7 +80,7 @@ export default class MapperService<T extends MapperParameters = MapperParameters
   /**
    * @override
    */
-  resolve() {
+  resolve(): this {
     super.resolve();
     this.targetStore.addReverseMap(this.parameters.targetAttribute, this.sourceService);
     const method = this.parameters.async ? "onAsync" : "on";
@@ -117,6 +117,7 @@ export default class MapperService<T extends MapperParameters = MapperParameters
         await Promise.all(maps.map(mapper => this.sourceService.cascadeDelete(mapper, evt.object.getUuid())));
       });
     }
+    return this;
   }
 
   /**

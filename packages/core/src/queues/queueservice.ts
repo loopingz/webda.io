@@ -100,9 +100,10 @@ abstract class Queue<T = any, K extends QueueParameters = QueueParameters> exten
   /**
    * Create the delayer
    */
-  public resolve() {
+  public resolve(): this {
     super.resolve();
     this.delayer = WaitDelayerFactories.get(this.parameters.workerDelayer);
+    return this;
   }
 
   /**

@@ -48,10 +48,11 @@ export default class GCPQueue<T = any, K extends GCPQueueParameters = GCPQueuePa
   /**
    * @override
    */
-  async init() {
+  async init(): Promise<this> {
     await super.init();
     this.pubsub = new PubSub();
     this.projectId = this.pubsub.auth.getProjectId();
+    return this;
   }
 
   /**

@@ -22,7 +22,7 @@ export default class AWSXRayService<T extends AWSXRayServiceParameters = AWSXRay
     // https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon.html
   }
 
-  resolve() {
+  resolve(): this {
     const getMethods = obj => {
       let properties = new Set();
       let currentObj = Object.getPrototypeOf(obj);
@@ -120,6 +120,7 @@ export default class AWSXRayService<T extends AWSXRayServiceParameters = AWSXRay
         });
       };
     });
+    return this;
   }
 }
 

@@ -84,6 +84,9 @@ export default class ConfigurationService<
    * Watchs for configuration update
    */
   protected watchs: any[] = [];
+  /**
+   * Current configuration
+   */
   protected configuration: any;
 
   /**
@@ -99,7 +102,7 @@ export default class ConfigurationService<
   /**
    * @inheritdoc
    */
-  async init() {
+  async init(): Promise<this> {
     // Check interval by default every hour
 
     if (!this.parameters.source) {
@@ -131,6 +134,7 @@ export default class ConfigurationService<
 
     // Add webda info
     this.watch("$.webda.services", this._webda.reinit.bind(this._webda));
+    return this;
   }
 
   /**
@@ -167,8 +171,9 @@ export default class ConfigurationService<
    *
    * @inheritdoc
    */
-  async reinit(_config: any): Promise<void> {
+  async reinit(_config: any): Promise<this> {
     // Need to prevent any reinit
+    return this;
   }
 
   /**

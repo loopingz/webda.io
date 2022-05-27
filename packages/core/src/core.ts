@@ -2,11 +2,11 @@ import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import Ajv, { ErrorObject } from "ajv";
 import addFormats from "ajv-formats";
 import ValidationError from "ajv/dist/runtime/validation_error";
-import * as crypto from "crypto";
 import { deepmerge } from "deepmerge-ts";
 import * as events from "events";
 import { JSONSchema7 } from "json-schema";
 import * as jsonpath from "jsonpath";
+import { machineIdSync } from "node-machine-id";
 import { OpenAPIV3 } from "openapi-types";
 import { v4 as uuidv4 } from "uuid";
 import * as vm from "vm";
@@ -14,6 +14,14 @@ import { Application, Configuration } from "./application";
 import { ConfigurationService, Context, HttpContext, Logger, Service, Store } from "./index";
 import { CoreModel, CoreModelDefinition } from "./models/coremodel";
 import { OpenAPIWebdaDefinition, RouteInfo, Router } from "./router";
+import CryptoService from "./services/cryptoservice";
+
+/**
+ *
+ */
+export class RegistryEntry extends CoreModel {
+  [key: string]: any;
+}
 
 /**
  * Error with a code
@@ -158,6 +166,55 @@ export function Route(
   };
 }
 
+/**
+ * JWT Options
+ */
+export interface JWTOptions {
+  /**
+   * Secret to use with JWT
+   */
+  secretOrPublicKey?: string | Buffer | { key: string; passphrase: string };
+  /**
+   * Algorithm for JWT token
+   *
+   * @see https://www.npmjs.com/package/jsonwebtoken
+   * @default "HS256"
+   */
+  algorithm?:
+    | "HS256"
+    | "HS384"
+    | "HS512"
+    | "RS256"
+    | "RS384"
+    | "RS512"
+    | "PS256"
+    | "PS384"
+    | "PS512"
+    | "ES256"
+    | "ES384"
+    | "ES512";
+
+  /**
+   * expressed in seconds or a string describing a time span zeit/ms.
+   *
+   * Eg: 60, "2 days", "10h", "7d". A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default ("120" is equal to "120ms").
+   */
+  expiresIn?: number | string;
+  /**
+   * Audience for the jwt
+   */
+  audience?: string;
+  /**
+   * Issuer of the token
+   */
+  issuer?: string;
+  /**
+   * Subject for JWT
+   */
+  subject?: string;
+  keyid?: any;
+}
+
 export type CoreEvents = {
   /**
    * Emitted when new result is sent
@@ -289,6 +346,14 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * Store the instance id
    */
   private instanceId: string;
+  /**
+   * Application registry
+   */
+  protected registry: Store<RegistryEntry>;
+  /**
+   * Manage encryption within the application
+   */
+  protected cryptoService: CryptoService;
 
   /**
    * @params {Object} config - The configuration Object, if undefined will load the configuration file
@@ -455,6 +520,33 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
         this.services = {};
       }
     }
+
+    // Init the registry
+    const autoRegistry = this.configuration.services["Registry"] === undefined;
+    this.configuration.services["Registry"] ??= {
+      type: "webda/memorystore",
+      persistence: {
+        path: ".registry",
+        key: machineIdSync()
+      }
+    };
+    this.createService(this.configuration.services, "Registry");
+    this.registry = await this.getService<Store<RegistryEntry>>("Registry").resolve().init();
+
+    // Init the key service
+    this.configuration.services["CryptoService"] ??= {
+      type: "webda/cryptoservice",
+      autoRotate: autoRegistry ? 86400 : undefined
+    };
+    this.createService(this.configuration.services, "CryptoService");
+    this.cryptoService = await this.getService<CryptoService>("CryptoService").resolve().init();
+
+    // Session Manager
+    this.configuration.services["SessionManager"] ??= {
+      type: "webda/cookiesessionmanager"
+    };
+
+    // Init the other services
     this.initStatics();
     this.reinitResolvedRoutes();
     this.log("TRACE", "Create Webda init promise");
@@ -672,39 +764,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   /**
-   * This should return a "turning" secret with cache and a service to modify it every x mins
-   * WARNING The security is lower without this "turning" secret, you can still set the global.secret parameter
-   *
-   * Dont rely on this method, it will probably disapear to avoid secret leak
-   *
-   * @deprecated
-   * @returns {String} Current secret
-   */
-  public getSecret(): string {
-    // For now a static config file but should have a rolling service secret
-    return this.configuration.parameters.sessionSecret;
-  }
-
-  /**
-   * Retrieve a HMAC for a string
-   * @param data
-   * @returns
-   */
-  public async getHmac(data: string): Promise<string> {
-    return crypto.createHmac("sha256", this.getSecret()).update(data).digest("hex");
-  }
-
-  /**
-   * Return a salt to use when doing digest
-   *
-   * @returns {String} Current salt
-   */
-  public getSalt(): string {
-    // For now a static config file but should have a rolling service secret
-    return this.configuration.parameters.salt;
-  }
-
-  /**
    * Add to context information and executor based on the http context
    */
   public updateContextWithRoute(ctx: Context): boolean {
@@ -883,6 +942,22 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   /**
+   * A registry is a predefined store
+   * @returns
+   */
+  getRegistry(): Store<RegistryEntry> {
+    return this.getService("Registry");
+  }
+
+  /**
+   * Return the crypto service
+   * @returns
+   */
+  getCrypto(): CryptoService {
+    return this.cryptoService;
+  }
+
+  /**
    * Auto connect services with setters
    */
   protected autoConnectServices(): void {
@@ -919,7 +994,12 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   initStatics() {
     if (this.configuration.services !== undefined) {
-      this.createServices(Object.keys(this.services));
+      // Do not recreate the configuration services
+      this.createServices(
+        Object.keys(this.services).filter(
+          k => k !== this.configuration.parameters.configurationService && k !== "registry" && k !== "keyservice"
+        )
+      );
     }
 
     this.router.remapRoutes();

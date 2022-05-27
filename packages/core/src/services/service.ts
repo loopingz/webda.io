@@ -217,7 +217,7 @@ abstract class Service<
    * Resolve parameters
    * Call initRoutes and initBeanRoutes
    */
-  resolve(): void {
+  resolve(): this {
     // Inject dependencies
     Injector.resolveAll(this);
 
@@ -226,6 +226,7 @@ abstract class Service<
 
     this.initRoutes();
     this._webda.initBeanRoutes(this);
+    return this;
   }
 
   /**
@@ -283,15 +284,16 @@ abstract class Service<
    * @param config for the host so you can add your own route here
    * @abstract
    */
-  async init(): Promise<void> {
+  async init(): Promise<this> {
     // Can be overriden by subclasses if needed
+    return this;
   }
 
   /**
    *
    * @param config new parameters for the service
    */
-  async reinit(config: DeepPartial<T>): Promise<void> {
+  async reinit(config: DeepPartial<T>): Promise<this> {
     this.parameters = <T>this.loadParameters(config);
     this.computeParameters();
     return this.init();

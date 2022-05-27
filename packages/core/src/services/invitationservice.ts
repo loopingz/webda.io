@@ -204,7 +204,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
   /**
    * @inheritdoc
    */
-  resolve() {
+  resolve(): this {
     super.resolve();
     // Register
     this.authenticationService.on("Authentication.Register", (evt: EventAuthenticationRegister) =>
@@ -212,12 +212,13 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     );
     const url = this.modelStore.getParameters().expose.url;
     this.addRoute(`${url}/{uuid}/invitations`, ["GET", "POST", "PUT", "DELETE"], this.invite);
+    return this;
   }
 
   /**
    * @inheritdoc
    */
-  async init() {
+  async init(): Promise<this> {
     await super.init();
     if (
       this.parameters.notification &&
@@ -225,6 +226,7 @@ export default class InvitationService<T extends InvitationParameters = Invitati
     ) {
       throw new Error(`Email template should exist`);
     }
+    return this;
   }
 
   /**

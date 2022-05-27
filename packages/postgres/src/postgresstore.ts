@@ -45,7 +45,7 @@ export default class PostgresStore<
   /**
    * @override
    */
-  async init() {
+  async init(): Promise<this> {
     if (this.parameters.usePool) {
       this.client = new Pool(this.parameters.postgresqlServer);
     } else {
@@ -53,6 +53,7 @@ export default class PostgresStore<
     }
     await this.client.connect();
     await super.init();
+    return this;
   }
 
   /**

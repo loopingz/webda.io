@@ -110,7 +110,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   /**
    * @inheritdoc
    */
-  resolve(): void {
+  resolve(): this {
     super.resolve();
     this.queue = this.getService(this.parameters.queue);
     if (!this.queue) {
@@ -154,6 +154,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       });
     }
     this.getWebda().registerRequestFilter(this);
+    return this;
   }
 
   /**

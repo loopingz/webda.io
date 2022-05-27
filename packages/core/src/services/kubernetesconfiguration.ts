@@ -14,7 +14,7 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
   /**
    * @ignore
    */
-  async init() {
+  async init(): Promise<this> {
     // Do not call super as we diverged
     if (!this.parameters.source) {
       throw new WebdaError("KUBE_CONFIGURATION_SOURCE_MISSING", "Need a source for KubernetesConfigurationService");
@@ -29,6 +29,7 @@ export class KubernetesConfigurationService<T extends ConfigurationServiceParame
 
     fs.watchFile(path.join(this.parameters.source, "..data"), this.checkUpdate.bind(this));
     await this.checkUpdate();
+    return this;
   }
 
   /**

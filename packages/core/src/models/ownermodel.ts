@@ -24,7 +24,7 @@ export class OwnerModel extends CoreModel {
    * Return false if can't create
    */
   async canCreate(ctx: Context): Promise<this> {
-    const userId = ctx.getSession().getUserId();
+    const userId = ctx.getSession().userId;
     if (!userId) {
       throw 403;
     }

@@ -1,5 +1,4 @@
 import * as bcrypt from "bcryptjs";
-import * as crypto from "crypto";
 import { EventWithContext } from "../core";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
@@ -7,6 +6,7 @@ import { Inject, Service, ServiceParameters } from "../services/service";
 import { Store } from "../stores/store";
 import { Context } from "../utils/context";
 import { HttpContext } from "../utils/httpcontext";
+import CryptoService from "./cryptoservice";
 import { Mailer } from "./mailer";
 
 /**
@@ -237,6 +237,11 @@ class Authentication<
   _identsStore: Store<Ident>;
   @Inject("userStore", "users")
   _usersStore: Store<User>;
+  /**
+   * Used for hmac
+   */
+  @Inject("CryptoService")
+  cryptoService: CryptoService;
   _passwordVerifier: PasswordVerifier;
   providers: Set<string> = new Set<string>();
 
@@ -597,7 +602,7 @@ class Authentication<
     return {
       expire: expire,
       // Might want to add more alea not coming from the db to avoid exploitation of stolen db
-      token: this.hashInfo(user.uuid + expire + user.getPassword()),
+      token: await this.cryptoService.hmac(user.uuid + expire + user.getPassword()),
       login: user.uuid
     };
   }
@@ -647,7 +652,9 @@ class Authentication<
     if (!user) {
       throw 403;
     }
-    if (body.token !== this.hashInfo(body.login.toLowerCase() + body.expire + user.getPassword())) {
+    if (
+      !(await this.cryptoService.hmacVerify(body.login.toLowerCase() + body.expire + user.getPassword(), body.token))
+    ) {
       throw 403;
     }
     if (body.expire < Date.now()) {
@@ -670,8 +677,12 @@ class Authentication<
     if (!ctx.parameter("token")) {
       throw 400;
     }
-    let validation = ctx.parameter("token");
-    if (validation !== this.generateEmailValidationToken(ctx.parameter("user"), ctx.parameter("email"))) {
+    if (
+      !(await this.cryptoService.hmacVerify(
+        `${ctx.parameter("email")}_${ctx.parameter("user")}`,
+        ctx.parameter("token")
+      ))
+    ) {
       ctx.writeHead(302, {
         Location: this.parameters.failureRedirect + "?reason=badToken"
       });
@@ -751,7 +762,7 @@ class Authentication<
       url: ctx
         .getHttpContext()
         .getAbsoluteUrl(
-          `${this.parameters.url}/email/callback?email=${email}&token=${this.generateEmailValidationToken(
+          `${this.parameters.url}/email/callback?email=${email}&token=${await this.generateEmailValidationToken(
             ctx.getCurrentUserId(),
             email
           )}`
@@ -768,16 +779,6 @@ class Authentication<
       replacements: replacements
     };
     return mailer.send(mailOptions);
-  }
-
-  /**
-   * Create a SHA256 of the info
-   *
-   * @param info to hash
-   */
-  hashInfo(info: string): string {
-    var hash = crypto.createHash("sha256");
-    return hash.update(info).digest("hex");
   }
 
   /**
@@ -805,7 +806,7 @@ class Authentication<
     await this.emitSync("Authentication.Logout", <EventAuthenticationLogout>{
       context: ctx
     });
-    ctx.getSession().destroy();
+    await ctx.newSession();
   }
 
   /**
@@ -918,7 +919,7 @@ class Authentication<
       var validation = undefined;
       // Need to check email before creation
       if (!mailConfig.postValidation) {
-        if (body.token == this.generateEmailValidationToken(ctx.getCurrentUserId(), email)) {
+        if (body.token && (await this.cryptoService.hmacVerify(`${email}_${ctx.getCurrentUserId()}`, body.token))) {
           validation = new Date();
         } else {
           ctx.write({});
@@ -965,8 +966,8 @@ class Authentication<
     throw 404;
   }
 
-  generateEmailValidationToken(user: string, email: string) {
-    return this.hashInfo(email + "_" + this._webda.getSecret() + user);
+  async generateEmailValidationToken(user: string, email: string): Promise<string> {
+    return this.cryptoService.hmac(email + "_" + user);
   }
 }
 

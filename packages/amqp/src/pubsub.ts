@@ -74,7 +74,7 @@ export default class AMQPPubSubService<
   /**
    * @override
    */
-  async init() {
+  async init(): Promise<this> {
     await super.init();
     this.conn = await amqplib.connect(this.parameters.url);
     this.channel = await this.conn.createChannel();
@@ -82,6 +82,7 @@ export default class AMQPPubSubService<
       ...this.parameters.exchange,
       type: undefined
     });
+    return this;
   }
 
   /**

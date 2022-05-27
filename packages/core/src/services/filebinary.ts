@@ -1,11 +1,11 @@
 import * as fs from "fs";
-import * as jwt from "jsonwebtoken";
 import { join } from "path";
 import { Readable } from "stream";
 import { CloudBinary, CloudBinaryParameters, CoreModel } from "..";
 import { Context } from "../utils/context";
 import { Binary, BinaryFile, BinaryMap, BinaryNotFoundError, MemoryBinaryFile } from "./binary";
-import { ServiceParameters } from "./service";
+import CryptoService from "./cryptoservice";
+import { Inject, ServiceParameters } from "./service";
 
 export class FileBinaryParameters extends CloudBinaryParameters {
   /**
@@ -42,6 +42,11 @@ export class FileBinaryParameters extends CloudBinaryParameters {
  * @WebdaModda
  */
 export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> extends CloudBinary<T> {
+  /**
+   * Used for hmac
+   */
+  @Inject("CryptoService")
+  cryptoService: CryptoService;
   /**
    * Load parameters
    *
@@ -116,7 +121,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     const { hash } = ctx.getPathParameters();
     // Verify token
     try {
-      let dt = jwt.verify(ctx.parameter("token"), this.getWebda().getSecret());
+      let dt = await this.cryptoService.jwtVerify(ctx.parameter("token"));
       if (dt.hash !== hash) {
         throw 403;
       }
@@ -152,7 +157,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   async getSignedUrlFromMap(map: BinaryMap, expires: number, context: Context): Promise<string> {
     return `${context
       .getHttpContext()
-      .getAbsoluteUrl(this.parameters.expose.url + "/download/data/" + map.hash)}?token=${this.getToken(
+      .getAbsoluteUrl(this.parameters.expose.url + "/download/data/" + map.hash)}?token=${await this.getToken(
       map.hash,
       "GET",
       expires
@@ -187,10 +192,13 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
    * @param ctx
    * @param expiresIn
    */
-  getToken(hash: string, method: "PUT" | "GET", expiresIn: number = 60) {
-    return jwt.sign({ hash, method }, this.getWebda().getSecret(), {
-      expiresIn
-    });
+  async getToken(hash: string, method: "PUT" | "GET", expiresIn: number = 60): Promise<string> {
+    return this.cryptoService.jwtSign(
+      { hash, method },
+      {
+        expiresIn
+      }
+    );
   }
 
   /**
@@ -202,7 +210,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     let body = await ctx.getRequestBody();
     // Get a full URL, this method should be in a Route Object
     // Add a JWT token for 60s
-    let token = this.getToken(body.hash, "PUT");
+    let token = await this.getToken(body.hash, "PUT");
     return ctx
       .getHttpContext()
       .getAbsoluteUrl(this.parameters.expose.url + "/upload/data/" + body.hash + `?token=${token}`);
@@ -264,7 +272,7 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
     }
     // Verify token
     try {
-      let dt = jwt.verify(ctx.parameter("token"), this.getWebda().getSecret());
+      let dt = await this.cryptoService.jwtVerify(ctx.parameter("token"));
       if (dt.hash !== result.hash) {
         this.log("WARN", "JWT hash differ", ctx.parameter("hash"), "!==", result.hash);
         throw 403;

@@ -85,13 +85,14 @@ export default class DynamoStore<
   /**
    * Create the AWS client
    */
-  resolve() {
+  resolve(): this {
     super.resolve();
     this._client = DynamoDBDocument.from(new DynamoDBClient(this.parameters), {
       marshallOptions: {
         removeUndefinedValues: true
       }
     });
+    return this;
   }
 
   /**

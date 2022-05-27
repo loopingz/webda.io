@@ -1,6 +1,6 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
-import { AclModel, Context, Core, HttpContext, SecureCookie, User } from "../index";
+import { AclModel, Context, Core, HttpContext, Session, User } from "../index";
 import { TestApplication } from "../test";
 
 @suite
@@ -8,13 +8,14 @@ class AclPolicyTest {
   _ctx: Context;
   model: AclModel;
   _webda: Core;
-  _session: SecureCookie;
+  _session: Session;
   _user: User;
 
   async before() {
     let app = new TestApplication(__dirname + "/../../test/config.json");
     await app.load();
     this._webda = new Core(app);
+    await this._webda.init();
     this._ctx = await this._webda.newContext(new HttpContext("test.webda.io", "GET", "/"));
     this._session = this._ctx.getSession();
     this._session.login("user-uid", "none");

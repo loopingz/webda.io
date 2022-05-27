@@ -2,7 +2,6 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as fs from "fs";
 import { removeSync } from "fs-extra";
-import * as jwt from "jsonwebtoken";
 import { Readable } from "stream";
 import { BinaryFile, BinaryFileInfo, MemoryBinaryFile } from "./binary";
 import { CloudBinaryTest } from "./cloudbinary.spec";
@@ -131,20 +130,20 @@ class FileBinaryTest extends CloudBinaryTest {
     });
     ctx.getHttpContext().setBody("PLOP");
     await assert.rejects(() => binary.storeBinary(ctx), /403/);
-    token = jwt.sign({ hash: "PLOP2" }, this.webda.getSecret());
+    token = await this.webda.getCrypto().jwtSign({ hash: "PLOP2" });
     ctx.setPathParameters({
       hash,
       token
     });
     await assert.rejects(() => binary.storeBinary(ctx), /403/);
     // expired token
-    token = jwt.sign({ hash, exp: Math.floor(Date.now() / 1000) - 60 * 60 }, this.webda.getSecret());
+    token = await this.webda.getCrypto().jwtSign({ hash, exp: Math.floor(Date.now() / 1000) - 60 * 60 });
     ctx.setPathParameters({
       hash,
       token
     });
     await assert.rejects(() => binary.storeBinary(ctx), /403/);
-    token = jwt.sign({ hash }, this.webda.getSecret());
+    token = await this.webda.getCrypto().jwtSign({ hash });
     ctx.setPathParameters({
       hash,
       token

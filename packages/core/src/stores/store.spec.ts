@@ -754,6 +754,51 @@ abstract class StoreTest extends WebdaTest {
   }
 
   @test
+  async conditionUpdate() {
+    let store = this.getIdentStore();
+    let model = await store.save({ counter: 1 });
+    assert.ok(
+      await store.conditionalPatch(
+        model.getUuid(),
+        {
+          plop: 12,
+          counter: 2
+        },
+        "counter",
+        1
+      )
+    );
+    assert.strictEqual((await store.get(model.getUuid())).plop, 12);
+    assert.ok(
+      !(await store.conditionalPatch(
+        model.getUuid(),
+        {
+          plop: 13
+        },
+        "counter",
+        1
+      ))
+    );
+    assert.strictEqual((await store.get(model.getUuid())).plop, 12);
+    stub(store, "_patch").callsFake(() => {
+      throw new Error("Fake Error");
+    });
+    await assert.rejects(
+      () =>
+        store.conditionalPatch(
+          model.getUuid(),
+          {
+            plop: 12,
+            counter: 2
+          },
+          "counter",
+          1
+        ),
+      /Fake Error/
+    );
+  }
+
+  @test
   async update(delay: number = 1) {
     let store = this.getIdentStore();
     let model = await store.save({ counter: 1 });

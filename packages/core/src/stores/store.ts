@@ -1180,6 +1180,26 @@ abstract class Store<
   }
 
   /**
+   * Update conditionally
+   * @param uuid
+   * @param updates
+   * @param conditionField
+   * @param condition
+   */
+  async conditionalPatch(uuid: string, updates: any, conditionField, condition): Promise<boolean> {
+    try {
+      await this._patch(updates, uuid, condition, conditionField);
+      await this._cacheStore?.patch({ uuid, ...updates });
+      return true;
+    } catch (err) {
+      if (err instanceof UpdateConditionFailError) {
+        return false;
+      }
+      throw err;
+    }
+  }
+
+  /**
    *
    * @param model
    * @param prop
@@ -1458,6 +1478,15 @@ abstract class Store<
       result[i] = object[i];
     }
     return result;
+  }
+
+  /**
+   * Alias for save
+   * @param uuid
+   * @param data
+   */
+  async put(uuid: string, data: any): Promise<T> {
+    return this.save({ ...data, uuid });
   }
 
   /**

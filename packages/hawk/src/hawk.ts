@@ -1,4 +1,4 @@
-import { Cache, Context, RequestFilter, Service, ServiceParameters, Store } from "@webda/core";
+import { Cache, Context, CryptoService, Inject, RequestFilter, Service, ServiceParameters, Store } from "@webda/core";
 import * as Hawk from "hawk";
 import { ApiKey } from "./apikey";
 
@@ -66,6 +66,11 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
   protected store: Store<ApiKey> = undefined;
 
   /**
+   * CryptoService
+   */
+  @Inject("CryptoService")
+  protected cryptoService: CryptoService;
+  /**
    * @inheritdoc
    */
   loadParameters(params: any) {
@@ -102,7 +107,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
   /**
    * Add the Request listeners
    */
-  async init() {
+  async init(): Promise<this> {
     await super.init();
     this.store = this.getService<Store<ApiKey>>(this.parameters.keysStore);
     if (!this.store && !this.parameters.dynamicSessionKey) {
@@ -142,6 +147,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
         this.log("TRACE", `Hawk init failed : '${err.message}'`);
       }
     });
+    return this;
   }
 
   /**
@@ -157,7 +163,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
     let updatedUrl = new URL(url);
     updatedUrl.searchParams.set(
       "csrf",
-      await this.getWebda().getHmac(context.getSession()[this.parameters.dynamicSessionKey])
+      await this.cryptoService.hmac(context.getSession()[this.parameters.dynamicSessionKey])
     );
     context.redirect(updatedUrl.toString());
   }
@@ -220,7 +226,7 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
           "hawk",
           await Hawk.server.authenticate(hawkRequest, async () => ({
             id: "session",
-            key: await this.getWebda().getHmac(context.getSession()[this.parameters.dynamicSessionKey]),
+            key: await this.cryptoService.hmac(context.getSession()[this.parameters.dynamicSessionKey]),
             algorithm: "sha256"
           }))
         );

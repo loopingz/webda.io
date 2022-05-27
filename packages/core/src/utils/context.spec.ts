@@ -3,7 +3,6 @@ import * as assert from "assert";
 import { Service } from "../services/service";
 import { WebdaTest } from "../test";
 import { Context } from "./context";
-import { SecureCookie } from "./cookie";
 import { HttpContext } from "./httpcontext";
 
 @suite
@@ -196,35 +195,6 @@ class ContextTest extends WebdaTest {
     assert.strictEqual(this.ctx.getResponseHeaders()["X-Webda"], "HEAD");
     this.ctx.write(400);
     assert.strictEqual(this.ctx.getResponseBody(), 400);
-    // @ts-ignore
-    this.ctx.session = new SecureCookie(
-      "test",
-      {
-        secret:
-          "Lp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5ENLp4B72FPU5n6q4EpVRGyPFnZp5cgLRPScVWixW52Yq84hD4MmnfVfgxKQ5EN"
-      },
-      this.ctx
-    );
-    // @ts-ignore
-    Object.observe = (obj, callback) => {
-      callback([
-        {
-          name: "_changed"
-        }
-      ]);
-      // @ts-ignore
-      assert.strictEqual(this.ctx.session._changed, false);
-      callback([
-        {
-          name: "zzz"
-        }
-      ]);
-      // @ts-ignore
-      assert.strictEqual(this.ctx.session._changed, true);
-    };
-    this.ctx.getSession();
-    // @ts-ignore
-    Object.observe = undefined;
   }
 
   @test

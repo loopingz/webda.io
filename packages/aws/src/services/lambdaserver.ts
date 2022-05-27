@@ -1,4 +1,4 @@
-import { ClientInfo, Context, Core as Webda, HttpContext, HttpMethodType } from "@webda/core";
+import { Context, Core as Webda, HttpContext, HttpMethodType } from "@webda/core";
 import { APIGatewayProxyEvent, Context as LambdaContext, S3Event } from "aws-lambda";
 import { serialize as cookieSerialize } from "cookie";
 import { LambdaCommandEvent } from "./lambdacaller";
@@ -60,20 +60,6 @@ export default class LambdaServer extends Webda {
     if (ctx.getResponseBody() !== undefined) {
       this._result.body = ctx.getResponseBody();
     }
-  }
-
-  /**
-   * Retrieve client information from Lambda context
-   *
-   * @param reqCtx
-   * @returns
-   */
-  getClientInfo(reqCtx: any) {
-    let res = new ClientInfo();
-    res.ip = reqCtx.identity.sourceIp;
-    res.userAgent = reqCtx.identity.userAgent;
-    res.set("lambdaRequestContext", reqCtx);
-    return res;
   }
 
   /**
@@ -198,7 +184,7 @@ export default class LambdaServer extends Webda {
       <"http" | "https">protocol,
       port,
       headers
-    ).setClientIp(headers["X-Real-Ip"]);
+    ).setClientIp(headers["X-Real-Ip"]); // Might use identity.sourceIp
     if (["PUT", "PATCH", "POST", "DELETE"].includes(method)) {
       httpContext.setBody(event.body);
     }
@@ -206,9 +192,6 @@ export default class LambdaServer extends Webda {
     var ctx = await this.newContext(httpContext);
     // TODO Get all client info
     // event['requestContext']['identity']['sourceIp']
-    ctx.clientInfo = this.getClientInfo(event.requestContext);
-    ctx.clientInfo.locale = headers["Accept-Language"];
-    ctx.clientInfo.referer = headers["Referer"] || headers.referer;
 
     // Debug mode
     await this.emitSync("Webda.Request", { context: ctx });
@@ -216,7 +199,7 @@ export default class LambdaServer extends Webda {
       ctx.setHeader(this.getConfiguration().parameters.lambdaRequestHeader, context.awsRequestId);
     }
     // Fallback on reference as Origin is not always set by Edge
-    let origin = headers.Origin || headers.origin || ctx.clientInfo.referer;
+    let origin = headers.Origin || headers.origin || headers.referer;
     try {
       // Set predefined headers for CORS
       if (await this.checkCORSRequest(ctx)) {

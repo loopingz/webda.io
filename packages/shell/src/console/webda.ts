@@ -2,9 +2,7 @@ import { CancelablePromise, FileUtils, Logger } from "@webda/core";
 import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerLogLevelEnum, WorkerOutput } from "@webda/workout";
 import { ChildProcess, spawn } from "child_process";
 import * as colors from "colors";
-import * as crypto from "crypto";
 import * as fs from "fs";
-import * as jsonc from "jsonc-parser";
 import * as path from "path";
 import * as semver from "semver";
 import { Transform } from "stream";
@@ -585,10 +583,6 @@ export default class WebdaConsole {
       faketerm: {
         handler: WebdaConsole.fakeTerm,
         description: "Launch a fake interactive terminal"
-      },
-      "generate-session-secret": {
-        handler: WebdaConsole.generateSessionSecret,
-        description: "Generate a new session secret"
       }
     };
   }
@@ -824,34 +818,6 @@ export default class WebdaConsole {
     ext.export ??= "default";
     const data = require(path.join(relPath, ext.require));
     return data[ext.export](this, argv);
-  }
-
-  /**
-   * Generate a random string based on crypto random
-   *
-   * @param length of the string
-   */
-  static async generateRandomString(length = 256): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
-      crypto.randomBytes(length, (err, buffer) => {
-        if (err) {
-          return reject(err);
-        }
-        return resolve(buffer.toString("base64").substring(0, length));
-      });
-    });
-  }
-
-  /**
-   * Generate a new sessionSecret for the application
-   */
-  static async generateSessionSecret() {
-    let content = fs.readFileSync(this.app.configurationFile).toString();
-    let newContent = jsonc.applyEdits(
-      content,
-      jsonc.modify(content, "parameters.sessionSecret".split("."), await this.generateRandomString(256), {})
-    );
-    fs.writeFileSync(this.app.configurationFile, newContent);
   }
 
   /**

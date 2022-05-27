@@ -26,8 +26,9 @@ export default class AggregatorService<T extends AggregatorParameters = Aggregat
    *
    * @inheritdoc
    */
-  async init(): Promise<void> {
+  async init(): Promise<this> {
     await this.createAggregate();
+    return this;
   }
 
   /**

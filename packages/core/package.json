@@ -44,6 +44,7 @@
     "node-machine-id": "^1.1.12",
     "nodemailer": "^6.6.3",
     "openapi-types": "^11.0.0",
+    "pem-jwk": "^2.0.0",
     "sanitize-html": "^2.4.0",
     "semver": "^7.3.5",
     "ts-method-cache": "^3.3.1",

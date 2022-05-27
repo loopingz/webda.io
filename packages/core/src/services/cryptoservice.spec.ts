@@ -60,6 +60,22 @@ class CryptoServiceTest extends WebdaTest {
   }
 
   @test
+  async jwks() {
+    const crypto = this.webda.getCrypto();
+    crypto.getParameters().expose = "/jwk";
+    await crypto.init();
+    let ctx = await this.newContext();
+    await this.execute(ctx, "test.webda.io", "GET", "/jwk");
+    let body = JSON.parse(ctx.getResponseBody());
+    sinon.stub(crypto, "getNextId").callsFake(this.nextIdStub(crypto));
+    assert.strictEqual(body.keys.length, 1);
+    await crypto.rotate();
+    await this.execute(ctx, "test.webda.io", "GET", "/jwk");
+    body = JSON.parse(ctx.getResponseBody());
+    assert.strictEqual(body.keys.length, 2);
+  }
+
+  @test
   async unknownKeys() {
     const crypto = this.webda.getCrypto();
 

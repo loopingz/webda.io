@@ -1,10 +1,10 @@
 import { createCipheriv, createDecipheriv, createHmac, generateKeyPairSync, randomBytes } from "crypto";
 import * as jwt from "jsonwebtoken";
-import { Inject, RegistryEntry, Store } from "..";
+import { pem2jwk } from "pem-jwk";
+import { Context, RegistryEntry, Store } from "..";
 import { JWTOptions } from "../core";
 import { JSONUtils } from "../utils/serializers";
-import { DeepPartial, Service, ServiceParameters } from "./service";
-
+import { DeepPartial, Inject, Service, ServiceParameters } from "./service";
 export interface KeysRegistry {
   /**
    * Last time it was rotated
@@ -136,6 +136,15 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
   keys: {
     [key: string]: KeysDefinition;
   };
+  /**
+   * JWKS cache
+   */
+  jwks: {
+    [key: string]: {
+      n: string;
+      e: string;
+    };
+  } = {};
 
   @Inject("Registry")
   registry: Store<RegistryEntry>;
@@ -160,9 +169,43 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
       // Try to create keys as they do not exist
       await this.rotate();
     }
+    if (this.parameters.expose) {
+      this.addRoute(this.parameters.expose, ["GET"], this.serveJWKS);
+    }
     return this;
   }
 
+  /**
+   *
+   */
+  async serveJWKS(context: Context) {
+    try {
+      context.write({
+        keys: Object.keys(this.keys).map(k => {
+          if (!this.jwks[k]) {
+            /*
+            when Node >= 16
+            this.jwks[k] = createPublicKey(this.keys[k].publicKey).export({ format: "jwk" });
+            and remove pem-jwk
+            */
+            this.jwks[k] = pem2jwk(this.keys[k].publicKey);
+          }
+          return {
+            kty: "RSA",
+            kid: k,
+            n: this.jwks[k].n,
+            e: this.jwks[k].e
+          };
+        })
+      });
+    } catch (err) {
+      this.log("ERROR", err);
+    }
+  }
+
+  /**
+   * Load keys from registry
+   */
   async load(): Promise<boolean> {
     let load = await this.registry.get("keys");
     if (!load) {

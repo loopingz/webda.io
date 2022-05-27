@@ -1,4 +1,7 @@
 import { WorkerOutput } from "@webda/workout";
+import { deepmerge } from "deepmerge-ts";
+import * as fs from "fs";
+import * as path from "path";
 import {
   Application,
   CachedModule,
@@ -7,10 +10,7 @@ import {
   ProjectInformation,
   SectionEnum
 } from "./application";
-import * as fs from "fs";
-import * as path from "path";
 import { FileUtils } from "./utils/serializers";
-import { deepmerge } from "deepmerge-ts";
 
 /**
  * Empty git information

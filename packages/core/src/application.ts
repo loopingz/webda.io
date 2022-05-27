@@ -4,7 +4,7 @@ import { JSONSchema7 } from "json-schema";
 import { OpenAPIV3 } from "openapi-types";
 import * as path from "path";
 import { join } from "path";
-import { Context, Core, CoreModelDefinition, JWTOptions, Service, WebdaError } from "./index";
+import { Context, Core, CoreModelDefinition, Service, WebdaError } from "./index";
 import { FileUtils } from "./utils/serializers";
 
 export type PackageDescriptorAuthor =
@@ -146,29 +146,9 @@ export type UnpackedConfiguration = {
      */
     static?: StaticWebsite;
     /**
-     * Options for issue JWT token
-     */
-    jwt?: JWTOptions;
-    /**
-     * Cookie configuration for session
-     */
-    cookie?: {
-      sameSite: "None" | "Strict" | "Lax";
-      domain: string;
-      /**
-       * @minimum 1
-       */
-      maxAge: number;
-      path: string;
-    };
-    /**
      * Read from the configuration service before init
      */
     configurationService?: string;
-    /**
-     * Application salt
-     */
-    salt?: string;
     /**
      * Define the api url
      */

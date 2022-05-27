@@ -31,12 +31,14 @@ class CryptoServiceTest extends WebdaTest {
   async rotate() {
     const crypto = this.webda.getCrypto();
     let encrypted = await crypto.encrypt({ test: "plop" });
+    let oldKey = crypto.current;
     let hmac = await crypto.hmac({ test: "plop" });
     sinon.stub(crypto, "getNextId").callsFake(this.nextIdStub(crypto));
     await crypto.rotate();
     let decrypted = await crypto.decrypt(encrypted);
     assert.strictEqual(decrypted.test, "plop");
     await crypto.hmacVerify({ test: "plop" }, hmac);
+    assert.strictEqual(await crypto.hmac({ test: "plop" }, oldKey), hmac);
   }
 
   @test

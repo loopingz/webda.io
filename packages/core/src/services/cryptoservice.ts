@@ -2,7 +2,6 @@ import { createCipheriv, createDecipheriv, createHmac, generateKeyPairSync, rand
 import * as jwt from "jsonwebtoken";
 import { pem2jwk } from "pem-jwk";
 import { Context, RegistryEntry, Store } from "..";
-import { JWTOptions } from "../core";
 import { JSONUtils } from "../utils/serializers";
 import { DeepPartial, Inject, Service, ServiceParameters } from "./service";
 export interface KeysRegistry {
@@ -23,6 +22,55 @@ export interface KeysRegistry {
    * Current key
    */
   current: string;
+}
+
+/**
+ * JWT Options
+ */
+export interface JWTOptions {
+  /**
+   * Secret to use with JWT
+   */
+  secretOrPublicKey?: string | Buffer | { key: string; passphrase: string };
+  /**
+   * Algorithm for JWT token
+   *
+   * @see https://www.npmjs.com/package/jsonwebtoken
+   * @default "HS256"
+   */
+  algorithm?:
+    | "HS256"
+    | "HS384"
+    | "HS512"
+    | "RS256"
+    | "RS384"
+    | "RS512"
+    | "PS256"
+    | "PS384"
+    | "PS512"
+    | "ES256"
+    | "ES384"
+    | "ES512";
+
+  /**
+   * expressed in seconds or a string describing a time span zeit/ms.
+   *
+   * Eg: 60, "2 days", "10h", "7d". A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default ("120" is equal to "120ms").
+   */
+  expiresIn?: number | string;
+  /**
+   * Audience for the jwt
+   */
+  audience?: string;
+  /**
+   * Issuer of the token
+   */
+  issuer?: string;
+  /**
+   * Subject for JWT
+   */
+  subject?: string;
+  keyid?: any;
 }
 
 export class CryptoServiceParameters extends ServiceParameters {
@@ -244,13 +292,14 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
   /**
    * Retrieve a HMAC for a string
    * @param data
+   * @param keyId to use
    * @returns
    */
-  public async hmac(data: string | any): Promise<string> {
+  public async hmac(data: string | any, keyId?: string): Promise<string> {
     if (typeof data !== "string") {
       data = JSONUtils.stringify(data);
     }
-    let key = await this.getCurrentKeys();
+    let key = keyId ? { id: keyId, keys: this.keys[keyId] } : await this.getCurrentKeys();
     return key.id + "." + createHmac("sha256", key.keys.symetric).update(data).digest("hex");
   }
 

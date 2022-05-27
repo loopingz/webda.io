@@ -1,4 +1,5 @@
 import { suite, test } from "@testdeck/mocha";
+import { OAuthSession } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import * as fetch from "node-fetch";
@@ -65,9 +66,10 @@ class GoogleAuthTest extends WebdaTest {
     let ctx = await this.newContext();
     // Verify normal callback
     ctx.getParameters().state = "plop";
-    ctx.getSession().state = "bouzouf";
+    ctx.getSession<OAuthSession>().oauth ??= {};
+    ctx.getSession<OAuthSession>().oauth.state = "bouzouf";
     await assert.rejects(() => this.service.handleCallback(ctx), /403/);
-    ctx.getSession().state = "plop";
+    ctx.getSession<OAuthSession>().oauth.state = "plop";
     ctx.getParameters().code = "u1";
     assert.deepStrictEqual(await this.service.handleCallback(ctx), {
       identId: "u1",

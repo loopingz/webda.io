@@ -1,5 +1,5 @@
 import { CookieSerializeOptions, serialize as cookieSerialize } from "cookie";
-import { JWTOptions } from "../core";
+import { JWTOptions } from "../services/cryptoservice";
 import { Context } from "./context";
 import { HttpContext } from "./httpcontext";
 

@@ -1,7 +1,7 @@
-"use strict";
+// organize-imports-ignore
 var assert = require("assert");
 import { suite, test } from "@testdeck/mocha";
-import { CacheService, Context, HttpContext, HttpMethodType, Store } from "@webda/core";
+import { CacheService, Context, HttpContext, HttpMethodType, Store, UnknownSession } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as Hawk from "hawk";
 import { ApiKey } from "./apikey";
@@ -23,7 +23,7 @@ class HawkServiceTest extends WebdaTest {
     assert.notStrictEqual(this.service, undefined);
     assert.notStrictEqual(this.store, undefined);
     this.context = <Context>await this.newContext();
-    this.context.getSession().userProfile = { login: "gabitbol" };
+    this.context.getSession<UnknownSession>().userProfile = { login: "gabitbol" };
     this.key = this.store.initModel({ __secret: "randomSecret", uuid: "mykey" });
     await this.key.save();
     this.fakeCredentials = {
@@ -277,7 +277,7 @@ class HawkServiceTest extends WebdaTest {
     const { header, artifacts } = Hawk.client.header(`http://test.webda.io${url}`, "GET", {
       credentials: {
         id: "session",
-        key: await test.getWebda().getHmac(sessionKey),
+        key: await test.getWebda().getCrypto().hmac(sessionKey),
         algorithm: "sha256"
       }
     });

@@ -166,55 +166,6 @@ export function Route(
   };
 }
 
-/**
- * JWT Options
- */
-export interface JWTOptions {
-  /**
-   * Secret to use with JWT
-   */
-  secretOrPublicKey?: string | Buffer | { key: string; passphrase: string };
-  /**
-   * Algorithm for JWT token
-   *
-   * @see https://www.npmjs.com/package/jsonwebtoken
-   * @default "HS256"
-   */
-  algorithm?:
-    | "HS256"
-    | "HS384"
-    | "HS512"
-    | "RS256"
-    | "RS384"
-    | "RS512"
-    | "PS256"
-    | "PS384"
-    | "PS512"
-    | "ES256"
-    | "ES384"
-    | "ES512";
-
-  /**
-   * expressed in seconds or a string describing a time span zeit/ms.
-   *
-   * Eg: 60, "2 days", "10h", "7d". A numeric value is interpreted as a seconds count. If you use a string be sure you provide the time units (days, hours, etc), otherwise milliseconds unit is used by default ("120" is equal to "120ms").
-   */
-  expiresIn?: number | string;
-  /**
-   * Audience for the jwt
-   */
-  audience?: string;
-  /**
-   * Issuer of the token
-   */
-  issuer?: string;
-  /**
-   * Subject for JWT
-   */
-  subject?: string;
-  keyid?: any;
-}
-
 export type CoreEvents = {
   /**
    * Emitted when new result is sent

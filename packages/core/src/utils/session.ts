@@ -1,6 +1,5 @@
-import { JWTOptions } from "../core";
 import { CoreModel, NotEnumerable } from "../models/coremodel";
-import CryptoService from "../services/cryptoservice";
+import CryptoService, { JWTOptions } from "../services/cryptoservice";
 import { DeepPartial, Inject, Service, ServiceParameters } from "../services/service";
 import { Store } from "../stores/store";
 import { Context } from "./context";

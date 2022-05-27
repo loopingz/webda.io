@@ -7,21 +7,17 @@ import { JSONUtils } from "../utils/serializers";
 import { DeepPartial, Inject, Service, ServiceParameters } from "./service";
 export interface KeysRegistry {
   /**
-   * Last time it was rotated
-   */
-  lastRotation: number;
-  /**
-   * Contains the instanceId_lastRotation of the last
+   * Contains the instanceId of the last
    * service who rotated
    */
-  rotationId: string;
+  rotationInstance: string;
   /**
    * Key storage
    */
-  [keys: `key-${string}`]: {
+  [keys: `key_${string}`]: {
+    publicKey: string;
+    privateKey: string;
     symetric: string;
-    public: string;
-    private: string;
   };
   /**
    * Current key
@@ -179,35 +175,31 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
    *
    */
   async serveJWKS(context: Context) {
-    try {
-      context.write({
-        keys: Object.keys(this.keys).map(k => {
-          if (!this.jwks[k]) {
-            /*
+    context.write({
+      keys: Object.keys(this.keys).map(k => {
+        if (!this.jwks[k]) {
+          /*
             when Node >= 16
             this.jwks[k] = createPublicKey(this.keys[k].publicKey).export({ format: "jwk" });
             and remove pem-jwk
             */
-            this.jwks[k] = pem2jwk(this.keys[k].publicKey);
-          }
-          return {
-            kty: "RSA",
-            kid: k,
-            n: this.jwks[k].n,
-            e: this.jwks[k].e
-          };
-        })
-      });
-    } catch (err) {
-      this.log("ERROR", err);
-    }
+          this.jwks[k] = pem2jwk(this.keys[k].publicKey);
+        }
+        return {
+          kty: "RSA",
+          kid: k,
+          n: this.jwks[k].n,
+          e: this.jwks[k].e
+        };
+      })
+    });
   }
 
   /**
    * Load keys from registry
    */
   async load(): Promise<boolean> {
-    let load = await this.registry.get("keys");
+    let load = <KeysRegistry>(<unknown>await this.registry.get("keys"));
     if (!load) {
       return false;
     }
@@ -218,7 +210,7 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
         this.keys[k.substring(4)] = load[k];
       });
     this.current = load.current.startsWith("init-") ? undefined : load.current;
-    this.age = parseInt(this.current, 16);
+    this.age = parseInt(this.current, 36);
     return true;
   }
 
@@ -263,7 +255,7 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
       data = JSONUtils.stringify(data);
     }
     let key = await this.getCurrentKeys();
-    return key.id + createHmac("sha256", key.keys.symetric).update(data).digest("hex");
+    return key.id + "." + createHmac("sha256", key.keys.symetric).update(data).digest("hex");
   }
 
   /**
@@ -275,11 +267,11 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
     if (typeof data !== "string") {
       data = JSONUtils.stringify(data);
     }
-    let keyId = hmac.substring(0, 8);
+    let [ keyId, mac ] = hmac.split(".");
     if (!(await this.checkKey(keyId))) {
       return false;
     }
-    return createHmac("sha256", this.keys[keyId].symetric).update(data).digest("hex") === hmac.substring(8);
+    return createHmac("sha256", this.keys[keyId].symetric).update(data).digest("hex") === mac;
   }
 
   /**
@@ -312,7 +304,7 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
   async checkKey(keyId: string): Promise<boolean> {
     if (!this.keys[keyId]) {
       // Key is more recent than current one so try to reload
-      if (parseInt(keyId, 16) > this.age) {
+      if (parseInt(keyId, 36) > this.age) {
         await this.load();
       }
       // Key is still not found
@@ -411,7 +403,7 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
   getNextId(): { id: string; age: number } {
     // Should be good for years as 8char
     let age = Math.floor(Date.now() / 1000);
-    return { age, id: age.toString(16) };
+    return { age, id: age.toString(36) };
   }
 
   /**
@@ -419,12 +411,13 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
    */
   async rotate() {
     const { age, id } = this.getNextId();
-    let next: any = {
+    let next: KeysRegistry = {
       current: id,
-      [`key_${id}`]: {
-        ...this.generateAsymetricKeys(),
-        symetric: this.generateSymetricKey()
-      }
+      rotationInstance: this.getWebda().getInstanceId()
+    };
+    next[`key_${id}`] = {
+      ...this.generateAsymetricKeys(),
+      symetric: this.generateSymetricKey()
     };
     if (await this.registry.conditionalPatch("keys", next, "current", this.current)) {
       this.keys ??= {};

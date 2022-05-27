@@ -806,7 +806,7 @@ class Authentication<
     await this.emitSync("Authentication.Logout", <EventAuthenticationLogout>{
       context: ctx
     });
-    await ctx.newSession();
+    ctx.newSession();
   }
 
   /**

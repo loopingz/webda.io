@@ -51,9 +51,9 @@ class CryptoServiceTest extends WebdaTest {
    */
   nextIdStub(crypto: CryptoService) {
     return () => {
-      let age = parseInt(crypto.current, 16) + 10;
+      let age = parseInt(crypto.current, 36) + 10;
       return {
-        id: age.toString(16),
+        id: age.toString(36),
         age
       };
     };
@@ -85,7 +85,7 @@ class CryptoServiceTest extends WebdaTest {
     jwtToken = jwt.sign("TEST", "test", { keyid: "B" + crypto.current });
     await assert.rejects(() => crypto.jwtVerify(jwtToken), /Unknown key/);
 
-    assert.ok(!(await crypto.hmacVerify("mydata", "mdss")));
+    assert.ok(!(await crypto.hmacVerify("mydata", "md.ss")));
 
     let oldKey = crypto.current;
     sinon.stub(crypto, "getNextId").callsFake(this.nextIdStub(crypto));
@@ -93,13 +93,14 @@ class CryptoServiceTest extends WebdaTest {
     let encrypted = await this.webda.getCrypto().encrypt({ test: "plop" });
     delete crypto.keys[crypto.current];
     crypto.current = oldKey;
-    crypto.age = parseInt(oldKey, 16); // It should be reloaded
+    crypto.age = parseInt(oldKey, 36); // It should be reloaded
+
     assert.strictEqual((await this.webda.getCrypto().decrypt(encrypted)).test, "plop");
     // Remove again but remove it from the registry now
     await this.webda.getRegistry().removeAttribute("keys", `key_${crypto.current}`);
     delete crypto.keys[crypto.current];
     crypto.current = oldKey;
-    crypto.age = parseInt(oldKey, 16);
+    crypto.age = parseInt(oldKey, 36);
     await assert.rejects(() => this.webda.getCrypto().decrypt(encrypted), /err/);
   }
 

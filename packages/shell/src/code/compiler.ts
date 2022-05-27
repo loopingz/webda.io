@@ -497,7 +497,7 @@ export class Compiler {
                     exportName,
                     m
                       .getChildren()
-                      .map(m => `${m.getText()}:${m.kind}`)
+                      .map(mt => `${mt.getText()}:${mt.kind}`)
                       .join(" | "),
                     m.getText()
                   )

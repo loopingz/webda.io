@@ -93,7 +93,7 @@ export class SecureCookie {
   static async load(name: string, context: Context, options?: JWTOptions) {
     let cookies = {};
     let raw = "";
-    let session = await context.newSession();
+    let session = context.newSession();
 
     // No http context
     if (!context.getHttpContext()) {

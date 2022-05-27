@@ -4,6 +4,7 @@ import { EventEmitter } from "events";
 import * as http from "http";
 import * as sanitizeHtml from "sanitize-html";
 import { Writable } from "stream";
+import { WritableStreamBuffer } from "stream-buffers";
 import { Core } from "../core";
 import { User } from "../models/user";
 import { Service } from "../services/service";
@@ -27,6 +28,9 @@ class Cookie {
  */
 export class Context<T = any, U = any> extends EventEmitter {
   protected _body: any;
+  /**
+   * Contains the response headers
+   */
   protected _outputHeaders: Map<string, string>;
   /**
    * Contain emitting Core
@@ -37,15 +41,17 @@ export class Context<T = any, U = any> extends EventEmitter {
    */
   statusCode: number;
   _cookie: Map<string, Cookie>;
+  /**
+   *
+   */
   headers: Map<string, string>;
   _route: any;
-  _buffered: boolean;
   /**
    * Session
    */
   protected session: Session;
   _ended: Promise<any> = undefined;
-  _stream: any;
+  _stream: Writable;
   /**
    * Contain all registered promises to this context
    */
@@ -54,7 +60,7 @@ export class Context<T = any, U = any> extends EventEmitter {
   /**
    * If headers were flushed
    */
-  protected flushHeaders: boolean;
+  protected headersFlushed: boolean;
   /**
    * Contain the sanitized request body if computed
    */
@@ -98,19 +104,6 @@ export class Context<T = any, U = any> extends EventEmitter {
   }
 
   /**
-   * @private
-   * Used in case of Buffer response ( like Lambda )
-   */
-  public _write(chunk, _enc, next) {
-    if (this._body === undefined) {
-      this._body = [];
-    }
-    this._body.push(chunk);
-    next();
-    return true;
-  }
-
-  /**
    * Set current http context
    * @param httpContext current http context
    */
@@ -124,6 +117,7 @@ export class Context<T = any, U = any> extends EventEmitter {
    */
   public reinit() {
     this._sanitized = undefined;
+    this.createStream();
   }
 
   /**
@@ -201,10 +195,17 @@ export class Context<T = any, U = any> extends EventEmitter {
     this.processParameters();
   }
 
+  /**
+   * Remove everything that was about to be sent
+   */
   public resetResponse() {
     this._body = undefined;
     this._outputHeaders.clear();
+    if (this._stream instanceof WritableStreamBuffer) {
+      this.createStream();
+    }
   }
+
   /**
    * Write data to the client
    *
@@ -238,6 +239,9 @@ export class Context<T = any, U = any> extends EventEmitter {
    * @param {String} value
    */
   public setHeader(header, value) {
+    if (this.headersFlushed) {
+      throw new Error("Headers have been sent already");
+    }
     this._outputHeaders[header] = value;
   }
 
@@ -327,11 +331,11 @@ export class Context<T = any, U = any> extends EventEmitter {
         await this._webda.getService<SessionManager>("SessionManager").save(this, this.session);
       }
       await Promise.all(this._promises);
-      if (this._buffered && this._stream._body !== undefined) {
-        this._body = Buffer.concat(this._stream._body);
+      if (this._stream instanceof WritableStreamBuffer && this._stream.size()) {
+        this._body = this._stream.getContents();
         this.statusCode = 200;
       }
-      if (!this.flushHeaders) {
+      if (!this.headersFlushed) {
         this._webda.flushHeaders(this);
       }
       this._webda.flush(this);
@@ -378,7 +382,14 @@ export class Context<T = any, U = any> extends EventEmitter {
     return this._sanitized;
   }
 
+  /**
+   * Get request body
+   * @returns
+   */
   getResponseBody() {
+    if (!this._body && this._stream instanceof WritableStreamBuffer) {
+      return this._stream.getContents();
+    }
     return this._body;
   }
 
@@ -531,7 +542,7 @@ export class Context<T = any, U = any> extends EventEmitter {
    * @returns
    */
   hasFlushedHeaders() {
-    return this.flushHeaders;
+    return this.headersFlushed;
   }
 
   /**
@@ -539,14 +550,14 @@ export class Context<T = any, U = any> extends EventEmitter {
    * @param status
    */
   setFlushedHeaders(status: boolean = true) {
-    this.flushHeaders = status;
+    this.headersFlushed = status;
   }
 
   /**
    * @ignore
    * Used by Webda framework to set the body, session and output stream if known
    */
-  constructor(webda: Core, httpContext: HttpContext, stream: any = undefined) {
+  constructor(webda: Core, httpContext: HttpContext, stream: Writable = undefined) {
     super();
     this.extensions = {
       http: httpContext
@@ -554,22 +565,26 @@ export class Context<T = any, U = any> extends EventEmitter {
     this._webda = webda;
     this._promises = [];
     this._outputHeaders = new Map();
-    this.flushHeaders = false;
+    this.headersFlushed = false;
     this._body = undefined;
     this.statusCode = 204;
     this._stream = stream;
-    this._buffered = false;
     this.parameters = {};
     this.headers = new Map();
     if (stream === undefined) {
-      this._stream = new Writable();
-      this._stream._body = [];
-      this._stream._write = this._write;
+      this.createStream();
     }
     this.processParameters();
     if (httpContext) {
       this.session = this.newSession();
     }
+  }
+
+  createStream() {
+    this._stream = new WritableStreamBuffer({
+      initialSize: 100 * 1024,
+      incrementAmount: 100 * 1024
+    });
   }
 
   /**
@@ -583,8 +598,8 @@ export class Context<T = any, U = any> extends EventEmitter {
 
   async init(): Promise<this> {
     this._stream.on("pipe", () => {
-      this._buffered = true;
       this._webda.flushHeaders(this);
+      this.headersFlushed = true;
     });
     if (this.getExtension("http")) {
       this.session = (await this._webda.getService<SessionManager>("SessionManager").load(this)).getProxy();

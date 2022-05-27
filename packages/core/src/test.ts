@@ -217,6 +217,7 @@ class WebdaTest {
   ): Executor {
     let httpContext = new HttpContext(host, method, url, "http", 80, headers);
     httpContext.setBody(body);
+    httpContext.setClientIp("127.0.0.1");
     if (!ctx) {
       ctx = new Context(this.webda, httpContext);
     } else {
@@ -249,6 +250,7 @@ class WebdaTest {
       await exec.execute(ctx);
     } catch (err) {
       if (err instanceof Error) {
+        this.log("ERROR", err);
         throw 500;
       }
       throw err;

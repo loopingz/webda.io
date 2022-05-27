@@ -159,12 +159,12 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
     if (!this.parameters.redirectUris.includes(url)) {
       throw 403;
     }
-    context.getSession()[this.parameters.dynamicSessionKey] ??= this.getWebda().getUuid("base64");
+    context.getSession()[this.parameters.dynamicSessionKey] ??= `${
+      this.cryptoService.current
+    }.${this.getWebda().getUuid("base64")}`;
     let updatedUrl = new URL(url);
-    updatedUrl.searchParams.set(
-      "csrf",
-      await this.cryptoService.hmac(context.getSession()[this.parameters.dynamicSessionKey])
-    );
+    const [key, data] = context.getSession()[this.parameters.dynamicSessionKey].split(".");
+    updatedUrl.searchParams.set("csrf", await this.cryptoService.hmac(data, key));
     context.redirect(updatedUrl.toString());
   }
 
@@ -222,11 +222,12 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
     // Specific dynamic session checks (useful for CSRF token)
     if (this.parameters.dynamicSessionKey && authorization.startsWith('Hawk id="session"')) {
       try {
+        const [key, data] = context.getSession()[this.parameters.dynamicSessionKey].split(".");
         context.setExtension(
           "hawk",
           await Hawk.server.authenticate(hawkRequest, async () => ({
             id: "session",
-            key: await this.cryptoService.hmac(context.getSession()[this.parameters.dynamicSessionKey]),
+            key: await this.cryptoService.hmac(data, key),
             algorithm: "sha256"
           }))
         );

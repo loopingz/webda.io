@@ -17,7 +17,7 @@ class ApiKeyTest extends WebdaTest {
   apikey: ApiKey;
 
   async before() {
-    await super.before(false);
+    await super.before();
     this.context = <Context>await this.newContext();
     this.apikey = new ApiKey();
   }

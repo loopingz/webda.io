@@ -490,18 +490,6 @@ export class Compiler {
                 if (this.extends(classTree, "@webda/core", "CoreModel")) {
                   schemaNode = clazz;
                 }
-                // Search for ModelLink, ModelParent, ModelMap, ModelLinked, BinaryMap
-                clazz.members.map(m =>
-                  console.log(
-                    "Member",
-                    exportName,
-                    m
-                      .getChildren()
-                      .map(mt => `${mt.getText()}:${mt.kind}`)
-                      .join(" | "),
-                    m.getText()
-                  )
-                );
               } else if (tags["WebdaModda"]) {
                 // Skip as it does not inherite from Service
                 if (!this.extends(classTree, "@webda/core", "Service")) {

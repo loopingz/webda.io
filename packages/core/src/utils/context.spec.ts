@@ -1,10 +1,10 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
+import { Readable } from "stream";
 import { Service } from "../services/service";
 import { WebdaTest } from "../test";
 import { Context } from "./context";
 import { HttpContext } from "./httpcontext";
-
 @suite
 class ContextTest extends WebdaTest {
   ctx: Context;
@@ -102,22 +102,38 @@ class ContextTest extends WebdaTest {
     // @ts-ignore
     this.ctx._ended = false;
     // @ts-ignore
-    this.ctx._buffered = true;
-    this.ctx._stream = {
-      _body: []
-    };
     this.ctx.statusCode = 204;
+    this.ctx.getStream().write("plop");
     await this.ctx.end();
     assert.strictEqual(this.ctx.statusCode, 200);
     // @ts-ignore
     this.ctx._body = undefined;
-    this.ctx._write("ppop", "", () => {});
+    this.ctx.getStream().write("ppop", () => {});
 
     assert.strictEqual(this.ctx.hasFlushedHeaders(), false);
     this.ctx.setFlushedHeaders();
     assert.strictEqual(this.ctx.hasFlushedHeaders(), true);
     this.ctx.setFlushedHeaders(false);
     assert.strictEqual(this.ctx.hasFlushedHeaders(), false);
+  }
+
+  @test
+  async pipe() {
+    this.ctx.statusCode = 204;
+    await this.ctx.init();
+    let stream = Readable.from(Buffer.from("Plop"));
+    this.ctx.setHeader("x-plop", "1");
+    let prom = new Promise((resolve, reject) => {
+      stream.on("close", resolve);
+      stream.on("error", reject);
+    });
+    stream.pipe(this.ctx.getStream());
+    await prom;
+    assert.throws(() => this.ctx.setHeader("x-plop", "2"), /Headers have been sent already/);
+    await this.ctx.end();
+    assert.throws(() => this.ctx.setHeader("x-plop", "3"), /Headers have been sent already/);
+    assert.strictEqual(this.ctx.statusCode, 200);
+    assert.strictEqual(this.ctx.getResponseBody().toString(), "Plop");
   }
 
   @test
@@ -195,6 +211,26 @@ class ContextTest extends WebdaTest {
     assert.strictEqual(this.ctx.getResponseHeaders()["X-Webda"], "HEAD");
     this.ctx.write(400);
     assert.strictEqual(this.ctx.getResponseBody(), 400);
+    // @ts-ignore
+    Object.observe = (obj, callback) => {
+      callback([
+        {
+          name: "_changed"
+        }
+      ]);
+      // @ts-ignore
+      assert.strictEqual(this.ctx.session.changed, false);
+      callback([
+        {
+          name: "zzz"
+        }
+      ]);
+      // @ts-ignore
+      assert.strictEqual(this.ctx.session.changed, true);
+    };
+    this.ctx.getSession();
+    // @ts-ignore
+    Object.observe = undefined;
   }
 
   @test

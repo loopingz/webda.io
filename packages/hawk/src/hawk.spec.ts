@@ -259,7 +259,7 @@ class HawkServiceTest extends WebdaTest {
   @test
   async redirect() {
     let test = new HawkService(this.webda, "cov", { dynamicSessionKey: "bouzouf", redirectUrl: "/redirect" });
-    await test.init();
+    await test.resolve().init();
     let ctx = await this.newContext();
     ctx.getParameters().url = "http://test.webda.io";
     await assert.rejects(() => test._redirect(ctx), /403/);
@@ -271,17 +271,18 @@ class HawkServiceTest extends WebdaTest {
 
   @test
   async session() {
-    let test = new HawkService(this.webda, "cov", { dynamicSessionKey: "myCSRF" });
+    let test = await new HawkService(this.webda, "cov", { dynamicSessionKey: "myCSRF" }).resolve().init();
+    let key = this.webda.getCrypto().current;
     const url = "/plop";
     const sessionKey = "whatever";
     const { header, artifacts } = Hawk.client.header(`http://test.webda.io${url}`, "GET", {
       credentials: {
         id: "session",
-        key: await test.getWebda().getCrypto().hmac(sessionKey),
+        key: await test.getWebda().getCrypto().hmac(sessionKey, key),
         algorithm: "sha256"
       }
     });
-    this.context.getSession()["myCSRF"] = sessionKey;
+    this.context.getSession()["myCSRF"] = `${key}.${sessionKey}`;
     this.context.setHttpContext(
       new HttpContext("test.webda.io", "GET", url, "http", 80, {
         host: "test.webda.io",
@@ -290,7 +291,7 @@ class HawkServiceTest extends WebdaTest {
     );
     // It should be ok
     assert.strictEqual(await test.checkRequest(this.context), true);
-    this.context.getSession()["myCSRF"] = "anotherone";
+    this.context.getSession()["myCSRF"] = `${key}.anotherone`;
     this.context.setExtension("HawkReviewed", false);
     await assert.rejects(() => test.checkRequest(this.context), /403/);
     // Simulate pre-reviewed

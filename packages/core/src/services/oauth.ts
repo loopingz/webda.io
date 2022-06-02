@@ -9,6 +9,11 @@ export interface EventOAuthToken extends EventWithContext {
    */
   provider: string;
   /**
+   * token if we got a post of a JWT token
+   * callback if it was by http url
+   */
+  type: "token" | "callback";
+  /**
    * Profile comming from the provider
    */
   [key: string]: any;
@@ -81,7 +86,6 @@ export class OAuthServiceParameters extends ServiceParameters {
 
 export type OAuthEvents = {
   "OAuth.Callback": EventOAuthToken;
-  "OAuth.Token": EventOAuthToken;
 };
 
 /**
@@ -310,8 +314,9 @@ export abstract class OAuthService<
   private async _token(context: Context) {
     const res = await this.handleToken(context);
     await this.handleReturn(context, res.identId, res.profile);
-    await this.emitSync("OAuth.Token", <EventOAuthToken>{
+    await this.emitSync("OAuth.Callback", <EventOAuthToken>{
       ...res,
+      type: "token",
       provider: this.getName(),
       context
     });
@@ -328,6 +333,7 @@ export abstract class OAuthService<
     await this.handleReturn(ctx, res.identId, res.profile);
     await this.emitSync("OAuth.Callback", {
       ...res,
+      type: "callback",
       provider: this.getName(),
       context: ctx
     });

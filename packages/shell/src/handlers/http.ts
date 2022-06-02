@@ -149,7 +149,7 @@ export class WebdaServer extends Webda {
           // Prevent CSRF
           this.log("INFO", "CSRF denied from", origin);
           res.writeHead(401);
-          res.end();
+          await ctx.end();
           return;
         }
         // Verify if request is authorized
@@ -159,8 +159,8 @@ export class WebdaServer extends Webda {
         }
       } catch (err) {
         if (typeof err === "number") {
-          res.writeHead(err);
-          res.end();
+          ctx.statusCode = err;
+          await ctx.end();
           return;
         }
         throw err;

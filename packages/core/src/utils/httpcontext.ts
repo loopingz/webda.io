@@ -283,7 +283,7 @@ export class HttpContext {
     if (this.body instanceof Readable) {
       return this.body;
     }
-    return Readable.from(this.body);
+    return Readable.from(this.body || Buffer.from(""));
   }
 
   /**

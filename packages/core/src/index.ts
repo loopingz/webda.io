@@ -41,6 +41,7 @@ export * from "./services/kubernetesconfiguration";
 export * from "./services/mailer";
 export * from "./services/notificationservice";
 export * from "./services/oauth";
+export * from "./services/proxy";
 export * from "./services/resource";
 export * from "./services/service";
 export * from "./services/version";

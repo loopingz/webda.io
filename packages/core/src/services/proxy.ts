@@ -1,10 +1,11 @@
 import * as http from "http";
-import { Context, Service, ServiceParameters } from "../";
+import { Context } from "../utils/context";
+import { Service, ServiceParameters } from "./service";
 
 /**
  * Proxy to a backend service
  */
-class ProxyParameters extends ServiceParameters {
+export class ProxyParameters extends ServiceParameters {
   /**
    * URL to expose
    */

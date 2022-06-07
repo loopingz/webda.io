@@ -235,14 +235,14 @@ export class WorkerOutput extends EventEmitter {
    * @param inc
    * @param uid
    */
-  incrementProgress(inc: number = 1, uid: string = undefined) {
+  incrementProgress(inc: number = 1, uid: string = undefined, title: string = undefined) {
     if (!uid) {
       uid = this.currentProgress;
     }
     if (!this.progresses[uid]) {
       throw new Error("Unknown progress");
     }
-    this.updateProgress(this.progresses[uid].current + inc, uid);
+    this.updateProgress(this.progresses[uid].current + inc, uid, title);
   }
 
   /**

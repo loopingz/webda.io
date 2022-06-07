@@ -55,6 +55,59 @@ export class WebdaServer extends Webda {
   }
 
   /**
+   * Return a Context object based on a request
+   * @param req to initiate object from
+   * @param res to add for body
+   * @returns
+   */
+  async getContextFromRequest(req: http.IncomingMessage, res?: http.ServerResponse) {
+    // Wait for Webda to be ready
+    await this.init();
+
+    // Handle reverse proxy
+    let vhost: string = req.headers.host.match(/:/g)
+      ? req.headers.host.slice(0, req.headers.host.indexOf(":"))
+      : req.headers.host;
+    if (
+      (req.headers["x-forwarded-for"] ||
+        req.headers["x-forwarded-host"] ||
+        req.headers["x-forwarded-proto"] ||
+        req.headers["x-forwarded-port"]) &&
+      !this.isProxyTrusted(req.socket.remoteAddress)
+    ) {
+      // Do not even let the query go through
+      this.log("WARN", `X-Forwarded-* headers set from an unknown source: ${req.socket.remoteAddress}`);
+      res.writeHead(400);
+      res.end();
+      return;
+    }
+    // Might want to add some whitelisting
+    if (req.headers["x-forwarded-host"] !== undefined) {
+      vhost = <string>req.headers["x-forwarded-host"];
+    }
+    let protocol: "http" | "https" = "http";
+    if (req.headers["x-forwarded-proto"] !== undefined) {
+      protocol = <"http" | "https">req.headers["x-forwarded-proto"];
+    }
+
+    let method = req.method;
+    let port;
+    if (req.socket && req.socket.address()) {
+      port = (<AddressInfo>req.socket.address()).port;
+    }
+    if (req.headers["x-forwarded-port"] !== undefined) {
+      port = parseInt(<string>req.headers["x-forwarded-port"]);
+    }
+    let httpContext = new HttpContext(vhost, <HttpMethodType>method, req.url, protocol, port, req.headers);
+    httpContext.setClientIp(httpContext.getUniqueHeader("x-forwarded-for", req.socket.remoteAddress));
+    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
+    if (["PUT", "PATCH", "POST", "DELETE"].includes(method)) {
+      httpContext.setBody(req);
+    }
+    return await this.newContext(httpContext, res, true);
+  }
+
+  /**
    * Manage the request
    *
    * @param req
@@ -64,56 +117,14 @@ export class WebdaServer extends Webda {
   async handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     try {
       res.on("error", this.log.bind(this, "ERROR"));
-      // Wait for Webda to be ready
-      await this.init();
-
-      // Handle reverse proxy
-      let vhost: string = req.headers.host.match(/:/g)
-        ? req.headers.host.slice(0, req.headers.host.indexOf(":"))
-        : req.headers.host;
-      if (
-        (req.headers["x-forwarded-for"] ||
-          req.headers["x-forwarded-host"] ||
-          req.headers["x-forwarded-proto"] ||
-          req.headers["x-forwarded-port"]) &&
-        !this.isProxyTrusted(req.socket.remoteAddress)
-      ) {
-        // Do not even let the query go through
-        this.log("WARN", `X-Forwarded-* headers set from an unknown source: ${req.socket.remoteAddress}`);
-        res.writeHead(400);
-        res.end();
-        return;
-      }
-      // Might want to add some whitelisting
-      if (req.headers["x-forwarded-host"] !== undefined) {
-        vhost = <string>req.headers["x-forwarded-host"];
-      }
-      let protocol: "http" | "https" = "http";
-      if (req.headers["x-forwarded-proto"] !== undefined) {
-        protocol = <"http" | "https">req.headers["x-forwarded-proto"];
-      }
-
-      let method = req.method;
-      let port;
-      if (req.socket && req.socket.address()) {
-        port = (<AddressInfo>req.socket.address()).port;
-      }
-      if (req.headers["x-forwarded-port"] !== undefined) {
-        port = parseInt(<string>req.headers["x-forwarded-port"]);
-      }
-      let httpContext = new HttpContext(vhost, <HttpMethodType>method, req.url, protocol, port, req.headers);
-      httpContext.setClientIp(httpContext.getUniqueHeader("x-forwarded-for", req.socket.remoteAddress));
-      // https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
-      if (["PUT", "PATCH", "POST", "DELETE"].includes(method)) {
-        httpContext.setBody(req);
-      }
-      let ctx = await this.newContext(httpContext, res, true);
+      let ctx = await this.getContextFromRequest(req, res);
+      let httpContext = ctx.getHttpContext();
 
       if (!this.updateContextWithRoute(ctx)) {
         let routes = this.router.getRouteMethodsFromUrl(httpContext.getRelativeUri());
         if (routes.length === 0) {
           // Static served should not be reachable via XHR
-          if (method !== "GET" || !this.resourceService) {
+          if (httpContext.getMethod() !== "GET" || !this.resourceService) {
             ctx.writeHead(404);
             await ctx.end();
             return;
@@ -146,8 +157,7 @@ export class WebdaServer extends Webda {
             res.setHeader("Access-Control-Allow-Origin", origin);
           }
         } else {
-          // Prevent CSRF
-          this.log("INFO", "CSRF denied from", origin);
+          this.log("INFO", "CORS denied from", origin);
           res.writeHead(401);
           await ctx.end();
           return;
@@ -166,7 +176,7 @@ export class WebdaServer extends Webda {
         throw err;
       }
 
-      if (protocol === "https") {
+      if (httpContext.getProtocol() === "https:") {
         // Add the HSTS header
         res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
       }
@@ -281,10 +291,35 @@ export class WebdaServer extends Webda {
       if (websockets) {
         // Activate websocket
         this.output("Activating socket.io");
-        this.io = require("socket.io")(this.http);
+        this.io = require("socket.io")(this.http, {
+          cors: {
+            // Allow all origin as they should have been filtered by allowRequest
+            origin: (origin, callback) => callback(null, origin),
+            credentials: true
+          },
+          allowRequest: async (req, callback) => {
+            try {
+              // Use our checkRequest filtering system
+              const ctx = await this.getContextFromRequest(req);
+              // Check CORS and Request at the same time as the origin callback only provide origin string
+              if (!(await this.checkCORSRequest(ctx)) || !(await this.checkRequest(ctx))) {
+                callback("Request not allowed", null);
+              } else {
+                // Load session
+                await ctx.init();
+                // Set session on object
+                req.session = ctx.getSession();
+                req.webdaContext = ctx;
+                callback(null, true);
+              }
+            } catch (err) {
+              callback(err, null);
+            }
+          }
+        });
         this.emit("Webda.Init.SocketIO", this.io);
       }
-      this.output("Server running at http://0.0.0.0:" + port);
+      this.output(`Server running at http://0.0.0.0:${port}${websockets ? " with websockets" : ""}`);
       this.serverStatus = ServerStatus.Started;
     } catch (err) {
       this.log("ERROR", err);

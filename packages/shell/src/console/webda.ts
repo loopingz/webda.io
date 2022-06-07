@@ -516,8 +516,7 @@ export default class WebdaConsole {
             default: "127.0.0.1"
           },
           websockets: {
-            alias: "w",
-            default: false
+            alias: "w"
           }
         }
       },

@@ -155,8 +155,14 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
    * @param context
    */
   async _redirect(context: Context) {
-    const { url } = context.getParameters();
-    if (!this.parameters.redirectUris.includes(url)) {
+    return this.redirectWithCSRF(context, context.getParameters().url);
+  }
+
+  /**
+   * Redirect to a website with CSRF
+   */
+  async redirectWithCSRF(context: Context, url: string) {
+    if (!this.parameters.redirectUris.some(u => url.startsWith(u))) {
       throw 403;
     }
     context.getSession()[this.parameters.dynamicSessionKey] ??= `${
@@ -222,6 +228,9 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
     // Specific dynamic session checks (useful for CSRF token)
     if (this.parameters.dynamicSessionKey && authorization.startsWith('Hawk id="session"')) {
       try {
+        if (!context.getSession()[this.parameters.dynamicSessionKey]) {
+          throw 403;
+        }
         const [key, data] = context.getSession()[this.parameters.dynamicSessionKey].split(".");
         context.setExtension(
           "hawk",
@@ -232,7 +241,9 @@ export default class HawkService extends Service<HawkServiceParameters> implemen
           }))
         );
       } catch (err) {
-        this.log("ERROR", `Hawk error (${err.message})`);
+        if (err !== 403) {
+          this.log("ERROR", `Hawk error (${err.message})`);
+        }
         throw 403;
       }
     } else if (this.store) {

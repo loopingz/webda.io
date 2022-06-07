@@ -137,7 +137,7 @@ export default class GoogleAuthentication<T extends GoogleParameters = GooglePar
     if (ctx.getRequestParameters().state !== ctx.getSession<OAuthSession>().oauth.state) {
       this.log(
         "WARN",
-        `GoogleAuth Bad State ${ctx.getRequestParameters().state} !== ${ctx.getSession<OAuthSession>().oauth.state}`
+        `Bad State ${ctx.getRequestParameters().state} !== ${ctx.getSession<OAuthSession>().oauth.state}`
       );
       throw 403;
     }

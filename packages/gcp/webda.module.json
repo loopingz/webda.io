@@ -222,7 +222,7 @@
                 "retry": {
                   "anyOf": [
                     {
-                      "$ref": "#/definitions/Partial%3Cclass-657338214-692-3001-657338214-0-14958%3E"
+                      "$ref": "#/definitions/Partial%3Cclass-478043683-692-3001-478043683-0-14911%3E"
                     },
                     {
                       "type": "null"
@@ -231,12 +231,6 @@
                 },
                 "autoPaginate": {
                   "type": "boolean"
-                },
-                "pageToken": {
-                  "type": "string"
-                },
-                "pageSize": {
-                  "type": "number"
                 },
                 "maxResults": {
                   "type": "number"
@@ -444,6 +438,79 @@
                 }
               ],
               "description": "Subscription pushConfig"
+            },
+            "bigqueryConfig": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "table": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "BigQueryConfig table"
+                    },
+                    "useTopicSchema": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ],
+                      "description": "BigQueryConfig useTopicSchema"
+                    },
+                    "writeMetadata": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ],
+                      "description": "BigQueryConfig writeMetadata"
+                    },
+                    "dropUnknownFields": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ],
+                      "description": "BigQueryConfig dropUnknownFields"
+                    },
+                    "state": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/definitions/google.pubsub.v1.BigQueryConfig.State"
+                        },
+                        {
+                          "type": "string",
+                          "const": "STATE_UNSPECIFIED"
+                        },
+                        {
+                          "type": "string",
+                          "const": "ACTIVE"
+                        },
+                        {
+                          "type": "string",
+                          "const": "PERMISSION_DENIED"
+                        },
+                        {
+                          "type": "string",
+                          "const": "NOT_FOUND"
+                        },
+                        {
+                          "type": "string",
+                          "const": "SCHEMA_MISMATCH"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "BigQueryConfig state"
+                    }
+                  },
+                  "description": "Properties of a BigQueryConfig."
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Subscription bigqueryConfig"
             },
             "ackDeadlineSeconds": {
               "type": [
@@ -709,6 +776,29 @@
               ],
               "description": "Subscription topicMessageRetentionDuration"
             },
+            "state": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/google.pubsub.v1.Subscription.State"
+                },
+                {
+                  "type": "string",
+                  "const": "STATE_UNSPECIFIED"
+                },
+                {
+                  "type": "string",
+                  "const": "ACTIVE"
+                },
+                {
+                  "type": "string",
+                  "const": "RESOURCE_ERROR"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Subscription state"
+            },
             "messageRetentionDuration": {
               "anyOf": [
                 {
@@ -754,7 +844,7 @@
             }
           }
         },
-        "Partial<class-657338214-692-3001-657338214-0-14958>": {
+        "Partial<class-478043683-692-3001-478043683-0-14911>": {
           "type": "object",
           "properties": {
             "retryCodes": {
@@ -811,6 +901,17 @@
             }
           }
         },
+        "google.pubsub.v1.BigQueryConfig.State": {
+          "type": "number",
+          "enum": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "description": "State enum."
+        },
         "Long": {
           "type": "object",
           "properties": {
@@ -832,6 +933,15 @@
             "low",
             "unsigned"
           ]
+        },
+        "google.pubsub.v1.Subscription.State": {
+          "type": "number",
+          "enum": [
+            0,
+            1,
+            2
+          ],
+          "description": "State enum."
         },
         "OidcToken": {
           "type": "object",

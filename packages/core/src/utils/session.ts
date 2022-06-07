@@ -65,15 +65,25 @@ export class CookieSessionManager<
   /**
    * @override
    */
+  resolve() {
+    super.resolve();
+    if (this.sessionStore && this.sessionStore.getParameters().expose) {
+      throw new Error("SessionStore should not be exposed");
+    }
+    return this;
+  }
+
+  /**
+   * @override
+   */
   async load(context: Context): Promise<Session> {
     const session = new Session();
     let cookie = await SecureCookie.load(this.parameters.cookie.name, context, this.parameters.jwt);
     if (this.sessionStore) {
       if (cookie.sub) {
-        Object.assign(session, (await this.sessionStore.get(cookie.sub)).session);
-      } else {
-        session.uuid = context.getWebda().getUuid("base64");
+        Object.assign(session, (await this.sessionStore.get(cookie.sub))?.session);
       }
+      session.uuid ??= context.getWebda().getUuid("base64");
     } else {
       Object.assign(session, cookie);
     }

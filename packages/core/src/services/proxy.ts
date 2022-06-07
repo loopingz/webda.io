@@ -101,6 +101,15 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   }
 
   /**
+   * Allow subclass to implement custom override
+   * @param context
+   * @returns
+   */
+  getRequestHeaders(context: Context) {
+    return context.getHttpContext().getHeaders();
+  }
+
+  /**
    * Proxy to an url
    * @param ctx
    * @param host
@@ -120,7 +129,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
         `${host}${subUrl}`,
         ctx.getHttpContext().getMethod(),
         {
-          ...ctx.getHttpContext().getHeaders(),
+          ...this.getRequestHeaders(ctx),
           "X-Rewrite-URL": ctx.getHttpContext().getRelativeUri(),
           "X-Forwarded-Host": ctx
             .getHttpContext()

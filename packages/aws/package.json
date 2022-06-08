@@ -72,10 +72,14 @@
   "devDependencies": {
     "@testdeck/mocha": "^0.2.0",
     "@types/aws-lambda": "^8.10.97",
-    "@types/node": "14.0.0",
+    "@types/node": "14.6.0",
     "@webda/async": "^2.0.0-beta.3",
     "@webda/shell": "^2.0.0-beta.3",
     "aws-sdk-client-mock": "^0.6.2",
     "sinon": "^14.0.0"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=14.6.0"
   }
 }

@@ -1,14 +1,21 @@
 {
   "compilerOptions": {
-    "target": "es2015",
-    "module": "commonjs",
+    "target": "es2020",
+    "module": "es2020",
     "outDir": "./lib",
     "strict": false,
     "declaration": true,
     "sourceMap": true,
     "experimentalDecorators": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node"
   },
-  "include": ["src/**/*"],
-  "exclude": ["**/node_modules", "**/*.spec.ts"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/*.spec.ts"
+  ]
 }

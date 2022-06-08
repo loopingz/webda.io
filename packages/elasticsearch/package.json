@@ -52,8 +52,12 @@
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.2.0",
-    "@types/node": "14.0.0",
+    "@types/node": "14.6.0",
     "@webda/shell": "^2.0.0-beta.3",
     "sinon": "^14.0.0"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=14.6.0"
   }
 }

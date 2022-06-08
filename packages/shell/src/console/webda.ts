@@ -6,7 +6,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as semver from "semver";
 import { Transform } from "stream";
-import * as yargs from "yargs";
+import yargs from "yargs";
 import { BuildSourceApplication, SourceApplication } from "../code/sourceapplication";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";

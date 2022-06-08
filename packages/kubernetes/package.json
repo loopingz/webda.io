@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
-    "@types/node": "14.0.0",
+    "@types/node": "14.6.0",
     "glob": "^8.0.1",
     "js-beautify": "^1.14.0",
     "mocha": "^10.0.0",
@@ -61,5 +61,9 @@
   },
   "webda": {
     "namespace": "Webda"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=14.6.0"
   }
 }

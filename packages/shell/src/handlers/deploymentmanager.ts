@@ -4,9 +4,9 @@ import * as fs from "fs";
 import * as merge from "merge";
 import * as path from "path";
 import * as yargs from "yargs";
-import { SourceApplication } from "../code/sourceapplication";
-import WebdaConsole from "../console/webda";
-import { Deployer } from "../deployers/deployer";
+import { SourceApplication } from "../code/sourceapplication.js";
+import WebdaConsole from "../console/webda.js";
+import { Deployer } from "../deployers/deployer.js";
 
 export interface DeployerConstructor {
   new (manager: DeploymentManager, resources: any): Deployer<any>;

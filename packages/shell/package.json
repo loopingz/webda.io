@@ -12,10 +12,9 @@
   "typings": "lib/index.d.ts",
   "repository": "git://github.com/loopingz/webda.io.git",
   "bin": {
-    "webda": "./bin/webda"
+    "webda": "./lib/bin/webda.js"
   },
   "files": [
-    "bin/webda",
     "lib"
   ],
   "scripts": {
@@ -26,7 +25,7 @@
     "lint:fix": "prettier --write src/**/*"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=14.6.0"
   },
   "dependencies": {
     "@kubernetes/client-node": "^0.15.0",
@@ -82,9 +81,10 @@
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@testdeck/mocha": "^0.2.0",
-    "@types/node": "14.0.0",
+    "@types/node": "14.6.0",
     "@types/yargs": "^17.0.2",
     "csstype": "^3.0.8",
     "sinon": "^14.0.0"
-  }
+  },
+  "type": "module"
 }

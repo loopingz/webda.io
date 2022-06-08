@@ -1,16 +1,25 @@
 {
   "compilerOptions": {
-    "target": "es2015",
-    "lib": ["es2019", "DOM"],
-    "module": "commonjs",
+    "target": "es2020",
+    "lib": [
+      "es2019",
+      "DOM"
+    ],
+    "module": "es2020",
     "outDir": "./lib",
     "strict": false,
     "declaration": true,
     "sourceMap": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node"
   },
-  "include": ["src/**/*"],
-  "exclude": ["**/node_modules"],
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "**/node_modules"
+  ],
   "ts-node": {
     "transpileOnly": true,
     "preferTsExts": true,

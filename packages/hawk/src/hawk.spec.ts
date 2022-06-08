@@ -294,6 +294,9 @@ class HawkServiceTest extends WebdaTest {
     this.context.getSession()["myCSRF"] = `${key}.anotherone`;
     this.context.setExtension("HawkReviewed", false);
     await assert.rejects(() => test.checkRequest(this.context), /403/);
+    delete this.context.getSession()["myCSRF"];
+    this.context.setExtension("HawkReviewed", false);
+    await assert.rejects(() => test.checkRequest(this.context), /403/);
     // Simulate pre-reviewed
     this.context.setExtension("HawkReviewed", true);
     await test.checkRequest(this.context);

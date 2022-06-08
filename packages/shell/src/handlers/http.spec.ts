@@ -189,6 +189,39 @@ class WebdaServerTest {
   }
 
   @test
+  async socketIOError() {
+    await this.init("Dev", true, true);
+    let corsFct: (origin: string, callback: () => void) => void;
+    let allowRequest;
+    // @ts-ignore
+    corsFct = this.server.io.engine.opts.cors.origin;
+    // @ts-ignore
+    allowRequest = this.server.io.engine.opts.allowRequest;
+    let receivedArgs;
+    const callback = (...args) => {
+      receivedArgs = args;
+    };
+    corsFct("test", callback);
+    assert.deepStrictEqual(receivedArgs, [null, "test"]);
+
+    let stub = sinon.stub(this.server, "getContextFromRequest").callsFake(async () => {
+      throw "Plop";
+    });
+    await allowRequest(null, callback);
+    assert.deepStrictEqual(receivedArgs, ["Plop", null]);
+    let ctx = await this.server.newContext(new HttpContext("test.webda.io", "GET", "/"));
+    stub.callsFake(async () => ctx);
+    await allowRequest(null, callback);
+    assert.deepStrictEqual(receivedArgs, ["Request not allowed", null]);
+    // @ts-ignore
+    sinon.stub(this.server, "checkCORSRequest").callsFake(async () => true);
+    // @ts-ignore
+    sinon.stub(this.server, "checkRequest").callsFake(async () => true);
+    await allowRequest({}, callback);
+    assert.deepStrictEqual(receivedArgs, [null, true]);
+  }
+
+  @test
   async flushHeaders() {
     await this.init("Dev", false);
     let ctx = await this.server.newContext(new HttpContext("test.webda.io", "GET", "/"));

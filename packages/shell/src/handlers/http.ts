@@ -104,7 +104,7 @@ export class WebdaServer extends Webda {
     if (["PUT", "PATCH", "POST", "DELETE"].includes(method)) {
       httpContext.setBody(req);
     }
-    return await this.newContext(httpContext, res, true);
+    return this.newContext(httpContext, res, true);
   }
 
   /**
@@ -118,6 +118,9 @@ export class WebdaServer extends Webda {
     try {
       res.on("error", this.log.bind(this, "ERROR"));
       let ctx = await this.getContextFromRequest(req, res);
+      if (!ctx) {
+        return;
+      }
       let httpContext = ctx.getHttpContext();
 
       if (!this.updateContextWithRoute(ctx)) {
@@ -220,28 +223,41 @@ export class WebdaServer extends Webda {
     }
   }
 
+  /**
+   * @override
+   */
   flushHeaders(ctx: Context) {
     if (ctx.hasFlushedHeaders()) {
       return;
     }
     ctx.setFlushedHeaders(true);
-    let res = <http.ServerResponse>ctx.getStream();
-    var headers = ctx.getResponseHeaders();
-    let cookies = ctx.getResponseCookies();
-    for (let i in cookies) {
-      res.setHeader("Set-Cookie", cookieSerialize(cookies[i].name, cookies[i].value, cookies[i].options));
+    const res = <http.ServerResponse>ctx.getStream();
+    const headers = ctx.getResponseHeaders();
+    const cookies = ctx.getResponseCookies();
+    try {
+      for (let i in cookies) {
+        res.setHeader("Set-Cookie", cookieSerialize(cookies[i].name, cookies[i].value, cookies[i].options));
+      }
+      res.writeHead(ctx.statusCode, headers);
+    } catch (err) {
+      this.log("ERROR", err);
     }
-    res.writeHead(ctx.statusCode, headers);
   }
 
+  /**
+   * @override
+   */
   flush(ctx: Context) {
-    var res = ctx._stream;
+    const res = ctx._stream;
     if (ctx.getResponseBody() !== undefined) {
       res.write(ctx.getResponseBody());
     }
     res.end();
   }
 
+  /**
+   * @override
+   */
   async init() {
     // Avoid reinit everytime
     if (this._init) {

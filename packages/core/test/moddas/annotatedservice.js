@@ -1,7 +1,7 @@
-const Webda = require("../../src/index");
+import { Bean, Store } from "@webda/core";
 
-@Webda.Bean
-class AnnotedService extends Webda.Store {
+@Bean
+export class AnnotedService extends Store {
   constructor(webda, name, params) {
     super(webda, name, params);
     webda.registerRequestFilter(this);
@@ -21,4 +21,3 @@ class AnnotedService extends Webda.Store {
   _default(ctx) {}
 }
 
-module.exports = AnnotedService;

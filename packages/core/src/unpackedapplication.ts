@@ -11,6 +11,7 @@ import {
   SectionEnum
 } from "./application";
 import { FileUtils } from "./utils/serializers";
+import Finder from "fs-finder";
 
 /**
  * Empty git information
@@ -159,7 +160,7 @@ export class UnpackedApplication extends Application {
    * Load any imported webda.module.json
    */
   findModules(module: CachedModule): string[] {
-    const Finder = require("fs-finder");
+    
     // Modules should be cached on deploy
     var files = [];
     let nodeModules = this.getAppPath("node_modules");

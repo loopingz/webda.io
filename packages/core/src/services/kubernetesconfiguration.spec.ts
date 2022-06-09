@@ -1,7 +1,8 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { mkdirSync, unlinkSync } from "fs";
-import { emptyDirSync, ensureSymlinkSync, outputFileSync } from "fs-extra";
+import pkg from 'fs-extra';
+const { emptyDirSync, ensureSymlinkSync, outputFileSync } = pkg;
 import * as path from "path";
 import { stub } from "sinon";
 import * as yaml from "yaml";

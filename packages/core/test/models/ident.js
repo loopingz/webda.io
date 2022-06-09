@@ -1,11 +1,9 @@
-"use strict";
-
-const WebdaIdent = require("../../src/index").Ident;
+import { Ident as WebdaIdent } from "@webda/core";
 
 /**
  * @class
  */
-class Ident extends WebdaIdent {
+export class Ident extends WebdaIdent {
   static getActions() {
     return {
       plop: {},
@@ -34,5 +32,3 @@ class Ident extends WebdaIdent {
     return Promise.resolve();
   }
 }
-
-module.exports = Ident;

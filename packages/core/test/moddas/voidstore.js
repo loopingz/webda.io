@@ -1,6 +1,6 @@
-const Webda = require("../../src/index");
+import { Store } from "@webda/core";
 
-class VoidStore extends Webda.Store {
+export class VoidStore extends Store {
   constructor(webda, name, params) {
     super(webda, name, params);
     webda.registerCORSFilter(this);
@@ -60,5 +60,3 @@ class VoidStore extends Webda.Store {
     return Promise.resolve({});
   }
 }
-
-module.exports = VoidStore;

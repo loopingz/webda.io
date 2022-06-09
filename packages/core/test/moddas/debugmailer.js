@@ -1,6 +1,6 @@
-const Webda = require("../../src/index");
+import { Service } from "@webda/core";
 
-class DebugMailer extends Webda.Service {
+export class DebugMailer extends Service {
   constructor(webda, name, params) {
     super(webda, name, params);
     this.sent = [];
@@ -11,4 +11,3 @@ class DebugMailer extends Webda.Service {
   }
 }
 
-module.exports = DebugMailer;

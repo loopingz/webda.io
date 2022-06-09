@@ -3,7 +3,7 @@ import * as assert from "assert";
 import * as sinon from "sinon";
 import { CoreModel, Store } from "..";
 import { WebdaTest } from "../test";
-const Task = require("../../test/models/task");
+import { Task } from "../../test/models/task";
 
 @suite
 class CoreModelTest extends WebdaTest {

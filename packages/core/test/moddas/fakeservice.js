@@ -1,5 +1,4 @@
-const Webda = require("../../src/index");
+import { Service } from "@webda/core";
 
-class FakeService extends Webda.Service {}
+export class FakeService extends Service {}
 
-module.exports = FakeService;

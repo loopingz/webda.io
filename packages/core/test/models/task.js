@@ -1,11 +1,9 @@
-"use strict";
-const Webda = require("../../src/index");
-const OwnerModel = Webda.OwnerModel;
+import { OwnerModel } from "@webda/core";
 
 /**
  * @class
  */
-class Task extends OwnerModel {
+export class Task extends OwnerModel {
   static getActions() {
     return {
       actionable: {
@@ -42,5 +40,3 @@ class Task extends OwnerModel {
     return super.toJSON();
   }
 }
-
-module.exports = Task;

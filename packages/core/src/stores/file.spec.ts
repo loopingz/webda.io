@@ -1,7 +1,8 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { existsSync } from "fs";
-import { removeSync } from "fs-extra";
+import pkg from 'fs-extra';
+const { removeSync } = pkg;
 import * as sinon from "sinon";
 import { CoreModel, FileStore, FileUtils, Store } from "../index";
 import { User } from "../models/user";

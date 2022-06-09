@@ -1,7 +1,8 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as fs from "fs";
-import { removeSync } from "fs-extra";
+import pkg from 'fs-extra';
+const { removeSync } = pkg;
 import { Readable } from "stream";
 import { BinaryFile, BinaryFileInfo, MemoryBinaryFile } from "./binary";
 import { CloudBinaryTest } from "./cloudbinary.spec";

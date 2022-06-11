@@ -85,9 +85,13 @@ export class CryptoServiceParameters extends ServiceParameters {
    */
   keyLifespan: number;
   /**
-   * Try to rotate keys when they expire
+   * Try to rotate keys when they expire in days
    */
   autoRotate?: number;
+  /**
+   * Create first set of key if does not exist
+   */
+  autoCreate?: boolean;
   /**
    * To expose JWKS
    *
@@ -206,7 +210,7 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
   async init(): Promise<this> {
     await super.init();
     // Load keys
-    if (!(await this.load()) && this.parameters.autoRotate) {
+    if (!(await this.load()) && this.parameters.autoCreate) {
       await this.rotate();
     }
     if (this.parameters.expose) {

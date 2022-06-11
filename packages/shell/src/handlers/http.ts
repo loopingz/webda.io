@@ -97,6 +97,9 @@ export class WebdaServer extends Webda {
     }
     if (req.headers["x-forwarded-port"] !== undefined) {
       port = parseInt(<string>req.headers["x-forwarded-port"]);
+    } else if (req.headers["x-forwarded-proto"] !== undefined) {
+      // GCP send a proto without port so fallback on default port
+      port = protocol === "http" ? 80 : 443;
     }
     let httpContext = new HttpContext(vhost, <HttpMethodType>method, req.url, protocol, port, req.headers);
     httpContext.setClientIp(httpContext.getUniqueHeader("x-forwarded-for", req.socket.remoteAddress));

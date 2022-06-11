@@ -472,36 +472,14 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       }
     }
 
-    // Init the registry
-    const autoRegistry = this.configuration.services["Registry"] === undefined;
-    this.configuration.services["Registry"] ??= {
-      type: "webda/memorystore",
-      persistence: {
-        path: ".registry",
-        key: machineIdSync()
-      }
-    };
-    this.createService(this.configuration.services, "Registry");
-    this.registry = await this.getService<Store<RegistryEntry>>("Registry").resolve().init();
-
-    // Init the key service
-    this.configuration.services["CryptoService"] ??= {
-      type: "webda/cryptoservice",
-      autoRotate: autoRegistry ? 86400 : undefined
-    };
-    this.createService(this.configuration.services, "CryptoService");
-    this.cryptoService = await this.getService<CryptoService>("CryptoService").resolve().init();
-
-    // Session Manager
-    this.configuration.services["SessionManager"] ??= {
-      type: "webda/cookiesessionmanager"
-    };
-
     // Init the other services
     this.initStatics();
     this.reinitResolvedRoutes();
     this.log("TRACE", "Create Webda init promise");
     this._init = new Promise(async resolve => {
+      await this.initService("registry");
+      await this.initService("cryptoservice");
+
       // Init services
       let service;
       let inits = [];
@@ -897,7 +875,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * @returns
    */
   getRegistry(): Store<RegistryEntry> {
-    return this.getService("Registry");
+    return this.registry;
   }
 
   /**
@@ -944,13 +922,39 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    * Init services and Beans along with Routes
    */
   initStatics() {
+    // Init the registry
+    const autoRegistry = this.configuration.services["Registry"] === undefined;
+    this.configuration.services["Registry"] ??= {
+      type: "webda/memorystore",
+      persistence: {
+        path: ".registry",
+        key: machineIdSync()
+      }
+    };
+    this.createService(this.configuration.services, "Registry");
+    this.registry = this.getService<Store<RegistryEntry>>("Registry").resolve();
+
+    // Init the key service
+    this.configuration.services["CryptoService"] ??= {
+      type: "webda/cryptoservice",
+      autoRotate: autoRegistry ? 30 : undefined,
+      autoCreate: true
+    };
+    this.createService(this.configuration.services, "CryptoService");
+    this.cryptoService = this.getService<CryptoService>("CryptoService").resolve();
+
+    // Session Manager
+    this.configuration.services["SessionManager"] ??= {
+      type: "webda/cookiesessionmanager"
+    };
+
     if (this.configuration.services !== undefined) {
+      let excludes = ["registry", "cryptoservice"];
+      if (this.configuration.parameters.configurationService) {
+        excludes.push(this.configuration.parameters.configurationService.toLowerCase());
+      }
       // Do not recreate the configuration services
-      this.createServices(
-        Object.keys(this.services).filter(
-          k => k !== this.configuration.parameters.configurationService && k !== "registry" && k !== "keyservice"
-        )
-      );
+      this.createServices(excludes);
     }
 
     this.router.remapRoutes();

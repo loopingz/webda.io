@@ -118,7 +118,7 @@ export class Kubernetes extends Deployer<KubernetesResources> {
     // Create the Docker image
     if (this.resources.tag && this.resources.push) {
       this.logger.log("INFO", "Launching subdeployer Docker");
-      await this.manager.run("webdadeployer/docker", this.resources);
+      await this.manager.run("webda/container", this.resources);
     }
 
     this.logger.log("INFO", "Initializing Kubernetes Client");

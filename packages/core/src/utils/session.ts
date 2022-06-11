@@ -82,6 +82,7 @@ export class CookieSessionManager<
     if (this.sessionStore) {
       if (cookie.sub) {
         Object.assign(session, (await this.sessionStore.get(cookie.sub))?.session);
+        session.uuid = cookie.sub;
       }
       session.uuid ??= context.getWebda().getUuid("base64");
     } else {
@@ -101,7 +102,12 @@ export class CookieSessionManager<
         session,
         ttl: Date.now() + this.parameters.cookie.maxAge * 1000
       });
-      SecureCookie.save(this.parameters.cookie.name, context, {}, { ...this.parameters.jwt, subject: session.uuid });
+      SecureCookie.save(
+        this.parameters.cookie.name,
+        context,
+        {},
+        { ...this.parameters.jwt, subject: session.uuid.toString() }
+      );
       return;
     }
     SecureCookie.save(this.parameters.cookie.name, context, session, this.parameters.jwt);

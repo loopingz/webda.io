@@ -142,7 +142,7 @@ export default class LambdaServer extends Webda {
         this.log("ERROR", "Cannot find method", commandEvent.method, "on", commandEvent.service);
         return;
       }
-      service[commandEvent.method](...args);
+      await service[commandEvent.method](...args);
       this.log("INFO", "Finished");
       return;
     }

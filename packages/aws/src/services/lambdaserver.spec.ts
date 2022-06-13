@@ -47,7 +47,7 @@ class LambdaHandlerTest extends WebdaAwsTest {
     app.addService("test/awsevents", (await import("../../test/moddas/awsevents.js")).default);
     await app.load();
     this.webda = this.handler = new LambdaServer(app);
-    this.webda.initStatics();
+    await this.webda.init();
     this.webda.registerRequestFilter({
       checkRequest: async () => true
     });

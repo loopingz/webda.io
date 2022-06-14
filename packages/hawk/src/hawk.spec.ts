@@ -1,5 +1,5 @@
 // organize-imports-ignore
-var assert = require("assert");
+import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
 import { CacheService, Context, HttpContext, HttpMethodType, Store, UnknownSession } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";

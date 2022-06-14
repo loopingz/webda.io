@@ -70,6 +70,16 @@ class ServiceTest extends WebdaTest {
     assert.strictEqual(service.toString(), "FakeService[plop]");
   }
 
+  @test
+  getUrl() {
+    let service = new FakeService(this.webda, "plop", { type: "FakeService" });
+    assert.strictEqual(service.getUrl("/plop", ["GET"]), "/plop");
+    assert.strictEqual(service.getUrl("./plop", ["GET"]), undefined);
+    assert.strictEqual(service.getUrl("plop", ["GET"]), undefined);
+    service.getParameters().url = "/re";
+    assert.strictEqual(service.getUrl("./plop", ["GET"]), "/re/plop");
+    assert.strictEqual(service.getUrl("plop", ["GET"]), "plop");
+  }
   /**
    * Ensure a message is displayed if listener is long
    * Ensure error in listener are catched

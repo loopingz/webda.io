@@ -8,7 +8,7 @@
     "pretest": "npm run build",
     "lint": "prettier --check src/**/*",
     "lint:fix": "prettier --write src/**/*",
-    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts"
+    "test": "c88 mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts"
   },
   "repository": {
     "type": "git",
@@ -32,8 +32,7 @@
   "dependencies": {
     "@webda/core": "^2.0.0-beta.3"
   },
-  "nyc": {
-    "extends": "@istanbuljs/nyc-config-typescript",
+  "c8": {
     "report-dir": "./reports",
     "reporter": [
       "html",

@@ -1,12 +1,12 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import * as fs from "fs";
-import pkg from 'fs-extra';
-const { removeSync } = pkg;
+import pkg from "fs-extra";
 import { Readable } from "stream";
 import { BinaryFile, BinaryFileInfo, MemoryBinaryFile } from "./binary";
 import { CloudBinaryTest } from "./cloudbinary.spec";
 import { FileBinary } from "./filebinary";
+const { removeSync } = pkg;
 
 class FaultyBinaryFile extends BinaryFile {
   async get() {
@@ -167,6 +167,17 @@ class FileBinaryTest extends CloudBinaryTest {
       size: 10
     });
     assert.rejects(() => file.getHashes(), /Faulty stream/);
+  }
+
+  @test
+  cov() {
+    let binary = <FileBinary>this.getBinary();
+    try {
+      binary._touch("./touch.txt");
+      binary._touch("./touch.txt");
+    } finally {
+      fs.unlinkSync("./touch.txt");
+    }
   }
 }
 

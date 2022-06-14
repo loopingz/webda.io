@@ -1,4 +1,4 @@
-import * as crontab from "node-cron";
+import { schedule } from "node-cron";
 import { CancelablePromise } from "../index";
 import { Service } from "./service";
 
@@ -66,6 +66,7 @@ class CronService extends Service {
     args?: any[];
     cb?: () => void;
   }[] = [];
+  crontabSchedule = schedule;
   private _scanned: boolean = false;
 
   static Annotation(cron: string, description: string = "", ...args) {
@@ -154,7 +155,7 @@ class CronService extends Service {
 
   schedule(cron: string, cb: () => any, description: string = "") {
     if (this.enable) {
-      crontab.schedule(cron, cb);
+      this.crontabSchedule(cron, cb);
     } else {
       let context;
       try {

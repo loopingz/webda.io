@@ -179,16 +179,7 @@ class Mailer<T extends MailerParameters = MailerParameters> extends AbstractMail
    * Compute parameters
    */
   async init(): Promise<this> {
-    let config: any = {};
-    Object.assign(config, this.parameters);
-    if (config.transport === "ses" && !config.SES) {
-      let aws = await import("aws-sdk");
-      aws.config.update(config);
-      config.SES = new aws.SES({
-        apiVersion: "2010-12-01"
-      });
-    }
-    this._transporter = nodemailer.createTransport(config);
+    this._transporter = nodemailer.createTransport(this.parameters);
     return this;
   }
 

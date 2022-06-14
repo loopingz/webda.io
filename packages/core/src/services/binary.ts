@@ -446,6 +446,8 @@ abstract class Binary<T extends BinaryParameters = BinaryParameters, E extends B
       writeStream.on("error", src => {
         try {
           fs.unlinkSync(filename);
+          // Stubing the fs module in ESM seems complicated for now
+          /* c8 ignore next 3 */
         } catch (err) {
           this._webda.log("ERROR", err);
         }

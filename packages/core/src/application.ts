@@ -575,7 +575,7 @@ export class Application {
    * @param name
    * @returns
    */
-  getWebdaObject(section: Section, name) {
+  getWebdaObject(section: Section, name: string) {
     let objectName = this.completeNamespace(name);
     this.log("TRACE", `Search for ${section} ${objectName}`);
     if (!this[section][objectName] && name.indexOf("/") === -1) {

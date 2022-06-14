@@ -1,8 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { existsSync } from "fs";
-import pkg from 'fs-extra';
-const { removeSync } = pkg;
+import pkg from "fs-extra";
 import * as sinon from "sinon";
 import { CoreModel, FileStore, FileUtils, Store } from "../index";
 import { User } from "../models/user";
@@ -10,6 +9,7 @@ import { HttpContext } from "../utils/httpcontext";
 import AggregatorService from "./aggregator";
 import { StoreNotFoundError, UpdateConditionFailError } from "./store";
 import { StoreTest } from "./store.spec";
+const { removeSync } = pkg;
 
 /**
  * Cast for test user
@@ -112,6 +112,15 @@ class FileStoreTest extends StoreTest {
       () => identStore.simulateUpsertItemToCollection(undefined, "__proto__", undefined, new Date()),
       /Cannot update __proto__: js\/prototype-polluting-assignment/
     );
+
+    // Add a queryMethod test
+    userStore.getParameters().url = "/users";
+    userStore.getParameters().expose = {
+      queryMethod: "PUT",
+      restrict: {}
+    };
+    userStore.initRoutes();
+    userStore.getUrl("/url", ["GET"]);
   }
 
   @test

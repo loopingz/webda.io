@@ -1,4 +1,4 @@
-import { Store } from "@webda/core";
+import { Store, StoreParameters } from "@webda/core";
 
 export class VoidStore extends Store {
   constructor(webda, name, params) {
@@ -13,6 +13,10 @@ export class VoidStore extends Store {
     this.addRoute("/", ["GET", "POST"], this._default);
     this.addRoute("/urltemplate/{id}", ["GET"], this._template);
     this.addRoute("/urltemplate/callback{?code}", ["GET"], this._query);
+  }
+
+  loadParameters(params) {
+    return new StoreParameters(params, this);
   }
 
   _template() {}

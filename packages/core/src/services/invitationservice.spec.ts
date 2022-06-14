@@ -449,6 +449,10 @@ class InvitationTest extends WebdaTest {
       idents: ["test3@webda.io_email"],
       users: [ident1.getUser(), ident2.getUser()]
     });
+    // Ensure double delete will not be an issue
+    await this.execute(ctx, "test.webda.io", "DELETE", `/companies/${company.getUuid()}/invitations`, {
+      users: [ident1.getUser(), ident2.getUser()]
+    });
 
     await company.refresh();
     assert.deepStrictEqual(company.__acl, {

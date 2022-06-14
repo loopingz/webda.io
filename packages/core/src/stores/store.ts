@@ -526,9 +526,7 @@ abstract class Store<
   /**
    * Load the parameters for a service
    */
-  loadParameters(params: any): StoreParameters {
-    return new StoreParameters(params, this);
-  }
+  abstract loadParameters(params: any): StoreParameters;
 
   /**
    * Retrieve the Model
@@ -539,9 +537,6 @@ abstract class Store<
     super.computeParameters();
     const p = this.parameters;
     this._model = <CoreModelDefinition>this._webda.getModel(p.model);
-    if (!this._model.getUuidField) {
-      console.error("CANNOT FIND getUuidField", this.parameters.model, this._model);
-    }
     this._uuidField = this._model.getUuidField();
     this._lastUpdateField = this._model.getLastUpdateField();
     this._creationDateField = this._model.getCreationField();
@@ -1788,27 +1783,23 @@ abstract class Store<
   })
   async httpGet(ctx: Context) {
     let uuid = ctx.parameter("uuid");
-    if (uuid) {
-      let object = await this.get(uuid, ctx);
-      await this.emitSync("Store.WebGetNotFound", <EventStoreWebGetNotFound>{
-        context: ctx,
-        uuid,
-        store: this
-      });
-      if (object === undefined || object.__deleted) {
-        throw 404;
-      }
-      await object.canAct(ctx, "get");
-      ctx.write(object);
-      await this.emitSync("Store.WebGet", <EventStoreWebGet>{
-        context: ctx,
-        object: object,
-        store: this
-      });
-      ctx.write(object);
-    } else {
-      // List probably
+    let object = await this.get(uuid, ctx);
+    await this.emitSync("Store.WebGetNotFound", <EventStoreWebGetNotFound>{
+      context: ctx,
+      uuid,
+      store: this
+    });
+    if (object === undefined || object.__deleted) {
+      throw 404;
     }
+    await object.canAct(ctx, "get");
+    ctx.write(object);
+    await this.emitSync("Store.WebGet", <EventStoreWebGet>{
+      context: ctx,
+      object: object,
+      store: this
+    });
+    ctx.write(object);
   }
 
   /**
@@ -1837,23 +1828,19 @@ abstract class Store<
   })
   async httpRoute(ctx: Context) {
     let uuid = ctx.parameter("uuid");
-    if (ctx.getHttpContext().getMethod() == "DELETE") {
-      let object = await this.get(uuid, ctx);
-      if (!object || object.__deleted) throw 404;
-      await object.canAct(ctx, "delete");
-      // http://stackoverflow.com/questions/28684209/huge-delay-on-delete-requests-with-204-response-and-no-content-in-objectve-c#
-      // IOS don't handle 204 with Content-Length != 0 it seems
-      // Have trouble to handle the Content-Length on API Gateway so returning an empty object for now
-      ctx.write({});
-      await this.delete(uuid);
-      await this.emitSync("Store.WebDelete", <EventStoreWebDelete>{
-        context: ctx,
-        object_id: uuid,
-        store: this
-      });
-    } else if (ctx.getHttpContext().getMethod() === "PUT" || ctx.getHttpContext().getMethod() === "PATCH") {
-      return this.httpUpdate(ctx);
-    }
+    let object = await this.get(uuid, ctx);
+    if (!object || object.__deleted) throw 404;
+    await object.canAct(ctx, "delete");
+    // http://stackoverflow.com/questions/28684209/huge-delay-on-delete-requests-with-204-response-and-no-content-in-objectve-c#
+    // IOS don't handle 204 with Content-Length != 0 it seems
+    // Have trouble to handle the Content-Length on API Gateway so returning an empty object for now
+    ctx.write({});
+    await this.delete(uuid);
+    await this.emitSync("Store.WebDelete", <EventStoreWebDelete>{
+      context: ctx,
+      object_id: uuid,
+      store: this
+    });
   }
 
   /**

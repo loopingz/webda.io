@@ -2,7 +2,7 @@ import { EventEmitter } from "events";
 import { v4 as uuidv4 } from "uuid";
 
 export interface Logger {
-  log: (level: WorkerLogLevel, ...args) => void;
+  log: (level: WorkerLogLevel, ...args: any[]) => void;
   logGroupOpen: (name: string) => void;
   logGroupClose: () => void;
   logProgressStart: (uid: string, total: number, title: string) => void;
@@ -102,9 +102,9 @@ export class WorkerInput {
 }
 
 class WorkerInputEmitter extends WorkerInput {
-  promise: Promise<string>;
-  resolve: (value?: unknown) => void;
-  timeout: NodeJS.Timeout;
+  promise?: Promise<string>;
+  resolve?: (value?: string) => void;
+  timeout?: NodeJS.Timeout;
 
   toMessage() {
     return new WorkerInput(this.uuid, this.title, this.type, this.validators);
@@ -133,7 +133,7 @@ export type WorkerLogLevel = "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE";
 export class WorkerLog {
   level: WorkerLogLevel;
   args: any[];
-  constructor(level: WorkerLogLevel, ...args) {
+  constructor(level: WorkerLogLevel, ...args: any[]) {
     this.level = level;
     this.args = args;
   }
@@ -161,23 +161,21 @@ export class WorkerMessage {
   groups: string[];
   type: WorkerMessageType;
   progresses: { [key: string]: WorkerProgress } = {};
-  currentProgress: string;
-  log: WorkerLog = undefined;
+  currentProgress?: string;
+  log?: WorkerLog;
   timestamp: number;
   [key: string]: any;
   input?: WorkerInput;
 
   constructor(type: WorkerMessageType, workout: WorkerOutput, infos: any = {}) {
+    this.type = type;
     if (workout) {
       this.groups = workout.groups;
-      this.type = type;
       this.progresses = workout.progresses;
       this.currentProgress = workout.currentProgress;
       this.timestamp = Date.now();
     }
-    for (let i in infos) {
-      this[i] = infos[i];
-    }
+    Object.assign(this, infos);
   }
 }
 
@@ -188,11 +186,11 @@ export class WorkerMessage {
  * It will show progress in the terminal, or send it via WebSockets or store it in a DB or in a logfile
  */
 export class WorkerOutput extends EventEmitter {
-  title: string;
+  title?: string;
   groups: string[] = [];
   progresses: { [key: string]: WorkerProgress } = {};
   progressesStack: string[] = [];
-  currentProgress: string;
+  currentProgress?: string;
   interactive: boolean = false;
   inputs: { [key: string]: WorkerInputEmitter } = {};
 
@@ -202,7 +200,7 @@ export class WorkerOutput extends EventEmitter {
    * @param event
    * @param infos
    */
-  protected emitMessage(event: WorkerMessageType, infos: any = {}) {
+  protected emitMessage(event: WorkerMessageType, infos: any = {}): void {
     this.emit("message", new WorkerMessage(event, this, infos));
   }
 
@@ -211,7 +209,7 @@ export class WorkerOutput extends EventEmitter {
    *
    * @param title to set
    */
-  setTitle(title: string) {
+  setTitle(title: string): void {
     this.emitMessage("title.set", { title });
   }
 
@@ -222,7 +220,7 @@ export class WorkerOutput extends EventEmitter {
    * @param total
    * @param title
    */
-  startProgress(uid: string, total: number, title: string = undefined) {
+  startProgress(uid: string, total: number, title?: string): void {
     this.currentProgress = uid;
     this.progressesStack.push(uid);
     this.progresses[uid] = new WorkerProgress(uid, total, this.groups, title);
@@ -235,10 +233,7 @@ export class WorkerOutput extends EventEmitter {
    * @param inc
    * @param uid
    */
-  incrementProgress(inc: number = 1, uid: string = undefined, title: string = undefined) {
-    if (!uid) {
-      uid = this.currentProgress;
-    }
+  incrementProgress(inc: number = 1, uid: string = this.currentProgress, title?: string): void {
     if (!this.progresses[uid]) {
       throw new Error("Unknown progress");
     }
@@ -252,10 +247,7 @@ export class WorkerOutput extends EventEmitter {
    * @param uid id of the progress or default one
    * @param title update title as well
    */
-  updateProgress(current: number, uid: string = undefined, title: string = undefined) {
-    if (!uid) {
-      uid = this.currentProgress;
-    }
+  updateProgress(current: number, uid: string = this.currentProgress, title?: string): void {
     if (!this.progresses[uid]) {
       throw new Error("Unknown progress");
     }
@@ -279,7 +271,7 @@ export class WorkerOutput extends EventEmitter {
    *
    * @param name of group
    */
-  openGroup(name: string = "") {
+  openGroup(name: string = ""): void {
     this.groups.push(name);
     this.emitMessage("group.open", { group: name });
   }
@@ -287,7 +279,7 @@ export class WorkerOutput extends EventEmitter {
   /**
    * Close a group of output
    */
-  closeGroup() {
+  closeGroup(): void {
     if (this.groups.length === 0) {
       return;
     }
@@ -301,7 +293,7 @@ export class WorkerOutput extends EventEmitter {
    * @param level of log to use with filtering
    * @param args anything you want to log
    */
-  log(level: WorkerLogLevel, ...args) {
+  log(level: WorkerLogLevel, ...args: any[]): void {
     this.logWithContext(level, undefined, ...args);
   }
 
@@ -309,7 +301,7 @@ export class WorkerOutput extends EventEmitter {
    *
    * @param interactive
    */
-  logWithContext(level: WorkerLogLevel, context: any, ...args) {
+  logWithContext(level: WorkerLogLevel, context: any, ...args: any[]): void {
     this.emitMessage("log", { context, log: new WorkerLog(level, ...args) });
   }
 
@@ -318,7 +310,7 @@ export class WorkerOutput extends EventEmitter {
    *
    * @param interactive
    */
-  setInteractive(interactive: boolean) {
+  setInteractive(interactive: boolean): void {
     this.interactive = interactive;
   }
 
@@ -345,7 +337,7 @@ export class WorkerOutput extends EventEmitter {
     }
     let uuid = uuidv4();
     this.inputs[uuid] = new WorkerInputEmitter(uuid, title, type, regexp);
-    this.inputs[uuid].promise = new Promise((resolve, reject) => {
+    this.inputs[uuid].promise = new Promise<string>((resolve, reject) => {
       this.inputs[uuid].resolve = resolve;
       if (timeout > 0) {
         this.inputs[uuid].timeout = setTimeout(() => {
@@ -387,7 +379,7 @@ export class WorkerOutput extends EventEmitter {
    * @param uuid of input
    * @param value entered by user
    */
-  returnInput(uuid: string, value: string) {
+  returnInput(uuid: string, value: string): void {
     if (!this.inputs[uuid]) {
       throw new Error("Unknown input");
     }

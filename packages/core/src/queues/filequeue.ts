@@ -104,11 +104,10 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
       .filter(f => !f.hasLock)
       .sort((a, b) => {
         // It is not relevant as it is fs based
-        /* istanbul ignore if  */
+        /* c8 ignore next 4 */
         if (a.ctime > b.ctime) {
           return 1;
         }
-        /* istanbul ignore next  */
         return -1;
       });
     if (files.length) {

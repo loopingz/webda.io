@@ -4,12 +4,11 @@ import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerMessage, WorkerOutput }
 import { Logger } from "./index";
 
 /**
- * Record all messages in memory
+ * Record all messages in file
  */
 export class FileLogger extends Logger {
   // File descriptor
-  outputFileStream: fs.WriteStream;
-  outputStream: any;
+  outputStream?: fs.WriteStream;
   outputCount: number = 0;
   level: WorkerLogLevel;
   filepath: string;
@@ -27,6 +26,7 @@ export class FileLogger extends Logger {
     this.filepath = filepath;
     this.sizeLimit = sizeLimit;
     this.format = format;
+    this.level = level;
   }
 
   onMessage(msg: WorkerMessage) {
@@ -62,7 +62,7 @@ export class FileLogger extends Logger {
   }
 
   rotateLogs(filepath: string) {
-    this.outputStream.close();
+    this.outputStream?.close();
     let filename = path.basename(filepath);
     let dirname = path.dirname(filepath);
     let num = fs.readdirSync(dirname).filter(n => n.startsWith(filename)).length + 1;

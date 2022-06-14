@@ -2,7 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import * as assert from "assert";
 import { stub } from "sinon";
 import { v4 as uuidv4 } from "uuid";
-import * as Idents from "../../test/models/ident";
+import { Ident } from "../../test/models/ident";
 import { Context, Store, StoreParameters } from "../index";
 import { CoreModel } from "../models/coremodel";
 import { WebdaTest } from "../test";
@@ -56,7 +56,7 @@ abstract class StoreTest extends WebdaTest {
   }
 
   getModelClass() {
-    return Idents;
+    return Ident;
   }
 
   /**

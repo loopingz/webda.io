@@ -14,7 +14,7 @@
     "build": "webda build",
     "lint": "prettier --check src/**/*",
     "lint:fix": "prettier --write src/**/*",
-    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts src/*.spec.ts"
+    "test": "c8 mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts src/*.spec.ts"
   },
   "dependencies": {
     "@webda/core": "^2.0.0-beta.3",
@@ -25,8 +25,7 @@
     "test",
     "webda.module.json"
   ],
-  "nyc": {
-    "extends": "@istanbuljs/nyc-config-typescript",
+  "c8": {
     "report-dir": "./reports",
     "reporter": [
       "html",

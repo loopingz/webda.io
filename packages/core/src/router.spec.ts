@@ -1,8 +1,8 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
+import { RouteInfo } from "./router";
 import { WebdaTest } from "./test";
 import { HttpContext } from "./utils/httpcontext";
-import { RouteInfo } from "./router";
 
 @suite
 class RouterTest extends WebdaTest {
@@ -93,5 +93,26 @@ class RouterTest extends WebdaTest {
     assert.notStrictEqual(api.paths["/plop"], undefined);
     assert.deepStrictEqual(api.paths["/plop"].get.tags, ["plop", "test"]);
     assert.ok(api.tags.filter(f => f.name === "plop").length === 1);
+  }
+
+  @test
+  cov() {
+    const info: RouteInfo = {
+      methods: ["GET"],
+      executor: "DefinedMailer",
+      openapi: {
+        tags: ["plop", "test"],
+        hidden: true,
+        get: {
+          schemas: {
+            output: "test"
+          }
+        }
+      }
+    };
+    this.webda.addRoute("/cov", info);
+    this.webda.addRoute("/cov", info);
+    this.webda.addRoute("/cov", { ...info, methods: ["PUT"] });
+    this.webda.getRouter().removeRoute("/cov", info);
   }
 }

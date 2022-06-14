@@ -204,7 +204,6 @@ class CoreTest extends WebdaTest {
     // @ts-ignore
     webda.services["ConsoleLogger"] = new ConsoleLoggerService(webda, "ConsoleLogger", {});
     await webda.init();
-    webda.reinitResolvedRoutes();
     let openapi = webda.exportOpenAPI();
 
     assert.notStrictEqual(openapi.paths["/contacts"], undefined);
@@ -287,22 +286,24 @@ class CoreTest extends WebdaTest {
   @test
   getStores() {
     let moddas = this.webda.getStores();
-    assert.strictEqual(Object.keys(moddas).length, 8);
+    assert.strictEqual(Object.keys(moddas).length, 7);
   }
   @test
   getServicesImplementationsWithType() {
     let stores = this.webda.getServicesOfType(Store);
-    assert.strictEqual(Object.keys(stores).length, 8);
+    assert.strictEqual(Object.keys(stores).length, 7);
   }
 
   @test
   getVersion() {
-    assert.strictEqual(this.webda.getVersion(), JSONUtils.loadFile("../package.json").version);
+    assert.strictEqual(this.webda.getVersion(), JSONUtils.loadFile("package.json").version);
   }
 
   @test
   knownPage() {
     let executor = this.getExecutor(this.ctx, "test.webda.io", "GET", "/");
+    // @ts-ignore
+    console.log(Object.keys(this.webda.getRouter().routes));
     assert.notStrictEqual(executor, undefined);
     assert.strictEqual(this.ctx.getParameters()["TEST_ADD"], undefined);
     let service = this.ctx.getExecutor();

@@ -87,6 +87,8 @@ class AuthenticationTest extends WebdaTest {
     assert.strictEqual(params.identStore, "id");
     assert.strictEqual(params.userStore, "us");
     assert.strictEqual(params.url, "/aaa");
+    this.authentication.getParameters().email = undefined;
+    assert.strictEqual(this.authentication.getUrl("./emails", ["POST"]), undefined);
     let auth = new Authentication(this.webda, "auth", { email: { mailer: "plop" } });
     assert.throws(() => auth.resolve(), /email authentication requires a Mailer service/);
   }

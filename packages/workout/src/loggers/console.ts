@@ -16,11 +16,8 @@ interface WorkerLogMessage {
 class ConsoleLogger extends Logger {
   static defaultFormat = "%(d)s [%(l)s] %(m)s";
   format: string;
-  level: WorkerLogLevel;
-  listener: (msg: WorkerMessage) => void;
-  output: WorkerOutput;
 
-  constructor(output: WorkerOutput, level: WorkerLogLevel = undefined, format: string = ConsoleLogger.defaultFormat) {
+  constructor(output: WorkerOutput, level?: WorkerLogLevel, format: string = ConsoleLogger.defaultFormat) {
     super(output, level);
     this.format = format;
   }
@@ -87,7 +84,7 @@ class ConsoleLogger extends Logger {
    * @param msg
    * @param format
    */
-  static format(msg: WorkerMessage, format: string = ConsoleLogger.defaultFormat) {
+  static format(msg: WorkerMessage, format: string = ConsoleLogger.defaultFormat): string {
     let info: WorkerLogMessage = {
       m: msg.log.args
         .map(a => {
@@ -110,6 +107,7 @@ class ConsoleLogger extends Logger {
       if (err instanceof SyntaxError) {
         return "bad log format: " + format;
       }
+      return "";
     }
   }
 }

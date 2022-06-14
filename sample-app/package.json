@@ -15,7 +15,7 @@
     "lib"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc-esm",
     "pretest": "npm run build",
     "test": "echo 'No test sample available yet'"
   },
@@ -27,18 +27,10 @@
     "@webda/core": "link:../packages/core/",
     "@webda/shell": "link:../packages/shell/",
     "@webda/workout": "link:../packages/workout/",
+    "@webda/tsc-esm": "link:../packages/tsc-esm/",
     "deepmerge": "^4.2.2",
     "merge": "^2.1.1",
     "yaml": "^2.0.0"
-  },
-  "nyc": {
-    "extends": "@istanbuljs/nyc-config-typescript",
-    "report-dir": "./reports",
-    "reporter": [
-      "html",
-      "lcov",
-      "json"
-    ]
   },
   "publishConfig": {
     "access": "public"

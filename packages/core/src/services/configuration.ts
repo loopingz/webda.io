@@ -1,4 +1,4 @@
-import * as jsonpath from "jsonpath";
+import jsonpath from "jsonpath";
 import { WebdaError } from "../core";
 import { Service, ServiceParameters } from "./service";
 

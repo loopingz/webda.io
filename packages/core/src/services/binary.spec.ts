@@ -170,10 +170,6 @@ class BinaryTest<T extends Binary = Binary> extends WebdaTest {
       this.log("DEBUG", "BinaryMap downloadTo with I/O issues");
       await assert.rejects(() => binary.downloadTo(user1[map][0], "./downloadTo.tmp"));
       assert.ok(!fs.existsSync("./downloadTo.tmp"));
-      stub2 = sinon.stub(fs, "unlinkSync").callsFake(() => {
-        throw new Error();
-      });
-      await assert.rejects(() => binary.downloadTo(user1[map][0], "./downloadTo.tmp"));
     } finally {
       stub.restore();
       if (stub2) {

@@ -892,7 +892,7 @@ export class Compiler {
     const host = ts.createWatchCompilerHost(
       this.app.getAppPath("tsconfig.json"),
       {},
-      ts.sys,
+      { ...ts.sys, writeFile: writer },
       ts.createSemanticDiagnosticsBuilderProgram,
       reportDiagnostic,
       reportWatchStatusChanged,

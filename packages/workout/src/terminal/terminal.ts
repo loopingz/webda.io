@@ -16,19 +16,19 @@ import { ConsoleLogger } from "../loggers/console";
 export class Terminal {
   tty: boolean;
   wo: WorkerOutput;
-  height: number;
-  width: number;
+  height: number = process.stdout.rows;
+  width: number = process.stdout.columns;
   history: string[] = [];
   historySize: number = 2000;
   scrollY: number = -1;
   level: WorkerLogLevel;
-  hasProgress: boolean;
+  hasProgress: boolean = false;
   progresses: { [key: string]: WorkerProgress } = {};
   title: string = "";
-  format: string;
+  format?: string;
   inputs: WorkerInput[] = [];
   inputValue: string = "";
-  rl: readline.Interface;
+  rl?: readline.Interface;
   reset: boolean = false;
   inputValid: boolean = true;
   progressChar: number = 0;
@@ -41,15 +41,10 @@ export class Terminal {
    * Contains the WorkerOutput listener
    */
   listener: (msg: WorkerMessage) => void;
-  _refresh: NodeJS.Timeout;
+  _refresh?: NodeJS.Timeout;
   static refreshSpeed = 300;
 
-  constructor(
-    wo: WorkerOutput,
-    level: WorkerLogLevel = undefined,
-    format: string = undefined,
-    tty: boolean = process.stdout.isTTY
-  ) {
+  constructor(wo: WorkerOutput, level?: WorkerLogLevel, format?: string, tty: boolean = process.stdout.isTTY) {
     this.wo = wo;
     this.tty = tty;
     this.format = format;
@@ -95,7 +90,7 @@ export class Terminal {
     process.stdin.on("data", this.onData.bind(this));
   }
 
-  onData(data) {
+  onData(data: Buffer | string): void {
     let str = data.toString();
     /* c8 ignore next 3 */
     if (str.charCodeAt(0) === 3) {
@@ -138,7 +133,7 @@ export class Terminal {
     this.displayScreen();
   }
 
-  resize() {
+  resize(): void {
     this.height = process.stdout.rows;
     this.width = process.stdout.columns;
     if (this.hasProgress) {
@@ -146,7 +141,7 @@ export class Terminal {
     }
   }
 
-  scrollUp(increment: number) {
+  scrollUp(increment: number): void {
     if (this.scrollY === -1) {
       this.scrollY = this.history.length - this.height;
     }
@@ -156,7 +151,7 @@ export class Terminal {
     }
   }
 
-  scrollDown(increment: number) {
+  scrollDown(increment: number): void {
     if (this.scrollY === -1) {
       this.scrollY = this.history.length - this.height;
     }
@@ -166,11 +161,11 @@ export class Terminal {
     }
   }
 
-  setTitle(title: string = "") {
+  setTitle(title: string = ""): void {
     this.title = title;
   }
 
-  resetTerm(..._args) {
+  resetTerm(): void {
     if (this.reset) {
       return;
     }
@@ -179,8 +174,8 @@ export class Terminal {
     process.stdout.write(this.displayHistory(this.height, false));
   }
 
-  close() {
-    clearInterval(this._refresh);
+  close(): void {
+    clearInterval(<NodeJS.Timeout>this._refresh);
     this.resetTerm();
     if (process.stdin.setRawMode) {
       process.stdin.setRawMode(false);
@@ -189,14 +184,14 @@ export class Terminal {
     this.wo.removeListener("message", this.listener);
   }
 
-  pushHistory(line) {
+  pushHistory(line: string): void {
     this.history.push(line);
     if (this.history.length > this.historySize) {
       this.history.shift();
     }
   }
 
-  async router(msg: WorkerMessage) {
+  async router(msg: WorkerMessage): Promise<void> {
     switch (msg.type) {
       case "log":
         return this.log(msg.groups, msg.log.level, ...msg.log.args);
@@ -213,23 +208,23 @@ export class Terminal {
         this.handleTitleMessage(msg);
         break;
       case "input.request":
-        this.inputs.push(msg.input);
+        this.inputs.push(<WorkerInput>msg.input);
         this.displayScreen();
         break;
       case "input.received":
-        this.inputs = this.inputs.filter(m => msg.input.uuid !== m.uuid);
+        this.inputs = this.inputs.filter(m => msg.input?.uuid !== m.uuid);
         this.displayScreen();
         break;
     }
   }
 
-  handleTitleMessage(msg: WorkerMessage) {
+  handleTitleMessage(msg: WorkerMessage): void {
     this.title = msg.title;
     this.log(msg.groups, "INFO", [msg.title || ""]);
     this.displayScreen();
   }
 
-  log(groups: any[], level: WorkerLogLevel, ...args) {
+  log(groups: any[], level: WorkerLogLevel, ...args: any[]): void {
     if (!LogFilter(level, this.level)) {
       return;
     }
@@ -250,7 +245,7 @@ export class Terminal {
     this.displayScreen();
   }
 
-  getFooterSize() {
+  getFooterSize(): number {
     let size = Object.keys(this.progresses).length + 1 + this.title ? 1 : 0;
     if (this.inputs.length) {
       size += 1;
@@ -261,15 +256,16 @@ export class Terminal {
     return size;
   }
 
-  stripColorString(str, limit: number = -1) {
+  stripColorString(str: string, limit: number = -1): string {
     let match;
     let regexp = /(?<before>[^\u001b]+)|(?<cmd>\u001b\[[\d;]+m)/gm;
     let originalString = "";
     let fullString = "";
     let noMore = false;
     while ((match = regexp.exec(str))) {
-      match.groups.before = match.groups.before || "";
-      match.groups.cmd = match.groups.cmd || "";
+      match.groups ??= {};
+      match.groups.before ??= "";
+      match.groups.cmd ??= "";
       if (limit > 0 && originalString.length + match.groups.before.length >= limit) {
         fullString += match.groups.before.substr(0, limit - originalString.length - 3) + "...";
         noMore = true;
@@ -285,10 +281,7 @@ export class Terminal {
     return fullString;
   }
 
-  displayString(str, limit: number = undefined) {
-    if (!limit) {
-      limit = this.width;
-    }
+  displayString(str: string, limit: number = this.width): string {
     let len = this.getTrueLength(str);
     if (len > limit) {
       return this.stripColorString(str, limit);
@@ -298,11 +291,11 @@ export class Terminal {
     return str.padEnd(limit);
   }
 
-  getTrueLength(str): number {
+  getTrueLength(str: string): number {
     return str.replace(/(\u001b\[[\d;]+m)/gm, "").length;
   }
 
-  displayBar(ratio, barlen) {
+  displayBar(ratio: number, barlen: number): string {
     let barFill = Math.floor(ratio * barlen);
     let barEmpty = Math.floor((1 - ratio) * barlen);
     if (barFill + barEmpty >= barlen) {
@@ -315,7 +308,7 @@ export class Terminal {
     return this.getBar(barFill, true) + this.getBar(barEmpty, false);
   }
 
-  getBar(size: number, complete: boolean) {
+  getBar(size: number, complete: boolean): string {
     if (complete) {
       return "[" + chalk.green("=".repeat(size));
     } else {

@@ -86,8 +86,9 @@
       "src/test.ts",
       "**/*.spec.ts",
       "test/**/*",
-      "src/stores/webdaql/WebdaQL*.ts"
-    ]
+      "*/stores/webdaql/WebdaQL*"
+    ],
+    "excludeNodeModules": true
   },
   "homepage": "https://webda.io",
   "publishConfig": {

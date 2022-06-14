@@ -34,8 +34,7 @@
     "@webda/core": "^2.0.0-beta.3",
     "yaml": "^2.0.0"
   },
-  "nyc": {
-    "extends": "@istanbuljs/nyc-config-typescript",
+  "c8": {
     "reporter": [
       "html",
       "lcov",

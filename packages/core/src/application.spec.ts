@@ -151,6 +151,9 @@ class ApplicationTest extends WebdaTest {
 
     unpackedApp = new UnpackedApplication(__dirname + "/../test/moddas", undefined);
     await unpackedApp.load();
+    // @ts-ignore
+    unpackedApp.baseConfiguration.cachedModules.project.webda = undefined;
+    assert.deepStrictEqual(unpackedApp.getPackageWebda(), { namespace: "Webda" });
   }
 
   @test

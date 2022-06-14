@@ -350,22 +350,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   /**
-   * Reinit the @Route
-   */
-  reinitResolvedRoutes() {
-    for (let i in beans) {
-      if (beans[i].routes) {
-        for (let j in beans[i].routes) {
-          beans[i].routes[j].forEach(r => {
-            r.resolved = false;
-            this.router.removeRoute(j, r.info);
-          });
-        }
-      }
-    }
-  }
-
-  /**
    * Retrieve all detected modules definition
    */
   getModules() {
@@ -450,7 +434,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
 
     // Init the other services
     this.initStatics();
-    this.reinitResolvedRoutes();
     this.log("TRACE", "Create Webda init promise");
     this._init = new Promise(async resolve => {
       await this.initService("registry");
@@ -790,9 +773,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     const services = this.configuration.services;
     this.log("DEBUG", beans);
     for (let i in beans) {
-      if (!beans[i].bean) {
-        this.log("DEBUG", "Implicit @Bean due to a @Route", beans[i].constructor.name);
-      }
       let name = beans[i].constructor.name;
       if (!services[name]) {
         services[name] = {};

@@ -8,7 +8,7 @@ export abstract class Logger {
   listener: (msg: WorkerMessage) => void;
   output: WorkerOutput;
 
-  constructor(output: WorkerOutput, level: WorkerLogLevel = undefined) {
+  constructor(output: WorkerOutput, level?: WorkerLogLevel) {
     this.level = level ? level : <any>process.env.LOG_LEVEL || "INFO";
     this.listener = msg => {
       this.onMessage(msg);

@@ -2,8 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import { Store } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
-import * as child_process from "child_process";
-import * as EventEmitter from "events";
+import { EventEmitter } from "events";
 import { nextTick } from "process";
 import { stub } from "sinon";
 import models, { AsyncAction } from "../models";
@@ -50,10 +49,10 @@ class LocalRunnerTest extends WebdaTest {
 
   @test
   async launchAction() {
+    const runner = new LocalRunner(this.webda, "runner", {});
     // @ts-expect-error
-    const spawn = stub(child_process, "spawn").returns({ pid: "fake" });
+    const spawn = stub(runner, "spawn").returns({ pid: "fake" });
     try {
-      const runner = new LocalRunner(this.webda, "runner", {});
       const action = await this.getService<Store<AsyncAction>>("AsyncJobs").save({ status: "STARTING", logs: [] });
 
       let job = await runner.launchAction(action, this.getJobInfo(action));
@@ -72,10 +71,10 @@ class LocalRunnerTest extends WebdaTest {
   @test
   async launchActionAutoStatus() {
     const child = new FakeChildProcess();
+    const runner = new LocalRunner(this.webda, "runner", { autoStatus: true });
     // @ts-expect-error
-    const spawn = stub(child_process, "spawn").returns(child);
+    const spawn = stub(runner, "spawn").returns(child);
     try {
-      const runner = new LocalRunner(this.webda, "runner", { autoStatus: true });
       const action = await this.getService<Store<AsyncAction>>("AsyncJobs").save({ status: "STARTING", logs: [] });
 
       let job = await runner.launchAction(action, this.getJobInfo(action));

@@ -149,6 +149,7 @@ class AsyncJobServiceTest extends WebdaTest {
     assert.strictEqual(actions[0].status, "QUEUED");
     assert.strictEqual(actions[0].type, "AsyncAction");
     assert.notStrictEqual(actions[0].__secretKey, undefined);
+    // @ts-ignore
     const msg: any = (await service.getService<Queue<any>>("AsyncQueue").receiveMessage()).shift().Message;
     assert.strictEqual(msg.type, actions[0].type);
     assert.strictEqual(msg.uuid, actions[0].getUuid());
@@ -313,7 +314,7 @@ class AsyncJobServiceTest extends WebdaTest {
         runWebdaAsyncAction: async info => {
           calledInfo = info;
         },
-        myMethod: async (...args) => {
+        myMethod: async (...args: any[]) => {
           return {
             myMethod: "async",
             success: true,
@@ -355,8 +356,11 @@ class AsyncJobServiceTest extends WebdaTest {
 
       let stub = sinon.stub(axios, "post").callsFake(async (...args) => {
         let ctx = await this.newContext(args[1]);
+        // @ts-ignore
         if (args.length > 2 && args[2].headers) {
+          // @ts-ignore
           for (let k in args[2].headers) {
+            // @ts-ignore
             ctx.getHttpContext().headers[k.toLowerCase()] = args[2].headers[k].toString();
           }
         }

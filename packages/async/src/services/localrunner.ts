@@ -52,6 +52,11 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
     return new LocalRunnerParameters(params);
   }
 
+  spawn(command: string, args: string[], options?: SpawnOptions | undefined) {
+    /* c8 ignore next 2 */
+    return spawn(command, args, <any>options);
+  }
+
   /**
    * @inheritdoc
    */
@@ -71,7 +76,7 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
       this.parameters.command,
       this.parameters.args ? this.parameters.args.map(a => `'${a}'`).join(" ") : ""
     );
-    const child = spawn(this.parameters.command, this.parameters.args || [], {
+    const child = this.spawn(this.parameters.command, this.parameters.args || [], {
       ...this.parameters.options,
       env: envs,
       detached: true

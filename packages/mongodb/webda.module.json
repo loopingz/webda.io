@@ -15,7 +15,7 @@
         },
         "url": {
           "type": "string",
-          "description": "Contains the URL to Mongo Server\n\nWill try to use WEBDA_MONDO_URL environment variable if not defined"
+          "description": "URL on which to serve the content"
         },
         "openapi": {
           "type": "object",
@@ -1975,6 +1975,10 @@
           "type": "number",
           "description": "Slow query threshold",
           "default": 30000
+        },
+        "mongoUrl": {
+          "type": "string",
+          "description": "Contains the URL to Mongo Server\n\nWill try to use WEBDA_MONDO_URL environment variable if not defined"
         },
         "options": {
           "description": "Additional options for Mongo connetion\n\nShould be typed with MongoClientOptions but not available due to bug in ts-json-schema-generator https://docs.mongodb.com/manual/reference/connection-string"

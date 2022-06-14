@@ -1,7 +1,7 @@
 {
   "version": 2,
   "parameters": {
-    "url": "mongodb://root:webda.io@localhost:37017/"
+    "mongoUrl": "mongodb://root:webda.io@localhost:37017/"
   },
   "services": {
     "IdentsMapper": {

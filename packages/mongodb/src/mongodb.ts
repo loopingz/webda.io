@@ -12,8 +12,8 @@ import { Collection, Db, DbOptions, Document, MongoClient } from "mongodb";
 export class MongoParameters extends StoreParameters {
   constructor(params: any, service: Store) {
     super(params, service);
-    this.url ??= process.env["WEBDA_MONGO_URL"];
-    if (this.url === undefined) {
+    this.mongoUrl ??= process.env["WEBDA_MONGO_URL"];
+    if (this.mongoUrl === undefined) {
       throw new Error("An URL is required for MongoDB service");
     }
     this.options ??= {};
@@ -24,7 +24,7 @@ export class MongoParameters extends StoreParameters {
    *
    * Will try to use WEBDA_MONDO_URL environment variable if not defined
    */
-  url?: string;
+  mongoUrl?: string;
   /**
    * Additional options for Mongo connetion
    *
@@ -87,7 +87,7 @@ export default class MongoStore<T extends CoreModel, K extends MongoParameters> 
   async _connect() {
     if (this._connectPromise === undefined) {
       this._connectPromise = (async () => {
-        this._client = await new MongoClient(this.parameters.url, this.parameters.options).connect();
+        this._client = await new MongoClient(this.parameters.mongoUrl, this.parameters.options).connect();
         this._db = this._client.db(this.parameters.database, this.parameters.databaseOptions);
         this._collection = this._db.collection(this.parameters.collection);
       })();

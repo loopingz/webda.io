@@ -1,9 +1,10 @@
-import { DeployerResources } from "@webda/core";
-import * as fs from "fs-extra";
-import * as glob from "glob";
+import { DeployerResources, getCommonJS, JSONUtils } from "@webda/core";
+import fs from "fs-extra";
+import glob from "glob";
 import * as path from "path";
-import { Packager } from "..";
+import { Packager } from "../index";
 import { Deployer } from "./deployer";
+const { __dirname } = getCommonJS(import.meta.url);
 
 /**
  * Command mapping for your preferred containerd client
@@ -278,7 +279,7 @@ ENV PATH=\${PATH}:/devshell/packages/shell/bin\n`;
     }
 
     // Normal take the same version as local webda-shell
-    let tag = require(__dirname + "/../../package.json").version;
+    let tag = JSONUtils.loadFile(__dirname + "/../../package.json").version;
     return `# Install current @webda/shell version\nRUN yarn global add @webda/shell@${tag}\n\n`;
   }
 

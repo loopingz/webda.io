@@ -1,14 +1,17 @@
 import { suite, test } from "@testdeck/mocha";
+import { getCommonJS } from "@webda/core";
 import * as assert from "assert";
 import { EventEmitter } from "events";
 import * as fs from "fs";
-import * as fse from "fs-extra";
+import fse from "fs-extra";
 import * as path from "path";
 import * as sinon from "sinon";
 import * as unzip from "unzipper";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { SourceTestApplication, WebdaSampleApplication } from "../index.spec";
 import { Packager } from "./packager";
+const { __dirname } = getCommonJS(import.meta.url);
+
 export class WorkspaceTestApplication extends SourceTestApplication {
   loadConfiguration(file) {
     fse.mkdirSync(path.join(__dirname, "..", "..", "test", "fakeworkspace", "node_modules", "@webda"), {
@@ -220,7 +223,7 @@ class PackagerTest {
       await deployer.deploy();
 
       // Do archive error
-      let stub = sinon.stub(deployer, "getArchiver").callsFake(() => {
+      let stub = sinon.stub(deployer, "getArchiver").callsFake(async () => {
         let evt = new EventEmitter();
         // @ts-ignore
         evt.pipe = () => {

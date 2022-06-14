@@ -5,7 +5,7 @@ import { NotFound, S3 } from "@aws-sdk/client-s3";
 import { GetCallerIdentityResponse, STS } from "@aws-sdk/client-sts";
 import { Cache, DeployerResources, WaitFor, WaitLinearDelay, WebdaError } from "@webda/core";
 import { Deployer, DeploymentManager } from "@webda/shell";
-import * as bluebird from "bluebird";
+import bluebird from "bluebird";
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as glob from "glob";

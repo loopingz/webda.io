@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, createHmac, generateKeyPairSync, randomBytes } from "crypto";
 import jwt from "jsonwebtoken";
 import { pem2jwk } from "pem-jwk";
-import { Context, RegistryEntry, Store } from "..";
+import { Context, RegistryEntry, Store } from "../index";
 import { JSONUtils } from "../utils/serializers";
 import { DeepPartial, Inject, Route, Service, ServiceParameters } from "./service";
 export interface KeysRegistry {

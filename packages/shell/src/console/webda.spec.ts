@@ -1,6 +1,6 @@
 "use strict";
 import { suite, test } from "@testdeck/mocha";
-import { FileUtils, JSONUtils, Logger, Module, WebdaError } from "@webda/core";
+import { FileUtils, getCommonJS, JSONUtils, Logger, Module, WebdaError } from "@webda/core";
 import { MemoryLogger, WorkerOutput } from "@webda/workout";
 import * as assert from "assert";
 import { execSync } from "child_process";
@@ -14,6 +14,7 @@ import { SourceApplication } from "../code/sourceapplication";
 import { ServerStatus } from "../handlers/http";
 import { SampleApplicationTest, WebdaSampleApplication } from "../index.spec";
 import { DebuggerStatus, WebdaConsole } from "./webda";
+const { __dirname } = getCommonJS(import.meta.url);
 
 class DebugLogger extends MemoryLogger {
   getLogs(start: number = 0) {
@@ -409,17 +410,14 @@ class DynamicService extend Service {
     // Just to initiate it
     await this.commandLine("service-configuration Test");
     await this.waitForWebda();
-    WebdaConsole.webda.reinitResolvedRoutes();
     await this.commandLine(`-d Dev openapi`, true);
     assert.strictEqual(fs.existsSync("./openapi.json"), true);
     let def = JSON.parse(fs.readFileSync("./openapi.json").toString());
     assert.notStrictEqual(def.paths["/test"], undefined);
     assert.notStrictEqual(def.paths["/msg/{msg}"], undefined);
-    WebdaConsole.webda.reinitResolvedRoutes();
     await this.commandLine(`-d Dev openapi myopenapi.yml`);
     assert.strictEqual(fs.existsSync("./myopenapi.yml"), true);
     assert.deepStrictEqual(FileUtils.load("./myopenapi.yml"), def);
-    WebdaConsole.webda.reinitResolvedRoutes();
     await this.commandLine(`-d Dev openapi myopenapi.yaml`);
     assert.strictEqual(fs.existsSync("./myopenapi.yaml"), true);
     assert.strictEqual(fs.readFileSync("./myopenapi.yaml").toString(), fs.readFileSync("./myopenapi.yml").toString());
@@ -604,7 +602,7 @@ module.exports = {
 
   @test
   async initYeoman() {
-    let yeoman = require("yeoman-environment");
+    let yeoman = await import("yeoman-environment");
     let register = sinon.stub();
     let run = sinon.stub();
     let stub = sinon.stub(yeoman, "createEnv").callsFake(() => {

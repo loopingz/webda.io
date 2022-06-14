@@ -37,7 +37,7 @@ export class AMQPPubSubParameters extends ServiceParameters {
     arguments?: any;
   };
 
-  constructor(params: any) {
+  constructor(params: Partial<AMQPPubSubParameters>) {
     super(params);
     this.exchange ??= {};
     this.exchange.type ??= "fanout";
@@ -53,8 +53,8 @@ export default class AMQPPubSubService<
   T = any,
   K extends AMQPPubSubParameters = AMQPPubSubParameters
 > extends PubSubService<T, K> {
-  channel: any;
-  conn: any;
+  channel: amqplib.Channel;
+  conn: amqplib.Connection;
   exchange: any;
 
   /**
@@ -78,10 +78,13 @@ export default class AMQPPubSubService<
     await super.init();
     this.conn = await amqplib.connect(this.parameters.url);
     this.channel = await this.conn.createChannel();
-    this.exchange = await this.channel.assertExchange(this.parameters.channel, this.parameters.exchange.type, {
-      ...this.parameters.exchange,
-      type: undefined
-    });
+    let params = { ...this.parameters.exchange };
+    delete params.type;
+    this.exchange = await this.channel.assertExchange(
+      this.parameters.channel,
+      this.parameters.exchange?.type || "fanout",
+      params
+    );
     return this;
   }
 
@@ -96,7 +99,7 @@ export default class AMQPPubSubService<
     eventPrototype?: { new (): T },
     onBind?: () => void
   ): CancelablePromise {
-    let consumerTag;
+    let consumerTag: string;
     return new CancelablePromise(
       async (_resolve, reject) => {
         let queue = await this.channel.assertQueue("", {
@@ -104,13 +107,13 @@ export default class AMQPPubSubService<
           durable: false,
           autoDelete: true
         });
-        await this.channel.bindQueue(queue.queue, this.parameters.channel);
+        await this.channel.bindQueue(queue.queue, this.parameters.channel, "*");
         consumerTag = (
           await this.channel.consume(queue.queue, msg => {
             if (msg === null) {
               reject("Cancelled by server");
             }
-            callback(this.unserialize(msg.content.toString(), eventPrototype));
+            callback(this.unserialize(msg?.content.toString() || "", eventPrototype));
           })
         ).consumerTag;
         if (onBind) {

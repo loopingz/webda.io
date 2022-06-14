@@ -18,9 +18,9 @@
     "lib"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc-esm",
     "pretest": "npm run build",
-    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts src/*.spec.ts",
+    "test": "c8 mocha --recursive --exit --timeout=100000 src/**/*.spec.ts src/*.spec.ts",
     "lint": "prettier --check src/**/*",
     "lint:fix": "prettier --write src/**/*"
   },
@@ -32,6 +32,7 @@
     "@phenomnomnominal/tsquery": "^5.0.0",
     "@webda/core": "^2.0.0-beta.3",
     "@webda/kubernetes": "^2.0.0-beta.3",
+    "@webda/tsc-esm": "0.0.0",
     "@webda/workout": "^2.0.0-beta.3",
     "archiver": "^5.3.0",
     "cli-progress": "^3.9.0",
@@ -78,12 +79,12 @@
     "access": "public"
   },
   "devDependencies": {
-    "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@testdeck/mocha": "^0.2.0",
     "@types/node": "14.6.0",
     "@types/yargs": "^17.0.2",
     "csstype": "^3.0.8",
-    "sinon": "^14.0.0"
+    "sinon": "^14.0.0",
+    "ts-node": "^10.8.1"
   },
   "type": "module"
 }

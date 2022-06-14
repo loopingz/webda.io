@@ -1,6 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
+import { getCommonJS, JSONUtils } from "@webda/core";
 import * as assert from "assert";
-import * as fs from "fs-extra";
+import fs from "fs-extra";
 import * as path from "path";
 import * as sinon from "sinon";
 import { DeploymentManager } from "../handlers/deploymentmanager";
@@ -8,6 +9,7 @@ import { WebdaSampleApplication } from "../index.spec";
 import { Container, ContainerResources } from "./container";
 import { DeployerTest } from "./deployertest";
 import { WorkspaceTestApplication } from "./packager.spec";
+const { __dirname } = getCommonJS(import.meta.url);
 
 @suite
 class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> {
@@ -84,7 +86,7 @@ class ContainerDeployerTest extends DeployerTest<Container<ContainerResources>> 
 
   @test
   testGetDockerfileWebdaShell() {
-    let tag = require(__dirname + "/../../package.json").version;
+    let tag = JSONUtils.loadFile("package.json").version;
     assert.strictEqual(
       this.deployer.getDockerfileWebdaShell(),
       `# Install current @webda/shell version\nRUN yarn global add @webda/shell@${tag}\n\n`

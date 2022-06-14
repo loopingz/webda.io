@@ -8,7 +8,10 @@ export function writer(fileName: string, text: string) {
   // Add the ".js" -> if module
   writeFileSync(
     fileName,
-    text.replace(/^(import .* from "\..*)";$/gm, '$1.js";').replace(/^(export .* from "\..*)";$/gm, '$1.js";')
+    text
+      .replace(/^(import .* from "\..*?)(\.js)?";$/gm, '$1.js";')
+      .replace(/^(import .* from "(@[^\/]+\/)?[^@\/]+\/.*?)(\.js)?";$/gm, '$1.js";')
+      .replace(/^(export .* from "\..*?)(\.js)?";$/gm, '$1.js";')
   );
 }
 

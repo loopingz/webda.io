@@ -1,7 +1,7 @@
 import { Configuration, DeployerResources, JSONUtils } from "@webda/core";
 import * as crypto from "crypto";
 import * as fs from "fs";
-import * as glob from "glob";
+import glob from "glob";
 import * as path from "path";
 import * as semver from "semver";
 import { intersect } from "semver-intersect";
@@ -175,9 +175,8 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     }
   }
 
-  getArchiver() {
-    var archiver = require("archiver");
-    return archiver("zip");
+  async getArchiver() {
+    return (await import("archiver"))("zip");
   }
 
   /**
@@ -219,7 +218,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     let appPath = this.app.getAppPath();
     let packageFile = this.app.getAppPath("package.json");
     if (fs.existsSync(packageFile)) {
-      files = require(packageFile).files;
+      files = JSONUtils.loadFile(packageFile).files;
     }
     files ??= fs.readdirSync(appPath);
     for (let i in files) {
@@ -258,7 +257,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     });
 
     var output = fs.createWriteStream(zipPath);
-    var archive = this.getArchiver();
+    var archive = await this.getArchiver();
     return new Promise<void>((resolve, reject) => {
       output.on("close", () => {
         this.packagesGenerated[zipPath + entrypoint || ""] = true;
@@ -338,7 +337,7 @@ export default class Packager<T extends PackagerResources> extends Deployer<T> {
     let files;
     if (fs.existsSync(packageFile)) {
       archive.file(`${packageFile}`, { name: `${toPath}/package.json` });
-      files = require(packageFile).files;
+      files = JSONUtils.loadFile(packageFile).files;
     }
     files ??= fs.readdirSync(fromPath);
     files.forEach(file => {

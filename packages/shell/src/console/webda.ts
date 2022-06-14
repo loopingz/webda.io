@@ -1,16 +1,17 @@
-import { CancelablePromise, FileUtils, Logger } from "@webda/core";
+import { CancelablePromise, FileUtils, getCommonJS, Logger } from "@webda/core";
 import { ConsoleLogger, LogFilter, WorkerLogLevel, WorkerLogLevelEnum, WorkerOutput } from "@webda/workout";
+import chalk from "chalk";
 import { ChildProcess, spawn } from "child_process";
-import * as colors from "colors";
 import * as fs from "fs";
 import * as path from "path";
-import * as semver from "semver";
+import semver from "semver";
 import { Transform } from "stream";
 import yargs from "yargs";
 import { BuildSourceApplication, SourceApplication } from "../code/sourceapplication";
 import { DeploymentManager } from "../handlers/deploymentmanager";
 import { WebdaServer } from "../handlers/http";
 import { WebdaTerminal } from "./terminal";
+const { __dirname } = getCommonJS(import.meta.url);
 
 export type WebdaCommand = (argv: any[]) => void;
 export interface WebdaShellExtension {
@@ -115,7 +116,7 @@ export default class WebdaConsole {
     let service = this.webda.getService(serviceName);
     if (!service) {
       let error = "The service " + serviceName + " is missing";
-      this.output(colors.red(error));
+      this.output(chalk.red(error));
       return -1;
     }
     this.output(JSON.stringify(service.getParameters(), null, " "));
@@ -351,7 +352,7 @@ export default class WebdaConsole {
     if (generatorName.indexOf(":") > 0) {
       [generatorName, generatorAction] = generatorName.split(":");
     }
-    const yeoman = require("yeoman-environment");
+    const yeoman = await import("yeoman-environment");
     const env = yeoman.createEnv();
     env.register(require.resolve(`generator-${generatorName}/generators/${generatorAction}/index.js`), generatorName);
     return env.run(generatorName);
@@ -644,14 +645,14 @@ export default class WebdaConsole {
     // Only load extension if the command is unknown
     if (!WebdaConsole.builtinCommands()[argv._[0]] || argv.help) {
       WebdaConsole.loadExtensions(argv.appPath || process.cwd());
-      Object.keys(this.extensions).forEach(cmd => {
+      for (let cmd of Object.keys(this.extensions)) {
         let ext = this.extensions[cmd];
         // Dynamic we load from the extension as it is more complex
         if (this.extensions[cmd].yargs === "dynamic") {
           parser = parser.command(
             ext.command || cmd,
             ext.description,
-            require(path.join(ext.relPath, ext.require))["yargs"]
+            await import(path.join(ext.relPath, ext.require))["yargs"]
           );
           // Hybrid with builder
         } else if (ext.yargs && ext.yargs.command) {
@@ -660,7 +661,7 @@ export default class WebdaConsole {
           // Simple case
           parser = parser.command(ext.command || cmd, ext.description, this.extensions[cmd].yargs);
         }
-      });
+      }
       argv = parser.parse(args);
       extension = this.extensions[argv._[0]];
     }
@@ -678,12 +679,12 @@ export default class WebdaConsole {
     }
 
     let logger;
-    if (argv.notty || !process.stdout.isTTY || ["init", "build"].includes(<string>argv._[0])) {
+    if (argv.notty || process.env.NO_TTY || !process.stdout.isTTY || ["init", "build"].includes(<string>argv._[0])) {
       logger = new ConsoleLogger(output, <WorkerLogLevel>argv.logLevel, <string>argv.logFormat);
     } else {
       if (extension && extension.terminal) {
         // Allow override of terminal
-        this.terminal = new (require(path.join(extension.relPath, extension.terminal)).default)(
+        this.terminal = new (await import(path.join(extension.relPath, extension.terminal)))(
           output,
           versions,
           argv.logLevel,
@@ -829,7 +830,7 @@ export default class WebdaConsole {
    */
   static async executeShellExtension(ext: WebdaShellExtension, relPath: string, argv: any) {
     ext.export ??= "default";
-    const data = require(path.join(relPath, ext.require));
+    const data = await import(path.join(relPath, ext.require));
     return data[ext.export](this, argv);
   }
 

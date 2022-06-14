@@ -1,15 +1,14 @@
 import { suite, test } from "@testdeck/mocha";
-import { CacheService, ConsoleLoggerService, Core, Module } from "@webda/core";
+import { CacheService, ConsoleLoggerService, Core, getCommonJS, Module } from "@webda/core";
 import { WebdaTest } from "@webda/core/lib/test";
 import * as assert from "assert";
 import { execSync } from "child_process";
-import * as fs from "fs-extra";
-import { emptyDirSync } from "fs-extra/lib/empty";
-import { removeSync } from "fs-extra/lib/remove";
+import fs from "fs-extra";
 import * as path from "path";
 import * as sinon from "sinon";
 import { SourceTestApplication } from "../index.spec";
 import { BuildSourceApplication, SourceApplication } from "./sourceapplication";
+const { __dirname } = getCommonJS(import.meta.url);
 
 @suite
 class SourceApplicationTest extends WebdaTest {
@@ -103,7 +102,7 @@ class SourceApplicationTest extends WebdaTest {
       assert.strictEqual(infos.tags.length, 2);
       assert.deepStrictEqual(infos.tags, ["badapp@0.1.0", "v0.1.0"]);
       assert.strictEqual(infos.version, "0.1.0");
-      emptyDirSync(app.getAppPath(".git"));
+      fs.emptyDirSync(app.getAppPath(".git"));
       CacheService.clearAllCache();
       // Running git on / should fail
       // @ts-ignore
@@ -117,7 +116,7 @@ class SourceApplicationTest extends WebdaTest {
         version: "0.1.0"
       });
     } finally {
-      removeSync(app.getAppPath(".git"));
+      fs.removeSync(app.getAppPath(".git"));
     }
   }
 

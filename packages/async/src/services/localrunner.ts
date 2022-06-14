@@ -56,8 +56,8 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
    * @inheritdoc
    */
   async launchAction(action: AsyncAction, info: JobInfo): Promise<ProcessAction> {
-    let envs = {
-      ...this.parameters.options.env,
+    let envs: { [key: string]: string } = {
+      ...this.parameters.options?.env,
       ...info
     };
     this.log(
@@ -71,18 +71,18 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
       this.parameters.command,
       this.parameters.args ? this.parameters.args.map(a => `'${a}'`).join(" ") : ""
     );
-    const child = spawn(this.parameters.command, this.parameters.args, {
+    const child = spawn(this.parameters.command, this.parameters.args || [], {
       ...this.parameters.options,
       env: envs,
       detached: true
     });
 
     // AutoStatus based on process info
-    if (this.parameters.autoStatus) {
-      child.stdout.on("data", data => {
+    if (this.parameters.autoStatus && child) {
+      child.stdout?.on("data", data => {
         action.getStore().upsertItemToCollection(action.getUuid(), "logs", data);
       });
-      child.stderr.on("data", data => {
+      child.stderr?.on("data", data => {
         action.getStore().upsertItemToCollection(action.getUuid(), "logs", data);
       });
       // As this is local just and mostly used for batch auto status it
@@ -100,7 +100,7 @@ export default class LocalRunner<T extends LocalRunnerParameters = LocalRunnerPa
 
     return {
       agent: Runner.getAgentInfo(),
-      pid: child.pid
+      pid: child?.pid || -1
     };
   }
 }

@@ -17,8 +17,8 @@ import {
   WebdaQL
 } from "@webda/core";
 import { WorkerOutput } from "@webda/workout";
-import { AWSServiceParameters, CloudFormationContributor } from ".";
 import { CloudFormationDeployer } from "../deployers/cloudformation";
+import { AWSServiceParameters, CloudFormationContributor } from "./index";
 
 /**
  * Define DynamoDB parameters

@@ -1,5 +1,5 @@
 import { join } from "path";
-import { Context } from "..";
+import { Context } from "../index";
 import { CoreModel } from "../models/coremodel";
 import { Binary, BinaryMap, BinaryParameters } from "./binary";
 

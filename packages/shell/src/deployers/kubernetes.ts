@@ -3,7 +3,7 @@ import { CronDefinition, CronService, JSONUtils } from "@webda/core";
 import { getKubernetesApiClient, KubernetesParameters } from "@webda/kubernetes";
 import * as crypto from "crypto";
 import * as fs from "fs";
-import * as jsonpath from "jsonpath";
+import jsonpath from "jsonpath";
 import * as yaml from "yaml";
 import { ContainerResources } from "./container";
 import { Deployer } from "./deployer";

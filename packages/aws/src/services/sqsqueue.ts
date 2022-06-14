@@ -1,8 +1,8 @@
 import { ReceiveMessageRequest, SendMessageCommandInput, SQS } from "@aws-sdk/client-sqs";
 import { MessageReceipt, Queue, QueueParameters, WebdaError } from "@webda/core";
 import { createHash } from "crypto";
-import { AWSServiceParameters, CloudFormationContributor } from ".";
 import CloudFormationDeployer from "../deployers/cloudformation";
+import { AWSServiceParameters, CloudFormationContributor } from "./index";
 
 export class SQSQueueParameters extends AWSServiceParameters(QueueParameters) {
   /**

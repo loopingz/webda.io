@@ -221,6 +221,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
     }
     ["status", "errorMessage", "statusDetails", "results"].forEach(k => {
       if (body[k] !== undefined) {
+        // @ts-ignore
         action[k] = body[k];
       }
     });
@@ -305,7 +306,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
    * @returns
    */
   getHeaders(jobInfo: JobInfo) {
-    let res = {
+    let res: { [key: string]: string } = {
       "X-Job-Id": jobInfo.JOB_ID,
       "X-Job-Time": Date.now().toString()
     };
@@ -318,13 +319,14 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
   /**
    * Wrap async job and call the job status hook
    */
-  async runWebdaAsyncAction(jobInfo: JobInfo = undefined): Promise<void> {
+  async runWebdaAsyncAction(jobInfo?: JobInfo): Promise<void> {
     // Get it from environment
     if (jobInfo === undefined) {
-      jobInfo = <any>{};
+      jobInfo = <JobInfo>{};
       Object.keys(process.env)
         .filter(k => k.startsWith("JOB_"))
-        .forEach(k => (jobInfo[k] = process.env[k]));
+        // @ts-ignore
+        .forEach((k: string) => (jobInfo[k] = process.env[k]));
     }
     // Ensure correct context
     if (!jobInfo.JOB_ORCHESTRATOR || !jobInfo.JOB_ID || !jobInfo.JOB_SECRET_KEY || !jobInfo.JOB_HOOK) {
@@ -363,18 +365,20 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       if (!service) {
         throw new Error(`WebdaAsyncAction Service '${action.serviceName}' not found: mismatch app version`);
       }
+      // @ts-ignore
       if (!service[action.method]) {
         throw new Error(
           `WebdaAsyncAction Method '${action.method}' not found in service ${action.serviceName}: mismatch app version`
         );
       }
-      results = await service[action.method](...action.arguments);
+      // @ts-ignore
+      results = await service[action.method](...(action.arguments || []));
     } catch (err) {
       // Job is in error
       await axios.post(
         jobInfo.JOB_HOOK,
         {
-          errorMessage: err.message,
+          errorMessage: <string | undefined>(<any>err)?.message,
           status: "ERROR"
         },
         {

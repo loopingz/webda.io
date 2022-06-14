@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc-esm",
     "pretest": "npm run build",
-    "test": "nyc mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts",
+    "test": "c8 mocha --recursive --exit --timeout=100000 -r ../../node_modules/ts-node/register src/**/*.spec.ts",
     "run": "node core"
   },
   "keywords": [

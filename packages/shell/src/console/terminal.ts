@@ -1,5 +1,5 @@
 import { Terminal, WorkerLogLevel, WorkerMessage, WorkerOutput } from "@webda/workout";
-import * as colors from "colors";
+import chalk from "chalk";
 
 export class WebdaTerminal extends Terminal {
   versions;
@@ -47,7 +47,7 @@ export class WebdaTerminal extends Terminal {
       let logoLength = Math.max(...logo.map(this.getTrueLength));
       logo.push("");
       for (let j in this.versions) {
-        let version: string = colors.bold(`${j} - v${this.versions[j].version}`);
+        let version: string = chalk.bold(`${j} - v${this.versions[j].version}`);
         version = version.padStart(version.length + (logoLength - version.length) / 2).padEnd(logoLength);
         logo.push(version);
       }
@@ -60,7 +60,7 @@ export class WebdaTerminal extends Terminal {
 
   getBar(size: number, complete: boolean) {
     if (complete) {
-      return "[" + colors.bold(colors.yellow("\u2836".repeat(size)));
+      return "[" + chalk.bold(chalk.yellow("\u2836".repeat(size)));
     } else {
       return " ".repeat(size) + "]";
     }
@@ -76,7 +76,7 @@ export class WebdaTerminal extends Terminal {
     if (!isTTY) {
       return str;
     }
-    return str.replace(/(web)(da)/gi, "$1" + "$2".yellow);
+    return str.replace(/(web)(da)/gi, "web" + chalk.yellow("da"));
   }
 
   /**

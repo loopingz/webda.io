@@ -1,5 +1,5 @@
 import { CoreModel, StoreNotFoundError, UpdateConditionFailError } from "@webda/core";
-import { Client, ClientConfig, Pool, PoolConfig } from "pg";
+import pg, { ClientConfig, PoolConfig } from "pg";
 import { SQLResult, SQLStore, SQLStoreParameters } from "./sqlstore";
 
 class PostgresParameters extends SQLStoreParameters {
@@ -33,7 +33,7 @@ export default class PostgresStore<
   T extends CoreModel = CoreModel,
   K extends PostgresParameters = PostgresParameters
 > extends SQLStore<T, K> {
-  client: Client | Pool;
+  client: pg.Client | pg.Pool;
 
   /**
    * @override
@@ -47,9 +47,9 @@ export default class PostgresStore<
    */
   async init(): Promise<this> {
     if (this.parameters.usePool) {
-      this.client = new Pool(this.parameters.postgresqlServer);
+      this.client = new pg.Pool(this.parameters.postgresqlServer);
     } else {
-      this.client = new Client(this.parameters.postgresqlServer);
+      this.client = new pg.Client(this.parameters.postgresqlServer);
     }
     await this.client.connect();
     await super.init();

@@ -4,6 +4,7 @@
     "module": "es2020",
     "outDir": "./lib",
     "strict": false,
+    "strictPropertyInitialization": false,
     "declaration": true,
     "sourceMap": true,
     "esModuleInterop": true,

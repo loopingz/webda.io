@@ -1,13 +1,13 @@
 import { WorkerLogLevel, WorkerOutput } from "@webda/workout";
 import Ajv, { ErrorObject } from "ajv";
 import addFormats from "ajv-formats";
-import ValidationError from "ajv/dist/runtime/validation_error";
 import { deepmerge } from "deepmerge-ts";
 import * as events from "events";
 import { JSONSchema7 } from "json-schema";
 import jsonpath from "jsonpath";
 import pkg from "node-machine-id";
 import { OpenAPIV3 } from "openapi-types";
+import { Writable } from "stream";
 import { v4 as uuidv4 } from "uuid";
 import { Application, Configuration } from "./application";
 import { ConfigurationService, Context, HttpContext, Logger, Service, Store } from "./index";
@@ -15,6 +15,22 @@ import { Constructor, CoreModel, CoreModelDefinition } from "./models/coremodel"
 import { RouteInfo, Router } from "./router";
 import CryptoService from "./services/cryptoservice";
 const { machineIdSync } = pkg;
+
+/**
+ * Copy from https://github.com/ajv-validator/ajv/blob/master/lib/runtime/validation_error.ts
+ * It is not exported by ajv
+ */
+export class ValidationError extends Error {
+  readonly errors: Partial<ErrorObject>[];
+  readonly ajv: true;
+  readonly validation: true;
+
+  constructor(errors: Partial<ErrorObject>[]) {
+    super("validation failed");
+    this.errors = errors;
+    this.ajv = this.validation = true;
+  }
+}
 
 /**
  *
@@ -911,7 +927,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
    */
   public async newContext<T extends Context>(
     httpContext: HttpContext,
-    stream = undefined,
+    stream: Writable = undefined,
     noInit: boolean = false
   ): Promise<T> {
     let res: Context = <Context>(

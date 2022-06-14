@@ -11,6 +11,7 @@ import { serialize as cookieSerialize } from "cookie";
 import * as http from "http";
 import { createChecker } from "is-in-subnet";
 import { AddressInfo } from "net";
+import { Writable } from "stream";
 
 export enum ServerStatus {
   Stopped = "STOPPED",
@@ -107,7 +108,7 @@ export class WebdaServer extends Webda {
     if (["PUT", "PATCH", "POST", "DELETE"].includes(method)) {
       httpContext.setBody(req);
     }
-    return this.newContext(httpContext, res, true);
+    return this.newContext(httpContext, <Writable>res, true);
   }
 
   /**

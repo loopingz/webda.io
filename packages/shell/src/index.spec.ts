@@ -1,9 +1,9 @@
-import { CachedModule, FileUtils, Modda, SectionEnum } from "@webda/core";
+import { CachedModule, FileUtils, getCommonJS, Modda, SectionEnum } from "@webda/core";
 import * as assert from "assert";
-import * as fetch from "node-fetch";
+import fetch from "node-fetch";
 import * as path from "path";
 import { SourceApplication } from "./code/sourceapplication";
-
+const { __dirname } = getCommonJS(import.meta.url);
 export class SourceTestApplication extends SourceApplication {
   /**
    * Only allow local and core module and sample-app

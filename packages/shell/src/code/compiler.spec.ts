@@ -1,10 +1,12 @@
 import { suite, test } from "@testdeck/mocha";
+import { getCommonJS } from "@webda/core";
 import * as assert from "assert";
 import * as path from "path";
 import * as ts from "typescript";
 import { WebdaSampleApplication } from "../index.spec";
 import { Compiler } from "./compiler";
 import { SourceApplication } from "./sourceapplication";
+const { __dirname } = getCommonJS(import.meta.url);
 
 @suite
 class CompilerTest {

@@ -810,14 +810,21 @@ export class Application {
    *
    * @param info
    */
-  async importFile(info: string): Promise<any> {
+  async importFile(info: string, withExport: boolean = true): Promise<any> {
     if (info.startsWith(".")) {
       info = join(this.appPath, ...info.split("/"));
     }
     try {
       this.log("TRACE", "Load file", info);
-      const [importFilename, importName = "default"] = info.split(":");
-      const importObject = (await import(importFilename))[importName];
+      let [importFilename, importName = "default"] = info.split(":");
+      if (!importFilename.endsWith(".js")) {
+        importFilename += ".js";
+      }
+      const importedFile = await import(importFilename);
+      if (!withExport) {
+        return;
+      }
+      const importObject = importedFile[importName];
       if (!importObject) {
         this.log("WARN", `Module ${importFilename} does not have export named ${importName}`);
       }
@@ -856,7 +863,7 @@ export class Application {
       sectionLoader("models"),
       ...Object.keys(info.beans).map(f => {
         this.baseConfiguration.cachedModules.beans[f] = info.beans[f];
-        return import(path.join(parent, info.beans[f])).catch(this.log.bind(this, "WARN"));
+        return this.importFile(path.join(parent, info.beans[f]), false).catch(this.log.bind(this, "WARN"));
       })
     ]);
   }

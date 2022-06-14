@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { Core } from "..";
+import { Core } from "../index";
 import { Service } from "../services/service";
 import { Store } from "../stores/store";
 import { Context } from "../utils/context";

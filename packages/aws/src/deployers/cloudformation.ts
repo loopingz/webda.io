@@ -6,8 +6,8 @@ import { ContainerResources } from "@webda/shell";
 import * as fs from "fs";
 import * as path from "path";
 import * as YAML from "yaml";
-import { AWSDeployer, AWSDeployerResources } from ".";
 import { CloudFormationContributor } from "../services";
+import { AWSDeployer, AWSDeployerResources } from "./index";
 import { LambdaPackagerResources } from "./lambdapackager";
 
 /**

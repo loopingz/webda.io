@@ -1,6 +1,6 @@
-import { ServiceParameters, Service } from "@webda/core";
-import { AsyncAction } from "../models";
+import { Service, ServiceParameters } from "@webda/core";
 import * as os from "os";
+import { AsyncAction } from "../models";
 import { JobInfo } from "./asyncjobservice";
 
 export class RunnerParameters extends ServiceParameters {
@@ -50,12 +50,12 @@ export abstract class Runner<T extends RunnerParameters = RunnerParameters> exte
    * @returns
    */
   handleType(type: string): boolean {
-    return this.parameters.actions.includes(type);
+    return this.parameters.actions?.includes(type) ?? false;
   }
 
   /**
    * Return agent information
-   * @returns 
+   * @returns
    */
   static getAgentInfo(): AgentInfo {
     return {
@@ -64,7 +64,7 @@ export abstract class Runner<T extends RunnerParameters = RunnerParameters> exte
       release: os.release(),
       memory: os.totalmem(),
       type: os.type()
-    }
+    };
   }
   /**
    * Launch the action

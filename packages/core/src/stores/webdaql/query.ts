@@ -1,7 +1,5 @@
 import { CharStreams, CommonTokenStream, RecognitionException, Recognizer, Token } from "antlr4ts";
-import { AbstractParseTreeVisitor } from "antlr4ts/tree/AbstractParseTreeVisitor";
-import { ParseTree } from "antlr4ts/tree/ParseTree";
-import { TerminalNode } from "antlr4ts/tree/TerminalNode";
+import { AbstractParseTreeVisitor, ParseTree, TerminalNode } from "antlr4ts/tree/index.js";
 import { WebdaQLLexer } from "./WebdaQLLexer";
 import {
   AndLogicExpressionContext,

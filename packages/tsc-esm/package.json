@@ -17,8 +17,9 @@
     "test": "__tests__"
   },
   "files": [
-    "*.js"
+    "lib"
   ],
+  "main": "./lib/index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/loopingz/webda.io.git"

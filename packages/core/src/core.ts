@@ -13,7 +13,7 @@ import * as vm from "vm";
 import { Application, Configuration } from "./application";
 import { ConfigurationService, Context, HttpContext, Logger, Service, Store } from "./index";
 import { CoreModel, CoreModelDefinition } from "./models/coremodel";
-import { OpenAPIWebdaDefinition, RouteInfo, Router } from "./router";
+import { RouteInfo, Router } from "./router";
 import CryptoService from "./services/cryptoservice";
 
 /**
@@ -141,29 +141,6 @@ export function Bean(constructor: Function) {
   let name = constructor.name.toLowerCase();
   beans[name] = beans[name] || { constructor };
   beans[name] = { ...beans[name], bean: true };
-}
-
-// @Route to declare route on Bean
-export function Route(
-  route: string,
-  methods: string | string[] = ["GET"],
-  allowPath: boolean = false,
-  openapi: OpenAPIWebdaDefinition = {}
-) {
-  return function (target: any, executor: string) {
-    let targetName = target.constructor.name.toLowerCase();
-    beans[targetName] = beans[targetName] || {
-      constructor: target.constructor
-    };
-    beans[targetName].routes = beans[targetName].routes || {};
-    beans[targetName].routes[route] = beans[targetName].routes[route] || [];
-    beans[targetName].routes[route].push({
-      methods: Array.isArray(methods) ? methods : [methods],
-      executor,
-      allowPath,
-      openapi
-    });
-  };
 }
 
 export type CoreEvents = {
@@ -417,7 +394,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
     try {
       // TODO Define parralel initialization
       this.log("TRACE", "Initializing service", service);
-      this.initBeanRoutes(this.services[service]);
       this.services[service]._initTime = Date.now();
       await this.services[service].init();
     } catch (err) {
@@ -964,32 +940,6 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
   }
 
   /**
-   * Init Routes declare by @Route annotation
-   */
-  initBeanRoutes(serviceBean: Service) {
-    let service = serviceBean.getName().toLowerCase();
-    if (beans[service] !== undefined && beans[service].routes) {
-      for (let j in beans[service].routes) {
-        this.log("TRACE", "Adding route", j, "for bean", service);
-        beans[service].routes[j].forEach(route => {
-          if (route.resolved) {
-            return;
-          }
-          route.info = {
-            methods: route.methods, // HTTP methods
-            _method: this.services[service][route.executor], // Link to service method
-            allowPath: route.allowPath || false, // Allow / in parser
-            openapi: route.openapi,
-            executor: beans[service].constructor.name // Name of the service
-          };
-          this.addRoute(j, route.info);
-          route.resolved = true;
-        });
-      }
-    }
-  }
-
-  /**
    * Create a new context for a request
    *
    * @class Service
@@ -1145,11 +1095,11 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
           contact,
           license
         },
-        schemes: ["https"],
-        basePath: "/",
-        definitions: {
-          Object: {
-            type: "object"
+        components: {
+          schemas: {
+            Object: {
+              type: "object"
+            }
           }
         },
         paths: {},
@@ -1164,6 +1114,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
         type: "object"
       };
       let modelDescription = this.getModel(i);
+      let modelName = (<CoreModelDefinition>model).name.split("/").pop();
       // Only export CoreModel info
       if (!this.application.extends(modelDescription, CoreModel)) {
         continue;
@@ -1172,13 +1123,21 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       if (schema) {
         for (let j in schema.definitions) {
           // @ts-ignore
-          openapi.definitions[j] ??= schema.definitions[j];
+          openapi.components.schemas[j] ??= schema.definitions[j];
         }
         delete schema.definitions;
         desc = schema;
       }
-      // @ts-ignore
-      openapi.definitions[model.name.split("/").pop()] = desc;
+      // Remove empty required as openapi does not like that
+      if (desc.required && desc.required.length === 0) {
+        delete desc.required;
+      }
+      // Remove $schema
+      delete desc.$schema;
+      // Rename all #/definitions/ by #/components/schemas/
+      openapi.components.schemas[modelName] = JSON.parse(
+        JSON.stringify(desc).replace(/#\/definitions\//g, "#/components/schemas/")
+      );
     }
     this.router.completeOpenAPI(openapi, skipHidden);
     openapi.tags.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
@@ -1187,6 +1146,7 @@ export class Core<E extends CoreEvents = CoreEvents> extends events.EventEmitter
       .sort()
       .forEach(i => (paths[i] = openapi.paths[i]));
     openapi.paths = paths;
+
     return openapi;
   }
 }

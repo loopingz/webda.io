@@ -93,6 +93,25 @@ export function Inject(parameterOrName: string, defaultValue?: string | boolean,
   };
 }
 
+// @Route to declare route on Bean
+export function Route(
+  route: string,
+  methods: string | string[] = ["GET"],
+  allowPath: boolean = false,
+  openapi: OpenAPIWebdaDefinition = {}
+) {
+  return function (target: any, executor: string) {
+    target.constructor.routes ??= {};
+    target.constructor.routes[route] ??= [];
+    target.constructor.routes[route].push({
+      methods: Array.isArray(methods) ? methods : [methods],
+      executor,
+      allowPath,
+      openapi
+    });
+  };
+}
+
 /**
  * Interface to specify the Service parameters
  */
@@ -101,6 +120,10 @@ export class ServiceParameters {
    * Type of the service
    */
   type: string;
+  /**
+   * URL on which to serve the content
+   */
+  url?: string;
 
   /**
    * Copy all parameters into the object by default
@@ -225,8 +248,28 @@ abstract class Service<
     this.computeParameters();
 
     this.initRoutes();
-    this._webda.initBeanRoutes(this);
     return this;
+  }
+
+  /**
+   * Return the full path url based on parameters
+   *
+   * @param url relative url to service
+   * @param _methods in case we need filtering (like Store)
+   * @returns absolute url or undefined if need to skip the Route
+   */
+  getUrl(url: string, _methods: HttpMethodType[]) {
+    // If url is absolute
+    if (url.startsWith("/")) {
+      return url;
+    }
+    if (!this.parameters.url) {
+      return undefined;
+    }
+    if (url.startsWith(".")) {
+      return this.parameters.url + url.substring(1);
+    }
+    return url;
   }
 
   /**
@@ -244,13 +287,11 @@ abstract class Service<
     allowPath: boolean = false,
     override: boolean = false
   ) {
-    let info: any = {};
-    info._method = executer;
-    info.method = methods;
-    info.executor = this._name;
-    info.allowPath = allowPath;
-    info.openapi = openapi;
-    this._webda.addRoute(url, {
+    let finalUrl = this.getUrl(url, methods);
+    if (!finalUrl) {
+      return;
+    }
+    this._webda.addRoute(finalUrl, {
       _method: executer,
       executor: this._name,
       allowPath,
@@ -261,10 +302,25 @@ abstract class Service<
   }
 
   /**
+   * Return variables for replacement in openapi
+   * @returns
+   */
+  getOpenApiReplacements(): any {
+    return {};
+  }
+
+  /**
    * Init the routes
    */
   initRoutes() {
-    // Can be overriden by subclasses if needed
+    // @ts-ignore
+    let routes = this.constructor.routes || {};
+    for (let j in routes) {
+      this.log("TRACE", "Adding route", j, "for bean", this.getName());
+      routes[j].forEach(route => {
+        this.addRoute(j, route.methods, this[route.executor], route.openapi, route.allowPath || false);
+      });
+    }
   }
 
   /**

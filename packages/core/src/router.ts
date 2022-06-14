@@ -279,11 +279,11 @@ export class Router {
   protected getOpenAPISchema(schema) {
     if (!schema) {
       return {
-        $ref: "#/definitions/Object"
+        $ref: "#/components/schemas/Object"
       };
     } else if (typeof schema === "string") {
       return {
-        $ref: "#/definitions/" + schema
+        $ref: "#/components/schemas/" + schema
       };
     }
     return schema;
@@ -305,6 +305,9 @@ export class Router {
     };
     for (let i in this.routes) {
       this.routes[i].forEach((route: RouteInfo) => {
+        route.openapi = this.webda
+          .getApplication()
+          .replaceVariables(route.openapi || {}, this.webda.getService(route.executor).getOpenApiReplacements());
         if (route.openapi.hidden && skipHidden) {
           return;
         }
@@ -327,7 +330,10 @@ export class Router {
               openapi.paths[path].parameters.push({
                 name,
                 in: "query",
-                required: !varName.startsWith("*")
+                required: !varName.startsWith("*"),
+                schema: {
+                  type: "string"
+                }
               });
               return;
             }
@@ -335,7 +341,10 @@ export class Router {
               // ^[a-zA-Z0-9._$-]+$] is the official regex of AWS
               name: varName.replace(/[^a-zA-Z0-9._$-]/g, ""),
               in: "path",
-              required: true
+              required: true,
+              schema: {
+                type: "string"
+              }
             });
           });
         }
@@ -345,7 +354,9 @@ export class Router {
           let description;
           let summary;
           let operationId;
+          let requestBody;
           let tags = route.openapi.tags ?? [];
+          // Refactor here
           if (route.openapi[method.toLowerCase()]) {
             responses = route.openapi[method.toLowerCase()].responses;
             schema = this.getOpenAPISchema(route.openapi[method.toLowerCase()].schemas?.output);
@@ -353,6 +364,7 @@ export class Router {
             summary = route.openapi[method.toLowerCase()].summary;
             operationId = route.openapi[method.toLowerCase()].operationId;
             tags.push(...(route.openapi[method.toLowerCase()].tags || []));
+            requestBody = route.openapi[method.toLowerCase()].requestBody;
           }
           responses = responses || {
             200: {
@@ -360,14 +372,14 @@ export class Router {
             }
           };
           for (let j in responses) {
-            responses[j].content ??= {};
-            responses[j].content["application/json"] = {
-              schema
-            };
             // Add default answer
             let code = parseInt(j);
             if (code < 300 && code >= 200 && !responses[j].description) {
               responses[j].description = "Operation success";
+              responses[j].content ??= {};
+              responses[j].content["application/json"] = {
+                schema
+              };
             }
           }
           if (tags.length === 0) {
@@ -378,11 +390,12 @@ export class Router {
             responses: responses,
             description,
             summary,
-            operationId
+            operationId,
+            requestBody
           };
           if (method.toLowerCase().startsWith("p") && route.openapi[method.toLowerCase()]?.schemas?.input) {
             // Add request schema if exist
-            desc.requestBody = {
+            desc.requestBody ??= {
               content: {
                 "application/json": {
                   schema: this.getOpenAPISchema(route.openapi[method.toLowerCase()]?.schemas?.input)

@@ -71,8 +71,6 @@ class AuthenticationTest extends WebdaTest {
     this.authentication._listAuthentications(ctx);
     assert.strictEqual(ctx.getResponseBody(), JSON.stringify(["email", "plop", "plop2"]));
     ctx.setPathParameters({ provider: "plop" });
-    //assert.strictEqual(this.authentication.getCallbackUrl(ctx), "/plop");
-    assert.strictEqual(this.authentication.getUrl(), "/auth");
     this.authentication.getParameters().password.verifier = "VersionService";
     this.authentication.computeParameters();
     assert.strictEqual(await this.authentication.getPasswordRecoveryInfos("bouzouf"), undefined);

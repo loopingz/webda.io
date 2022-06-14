@@ -1,8 +1,9 @@
 import { EventWithContext, WebdaError } from "../core";
 import { ConfigurationProvider } from "../index";
 import { CoreModel, CoreModelDefinition, ModelAction } from "../models/coremodel";
-import { Service, ServiceParameters } from "../services/service";
+import { Route, Service, ServiceParameters } from "../services/service";
 import { Context } from "../utils/context";
+import { HttpMethodType } from "../utils/httpcontext";
 import { WebdaQL } from "./webdaql/query";
 
 export class StoreNotFoundError extends WebdaError {
@@ -394,6 +395,7 @@ export class StoreParameters extends ServiceParameters {
       expose.restrict = expose.restrict || {};
       this.expose = expose;
       this.expose.queryMethod ??= "GET";
+      this.url = expose.url;
     }
     if (params.map) {
       throw new Error("Deprecated map usage, use a MapperService");
@@ -587,166 +589,98 @@ abstract class Store<
   }
 
   /**
+   * @override
+   */
+  getUrl(url: string, methods: HttpMethodType[]) {
+    // If url is absolute
+    if (url.startsWith("/")) {
+      return url;
+    }
+    const expose = this.parameters.expose;
+    if (
+      !expose.url ||
+      (url === "." && methods.includes("POST") && expose.restrict.create) ||
+      (url === "./{uuid}" && methods.includes("DELETE") && expose.restrict.delete) ||
+      (url === "./{uuid}" && methods.includes("PATCH") && expose.restrict.update) ||
+      (url === "./{uuid}" && methods.includes("PUT") && expose.restrict.update) ||
+      (url === "./{uuid}" && methods.includes("GET") && expose.restrict.get) ||
+      (url === ".{?q}" && methods.includes("GET") && expose.restrict.query) ||
+      (url === "." && methods.includes("PUT") && expose.restrict.query)
+    ) {
+      return undefined;
+    }
+    return super.getUrl(url, methods);
+  }
+
+  /**
    * @inheritdoc
    */
   initRoutes() {
     if (!this.parameters.expose) {
       return;
     }
+    super.initRoutes();
     // We enforce ExposeParameters within the constructor
     const expose = this.parameters.expose;
 
-    if (!expose.restrict.create) {
-      this.addRoute(expose.url, ["POST"], this.httpCreate, {
-        model: this._model.name,
-        post: {
-          description: `The way to create a new ${this._model.name} model`,
-          summary: "Create a new " + this._model.name,
-          operationId: `create${this._model.name}`,
-          responses: {
-            "200": {
-              description: "Retrieve model",
-              content: {
-                "application/json": {
-                  // schema: this._model.name
-                }
-              }
-            },
-            "400": {
-              description: "Object is invalid"
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "409": {
-              description: "Object already exists"
-            }
-          }
-        }
-      });
-    }
-    // Dont even create the route that are restricted so we can ease up the test on handler
-    let methods = [];
-    if (!expose.restrict.update) {
-      methods.push("PUT");
-      methods.push("PATCH");
-    }
-    if (!expose.restrict.get) {
-      methods.push("GET");
-    }
     // Query endpoint
     if (!expose.restrict.query) {
-      this.addRoute(
-        expose.queryMethod === "GET" ? `${expose.url}{?q}` : expose.url,
-        [expose.queryMethod],
-        this.httpQuery,
-        {
-          model: this._model.name,
-          [expose.queryMethod.toLowerCase()]: {
-            description: `Query on ${this._model.name} model with WebdaQL`,
-            summary: "Query " + this._model.name,
-            operationId: `create${this._model.name}`,
-            responses: {
-              "200": {
-                description: "Retrieve models",
-                content: {
-                  "application/json": {
-                    // schema: this._model.name
+      let requestBody;
+      if (expose.queryMethod === "PUT") {
+        requestBody = {
+          content: {
+            "application/json": {
+              schema: {
+                properties: {
+                  q: {
+                    type: "string"
                   }
                 }
-              },
-              "400": {
-                description: "Query is invalid"
-              },
-              "403": {
-                description: "You don't have permissions"
               }
             }
           }
-        }
-      );
-    }
-    if (!expose.restrict.delete) {
-      methods.push("DELETE");
-    }
-    if (methods.length) {
-      this.addRoute(expose.url + "/{uuid}", methods, this.httpRoute, {
+        };
+      }
+      this.addRoute(expose.queryMethod === "GET" ? `.{?q}` : ".", [expose.queryMethod], this.httpQuery, {
         model: this._model.name,
-        get: {
-          description: `Retrieve ${this._model.name} model if permissions allow`,
-          summary: "Retrieve a " + this._model.name,
-          operationId: `get${this._model.name}`,
+        [expose.queryMethod.toLowerCase()]: {
+          description: `Query on ${this._model.name} model with WebdaQL`,
+          summary: "Query " + this._model.name,
+          operationId: `query${this._model.name}`,
+          requestBody,
           responses: {
             "200": {
-              //model: this._model.name
+              description: "Retrieve models",
+              content: {
+                "application/json": {
+                  schema: {
+                    properties: {
+                      contiuationToken: {
+                        type: "string"
+                      },
+                      results: {
+                        type: "array",
+                        items: {
+                          $ref: `#/components/schemas/${this._model.name}`
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             },
             "400": {
-              description: "Object is invalid"
+              description: "Query is invalid"
             },
             "403": {
               description: "You don't have permissions"
-            },
-            "404": {
-              description: "Unknown object"
-            }
-          }
-        },
-        put: {
-          description: `Update a ${this._model.name} if the permissions allow`,
-          summary: "Update a " + this._model.name,
-          operationId: `updatet${this._model.name}`,
-          responses: {
-            "200": {
-              // model: this._model.name
-            },
-            "400": {
-              description: "Object is invalid"
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Unknown object"
-            }
-          }
-        },
-        patch: {
-          description: `Patch a ${this._model.name} if the permissions allow`,
-          summary: "Patch a " + this._model.name,
-          operationId: `updatet${this._model.name}`,
-          responses: {
-            "204": {
-              description: ""
-            },
-            "400": {
-              description: "Object is invalid"
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Unknown object"
-            }
-          }
-        },
-        delete: {
-          operationId: `delete${this._model.name}`,
-          description: `Delete ${this._model.name} if the permissions allow`,
-          summary: "Delete a " + this._model.name,
-          responses: {
-            "204": {
-              description: ""
-            },
-            "403": {
-              description: "You don't have permissions"
-            },
-            "404": {
-              description: "Unknown object"
             }
           }
         }
       });
     }
+
+    // Model actions
     if (this._model && this._model.getActions) {
       let actions = this._model.getActions();
       Object.keys(actions).forEach(name => {
@@ -762,7 +696,7 @@ abstract class Store<
             throw Error("Action static method _" + name + " does not exist");
           }
           executer = this.httpGlobalAction;
-          this.addRoute(expose.url + "/" + name, action.methods, executer, action.openapi);
+          this.addRoute(`./${name}`, action.methods, executer, action.openapi);
         } else {
           // By default will grab the object and then call the action
           if (!this._model.prototype["_" + name]) {
@@ -770,7 +704,7 @@ abstract class Store<
           }
           executer = this.httpAction;
 
-          this.addRoute(expose.url + "/{uuid}/" + name, action.methods, executer, action.openapi);
+          this.addRoute(`./{uuid}/${name}`, action.methods, executer, action.openapi);
         }
       });
     }
@@ -784,13 +718,6 @@ abstract class Store<
     this._model = model;
     this._cacheStore?.setModel(model);
     this.parameters.strict = false;
-  }
-
-  /**
-   * Get the url where the store is exposed
-   */
-  getUrl(): string {
-    return this.parameters.expose.url;
   }
 
   /**
@@ -1601,10 +1528,53 @@ abstract class Store<
     return result;
   }
 
+  getOpenApiReplacements() {
+    return {
+      modelName: this._model.name
+    };
+  }
+
   /**
    * Handle POST
    * @param ctx
    */
+  @Route(".", ["POST"], false, {
+    post: {
+      description: "The way to create a new ${modelName} model",
+      summary: "Create a new ${modelName}",
+      operationId: "create${modelName}",
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/${modelName}"
+            }
+          }
+        }
+      },
+      responses: {
+        "200": {
+          description: "Retrieve model",
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/${modelName}"
+              }
+            }
+          }
+        },
+        "400": {
+          description: "Object is invalid"
+        },
+        "403": {
+          description: "You don't have permissions"
+        },
+        "409": {
+          description: "Object already exists"
+        }
+      }
+    }
+  })
   async httpCreate(ctx: Context) {
     let body = await ctx.getRequestBody();
     let object = this._model.factory(this._model, body, ctx);
@@ -1687,6 +1657,51 @@ abstract class Store<
    *
    * @param ctx context of the request
    */
+  @Route("./{uuid}", ["PUT", "PATCH"], false, {
+    put: {
+      description: "Update a ${modelName} if the permissions allow",
+      summary: "Update a ${modelName}",
+      operationId: "updatet${modelName}",
+      schemas: {
+        input: "${modelName}",
+        output: "${modelName}"
+      },
+      responses: {
+        "200": {},
+        "400": {
+          description: "Object is invalid"
+        },
+        "403": {
+          description: "You don't have permissions"
+        },
+        "404": {
+          description: "Unknown object"
+        }
+      }
+    },
+    patch: {
+      description: "Patch a ${modelName} if the permissions allow",
+      summary: "Patch a ${modelName}",
+      operationId: "partialUpdatet${modelName}",
+      schemas: {
+        input: "${modelName}"
+      },
+      responses: {
+        "204": {
+          description: ""
+        },
+        "400": {
+          description: "Object is invalid"
+        },
+        "403": {
+          description: "You don't have permissions"
+        },
+        "404": {
+          description: "Unknown object"
+        }
+      }
+    }
+  })
   async httpUpdate(ctx: Context) {
     let body = await ctx.getRequestBody();
     let uuid = ctx.parameter("uuid");
@@ -1746,6 +1761,28 @@ abstract class Store<
    *
    * @param ctx context of the request
    */
+  @Route("./{uuid}", ["GET"], false, {
+    get: {
+      description: "Retrieve ${modelName} model if permissions allow",
+      summary: "Retrieve a ${modelName}",
+      operationId: "get${modelName}",
+      schemas: {
+        output: "${modelName}"
+      },
+      responses: {
+        "200": {},
+        "400": {
+          description: "Object is invalid"
+        },
+        "403": {
+          description: "You don't have permissions"
+        },
+        "404": {
+          description: "Unknown object"
+        }
+      }
+    }
+  })
   async httpGet(ctx: Context) {
     let uuid = ctx.parameter("uuid");
     if (uuid) {
@@ -1777,11 +1814,27 @@ abstract class Store<
    * @param ctx context of the request
    * @returns
    */
+  @Route("./{uuid}", ["DELETE"], false, {
+    delete: {
+      operationId: "delete${modelName}",
+      description: "Delete ${modelName} if the permissions allow",
+      summary: "Delete a ${modelName}",
+      responses: {
+        "204": {
+          description: ""
+        },
+        "403": {
+          description: "You don't have permissions"
+        },
+        "404": {
+          description: "Unknown object"
+        }
+      }
+    }
+  })
   async httpRoute(ctx: Context) {
     let uuid = ctx.parameter("uuid");
-    if (ctx.getHttpContext().getMethod() == "GET") {
-      return this.httpGet(ctx);
-    } else if (ctx.getHttpContext().getMethod() == "DELETE") {
+    if (ctx.getHttpContext().getMethod() == "DELETE") {
       let object = await this.get(uuid, ctx);
       if (!object || object.__deleted) throw 404;
       await object.canAct(ctx, "delete");

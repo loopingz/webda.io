@@ -64,8 +64,8 @@ class CryptoServiceTest extends WebdaTest {
   @test
   async jwks() {
     const crypto = this.webda.getCrypto();
-    crypto.getParameters().expose = "/jwk";
-    await crypto.init();
+    crypto.getParameters().url = "/jwk";
+    await crypto.resolve().init();
     let ctx = await this.newContext();
     await this.execute(ctx, "test.webda.io", "GET", "/jwk");
     let body = JSON.parse(ctx.getResponseBody());

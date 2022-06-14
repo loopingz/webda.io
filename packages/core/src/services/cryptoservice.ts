@@ -3,7 +3,7 @@ import * as jwt from "jsonwebtoken";
 import { pem2jwk } from "pem-jwk";
 import { Context, RegistryEntry, Store } from "..";
 import { JSONUtils } from "../utils/serializers";
-import { DeepPartial, Inject, Service, ServiceParameters } from "./service";
+import { DeepPartial, Inject, Route, Service, ServiceParameters } from "./service";
 export interface KeysRegistry {
   /**
    * Contains the instanceId of the last
@@ -97,7 +97,7 @@ export class CryptoServiceParameters extends ServiceParameters {
    *
    * @see https://datatracker.ietf.org/doc/html/rfc7517
    */
-  expose: string;
+  url?: string;
 
   /**
    * Type of asymetric key
@@ -213,15 +213,18 @@ export default class CryptoService<T extends CryptoServiceParameters = CryptoSer
     if (!(await this.load()) && this.parameters.autoCreate) {
       await this.rotate();
     }
-    if (this.parameters.expose) {
-      this.addRoute(this.parameters.expose, ["GET"], this.serveJWKS);
-    }
     return this;
   }
 
   /**
    *
    */
+  @Route(".", ["GET"], false, {
+    description: "Serve JWKS keys",
+    get: {
+      operationId: "getJWKS"
+    }
+  })
   async serveJWKS(context: Context) {
     context.write({
       keys: Object.keys(this.keys).map(k => {

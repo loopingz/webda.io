@@ -1,13 +1,13 @@
-import * as assert from "assert";
 import { suite, test } from "@testdeck/mocha";
+import * as assert from "assert";
 import * as path from "path";
+import * as sinon from "sinon";
 import { Core, OriginFilter, WebdaError, WebsiteOriginFilter } from "./core";
 import { Authentication, Bean, ConsoleLoggerService, Route, Service } from "./index";
 import { Store } from "./stores/store";
 import { TestApplication, WebdaTest } from "./test";
 import { Context } from "./utils/context";
 import { HttpContext } from "./utils/httpcontext";
-import * as sinon from "sinon";
 
 class BadService {
   constructor() {
@@ -36,6 +36,10 @@ class ExceptionExecutor extends Service {
   }
 }
 
+/**
+ * ImplicitBean are not permitted anymore so just adding the @Bean
+ */
+@Bean
 class ImplicitBean extends Service {
   @Route("/whynot")
   async whynot() {}
@@ -226,9 +230,14 @@ class CoreTest extends WebdaTest {
     openapi = webda.exportOpenAPI();
     assert.strictEqual(openapi.info.contact.name, "Test");
     assert.strictEqual(openapi.info.license.name, "GPL");
-    assert.deepStrictEqual(openapi.tags, [{ name: "Aaaaa" }, { name: "contacts" }, { name: "Zzzz" }]);
-    // @ts-ignore
-    assert.ok(Object.keys(openapi.definitions).length > 10);
+    assert.deepStrictEqual(openapi.tags, [
+      { name: "Aaaaa" },
+      { name: "contacts" },
+      { name: "ExceptionExecutor" },
+      { name: "ImplicitBean" },
+      { name: "Zzzz" }
+    ]);
+    assert.ok(Object.keys(openapi.components.schemas).length > 10);
     app.getPackageDescription = () => ({
       license: {
         name: "GPL"
@@ -262,7 +271,7 @@ class CoreTest extends WebdaTest {
 
   @test
   async registry() {
-    await this.webda.getRegistry().put("test", {anyData: "plop"});
+    await this.webda.getRegistry().put("test", { anyData: "plop" });
     assert.strictEqual((await this.webda.getRegistry().get("test")).anyData, "plop");
   }
 

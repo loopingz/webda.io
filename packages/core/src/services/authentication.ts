@@ -2,10 +2,10 @@ import * as bcrypt from "bcryptjs";
 import { EventWithContext } from "../core";
 import { Ident } from "../models/ident";
 import { User } from "../models/user";
-import { Inject, Service, ServiceParameters } from "../services/service";
+import { Inject, Route, Service, ServiceParameters } from "../services/service";
 import { Store } from "../stores/store";
 import { Context } from "../utils/context";
-import { HttpContext } from "../utils/httpcontext";
+import { HttpContext, HttpMethodType } from "../utils/httpcontext";
 import CryptoService from "./cryptoservice";
 import { Mailer } from "./mailer";
 
@@ -268,134 +268,6 @@ class Authentication<
     return <Store<K>>this._identsStore;
   }
 
-  /**
-   * @override
-   */
-  initRoutes() {
-    // ROUTES
-    let url = this.parameters.url;
-    // List authentication configured
-    this.addRoute(url, ["GET", "DELETE"], this._listAuthentications, {
-      get: {
-        description: "Retrieve the list of available authentication",
-        summary: "Get available auths",
-        operationId: `getAuthenticationMethods`,
-        responses: {
-          "200": {
-            description: "List of authentication"
-          }
-        }
-      },
-      delete: {
-        description: "Logout current user",
-        summary: "Logout",
-        operationId: `logout`,
-        responses: {
-          "200": {}
-        }
-      }
-    });
-    // Get the current user
-    this.addRoute(url + "/me", ["GET"], this._getMe, {
-      get: {
-        description: "Retrieve the current user from the session",
-        summary: "Get current user",
-        operationId: "getCurrentUser"
-      }
-    });
-    if (this.parameters.email) {
-      this.addProvider("email");
-      // Add static for email for now, if set before it should have priority
-      this.addRoute(url + "/email", ["POST"], this._handleEmail, {
-        post: {
-          description: "Authenticate with an email and password",
-          summary: "Authenticate with email",
-          operationId: `authWithEmail`
-        }
-      });
-      this.addRoute(url + "/email/callback{?email,token,user}", ["GET"], this._handleEmailCallback, {
-        hidden: true
-      });
-      this.addRoute(url + "/email/passwordRecovery", ["POST"], this._passwordRecovery, {
-        post: {
-          schemas: {
-            input: {
-              type: "object",
-              properties: {
-                token: {
-                  type: "string"
-                },
-                expire: {
-                  type: "number"
-                },
-                password: {
-                  type: "string"
-                },
-                login: {
-                  type: "string"
-                }
-              }
-            }
-          },
-          description: "Reinit the password if we have the right token, expire",
-          summary: "Reinit password",
-          operationId: "reinitPassword",
-          responses: {
-            "204": {
-              description: ""
-            },
-            "403": {
-              description: "Wrong Token"
-            }
-          }
-        }
-      });
-      this.addRoute(url + "/email/{email}/recover", ["GET"], this._passwordRecoveryEmail, {
-        get: {
-          description: "The password reset process will be start",
-          summary: "Start password recovery",
-          operationId: "startEmailRecovery",
-          responses: {
-            "204": {
-              description: ""
-            },
-            "404": {
-              description: "Email does not exist"
-            },
-            "429": {
-              description: "Recovery has been initiated in the last 4 hours"
-            }
-          }
-        }
-      });
-      this.addRoute(url + "/email/{email}/validate", ["GET"], this._sendEmailValidation, {
-        get: {
-          description: "The email validation process will be start",
-          summary: "Restart email validation",
-          operationId: "startEmailRecovery",
-          responses: {
-            "204": {
-              description: ""
-            },
-            "409": {
-              description: "Email already verified for another user"
-            },
-            "412": {
-              description: "Email already verified for current user"
-            },
-            "429": {
-              description: "Validation has been initiated in the last 4 hours"
-            }
-          }
-        }
-      });
-    }
-  }
-
-  getUrl() {
-    return this.parameters.url;
-  }
-
   setIdents(identStore) {
     this._identsStore = identStore;
   }
@@ -418,6 +290,10 @@ class Authentication<
     if (this.parameters.email && this.getMailMan() === undefined) {
       throw Error("email authentication requires a Mailer service");
     }
+    // Add email provider
+    if (this.parameters.email) {
+      this.addProvider("email");
+    }
   }
 
   /**
@@ -429,6 +305,17 @@ class Authentication<
   }
 
   /**
+   * Ensure email is enabled for all emails routes
+   * @override
+   */
+  getUrl(url: string, methods: HttpMethodType[]) {
+    if (url.startsWith("./emails") && !this.parameters.email) {
+      return undefined;
+    }
+    return super.getUrl(url, methods);
+  }
+
+  /**
    * Send or resend an email to validate the email address
    *
    * @param ctx
@@ -436,6 +323,27 @@ class Authentication<
    * @throws 412 if the email is already validated
    * @throws 429 if a validation email has been sent recently
    */
+  @Route("./email/{email}/validate", ["GET"], false, {
+    get: {
+      description: "The email validation process will be start",
+      summary: "Restart email validation",
+      operationId: "startEmailRecovery",
+      responses: {
+        "204": {
+          description: ""
+        },
+        "409": {
+          description: "Email already verified for another user"
+        },
+        "412": {
+          description: "Email already verified for current user"
+        },
+        "429": {
+          description: "Validation has been initiated in the last 4 hours"
+        }
+      }
+    }
+  })
   async _sendEmailValidation(ctx) {
     let identKey = ctx.parameters.email + "_email";
     let ident = await this._identsStore.get(identKey);
@@ -470,6 +378,13 @@ class Authentication<
    * Return current user
    * @param ctx
    */
+  @Route("./me", ["GET"], false, {
+    get: {
+      description: "Retrieve the current user from the session",
+      summary: "Get current user",
+      operationId: "getCurrentUser"
+    }
+  })
   async _getMe(ctx: Context) {
     let user = await ctx.getCurrentUser();
     if (user === undefined) {
@@ -489,6 +404,26 @@ class Authentication<
    * @param ctx
    * @returns
    */
+  @Route(".", ["GET", "DELETE"], false, {
+    get: {
+      description: "Retrieve the list of available authentication",
+      summary: "Get available auths",
+      operationId: `getAuthenticationMethods`,
+      responses: {
+        "200": {
+          description: "List of authentication"
+        }
+      }
+    },
+    delete: {
+      description: "Logout current user",
+      summary: "Logout",
+      operationId: `logout`,
+      responses: {
+        "200": {}
+      }
+    }
+  })
   async _listAuthentications(ctx: Context) {
     if (ctx.getHttpContext().getMethod() === "DELETE") {
       await this.logout(ctx);
@@ -607,6 +542,28 @@ class Authentication<
     };
   }
 
+  /**
+   * Manage password recovery
+   * @param ctx
+   */
+  @Route("./email/{email}/recover", ["GET"], false, {
+    get: {
+      description: "The password reset process will be start",
+      summary: "Start password recovery",
+      operationId: "startEmailRecovery",
+      responses: {
+        "204": {
+          description: ""
+        },
+        "404": {
+          description: "Email does not exist"
+        },
+        "429": {
+          description: "Recovery has been initiated in the last 4 hours"
+        }
+      }
+    }
+  })
   async _passwordRecoveryEmail(ctx: Context) {
     let email = ctx.parameter("email");
     let ident: Ident = await this._identsStore.get(email + "_email");
@@ -638,6 +595,40 @@ class Authentication<
     }
   }
 
+  @Route("./email/passwordRecovery", ["POST"], false, {
+    post: {
+      schemas: {
+        input: {
+          type: "object",
+          properties: {
+            token: {
+              type: "string"
+            },
+            expire: {
+              type: "number"
+            },
+            password: {
+              type: "string"
+            },
+            login: {
+              type: "string"
+            }
+          }
+        }
+      },
+      description: "Reinit the password if we have the right token, expire",
+      summary: "Reinit password",
+      operationId: "reinitPassword",
+      responses: {
+        "204": {
+          description: ""
+        },
+        "403": {
+          description: "Wrong Token"
+        }
+      }
+    }
+  })
   async _passwordRecovery(ctx: Context<PasswordRecoveryBody>) {
     let body = await ctx.getRequestBody();
     if (
@@ -673,6 +664,14 @@ class Authentication<
     });
   }
 
+  /**
+   * Callback to validate an email address
+   * @param ctx
+   * @returns
+   */
+  @Route("./email/callback{?email,token,user}", ["GET"], false, {
+    hidden: true
+  })
   async _handleEmailCallback(ctx: Context) {
     if (!ctx.parameter("token")) {
       throw 400;
@@ -886,6 +885,13 @@ class Authentication<
    * @param ctx
    * @returns
    */
+  @Route("./email", ["POST"], false, {
+    post: {
+      description: "Authenticate with an email and password",
+      summary: "Authenticate with email",
+      operationId: `authWithEmail`
+    }
+  })
   async _handleEmail(ctx: Context<LoginBody>) {
     // If called while logged in reject
     if (ctx.getCurrentUserId() !== undefined) {

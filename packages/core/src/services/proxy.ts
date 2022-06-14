@@ -1,4 +1,5 @@
 import * as http from "http";
+import { OpenAPIWebdaDefinition } from "../router";
 import { Context } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
@@ -18,6 +19,10 @@ export class ProxyParameters extends ServiceParameters {
    * Helper to refuse any request if user is not auth
    */
   requireAuthentication: boolean;
+  /**
+   * Add openapi definition
+   */
+  openapi?: OpenAPIWebdaDefinition;
 }
 
 /**
@@ -40,12 +45,17 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
     super.resolve();
     // Can be used to reuse proxy system without exposing it directly
     if (this.parameters.url) {
-      this.addRoute(this.parameters.url, ["GET", "POST", "DELETE", "PUT", "PATCH"], this.proxyRoute);
+      this.addRoute(
+        this.parameters.url,
+        ["GET", "POST", "DELETE", "PUT", "PATCH"],
+        this.proxyRoute,
+        this.parameters.openapi
+      );
       this.addRoute(
         `${this.parameters.url}/{path}`,
         ["GET", "POST", "DELETE", "PUT", "PATCH"],
         this.proxyRoute,
-        undefined,
+        this.parameters.openapi,
         true
       );
     }

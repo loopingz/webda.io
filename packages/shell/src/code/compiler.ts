@@ -1,7 +1,7 @@
 //node.kind === ts.SyntaxKind.ClassDeclaration
 import { tsquery } from "@phenomnomnominal/tsquery";
 import { Application, FileUtils, JSONUtils, Logger, Module, Section } from "@webda/core";
-import { existsSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { JSONSchema7 } from "json-schema";
 import * as path from "path";
 import {
@@ -579,7 +579,6 @@ export class Compiler {
           };
 
           tsquery(sourceFile, "Decorator [name=Bean]").forEach(beanExplorer);
-          tsquery(sourceFile, "Decorator [name=Route]").forEach(beanExplorer);
         }
       }
     });
@@ -641,7 +640,20 @@ export class Compiler {
     this.createProgramFromApp();
 
     // Emit all code
-    const { diagnostics } = this.tsProgram.emit();
+    const { diagnostics } = this.tsProgram.emit(
+      undefined,
+      (
+        fileName: string,
+        text: string,
+        writeByteOrderMark: boolean,
+        onError?: (message: string) => void,
+        sourceFiles?: readonly ts.SourceFile[]
+      ) => {
+        mkdirSync(path.dirname(fileName), { recursive: true });
+        // Add the ".js" -> if module
+        writeFileSync(fileName, text.replace(/^(import .* from "\..*)";$/gm, '$1.js";'));
+      }
+    );
 
     const allDiagnostics = ts.getPreEmitDiagnostics(this.tsProgram).concat(diagnostics, this.configParseResult.errors);
 

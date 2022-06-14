@@ -1,4 +1,5 @@
 import { WorkerLogLevel } from "@webda/workout";
+import { deepmerge } from "deepmerge-ts";
 import * as events from "events";
 import { Core, Logger } from "../index";
 import { OpenAPIWebdaDefinition } from "../router";
@@ -124,6 +125,10 @@ export class ServiceParameters {
    * URL on which to serve the content
    */
   url?: string;
+  /**
+   * OpenAPI override
+   */
+  openapi?: OpenAPIWebdaDefinition;
 
   /**
    * Copy all parameters into the object by default
@@ -295,7 +300,7 @@ abstract class Service<
       _method: executer,
       executor: this._name,
       allowPath,
-      openapi,
+      openapi: deepmerge(openapi, this.parameters.openapi || {}),
       methods,
       override
     });

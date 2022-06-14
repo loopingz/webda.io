@@ -8,9 +8,10 @@ class AnnotedService extends Webda.Store {
     if (this.parameters.brokenConstructor) throw Error();
   }
 
-  init() {
+  async init() {
     if (this.parameters.brokenInit) throw Error();
     this.addRoute("/broken/{type}", ["GET"], this._brokenRoute);
+    return this;
   }
 
   @Webda.Route("/route1")

@@ -1,7 +1,6 @@
 import * as http from "http";
-import { OpenAPIWebdaDefinition } from "../router";
 import { Context } from "../utils/context";
-import { Service, ServiceParameters } from "./service";
+import { Route, Service, ServiceParameters } from "./service";
 
 /**
  * Proxy to a backend service
@@ -19,10 +18,6 @@ export class ProxyParameters extends ServiceParameters {
    * Helper to refuse any request if user is not auth
    */
   requireAuthentication: boolean;
-  /**
-   * Add openapi definition
-   */
-  openapi?: OpenAPIWebdaDefinition;
 }
 
 /**
@@ -36,30 +31,6 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    */
   loadParameters(params: any) {
     return new ProxyParameters(params);
-  }
-
-  /**
-   * @override
-   */
-  resolve(): this {
-    super.resolve();
-    // Can be used to reuse proxy system without exposing it directly
-    if (this.parameters.url) {
-      this.addRoute(
-        this.parameters.url,
-        ["GET", "POST", "DELETE", "PUT", "PATCH"],
-        this.proxyRoute,
-        this.parameters.openapi
-      );
-      this.addRoute(
-        `${this.parameters.url}/{path}`,
-        ["GET", "POST", "DELETE", "PUT", "PATCH"],
-        this.proxyRoute,
-        this.parameters.openapi,
-        true
-      );
-    }
-    return this;
   }
 
   /**
@@ -162,6 +133,8 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
    * Proxy to starling
    * @param ctx
    */
+  @Route("./{path}", ["GET", "POST", "DELETE", "PUT", "PATCH"], true)
+  @Route(".", ["GET", "POST", "DELETE", "PUT", "PATCH"])
   async proxyRoute(ctx: Context) {
     if (this.parameters.requireAuthentication && !ctx.getCurrentUserId()) {
       throw 401;

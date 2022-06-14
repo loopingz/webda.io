@@ -1,7 +1,6 @@
 import * as fs from "fs";
 import * as mime from "mime-types";
 import * as path from "path";
-import { OpenAPIWebdaDefinition } from "../router";
 import { Context } from "../utils/context";
 import { Service, ServiceParameters } from "./service";
 
@@ -40,10 +39,6 @@ export class ResourceServiceParameters extends ServiceParameters {
    * @default true
    */
   indexFallback?: boolean;
-  /**
-   * Additional openapi info
-   */
-  openapi?: OpenAPIWebdaDefinition;
 
   constructor(params: any) {
     super(params);
@@ -120,8 +115,7 @@ export default class ResourceService<
             description: "File not found"
           }
         }
-      },
-      ...this.parameters.openapi
+      }
     });
     this.addRoute(
       this.parameters.url + "{resource}",
@@ -143,8 +137,7 @@ export default class ResourceService<
               description: "File not found"
             }
           }
-        },
-        ...this.parameters.openapi
+        }
       },
       true
     );
@@ -159,8 +152,7 @@ export default class ResourceService<
               description: ""
             }
           }
-        },
-        ...this.parameters.openapi
+        }
       });
     }
   }

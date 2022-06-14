@@ -295,14 +295,7 @@ export class Router {
    * @param skipHidden add hidden routes or not
    */
   completeOpenAPI(openapi: OpenAPIV3.Document, skipHidden: boolean = true) {
-    let hasTag = (tag: string) => {
-      for (let t in openapi.tags) {
-        if (openapi.tags[t].name === tag) {
-          return true;
-        }
-      }
-      return false;
-    };
+    let hasTag = tag => openapi.tags.find(t => t.name === tag) !== undefined;
     for (let i in this.routes) {
       this.routes[i].forEach((route: RouteInfo) => {
         route.openapi = this.webda
@@ -382,6 +375,7 @@ export class Router {
               };
             }
           }
+          // Add the service name if no tags are defined
           if (tags.length === 0) {
             tags.push(route.executor);
           }
@@ -404,13 +398,13 @@ export class Router {
             };
           }
           openapi.paths[path][method.toLowerCase()] = desc;
-          tags.forEach(tag => {
-            if (!hasTag(tag)) {
+          tags
+            .filter(tag => !hasTag(tag))
+            .forEach(tag =>
               openapi.tags.push({
                 name: tag
-              });
-            }
-          });
+              })
+            );
         });
       });
     }
